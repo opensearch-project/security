@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,6 +60,7 @@ import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
@@ -88,12 +88,12 @@ public class OpenSearchSecurityInterceptor {
     private final ClusterInfoHolder clusterInfoHolder;
 
     public OpenSearchSecurityInterceptor(final Settings settings,
-                                         final ThreadPool threadPool, final BackendRegistry backendRegistry,
-                                         final AuditLog auditLog, final PrincipalExtractor principalExtractor,
-                                         final InterClusterRequestEvaluator requestEvalProvider,
-                                         final ClusterService cs,
-                                         final SslExceptionHandler sslExceptionHandler,
-                                         final ClusterInfoHolder clusterInfoHolder) {
+            final ThreadPool threadPool, final BackendRegistry backendRegistry,
+            final AuditLog auditLog, final PrincipalExtractor principalExtractor,
+            final InterClusterRequestEvaluator requestEvalProvider,
+            final ClusterService cs,
+            final SslExceptionHandler sslExceptionHandler,
+            final ClusterInfoHolder clusterInfoHolder) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -106,7 +106,7 @@ public class OpenSearchSecurityInterceptor {
     }
 
     public <T extends TransportRequest> OpenSearchSecurityRequestHandler<T> getHandler(String action,
-                                                                                       TransportRequestHandler<T> actualHandler) {
+            TransportRequestHandler<T> actualHandler) {
         return new OpenSearchSecurityRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog,
                 principalExtractor, requestEvalProvider, cs, sslExceptionHandler);
     }
