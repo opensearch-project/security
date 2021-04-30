@@ -119,8 +119,8 @@ public class OpenSearchSecurityFilter implements ActionFilter {
     private final BackendRegistry backendRegistry;
 
     public OpenSearchSecurityFilter(final Client client, final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-                                    DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                                    final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry) {
+            DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
+            final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry) {
         this.client = client;
         this.evalp = evalp;
         this.adminDns = adminDns;
