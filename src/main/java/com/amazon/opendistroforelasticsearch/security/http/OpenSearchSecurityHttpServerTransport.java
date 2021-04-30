@@ -30,7 +30,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.http;
 
-import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyHttpServerTransport;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -41,6 +40,7 @@ import org.opensearch.transport.SharedGroupFactory;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenSearchSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
+import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.ValidatingDispatcher;
 
 public class OpenSearchSecurityHttpServerTransport extends OpenSearchSecuritySSLNettyHttpServerTransport {
