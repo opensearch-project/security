@@ -27,3 +27,4 @@ Compatible with OpenSearch 1.0.0-beta1
 * Build security plugin with OpenSearch 1.0.0-beta1 ([#1143](https://github.com/opensearch-project/security/pull/1143))
 * Change opensearch version to use ([#1146](https://github.com/opensearch-project/security/pull/1146))
 * Update static roles for compatibility for new indices used in OpenSearch Dashboards ([#1148](https://github.com/opensearch-project/security/pull/1148))
+* Update release note for OpenSearch Security Plugin `1.0.0.0-beta1`([#1152](https://github.com/opensearch-project/security/pull/1152))
