@@ -51,7 +51,7 @@ public class RolesUtil {
         if (roles == null) {
             return EMPTY_STRING_ARRAY;
         } else if (roles instanceof List) {
-            String[] rolesList2 = (String[]) ((List)roles)
+            String[] filteredRoles = (String[]) ((List)roles)
                     .stream()
                     .filter(x -> {
                         if (!(x instanceof String)){
@@ -62,7 +62,7 @@ public class RolesUtil {
                         }
                     })
                     .toArray(String[]::new);
-            return rolesList2;
+            return filteredRoles;
         } else if (roles instanceof String) {
             return splitString(String.valueOf(roles));
         }
