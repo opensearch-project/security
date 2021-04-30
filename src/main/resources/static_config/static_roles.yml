@@ -33,6 +33,9 @@ kibana_user:
         - ".kibana"
         - ".kibana-6"
         - ".kibana_*"
+        - ".opensearch_dashboards"
+        - ".opensearch_dashboards-6"
+        - ".opensearch_dashboards_*"
       allowed_actions:
         - "read"
         - "delete"
@@ -87,14 +90,17 @@ kibana_server:
   index_permissions:
   - index_patterns:
     - ".kibana"
+    - ".opensearch_dashboards"
     allowed_actions:
     - "indices_all"
   - index_patterns:
     - ".kibana-6"
+    - ".opensearch_dashboards-6"
     allowed_actions:
     - "indices_all"
   - index_patterns:
     - ".kibana_*"
+    - ".opensearch_dashboards_*"
     allowed_actions:
     - "indices_all"
   - index_patterns:
