@@ -35,7 +35,7 @@ public final class OpenSearchSecuritySSLTransportInterceptor implements Transpor
     protected final SslExceptionHandler errorHandler;
     
     public OpenSearchSecuritySSLTransportInterceptor(final Settings settings, final  ThreadPool threadPool,
-                                                     PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
+            PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
         this.errorHandler = errorHandler;

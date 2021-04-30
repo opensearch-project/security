@@ -56,7 +56,7 @@ implements TransportRequestHandler<T> {
     private final SslExceptionHandler errorHandler;
 
     public OpenSearchSecuritySSLRequestHandler(String action, TransportRequestHandler<T> actualHandler,
-                                               ThreadPool threadPool, final PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
+            ThreadPool threadPool, final PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
         super();
         this.action = action;
         this.actualHandler = actualHandler;
