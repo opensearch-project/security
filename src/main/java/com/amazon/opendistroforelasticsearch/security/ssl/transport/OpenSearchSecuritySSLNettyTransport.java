@@ -72,17 +72,17 @@ import io.netty.handler.ssl.SslHandler;
 public class OpenSearchSecuritySSLNettyTransport extends Netty4Transport {
 
     private static final Logger logger = LogManager.getLogger(OpenSearchSecuritySSLNettyTransport.class);
-    private final OpenSearchSecurityKeyStore odsks;
+    private final OpenSearchSecurityKeyStore ossks;
     private final SslExceptionHandler errorHandler;
     private final OpenSearchSSLConfig openSearchSSLConfig;
 
     public OpenSearchSecuritySSLNettyTransport(final Settings settings, final Version version, final ThreadPool threadPool, final NetworkService networkService,
                                                final PageCacheRecycler pageCacheRecycler, final NamedWriteableRegistry namedWriteableRegistry,
-                                               final CircuitBreakerService circuitBreakerService, final OpenSearchSecurityKeyStore odsks, final SslExceptionHandler errorHandler, SharedGroupFactory sharedGroupFactory,
+                                               final CircuitBreakerService circuitBreakerService, final OpenSearchSecurityKeyStore ossks, final SslExceptionHandler errorHandler, SharedGroupFactory sharedGroupFactory,
                                                final OpenSearchSSLConfig openSearchSSLConfig) {
         super(settings, version, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, sharedGroupFactory);
 
-        this.odsks = odsks;
+        this.ossks = ossks;
         this.errorHandler = errorHandler;
         this.openSearchSSLConfig = openSearchSSLConfig;
     }
@@ -125,10 +125,10 @@ public class OpenSearchSecuritySSLNettyTransport extends Netty4Transport {
             boolean dualModeEnabled = openSearchSSLConfig.isDualModeEnabled();
             if (dualModeEnabled) {
                 logger.info("SSL Dual mode enabled, using port unification handler");
-                final ChannelHandler portUnificationHandler = new DualModeSSLHandler(odsks);
+                final ChannelHandler portUnificationHandler = new DualModeSSLHandler(ossks);
                 ch.pipeline().addFirst("port_unification_handler", portUnificationHandler);
             } else {
-                final SslHandler sslHandler = new SslHandler(odsks.createServerTransportSSLEngine());
+                final SslHandler sslHandler = new SslHandler(ossks.createServerTransportSSLEngine());
                 ch.pipeline().addFirst("ssl_server", sslHandler);
             }
         }
@@ -237,7 +237,7 @@ public class OpenSearchSecuritySSLNettyTransport extends Netty4Transport {
 
             if (connectionTestResult == SSLConnectionTestResult.SSL_AVAILABLE) {
                 logger.debug("Connection to {} needs to be ssl, adding ssl handler to the client channel ", node.getHostName());
-                ch.pipeline().addFirst("client_ssl_handler", new ClientSSLHandler(odsks, hostnameVerificationEnabled,
+                ch.pipeline().addFirst("client_ssl_handler", new ClientSSLHandler(ossks, hostnameVerificationEnabled,
                         hostnameVerificationResovleHostName, errorHandler));
             } else {
                 logger.debug("Connection to {} needs to be non ssl", node.getHostName());
