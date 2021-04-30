@@ -35,7 +35,6 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManagerFactory;
 
 
-import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import org.apache.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
 import org.opensearch.OpenSearchSecurityException;
@@ -59,6 +58,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;

@@ -37,12 +37,12 @@ import static org.junit.Assert.assertFalse;
 
 import java.util.Map;
 
-import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.opensearch.common.settings.Settings;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class UtilTests {

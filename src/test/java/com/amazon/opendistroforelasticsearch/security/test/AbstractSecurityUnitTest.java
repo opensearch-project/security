@@ -30,7 +30,6 @@
 
 package com.amazon.opendistroforelasticsearch.security.test;
 
-import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import io.netty.handler.ssl.OpenSsl;
 
 import java.net.InetSocketAddress;
@@ -64,6 +63,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateRequest;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateResponse;
