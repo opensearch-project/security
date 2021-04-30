@@ -60,6 +60,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     private static final Pattern BASIC = Pattern.compile("^\\s*Basic\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER = "bearer ";
+    private static final Configuration jsonPathConfig = Configuration.defaultConfiguration();
+    private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
     private final JwtParser jwtParser;
     private final String jwtHeaderName;
@@ -67,7 +69,6 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final String jwtUrlParameter;
     private final String rolesKey;
     private final String jsonRolesPath;
-    private final Configuration jsonPathConfig;
     private final String subjectKey;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
@@ -125,7 +126,6 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             throw new IllegalStateException("Both roles_key and roles_path are simultaneously provided." +
                     " Please provide only one combination.");
         }
-        jsonPathConfig = Configuration.defaultConfiguration();
     }
 
 
@@ -205,6 +205,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             log.error("Cannot authenticate user with JWT because of ", e);
             return null;
         } catch (IllegalArgumentException e){
+            // throw the IllegalArgumentException thrown by RolesUtil class
             throw e;
         } catch (Exception e) {
             if(log.isDebugEnabled()) {
@@ -230,13 +231,13 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     protected String extractSubject(final Claims claims, final RestRequest request) {
         String subject = claims.getSubject();
         if(subjectKey != null) {
-    		// try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
+            // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
             Object subjectObject = claims.get(subjectKey, Object.class);
             if(subjectObject == null) {
                 log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
                 return null;
             }
-        	// We expect a String. If we find something else, convert to String but issue a warning
+            // We expect a String. If we find something else, convert to String but issue a warning
             if(!(subjectObject instanceof String)) {
         		log.warn("Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.", subjectKey, subjectObject, subjectObject.getClass());
             }
@@ -247,29 +248,30 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     @SuppressWarnings("unchecked")
     protected String[] extractRoles(final Claims claims, final RestRequest request) {
-    	// no roles key specified
-    	if(rolesKey == null && jsonRolesPath == null) {
-    		return new String[0];
-    	}
+        // no roles key specified
+        if(rolesKey == null && jsonRolesPath == null) {
+            return EMPTY_STRING_ARRAY;
+        }
 
-    	// get roles from roles_path if roles_path is specified
-    	if (jsonRolesPath != null){
-    	    try {
+        // get roles from roles_path if roles_path is specified
+        if (jsonRolesPath != null){
+            try {
                 return RolesUtil.split(JsonPath.using(jsonPathConfig).parse(claims).read(jsonRolesPath));
             } catch (PathNotFoundException e) {
-                log.error("The provided JSON path {} could not be found ", jsonRolesPath);
-                return new String[0];
+                log.error("The provided JSON path {} could not be found in the claims {} ", jsonRolesPath, claims, e);
+                return EMPTY_STRING_ARRAY;
             }
         }
 
-		// try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
-    	final Object rolesObject = claims.get(rolesKey, Object.class);
-    	if(rolesObject == null) {
-    		log.warn("Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.", rolesKey);
-    		return new String[0];
-    	}
+        // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
+        final Object rolesObject = claims.get(rolesKey, Object.class);
+        if(rolesObject == null) {
+            log.warn("Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.", rolesKey);
+            return EMPTY_STRING_ARRAY;
+        }
 
-    	return RolesUtil.split(rolesObject);
+        return RolesUtil.split(rolesObject);
+
     }
 
     private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException, InvalidKeySpecException {
