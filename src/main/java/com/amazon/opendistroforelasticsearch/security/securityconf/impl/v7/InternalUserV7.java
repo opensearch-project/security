@@ -102,11 +102,11 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
             this.backend_roles = backend_roles;
         }
 
-        public List<String> getOpenSearch_security_roles() {
+        public List<String> getOpendistro_security_roles() {
             return opendistro_security_roles;
         }
 
-        public void setOpenSearch_security_roles(List<String> opendistro_security_roles) {
+        public void setOpendistro_security_roles(List<String> opendistro_security_roles) {
             this.opendistro_security_roles = opendistro_security_roles;
         }
 
