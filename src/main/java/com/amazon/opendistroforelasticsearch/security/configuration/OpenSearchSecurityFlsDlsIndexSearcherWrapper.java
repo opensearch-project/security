@@ -54,8 +54,8 @@ public class OpenSearchSecurityFlsDlsIndexSearcherWrapper extends OpenSearchSecu
     private final Salt salt;
 
     public OpenSearchSecurityFlsDlsIndexSearcherWrapper(final IndexService indexService, final Settings settings,
-                                                        final AdminDNs adminDNs, final ClusterService clusterService, final AuditLog auditlog,
-                                                        final ComplianceIndexingOperationListener ciol, final PrivilegesEvaluator evaluator, final Salt salt) {
+            final AdminDNs adminDNs, final ClusterService clusterService, final AuditLog auditlog,
+            final ComplianceIndexingOperationListener ciol, final PrivilegesEvaluator evaluator, final Salt salt) {
         super(indexService, settings, adminDNs, evaluator);
         ciol.setIs(indexService);
         this.clusterService = clusterService;
