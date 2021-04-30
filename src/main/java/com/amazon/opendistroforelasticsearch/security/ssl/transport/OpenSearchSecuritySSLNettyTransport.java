@@ -77,9 +77,9 @@ public class OpenSearchSecuritySSLNettyTransport extends Netty4Transport {
     private final OpenSearchSSLConfig openSearchSSLConfig;
 
     public OpenSearchSecuritySSLNettyTransport(final Settings settings, final Version version, final ThreadPool threadPool, final NetworkService networkService,
-                                               final PageCacheRecycler pageCacheRecycler, final NamedWriteableRegistry namedWriteableRegistry,
-                                               final CircuitBreakerService circuitBreakerService, final OpenSearchSecurityKeyStore ossks, final SslExceptionHandler errorHandler, SharedGroupFactory sharedGroupFactory,
-                                               final OpenSearchSSLConfig openSearchSSLConfig) {
+            final PageCacheRecycler pageCacheRecycler, final NamedWriteableRegistry namedWriteableRegistry,
+            final CircuitBreakerService circuitBreakerService, final OpenSearchSecurityKeyStore ossks, final SslExceptionHandler errorHandler, SharedGroupFactory sharedGroupFactory,
+            final OpenSearchSSLConfig openSearchSSLConfig) {
         super(settings, version, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, sharedGroupFactory);
 
         this.ossks = ossks;
@@ -155,7 +155,7 @@ public class OpenSearchSecuritySSLNettyTransport extends Netty4Transport {
         
 
         private ClientSSLHandler(final OpenSearchSecurityKeyStore odsks, final boolean hostnameVerificationEnabled,
-                                 final boolean hostnameVerificationResovleHostName, final SslExceptionHandler errorHandler) {
+                final boolean hostnameVerificationResovleHostName, final SslExceptionHandler errorHandler) {
             this.odsks = odsks;
             this.hostnameVerificationEnabled = hostnameVerificationEnabled;
             this.hostnameVerificationResovleHostName = hostnameVerificationResovleHostName;
