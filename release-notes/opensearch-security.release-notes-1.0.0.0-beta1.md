@@ -9,7 +9,6 @@ Compatible with OpenSearch 1.0.0-beta1
 ### Bug fixes
 
 * [Fix][Usage][Hasher] wrong file reference hash.sh ([#1093](https://github.com/opensearch-project/security/pull/1093))
-* Fix echo messages and anchor links ([#1147](https://github.com/opensearch-project/security/pull/1147))
 
 ### Maintenance
 
@@ -26,5 +25,6 @@ Compatible with OpenSearch 1.0.0-beta1
 * Bump plugin version to beta1 ([#1141](https://github.com/opensearch-project/security/pull/1141))
 * Build security plugin with OpenSearch 1.0.0-beta1 ([#1143](https://github.com/opensearch-project/security/pull/1143))
 * Change opensearch version to use ([#1146](https://github.com/opensearch-project/security/pull/1146))
+* Fix echo messages and anchor links ([#1147](https://github.com/opensearch-project/security/pull/1147))
 * Update static roles for compatibility for new indices used in OpenSearch Dashboards ([#1148](https://github.com/opensearch-project/security/pull/1148))
 * Update release note for OpenSearch Security Plugin `1.0.0.0-beta1`([#1152](https://github.com/opensearch-project/security/pull/1152))
