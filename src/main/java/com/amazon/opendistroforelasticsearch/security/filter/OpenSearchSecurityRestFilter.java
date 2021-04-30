@@ -78,8 +78,8 @@ public class OpenSearchSecurityRestFilter {
 
 
     public OpenSearchSecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
-                                        final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
-                                        final Settings settings, final Path configPath, final CompatConfig compatConfig) {
+            final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
+            final Settings settings, final Path configPath, final CompatConfig compatConfig) {
         super();
         this.registry = registry;
         this.auditLog = auditLog;
