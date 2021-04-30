@@ -47,8 +47,8 @@ public class OpenSearchSecurityNonSslHttpServerTransport extends Netty4HttpServe
 
 
     public OpenSearchSecurityNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-                                                       final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher,
-                                                       ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
+            final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher,
+            ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
         super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
     }
 
