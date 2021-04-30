@@ -9,6 +9,7 @@ Compatible with OpenSearch 1.0.0-beta1
 ### Bug fixes
 
 * [Fix][Usage][Hasher] wrong file reference hash.sh ([#1093](https://github.com/opensearch-project/security/pull/1093))
+* Fix echo messages and anchor links ([#1147](https://github.com/opensearch-project/security/pull/1147))
 
 ### Maintenance
 
