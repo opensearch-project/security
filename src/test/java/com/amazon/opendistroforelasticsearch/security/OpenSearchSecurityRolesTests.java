@@ -45,7 +45,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 public class OpenSearchSecurityRolesTests extends SingleClusterTest {
 
 	@Test
-	public void testOpenSecurityRolesAnon() throws Exception {
+	public void testOpenSearchSecurityRolesAnon() throws Exception {
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig()
 				.setSecurityInternalUsers("internal_users_sr.yml")
