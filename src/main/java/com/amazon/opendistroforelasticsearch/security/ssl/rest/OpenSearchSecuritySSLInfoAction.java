@@ -57,7 +57,7 @@ public class OpenSearchSecuritySSLInfoAction extends BaseRestHandler {
     private final Settings settings;
 
     public OpenSearchSecuritySSLInfoAction(final Settings settings, final Path configPath, final RestController controller,
-                                           final OpenSearchSecurityKeyStore odsks, final PrincipalExtractor principalExtractor) {
+            final OpenSearchSecurityKeyStore odsks, final PrincipalExtractor principalExtractor) {
         super();
         this.settings = settings;
         this.odsks = odsks;
