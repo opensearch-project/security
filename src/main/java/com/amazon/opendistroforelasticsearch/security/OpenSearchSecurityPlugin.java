@@ -55,7 +55,6 @@ import com.amazon.opendistroforelasticsearch.security.configuration.OpenSearchSe
 import com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl;
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenSearchSecurityRestApiActions;
-import com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenSearchSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenSearchSecuritySSLCertsInfoAction;
 
@@ -148,6 +147,7 @@ import com.amazon.opendistroforelasticsearch.security.configuration.Configuratio
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
 import com.amazon.opendistroforelasticsearch.security.filter.OpenSearchSecurityFilter;
 import com.amazon.opendistroforelasticsearch.security.filter.OpenSearchSecurityRestFilter;
+import com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityNonSslHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
