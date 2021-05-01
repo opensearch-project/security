@@ -56,13 +56,10 @@ import com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesIn
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenSearchSecurityRestApiActions;
 import com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityHttpServerTransport;
-import com.amazon.opendistroforelasticsearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenSearchSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenSearchSecuritySSLCertsInfoAction;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenSearchSecuritySSLNettyTransport;
-import com.amazon.opendistroforelasticsearch.security.support.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenSearchSSLConfig;
@@ -161,8 +158,10 @@ import com.amazon.opendistroforelasticsearch.security.rest.OpenSearchSecurityHea
 import com.amazon.opendistroforelasticsearch.security.rest.OpenSearchSecurityInfoAction;
 import com.amazon.opendistroforelasticsearch.security.rest.TenantInfoAction;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
+import com.amazon.opendistroforelasticsearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.ValidatingDispatcher;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenSearchSecuritySSLNettyTransport;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
