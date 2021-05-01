@@ -47,7 +47,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
-import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -76,6 +75,7 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Security
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
+import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 

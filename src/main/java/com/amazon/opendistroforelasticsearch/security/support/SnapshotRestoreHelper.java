@@ -49,7 +49,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 
-
 public class SnapshotRestoreHelper {
 
     protected static final Logger log = LogManager.getLogger(SnapshotRestoreHelper.class);
