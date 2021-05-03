@@ -411,4 +411,16 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
 	}
+
+	@Test
+	public void checkNullElementsInArray() throws Exception{
+		setup();
+		rh.keystore = "restapi/kirk-keystore.jks";
+		rh.sendAdminCertificate = true;
+
+		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
+													 FileHelper.loadFile("restapi/rolesmapping_null_array_element.json"), new Header[0]);
+		System.out.println(response.getBody());
+		Assert.assertTrue(response.getBody().contains("Invalid array element"));
+	}
 }

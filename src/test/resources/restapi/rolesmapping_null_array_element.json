@@ -1,0 +1,11 @@
+{
+  "users": [
+    null
+  ],
+  "backend_roles": [
+    "captains"
+  ],
+  "hosts": [
+    "8.8.8.8"
+  ]
+}

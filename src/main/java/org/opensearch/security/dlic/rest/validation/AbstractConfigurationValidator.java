@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Arrays;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.DefaultObjectMapper;
@@ -167,6 +168,25 @@ public abstract class AbstractConfigurationValidator {
         mandatory.removeAll(requested);
         missingMandatoryKeys.addAll(mandatory);
 
+        //null element in the values of all the possible keys with DataType as ARRAY
+        final Map<String, Object> contentAsMap = XContentHelper.convertToMap(this.content, false, XContentType.JSON).v2();
+        for (String allowedKey: allowedKeys.keySet()) {
+            DataType dataType = allowedKeys.get(allowedKey);
+            if(dataType == DataType.ARRAY) {
+                Object valuesObject = contentAsMap.get(allowedKey);
+                try {
+                    if (Arrays.asList(valuesObject).contains(null)) {
+                        this.errorType = ErrorType.INVALID_ARRAY_ELEMENT;
+                        return false;
+                    }
+                } catch (Exception e) {
+                    log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
+                    this.errorType = ErrorType.BODY_NOT_PARSEABLE;
+                    return false;
+
+                }
+            }
+        }
         // invalid settings
         Set<String> allowed = new HashSet<>(allowedKeys.keySet());
         requested.removeAll(allowed);
@@ -253,6 +273,10 @@ public abstract class AbstractConfigurationValidator {
                         builder.field(entry.getKey(), entry.getValue());
                     }
                     break;
+                case INVALID_ARRAY_ELEMENT:
+                    builder.field("status", "error");
+                    builder.field("reason", ErrorType.INVALID_ARRAY_ELEMENT.getMessage());
+                    break;
                 default:
                     builder.field("status", "error");
                     builder.field("reason", errorType.getMessage());
@@ -281,7 +305,8 @@ public abstract class AbstractConfigurationValidator {
     public static enum ErrorType {
         NONE("ok"), INVALID_CONFIGURATION("Invalid configuration"), INVALID_PASSWORD("Invalid password"), WRONG_DATATYPE("Wrong datatype"),
         BODY_NOT_PARSEABLE("Could not parse content of request."), PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
-        PAYLOAD_MANDATORY("Request body required for this action."), SECURITY_NOT_INITIALIZED("Security index not initialized");
+        PAYLOAD_MANDATORY("Request body required for this action."), SECURITY_NOT_INITIALIZED("Security index not initialized"),
+        INVALID_ARRAY_ELEMENT("Invalid array element");
 
         private String message;
 
