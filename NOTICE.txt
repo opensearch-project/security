@@ -1,6 +1,5 @@
-Copyright 2015-2017 floragunn GmbH
-
-Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+OpenSearch
+Copyright 2021 OpenSearch Contributors
 
 This product includes software developed by The Apache Software
 Foundation (http://www.apache.org/).

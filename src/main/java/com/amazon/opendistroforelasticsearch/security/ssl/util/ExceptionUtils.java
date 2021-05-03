@@ -17,7 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.ssl.util;
 
-import org.elasticsearch.ElasticsearchException;
+import org.opensearch.OpenSearchException;
 
 public class ExceptionUtils {
     
@@ -51,8 +51,8 @@ public class ExceptionUtils {
         return findMsg(cause, msg);
     }
 
-    public static ElasticsearchException createBadHeaderException() {
-        return new ElasticsearchException("Illegal parameter in http or transport request found."+System.lineSeparator()
+    public static OpenSearchException createBadHeaderException() {
+        return new OpenSearchException("Illegal parameter in http or transport request found."+System.lineSeparator()
                 + "This means that one node is trying to connect to another with "+System.lineSeparator()
                 + "a non-node certificate (no OID or security.nodes_dn incorrect configured) or that someone "+System.lineSeparator()
                 + "is spoofing requests. Check your TLS certificate setup as described here: "

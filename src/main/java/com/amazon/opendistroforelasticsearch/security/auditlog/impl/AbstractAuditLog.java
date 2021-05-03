@@ -36,49 +36,48 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkShardRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.engine.Engine.Delete;
-import org.elasticsearch.index.engine.Engine.DeleteResult;
-import org.elasticsearch.index.engine.Engine.Index;
-import org.elasticsearch.index.engine.Engine.IndexResult;
-import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.SpecialPermission;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkShardRequest;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Strings;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.env.Environment;
+import org.opensearch.index.engine.Engine.Delete;
+import org.opensearch.index.engine.Engine.DeleteResult;
+import org.opensearch.index.engine.Engine.Index;
+import org.opensearch.index.engine.Engine.IndexResult;
+import org.opensearch.index.get.GetResult;
+import org.opensearch.index.shard.ShardId;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceConfig;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flipkart.zjsonpatch.JsonDiff;
 import com.google.common.io.BaseEncoding;
 
-import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public abstract class AbstractAuditLog implements AuditLog {
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -403,12 +402,12 @@ public abstract class AbstractAuditLog implements AuditLog {
                         try {
                             Map<String, String> map = fieldNameValues.entrySet().stream()
                                     .collect(Collectors.toMap(entry -> "id", entry -> new String(BaseEncoding.base64().decode(((Entry<String, String>) entry).getValue()), StandardCharsets.UTF_8)));
-                            msg.addMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")));
+                            msg.addSecurityConfigMapToRequestBody(Utils.convertJsonToxToStructuredMap(map.get("id")), id);
                         } catch (Exception e) {
-                            msg.addMapToRequestBody(new HashMap<String, Object>(fieldNameValues));
+                            msg.addSecurityConfigMapToRequestBody(fieldNameValues, id);
                         }
                     } else {
-                        msg.addMapToRequestBody(new HashMap<String, Object>(fieldNameValues));
+                        msg.addMapToRequestBody(fieldNameValues);
                     }
                 }
             } catch (Exception e) {
@@ -435,13 +434,14 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
+        final String id = currentIndex.id();
         AuditMessage msg = new AuditMessage(category, clusterService, getOrigin(), null);
         TransportAddress remoteAddress = getRemoteAddress();
         msg.addRemoteAddress(remoteAddress);
         msg.addEffectiveUser(effectiveUser);
         msg.addIndices(new String[]{shardId.getIndexName()});
         msg.addResolvedIndices(new String[]{shardId.getIndexName()});
-        msg.addId(currentIndex.id());
+        msg.addId(id);
         msg.addShardId(shardId);
         msg.addComplianceDocVersion(result.getVersion());
         msg.addComplianceOperation(result.isCreated()?Operation.CREATE:Operation.UPDATE);
@@ -472,12 +472,14 @@ public abstract class AbstractAuditLog implements AuditLog {
                     } catch (Exception e) {
                         log.error(e);
                     }
+                    final JsonNode diffnode = JsonDiff.asJson(DefaultObjectMapper.objectMapper.readTree(originalSource), DefaultObjectMapper.objectMapper.readTree(currentSource));
+                    msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
                 } else {
                     originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                     currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
+                    final JsonNode diffnode = JsonDiff.asJson(DefaultObjectMapper.objectMapper.readTree(originalSource), DefaultObjectMapper.objectMapper.readTree(currentSource));
+                    msg.addComplianceWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString());
                 }
-                final JsonNode diffnode = JsonDiff.asJson(DefaultObjectMapper.objectMapper.readTree(originalSource), DefaultObjectMapper.objectMapper.readTree(currentSource));
-                msg.addComplianceWriteDiffSource(diffnode.size() == 0?"":diffnode.toString());
             } catch (Exception e) {
                 log.error("Unable to generate diff for {}",msg.toPrettyString(),e);
             }
@@ -490,10 +492,10 @@ public abstract class AbstractAuditLog implements AuditLog {
                 try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, currentIndex.source(), XContentType.JSON)) {
                    Object base64 = parser.map().values().iterator().next();
                    if(base64 instanceof String) {
-                       msg.addUnescapedJsonToRequestBody(new String(BaseEncoding.base64().decode((String) base64)));
-                    } else {
-                        msg.addTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()));
-                    }
+                       msg.addSecurityConfigContentToRequestBody(new String(BaseEncoding.base64().decode((String) base64)), id);
+                   } else {
+                       msg.addSecurityConfigTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()), id);
+                   }
                 } catch (Exception e) {
                     log.error(e);
                 }
@@ -574,7 +576,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         try (XContentBuilder builder = XContentBuilder.builder(XContentType.JSON.xContent())) {
             builder.startObject();
             builder.startObject("external_configuration");
-            builder.field("elasticsearch_yml", configAsMap);
+            builder.field("opensearch_yml", configAsMap);
             builder.field("os_environment", envAsMap);
             builder.field("java_properties", propsAsMap);
             builder.field("sha256_checksum", sha256);
@@ -635,8 +637,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @VisibleForTesting
     boolean checkTransportFilter(final AuditCategory category, final String action, final String effectiveUser, TransportRequest request) {
-
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("Check category:{}, action:{}, effectiveUser:{}, request:{}", category, action, effectiveUser, request==null?null:request.getClass().getSimpleName());
         }
 
@@ -652,7 +654,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if (auditConfigFilter.isAuditDisabled(effectiveUser)) {
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
             }
 
@@ -661,7 +663,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if (request != null && (auditConfigFilter.isRequestAuditDisabled(action) || auditConfigFilter.isRequestAuditDisabled(request.getClass().getSimpleName()))) {
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because request {} is ignored", action+"#"+request.getClass().getSimpleName());
             }
 
@@ -671,7 +673,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (!auditConfigFilter.getDisabledTransportCategories().contains(category)) {
             return true;
         } else {
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;
@@ -687,12 +689,13 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     private boolean checkComplianceFilter(final AuditCategory category, final String effectiveUser, Origin origin, ComplianceConfig complianceConfig) {
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("Check for COMPLIANCE category:{}, effectiveUser:{}, origin: {}", category, effectiveUser, origin);
         }
 
         if(origin == Origin.LOCAL && effectiveUser == null && category != AuditCategory.COMPLIANCE_EXTERNAL_CONFIG) {
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped compliance log message because of null user and local origin");
             }
             return false;
@@ -702,7 +705,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
             if (effectiveUser != null && complianceConfig.isComplianceReadAuditDisabled(effectiveUser)) {
 
-                if(log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
                 }
                 return false;
@@ -712,7 +715,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         if(category == AuditCategory.COMPLIANCE_DOC_WRITE || category == AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE) {
             if (effectiveUser != null && complianceConfig.isComplianceWriteAuditDisabled(effectiveUser)) {
 
-                if(log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("Skipped compliance log message because of user {} is ignored", effectiveUser);
                 }
                 return false;
@@ -724,7 +727,8 @@ public abstract class AbstractAuditLog implements AuditLog {
 
     @VisibleForTesting
     boolean checkRestFilter(final AuditCategory category, final String effectiveUser, RestRequest request) {
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("Check for REST category:{}, effectiveUser:{}, request:{}", category, effectiveUser, request==null?null:request.path());
         }
 
@@ -734,7 +738,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if (auditConfigFilter.isAuditDisabled(effectiveUser)) {
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because of user {} is ignored", effectiveUser);
             }
 
@@ -743,7 +747,7 @@ public abstract class AbstractAuditLog implements AuditLog {
 
         if (request != null && auditConfigFilter.isRequestAuditDisabled(request.path())) {
 
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because request {} is ignored", request.path());
             }
 
@@ -753,7 +757,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         if (!auditConfigFilter.getDisabledRestCategories().contains(category)) {
             return true;
         } else {
-            if(log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Skipped audit log message because category {} not enabled", category);
             }
             return false;

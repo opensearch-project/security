@@ -39,8 +39,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.Strings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;

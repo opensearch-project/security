@@ -30,17 +30,17 @@
 
 package com.amazon.opendistroforelasticsearch.security;
 
-import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import org.apache.http.HttpStatus;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.PluginAwareNode;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.node.Node;
+import org.opensearch.node.PluginAwareNode;
+import org.opensearch.transport.Netty4Plugin;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -48,6 +48,7 @@ import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
+import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 

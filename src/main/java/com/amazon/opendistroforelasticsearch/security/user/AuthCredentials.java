@@ -39,7 +39,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.ElasticsearchSecurityException;
+import org.opensearch.OpenSearchSecurityException;
 
 /**
  * AuthCredentials are an abstraction to encapsulate credentials like passwords or generic
@@ -114,7 +114,7 @@ public final class AuthCredentials {
                 MessageDigest digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
                 internalPasswordHash = digester.digest(this.password);
             } catch (NoSuchAlgorithmException e) {
-                throw new ElasticsearchSecurityException("Unable to digest password", e);
+                throw new OpenSearchSecurityException("Unable to digest password", e);
             }
         } else {
             internalPasswordHash = null;

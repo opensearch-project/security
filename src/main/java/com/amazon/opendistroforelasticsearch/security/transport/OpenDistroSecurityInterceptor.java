@@ -40,26 +40,26 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsAction;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.search.SearchAction;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Transport.Connection;
-import org.elasticsearch.transport.TransportException;
-import org.elasticsearch.transport.TransportInterceptor.AsyncSender;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestHandler;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportResponseHandler;
+import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsAction;
+import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.search.SearchAction;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.Transport.Connection;
+import org.opensearch.transport.TransportException;
+import org.opensearch.transport.TransportInterceptor.AsyncSender;
+import org.opensearch.transport.TransportRequest;
+import org.opensearch.transport.TransportRequestHandler;
+import org.opensearch.transport.TransportRequestOptions;
+import org.opensearch.transport.TransportResponse;
+import org.opensearch.transport.TransportResponseHandler;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
@@ -125,6 +125,7 @@ public class OpenDistroSecurityInterceptor {
         final String origCCSTransientFls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS);
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
+        final boolean isDebugEnabled = log.isDebugEnabled();
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
@@ -148,7 +149,7 @@ public class OpenDistroSecurityInterceptor {
                     || action.equals(SearchAction.NAME)
             )
                     && !clusterInfoHolder.hasNode(connection.getNode())) {
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
                 }
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
@@ -162,7 +163,7 @@ public class OpenDistroSecurityInterceptor {
                     && !action.equals(ClusterSearchShardsAction.NAME)
                     && !clusterInfoHolder.hasNode(connection.getNode())) {
 
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("add dls/fls/mf from transient");
                 }
 
@@ -228,7 +229,7 @@ public class OpenDistroSecurityInterceptor {
     }
 
     //based on
-    //org.elasticsearch.transport.TransportService.ContextRestoreResponseHandler<T>
+    //org.opensearch.transport.TransportService.ContextRestoreResponseHandler<T>
     //which is private scoped
     private class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
@@ -253,15 +254,16 @@ public class OpenDistroSecurityInterceptor {
 
             contextToRestore.restore();
 
+            final boolean isDebugEnabled = log.isDebugEnabled();
             if (response instanceof ClusterSearchShardsResponse && flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("add flsResponseHeader as transient");
                 }
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
             }
 
             if (response instanceof ClusterSearchShardsResponse && dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("add dlsResponseHeader as transient");
                 }
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
@@ -269,7 +271,7 @@ public class OpenDistroSecurityInterceptor {
             }
 
             if (response instanceof ClusterSearchShardsResponse && maskedFieldsResponseHeader != null && !maskedFieldsResponseHeader.isEmpty()) {
-                if (log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("add maskedFieldsResponseHeader as transient");
                 }
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));

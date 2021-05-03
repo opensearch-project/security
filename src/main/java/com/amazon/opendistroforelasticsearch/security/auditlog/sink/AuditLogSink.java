@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
@@ -76,9 +76,9 @@ public abstract class AuditLogSink {
             return true;
         }
 
-
+        final boolean isDebugEnabled = log.isDebugEnabled();
         for(int i=0; i<retryCount; i++) {
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Retry attempt {}/{} for {} ({})", i+1, retryCount, this.getName(), this.getClass());
             }
             Uninterruptibles.sleepUninterruptibly(delayMs, TimeUnit.MILLISECONDS);

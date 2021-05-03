@@ -24,7 +24,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.ldaptive.ActivePassiveConnectionStrategy;
 import org.ldaptive.BindConnectionInitializer;
 import org.ldaptive.CompareRequest;
@@ -288,7 +288,7 @@ public class LDAPConnectionFactoryFactory {
 
             if (!Boolean.parseBoolean(System.getProperty("com.sun.jndi.ldap.object.disableEndpointIdentification"))) {
                 log.warn("In order to disable host name verification for LDAP connections (verify_hostnames: true), "
-                        + "you also need to set set the system property com.sun.jndi.ldap.object.disableEndpointIdentification to true when starting the JVM running ES. "
+                        + "you also need to set set the system property com.sun.jndi.ldap.object.disableEndpointIdentification to true when starting the JVM running OpenSearch. "
                         + "This applies for all Java versions released since July 2018.");
                 // See:
                 // https://www.oracle.com/technetwork/java/javase/8u181-relnotes-4479407.html

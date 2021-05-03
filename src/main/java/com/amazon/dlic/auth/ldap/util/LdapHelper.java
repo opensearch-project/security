@@ -25,7 +25,7 @@ import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
-import org.elasticsearch.SpecialPermission;
+import org.opensearch.SpecialPermission;
 import org.ldaptive.Connection;
 import org.ldaptive.DerefAliases;
 import org.ldaptive.LdapEntry;

@@ -65,7 +65,7 @@ public class OpenDistroSecurityRestFilterTest extends AbstractRestApiUnitTest {
         //ADMIN TRIES ACCESSING A WHITELISTED API - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/nodes", adminCredsHeader);
-        log.warn("the second response is:" + response);
+        log.warn("the second response is:{}", response);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
         //SUPERADMIN TRIES ACCESSING A WHITELISTED API - OK

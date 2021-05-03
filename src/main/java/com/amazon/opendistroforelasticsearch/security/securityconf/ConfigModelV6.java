@@ -38,13 +38,13 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
 
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer.Resolved;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -63,7 +63,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
 
-import static org.elasticsearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
+import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 
 
 public class ConfigModelV6 extends ConfigModel {
@@ -81,13 +81,13 @@ public class ConfigModelV6 extends ConfigModel {
             SecurityDynamicConfiguration<ActionGroupsV6> actiongroups,
             SecurityDynamicConfiguration<RoleMappingsV6> rolesmapping,
             DynamicConfigModel dcm,
-            Settings esSettings) {
+            Settings opensearchSettings) {
         
         this.roles = roles;
         
         try {
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(
-                    esSettings.get(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
+                    opensearchSettings.get(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
                             .toUpperCase());
         } catch (Exception e) {
             log.error("Cannot apply roles mapping resolution", e);
@@ -291,7 +291,7 @@ public class ConfigModelV6 extends ConfigModel {
             return null;
         } catch (ExecutionException e) {
             log.error("Error while updating roles: {}", e.getCause(), e.getCause());
-            throw ExceptionsHelper.convertToElastic(e);
+            throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
 
@@ -953,19 +953,20 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         public boolean matches(String index, String type, String action) {
+            final boolean isDebugEnabled = log.isDebugEnabled();
             boolean matchIndex = matcher.test(index);
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("index {} {} index pattern {}", index, b2s(matchIndex), matcher);
             }
             if (matchIndex) {
                 return typePerms.stream().anyMatch(tp -> {
                     boolean matchType = tp.getTypeMatcher().test(type);
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("type {} {} type pattern {}", type, b2s(matchType), tp.getTypeMatcher());
                     }
                     if (matchType) {
                         boolean matchAction = tp.getPerms().test(action);
-                        if (log.isDebugEnabled()) {
+                        if (isDebugEnabled) {
                             log.debug("action {} {} action pattern {}", action, b2s(matchAction), tp.getPerms());
                         }
                         return matchAction;
@@ -1070,7 +1071,7 @@ public class ConfigModelV6 extends ConfigModel {
                 return;
             } catch (ExecutionException e) {
                 log.error("Error while updating roles: {}", e.getCause(), e.getCause());
-                throw ExceptionsHelper.convertToElastic(e);
+                throw ExceptionsHelper.convertToOpenSearchException(e);
             }
 
         }

@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import java.util.Collections;
 import java.util.List;
@@ -207,7 +207,7 @@ public class AuditConfig {
         }
 
         /**
-         * Generate audit logging configuration from settings defined in elasticsearch.yml
+         * Generate audit logging configuration from settings defined in opensearch.yml
          * @param settings settings
          * @return audit configuration filter
          */

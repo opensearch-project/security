@@ -15,8 +15,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.auditlog.impl;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings.Builder;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings.Builder;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -24,15 +24,15 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MyOwnAudit
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.DebugSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.ExternalESSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.InternalESSink;
+import com.amazon.opendistroforelasticsearch.security.auditlog.sink.ExternalOpenSearchSink;
+import com.amazon.opendistroforelasticsearch.security.auditlog.sink.InternalOpenSearchSink;
 
 public class DelegateTest {
 	@Test
 	public void auditLogTypeTest() throws Exception{
 		testAuditType("DeBUg", DebugSink.class);
-		testAuditType("intERnal_Elasticsearch", InternalESSink.class);
-		testAuditType("EXTERnal_Elasticsearch", ExternalESSink.class);
+		testAuditType("intERnal_OpenSearch", InternalOpenSearchSink.class);
+		testAuditType("EXTERnal_OpenSearch", ExternalOpenSearchSink.class);
 		testAuditType("com.amazon.opendistroforelasticsearch.security.auditlog.sink.MyOwnAuditLog", MyOwnAuditLog.class);
 		testAuditType("com.amazon.opendistroforelasticsearch.security.auditlog.sink.MyOwnAuditLog", null);
 		testAuditType("idonotexist", null);

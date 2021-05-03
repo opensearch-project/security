@@ -22,9 +22,9 @@ import java.util.Map.Entry;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
@@ -124,14 +124,14 @@ public class SinkProvider {
 		AuditLogSink sink = null;
 		if (type != null) {
 			switch (type.toLowerCase()) {
-			case "internal_elasticsearch":
-				sink = new InternalESSink(name, settings, settingsPrefix, configPath, clientProvider, threadPool, fallbackSink);
+			case "internal_opensearch":
+				sink = new InternalOpenSearchSink(name, settings, settingsPrefix, configPath, clientProvider, threadPool, fallbackSink);
 				break;
-			case "external_elasticsearch":
+			case "external_opensearch":
 				try {
-					sink = new ExternalESSink(name, settings, settingsPrefix, configPath, fallbackSink);
+					sink = new ExternalOpenSearchSink(name, settings, settingsPrefix, configPath, fallbackSink);
 				} catch (Exception e) {
-					log.error("Audit logging unavailable: Unable to setup HttpESAuditLog due to", e);
+					log.error("Audit logging unavailable: Unable to setup HttpOpenSearchAuditLog due to", e);
 				}
 				break;
 			case "webhook":

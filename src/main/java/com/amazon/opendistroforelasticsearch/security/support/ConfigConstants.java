@@ -32,7 +32,7 @@ package com.amazon.opendistroforelasticsearch.security.support;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -155,27 +155,27 @@ public class ConfigConstants {
     
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "opendistro_security.audit.config.";
 
-    // Internal / External ES
-    public static final String OPENDISTRO_SECURITY_AUDIT_ES_INDEX = "index";
-    public static final String OPENDISTRO_SECURITY_AUDIT_ES_TYPE = "type";
+    // Internal / External OpenSearch
+    public static final String OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX = "index";
+    public static final String OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_TYPE = "type";
     
-    // External ES
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS = "http_endpoints";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_USERNAME = "username";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PASSWORD = "password";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL = "enable_ssl";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_VERIFY_HOSTNAMES = "verify_hostnames";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH = "enable_ssl_client_auth";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_FILEPATH = "pemkey_filepath";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_CONTENT = "pemkey_content";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_PASSWORD = "pemkey_password";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMCERT_FILEPATH = "pemcert_filepath";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMCERT_CONTENT = "pemcert_content";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH = "pemtrustedcas_filepath";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT = "pemtrustedcas_content";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS = "cert_alias";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS = "enabled_ssl_ciphers";
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS = "enabled_ssl_protocols";
+    // External OpenSearch
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS = "http_endpoints";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME = "username";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD = "password";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL = "enable_ssl";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_VERIFY_HOSTNAMES = "verify_hostnames";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH = "enable_ssl_client_auth";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_FILEPATH = "pemkey_filepath";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_CONTENT = "pemkey_content";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_PASSWORD = "pemkey_password";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_FILEPATH = "pemcert_filepath";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_CONTENT = "pemcert_content";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH = "pemtrustedcas_filepath";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_CONTENT = "pemtrustedcas_content";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_JKS_CERT_ALIAS = "cert_alias";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS = "enabled_ssl_ciphers";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS = "enabled_ssl_protocols";
 
     // Webhooks    
     public static final String OPENDISTRO_SECURITY_AUDIT_WEBHOOK_URL = "webhook.url";

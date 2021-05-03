@@ -29,16 +29,16 @@ import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExt
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.inject.Inject;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -54,7 +54,7 @@ import java.util.List;
  * <p>
  * A SuperAdmin is identified by a certificate which represents a distinguished name(DN).
  * SuperAdmin DN's can be set in {@link ConfigConstants#OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN}
- * SuperAdmin certificate for the default superuser is stored as a kirk.pem file in config folder of elasticsearch
+ * SuperAdmin certificate for the default superuser is stored as a kirk.pem file in config folder of OpenSearch
  * <p>
  * Example calling the PUT API as SuperAdmin using curl (if http basic auth is on):
  * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’

@@ -22,22 +22,22 @@ import java.security.PrivilegedAction;
 import java.util.Map;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.engine.Engine.Delete;
-import org.elasticsearch.index.engine.Engine.DeleteResult;
-import org.elasticsearch.index.engine.Engine.Index;
-import org.elasticsearch.index.engine.Engine.IndexResult;
-import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.SpecialPermission;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
+import org.opensearch.index.engine.Engine.Delete;
+import org.opensearch.index.engine.Engine.DeleteResult;
+import org.opensearch.index.engine.Engine.Index;
+import org.opensearch.index.engine.Engine.IndexResult;
+import org.opensearch.index.get.GetResult;
+import org.opensearch.index.shard.ShardId;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TransportRequest;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.routing.AuditMessageRouter;
 import org.greenrobot.eventbus.Subscribe;
@@ -46,7 +46,6 @@ public final class AuditLogImpl extends AbstractAuditLog {
 
 	private final AuditMessageRouter messageRouter;
 	private final Settings settings;
-	private final boolean dlsFlsAvailable;
 	private final boolean messageRouterEnabled;
 	private volatile boolean enabled;
 	private final Thread shutdownHook;
@@ -57,7 +56,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 			final ThreadPool threadPool,
 			final IndexNameExpressionResolver resolver,
 			final ClusterService clusterService) {
-		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, null, true);
+		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, null);
 	}
 
 	public AuditLogImpl(final Settings settings,
@@ -66,14 +65,9 @@ public final class AuditLogImpl extends AbstractAuditLog {
 						final ThreadPool threadPool,
 						final IndexNameExpressionResolver resolver,
 						final ClusterService clusterService,
-						final Environment environment,
-						final boolean dlsFlsAvailable) {
+						final Environment environment) {
 		super(settings, threadPool, resolver, clusterService, environment);
 		this.settings = settings;
-		this.dlsFlsAvailable = dlsFlsAvailable;
-		if (!dlsFlsAvailable) {
-			log.debug("Changes to Compliance config will ignored because DLS-FLS is not available.");
-		}
 		this.messageRouter = new AuditMessageRouter(settings, clientProvider, threadPool, configPath);
 		this.messageRouterEnabled = this.messageRouter.isEnabled();
 
@@ -88,9 +82,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	public void setConfig(final AuditConfig auditConfig) {
 		enabled = auditConfig.isEnabled() && messageRouterEnabled;
 		onAuditConfigFilterChanged(auditConfig.getFilter());
-		if (dlsFlsAvailable) {
-			onComplianceConfigChanged(auditConfig.getCompliance());
-		}
+		onComplianceConfigChanged(auditConfig.getCompliance());
 	}
 
 	@Override

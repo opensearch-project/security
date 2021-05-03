@@ -41,46 +41,46 @@ import java.util.StringJoiner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesAction;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
-import org.elasticsearch.action.admin.indices.create.AutoCreateAction;
-import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.AutoPutMappingAction;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
-import org.elasticsearch.action.bulk.BulkAction;
-import org.elasticsearch.action.bulk.BulkItemRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkShardRequest;
-import org.elasticsearch.action.delete.DeleteAction;
-import org.elasticsearch.action.get.MultiGetAction;
-import org.elasticsearch.action.index.IndexAction;
-import org.elasticsearch.action.search.MultiSearchAction;
-import org.elasticsearch.action.search.SearchAction;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchScrollAction;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.termvectors.MultiTermVectorsAction;
-import org.elasticsearch.action.update.UpdateAction;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.index.reindex.ReindexAction;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.opensearch.action.admin.indices.alias.IndicesAliasesAction;
+import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.opensearch.action.admin.indices.create.AutoCreateAction;
+import org.opensearch.action.admin.indices.create.CreateIndexAction;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.delete.DeleteIndexAction;
+import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
+import org.opensearch.action.admin.indices.mapping.put.AutoPutMappingAction;
+import org.opensearch.action.admin.indices.mapping.put.PutMappingAction;
+import org.opensearch.action.bulk.BulkAction;
+import org.opensearch.action.bulk.BulkItemRequest;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkShardRequest;
+import org.opensearch.action.delete.DeleteAction;
+import org.opensearch.action.get.MultiGetAction;
+import org.opensearch.action.index.IndexAction;
+import org.opensearch.action.search.MultiSearchAction;
+import org.opensearch.action.search.SearchAction;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchScrollAction;
+import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.action.termvectors.MultiTermVectorsAction;
+import org.opensearch.action.update.UpdateAction;
+import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Strings;
+import org.opensearch.common.collect.ImmutableOpenMap;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.index.reindex.ReindexAction;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
 import org.greenrobot.eventbus.Subscribe;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
@@ -125,13 +125,13 @@ public class PrivilegesEvaluator {
 
     private final DlsFlsEvaluator dlsFlsEvaluator;
 
-    private final boolean advancedModulesEnabled;
+    private final boolean dlsFlsEnabled;
     private DynamicConfigModel dcm;
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
                                AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
-                               final IndexResolverReplacer irr, boolean advancedModulesEnabled) {
+                               final IndexResolverReplacer irr, boolean dlsFlsEnabled) {
 
         super();
         this.clusterService = clusterService;
@@ -152,7 +152,7 @@ public class PrivilegesEvaluator {
         protectedIndexAccessEvaluator = new OpenDistroProtectedIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        this.advancedModulesEnabled = advancedModulesEnabled;
+        this.dlsFlsEnabled = dlsFlsEnabled;
     }
 
     @Subscribe
@@ -191,7 +191,7 @@ public class PrivilegesEvaluator {
                                                 Task task, final Set<String> injectedRoles) {
 
         if (!isInitialized()) {
-            throw new ElasticsearchSecurityException("Open Distro Security is not initialized.");
+            throw new OpenSearchSecurityException("Open Distro Security is not initialized.");
         }
 
         if(action0.startsWith("internal:indices/admin/upgrade")) {
@@ -214,11 +214,11 @@ public class PrivilegesEvaluator {
 
         final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
-
-        if (log.isDebugEnabled()) {
-            log.debug("### evaluate permissions for {} on {}", user, clusterService.localNode().getName());
-            log.debug("action: "+action0+" ("+request.getClass().getSimpleName()+")");
-            log.debug("mapped roles: {}",mappedRoles.toString());
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        if (isDebugEnabled) {
+            log.debug("Evaluate permissions for {} on {}", user, clusterService.localNode().getName());
+            log.debug("Action: {} ({})", action0, request.getClass().getSimpleName());
+            log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
@@ -239,13 +239,13 @@ public class PrivilegesEvaluator {
 
         final Resolved requestedResolved = irr.resolveRequest(request);
 
-        if (log.isDebugEnabled()) {
-            log.debug("requestedResolved : {}", requestedResolved );
+        if (isDebugEnabled) {
+            log.debug("RequestedResolved : {}", requestedResolved);
         }
 
 
         // check dlsfls
-        if (advancedModulesEnabled
+        if (dlsFlsEnabled
                 //&& (action0.startsWith("indices:data/read") || action0.equals(ClusterSearchShardsAction.NAME))
                 && dlsFlsEvaluator.evaluate(request, clusterService, resolver, requestedResolved, user, securityRoles, presponse).isComplete()) {
             return presponse;
@@ -268,7 +268,8 @@ public class PrivilegesEvaluator {
 
         final boolean dnfofEnabled = dcm.isDnfofEnabled();
 
-        if(log.isTraceEnabled()) {
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("dnfof enabled? {}", dnfofEnabled);
         }
 
@@ -283,7 +284,7 @@ public class PrivilegesEvaluator {
             } else {
 
                 if(request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
-                    if(log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
                     }
                 } else {
@@ -292,7 +293,7 @@ public class PrivilegesEvaluator {
                         final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved,
                                 mapTenants(user, mappedRoles));
 
-                        if(log.isDebugEnabled()) {
+                        if (isDebugEnabled) {
                             log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
                         }
 
@@ -301,7 +302,7 @@ public class PrivilegesEvaluator {
                                 auditLog.logMissingPrivileges(action0, request, task);
                             } else {
                                 presponse.allowed = true;
-                                presponse.request = replaceResult.createIndexRequest;
+                                presponse.createIndexRequestBuilder = replaceResult.createIndexRequestBuilder;
                             }
                             return presponse;
                         }
@@ -333,8 +334,8 @@ public class PrivilegesEvaluator {
                         }
                     }
 
-                    if(log.isDebugEnabled()) {
-                        log.debug("Allowed because we have cluster permissions for "+action0);
+                    if (isDebugEnabled) {
+                        log.debug("Allowed because we have cluster permissions for {}", action0);
                     }
                     presponse.allowed = true;
                     return presponse;
@@ -352,21 +353,17 @@ public class PrivilegesEvaluator {
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
 
-        if(log.isDebugEnabled()) {
-            log.debug("requested {} from {}", allIndexPermsRequired, caller);
+        if (isDebugEnabled) {
+            log.debug("Requested {} from {}", allIndexPermsRequired, caller);
         }
 
         presponse.missingPrivileges.clear();
         presponse.missingPrivileges.addAll(allIndexPermsRequired);
 
-        if (log.isDebugEnabled()) {
-            log.debug("requested resolved indextypes: {}", requestedResolved);
+        if (isDebugEnabled) {
+            log.debug("Requested resolved index types: {}", requestedResolved);
+            log.debug("Security roles: {}", securityRoles.getRoleNames());
         }
-
-        if (log.isDebugEnabled()) {
-            log.debug("sr: {}", securityRoles.getRoleNames());
-        }
-
 
         //TODO exclude Security index
 
@@ -374,7 +371,7 @@ public class PrivilegesEvaluator {
 
             final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceKibanaIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
 
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Result from privileges interceptor: {}", replaceResult);
             }
 
@@ -383,7 +380,7 @@ public class PrivilegesEvaluator {
                     auditLog.logMissingPrivileges(action0, request, task);
                 } else {
                     presponse.allowed = true;
-                    presponse.request = replaceResult.createIndexRequest;
+                    presponse.createIndexRequestBuilder = replaceResult.createIndexRequestBuilder;
                 }
                 return presponse;
             }
@@ -445,8 +442,8 @@ public class PrivilegesEvaluator {
         //not bulk, mget, etc request here
         boolean permGiven = false;
 
-        if (log.isDebugEnabled()) {
-            log.debug("sr2: {}", securityRoles.getRoleNames());
+        if (isDebugEnabled) {
+            log.debug("Security roles: {}", securityRoles.getRoleNames());
         }
 
         if (dcm.isMultiRolespanEnabled()) {
@@ -462,13 +459,13 @@ public class PrivilegesEvaluator {
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {
 
-            if(checkFilteredAliases(requestedResolved.getAllIndices(), action0)) {
+            if(checkFilteredAliases(requestedResolved.getAllIndices(), action0, isDebugEnabled)) {
                 presponse.allowed=false;
                 return presponse;
             }
 
-            if(log.isDebugEnabled()) {
-                log.debug("Allowed because we have all indices permissions for "+action0);
+            if (isDebugEnabled) {
+                log.debug("Allowed because we have all indices permissions for {}", action0);
             }
         }
 
@@ -575,8 +572,8 @@ public class PrivilegesEvaluator {
             traceAction("Additional permissions required: {}", additionalPermissionsRequired);
         }
 
-        if(log.isDebugEnabled() && additionalPermissionsRequired.size() > 1) {
-            log.debug("Additional permissions required: "+additionalPermissionsRequired);
+        if (log.isDebugEnabled() && additionalPermissionsRequired.size() > 1) {
+            log.debug("Additional permissions required: {}", additionalPermissionsRequired);
         }
 
         return Collections.unmodifiableSet(additionalPermissionsRequired);
@@ -596,7 +593,7 @@ public class PrivilegesEvaluator {
             ) ;
     }
 
-    private boolean checkFilteredAliases(Set<String> requestedResolvedIndices, String action) {
+    private boolean checkFilteredAliases(Set<String> requestedResolvedIndices, String action, boolean isDebugEnabled) {
         //check filtered aliases
         for (String requestAliasOrIndex: requestedResolvedIndices) {
 
@@ -605,15 +602,16 @@ public class PrivilegesEvaluator {
             final IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().get(requestAliasOrIndex);
 
             if (indexMetadata == null) {
-                log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+                if (isDebugEnabled) {
+                    log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+                }
                 continue;
             }
 
             final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetadata.getAliases();
 
             if(aliases != null && aliases.size() > 0) {
-
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
                 }
 
@@ -624,12 +622,12 @@ public class PrivilegesEvaluator {
 
                     if (aliasMetadata != null && aliasMetadata.filteringRequired()) {
                         filteredAliases.add(aliasMetadata);
-                        if(log.isDebugEnabled()) {
-                            log.debug(alias+" is a filtered alias "+aliasMetadata.getFilter());
+                        if (isDebugEnabled) {
+                            log.debug("{} is a filtered alias {}", alias, aliasMetadata.getFilter());
                         }
                     } else {
-                        if(log.isDebugEnabled()) {
-                            log.debug(alias+" is not an alias or does not have a filter");
+                        if (isDebugEnabled) {
+                            log.debug("{} is not an alias or does not have a filter", alias);
                         }
                     }
                 }
@@ -644,7 +642,7 @@ public class PrivilegesEvaluator {
                     log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
                     return true;
                 } else {
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
                     }
                 }

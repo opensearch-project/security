@@ -30,7 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.action.whoami;
 
-import org.elasticsearch.action.ActionType;
+import org.opensearch.action.ActionType;
 
 public class WhoAmIAction extends ActionType<WhoAmIResponse> {
 

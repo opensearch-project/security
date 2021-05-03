@@ -30,8 +30,8 @@
 
 package com.amazon.opendistroforelasticsearch.security.test;
 
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.client.transport.TransportClient;
+import org.opensearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Assert;
 
@@ -103,12 +103,8 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     }
 
     protected void setupSslOnlyMode(Settings nodeOverride) throws Exception {
-        setupSslOnlyMode(nodeOverride, false);
-    }
-
-    protected void setupSslOnlyMode(Settings nodeOverride, boolean hasCustomTransportSettings) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
-        clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnly(nodeOverride, hasCustomTransportSettings), ClusterConfiguration.DEFAULT);
+        clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnly(nodeOverride), ClusterConfiguration.DEFAULT);
     }
 
     protected void setupSslOnlyModeWithMasterNodeWithoutSSL(Settings nodeOverride) throws Exception {

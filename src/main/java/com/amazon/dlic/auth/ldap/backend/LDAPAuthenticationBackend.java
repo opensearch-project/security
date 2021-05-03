@@ -29,8 +29,8 @@ import java.util.UUID;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
 
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionConfig;
@@ -72,7 +72,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     }
 
     @Override
-    public User authenticate(final AuthCredentials credentials) throws ElasticsearchSecurityException {
+    public User authenticate(final AuthCredentials credentials) throws OpenSearchSecurityException {
 
         Connection ldapConnection = null;
         final String user =credentials.getUsername();
@@ -98,7 +98,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                     password = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_PASSWORD, "fakeLoginPwd123")
                             .getBytes(StandardCharsets.UTF_8);
                 } else if (entry == null) {
-                    throw new ElasticsearchSecurityException("No user " + user + " found");
+                    throw new OpenSearchSecurityException("No user " + user + " found");
                 }
 
                 dn = entry.getDn();
@@ -135,7 +135,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             if (log.isDebugEnabled()) {
                 log.debug("Unable to authenticate user due to ", e);
             }
-            throw new ElasticsearchSecurityException(e.toString(), e);
+            throw new OpenSearchSecurityException(e.toString(), e);
         } finally {
             Arrays.fill(password, (byte) '\0');
             password = null;
@@ -170,10 +170,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             return exists;
             
         } catch (final Exception e) {
-            log.warn("User {} does not exist due to " + e, userName);
-            if (log.isDebugEnabled()) {
-                log.debug("User does not exist due to ", e);
-            }
+            log.warn("User {} does not exist due to ", userName, e);
             return false;
         } finally {
             Utils.unbindAndCloseSilently(ldapConnection);
@@ -220,6 +217,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             List<Map.Entry<String, Settings>> userBaseSettings) throws Exception {
         final String username = user;
 
+        final boolean isDebugEnabled = log.isDebugEnabled();
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
             Settings baseSettings = entry.getValue();
 
@@ -232,8 +230,8 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                     f,
                     SearchScope.SUBTREE);
 
-            if (log.isDebugEnabled()) {
-                log.debug("Results for LDAP search for " + user + " in base " + entry.getKey() + ":\n" + result);
+            if (isDebugEnabled) {
+                log.debug("Results for LDAP search for {} in base {} is {}", user, entry.getKey(), result);
             }
 
             if (result != null && result.size() >= 1) {
@@ -249,6 +247,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         final String username = user;
         Set<LdapEntry> result = new HashSet<>();
 
+        final boolean isDebugEnabled = log.isDebugEnabled();
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
             Settings baseSettings = entry.getValue();
 
@@ -261,7 +260,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                     f,
                     SearchScope.SUBTREE);
 
-            if (log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug("Results for LDAP search for " + user + " in base " + entry.getKey() + ":\n" + result);
             }
 
@@ -271,12 +270,12 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         }
 
         if (result.isEmpty()) {
-            log.debug("No user " + username + " found");
+            log.debug("No user {} found", username);
             return null;
         }
 
         if (result.size() > 1) {
-            log.debug("More than one user for '" + username + "' found");
+            log.debug("More than one user for '{}' found", username);
             return null;
         }
 

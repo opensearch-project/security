@@ -43,22 +43,22 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfi
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.MultiGetItemResponse;
-import org.elasticsearch.action.get.MultiGetRequest;
-import org.elasticsearch.action.get.MultiGetResponse;
-import org.elasticsearch.action.get.MultiGetResponse.Failure;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.LegacyESVersion;
+import org.opensearch.action.ActionListener;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetResponse;
+import org.opensearch.action.get.MultiGetResponse.Failure;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.threadpool.ThreadPool;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
@@ -67,7 +67,7 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Security
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 
-import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public class ConfigurationLoaderSecurity7 {
 
@@ -98,7 +98,7 @@ public class ConfigurationLoaderSecurity7 {
     Map<CType, SecurityDynamicConfiguration<?>> load(final CType[] events, long timeout, TimeUnit timeUnit, boolean acceptInvalid) throws InterruptedException, TimeoutException {
         final CountDownLatch latch = new CountDownLatch(events.length);
         final Map<CType, SecurityDynamicConfiguration<?>> rs = new HashMap<>(events.length);
-
+        final boolean isDebugEnabled = log.isDebugEnabled();
         loadAsync(events, new ConfigCallback() {
 
             @Override
@@ -115,7 +115,7 @@ public class ConfigurationLoaderSecurity7 {
 
                 rs.put(dConf.getCType(), dConf);
                 latch.countDown();
-                if(log.isDebugEnabled()) {
+                if (isDebugEnabled) {
                     log.debug("Received config for {} (of {}) with current latch value={}", dConf.getCType().toLCString(), Arrays.toString(events), latch.getCount());
                 }
             }
@@ -131,11 +131,11 @@ public class ConfigurationLoaderSecurity7 {
 
                 //when index was created with ES 6 there are no separate tenants. So we load just empty ones.
                 //when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
-                if(cs.state().metadata().index(securityIndex).getCreationVersion().before(Version.V_7_0_0) || "security".equals(type)) {
+                if(cs.state().metadata().index(securityIndex).getCreationVersion().before(LegacyESVersion.V_7_0_0) || "security".equals(type)) {
                     //created with SG 6
                     //skip tenants
 
-                    if(log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6 and type is legacy [{}])", type);
                     }
 
@@ -180,7 +180,7 @@ public class ConfigurationLoaderSecurity7 {
 
             @Override
             public void failure(Throwable t) {
-                log.error("Exception {} while retrieving configuration for {}  (index={})",t,t.toString(), Arrays.toString(events), securityIndex);
+                log.error("Exception while retrieving configuration for {} (index={})", Arrays.toString(events), securityIndex, t);
             }
         }, acceptInvalid);
 

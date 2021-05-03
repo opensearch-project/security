@@ -43,7 +43,7 @@ import javax.naming.ldap.LdapName;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
@@ -85,7 +85,7 @@ public class AdminDNs {
             }
         }
        
-        log.debug("Loaded {} admin DN's {}",adminDn.size(),  adminDn);
+        log.debug("Loaded {} admin DN's {}",adminDn.size(), adminDn);
 
         final Settings impersonationDns = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".");
 

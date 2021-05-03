@@ -16,14 +16,14 @@
 package com.amazon.opendistroforelasticsearch.security.auditlog.sink;
 
 import org.apache.logging.log4j.Level;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.AuditLogSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.DebugSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.ExternalESSink;
-import com.amazon.opendistroforelasticsearch.security.auditlog.sink.InternalESSink;
+import com.amazon.opendistroforelasticsearch.security.auditlog.sink.ExternalOpenSearchSink;
+import com.amazon.opendistroforelasticsearch.security.auditlog.sink.InternalOpenSearchSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.Log4JSink;
 import com.amazon.opendistroforelasticsearch.security.auditlog.sink.SinkProvider;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
@@ -43,10 +43,10 @@ public class SinkProviderTest {
 		Assert.assertEquals(sink.getClass(), DebugSink.class);
 
 		sink = provider.getSink("endpoint1");
-		Assert.assertEquals(InternalESSink.class, sink.getClass());
+		Assert.assertEquals(InternalOpenSearchSink.class, sink.getClass());
 
 		sink = provider.getSink("endpoint2");
-		Assert.assertEquals(ExternalESSink.class, sink.getClass());
+		Assert.assertEquals(ExternalOpenSearchSink.class, sink.getClass());
 		// todo: sink does not work
 
 		sink = provider.getSink("endpoinT3");
@@ -57,7 +57,7 @@ public class SinkProviderTest {
 		Assert.assertEquals(null, sink);
 
 		sink = provider.getSink("endpoint2");
-		Assert.assertEquals(ExternalESSink.class, sink.getClass());
+		Assert.assertEquals(ExternalOpenSearchSink.class, sink.getClass());
 		// todo: sink does not work, no valid config
 
 		// no valid type
@@ -73,7 +73,7 @@ public class SinkProviderTest {
 
 		// wrong type in config
 		sink = provider.getSink("endpoint9");
-		Assert.assertEquals(ExternalESSink.class, sink.getClass());
+		Assert.assertEquals(ExternalOpenSearchSink.class, sink.getClass());
 
 		// log4j, valid configuration
 		sink = provider.getSink("endpoint10");
@@ -102,7 +102,7 @@ public class SinkProviderTest {
 	public void testNoMultipleEndpointsConfiguration() throws Exception {
 		Settings settings = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/sink/configuration_no_multiple_endpoints.yml")).build();
 		SinkProvider provider = new SinkProvider(settings, null, null, null);
-		InternalESSink sink = (InternalESSink)provider.defaultSink;
+		InternalOpenSearchSink sink = (InternalOpenSearchSink)provider.defaultSink;
 		Assert.assertEquals("myownindex", sink.index);
 		Assert.assertEquals("auditevents", sink.type);
 	}

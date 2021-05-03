@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 

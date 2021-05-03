@@ -27,14 +27,14 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestStatus;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.InitializationService;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
@@ -133,14 +133,14 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             this.httpJwtAuthenticator = new HTTPJwtAuthenticator(this.jwtSettings, configPath);
 
         } catch (Exception e) {
-            log.error("Error creating HTTPSamlAuthenticator: " + e + ". SAML authentication will not work", e);
+            log.error("Error creating HTTPSamlAuthenticator. SAML authentication will not work", e);
             throw new RuntimeException(e);
         }
     }
 
     @Override
     public AuthCredentials extractCredentials(RestRequest restRequest, ThreadContext threadContext)
-            throws ElasticsearchSecurityException {
+            throws OpenSearchSecurityException {
         if ("/_opendistro/_security/api/authtoken".equals(restRequest.path())) {
             return null;
         }
@@ -338,12 +338,12 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
         settingsBuilder.put(jwtSettings);
 
-        if (jwtSettings.get("roles_key") == null) {
-            settingsBuilder.put("roles_key", settings.get("roles_key", "roles"));
+        if (jwtSettings.get("roles_key") == null && settings.get("roles_key") != null) {
+            settingsBuilder.put("roles_key", "roles");
         }
 
         if (jwtSettings.get("subject_key") == null) {
-            settingsBuilder.put("subject_key", settings.get("subject_key", "sub"));
+            settingsBuilder.put("subject_key", "sub");
         }
 
         return settingsBuilder.build();

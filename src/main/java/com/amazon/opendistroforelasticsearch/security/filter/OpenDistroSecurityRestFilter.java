@@ -38,17 +38,17 @@ import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.WhitelistingSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestRequest.Method;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.OpenSearchException;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
@@ -133,7 +133,7 @@ public class OpenDistroSecurityRestFilter {
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
         
         if(HTTPHelper.containsBadHeader(request)) {
-            final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
+            final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception);
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
@@ -141,7 +141,7 @@ public class OpenDistroSecurityRestFilter {
         }
         
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
-            final ElasticsearchException exception = ExceptionUtils.createBadHeaderException();
+            final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception);
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));

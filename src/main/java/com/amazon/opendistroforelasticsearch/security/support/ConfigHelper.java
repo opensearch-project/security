@@ -39,23 +39,23 @@ import java.io.StringReader;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Meta;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.DocWriteRequest.OpType;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.opensearch.action.DocWriteRequest.OpType;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.Client;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.opensearch.index.engine.VersionConflictEngineException;
 
-import static org.elasticsearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public class ConfigHelper {
     
@@ -85,7 +85,7 @@ public class ConfigHelper {
 
             if (!configType.equals(res)) {
                 throw new Exception("   FAIL: Configuration for '" + configType
-                        + "' failed for unknown reasons. Pls. consult logfile of elasticsearch");
+                        + "' failed for unknown reasons. Pls. consult logfile of opensearch");
             }
             LOGGER.info("Doc with id '{}' and version {} is updated in {} index.", configType, configVersion, index);
         } catch (VersionConflictEngineException versionConflictEngineException) {

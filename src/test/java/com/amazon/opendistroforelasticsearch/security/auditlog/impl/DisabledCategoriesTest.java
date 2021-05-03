@@ -26,13 +26,13 @@ import java.util.List;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditTestUtils;
 import com.amazon.opendistroforelasticsearch.security.test.AbstractSecurityUnitTest;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings.Builder;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.cluster.ClusterName;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings.Builder;
+import org.opensearch.tasks.Task;
+import org.opensearch.transport.TransportRequest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -103,7 +103,7 @@ public class DisabledCategoriesTest {
 		settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE");
         settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE");
 
-		// we use the debug output, no ES client is needed. Also, we
+		// we use the debug output, no OpenSearch client is needed. Also, we
 		// do not need to close.
 		AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);
@@ -164,7 +164,7 @@ public class DisabledCategoriesTest {
         settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategoriesString);
 
 
-		// we use the debug output, no ES client is needed. Also, we
+		// we use the debug output, no OpenSearch client is needed. Also, we
 		// do not need to close.
 		AbstractAuditLog auditLog = AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 		logAll(auditLog);

@@ -811,7 +811,7 @@ remote_marvel_agent:
   - "indices:admin/template/get"
   index_permissions:
   - index_patterns:
-    - "?marvel-es-*"
+    - "?marvel-opensearch-*"
     dls: null
     fls: null
     masked_fields: null
@@ -893,7 +893,7 @@ marvel_user:
   cluster_permissions: []
   index_permissions:
   - index_patterns:
-    - "?marvel-es-*"
+    - "?marvel-opensearch-*"
     dls: null
     fls: null
     masked_fields: null

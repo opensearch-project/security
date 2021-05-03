@@ -66,14 +66,14 @@ public class SSLConnectionTestUtilTests {
     @Test
     public void testConnectionSSLNotAvailable() throws Exception {
         setupMocksForClientHelloFailure();
-        setupMocksForEsPingSuccess();
+        setupMocksForOpenSearchPingSuccess();
         Mockito.doNothing().when(socket).close();
 
         SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
         SSLConnectionTestResult result = connectionTestUtil.testConnection();
 
         verifyClientHelloSend();
-        verifyEsPingSend();
+        verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
         Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.SSL_NOT_AVAILABLE, result);
     }
@@ -83,7 +83,7 @@ public class SSLConnectionTestUtilTests {
         Mockito.doThrow(new IOException("Error while writing bytes to output stream"))
             .when(outputStreamWriter)
             .write(Mockito.anyString());
-        setupMocksForEsPingSuccess();
+        setupMocksForOpenSearchPingSuccess();
         Mockito.doNothing().when(socket).close();
 
         SSLConnectionTestUtil connectionTestUtil = new SSLConnectionTestUtil("127.0.0.1", 443, socket, outputStreamWriter, inputStreamReader);
@@ -91,13 +91,13 @@ public class SSLConnectionTestUtilTests {
 
         verifyClientHelloSend();
         Mockito.verifyZeroInteractions(inputStreamReader);
-        verifyEsPingSend();
+        verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
         Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.SSL_NOT_AVAILABLE, result);
     }
 
     @Test
-    public void testConnectionEsPingFailed() throws Exception {
+    public void testConnectionOpenSearchPingFailed() throws Exception {
         setupMocksForClientHelloFailure();
         Mockito.when(socket.getOutputStream()).thenReturn(outputStream);
         Mockito.when(socket.getInputStream()).thenReturn(inputStream);
@@ -110,13 +110,13 @@ public class SSLConnectionTestUtilTests {
         SSLConnectionTestResult result = connectionTestUtil.testConnection();
 
         verifyClientHelloSend();
-        verifyEsPingSend();
+        verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.ES_PING_FAILED, result);
+        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.OPENSEARCH_PING_FAILED, result);
     }
 
     @Test
-    public void testConnectionEsPingFailedInvalidReply() throws Exception {
+    public void testConnectionOpenSearchPingFailedInvalidReply() throws Exception {
         setupMocksForClientHelloFailure();
         Mockito.when(socket.getOutputStream()).thenReturn(outputStream);
         Mockito.when(socket.getInputStream()).thenReturn(inputStream);
@@ -134,13 +134,13 @@ public class SSLConnectionTestUtilTests {
         SSLConnectionTestResult result = connectionTestUtil.testConnection();
 
         verifyClientHelloSend();
-        verifyEsPingSend();
+        verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.ES_PING_FAILED, result);
+        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.OPENSEARCH_PING_FAILED, result);
     }
 
     @Test
-    public void testConnectionEsPingFailedIOException() throws Exception {
+    public void testConnectionOpenSearchPingFailedIOException() throws Exception {
         setupMocksForClientHelloFailure();
         Mockito.when(socket.getOutputStream()).thenReturn(outputStream);
         Mockito.when(socket.getInputStream()).thenReturn(inputStream);
@@ -151,10 +151,10 @@ public class SSLConnectionTestUtilTests {
         SSLConnectionTestResult result = connectionTestUtil.testConnection();
 
         verifyClientHelloSend();
-        verifyEsPingSend();
+        verifyOpenSearchPingSend();
         Mockito.verifyZeroInteractions(inputStream);
         Mockito.verify(socket, Mockito.times(2)).close();
-        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.ES_PING_FAILED, result);
+        Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.OPENSEARCH_PING_FAILED, result);
     }
 
     private void verifyClientHelloSend() throws IOException {
@@ -167,7 +167,7 @@ public class SSLConnectionTestUtilTests {
         Assert.assertEquals("Unexpected Dual SSL Client Hello message written to socket", expectedMsg, msgWritten);
     }
 
-    private void verifyEsPingSend() throws IOException {
+    private void verifyOpenSearchPingSend() throws IOException {
         ArgumentCaptor<byte[]> argumentCaptor = ArgumentCaptor.forClass(byte[].class);
         Mockito.verify(outputStream,
             Mockito.times(1))
@@ -175,7 +175,7 @@ public class SSLConnectionTestUtilTests {
         byte[] bytesWritten = argumentCaptor.getValue();
         byte[] expectedBytes = new byte[]{'E','S',(byte)0xFF,(byte)0xFF,(byte)0xFF,(byte)0xFF};
         for(int i = 0; i < bytesWritten.length; i++) {
-            Assert.assertEquals("Unexpected ES Ping bytes written to socket", expectedBytes[i], bytesWritten[i]);
+            Assert.assertEquals("Unexpected OpenSearch Ping bytes written to socket", expectedBytes[i], bytesWritten[i]);
         }
     }
 
@@ -185,7 +185,7 @@ public class SSLConnectionTestUtilTests {
             .thenReturn(-1);
     }
 
-    private void setupMocksForEsPingSuccess() throws IOException {
+    private void setupMocksForOpenSearchPingSuccess() throws IOException {
         Mockito.when(socket.getOutputStream()).thenReturn(outputStream);
         Mockito.when(socket.getInputStream()).thenReturn(inputStream);
         Mockito.doNothing().when(outputStream).write(Mockito.any(byte[].class));

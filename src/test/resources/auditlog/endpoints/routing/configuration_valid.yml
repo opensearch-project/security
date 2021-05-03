@@ -1,6 +1,6 @@
 opendistro_security:
   audit:
-    type: external_elasticsearch
+    type: external_opensearch
     config:
       http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']
       index: auditlog 
@@ -11,9 +11,9 @@ opendistro_security:
       enable_ssl_client_auth: false
     endpoints:
       endpoint1:
-        type: internal_elasticsearch
+        type: internal_opensearch
       endpoint2:
-        type: external_elasticsearch
+        type: external_opensearch
         config:
           http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']
           index: auditlog 

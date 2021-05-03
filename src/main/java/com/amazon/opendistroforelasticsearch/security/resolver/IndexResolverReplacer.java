@@ -46,47 +46,47 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.IndicesRequest;
-import org.elasticsearch.action.IndicesRequest.Replaceable;
-import org.elasticsearch.action.OriginalIndices;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkShardRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesIndexRequest;
-import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
-import org.elasticsearch.action.get.MultiGetRequest;
-import org.elasticsearch.action.get.MultiGetRequest.Item;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.main.MainRequest;
-import org.elasticsearch.action.search.ClearScrollRequest;
-import org.elasticsearch.action.search.MultiSearchRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchScrollRequest;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.support.nodes.BaseNodesRequest;
-import org.elasticsearch.action.support.replication.ReplicationRequest;
-import org.elasticsearch.action.support.single.shard.SingleShardRequest;
-import org.elasticsearch.action.termvectors.MultiTermVectorsRequest;
-import org.elasticsearch.action.termvectors.TermVectorsRequest;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexAbstraction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.reindex.ReindexRequest;
-import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.snapshots.SnapshotUtils;
-import org.elasticsearch.transport.RemoteClusterService;
-import org.elasticsearch.transport.TransportRequest;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.IndicesRequest;
+import org.opensearch.action.IndicesRequest.Replaceable;
+import org.opensearch.action.OriginalIndices;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkShardRequest;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.fieldcaps.FieldCapabilitiesIndexRequest;
+import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetRequest.Item;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.main.MainRequest;
+import org.opensearch.action.search.ClearScrollRequest;
+import org.opensearch.action.search.MultiSearchRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.action.support.nodes.BaseNodesRequest;
+import org.opensearch.action.support.replication.ReplicationRequest;
+import org.opensearch.action.support.single.shard.SingleShardRequest;
+import org.opensearch.action.termvectors.MultiTermVectorsRequest;
+import org.opensearch.action.termvectors.TermVectorsRequest;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.IndexAbstraction;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.index.Index;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.index.reindex.ReindexRequest;
+import org.opensearch.snapshots.SnapshotInfo;
+import org.opensearch.snapshots.SnapshotUtils;
+import org.opensearch.transport.RemoteClusterService;
+import org.opensearch.transport.TransportRequest;
 import org.greenrobot.eventbus.Subscribe;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
@@ -97,7 +97,7 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 import com.google.common.collect.ImmutableSet;
 
-import static org.elasticsearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
+import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 
 public class IndexResolverReplacer {
 
@@ -172,13 +172,13 @@ public class IndexResolverReplacer {
         }
 
         private void resolveIndexPatterns(final String name, final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution, final String[] original) {
-
-            if(log.isTraceEnabled()) {
+            final boolean isTraceEnabled = log.isTraceEnabled();
+            if (isTraceEnabled) {
                 log.trace("resolve requestedPatterns: "+ Arrays.toString(original));
             }
 
             if (isAllWithNoRemote(original)) {
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace(Arrays.toString(original) + " is an ALL pattern without any remote indices");
                 }
                 resolveToLocalAll();
@@ -211,7 +211,7 @@ public class IndexResolverReplacer {
                     }
                 }
 
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace("CCS is enabled, we found this local patterns " + localRequestedPatterns + " and this remote patterns: " + remoteIndices);
                 }
 
@@ -223,14 +223,14 @@ public class IndexResolverReplacer {
             Collection<String> matchingAllIndices;
 
             if (isLocalAll(original)) {
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace(Arrays.toString(original) + " is an LOCAL ALL pattern");
                 }
                 matchingAliases = Resolved.All_SET;
                 matchingAllIndices = Resolved.All_SET;
 
             } else if (!remoteIndices.isEmpty() && localRequestedPatterns.isEmpty()) {
-                if (log.isTraceEnabled()) {
+                if (isTraceEnabled) {
                     log.trace(Arrays.toString(original) + " is an LOCAL EMPTY request");
                 }
                 matchingAllIndices = Collections.emptySet();
@@ -253,13 +253,14 @@ public class IndexResolverReplacer {
                         .filter(dateResolvedMatcher)
                         .collect(Collectors.toSet());
 
+                final boolean isDebugEnabled = log.isDebugEnabled();
                 try {
                     matchingAllIndices = Arrays.asList(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("Resolved pattern {} to {}", localRequestedPatterns, matchingAllIndices);
                     }
                 } catch (IndexNotFoundException e1) {
-                    if (log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("No such indices for pattern {}, use raw value", localRequestedPatterns);
                     }
 
@@ -267,7 +268,7 @@ public class IndexResolverReplacer {
                 }
             }
 
-            if (log.isTraceEnabled()) {
+            if (isTraceEnabled) {
                 log.trace("Resolved patterns {} for {} ({}) to [aliases {}, allIndices {}, originalRequested{}, remote indices {}]",
                         original, name, this.name, matchingAliases, matchingAllIndices, Arrays.toString(original), remoteIndices);
             }
@@ -294,7 +295,8 @@ public class IndexResolverReplacer {
             final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
             final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
             // skip the whole thing if we have seen this exact resolveIndexPatterns request
-            if (alreadyResolved.add(new MultiKey(indicesOptions, enableCrossClusterResolution, new MultiKey(original, false)))) {
+            if (alreadyResolved.add(new MultiKey(indicesOptions, enableCrossClusterResolution,
+                    (original != null) ? new MultiKey(original, false) : null))) {
                 resolveIndexPatterns(localRequest.getClass().getSimpleName(), indicesOptions, enableCrossClusterResolution, original);
             }
             return IndicesProvider.NOOP;
@@ -334,7 +336,7 @@ public class IndexResolverReplacer {
     }
 
     public Resolved resolveRequest(final Object request) {
-        if(log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
         }
 
@@ -470,15 +472,16 @@ public class IndexResolverReplacer {
             return false;
         }
 
+        final boolean isTraceEnabled = log.isTraceEnabled();
         if(!allowEmpty && (indices == null || indices.length == 0)) {
-            if(log.isTraceEnabled() && request != null) {
+            if(isTraceEnabled && request != null) {
                 log.trace("Null or empty indices for "+request.getClass().getName());
             }
             return false;
         }
 
         if(!allowEmpty && needsToBeSizeOne && indices.length != 1) {
-            if(log.isTraceEnabled() && request != null) {
+            if(isTraceEnabled && request != null) {
                 log.trace("To much indices for "+request.getClass().getName());
             }
             return false;
@@ -488,7 +491,7 @@ public class IndexResolverReplacer {
             final String index = indices[i];
             if(index == null || index.isEmpty()) {
                 //not allowed
-                if(log.isTraceEnabled() && request != null) {
+                if(isTraceEnabled && request != null) {
                     log.trace("At least one null or empty index for "+request.getClass().getName());
                 }
                 return false;
@@ -506,8 +509,9 @@ public class IndexResolverReplacer {
      */
     @SuppressWarnings("rawtypes")
     private boolean getOrReplaceAllIndices(final Object request, final IndicesProvider provider, boolean allowEmptyIndices) {
-
-        if(log.isTraceEnabled()) {
+        final boolean isDebugEnabled = log.isDebugEnabled();
+        final boolean isTraceEnabled = log.isTraceEnabled();
+        if (isTraceEnabled) {
             log.trace("getOrReplaceAllIndices() for "+request.getClass());
         }
 
@@ -580,7 +584,7 @@ public class IndexResolverReplacer {
                     final List<String> renamedTargetIndices = renamedIndices(restoreRequest, requestedResolvedIndices);
                     //final Set<String> indices = new HashSet<>(requestedResolvedIndices);
                     //indices.addAll(renamedTargetIndices);
-                    if(log.isDebugEnabled()) {
+                    if (isDebugEnabled) {
                         log.debug("snapshot: {} contains this indices: {}", snapshotInfo.snapshotId().getName(), renamedTargetIndices);
                     }
                     provider.provide(renamedTargetIndices.toArray(new String[0]), request, false);
@@ -668,7 +672,7 @@ public class IndexResolverReplacer {
         } else if (request instanceof SearchScrollRequest) {
             //do nothing
         } else {
-            if(log.isDebugEnabled()) {
+            if (isDebugEnabled) {
                 log.debug(request.getClass() + " not supported (It is likely not a indices related request)");
             }
             result = false;

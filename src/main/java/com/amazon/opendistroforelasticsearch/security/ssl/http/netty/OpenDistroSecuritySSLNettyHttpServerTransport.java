@@ -19,16 +19,16 @@ package com.amazon.opendistroforelasticsearch.security.ssl.http.netty;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.http.HttpChannel;
-import org.elasticsearch.http.HttpHandlingSettings;
-import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.SharedGroupFactory;
+import org.opensearch.common.network.NetworkService;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.BigArrays;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.http.HttpChannel;
+import org.opensearch.http.HttpHandlingSettings;
+import org.opensearch.http.netty4.Netty4HttpServerTransport;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.SharedGroupFactory;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;

@@ -33,8 +33,8 @@ package com.amazon.opendistroforelasticsearch.security.support;
 import java.io.Serializable;
 import java.util.Arrays;
 
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.search.SearchRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.search.SearchRequest;
 
 public class SourceFieldsContext implements Serializable {
 

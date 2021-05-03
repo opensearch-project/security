@@ -48,81 +48,88 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
+import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
+import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl;
+import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsValveImpl;
 import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
+import com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl;
 import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
 
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.search.SearchScrollAction;
-import org.elasticsearch.action.support.ActionFilter;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.Lifecycle.State;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.component.LifecycleListener;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkModule;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsFilter;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.http.HttpServerTransport.Dispatcher;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.index.cache.query.QueryCache;
-import org.elasticsearch.index.shard.SearchOperationListener;
-import org.elasticsearch.indices.SystemIndexDescriptor;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.plugins.ClusterPlugin;
-import org.elasticsearch.plugins.MapperPlugin;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.internal.InternalScrollSearchRequest;
-import org.elasticsearch.search.internal.ReaderContext;
-import org.elasticsearch.search.internal.SearchContext;
-import org.elasticsearch.search.query.QuerySearchResult;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.RemoteClusterService;
-import org.elasticsearch.transport.Transport;
-import org.elasticsearch.transport.Transport.Connection;
-import org.elasticsearch.transport.TransportChannel;
-import org.elasticsearch.transport.TransportInterceptor;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestHandler;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportResponseHandler;
-import org.elasticsearch.transport.TransportService;
-import org.elasticsearch.watcher.ResourceWatcherService;
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.Version;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionResponse;
+import org.opensearch.action.search.SearchScrollAction;
+import org.opensearch.action.support.ActionFilter;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.component.Lifecycle.State;
+import org.opensearch.common.component.LifecycleComponent;
+import org.opensearch.common.component.LifecycleListener;
+import org.opensearch.common.inject.Inject;
+import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.common.logging.DeprecationLogger;
+import org.opensearch.common.network.NetworkModule;
+import org.opensearch.common.network.NetworkService;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.IndexScopedSettings;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Setting.Property;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.util.BigArrays;
+import org.opensearch.common.util.PageCacheRecycler;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.env.Environment;
+import org.opensearch.env.NodeEnvironment;
+import org.opensearch.http.HttpServerTransport;
+import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.index.Index;
+import org.opensearch.index.IndexModule;
+import org.opensearch.index.cache.query.QueryCache;
+import org.opensearch.index.shard.SearchOperationListener;
+import org.opensearch.indices.SystemIndexDescriptor;
+import org.opensearch.indices.breaker.CircuitBreakerService;
+import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.MapperPlugin;
+import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.script.ScriptService;
+import org.opensearch.search.internal.InternalScrollSearchRequest;
+import org.opensearch.search.internal.ReaderContext;
+import org.opensearch.search.internal.SearchContext;
+import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.RemoteClusterService;
+import org.opensearch.transport.Transport;
+import org.opensearch.transport.Transport.Connection;
+import org.opensearch.transport.TransportChannel;
+import org.opensearch.transport.TransportInterceptor;
+import org.opensearch.transport.TransportRequest;
+import org.opensearch.transport.TransportRequestHandler;
+import org.opensearch.transport.TransportRequestOptions;
+import org.opensearch.transport.TransportResponse;
+import org.opensearch.transport.TransportResponseHandler;
+import org.opensearch.transport.TransportService;
+import org.opensearch.watcher.ResourceWatcherService;
 
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.TransportConfigUpdateAction;
@@ -138,7 +145,6 @@ import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoH
 import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
 import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
 import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
-import com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityFilter;
 import com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityRestFilter;
 import com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport;
@@ -173,8 +179,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
+    private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenDistroSecurityPlugin.class);
 
-    private final boolean dlsFlsAvailable;
     private boolean sslCertReloadEnabled;
     private volatile OpenDistroSecurityRestFilter securityRestHandler;
     private volatile OpenDistroSecurityInterceptor odsi;
@@ -188,7 +194,6 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
-    private final boolean advancedModulesEnabled;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile OpenDistroSecurityFilter odsf;
     private volatile IndexResolverReplacer irr;
@@ -227,7 +232,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private static boolean isDisabled(final Settings settings) {
         return settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_DISABLED, false);
     }
-    
+
     /**
      * SSL Cert Reload will be enabled only if security is not disabled and not in we are not using sslOnly mode.
      * @param settings Elastic configuration settings
@@ -244,21 +249,17 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         sslCertReloadEnabled = isSslCertReloadEnabled(settings);
 
         if (disabled) {
-            this.dlsFlsAvailable = false;
-            this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
             log.warn("Open Distro Security plugin installed but disabled. This can expose your configuration (including passwords) to the public.");
             return;
         }
-        
+
         if (openDistroSSLConfig.isSslOnlyMode()) {
-            this.dlsFlsAvailable = false;
-            this.advancedModulesEnabled = false;
             this.sslCertReloadEnabled = false;
             log.warn("Open Distro Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
         }
-        
+
 
         demoCertHashes.add("54a92508de7a39d06242a0ffbf59414d7eb478633c719e6af03938daf6de8a1a");
         demoCertHashes.add("742e4659c79d7cad89ea86aab70aea490f23bbfc7e72abd5f0a5d3fb4c84d212");
@@ -292,18 +293,16 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             }
         });
 
-        advancedModulesEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED, true);
-        ReflectionHelper.init(advancedModulesEnabled);
-        
-        ReflectionHelper.registerMngtRestApiHandler(settings);
+        final String advancedModulesEnabledKey = ConfigConstants.OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED;
+        if (settings.hasValue(advancedModulesEnabledKey)) {
+            deprecationLogger.deprecate("Setting {} is ignored.", advancedModulesEnabledKey);
+        }
 
-        log.info("Clustername: {}", settings.get("cluster.name","elasticsearch"));
+        log.info("Clustername: {}", settings.get("cluster.name","opensearch"));
 
         if (!transportSSLEnabled && !openDistroSSLConfig.isSslOnlyMode()) {
             throw new IllegalStateException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
-
-        dlsFlsAvailable = !client && advancedModulesEnabled;
 
         if(!client) {
             final List<Path> filesWithWrongPermissions = AccessController.doPrivileged(new PrivilegedAction<List<Path>>() {
@@ -326,9 +325,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             if(filesWithWrongPermissions != null && filesWithWrongPermissions.size() > 0) {
                 for(final Path p: filesWithWrongPermissions) {
                     if(Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
-                        log.warn("Directory "+p+" has insecure file permissions (should be 0700)");
+                        log.warn("Directory {} has insecure file permissions (should be 0700)", p);
                     } else {
-                        log.warn("File "+p+" has insecure file permissions (should be 0600)");
+                        log.warn("File {} has insecure file permissions (should be 0600)", p);
                     }
                 }
             }
@@ -371,7 +370,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if(!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)) {
             return "";
         }
-        
+
         if(!Files.isReadable(p)) {
             log.debug("Unreadable file "+p+" found");
             return "";
@@ -383,7 +382,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             log.debug(hash +" :: "+p);
             return hash;
         } catch (Exception e) {
-            throw new ElasticsearchSecurityException("Unable to digest file "+p, e);
+            throw new OpenSearchSecurityException("Unable to digest file "+p, e);
         }
     }
 
@@ -456,10 +455,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 if (sslCertReloadEnabled) {
                     handlers.add(new OpenDistroSecuritySSLReloadCertsAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 }
-                Collection<RestHandler> apiHandler = ReflectionHelper
-                        .instantiateMngtRestApiHandler(settings, configPath, restController, localClient, adminDns, cr, cs, Objects.requireNonNull(principalExtractor),  evaluator, threadPool, Objects.requireNonNull(auditLog));
-                handlers.addAll(apiHandler);
-                log.debug("Added {} management rest handler(s)", apiHandler.size());
+                final Collection<RestHandler> apiHandlers = OpenDistroSecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog));
+                handlers.addAll(apiHandlers);
+                log.debug("Added {} management rest handler(s)", apiHandlers.size());
             }
         }
 
@@ -491,63 +489,56 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         //called for every index!
 
         if (!disabled && !client && !openDistroSSLConfig.isSslOnlyMode()) {
-            log.debug("Handle dlsFlsAvailable: "+dlsFlsAvailable+"/auditLog="+auditLog.getClass()+" for onIndexModule() of index "+indexModule.getIndex().getName());
-            if (dlsFlsAvailable) {
+            log.debug("Handle auditLog {} for onIndexModule() of index {}", auditLog.getClass(), indexModule.getIndex().getName());
 
-                final ComplianceIndexingOperationListener ciol = ReflectionHelper.instantiateComplianceListener(Objects.requireNonNull(auditLog));
-                indexModule.addIndexOperationListener(ciol);
+            final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog);
+            indexModule.addIndexOperationListener(ciol);
 
-                indexModule.setReaderWrapper(indexService -> new OpenDistroSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator, salt));
-                indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
+            indexModule.setReaderWrapper(indexService -> new OpenDistroSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator, salt));
+            indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
 
-                    @Override
-                    public Index index() {
-                        return indexSettings.getIndex();
-                    }
+                @Override
+                public Index index() {
+                    return indexSettings.getIndex();
+                }
 
-                    @Override
-                    public void close() throws ElasticsearchException {
-                        clear("close");
-                    }
+                @Override
+                public void close() throws OpenSearchException {
+                    clear("close");
+                }
 
-                    @Override
-                    public void clear(String reason) {
-                        nodeCache.clearIndex(index().getName());
-                    }
+                @Override
+                public void clear(String reason) {
+                    nodeCache.clearIndex(index().getName());
+                }
 
-                    @Override
-                    public Weight doCache(Weight weight, QueryCachingPolicy policy) {
-                        final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
-                                ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
-                        
-                        if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
+                @Override
+                public Weight doCache(Weight weight, QueryCachingPolicy policy) {
+                    final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                            ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+
+                    if(OpenDistroSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
+                        return weight;
+                    } else {
+
+                        final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
+                                ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+
+                        if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
                             return weight;
                         } else {
-                            
-                            final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
-                                    ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-                            
-                            if(OpenDistroSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
-                                return weight;
-                            } else {
-                                return nodeCache.doCache(weight, policy);
-                            }
+                            return nodeCache.doCache(weight, policy);
                         }
-                        
                     }
-                });
-            } else {
-                indexModule.setReaderWrapper(
-                        indexService -> new OpenDistroSecurityIndexSearcherWrapper(indexService, settings, Objects.requireNonNull(adminDns), Objects.requireNonNull(evaluator)));
-            }
+
+                }
+            });
 
             indexModule.addSearchOperationListener(new SearchOperationListener() {
 
                 @Override
                 public void onPreQueryPhase(SearchContext context) {
-                    if(advancedModulesEnabled) {
-                        dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry);
-                    }
+                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry);
                 }
 
                 @Override
@@ -590,11 +581,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                             if (!scrollUser.equals(currentUser)) {
                                 auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
                                 log.error("Wrong user {} in reader context, expected {}", scrollUser, currentUser);
-                                throw new ElasticsearchSecurityException("Wrong user in reader context", RestStatus.FORBIDDEN);
+                                throw new OpenSearchSecurityException("Wrong user in reader context", RestStatus.FORBIDDEN);
                             }
                         } else if (_isLocal != Boolean.TRUE) {
                             auditLog.logMissingPrivileges(SearchScrollAction.NAME, transportRequest, null);
-                            throw new ElasticsearchSecurityException("No user in reader context", RestStatus.FORBIDDEN);
+                            throw new OpenSearchSecurityException("No user in reader context", RestStatus.FORBIDDEN);
                         }
                     }
                 }
@@ -673,11 +664,11 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, PageCacheRecycler pageCacheRecycler,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
-        
+
         if(openDistroSSLConfig.isSslOnlyMode()) {
             return super.getTransports(settings, threadPool, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
         }
-        
+
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenDistroSecuritySSLNettyTransport",
                     () -> new OpenDistroSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
@@ -695,7 +686,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             return super.getHttpTransports(settings, threadPool, bigArrays, pageCacheRecycler, circuitBreakerService, xContentRegistry,
              networkService, dispatcher, clusterSettings);
         }
-        
+
         if(!disabled) {
             if (!client && httpSSLEnabled) {
 
@@ -739,7 +730,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                     repositoriesServiceSupplier
             );
         }
-        
+
         this.threadPool = threadPool;
         this.cs = clusterService;
         this.localClient = localClient;
@@ -752,17 +743,12 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         final ClusterInfoHolder cih = new ClusterInfoHolder();
         this.cs.addListener(cih);
         this.salt = Salt.from(settings);
-        dlsFlsValve = ReflectionHelper.instantiateDlsFlsValve();
 
         final IndexNameExpressionResolver resolver = new IndexNameExpressionResolver(threadPool.getThreadContext());
         irr = new IndexResolverReplacer(resolver, clusterService, cih);
-        auditLog = ReflectionHelper.instantiateAuditLog(settings, configPath, localClient, threadPool, resolver, clusterService, dlsFlsAvailable, environment);
-        
-        sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         final String DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = DefaultInterClusterRequestEvaluator.class.getName();
         InterClusterRequestEvaluator interClusterRequestEvaluator = new DefaultInterClusterRequestEvaluator(settings);
-
 
         final String className = settings.get(ConfigConstants.OPENDISTRO_SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS,
                 DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
@@ -771,7 +757,19 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             interClusterRequestEvaluator = ReflectionHelper.instantiateInterClusterRequestEvaluator(className, settings);
         }
 
-        final PrivilegesInterceptor privilegesInterceptor = ReflectionHelper.instantiatePrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
+        final PrivilegesInterceptor privilegesInterceptor;
+
+        if (openDistroSSLConfig.isSslOnlyMode()) {
+            dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
+            auditLog = new NullAuditLog();
+            privilegesInterceptor = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
+        } else {
+            dlsFlsValve = new DlsFlsValveImpl();
+            auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment);
+            privilegesInterceptor = new PrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
+        }
+
+        sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         adminDns = new AdminDNs(settings);
         
@@ -782,15 +780,17 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         final CompatConfig compatConfig = new CompatConfig(environment);
 
+        // DLS-FLS is enabled if not client and not disabled and not SSL only.
+        final boolean dlsFlsEnabled = !openDistroSSLConfig.isSslOnlyMode();
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
-                settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
+                settings, privilegesInterceptor, cih, irr, dlsFlsEnabled);
 
         odsf = new OpenDistroSecurityFilter(localClient, settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, backendRegistry);
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
-            principalExtractor = new com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor();
+            principalExtractor = new DefaultPrincipalExtractor();
         } else {
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
@@ -817,7 +817,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         components.add(principalExtractor);
 
         // NOTE: We need to create DefaultInterClusterRequestEvaluator before creating ConfigurationRepository since the latter requires security index to be accessible which means
-        // communciation with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence the base values from elasticsearch.yml
+        // communciation with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence the base values from opensearch.yml
         // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
         if (DEFAULT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS.equals(className)) {
             DefaultInterClusterRequestEvaluator e = (DefaultInterClusterRequestEvaluator) interClusterRequestEvaluator;
@@ -929,26 +929,26 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     
             
             // Security - Audit - Sink
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_INDEX, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ES_TYPE, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_TYPE, Property.NodeScope, Property.Filtered));
     
-            // External ES
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_USERNAME, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PASSWORD, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_VERIFY_HOSTNAMES, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLE_SSL_CLIENT_AUTH, false, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMCERT_CONTENT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_CONTENT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_JKS_CERT_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_ES_ENABLED_SSL_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+            // External OpenSearch
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_VERIFY_HOSTNAMES, true, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH, false, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_CONTENT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_CONTENT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_JKS_CERT_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+            settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
     
             // Webhooks
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_URL, Property.NodeScope, Property.Filtered));

@@ -18,7 +18,7 @@ package com.amazon.dlic.auth.ldap;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;

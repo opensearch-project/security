@@ -42,16 +42,16 @@ import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchSecurityException;
-import org.elasticsearch.SpecialPermission;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestRequest.Method;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.rest.RestStatus;
 import org.joda.time.DateTime;
 import org.xml.sax.SAXException;
 
@@ -151,12 +151,11 @@ class AuthTokenProcessorHandler {
             SettingsException {
         if (token_log.isDebugEnabled()) {
             try {
-                token_log.debug("SAMLResponse for " + samlRequestId + "\n"
-                        + new String(Util.base64decoder(samlResponseBase64), "UTF-8"));
+                token_log.debug("SAMLResponse for {}\n{}", samlRequestId, new String(Util.base64decoder(samlResponseBase64), "UTF-8"));
             } catch (Exception e) {
                 token_log.warn(
-                        "SAMLResponse for " + samlRequestId + " cannot be decoded from base64\n" + samlResponseBase64,
-                        e);
+                        "SAMLResponse for {} cannot be decoded from base64\n{}",
+                        samlRequestId, samlResponseBase64, e);
             }
         }
 
@@ -189,14 +188,14 @@ class AuthTokenProcessorHandler {
         try {
 
             if (restRequest.getXContentType() != XContentType.JSON) {
-                throw new ElasticsearchSecurityException(
+                throw new OpenSearchSecurityException(
                         "/_opendistro/_security/api/authtoken expects content with type application/json",
                         RestStatus.UNSUPPORTED_MEDIA_TYPE);
 
             }
 
             if (restRequest.method() != Method.POST) {
-                throw new ElasticsearchSecurityException("/_opendistro/_security/api/authtoken expects POST requests",
+                throw new OpenSearchSecurityException("/_opendistro/_security/api/authtoken expects POST requests",
                         RestStatus.METHOD_NOT_ALLOWED);
             }
 
@@ -213,7 +212,7 @@ class AuthTokenProcessorHandler {
             if (((ObjectNode) jsonRoot).get("SAMLResponse") == null) {
                 log.warn("SAMLResponse is missing from request ");
 
-                throw new ElasticsearchSecurityException("SAMLResponse is missing from request",
+                throw new OpenSearchSecurityException("SAMLResponse is missing from request",
                         RestStatus.BAD_REQUEST);
 
             }
@@ -358,7 +357,7 @@ class AuthTokenProcessorHandler {
         Matcher matcher = EXPIRY_SETTINGS_PATTERN.matcher(expiry);
 
         if (!matcher.matches()) {
-            log.error("Invalid value for jwt.expiry: " + expiry + "; using defaults.");
+            log.error("Invalid value for jwt.expiry: {}; using defaults.", expiry);
             return;
         }
 
@@ -366,7 +365,7 @@ class AuthTokenProcessorHandler {
         String offset = matcher.group(2);
 
         if (offset != null && !StringUtils.isNumeric(offset)) {
-            log.error("Invalid offset value for jwt.expiry: " + expiry + "; using defaults.");
+            log.error("Invalid offset value for jwt.expiry: {}; using defaults.", expiry);
             return;
         }
 
@@ -374,7 +373,7 @@ class AuthTokenProcessorHandler {
             try {
                 this.expiryBaseValue = ExpiryBaseValue.valueOf(baseValue.toUpperCase());
             } catch (IllegalArgumentException e) {
-                log.error("Invalid base value for jwt.expiry: " + expiry + "; using defaults");
+                log.error("Invalid base value for jwt.expiry: {}; using defaults", expiry);
                 return;
             }
         }
@@ -454,7 +453,7 @@ class AuthTokenProcessorHandler {
                 return new URI(this.kibanaRootUrl).resolve(acsEndpointUri).toString();
             }
         } catch (URISyntaxException e) {
-            log.error("Could not parse URI for acsEndpoint: " + acsEndpoint);
+            log.error("Could not parse URI for acsEndpoint: {}", acsEndpoint);
             return acsEndpoint;
         }
     }

@@ -29,20 +29,22 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.securityconf.impl.CType;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.client.utils.URIBuilder;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestRequest;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Strings;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.index.shard.ShardId;
+import org.opensearch.rest.RestRequest;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -59,6 +61,11 @@ public final class AuditMessage {
     private static final String SENSITIVE_KEY = "password";
     private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
     private static final Pattern SENSITIVE_PATHS = Pattern.compile("/_opendistro/_security/api/(account.*|internalusers.*|user.*)");
+    @VisibleForTesting
+    public static final Pattern BCRYPT_HASH = Pattern.compile("\\$2[ayb]\\$.{56}");
+    private static final String BCRYPT_HASH_REPLACEMENT_VALUE = "__HASH__";
+    private static final String INTERNALUSERS_DOC_ID = CType.INTERNALUSERS.toLCString();
+
     public static final String FORMAT_VERSION = "audit_format_version";
     public static final String CATEGORY = "audit_category";
     public static final String REQUEST_EFFECTIVE_USER = "audit_request_effective_user";
@@ -185,6 +192,10 @@ public final class AuditMessage {
         }
     }
 
+    void addSecurityConfigWriteDiffSource(final String diff, final String id) {
+        addComplianceWriteDiffSource(redactSecurityConfigContent(diff, id));
+    }
+
 //    public void addComplianceWriteStoredFields0(String diff) {
 //        if (diff != null && !diff.isEmpty()) {
 //            auditInfo.put(COMPLIANCE_STORED_FIELDS_CONTENT, diff);
@@ -202,7 +213,7 @@ public final class AuditMessage {
         }
     }
 
-    public void addMapToRequestBody(Map<String, Object> map) {
+    public void addMapToRequestBody(Map<String, ?> map) {
         if(map != null) {
             auditInfo.put(REQUEST_BODY, Utils.convertStructuredMapToJson(map));
         }
@@ -211,6 +222,36 @@ public final class AuditMessage {
     public void addUnescapedJsonToRequestBody(String source) {
         if (source != null) {
             auditInfo.put(REQUEST_BODY, source);
+        }
+    }
+
+    private String redactSecurityConfigContent(String content, String id) {
+        if (content != null && INTERNALUSERS_DOC_ID.equals(id)) {
+            content = BCRYPT_HASH.matcher(content).replaceAll(BCRYPT_HASH_REPLACEMENT_VALUE);
+        }
+        return content;
+    }
+
+    void addSecurityConfigContentToRequestBody(final String source, final String id) {
+        if (source != null) {
+            final String redactedContent = redactSecurityConfigContent(source, id);
+            auditInfo.put(REQUEST_BODY, redactedContent);
+        }
+    }
+
+    void addSecurityConfigTupleToRequestBody(final Tuple<XContentType, BytesReference> xContentTuple, final String id) {
+        if (xContentTuple != null) {
+            try {
+                addSecurityConfigContentToRequestBody(XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1()), id);
+            } catch (Exception e) {
+                auditInfo.put(REQUEST_BODY, "ERROR: Unable to convert to json");
+            }
+        }
+    }
+
+    void addSecurityConfigMapToRequestBody(final Map<String, ?> map, final String id) {
+        if (map != null) {
+            addSecurityConfigContentToRequestBody(Utils.convertStructuredMapToJson(map), id);
         }
     }
 
@@ -395,7 +436,7 @@ public final class AuditMessage {
 		try {
 			return Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
 		} catch (final IOException e) {
-		    throw ExceptionsHelper.convertToElastic(e);
+		    throw ExceptionsHelper.convertToOpenSearchException(e);
 		}
 	}
 
@@ -403,7 +444,7 @@ public final class AuditMessage {
         try {
             return Strings.toString(JsonXContent.contentBuilder().prettyPrint().map(getAsMap()));
         } catch (final IOException e) {
-            throw ExceptionsHelper.convertToElastic(e);
+            throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
 

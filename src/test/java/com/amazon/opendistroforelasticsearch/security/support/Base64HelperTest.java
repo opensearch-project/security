@@ -19,8 +19,8 @@ import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.user.User;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.search.SearchRequest;
+import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.SearchRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
@@ -99,12 +99,12 @@ public class Base64HelperTest {
         Assert.assertEquals(list, ds(list));
     }
 
-    @Test(expected = ElasticsearchException.class)
+    @Test(expected = OpenSearchException.class)
     public void notSafeSerializable() {
         serializeObject(new NotSafeSerializable());
     }
 
-    @Test(expected = ElasticsearchException.class)
+    @Test(expected = OpenSearchException.class)
     public void notSafeDeserializable() throws Exception {
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (final ObjectOutputStream out = new ObjectOutputStream(bos)) {

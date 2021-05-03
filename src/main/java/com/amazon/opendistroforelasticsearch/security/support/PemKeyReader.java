@@ -70,9 +70,9 @@ import javax.crypto.spec.PBEKeySpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.util.encoders.Base64;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 
 public final class PemKeyReader {
     
@@ -260,15 +260,15 @@ public final class PemKeyReader {
     public static void checkPath(String keystoreFilePath, String fileNameLogOnly) {
         
         if (keystoreFilePath == null || keystoreFilePath.length() == 0) {
-            throw new ElasticsearchException("Empty file path for "+fileNameLogOnly);
+            throw new OpenSearchException("Empty file path for "+fileNameLogOnly);
         }
         
         if (Files.isDirectory(Paths.get(keystoreFilePath), LinkOption.NOFOLLOW_LINKS)) {
-            throw new ElasticsearchException("Is a directory: " + keystoreFilePath+" Expected a file for "+fileNameLogOnly);
+            throw new OpenSearchException("Is a directory: " + keystoreFilePath+" Expected a file for "+fileNameLogOnly);
         }
 
         if(!Files.isReadable(Paths.get(keystoreFilePath))) {
-            throw new ElasticsearchException("Unable to read " + keystoreFilePath + " ("+Paths.get(keystoreFilePath)+"). Please make sure this files exists and is readable regarding to permissions. Property: "+fileNameLogOnly);
+            throw new OpenSearchException("Unable to read " + keystoreFilePath + " ("+Paths.get(keystoreFilePath)+"). Please make sure this files exists and is readable regarding to permissions. Property: "+fileNameLogOnly);
         }
     }
     

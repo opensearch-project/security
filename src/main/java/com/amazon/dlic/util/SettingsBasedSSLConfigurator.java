@@ -47,7 +47,7 @@ import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.PemKeyReader;
@@ -414,7 +414,7 @@ public class SettingsBasedSSLConfigurator {
             this.effectiveKeyAlias = effectiveKeyAlias;
 
             if (log.isDebugEnabled()) {
-                log.debug("Created SSLConfig: " + this);
+                log.debug("Created SSLConfig: {}", this);
             }
         }
 

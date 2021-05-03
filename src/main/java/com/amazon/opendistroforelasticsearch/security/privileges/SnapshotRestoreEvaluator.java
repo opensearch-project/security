@@ -34,10 +34,10 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.tasks.Task;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.tasks.Task;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
@@ -70,7 +70,7 @@ public class SnapshotRestoreEvaluator {
         
         // snapshot restore for regular users not enabled
         if (!enableSnapshotRestorePrivilege) {
-            log.warn(action + " is not allowed for a regular user");
+            log.warn("{} is not allowed for a regular user", action);
             presponse.allowed = false;
             return presponse.markComplete();            
         }
@@ -93,7 +93,7 @@ public class SnapshotRestoreEvaluator {
         // Do not allow restore of global state
         if (restoreRequest.includeGlobalState()) {
             auditLog.logSecurityIndexAttempt(request, action, task);
-            log.warn(action + " with 'include_global_state' enabled is not allowed");
+            log.warn("{} with 'include_global_state' enabled is not allowed", action);
             presponse.allowed = false;
             return presponse.markComplete();            
         }
@@ -102,7 +102,7 @@ public class SnapshotRestoreEvaluator {
 
         if (rs != null && (rs.contains(opendistrosecurityIndex) || rs.contains("_all") || rs.contains("*"))) {
             auditLog.logSecurityIndexAttempt(request, action, task);
-            log.warn(action + " for '{}' as source index is not allowed", opendistrosecurityIndex);
+            log.warn("{} for '{}' as source index is not allowed", action, opendistrosecurityIndex);
             presponse.allowed = false;
             return presponse.markComplete();            
         }
