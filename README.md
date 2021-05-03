@@ -1,5 +1,5 @@
-[![CI](https://github.com/opendistro-for-elasticsearch/security/workflows/CI/badge.svg?branch=main)](https://github.com/opendistro-for-elasticsearch/security/actions)
-[![codecov](https://codecov.io/gh/opendistro-for-elasticsearch/security/branch/main/graph/badge.svg)](https://codecov.io/gh/opendistro-for-elasticsearch/security)
+[![CI](https://github.com/opensearch-project/security/workflows/CI/badge.svg?branch=main)](https://github.com/opensearch-project/security/actions)
+[![codecov](https://codecov.io/gh/opensearch-project/security/branch/main/graph/badge.svg)](https://codecov.io/gh/opensearch-project/security)
 
 # OpenSearch Security
 
@@ -45,7 +45,7 @@ OpenSearch Security is an OpenSearch plugin that offers encryption, authenticati
 
 ## Documentation
 
-Please refer to the [technical documentation](https://opendistro.github.io/for-elasticsearch-docs/docs/security/configuration/) for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
+Please refer to the [technical documentation](https://opendistro.github.io/for-elasticsearch-docs/docs/security/configuration/) for detailed information on installing and configuring opensearch-security plugin.
 
 ## Quick Start
 
