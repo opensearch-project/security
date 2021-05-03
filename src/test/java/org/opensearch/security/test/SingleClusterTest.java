@@ -40,6 +40,8 @@ import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
+import java.util.List;
+
 public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
     private static final int DEFAULT_MASTER_NODE_NUM = 3;
@@ -124,6 +126,12 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(nodeOverride,
                 DEFAULT_FIRST_DATA_NODE_NUM), ClusterConfiguration.DEFAULT_ONE_DATA_NODE_WITHOUT_SECURITY_PLUGIN);
+    }
+
+    protected void setupGenericNodes(List<Settings> nodeOverride, List<Boolean> sslOnly, ClusterConfiguration clusterConfiguration) throws Exception {
+        Assert.assertNull("No cluster", clusterInfo);
+        clusterInfo = clusterHelper.startCluster(genericMinimumSecuritySettings(nodeOverride, sslOnly),
+                clusterConfiguration);
     }
 
     protected RestHelper restHelper() {

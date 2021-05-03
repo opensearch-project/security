@@ -274,14 +274,19 @@ public class SecurityFilter implements ActionFilter {
                     return;
                 }
 
+                boolean skipSecurityIfDualMode = threadContext.getTransient(ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY) == Boolean.TRUE;
                 if((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null) && !compatConfig.transportInterClusterAuthEnabled()) {
                     chain.proceed(task, action, request, listener);
                     return;
+                } else if((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null || skipSecurityIfDualMode) && compatConfig.transportInterClusterPassiveAuthEnabled()) {
+                    log.info("Transport auth in passive mode and no user found. Injecting default user");
+                    user = User.DEFAULT_TRANSPORT_USER;
+                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                } else {
+                    log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+" via "+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE)+" "+threadContext.getHeaders());
+                    listener.onFailure(new OpenSearchSecurityException("No user found for "+action, RestStatus.INTERNAL_SERVER_ERROR));
+                    return;
                 }
-
-                log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+" via "+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE)+" "+threadContext.getHeaders());
-                listener.onFailure(new OpenSearchSecurityException("No user found for "+action, RestStatus.INTERNAL_SERVER_ERROR));
-                return;
             }
 
             final PrivilegesEvaluator eval = evalp;

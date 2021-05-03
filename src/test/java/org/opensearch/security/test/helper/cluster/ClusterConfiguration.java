@@ -55,6 +55,9 @@ public enum ClusterConfiguration {
     //3 nodes (1m, 2d)
     DEFAULT(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true)),
 
+	//2 nodes (1m, 3d)
+	ONE_MASTER_THREE_DATA(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, true)),
+
 	DEFAULT_MASTER_WITHOUT_SECURITY_PLUGIN(new NodeSettings(true, false)
 			.removePluginIfPresent(OpenSearchSecurityPlugin.class)
 			, new NodeSettings(false, true)

@@ -260,7 +260,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
         
         if(transportSSLEnabled && !client) {
-            interceptors.add(new SecuritySSLTransportInterceptor(settings, null, null, NOOP_SSL_EXCEPTION_HANDLER));
+            interceptors.add(new SecuritySSLTransportInterceptor(settings, null, null, SSLConfig, NOOP_SSL_EXCEPTION_HANDLER));
         }
         
         return interceptors;

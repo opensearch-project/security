@@ -278,6 +278,18 @@ public abstract class AbstractSecurityUnitTest {
         };
     }
 
+    protected NodeSettingsSupplier genericMinimumSecuritySettings(List<Settings> others, List<Boolean> sslOnly) {
+
+        return i -> {
+            try {
+                i = i-1;
+                return minimumSecuritySettingsBuilder(i, sslOnly.get(i), others.get(i)).build();
+            } catch (IndexOutOfBoundsException e) {
+                return minimumSecuritySettingsBuilder(i, false, Settings.EMPTY).build();
+            }
+        };
+    }
+
     protected void initialize(ClusterInfo info) {
         initialize(info, Settings.EMPTY, new DynamicSecurityConfig());
     }

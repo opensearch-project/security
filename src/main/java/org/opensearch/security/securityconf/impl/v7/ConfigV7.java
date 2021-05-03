@@ -59,6 +59,7 @@ public class ConfigV7 {
         dynamic.filtered_alias_mode = c6.dynamic.filtered_alias_mode;
         dynamic.disable_rest_auth = c6.dynamic.disable_rest_auth;
         dynamic.disable_intertransport_auth = c6.dynamic.disable_intertransport_auth;
+        dynamic.passive_intertransport_auth = c6.dynamic.passive_intertransport_auth;
         dynamic.respect_request_indices_options = c6.dynamic.respect_request_indices_options;
         dynamic.license = c6.dynamic.license;
         dynamic.do_not_fail_on_forbidden = c6.dynamic.do_not_fail_on_forbidden || c6.dynamic.kibana.do_not_fail_on_forbidden;
@@ -112,6 +113,7 @@ public class ConfigV7 {
         public String filtered_alias_mode = "warn";
         public boolean disable_rest_auth;
         public boolean disable_intertransport_auth;
+        public boolean passive_intertransport_auth;
         public boolean respect_request_indices_options;
         public String license;
         public Kibana kibana = new Kibana();
