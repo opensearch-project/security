@@ -76,6 +76,20 @@ public class UserApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
+    public void testParallelPutRequests() throws Exception {
+        setup();
+        int statusCode;
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        org.apache.http.HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(2, "/_opendistro/_security/api/internalusers/test1", "{\"password\":\"test1\"}");
+        int SC1 = responses[0].getStatusLine().getStatusCode();
+        int SC2 = responses[1].getStatusLine().getStatusCode();
+        Assert.assertTrue(SC1 == HttpStatus.SC_CREATED || SC1 == HttpStatus.SC_CONFLICT);
+        Assert.assertTrue(SC2 == HttpStatus.SC_CREATED || SC2 == HttpStatus.SC_CONFLICT);
+    }
+
+    @Test
     public void testUserApi() throws Exception {
 
         setup();

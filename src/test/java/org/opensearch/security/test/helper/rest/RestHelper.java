@@ -34,9 +34,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Future;
 
 import javax.net.ssl.SSLContext;
 
@@ -63,6 +65,9 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
@@ -119,6 +124,25 @@ public class RestHelper {
 				httpClient.close();
 			}
 		}
+	}
+
+	public org.apache.http.HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
+		CloseableHttpAsyncClient client = getHTTPAsyncClient();
+		client.start();
+		List<Future<org.apache.http.HttpResponse>> futures = new ArrayList<>();
+		org.apache.http.HttpResponse[] responses = new org.apache.http.HttpResponse[numOfRequests];
+		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
+		uriRequest.addHeader("Content-Type","application/json");
+		if (body != null && !body.isEmpty()) {
+			uriRequest.setEntity(new StringEntity(body));
+		}
+		for (int i = 0; i < numOfRequests; i++) {
+			futures.add(client.execute(uriRequest, null));
+		}
+		for (int i = 0; i < numOfRequests; i++) {
+			responses[i] = futures.get(i).get();
+		}
+		return responses;
 	}
 
 	public HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
@@ -195,7 +219,53 @@ public class RestHelper {
 		log.debug("Connect to {}", address);
 		return address;
 	}
-	
+
+	protected final CloseableHttpAsyncClient getHTTPAsyncClient() throws Exception {
+
+		final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom();
+
+		if (sendHTTPClientCredentials) {
+			CredentialsProvider provider = new BasicCredentialsProvider();
+			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
+			provider.setCredentials(AuthScope.ANY, credentials);
+			hcb.setDefaultCredentialsProvider(provider);
+		}
+
+		if (enableHTTPClientSSL) {
+
+			log.debug("Configure HTTP async client with SSL");
+
+			if(prefix != null && !keystore.contains("/")) {
+				keystore = prefix+"/"+keystore;
+			}
+
+			final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
+
+			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
+			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
+					"changeit".toCharArray());
+
+			final KeyStore keyStore = KeyStore.getInstance("JKS");
+			keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
+
+			final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
+
+			if (trustHTTPServerCertificate) {
+				sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
+			}
+
+			if (sendAdminCertificate) {
+				sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
+			}
+
+			final SSLContext sslContext = sslContextbBuilder.build();
+			hcb.setSSLContext(sslContext);
+			hcb.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE);
+		}
+
+		return hcb.build();
+	}
+
 	protected final CloseableHttpClient getHTTPClient() throws Exception {
 
 		final HttpClientBuilder hcb = HttpClients.custom();
