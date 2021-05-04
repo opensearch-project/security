@@ -118,7 +118,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             log.debug("raw requestedTenant: '" + requestedTenant + "'");
         }
 
-        //intercept when requests are not made by the openSearchDashboards server and if the openSearchDashboards index/alias (.openSearchDashboards) is the only index/alias involved
+        //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
         final boolean openSearchDashboardsIndexOnly = !user.getName().equals(openSearchDashboardsServerUsername) && resolveToOpenSearchDashboardsIndexOrAlias(requestedResolved, openSearchDashboardsIndexName);
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (requestedTenant == null || requestedTenant.length() == 0) {
@@ -152,7 +152,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             }
         }
 
-        //intercept when requests are not made by the openSearchDashboards server and if the openSearchDashboards index/alias (.openSearchDashboards) is the only index/alias involved
+        //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
         if (openSearchDashboardsIndexOnly) {
 
             if (isDebugEnabled) {
@@ -174,7 +174,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         } else if (!user.getName().equals(openSearchDashboardsServerUsername)) {
 
             if (isTraceEnabled) {
-                log.trace("not a request to only the .openSearchDashboards index");
+                log.trace("not a request to only the .kibana index");
                 log.trace(user.getName() + "/" + openSearchDashboardsServerUsername);
                 log.trace(requestedResolved + " does not contain only " + openSearchDashboardsIndexName);
             }
@@ -227,7 +227,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         //handle msearch and mget
-        //in case of GET change the .openSearchDashboards index to the userskibanaindex
+        //in case of GET change the .kibana index to the userskibanaindex
         //in case of Search add the usersOpenSearchDashboardsindex
         //if (request instanceof CompositeIndicesRequest) {
         String[] newIndexNames = new String[] { newIndexName };
