@@ -109,8 +109,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         //next two lines needs to be retrieved from configuration
-        final String openSearchDashboardsServerUsername = config.getOpenSearchDashboardsServerUsername();//config.dynamic.openSearchDashboards.server_username;
-        final String openSearchDashboardsIndexName = config.getOpenSearchDashboardsIndexname();//config.dynamic.openSearchDashboards.index;
+        final String openSearchDashboardsServerUsername = config.getOpenSearchDashboardsServerUsername();//config.dynamic.kibana.server_username;
+        final String openSearchDashboardsIndexName = config.getOpenSearchDashboardsIndexname();//config.dynamic.kibana.index;
 
         String requestedTenant = user.getRequestedTenant();
         final boolean isDebugEnabled = log.isDebugEnabled();

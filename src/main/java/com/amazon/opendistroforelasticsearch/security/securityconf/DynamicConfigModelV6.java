@@ -142,15 +142,15 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     }
     @Override
     public String getOpenSearchDashboardsServerUsername() {
-        return config.dynamic.openSearchDashboards.server_username;
+        return config.dynamic.kibana.server_username;
     }
     @Override
     public String getOpenSearchDashboardsOpenSearchRole() {
-        return config.dynamic.openSearchDashboards.opendistro_role;
+        return config.dynamic.kibana.opendistro_role;
     }
     @Override
     public String getOpenSearchDashboardsIndexname() {
-        return config.dynamic.openSearchDashboards.index;
+        return config.dynamic.kibana.index;
     }
     @Override
     public boolean isOpenSearchDashboardsMultitenancyEnabled() {
@@ -158,7 +158,7 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     }
     @Override
     public boolean isDnfofEnabled() {
-        return config.dynamic.do_not_fail_on_forbidden || config.dynamic.openSearchDashboards.do_not_fail_on_forbidden;
+        return config.dynamic.do_not_fail_on_forbidden || config.dynamic.kibana.do_not_fail_on_forbidden;
     }
     @Override
     public boolean isMultiRolespanEnabled() {
