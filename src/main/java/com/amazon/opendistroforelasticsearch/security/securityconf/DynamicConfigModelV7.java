@@ -154,7 +154,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     }
     @Override
     public boolean isOpenSearchDashboardsMultitenancyEnabled() {
-        return config.dynamic.openSearchDashboards.multitenancy_enabled;
+        return config.dynamic.kibana.multitenancy_enabled;
     }
     @Override
     public boolean isDnfofEnabled() {

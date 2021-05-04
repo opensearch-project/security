@@ -100,9 +100,9 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
      */
     @Override
     public ReplaceResult replaceOpenSearchDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
-                                                          final Resolved requestedResolved, final Map<String, Boolean> tenants) {
+                                      final Resolved requestedResolved, final Map<String, Boolean> tenants) {
 
-        final boolean enabled = config.isOpenSearchDashboardsMultitenancyEnabled();//config.dynamic.openSearchDashboards.multitenancy_enabled;
+        final boolean enabled = config.isOpenSearchDashboardsMultitenancyEnabled();//config.dynamic.kibana.multitenancy_enabled;
 
         if (!enabled) {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
