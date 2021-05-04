@@ -31,7 +31,7 @@ public class Fls983Test extends AbstractDlsFlsTest{
 
     protected void populateData(TransportClient tc) {
 
-        tc.index(new IndexRequest(".kibana").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest(".openSearchDashboards").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{}", XContentType.JSON)).actionGet();
     }
 
@@ -46,7 +46,7 @@ public class Fls983Test extends AbstractDlsFlsTest{
             "\"x\" : \"y\""+
         "}}";
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/.kibana/config/0/_update?pretty", doc, encodeBasicHeader("human_resources_trainee", "password"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/.openSearchDashboards/config/0/_update?pretty", doc, encodeBasicHeader("human_resources_trainee", "password"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("updated"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));

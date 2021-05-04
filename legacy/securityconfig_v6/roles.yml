@@ -69,7 +69,7 @@ opendistro_security_readall_and_monitor:
       '*':
         - READ
 
-# For users which use kibana, access to indices must be granted separately
+# For users which use openSearchDashboards, access to indices must be granted separately
 opendistro_security_kibana_user:
   readonly: true
   cluster:

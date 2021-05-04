@@ -260,7 +260,7 @@ kibana4:
     - "indices:admin/validate/query"
     - "indices:admin/mappings/fields/get"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -431,7 +431,7 @@ kibana4_server:
   - "cluster:monitor/health"
   index_permissions:
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -509,7 +509,7 @@ aliastest:
   cluster_permissions: []
   index_permissions:
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -829,14 +829,14 @@ opendistro_security_kibana_server:
   - "indices:data/read/scroll*"
   index_permissions:
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
     allowed_actions:
     - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
-    - "?kibana-6"
+    - "?openSearchDashboards-6"
     dls: null
     fls: null
     masked_fields: null
@@ -900,7 +900,7 @@ marvel_user:
     allowed_actions:
     - "OPENDISTRO_SECURITY_READ"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null

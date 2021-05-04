@@ -124,7 +124,7 @@ opendistro_security_kibana4:
     - "indices:admin/validate/query"
     - "indices:admin/mappings/fields/get"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -253,7 +253,7 @@ opendistro_security_marvel_user:
     allowed_actions:
     - "READ_UT"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -327,7 +327,7 @@ opendistro_security_kibana4_server:
   - "cluster:monitor/health"
   index_permissions:
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null

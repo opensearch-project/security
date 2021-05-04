@@ -77,7 +77,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
     private String subjectKey;
     private String rolesKey;
-    private String kibanaRootUrl;
+    private String openSearchDashboardsRootUrl;
     private String spSignatureAlgorithm;
     private Boolean useForceAuthn;
     private PrivateKey spSignaturePrivateKey;
@@ -95,7 +95,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
 
             rolesKey = settings.get("roles_key");
             subjectKey = settings.get("subject_key");
-            kibanaRootUrl = settings.get("kibana_url");
+            openSearchDashboardsRootUrl = settings.get("kibana_url");
             spSignatureAlgorithm = settings.get("sp.signature_algorithm", Constants.RSA_SHA256);
             spSignaturePrivateKey = getSpSignaturePrivateKey(settings, configPath);
             useForceAuthn = settings.getAsBoolean("sp.forceAuthn", null);
@@ -111,7 +111,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
                 subjectKey = null;
             }
 
-            if (kibanaRootUrl == null) {
+            if (openSearchDashboardsRootUrl == null) {
                 throw new Exception("kibana_url is unconfigured");
             }
 

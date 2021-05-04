@@ -25,13 +25,13 @@ kibana_user:
   reserved: true
   hidden: false
   static: true
-  description: "Provide the minimum permissions for a kibana user"
+  description: "Provide the minimum permissions for a openSearchDashboards user"
   cluster_permissions:
     - "cluster_composite_ops"
   index_permissions:
     - index_patterns:
-        - ".kibana"
-        - ".kibana-6"
+        - ".openSearchDashboards"
+        - ".openSearchDashboards-6"
         - ".kibana_*"
         - ".opensearch_dashboards"
         - ".opensearch_dashboards-6"
@@ -81,7 +81,7 @@ kibana_server:
   reserved: true
   hidden: false
   static: true
-  description: "Provide the minimum permissions for the Kibana server"
+  description: "Provide the minimum permissions for the OpenSearchDashboards server"
   cluster_permissions:
   - "cluster_monitor"
   - "cluster_composite_ops"
@@ -89,12 +89,12 @@ kibana_server:
   - "indices:data/read/scroll*"
   index_permissions:
   - index_patterns:
-    - ".kibana"
+    - ".openSearchDashboards"
     - ".opensearch_dashboards"
     allowed_actions:
     - "indices_all"
   - index_patterns:
-    - ".kibana-6"
+    - ".openSearchDashboards-6"
     - ".opensearch_dashboards-6"
     allowed_actions:
     - "indices_all"

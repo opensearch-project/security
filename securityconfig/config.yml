@@ -65,8 +65,8 @@ config:
     # Set filtered_alias_mode to 'nowarn' to allow more than 2 filtered aliases per index silently
     #filtered_alias_mode: warn
     #do_not_fail_on_forbidden: false
-    #kibana:
-    # Kibana multitenancy
+    #openSearchDashboards:
+    # OpenSearchDashboards multitenancy
     #multitenancy_enabled: true
     #server_username: kibanaserver
     #index: '.kibana'

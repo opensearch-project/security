@@ -61,17 +61,17 @@ public class ConfigV7 {
         dynamic.disable_intertransport_auth = c6.dynamic.disable_intertransport_auth;
         dynamic.respect_request_indices_options = c6.dynamic.respect_request_indices_options;
         dynamic.license = c6.dynamic.license;
-        dynamic.do_not_fail_on_forbidden = c6.dynamic.do_not_fail_on_forbidden || c6.dynamic.kibana.do_not_fail_on_forbidden;
+        dynamic.do_not_fail_on_forbidden = c6.dynamic.do_not_fail_on_forbidden || c6.dynamic.openSearchDashboards.do_not_fail_on_forbidden;
         dynamic.do_not_fail_on_forbidden_empty = c6.dynamic.do_not_fail_on_forbidden_empty;
         dynamic.multi_rolespan_enabled = c6.dynamic.multi_rolespan_enabled;
         dynamic.hosts_resolver_mode = c6.dynamic.hosts_resolver_mode;
         dynamic.transport_userrname_attribute = c6.dynamic.transport_userrname_attribute;
         
-        dynamic.kibana = new Kibana();
+        dynamic.openSearchDashboards = new OpenSearchDashboards();
         
-        dynamic.kibana.index = c6.dynamic.kibana.index;
-        dynamic.kibana.multitenancy_enabled = c6.dynamic.kibana.multitenancy_enabled;
-        dynamic.kibana.server_username = c6.dynamic.kibana.server_username;
+        dynamic.openSearchDashboards.index = c6.dynamic.openSearchDashboards.index;
+        dynamic.openSearchDashboards.multitenancy_enabled = c6.dynamic.openSearchDashboards.multitenancy_enabled;
+        dynamic.openSearchDashboards.server_username = c6.dynamic.openSearchDashboards.server_username;
         
         dynamic.http = new Http();
         
@@ -114,7 +114,7 @@ public class ConfigV7 {
         public boolean disable_intertransport_auth;
         public boolean respect_request_indices_options;
         public String license;
-        public Kibana kibana = new Kibana();
+        public OpenSearchDashboards openSearchDashboards = new OpenSearchDashboards();
         public Http http = new Http();
         public Authc authc = new Authc();
         public Authz authz = new Authz();
@@ -127,20 +127,20 @@ public class ConfigV7 {
     
         @Override
         public String toString() {
-            return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
+            return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", openSearchDashboards=" + openSearchDashboards + ", http=" + http + ", authc=" + authc + ", authz="
                     + authz + "]";
         }
     }
 
-    public static class Kibana {
+    public static class OpenSearchDashboards {
 
         public boolean multitenancy_enabled = true;
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
-        public String index = ".kibana";
+        public String index = ".openSearchDashboards";
         @Override
         public String toString() {
-            return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
+            return "OpenSearchDashboards [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
             + ", index=" + index + "]";
         }
         

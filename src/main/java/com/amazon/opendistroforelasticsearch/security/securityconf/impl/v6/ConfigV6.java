@@ -63,7 +63,7 @@ public class ConfigV6 {
         public boolean disable_intertransport_auth;
         public boolean respect_request_indices_options;
         public String license;
-        public Kibana kibana = new Kibana();
+        public OpenSearchDashboards openSearchDashboards = new OpenSearchDashboards();
         public Http http = new Http();
         public Authc authc = new Authc();
         public Authz authz = new Authz();
@@ -76,21 +76,21 @@ public class ConfigV6 {
     
         @Override
         public String toString() {
-            return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
+            return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", openSearchDashboards=" + openSearchDashboards + ", http=" + http + ", authc=" + authc + ", authz="
                     + authz + "]";
         }
     }
 
-    public static class Kibana {
+    public static class OpenSearchDashboards {
 
         public boolean multitenancy_enabled = true;
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
-        public String index = ".kibana";
+        public String index = ".openSearchDashboards";
         public boolean do_not_fail_on_forbidden;
         @Override
         public String toString() {
-            return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
+            return "OpenSearchDashboards [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
                     + ", index=" + index + ", do_not_fail_on_forbidden=" + do_not_fail_on_forbidden + "]";
         }
         

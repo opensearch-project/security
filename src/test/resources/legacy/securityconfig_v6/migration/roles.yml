@@ -21,7 +21,7 @@
 # A asterix (*) will match any character sequence (or an empty sequence)
 # A question mark (?) will match any single character (but NOT empty character)
 # Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
-# Example: '?kibana' will match '.kibana' but not 'kibana'
+# Example: '?openSearchDashboards' will match '.openSearchDashboards' but not 'openSearchDashboards'
 
 # To use a full blown regex you have to pre- and apend a '/' to use regex instead of simple wildcards
 # '/<java regex>/'
@@ -30,7 +30,7 @@
 # Important: 
 # Index, alias or type names can not contain dots (.) in the <indexname or alias> or <type> expression.
 # Reason is that we currently parse the config file into a opensearch settings object which cannot cope with dots in keys.
-# Workaround: Just configure something like '?kibana' instead of '.kibana' or 'my?index' instead of 'my.index'
+# Workaround: Just configure something like '?openSearchDashboards' instead of '.openSearchDashboards' or 'my?index' instead of 'my.index'
 
 # Allows everything, but no changes to opendistro_security configuration index
 opendistro_security_all_access:
@@ -64,7 +64,7 @@ opendistro_security_readall_and_monitor:
       '*':
         - READ
 
-# For users which use kibana, access to indices must be granted separately
+# For users which use openSearchDashboards, access to indices must be granted separately
 opendistro_security_kibana_user:
   readonly: true
   cluster:
@@ -101,7 +101,7 @@ opendistro_security_kibana_user:
         - indices:admin/mappings/get*
         - indices:admin/get
 
-# For the kibana server
+# For the openSearchDashboards server
 opendistro_security_kibana_server:
   readonly: true
   cluster:

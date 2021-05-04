@@ -33,7 +33,7 @@ opendistro_security_kibana_testindex:
     - "OPENDISTRO_SECURITY_READ"
     - "indices:admin/mappings/fields/get*"
   - index_patterns:
-    - ".kibana"
+    - ".openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -63,7 +63,7 @@ opendistro_security_human_resources:
     allowed_actions:
     - "*"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -101,7 +101,7 @@ opendistro_security_human_resources_trainee:
     allowed_actions:
     - "OPENDISTRO_SECURITY_CRUD"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -139,7 +139,7 @@ opendistro_security_kibana:
   - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
   index_permissions:
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -149,7 +149,7 @@ opendistro_security_kibana:
     - "OPENDISTRO_SECURITY_MANAGE"
     - "OPENDISTRO_SECURITY_INDEX"
   - index_patterns:
-    - "?kibana-6"
+    - "?openSearchDashboards-6"
     dls: null
     fls: null
     masked_fields: null
@@ -191,7 +191,7 @@ opendistro_security_kibana_server:
   - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
   index_permissions:
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -276,7 +276,7 @@ opendistro_security_ua:
     allowed_actions:
     - "*"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -316,7 +316,7 @@ opendistro_security_finance:
     allowed_actions:
     - "OPENDISTRO_SECURITY_READ"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null
@@ -367,7 +367,7 @@ opendistro_security_finance_trainee:
     allowed_actions:
     - "OPENDISTRO_SECURITY_CRUD"
   - index_patterns:
-    - "?kibana"
+    - "?openSearchDashboards"
     dls: null
     fls: null
     masked_fields: null

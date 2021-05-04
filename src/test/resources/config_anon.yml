@@ -12,7 +12,7 @@ config:
     kibana:
       multitenancy_enabled: true
       server_username: "kibanaserver"
-      index: ".kibana"
+      index: ".openSearchDashboards"
     http:
       anonymous_auth_enabled: true
       xff:

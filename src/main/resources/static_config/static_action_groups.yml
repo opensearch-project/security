@@ -7,17 +7,17 @@ kibana_all_write:
   hidden: false
   static: true
   allowed_actions:
-  - "kibana:saved_objects/*/write"
-  type: "kibana"
-  description: "Allow writing in all kibana apps"
+  - "openSearchDashboards:saved_objects/*/write"
+  type: "openSearchDashboards"
+  description: "Allow writing in all openSearchDashboards apps"
 kibana_all_read:
   reserved: true
   hidden: false
   static: true
   allowed_actions:
-  - "kibana:saved_objects/*/read"
-  type: "kibana"
-  description: "Allow reading in all kibana apps"
+  - "openSearchDashboards:saved_objects/*/read"
+  type: "openSearchDashboards"
+  description: "Allow reading in all openSearchDashboards apps"
 cluster_all:
   reserved: true
   hidden: false

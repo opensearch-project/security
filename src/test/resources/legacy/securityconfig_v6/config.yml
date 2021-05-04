@@ -58,10 +58,10 @@ opendistro_security:
     # Set filtered_alias_mode to 'warn' to allow more than 2 filtered aliases per index but warns about it (default)
     # Set filtered_alias_mode to 'nowarn' to allow more than 2 filtered aliases per index silently
     #filtered_alias_mode: warn
-    #kibana:
+    #openSearchDashboards:
       #multitenancy_enabled: true
       #server_username: kibanaserver
-      #index: '.kibana'
+      #index: '.openSearchDashboards'
       #do_not_fail_on_forbidden: false
     http:
       anonymous_auth_enabled: false

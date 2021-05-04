@@ -444,8 +444,8 @@ public class ConfigModelV7 extends ConfigModel {
 
         }
 
-      //kibana special only, terms eval
-        public Set<String> getAllPermittedIndicesForKibana(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+      //OpenSearchDashboards special only, terms eval
+        public Set<String> getAllPermittedIndicesForOpenSearchDashboards(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
                 retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs));
@@ -531,7 +531,7 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         //get indices which are permitted for the given types and actions
-        //dnfof + kibana special only
+        //dnfof + OpenSearchDashboards special only
         private Set<String> getAllResolvedPermittedIndices(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver,
                 ClusterService cs) {
 
@@ -998,7 +998,7 @@ public class ConfigModelV7 extends ConfigModel {
                             for (RoleV7.Tenant tenant : tenants) {
                                 
                                 for(String matchingTenant: WildcardMatcher.from(tenant.getTenant_patterns()).getMatchAny(definedTenants.getCEntries().keySet(), Collectors.toList())) {
-                                    tuples.add(new Tuple<String, Boolean>(matchingTenant, agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")));
+                                    tuples.add(new Tuple<String, Boolean>(matchingTenant, agr.resolvedActions(tenant.getAllowed_actions()).contains("openSearchDashboards:saved_objects/*/write")));
                                 }
                             }
                         }

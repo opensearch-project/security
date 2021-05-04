@@ -211,17 +211,17 @@ public class MultitenancyTests extends SingleClusterTest {
 
         HttpResponse res;
         String body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "blafasel"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest(".openSearchDashboards/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "blafasel"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
 
         body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "business_intelligence"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest(".openSearchDashboards/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "business_intelligence"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
 
         body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
-        Assert.assertEquals(HttpStatus.SC_CREATED, (res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "human_resources"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, (res = rh.executePutRequest(".openSearchDashboards/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "human_resources"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertEquals(".kibana_1592542611_humanresources_1", DefaultObjectMapper.readTree(res.getBody()).get("_index").asText());
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/config/5.6.0?pretty",new BasicHeader("securitytenant", "human_resources"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".openSearchDashboards/config/5.6.0?pretty",new BasicHeader("securitytenant", "human_resources"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(WildcardMatcher.from("*human_resources*").test(res.getBody()));
 
@@ -238,7 +238,7 @@ public class MultitenancyTests extends SingleClusterTest {
                 .build();
         setup(settings);
 
-        final String kibanaIndex = ".kibana_92668751_admin_1";
+        final String openSearchDashboardsIndex = ".kibana_92668751_admin_1";
         try (TransportClient tc = getInternalTransportClient()) {
             String body = "{"+
                     "\"type\" : \"index-pattern\","+
@@ -249,12 +249,12 @@ public class MultitenancyTests extends SingleClusterTest {
             Map indexSettings = new HashMap();
             indexSettings.put("number_of_shards", 1);
             indexSettings.put("number_of_replicas", 0);
-            tc.admin().indices().create(new CreateIndexRequest(kibanaIndex)
+            tc.admin().indices().create(new CreateIndexRequest(openSearchDashboardsIndex)
                 .settings(indexSettings)
                 .alias(new Alias(".kibana_92668751_admin")))
                 .actionGet();
 
-            tc.index(new IndexRequest(kibanaIndex).type("doc")
+            tc.index(new IndexRequest(openSearchDashboardsIndex).type("doc")
                     .id("index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b")
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source(body, XContentType.JSON)).actionGet();
@@ -265,16 +265,16 @@ public class MultitenancyTests extends SingleClusterTest {
         System.out.println("#### search");
         HttpResponse res;
         String body = "{\"query\" : {\"term\" : { \"_id\" : \"index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b\"}}}";
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest(".kibana/_search/?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest(".openSearchDashboards/_search/?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(openSearchDashboardsIndex));
 
         System.out.println("#### msearch");
         body =
-                "{\"index\":\".kibana\", \"type\":\"doc\", \"ignore_unavailable\": false}"+System.lineSeparator()+
+                "{\"index\":\".openSearchDashboards\", \"type\":\"doc\", \"ignore_unavailable\": false}"+System.lineSeparator()+
                 "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_msearch/?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
@@ -282,23 +282,23 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(openSearchDashboardsIndex));
 
         System.out.println("#### get");
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/doc/index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b?pretty", new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".openSearchDashboards/doc/index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b?pretty", new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(openSearchDashboardsIndex));
 
         System.out.println("#### mget");
-        body = "{\"docs\" : [{\"_index\" : \".kibana\",\"_type\" : \"doc\",\"_id\" : \"index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b\"}]}";
+        body = "{\"docs\" : [{\"_index\" : \".openSearchDashboards\",\"_type\" : \"doc\",\"_id\" : \"index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b\"}]}";
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_mget/?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(openSearchDashboardsIndex));
 
         System.out.println("#### index");
         body = "{"+
@@ -307,34 +307,34 @@ public class MultitenancyTests extends SingleClusterTest {
                 "\"index-pattern\" : {"+
                   "\"title\" : \"xyz\""+
                  "}}";
-        Assert.assertEquals(HttpStatus.SC_CREATED, (res = rh.executePutRequest(".kibana/doc/abc?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, (res = rh.executePutRequest(".openSearchDashboards/doc/abc?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("\"result\" : \"created\""));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(openSearchDashboardsIndex));
 
         System.out.println("#### bulk");
         body =
-                "{ \"index\" : { \"_index\" : \".kibana\", \"_type\" : \"doc\", \"_id\" : \"b1\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \".openSearchDashboards\", \"_type\" : \"doc\", \"_id\" : \"b1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
-                "{ \"index\" : { \"_index\" : \".kibana\", \"_type\" : \"doc\", \"_id\" : \"b2\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \".openSearchDashboards\", \"_type\" : \"doc\", \"_id\" : \"b2\" } }"+System.lineSeparator()+
                 "{ \"field2\" : \"value2\" }"+System.lineSeparator();
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePutRequest("_bulk?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(openSearchDashboardsIndex));
         Assert.assertTrue(res.getBody().contains("\"errors\" : false"));
         Assert.assertTrue(res.getBody().contains("\"result\" : \"created\""));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_cat/indices", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertEquals(2, res.getBody().split(".kibana").length);
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(openSearchDashboardsIndex));
 
     }
 
     @Test
-    public void testKibanaAlias() throws Exception {
+    public void testOpenSearchDashboardsAlias() throws Exception {
         final Settings settings = Settings.builder()
                 .build();
         setup(settings);
@@ -344,26 +344,26 @@ public class MultitenancyTests extends SingleClusterTest {
             Map indexSettings = new HashMap();
             indexSettings.put("number_of_shards", 1);
             indexSettings.put("number_of_replicas", 0);
-            tc.admin().indices().create(new CreateIndexRequest(".kibana-6")
-                .alias(new Alias(".kibana"))
+            tc.admin().indices().create(new CreateIndexRequest(".openSearchDashboards-6")
+                .alias(new Alias(".openSearchDashboards"))
                 .settings(indexSettings))
                 .actionGet();
 
-            tc.index(new IndexRequest(".kibana-6").type("doc").id("6.2.2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(body, XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".openSearchDashboards-6").type("doc").id("6.2.2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(body, XContentType.JSON)).actionGet();
         }
 
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana-6/doc/6.2.2?pretty", encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/doc/6.2.2?pretty", encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".openSearchDashboards-6/doc/6.2.2?pretty", encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".openSearchDashboards/doc/6.2.2?pretty", encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
 
         System.out.println(res.getBody());
 
     }
 
     @Test
-    public void testKibanaAlias65() throws Exception {
+    public void testOpenSearchDashboardsAlias65() throws Exception {
         final Settings settings = Settings.builder()
                 .build();
         setup(settings);
@@ -374,7 +374,7 @@ public class MultitenancyTests extends SingleClusterTest {
             indexSettings.put("number_of_shards", 1);
             indexSettings.put("number_of_replicas", 0);
             tc.admin().indices().create(new CreateIndexRequest(".kibana_1")
-                .alias(new Alias(".kibana"))
+                .alias(new Alias(".openSearchDashboards"))
                 .settings(indexSettings))
                 .actionGet();
 
@@ -386,7 +386,7 @@ public class MultitenancyTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/doc/6.2.2?pretty", new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".openSearchDashboards/doc/6.2.2?pretty", new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains(".kibana_-900636979_kibanaro"));
     }

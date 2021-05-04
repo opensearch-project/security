@@ -99,18 +99,18 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
      *
      */
     @Override
-    public ReplaceResult replaceKibanaIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
-                                      final Resolved requestedResolved, final Map<String, Boolean> tenants) {
+    public ReplaceResult replaceOpenSearchDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
+                                                          final Resolved requestedResolved, final Map<String, Boolean> tenants) {
 
-        final boolean enabled = config.isKibanaMultitenancyEnabled();//config.dynamic.kibana.multitenancy_enabled;
+        final boolean enabled = config.isOpenSearchDashboardsMultitenancyEnabled();//config.dynamic.openSearchDashboards.multitenancy_enabled;
 
         if (!enabled) {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
         //next two lines needs to be retrieved from configuration
-        final String kibanaserverUsername = config.getKibanaServerUsername();//config.dynamic.kibana.server_username;
-        final String kibanaIndexName = config.getKibanaIndexname();//config.dynamic.kibana.index;
+        final String openSearchDashboardsServerUsername = config.getOpenSearchDashboardsServerUsername();//config.dynamic.openSearchDashboards.server_username;
+        final String openSearchDashboardsIndexName = config.getOpenSearchDashboardsIndexname();//config.dynamic.openSearchDashboards.index;
 
         String requestedTenant = user.getRequestedTenant();
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -118,15 +118,15 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             log.debug("raw requestedTenant: '" + requestedTenant + "'");
         }
 
-        //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
-        final boolean kibanaIndexOnly = !user.getName().equals(kibanaserverUsername) && resolveToKibanaIndexOrAlias(requestedResolved, kibanaIndexName);
+        //intercept when requests are not made by the openSearchDashboards server and if the openSearchDashboards index/alias (.openSearchDashboards) is the only index/alias involved
+        final boolean openSearchDashboardsIndexOnly = !user.getName().equals(openSearchDashboardsServerUsername) && resolveToOpenSearchDashboardsIndexOrAlias(requestedResolved, openSearchDashboardsIndexName);
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (requestedTenant == null || requestedTenant.length() == 0) {
             if (isTraceEnabled) {
-                log.trace("No tenant, will resolve to " + kibanaIndexName);
+                log.trace("No tenant, will resolve to " + openSearchDashboardsIndexName);
             }
 
-            if (kibanaIndexOnly && !isTenantAllowed(request, action, user, tenants, "global_tenant")) {
+            if (openSearchDashboardsIndexOnly && !isTenantAllowed(request, action, user, tenants, "global_tenant")) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
 
@@ -137,23 +137,23 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             requestedTenant = user.getName();
         }
 
-        if (isDebugEnabled && !user.getName().equals(kibanaserverUsername)) {
+        if (isDebugEnabled && !user.getName().equals(openSearchDashboardsServerUsername)) {
             //log statements only here
             log.debug("requestedResolved: " + requestedResolved);
         }
 
-        //request not made by the kibana server and user index is the only index/alias involved
-        if (!user.getName().equals(kibanaserverUsername)) {
+        //request not made by the openSearchDashboards server and user index is the only index/alias involved
+        if (!user.getName().equals(openSearchDashboardsServerUsername)) {
             final Set<String> indices = requestedResolved.getAllIndices();
-            final String tenantIndexName = toUserIndexName(kibanaIndexName, requestedTenant);
+            final String tenantIndexName = toUserIndexName(openSearchDashboardsIndexName, requestedTenant);
             if (indices.size() == 1 && indices.iterator().next().startsWith(tenantIndexName) &&
                     isTenantAllowed(request, action, user, tenants, requestedTenant)) {
                     return ACCESS_GRANTED_REPLACE_RESULT;
             }
         }
 
-        //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
-        if (kibanaIndexOnly) {
+        //intercept when requests are not made by the openSearchDashboards server and if the openSearchDashboards index/alias (.openSearchDashboards) is the only index/alias involved
+        if (openSearchDashboardsIndexOnly) {
 
             if (isDebugEnabled) {
                 log.debug("requestedTenant: " + requestedTenant);
@@ -168,15 +168,15 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             // regular tenant
             // to avoid security issue
 
-            final String tenantIndexName = toUserIndexName(kibanaIndexName, requestedTenant);
-            return newAccessGrantedReplaceResult(replaceIndex(request, kibanaIndexName, tenantIndexName, action));
+            final String tenantIndexName = toUserIndexName(openSearchDashboardsIndexName, requestedTenant);
+            return newAccessGrantedReplaceResult(replaceIndex(request, openSearchDashboardsIndexName, tenantIndexName, action));
 
-        } else if (!user.getName().equals(kibanaserverUsername)) {
+        } else if (!user.getName().equals(openSearchDashboardsServerUsername)) {
 
             if (isTraceEnabled) {
-                log.trace("not a request to only the .kibana index");
-                log.trace(user.getName() + "/" + kibanaserverUsername);
-                log.trace(requestedResolved + " does not contain only " + kibanaIndexName);
+                log.trace("not a request to only the .openSearchDashboards index");
+                log.trace(user.getName() + "/" + openSearchDashboardsServerUsername);
+                log.trace(requestedResolved + " does not contain only " + openSearchDashboardsIndexName);
             }
 
         }
@@ -191,7 +191,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 return concreteName;
             }
         }
-        log.warn("Can not find a suitable name for kibana multi-tenant index {}", name);
+        log.warn("Can not find a suitable name for openSearchDashboards multi-tenant index {}", name);
         return null;
 
     }
@@ -203,7 +203,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             if (indexAbstraction.getType() == IndexAbstraction.Type.ALIAS) {
                 log.debug("Alias {} already exists", name);
             } else {
-                log.warn("Can not create kibana multi-tenant alias {} as an index with the same name already exists", name);
+                log.warn("Can not create openSearchDashboards multi-tenant alias {} as an index with the same name already exists", name);
             }
             return null;
         }
@@ -227,8 +227,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         //handle msearch and mget
-        //in case of GET change the .kibana index to the userskibanaindex
-        //in case of Search add the userskibanaindex
+        //in case of GET change the .openSearchDashboards index to the userskibanaindex
+        //in case of Search add the usersOpenSearchDashboardsindex
         //if (request instanceof CompositeIndicesRequest) {
         String[] newIndexNames = new String[] { newIndexName };
 
@@ -331,21 +331,21 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         return createIndexRequestBuilder;
     }
 
-    private String toUserIndexName(final String originalKibanaIndex, final String tenant) {
+    private String toUserIndexName(final String originalOpenSearchDashboardsIndex, final String tenant) {
 
         if (tenant == null) {
             throw new OpenSearchException("tenant must not be null here");
         }
 
-        return originalKibanaIndex + "_" + tenant.hashCode() + "_" + tenant.toLowerCase().replaceAll("[^a-z0-9]+", EMPTY_STRING);
+        return originalOpenSearchDashboardsIndex + "_" + tenant.hashCode() + "_" + tenant.toLowerCase().replaceAll("[^a-z0-9]+", EMPTY_STRING);
     }
 
-    private static boolean resolveToKibanaIndexOrAlias(final Resolved requestedResolved, final String kibanaIndexName) {
+    private static boolean resolveToOpenSearchDashboardsIndexOrAlias(final Resolved requestedResolved, final String openSearchDashboardsIndexName) {
         final Set<String> allIndices = requestedResolved.getAllIndices();
-        if (allIndices.size() == 1 && allIndices.iterator().next().equals(kibanaIndexName)) {
+        if (allIndices.size() == 1 && allIndices.iterator().next().equals(openSearchDashboardsIndexName)) {
             return true;
         }
         final Set<String> aliases = requestedResolved.getAliases();
-        return (aliases.size() == 1 && aliases.iterator().next().equals(kibanaIndexName));
+        return (aliases.size() == 1 && aliases.iterator().next().equals(openSearchDashboardsIndexName));
     }
 }

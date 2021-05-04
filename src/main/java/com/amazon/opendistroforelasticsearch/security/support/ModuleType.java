@@ -52,7 +52,7 @@ public enum ModuleType implements Serializable {
 	REST_MANAGEMENT_API("REST Management API", "com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenDistroSecurityRestApiActions", Boolean.TRUE),
 	DLSFLS("Document- and Field-Level Security", "com.amazon.opendistroforelasticsearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper", Boolean.TRUE),
 	AUDITLOG("Audit Logging", "com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl", Boolean.TRUE),
-	MULTITENANCY("Kibana Multitenancy", "com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl", Boolean.TRUE),
+	MULTITENANCY("OpenSearchDashboards Multitenancy", "com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl", Boolean.TRUE),
 	LDAP_AUTHENTICATION_BACKEND("LDAP authentication backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend", Boolean.TRUE),
 	LDAP_AUTHORIZATION_BACKEND("LDAP authorization backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend", Boolean.TRUE),
 	KERBEROS_AUTHENTICATION_BACKEND("Kerberos authentication backend", "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator", Boolean.TRUE),

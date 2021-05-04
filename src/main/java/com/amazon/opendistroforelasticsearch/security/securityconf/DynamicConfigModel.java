@@ -73,10 +73,10 @@ public abstract class DynamicConfigModel {
     public abstract boolean isRestAuthDisabled();
     public abstract boolean isInterTransportAuthDisabled();
     public abstract boolean isRespectRequestIndicesEnabled();
-    public abstract String getKibanaServerUsername();
-    public abstract String getKibanaOpendistroRole();
-    public abstract String getKibanaIndexname();
-    public abstract boolean isKibanaMultitenancyEnabled();
+    public abstract String getOpenSearchDashboardsServerUsername();
+    public abstract String getOpenSearchDashboardsOpenSearchRole();
+    public abstract String getOpenSearchDashboardsIndexname();
+    public abstract boolean isOpenSearchDashboardsMultitenancyEnabled();
     public abstract boolean isDnfofEnabled();
     public abstract boolean isMultiRolespanEnabled();
     public abstract String getFilteredAliasMode();
