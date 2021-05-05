@@ -998,7 +998,7 @@ public class ConfigModelV7 extends ConfigModel {
                             for (RoleV7.Tenant tenant : tenants) {
                                 
                                 for(String matchingTenant: WildcardMatcher.from(tenant.getTenant_patterns()).getMatchAny(definedTenants.getCEntries().keySet(), Collectors.toList())) {
-                                    tuples.add(new Tuple<String, Boolean>(matchingTenant, agr.resolvedActions(tenant.getAllowed_actions()).contains("openSearchDashboards:saved_objects/*/write")));
+                                    tuples.add(new Tuple<String, Boolean>(matchingTenant, agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")));
                                 }
                             }
                         }
