@@ -616,7 +616,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### openSearchDashboards indices agg");
+        System.out.println("###################### kibana indices agg");
         String openSearchDashboardsIndicesAgg = "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":100}}}}";
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("*/_search?pretty", openSearchDashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
@@ -701,7 +701,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         HttpResponse ccs = null;
 
-        System.out.println("###################### openSearchDashboards indices agg");
+        System.out.println("###################### kibana indices agg");
         String openSearchDashboardsIndicesAgg = "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":100}}}}";
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("*/_search?pretty", openSearchDashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());

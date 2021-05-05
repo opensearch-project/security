@@ -661,7 +661,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
                         
-            tc.index(new IndexRequest(".openSearchDashboards-6").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".kibana-6").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest(".kibana_-1139640511_admin1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest(".kibana_-1386441176_praxisrw").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest(".kibana_-634608247_abcdef22").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
@@ -673,7 +673,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             
             tc.index(new IndexRequest("esb-prod-5").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":5}", XContentType.JSON)).actionGet();
 
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices(".openSearchDashboards-6").alias(".openSearchDashboards"))).actionGet();
+            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices(".kibana-6").alias(".kibana"))).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("esb-prod-5").alias(".kibana_-2014056163_kltentrw"))).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("esb-prod-5").alias("esb-alias-5"))).actionGet();
 
@@ -692,7 +692,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains(".kibana_-2014056163_kltentrw\" : \"kltentrw\""));
         Assert.assertTrue(res.getBody().contains("\".kibana_-634608247_abcdef22\" : \"abcdef_2_2\""));
         Assert.assertTrue(res.getBody().contains("\".kibana_-12345_123456\" : \"__private__\""));
-        Assert.assertFalse(res.getBody().contains(".openSearchDashboards-6"));
+        Assert.assertFalse(res.getBody().contains(".kibana-6"));
         Assert.assertFalse(res.getBody().contains("esb-"));
         Assert.assertFalse(res.getBody().contains("xxx"));
         Assert.assertFalse(res.getBody().contains(".kibana2"));

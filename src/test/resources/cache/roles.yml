@@ -33,7 +33,7 @@ opendistro_security_kibana_testindex:
     - "OPENDISTRO_SECURITY_READ"
     - "indices:admin/mappings/fields/get*"
   - index_patterns:
-    - ".openSearchDashboards"
+    - ".kibana"
     dls: null
     fls: null
     masked_fields: null
