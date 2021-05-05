@@ -79,7 +79,7 @@ public class PrivilegesInterceptor {
     }
 
     public ReplaceResult replaceOpenSearchDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
-                                                          final Resolved requestedResolved, final Map<String, Boolean> tenants) {
+                                     final Resolved requestedResolved, final Map<String, Boolean> tenants) {
         throw new RuntimeException("not implemented");
     }
     
