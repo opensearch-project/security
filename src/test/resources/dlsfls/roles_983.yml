@@ -23,7 +23,7 @@ opendistro_security_human_resources_trainee:
     - "OPENDISTRO_SECURITY_READ"
     - "indices:admin/shards/search_shards"
   - index_patterns:
-    - "?openSearchDashboards"
+    - "?kibana"
     dls: null
     fls: null
     masked_fields: null
