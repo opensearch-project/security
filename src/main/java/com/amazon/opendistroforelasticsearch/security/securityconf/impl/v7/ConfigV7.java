@@ -137,7 +137,7 @@ public class ConfigV7 {
         public boolean multitenancy_enabled = true;
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
-        public String index = ".openSearchDashboards";
+        public String index = ".kibana";
         @Override
         public String toString() {
             return "OpenSearchDashboards [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
