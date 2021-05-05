@@ -127,22 +127,28 @@ public class RestHelper {
 	}
 
 	public org.apache.http.HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
-		CloseableHttpAsyncClient client = getHTTPAsyncClient();
-		client.start();
-		List<Future<org.apache.http.HttpResponse>> futures = new ArrayList<>();
-		org.apache.http.HttpResponse[] responses = new org.apache.http.HttpResponse[numOfRequests];
-		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
-		uriRequest.addHeader("Content-Type","application/json");
-		if (body != null && !body.isEmpty()) {
-			uriRequest.setEntity(new StringEntity(body));
+		CloseableHttpAsyncClient client = getHTTPAsyncClient(numOfRequests);
+		try {
+			client.start();
+			List<Future<org.apache.http.HttpResponse>> futures = new ArrayList<>();
+			org.apache.http.HttpResponse[] responses = new org.apache.http.HttpResponse[numOfRequests];
+			HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
+			uriRequest.addHeader("Content-Type", "application/json");
+			if (body != null && !body.isEmpty()) {
+				uriRequest.setEntity(new StringEntity(body));
+			}
+			for (int i = 0; i < numOfRequests; i++) {
+				futures.add(client.execute(uriRequest, null));
+			}
+			for (int i = 0; i < numOfRequests; i++) {
+				responses[i] = futures.get(i).get();
+			}
+			return responses;
+		} finally {
+			if (client != null) {
+				client.close();
+			}
 		}
-		for (int i = 0; i < numOfRequests; i++) {
-			futures.add(client.execute(uriRequest, null));
-		}
-		for (int i = 0; i < numOfRequests; i++) {
-			responses[i] = futures.get(i).get();
-		}
-		return responses;
 	}
 
 	public HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
@@ -220,9 +226,9 @@ public class RestHelper {
 		return address;
 	}
 
-	protected final CloseableHttpAsyncClient getHTTPAsyncClient() throws Exception {
+	protected final CloseableHttpAsyncClient getHTTPAsyncClient(int numOfRequests) throws Exception {
 
-		final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom();
+		final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom().setMaxConnPerRoute(numOfRequests);
 
 		if (sendHTTPClientCredentials) {
 			CredentialsProvider provider = new BasicCredentialsProvider();
