@@ -85,27 +85,24 @@ ospackage {
     postInstall "exec /bin/bash /usr/share/opensearch/plugins/opensearch-security/tools/install_demo_configuration.sh -y -i -s"
 }
 
-buildRpm {
-    arch = 'NOARCH'
-    addParentDirs = false
-    finalizedBy 'renameRpm'
-    task renameRpm(type: Copy) {
+def renameTask(archiveName, packageName, arch) {
+    return tasks.create("rename${arch}", Copy) {
         from("$buildDir/distributions")
         into("$buildDir/distributions")
         include archiveName
-        rename archiveName, "${packageName}-${version}.rpm"
+        rename archiveName, "${packageName}-${version}.${arch}"
         doLast { delete file("$buildDir/distributions/$archiveName") }
     }
 }
 
+buildRpm {
+    arch = 'NOARCH'
+    addParentDirs = false
+    finalizedBy renameTask(archiveName, packageName, 'rpm')
+}
+
 buildDeb {
     arch = 'all'
-    finalizedBy 'renameDeb'
-    task renameDeb(type: Copy) {
-        from("$buildDir/distributions")
-        into("$buildDir/distributions")
-        include archiveName
-        rename archiveName, "${packageName}-${version}.deb"
-        doLast { delete file("$buildDir/distributions/$archiveName") }
-    }
+    finalizedBy renameTask(archiveName, packageName, 'deb')
 }
+
