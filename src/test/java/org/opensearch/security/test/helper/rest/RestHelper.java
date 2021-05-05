@@ -231,41 +231,11 @@ public class RestHelper {
 		final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom().setMaxConnPerRoute(numOfRequests);
 
 		if (sendHTTPClientCredentials) {
-			CredentialsProvider provider = new BasicCredentialsProvider();
-			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
-			provider.setCredentials(AuthScope.ANY, credentials);
-			hcb.setDefaultCredentialsProvider(provider);
+			hcb.setDefaultCredentialsProvider(getClientCredentials());
 		}
 
 		if (enableHTTPClientSSL) {
-
-			log.debug("Configure HTTP async client with SSL");
-
-			if(prefix != null && !keystore.contains("/")) {
-				keystore = prefix+"/"+keystore;
-			}
-
-			final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
-
-			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
-					"changeit".toCharArray());
-
-			final KeyStore keyStore = KeyStore.getInstance("JKS");
-			keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
-
-			final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
-
-			if (trustHTTPServerCertificate) {
-				sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
-			}
-
-			if (sendAdminCertificate) {
-				sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
-			}
-
-			final SSLContext sslContext = sslContextbBuilder.build();
-			hcb.setSSLContext(sslContext);
+			hcb.setSSLContext(setHTTPClientSSL());
 			hcb.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE);
 		}
 
@@ -277,40 +247,12 @@ public class RestHelper {
 		final HttpClientBuilder hcb = HttpClients.custom();
 
 		if (sendHTTPClientCredentials) {
-			CredentialsProvider provider = new BasicCredentialsProvider();
-			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
-			provider.setCredentials(AuthScope.ANY, credentials);
-			hcb.setDefaultCredentialsProvider(provider);
+			hcb.setDefaultCredentialsProvider(getClientCredentials());
 		}
 
 		if (enableHTTPClientSSL) {
 
-			log.debug("Configure HTTP client with SSL");
-			
-			if(prefix != null && !keystore.contains("/")) {
-			    keystore = prefix+"/"+keystore;
-			}
-			
-            final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
-                        
-			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
-					"changeit".toCharArray());
-
-			final KeyStore keyStore = KeyStore.getInstance("JKS");
-			keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
-
-			final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
-
-			if (trustHTTPServerCertificate) {
-				sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
-			}
-
-			if (sendAdminCertificate) {
-				sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
-			}
-
-			final SSLContext sslContext = sslContextbBuilder.build();
+			final SSLContext sslContext = setHTTPClientSSL();
 
 			String[] protocols = null;
 
@@ -332,6 +274,43 @@ public class RestHelper {
 		hcb.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60 * 1000).build());
 
 		return hcb.build();
+	}
+
+	protected final SSLContext setHTTPClientSSL() throws Exception {
+
+		log.debug("Configure HTTP client with SSL");
+
+		if(prefix != null && !keystore.contains("/")) {
+			keystore = prefix+"/"+keystore;
+		}
+
+		final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
+
+		final KeyStore myTrustStore = KeyStore.getInstance("JKS");
+		myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
+				"changeit".toCharArray());
+
+		final KeyStore keyStore = KeyStore.getInstance("JKS");
+		keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
+
+		final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
+
+		if (trustHTTPServerCertificate) {
+			sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
+		}
+
+		if (sendAdminCertificate) {
+			sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
+		}
+
+		return sslContextbBuilder.build();
+	}
+
+	protected final CredentialsProvider getClientCredentials() {
+		CredentialsProvider provider = new BasicCredentialsProvider();
+		UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
+		provider.setCredentials(AuthScope.ANY, credentials);
+		return provider;
 	}
 
 	
