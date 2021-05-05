@@ -61,7 +61,7 @@ public class ConfigV7 {
         dynamic.disable_intertransport_auth = c6.dynamic.disable_intertransport_auth;
         dynamic.respect_request_indices_options = c6.dynamic.respect_request_indices_options;
         dynamic.license = c6.dynamic.license;
-        dynamic.do_not_fail_on_forbidden = c6.dynamic.do_not_fail_on_forbidden || c6.dynamic.openSearchDashboards.do_not_fail_on_forbidden;
+        dynamic.do_not_fail_on_forbidden = c6.dynamic.do_not_fail_on_forbidden || c6.dynamic.kibana.do_not_fail_on_forbidden;
         dynamic.do_not_fail_on_forbidden_empty = c6.dynamic.do_not_fail_on_forbidden_empty;
         dynamic.multi_rolespan_enabled = c6.dynamic.multi_rolespan_enabled;
         dynamic.hosts_resolver_mode = c6.dynamic.hosts_resolver_mode;
@@ -69,9 +69,9 @@ public class ConfigV7 {
         
         dynamic.openSearchDashboards = new OpenSearchDashboards();
         
-        dynamic.openSearchDashboards.index = c6.dynamic.openSearchDashboards.index;
-        dynamic.openSearchDashboards.multitenancy_enabled = c6.dynamic.openSearchDashboards.multitenancy_enabled;
-        dynamic.openSearchDashboards.server_username = c6.dynamic.openSearchDashboards.server_username;
+        dynamic.openSearchDashboards.index = c6.dynamic.kibana.index;
+        dynamic.openSearchDashboards.multitenancy_enabled = c6.dynamic.kibana.multitenancy_enabled;
+        dynamic.openSearchDashboards.server_username = c6.dynamic.kibana.server_username;
         
         dynamic.http = new Http();
         
