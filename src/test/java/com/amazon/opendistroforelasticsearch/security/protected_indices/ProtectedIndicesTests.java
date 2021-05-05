@@ -56,10 +56,15 @@ import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.RestStatus;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ProtectedIndicesTests extends SingleClusterTest {
 
     private static final List<String> listOfIndexesToTest = Arrays.asList("logs1", "logs2", "logs3", "no_match");

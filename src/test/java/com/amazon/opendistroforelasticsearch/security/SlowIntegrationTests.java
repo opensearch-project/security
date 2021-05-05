@@ -39,6 +39,7 @@ import org.opensearch.node.PluginAwareNode;
 import org.opensearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
@@ -46,7 +47,11 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SlowIntegrationTests extends SingleClusterTest {
 
     @Test

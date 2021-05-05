@@ -34,6 +34,9 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
+import org.junit.runner.RunWith;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import org.apache.http.HttpStatus;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -62,6 +65,8 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 
 import static com.amazon.opendistroforelasticsearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_ADVANCED_MODULES_ENABLED;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class IndexIntegrationTests extends SingleClusterTest {
 
     @Test

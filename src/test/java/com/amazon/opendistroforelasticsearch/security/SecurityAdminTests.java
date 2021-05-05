@@ -25,6 +25,7 @@ import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
@@ -33,7 +34,12 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelpe
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAdmin;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SecurityAdminTests extends SingleClusterTest {
     
     @Test

@@ -22,6 +22,9 @@ import java.io.File;
 import org.apache.commons.io.FileUtils;
 import org.opensearch.common.Strings;
 import org.opensearch.common.collect.Tuple;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.runner.RunWith;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -44,6 +47,9 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleM
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.RoleV7;
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.v7.TenantV7;
 
+
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ConfigTests {
     
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());

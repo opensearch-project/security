@@ -41,13 +41,18 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterInfo;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+@RunWith(RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class RemoteReindexTests extends AbstractSecurityUnitTest {
     
     private final ClusterHelper cl1 = new ClusterHelper("crl1_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
