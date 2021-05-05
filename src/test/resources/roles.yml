@@ -836,7 +836,7 @@ opendistro_security_kibana_server:
     allowed_actions:
     - "OPENDISTRO_SECURITY_INDICES_ALL"
   - index_patterns:
-    - "?openSearchDashboards-6"
+    - "?kibana-6"
     dls: null
     fls: null
     masked_fields: null
