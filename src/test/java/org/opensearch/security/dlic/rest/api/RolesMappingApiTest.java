@@ -420,7 +420,6 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
 		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
 													 FileHelper.loadFile("restapi/rolesmapping_null_array_element.json"), new Header[0]);
-		System.out.println(response.getBody());
-		Assert.assertTrue(response.getBody().contains("Invalid array element"));
+		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 	}
 }

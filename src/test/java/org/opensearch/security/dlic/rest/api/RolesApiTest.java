@@ -489,8 +489,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // Put read only roles
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_transport_client", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client",
+                                        FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
+        Assert.assertEquals(org.apache.http.HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // Patch single read only roles
         response = rh.executePatchRequest(ENDPOINT + "/roles/opendistro_security_transport_client", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
@@ -509,8 +510,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // put hidden role
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_internal",
+                                        FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
+        Assert.assertEquals(org.apache.http.HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Patch single hidden roles
         response = rh.executePatchRequest(ENDPOINT + "/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
@@ -520,6 +522,18 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest(ENDPOINT + "/roles/", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
+    }
+
+    @Test
+    public void checkNullElementsInArray() throws Exception{
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet",
+                                                     FileHelper.loadFile("restapi/roles_null_array_element.json"), new Header[0]);
+        System.out.println(response.getBody());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
 }

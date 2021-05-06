@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Arrays;
+import java.io.IOException;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.DefaultObjectMapper;
@@ -168,25 +169,6 @@ public abstract class AbstractConfigurationValidator {
         mandatory.removeAll(requested);
         missingMandatoryKeys.addAll(mandatory);
 
-        //null element in the values of all the possible keys with DataType as ARRAY
-        final Map<String, Object> contentAsMap = XContentHelper.convertToMap(this.content, false, XContentType.JSON).v2();
-        for (String allowedKey: allowedKeys.keySet()) {
-            DataType dataType = allowedKeys.get(allowedKey);
-            if(dataType == DataType.ARRAY) {
-                Object valuesObject = contentAsMap.get(allowedKey);
-                try {
-                    if (Arrays.asList(valuesObject).contains(null)) {
-                        this.errorType = ErrorType.INVALID_ARRAY_ELEMENT;
-                        return false;
-                    }
-                } catch (Exception e) {
-                    log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
-                    this.errorType = ErrorType.BODY_NOT_PARSEABLE;
-                    return false;
-
-                }
-            }
-        }
         // invalid settings
         Set<String> allowed = new HashSet<>(allowedKeys.keySet());
         requested.removeAll(allowed);
@@ -203,6 +185,31 @@ public abstract class AbstractConfigurationValidator {
                 return false;
             }
         } catch (Exception e) {
+            log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
+            this.errorType = ErrorType.BODY_NOT_PARSEABLE;
+            return false;
+        }
+
+        //null element in the values of all the possible keys with DataType as ARRAY
+        try {
+            HashMap<String,Object> contentAsMap = DefaultObjectMapper.readValue(content.utf8ToString(), HashMap.class);
+            for (String allowedKey : allowedKeys.keySet()) {
+                DataType dataType = allowedKeys.get(allowedKey);
+                if (dataType == DataType.ARRAY && contentAsMap.containsKey(allowedKey)) {
+                    Object valuesObject = contentAsMap.get(allowedKey);
+                    try {
+                        if (((java.util.List) valuesObject).contains(null)) {
+                            this.errorType = ErrorType.INVALID_ARRAY_ELEMENT;
+                            return false;
+                        }
+                    } catch (Exception e) {
+                        log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
+                        this.errorType = ErrorType.BODY_NOT_PARSEABLE;
+                        return false;
+                    }
+                }
+            }
+        } catch(IOException e) {
             log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
             this.errorType = ErrorType.BODY_NOT_PARSEABLE;
             return false;
