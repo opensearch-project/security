@@ -149,7 +149,7 @@ opendistro_security_kibana:
     - "OPENDISTRO_SECURITY_MANAGE"
     - "OPENDISTRO_SECURITY_INDEX"
   - index_patterns:
-    - "?openSearchDashboards-6"
+    - "?kibana-6"
     dls: null
     fls: null
     masked_fields: null

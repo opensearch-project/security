@@ -158,7 +158,7 @@ public class TenantInfoAction extends BaseRestHandler {
             return true;
         }
 
-        // If user check failed by name and admin, check if the users belong to openSearchDashboards OpenSearch role
+        // If user check failed by name and admin, check if the users belong to kibana OpenSearch role
         final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, true);
 
         // check if OpenSearchDashboardsOpenSearchRole is present in RolesMapping and if yes, check if user is a part of this role

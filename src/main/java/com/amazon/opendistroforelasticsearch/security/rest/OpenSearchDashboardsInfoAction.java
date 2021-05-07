@@ -119,7 +119,7 @@ public class OpenSearchDashboardsInfoAction extends BaseRestHandler {
 
     @Override
     public String getName() {
-        return "OpenSearchDashboards Info Action";
+        return "Kibana Info Action";
     }
     
     

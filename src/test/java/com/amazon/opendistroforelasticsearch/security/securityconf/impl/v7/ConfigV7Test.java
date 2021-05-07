@@ -19,7 +19,7 @@ public class ConfigV7Test {
         return ImmutableList.of(Boolean.FALSE, Boolean.TRUE);
     }
 
-    public void assertEquals(ConfigV7.OpenSearchDashboards expected, JsonNode node) {
+    public void assertEquals(ConfigV7.Kibana expected, JsonNode node) {
         if (omitDefaults && !expected.multitenancy_enabled) {
             // false (default) is not persisted
             Assert.assertNull(node.get("multitenancy_enabled"));
@@ -44,7 +44,7 @@ public class ConfigV7Test {
         }
     }
 
-    private void assertEquals(ConfigV7.OpenSearchDashboards expected, ConfigV7.OpenSearchDashboards actual) {
+    private void assertEquals(ConfigV7.Kibana expected, ConfigV7.Kibana actual) {
         if (omitDefaults && !expected.multitenancy_enabled) {
             // BUG: false is omitted and is restored to default (which is true) instead of false
             Assert.assertTrue(actual.multitenancy_enabled);
@@ -53,7 +53,7 @@ public class ConfigV7Test {
         }
         if (expected.server_username == null) {
             // null is restored to default instead of null
-            Assert.assertEquals(new ConfigV7.OpenSearchDashboards().server_username, actual.server_username);
+            Assert.assertEquals(new ConfigV7.Kibana().server_username, actual.server_username);
         } else {
             Assert.assertEquals(expected.server_username, actual.server_username);
         }
@@ -61,7 +61,7 @@ public class ConfigV7Test {
         Assert.assertEquals(expected.opendistro_role, actual.opendistro_role);
         if (expected.index == null) {
             // null is restored to default instead of null
-            Assert.assertEquals(new ConfigV7.OpenSearchDashboards().index, actual.index);
+            Assert.assertEquals(new ConfigV7.Kibana().index, actual.index);
         } else {
             Assert.assertEquals(expected.index, actual.index);
         }
@@ -73,28 +73,28 @@ public class ConfigV7Test {
 
     @Test
     public void testOpenSearchDashboards() throws Exception {
-        ConfigV7.OpenSearchDashboards openSearchDashboards;
+        ConfigV7.Kibana kibana;
         String json;
 
-        openSearchDashboards = new ConfigV7.OpenSearchDashboards();
-        json = DefaultObjectMapper.writeValueAsString(openSearchDashboards, omitDefaults);
-        assertEquals(openSearchDashboards, DefaultObjectMapper.readTree(json));
-        assertEquals(openSearchDashboards, DefaultObjectMapper.readValue(json, ConfigV7.OpenSearchDashboards.class));
+        kibana = new ConfigV7.Kibana();
+        json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
+        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
 
-        openSearchDashboards.multitenancy_enabled = false;
-        openSearchDashboards.server_username = null;
-        openSearchDashboards.opendistro_role = null;
-        openSearchDashboards.index = null;
-        json = DefaultObjectMapper.writeValueAsString(openSearchDashboards, omitDefaults);
-        assertEquals(openSearchDashboards, DefaultObjectMapper.readTree(json));
-        assertEquals(openSearchDashboards, DefaultObjectMapper.readValue(json, ConfigV7.OpenSearchDashboards.class));
+        kibana.multitenancy_enabled = false;
+        kibana.server_username = null;
+        kibana.opendistro_role = null;
+        kibana.index = null;
+        json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
+        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
 
-        openSearchDashboards.multitenancy_enabled = true;
-        openSearchDashboards.server_username = "user";
-        openSearchDashboards.opendistro_role = "role";
-        openSearchDashboards.index = "index";
-        json = DefaultObjectMapper.writeValueAsString(openSearchDashboards, omitDefaults);
-        assertEquals(openSearchDashboards, DefaultObjectMapper.readTree(json));
-        assertEquals(openSearchDashboards, DefaultObjectMapper.readValue(json, ConfigV7.OpenSearchDashboards.class));
+        kibana.multitenancy_enabled = true;
+        kibana.server_username = "user";
+        kibana.opendistro_role = "role";
+        kibana.index = "index";
+        json = DefaultObjectMapper.writeValueAsString(kibana, omitDefaults);
+        assertEquals(kibana, DefaultObjectMapper.readTree(json));
+        assertEquals(kibana, DefaultObjectMapper.readValue(json, ConfigV7.Kibana.class));
     }
 }

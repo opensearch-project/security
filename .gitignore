@@ -2,7 +2,7 @@ smoketests/
 target/
 test-output/
 kibana*/
-openSearchDashboards*/
+kibana*/
 logstash*/
 deploy_all.sh
 *.log

@@ -102,15 +102,15 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     public ReplaceResult replaceOpenSearchDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
                                       final Resolved requestedResolved, final Map<String, Boolean> tenants) {
 
-        final boolean enabled = config.isOpenSearchDashboardsMultitenancyEnabled();//config.dynamic.openSearchDashboards.multitenancy_enabled;
+        final boolean enabled = config.isOpenSearchDashboardsMultitenancyEnabled();//config.dynamic.kibana.multitenancy_enabled;
 
         if (!enabled) {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
         //next two lines needs to be retrieved from configuration
-        final String openSearchDashboardsServerUsername = config.getOpenSearchDashboardsServerUsername();//config.dynamic.openSearchDashboards.server_username;
-        final String openSearchDashboardsIndexName = config.getOpenSearchDashboardsIndexname();//config.dynamic.openSearchDashboards.index;
+        final String openSearchDashboardsServerUsername = config.getOpenSearchDashboardsServerUsername();//config.dynamic.kibana.server_username;
+        final String openSearchDashboardsIndexName = config.getOpenSearchDashboardsIndexname();//config.dynamic.kibana.index;
 
         String requestedTenant = user.getRequestedTenant();
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -142,7 +142,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             log.debug("requestedResolved: " + requestedResolved);
         }
 
-        //request not made by the openSearchDashboards server and user index is the only index/alias involved
+        //request not made by the kibana server and user index is the only index/alias involved
         if (!user.getName().equals(openSearchDashboardsServerUsername)) {
             final Set<String> indices = requestedResolved.getAllIndices();
             final String tenantIndexName = toUserIndexName(openSearchDashboardsIndexName, requestedTenant);
@@ -191,7 +191,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
                 return concreteName;
             }
         }
-        log.warn("Can not find a suitable name for openSearchDashboards multi-tenant index {}", name);
+        log.warn("Can not find a suitable name for kibana multi-tenant index {}", name);
         return null;
 
     }
@@ -203,7 +203,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             if (indexAbstraction.getType() == IndexAbstraction.Type.ALIAS) {
                 log.debug("Alias {} already exists", name);
             } else {
-                log.warn("Can not create openSearchDashboards multi-tenant alias {} as an index with the same name already exists", name);
+                log.warn("Can not create kibana multi-tenant alias {} as an index with the same name already exists", name);
             }
             return null;
         }
