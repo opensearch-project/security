@@ -292,7 +292,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		@Override
 		public final void onFailure(Exception e) {
-			if (e instanceof VersionConflictEngineException) {
+			if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
 				conflict(channel, e.getMessage());
 			} else {
 				internalErrorResponse(channel, "Error "+e.getMessage());

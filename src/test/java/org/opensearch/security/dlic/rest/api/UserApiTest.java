@@ -82,21 +82,16 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10, "/_opendistro/_security/api/internalusers/test1", "{\"password\":\"test1\"}");
-        int conflictCount = 0;
-        int createdCount = 0;
-        int sc;
+        boolean created = false;
         for (int i = 0; i < 10; i++) {
-            sc = responses[i].getStatusCode();
-            Assert.assertTrue(sc == HttpStatus.SC_CREATED || sc == HttpStatus.SC_CONFLICT);
-            if (sc == HttpStatus.SC_CREATED){
-                createdCount++;
-            }
-            if (sc == HttpStatus.SC_CONFLICT){
-                conflictCount++;
+            int sc = responses[i].getStatusCode();
+            if (sc == HttpStatus.SC_CREATED) {
+                Assert.assertFalse(created);
+                created = true;
+            } else {
+                Assert.assertEquals(sc, HttpStatus.SC_CONFLICT);
             }
         }
-        Assert.assertEquals(1, createdCount);
-        Assert.assertEquals(9, conflictCount);
 
     }
 

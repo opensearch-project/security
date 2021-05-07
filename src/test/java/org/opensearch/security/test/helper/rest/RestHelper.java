@@ -30,6 +30,7 @@
 
 package org.opensearch.security.test.helper.rest;
 
+import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -127,8 +128,7 @@ public class RestHelper {
 	}
 
 	public HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
-		CloseableHttpAsyncClient client = getHTTPAsyncClient(numOfRequests);
-		try {
+		try (CloseableHttpAsyncClient client = getHTTPAsyncClient(numOfRequests)) {
 			client.start();
 			List<Future<org.apache.http.HttpResponse>> futures = new ArrayList<>();
 			HttpResponse[] responses = new HttpResponse[numOfRequests];
@@ -144,10 +144,6 @@ public class RestHelper {
 				responses[i] = new HttpResponse(futures.get(i).get());
 			}
 			return responses;
-		} finally {
-			if (client != null) {
-				client.close();
-			}
 		}
 	}
 
@@ -338,6 +334,9 @@ public class RestHelper {
 			this.header = inner.getAllHeaders();
 			this.statusCode = inner.getStatusLine().getStatusCode();
 			this.statusReason = inner.getStatusLine().getReasonPhrase();
+			if (inner instanceof Closeable) {
+				((Closeable)inner).close();
+			}
 		}
 
 		public String getContentType() {
