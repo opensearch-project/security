@@ -418,8 +418,19 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		rh.keystore = "restapi/kirk-keystore.jks";
 		rh.sendAdminCertificate = true;
 
+		String body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_users.json");
 		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
-													 FileHelper.loadFile("restapi/rolesmapping_null_array_element.json"), new Header[0]);
+													 body, new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_backend_roles.json");
+		response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
+													 body, new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_hosts.json");
+		response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
+										 body, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 	}
 }

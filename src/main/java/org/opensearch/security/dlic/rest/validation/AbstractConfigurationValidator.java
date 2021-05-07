@@ -22,8 +22,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Arrays;
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.HashMap;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.DefaultObjectMapper;
@@ -191,30 +192,41 @@ public abstract class AbstractConfigurationValidator {
         }
 
         //null element in the values of all the possible keys with DataType as ARRAY
-        try {
-            HashMap<String,Object> contentAsMap = DefaultObjectMapper.readValue(content.utf8ToString(), HashMap.class);
-            for (String allowedKey : allowedKeys.keySet()) {
-                DataType dataType = allowedKeys.get(allowedKey);
-                if (dataType == DataType.ARRAY && contentAsMap.containsKey(allowedKey)) {
-                    Object valuesObject = contentAsMap.get(allowedKey);
-                    try {
-                        if (((java.util.List) valuesObject).contains(null)) {
-                            this.errorType = ErrorType.INVALID_ARRAY_ELEMENT;
-                            return false;
-                        }
-                    } catch (Exception e) {
-                        log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
-                        this.errorType = ErrorType.BODY_NOT_PARSEABLE;
+        for (Entry<String, DataType> allowedKey : allowedKeys.entrySet()) {
+            DataType dataType = allowedKey.getValue();
+            JsonNode value = contentAsNode.get(allowedKey.getKey());
+            if (dataType == DataType.ARRAY && value != null) {
+                try {
+                    List contentArray = DefaultObjectMapper.objectMapper.convertValue(value, java.util.List.class);
+                    if (contentArray.contains(null)) {
+                        this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
                         return false;
                     }
+                    else {
+                        for (int i = 0; i < contentArray.size(); i++) {
+                            if (contentArray.get(i) instanceof HashMap) {
+                                for (Object valueList : ((HashMap) contentArray.get(i)).values()) {
+                                    if (((List) valueList).contains(null)) {
+                                        this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
+                                        return false;
+                                    }
+                                }
+                            }
+                            else if(contentArray.get(i) instanceof ArrayList){
+                                if(((ArrayList) contentArray.get(i)).contains(null)){
+                                    this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
+                    this.errorType = ErrorType.BODY_NOT_PARSEABLE;
+                    return false;
                 }
             }
-        } catch(IOException e) {
-            log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
-            this.errorType = ErrorType.BODY_NOT_PARSEABLE;
-            return false;
         }
-
         return valid;
     }
 
@@ -280,9 +292,9 @@ public abstract class AbstractConfigurationValidator {
                         builder.field(entry.getKey(), entry.getValue());
                     }
                     break;
-                case INVALID_ARRAY_ELEMENT:
+                case NULL_ARRAY_ELEMENT:
                     builder.field("status", "error");
-                    builder.field("reason", ErrorType.INVALID_ARRAY_ELEMENT.getMessage());
+                    builder.field("reason", ErrorType.NULL_ARRAY_ELEMENT.getMessage());
                     break;
                 default:
                     builder.field("status", "error");
@@ -313,7 +325,7 @@ public abstract class AbstractConfigurationValidator {
         NONE("ok"), INVALID_CONFIGURATION("Invalid configuration"), INVALID_PASSWORD("Invalid password"), WRONG_DATATYPE("Wrong datatype"),
         BODY_NOT_PARSEABLE("Could not parse content of request."), PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
         PAYLOAD_MANDATORY("Request body required for this action."), SECURITY_NOT_INITIALIZED("Security index not initialized"),
-        INVALID_ARRAY_ELEMENT("Invalid array element");
+        NULL_ARRAY_ELEMENT("`null` is not allowed as json array element");
 
         private String message;
 

@@ -365,8 +365,8 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/actiongroups/CRUD_UT",
-                                                     FileHelper.loadFile("restapi/actiongroup_null_array_element.json"), new Header[0]);
+        String body = FileHelper.loadFile("restapi/actiongroup_null_array_element.json");
+        HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
