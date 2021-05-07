@@ -233,8 +233,8 @@ public class ConfigurationRepository {
             response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex)
                     .waitForActiveShards(1)
                     .waitForYellowStatus()).actionGet();
-        } catch (Exception e1) {
-            LOGGER.debug("Caught a {} but we just try again ...", e1.toString());
+        } catch (Exception e) {
+            LOGGER.debug("Caught a {} but we just try again ...", e.toString());
         }
 
         while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {

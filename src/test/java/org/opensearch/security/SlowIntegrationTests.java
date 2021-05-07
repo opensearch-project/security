@@ -170,6 +170,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .build();
         try {
             setup(Settings.EMPTY, null, settings, false);
+            Assert.fail("Expected IOException here due to red cluster state");
         } catch (IOException e) {
             // Index request has a default timeout of 1 minute, adding buffer between nodes initialization and cluster health check
             Thread.sleep(1000*80);
