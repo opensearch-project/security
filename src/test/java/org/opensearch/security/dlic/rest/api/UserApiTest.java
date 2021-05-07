@@ -81,12 +81,12 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        org.apache.http.HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10, "/_opendistro/_security/api/internalusers/test1", "{\"password\":\"test1\"}");
+        HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10, "/_opendistro/_security/api/internalusers/test1", "{\"password\":\"test1\"}");
         int conflictCount = 0;
         int createdCount = 0;
         int sc;
         for (int i = 0; i < 10; i++) {
-            sc = responses[i].getStatusLine().getStatusCode();
+            sc = responses[i].getStatusCode();
             Assert.assertTrue(sc == HttpStatus.SC_CREATED || sc == HttpStatus.SC_CONFLICT);
             if (sc == HttpStatus.SC_CREATED){
                 createdCount++;

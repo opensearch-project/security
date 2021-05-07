@@ -126,12 +126,12 @@ public class RestHelper {
 		}
 	}
 
-	public org.apache.http.HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
+	public HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
 		CloseableHttpAsyncClient client = getHTTPAsyncClient(numOfRequests);
 		try {
 			client.start();
 			List<Future<org.apache.http.HttpResponse>> futures = new ArrayList<>();
-			org.apache.http.HttpResponse[] responses = new org.apache.http.HttpResponse[numOfRequests];
+			HttpResponse[] responses = new HttpResponse[numOfRequests];
 			HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
 			uriRequest.addHeader("Content-Type", "application/json");
 			if (body != null && !body.isEmpty()) {
@@ -141,7 +141,7 @@ public class RestHelper {
 				futures.add(client.execute(uriRequest, null));
 			}
 			for (int i = 0; i < numOfRequests; i++) {
-				responses[i] = futures.get(i).get();
+				responses[i] = new HttpResponse(futures.get(i).get());
 			}
 			return responses;
 		} finally {
@@ -315,25 +315,29 @@ public class RestHelper {
 
 	
 	public class HttpResponse {
-		private final CloseableHttpResponse inner;
+		private final org.apache.http.HttpResponse inner;
 		private final String body;
 		private final Header[] header;
 		private final int statusCode;
 		private final String statusReason;
 
 		public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
+			this((org.apache.http.HttpResponse)inner);
+			inner.close();
+		}
+
+		public HttpResponse(org.apache.http.HttpResponse inner) throws IllegalStateException, IOException {
 			super();
 			this.inner = inner;
 			final HttpEntity entity = inner.getEntity();
 			if(entity == null) { //head request does not have a entity
-			    this.body = "";
+				this.body = "";
 			} else {
-			    this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
+				this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
 			}
 			this.header = inner.getAllHeaders();
 			this.statusCode = inner.getStatusLine().getStatusCode();
 			this.statusReason = inner.getStatusLine().getReasonPhrase();
-			inner.close();
 		}
 
 		public String getContentType() {
@@ -352,7 +356,7 @@ public class RestHelper {
 			return ct.contains("application/json");
 		}
 
-		public CloseableHttpResponse getInner() {
+		public org.apache.http.HttpResponse getInner() {
 			return inner;
 		}
 
