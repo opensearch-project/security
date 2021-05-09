@@ -51,13 +51,13 @@ jobs:
       run: mvn -B checkstyle:checkstyle
 
     - name: Package
-      run: mvn -B clean package -Padvanced -DskipTests
+      run: ./gradlew clean build --no-daemon -Dbuild.snapshot=false -x test
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
 
     - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true mvn -B test
+      run: ./gradlew test
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -68,4 +68,4 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: artifacts
-        path: target/releases/
+        path: gradle-build/distributions
