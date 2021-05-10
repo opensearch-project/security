@@ -159,7 +159,7 @@ public class ConfigurationRepository {
                                 LOGGER.error("{} does not exist", confFile.getAbsolutePath());
                             }
                         } catch (Exception e) {
-                            LOGGER.error("Cannot apply default config (this is maybe not an error!) due to {}", e);
+                            LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
                         }
                     }
 
@@ -241,14 +241,14 @@ public class ConfigurationRepository {
             LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", securityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
             try {
                 Thread.sleep(500);
-            } catch (InterruptedException e1) {
+            } catch (InterruptedException e) {
                 //ignore
                 Thread.currentThread().interrupt();
             }
             try {
                 response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex).waitForYellowStatus()).actionGet();
-            } catch (Exception e1) {
-                LOGGER.debug("Caught again a {} but we just try again ...", e1.toString());
+            } catch (Exception e) {
+                LOGGER.debug("Caught again a {} but we just try again ...", e.toString());
             }
         }
     }

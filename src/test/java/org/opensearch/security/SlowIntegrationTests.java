@@ -174,8 +174,9 @@ public class SlowIntegrationTests extends SingleClusterTest {
         } catch (IOException e) {
             // Index request has a default timeout of 1 minute, adding buffer between nodes initialization and cluster health check
             Thread.sleep(1000*80);
+            // Ideally, we would want to remove this cluster setting, but default settings cannot be removed. So overriding with a reserved IP address
             clusterHelper.nodeClient().admin().cluster().updateSettings(
-                    new ClusterUpdateSettingsRequest().transientSettings(Settings.builder().put("cluster.routing.allocation.exclude._ip", "1.2.3.4").build()));
+                    new ClusterUpdateSettingsRequest().transientSettings(Settings.builder().put("cluster.routing.allocation.exclude._ip", "192.0.2.0").build()));
             this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10),3);
         }
         RestHelper rh = nonSslRestHelper();
