@@ -147,7 +147,7 @@ configurations.all {
     }
 }
 
-configurations.testCompile {
+configurations.testCompileClasspath {
     if (it.state != Configuration.State.UNRESOLVED) return
     resolutionStrategy {
         force 'org.apache.kafka:kafka-clients:2.0.1:test'
@@ -190,7 +190,7 @@ dependencies {
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
     }
-    compile('org.apache.kafka:kafka-clients:2.5.0') {
+    compileOnly('org.apache.kafka:kafka-clients:2.5.0') {
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }
     compile('com.onelogin:java-saml:2.5.0') {
