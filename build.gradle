@@ -62,10 +62,6 @@ repositories {
     jcenter()
 }
 
-test{
-    workingDir = '.'
-}
-
 apply plugin: 'opensearch.opensearchplugin'
 opensearchplugin {
     name 'opensearch-security'
@@ -115,6 +111,9 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.txt')
     noticeFile = rootProject.file('NOTICE.txt')
+    test{
+        workingDir = './'
+    }
 }
 
 configurations.all {
