@@ -49,7 +49,6 @@ import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateRequest;
@@ -60,11 +59,7 @@ import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class TransportClientIntegrationTests extends SingleClusterTest {
 
 	@Test

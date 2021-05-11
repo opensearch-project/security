@@ -44,8 +44,9 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateRequest;
@@ -55,11 +56,18 @@ import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterConfiguration;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+@RunWith(Parameterized.class)
 public class SnapshotRestoreTests extends SingleClusterTest {
 
-    public ClusterConfiguration currentClusterConfig = ClusterConfiguration.DEFAULT;
+    @Parameters
+    public static Collection<ClusterConfiguration> data() {
+        return Arrays.asList(new ClusterConfiguration[] {     
+                ClusterConfiguration.DEFAULT
+           });
+    }
+    
+    @Parameter
+    public ClusterConfiguration currentClusterConfig;
 
     @Test
     public void testSnapshotEnableSecurityIndexRestore() throws Exception {

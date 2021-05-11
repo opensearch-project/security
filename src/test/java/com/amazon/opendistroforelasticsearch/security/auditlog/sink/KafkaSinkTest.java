@@ -18,7 +18,6 @@ package com.amazon.opendistroforelasticsearch.security.auditlog.sink;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
-import java.util.Random;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -28,17 +27,14 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
-import org.junit.runner.RunWith;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
+import scala.util.Random;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.AbstractAuditlogiUnitTest;
 import com.amazon.opendistroforelasticsearch.security.auditlog.helper.MockAuditMessageFactory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
 
 	@ClassRule

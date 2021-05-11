@@ -37,9 +37,6 @@ import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.RestStatus;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -53,9 +50,6 @@ import static org.junit.Assert.assertEquals;
  *  Refer:    "opendistro_security.system_indices.enabled"
  *            "opendistro_security.system_indices.indices";
  */
-
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SystemIndicesTests extends SingleClusterTest {
 
     private static final List<String> listOfIndexesToTest = Arrays.asList("config1", "config2");

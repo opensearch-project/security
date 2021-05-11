@@ -35,7 +35,6 @@ import org.apache.http.message.BasicHeader;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
@@ -43,11 +42,7 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.Cluste
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.google.common.collect.Lists;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SystemIntegratorsTests extends SingleClusterTest {
     
     @Test

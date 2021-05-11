@@ -29,15 +29,12 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig;
@@ -48,8 +45,6 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 @NotThreadSafe
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class TracingTests extends SingleClusterTest {
 
     @Override
@@ -240,6 +235,15 @@ public class TracingTests extends SingleClusterTest {
     @Test
     public void testHTTPSingle() throws Exception {
 
+        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                e.printStackTrace();
+
+            }
+        });
+
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
@@ -296,6 +300,15 @@ public class TracingTests extends SingleClusterTest {
 
     @Test
     public void testSearchScroll() throws Exception {
+
+        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                e.printStackTrace();
+
+            }
+        });
 
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")

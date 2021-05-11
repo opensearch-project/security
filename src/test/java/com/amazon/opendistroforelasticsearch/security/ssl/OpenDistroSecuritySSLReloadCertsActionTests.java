@@ -33,12 +33,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import org.junit.runner.RunWith;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class OpenDistroSecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
     private final String GET_CERT_DETAILS_ENDPOINT = "_opendistro/_security/api/ssl/certs";

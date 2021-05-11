@@ -32,9 +32,6 @@ package com.amazon.opendistroforelasticsearch.security;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.junit.runner.RunWith;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.FileUtils;
@@ -67,8 +64,6 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelpe
 
 import static com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper.readTree;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class HttpIntegrationTests extends SingleClusterTest {
 
     @Test

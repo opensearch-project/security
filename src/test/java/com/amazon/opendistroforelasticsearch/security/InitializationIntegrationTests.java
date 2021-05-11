@@ -46,9 +46,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateRequest;
@@ -64,8 +61,6 @@ import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelpe
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test

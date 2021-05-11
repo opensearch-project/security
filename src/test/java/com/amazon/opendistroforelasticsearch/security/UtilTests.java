@@ -40,16 +40,11 @@ import java.util.Map;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.opensearch.common.settings.Settings;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.OpenDistroSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class UtilTests {
 
     static private WildcardMatcher wc(String pattern) {

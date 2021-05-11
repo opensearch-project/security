@@ -37,17 +37,12 @@ import java.util.List;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.tools.OpenDistroSecurityAdmin;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class OpendistroSecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
 	@Test
