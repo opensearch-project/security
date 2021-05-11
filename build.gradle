@@ -150,6 +150,14 @@ configurations.testCompileClasspath {
     if (it.state != Configuration.State.UNRESOLVED) return
     resolutionStrategy {
         force 'org.apache.kafka:kafka-clients:2.0.1:test'
+        exclude group: 'org.opensearch.test', module: 'framework'
+    }
+}
+
+configurations.testRuntimeClasspath {
+    if (it.state != Configuration.State.UNRESOLVED) return
+    resolutionStrategy {
+        exclude group: 'org.opensearch.test', module: 'framework'
     }
 }
 
