@@ -14,7 +14,7 @@
  */
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
-import com.amazon.opendistroforelasticsearch.security.ssl.OpenSearchSecurityKeyStore;
+import com.amazon.opendistroforelasticsearch.security.ssl.SecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -37,7 +37,7 @@ public class DualModeSSLHandlerTests {
     public static final int TLS_MAJOR_VERSION = 3;
     public static final int TLS_MINOR_VERSION = 0;
 
-    private OpenSearchSecurityKeyStore openSearchSecurityKeyStore;
+    private SecurityKeyStore securityKeyStore;
     private ChannelPipeline pipeline;
     private ChannelHandlerContext ctx;
     private SslHandler sslHandler;
@@ -48,13 +48,13 @@ public class DualModeSSLHandlerTests {
         ctx = Mockito.mock(ChannelHandlerContext.class);
         Mockito.when(ctx.pipeline()).thenReturn(pipeline);
 
-        openSearchSecurityKeyStore = Mockito.mock(OpenSearchSecurityKeyStore.class);
+        securityKeyStore = Mockito.mock(SecurityKeyStore.class);
         sslHandler = Mockito.mock(SslHandler.class);
     }
 
     @Test
     public void testInvalidMessage() throws Exception {
-        DualModeSSLHandler handler = new DualModeSSLHandler(openSearchSecurityKeyStore);
+        DualModeSSLHandler handler = new DualModeSSLHandler(securityKeyStore);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         handler.decode(ctx, alloc.directBuffer(4), null);
@@ -64,7 +64,7 @@ public class DualModeSSLHandlerTests {
 
     @Test
     public void testValidTLSMessage() throws Exception {
-        DualModeSSLHandler handler = new DualModeSSLHandler(openSearchSecurityKeyStore, sslHandler);
+        DualModeSSLHandler handler = new DualModeSSLHandler(securityKeyStore, sslHandler);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         ByteBuf buffer = alloc.directBuffer(6);
@@ -86,7 +86,7 @@ public class DualModeSSLHandlerTests {
 
     @Test
     public void testNonTLSMessage() throws Exception {
-        DualModeSSLHandler handler = new DualModeSSLHandler(openSearchSecurityKeyStore, sslHandler);
+        DualModeSSLHandler handler = new DualModeSSLHandler(securityKeyStore, sslHandler);
 
         ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
         ByteBuf buffer = alloc.directBuffer(6);
@@ -114,7 +114,7 @@ public class DualModeSSLHandlerTests {
         ByteBuf buffer = alloc.directBuffer(6);
         buffer.writeCharSequence(SSLConnectionTestUtil.DUAL_MODE_CLIENT_HELLO_MSG, StandardCharsets.UTF_8);
 
-        DualModeSSLHandler handler = new DualModeSSLHandler(openSearchSecurityKeyStore, sslHandler);
+        DualModeSSLHandler handler = new DualModeSSLHandler(securityKeyStore, sslHandler);
         List<Object> decodedObjs = new ArrayList<>();
         handler.decode(ctx, buffer, decodedObjs);
 

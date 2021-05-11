@@ -35,6 +35,7 @@ import java.security.PrivilegedAction;
 import java.util.List;
 import java.util.Objects;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.SpecialPermission;
@@ -46,8 +47,6 @@ import org.opensearch.snapshots.SnapshotId;
 import org.opensearch.snapshots.SnapshotInfo;
 import org.opensearch.snapshots.SnapshotUtils;
 import org.opensearch.threadpool.ThreadPool;
-
-import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 
 public class SnapshotRestoreHelper {
 

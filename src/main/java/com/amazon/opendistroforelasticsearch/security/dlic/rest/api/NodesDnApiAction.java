@@ -26,7 +26,7 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Security
 import com.amazon.opendistroforelasticsearch.security.securityconf.impl.NodesDn;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.tools.OpenSearchSecurityAdmin;
+import com.amazon.opendistroforelasticsearch.security.tools.SecurityAdmin;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import org.opensearch.client.Client;
@@ -53,7 +53,7 @@ import java.util.List;
  * By default the APIs are disabled and can be enabled by a YML setting - {@link ConfigConstants#OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED}
  *
  * The backing data is stored in {@link ConfigConstants#OPENDISTRO_SECURITY_CONFIG_INDEX_NAME} which is populated during bootstrap.
- * For existing clusters, {@link OpenSearchSecurityAdmin} tool can
+ * For existing clusters, {@link SecurityAdmin} tool can
  * be used to populate the index.
  *
  * See {@link com.amazon.opendistroforelasticsearch.security.dlic.rest.api.NodesDnApiTest} for usage examples.

@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
-import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
+import com.amazon.opendistroforelasticsearch.security.support.SecurityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.LegacyESVersion;
@@ -275,7 +275,7 @@ public class ConfigurationLoaderSecurity7 {
 
             parser.nextToken();
 
-            final String jsonAsString = OpenSearchSecurityUtils.replaceEnvVars(new String(parser.binaryValue()), settings);
+            final String jsonAsString = SecurityUtils.replaceEnvVars(new String(parser.binaryValue()), settings);
             final JsonNode jsonNode = DefaultObjectMapper.readTree(jsonAsString);
             int configVersion = 1;
 

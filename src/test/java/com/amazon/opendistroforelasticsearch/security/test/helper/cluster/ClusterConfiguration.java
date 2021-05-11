@@ -36,6 +36,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.index.reindex.ReindexPlugin;
 import org.opensearch.join.ParentJoinPlugin;
 import org.opensearch.percolator.PercolatorPlugin;
@@ -44,7 +45,6 @@ import org.opensearch.script.mustache.MustachePlugin;
 import org.opensearch.search.aggregations.matrix.MatrixAggregationPlugin;
 import org.opensearch.transport.Netty4Plugin;
 
-import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.test.plugin.UserInjectorPlugin;
 import com.google.common.collect.Lists;
 

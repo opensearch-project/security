@@ -50,18 +50,21 @@ import java.util.stream.Stream;
 import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl;
-import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsValveImpl;
-import com.amazon.opendistroforelasticsearch.security.configuration.OpenSearchSecurityFlsDlsIndexSearcherWrapper;
+import com.amazon.opendistroforelasticsearch.security.configuration.*;
+import com.amazon.opendistroforelasticsearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl;
-import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
-import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.OpenSearchSecurityRestApiActions;
-import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenSearchSecuritySSLReloadCertsAction;
-import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenSearchSecuritySSLCertsInfoAction;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.SecurityRestApiActions;
+import com.amazon.opendistroforelasticsearch.security.filter.SecurityRestFilter;
+import com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport;
+import com.amazon.opendistroforelasticsearch.security.ssl.OpenSearchSecuritySSLPlugin;
+import com.amazon.opendistroforelasticsearch.security.ssl.rest.SecuritySSLReloadCertsAction;
+import com.amazon.opendistroforelasticsearch.security.ssl.rest.SecuritySSLCertsInfoAction;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor;
+import com.amazon.opendistroforelasticsearch.security.support.*;
+import com.amazon.opendistroforelasticsearch.security.transport.SecurityInterceptor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenSearchSSLConfig;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -140,38 +143,24 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLogSslExcept
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
-import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
-import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
-import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
-import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
-import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
-import com.amazon.opendistroforelasticsearch.security.filter.OpenSearchSecurityFilter;
-import com.amazon.opendistroforelasticsearch.security.filter.OpenSearchSecurityRestFilter;
-import com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityHttpServerTransport;
-import com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityNonSslHttpServerTransport;
+import com.amazon.opendistroforelasticsearch.security.filter.SecurityFilter;
+import com.amazon.opendistroforelasticsearch.security.http.SecurityNonSslHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesInterceptor;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
 import com.amazon.opendistroforelasticsearch.security.rest.KibanaInfoAction;
-import com.amazon.opendistroforelasticsearch.security.rest.OpenSearchSecurityHealthAction;
-import com.amazon.opendistroforelasticsearch.security.rest.OpenSearchSecurityInfoAction;
+import com.amazon.opendistroforelasticsearch.security.rest.SecurityHealthAction;
+import com.amazon.opendistroforelasticsearch.security.rest.SecurityInfoAction;
 import com.amazon.opendistroforelasticsearch.security.rest.TenantInfoAction;
 import com.amazon.opendistroforelasticsearch.security.securityconf.DynamicConfigFactory;
-import com.amazon.opendistroforelasticsearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.ValidatingDispatcher;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenSearchSecuritySSLNettyTransport;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.SecuritySSLNettyTransport;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
-import com.amazon.opendistroforelasticsearch.security.support.ModuleInfo;
-import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
-import com.amazon.opendistroforelasticsearch.security.support.ReflectionHelper;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import com.amazon.opendistroforelasticsearch.security.support.SecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.transport.DefaultInterClusterRequestEvaluator;
 import com.amazon.opendistroforelasticsearch.security.transport.InterClusterRequestEvaluator;
-import com.amazon.opendistroforelasticsearch.security.transport.OpenSearchSecurityInterceptor;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.collect.Lists;
 
@@ -182,8 +171,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenSearchSecurityPlugin.class);
 
     private boolean sslCertReloadEnabled;
-    private volatile OpenSearchSecurityRestFilter securityRestHandler;
-    private volatile OpenSearchSecurityInterceptor odsi;
+    private volatile SecurityRestFilter securityRestHandler;
+    private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
@@ -195,7 +184,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile Client localClient;
     private final boolean disabled;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
-    private volatile OpenSearchSecurityFilter odsf;
+    private volatile SecurityFilter sf;
     private volatile IndexResolverReplacer irr;
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
@@ -222,7 +211,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     }
 
     private final SslExceptionHandler evaluateSslExceptionHandler() {
-        if (client || disabled || openSearchSSLConfig.isSslOnlyMode()) {
+        if (client || disabled || SSLConfig.isSslOnlyMode()) {
             return new SslExceptionHandler(){};
         }
 
@@ -254,7 +243,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             return;
         }
 
-        if (openSearchSSLConfig.isSslOnlyMode()) {
+        if (SSLConfig.isSslOnlyMode()) {
             this.sslCertReloadEnabled = false;
             log.warn("OpenSearch Security plugin run in ssl only mode. No authentication or authorization is performed");
             return;
@@ -300,7 +289,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         log.info("Clustername: {}", settings.get("cluster.name","opensearch"));
 
-        if (!transportSSLEnabled && !openSearchSSLConfig.isSslOnlyMode()) {
+        if (!transportSSLEnabled && !SSLConfig.isSslOnlyMode()) {
             throw new IllegalStateException(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED+" must be set to 'true'");
         }
 
@@ -444,18 +433,18 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
             handlers.addAll(super.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings, settingsFilter, indexNameExpressionResolver, nodesInCluster));
 
-            if(!openSearchSSLConfig.isSslOnlyMode()) {
-                handlers.add(new OpenSearchSecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
+            if(!SSLConfig.isSslOnlyMode()) {
+                handlers.add(new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
-                handlers.add(new OpenSearchSecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
-                handlers.add(new OpenSearchSecuritySSLCertsInfoAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
+                handlers.add(new SecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
+                handlers.add(new SecuritySSLCertsInfoAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
 				Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
 
                 if (sslCertReloadEnabled) {
-                    handlers.add(new OpenSearchSecuritySSLReloadCertsAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
+                    handlers.add(new SecuritySSLReloadCertsAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 }
-                final Collection<RestHandler> apiHandlers = OpenSearchSecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog));
+                final Collection<RestHandler> apiHandlers = SecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog));
                 handlers.addAll(apiHandlers);
                 log.debug("Added {} management rest handler(s)", apiHandlers.size());
             }
@@ -467,7 +456,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     @Override
     public UnaryOperator<RestHandler> getRestHandlerWrapper(final ThreadContext threadContext) {
 
-        if(client || disabled || openSearchSSLConfig.isSslOnlyMode()) {
+        if(client || disabled || SSLConfig.isSslOnlyMode()) {
             return (rh) -> rh;
         }
 
@@ -477,7 +466,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> actions = new ArrayList<>(1);
-        if(!disabled && !openSearchSSLConfig.isSslOnlyMode()) {
+        if(!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
         }
@@ -488,13 +477,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     public void onIndexModule(IndexModule indexModule) {
         //called for every index!
 
-        if (!disabled && !client && !openSearchSSLConfig.isSslOnlyMode()) {
+        if (!disabled && !client && !SSLConfig.isSslOnlyMode()) {
             log.debug("Handle auditLog {} for onIndexModule() of index {}", auditLog.getClass(), indexModule.getIndex().getName());
 
             final ComplianceIndexingOperationListener ciol = new ComplianceIndexingOperationListenerImpl(auditLog);
             indexModule.addIndexOperationListener(ciol);
 
-            indexModule.setReaderWrapper(indexService -> new OpenSearchSecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator, salt));
+            indexModule.setReaderWrapper(indexService -> new SecurityFlsDlsIndexSearcherWrapper(indexService, settings, adminDns, cs, auditLog, ciol, evaluator, salt));
             indexModule.forceQueryCacheProvider((indexSettings,nodeCache)->new QueryCache() {
 
                 @Override
@@ -517,14 +506,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                     final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                             ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
 
-                    if(OpenSearchSecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
+                    if(SecurityUtils.evalMap(allowedFlsFields, index().getName()) != null) {
                         return weight;
                     } else {
 
                         final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                                 ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
 
-                        if(OpenSearchSecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
+                        if(SecurityUtils.evalMap(maskedFieldsMap, index().getName()) != null) {
                             return weight;
                         } else {
                             return nodeCache.doCache(weight, policy);
@@ -600,7 +589,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
                     final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                             ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-                    final String maskedEval = OpenSearchSecurityUtils.evalMap(maskedFieldsMap, indexModule.getIndex().getName());
+                    final String maskedEval = SecurityUtils.evalMap(maskedFieldsMap, indexModule.getIndex().getName());
                     if (maskedEval != null) {
                         final Set<String> mf = maskedFieldsMap.get(maskedEval);
                         if (mf != null && !mf.isEmpty()) {
@@ -615,8 +604,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     @Override
     public List<ActionFilter> getActionFilters() {
         List<ActionFilter> filters = new ArrayList<>(1);
-        if (!client && !disabled && !openSearchSSLConfig.isSslOnlyMode()) {
-            filters.add(Objects.requireNonNull(odsf));
+        if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
+            filters.add(Objects.requireNonNull(sf));
         }
         return filters;
     }
@@ -625,7 +614,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
 
-        if (!client && !disabled && !openSearchSSLConfig.isSslOnlyMode()) {
+        if (!client && !disabled && !SSLConfig.isSslOnlyMode()) {
             interceptors.add(new TransportInterceptor() {
 
                 @Override
@@ -636,7 +625,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
                         @Override
                         public void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
-                            odsi.getHandler(action, actualHandler).messageReceived(request, channel, task);
+                            si.getHandler(action, actualHandler).messageReceived(request, channel, task);
                         }
                     };
 
@@ -650,7 +639,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         @Override
                         public <T extends TransportResponse> void sendRequest(Connection connection, String action,
                                 TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
-                            odsi.sendRequestDecorate(sender, connection, action, request, options, handler);
+                            si.sendRequestDecorate(sender, connection, action, request, options, handler);
                         }
                     };
                 }
@@ -665,14 +654,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
 
-        if(openSearchSSLConfig.isSslOnlyMode()) {
+        if(SSLConfig.isSslOnlyMode()) {
             return super.getTransports(settings, threadPool, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, networkService);
         }
 
         if (transportSSLEnabled) {
-            transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyTransport",
-                    () -> new OpenSearchSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
-                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory, openSearchSSLConfig));
+            transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport",
+                    () -> new SecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
+                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory, SSLConfig));
         }
         return transports;
     }
@@ -682,7 +671,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
             NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
 
-        if(openSearchSSLConfig.isSslOnlyMode()) {
+        if(SSLConfig.isSslOnlyMode()) {
             return super.getHttpTransports(settings, threadPool, bigArrays, pageCacheRecycler, circuitBreakerService, xContentRegistry,
              networkService, dispatcher, clusterSettings);
         }
@@ -693,14 +682,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher,
                         settings, configPath, evaluateSslExceptionHandler());
                 //TODO close odshst
-                final OpenSearchSecurityHttpServerTransport odshst = new OpenSearchSecurityHttpServerTransport(settings, networkService, bigArrays,
+                final SecurityHttpServerTransport odshst = new SecurityHttpServerTransport(settings, networkService, bigArrays,
                         threadPool, odsks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory);
 
-                return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityHttpServerTransport",
+                return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport",
                         () -> odshst);
             } else if (!client) {
-                return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityHttpServerTransport",
-                        () -> new OpenSearchSecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings, sharedGroupFactory));
+                return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport",
+                        () -> new SecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings, sharedGroupFactory));
             }
         }
         return Collections.emptyMap();
@@ -714,8 +703,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
-        openSearchSSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
-        if(openSearchSSLConfig.isSslOnlyMode()) {
+        SSLConfig.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+        if(SSLConfig.isSslOnlyMode()) {
             return super.createComponents(
                     localClient,
                     clusterService,
@@ -759,7 +748,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         final PrivilegesInterceptor privilegesInterceptor;
 
-        if (openSearchSSLConfig.isSslOnlyMode()) {
+        if (SSLConfig.isSslOnlyMode()) {
             dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
             auditLog = new NullAuditLog();
             privilegesInterceptor = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
@@ -781,11 +770,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         final CompatConfig compatConfig = new CompatConfig(environment);
 
         // DLS-FLS is enabled if not client and not disabled and not SSL only.
-        final boolean dlsFlsEnabled = !openSearchSSLConfig.isSslOnlyMode();
+        final boolean dlsFlsEnabled = !SSLConfig.isSslOnlyMode();
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
                 settings, privilegesInterceptor, cih, irr, dlsFlsEnabled);
 
-        odsf = new OpenSearchSecurityFilter(localClient, settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, backendRegistry);
+        sf = new SecurityFilter(localClient, settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, backendRegistry);
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
@@ -795,7 +784,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
 
-        securityRestHandler = new OpenSearchSecurityRestFilter(backendRegistry, auditLog, threadPool,
+        securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
 
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
@@ -812,7 +801,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         cr.setDynamicConfigFactory(dcf);
 
-        odsi = new OpenSearchSecurityInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
+        si = new SecurityInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
                 interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
         components.add(principalExtractor);
 
@@ -829,7 +818,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         components.add(xffResolver);
         components.add(backendRegistry);
         components.add(evaluator);
-        components.add(odsi);
+        components.add(si);
         components.add(dcf);
 
 
@@ -848,9 +837,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         builder.put(super.additionalSettings());
 
-        if(!openSearchSSLConfig.isSslOnlyMode()){
-          builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyTransport");
-          builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.http.OpenSearchSecurityHttpServerTransport");
+        if(!SSLConfig.isSslOnlyMode()){
+          builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport");
+          builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport");
         }
         return builder.build();
     }
@@ -862,7 +851,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
-        settings.add(OpenSearchSSLConfig.SSL_DUAL_MODE_SETTING);
+        settings.add(SSLConfig.SSL_DUAL_MODE_SETTING);
 
         // Protected index settings
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
@@ -873,7 +862,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));
         settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_DEFAULT, Function.identity(), Property.NodeScope, Property.Filtered, Property.Final));
 
-        if(!openSearchSSLConfig.isSslOnlyMode()) {
+        if(!SSLConfig.isSslOnlyMode()) {
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
     
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
@@ -1026,7 +1015,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     @Override
     public void onNodeStarted() {
         log.info("Node started");
-        if(!openSearchSSLConfig.isSslOnlyMode() && !client && !disabled) {
+        if(!SSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
         }
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
@@ -1040,7 +1029,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
 
-        if (client || disabled || openSearchSSLConfig.isSslOnlyMode()) {
+        if (client || disabled || SSLConfig.isSslOnlyMode()) {
             return Collections.emptyList();
         }
 
@@ -1058,7 +1047,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper
                     .deserializeSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
 
-            final String eval = OpenSearchSecurityUtils.evalMap(allowedFlsFields, index);
+            final String eval = SecurityUtils.evalMap(allowedFlsFields, index);
 
             if (eval == null) {
                 return field -> true;
@@ -1093,7 +1082,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     @Override
     public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
         final String indexPattern = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "OpenSearch Security Index");
+        final SystemIndexDescriptor systemIndexDescriptor = new SystemIndexDescriptor(indexPattern, "Security index");
         return Collections.singletonList(systemIndexDescriptor);
     }
 

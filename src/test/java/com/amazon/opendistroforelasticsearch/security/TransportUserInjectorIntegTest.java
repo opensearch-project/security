@@ -68,7 +68,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
     }
 
     @Test
-    public void testOpenSearchSecurityUserInjection() throws Exception {
+    public void testSecurityUserInjection() throws Exception {
         final Settings clusterNodeSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .build();
@@ -125,7 +125,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
     }
 
     @Test
-    public void testOpenSearchSecurityUserInjectionWithConfigDisabled() throws Exception {
+    public void testSecurityUserInjectionWithConfigDisabled() throws Exception {
         final Settings clusterNodeSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
                 .build();

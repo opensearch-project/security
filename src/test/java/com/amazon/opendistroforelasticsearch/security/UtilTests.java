@@ -37,12 +37,12 @@ import static org.junit.Assert.assertFalse;
 
 import java.util.Map;
 
+import com.amazon.opendistroforelasticsearch.security.support.SecurityUtils;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.opensearch.common.settings.Settings;
 import org.junit.Test;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 
 public class UtilTests {
@@ -112,26 +112,26 @@ public class UtilTests {
 
     @Test
     public void testMapFromArray() {
-        Map<Object, Object> map = OpenSearchSecurityUtils.mapFromArray((Object)null);
+        Map<Object, Object> map = SecurityUtils.mapFromArray((Object)null);
         assertTrue(map == null);
         
-        map = OpenSearchSecurityUtils.mapFromArray("key");
+        map = SecurityUtils.mapFromArray("key");
         assertTrue(map == null);
 
-        map = OpenSearchSecurityUtils.mapFromArray("key", "value", "otherkey");
+        map = SecurityUtils.mapFromArray("key", "value", "otherkey");
         assertTrue(map == null);
         
-        map = OpenSearchSecurityUtils.mapFromArray("key", "value");
+        map = SecurityUtils.mapFromArray("key", "value");
         assertNotNull(map);        
         assertEquals(1, map.size());
         assertEquals("value", map.get("key"));
 
-        map = OpenSearchSecurityUtils.mapFromArray("key", "value", "key", "value");
+        map = SecurityUtils.mapFromArray("key", "value", "key", "value");
         assertNotNull(map);        
         assertEquals(1, map.size());
         assertEquals("value", map.get("key"));
 
-        map = OpenSearchSecurityUtils.mapFromArray("key1", "value1", "key2", "value2");
+        map = SecurityUtils.mapFromArray("key1", "value1", "key2", "value2");
         assertNotNull(map);        
         assertEquals(2, map.size());
         assertEquals("value1", map.get("key1"));
@@ -142,15 +142,15 @@ public class UtilTests {
     @Test
     public void testEnvReplace() {
         Settings settings = Settings.EMPTY;
-        assertEquals("abv${env.MYENV}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
-        assertEquals("abv${envbc.MYENV}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
-        assertEquals("abvtTtxyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
-        assertTrue(OpenBSDBCrypt.checkPassword(OpenSearchSecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}",settings), "tTt".toCharArray()));
-        assertEquals("abvtTtxyzxxx", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
-        assertTrue(OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
-        assertEquals("abv${env.MYENV:tTt}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
-        assertEquals("abv${env.MYENV-tTt}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
-        //assertEquals("abvabcdefgxyz", OpenSearchSecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings));
+        assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
+        assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
+        assertEquals("abvtTtxyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
+        assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}",settings), "tTt".toCharArray()));
+        assertEquals("abvtTtxyzxxx", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
+        assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
+        assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
+        assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
+        //assertEquals("abvabcdefgxyz", SecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings));
 
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
@@ -162,12 +162,12 @@ public class UtilTests {
             if(val == null || val.isEmpty()) {
                 continue;
             }
-            assertEquals("abv"+val+"xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
-            assertEquals("abv${"+k+"}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
-            assertEquals("abv"+val+"xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            assertEquals("abv"+val+"xyzabv"+val+"xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
-            assertEquals("abv"+val+"xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            assertTrue(OpenBSDBCrypt.checkPassword(OpenSearchSecurityUtils.replaceEnvVars("${envbc."+k+"}",settings), val.toCharArray()));
+            assertEquals("abv"+val+"xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
+            assertEquals("abv${"+k+"}xyz", SecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
+            assertEquals("abv"+val+"xyz", SecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            assertEquals("abv"+val+"xyzabv"+val+"xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
+            assertEquals("abv"+val+"xyz", SecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc."+k+"}",settings), val.toCharArray()));
             checked = true;
         }
         
@@ -177,22 +177,22 @@ public class UtilTests {
     @Test
     public void testNoEnvReplace() {
         Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
-        assertEquals("abv${env.MYENV}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
-        assertEquals("abv${envbc.MYENV}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
-        assertEquals("abv${env.MYENV:-tTt}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
-        assertEquals("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
-        assertFalse(OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
-        assertEquals("abv${env.MYENV:tTt}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
-        assertEquals("abv${env.MYENV-tTt}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
+        assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
+        assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
+        assertEquals("abv${env.MYENV:-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
+        assertEquals("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
+        assertFalse(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
+        assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
+        assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
         
         for(String k: env.keySet()) {
-            assertEquals("abv${env."+k+"}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
-            assertEquals("abv${"+k+"}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
-            assertEquals("abv${env."+k+":-k182765ggh}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            assertEquals("abv${env."+k+"}xyzabv${env."+k+"}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
-            assertEquals("abv${env."+k+":-k182765ggh}xyz", OpenSearchSecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            assertEquals("abv${env."+k+"}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
+            assertEquals("abv${"+k+"}xyz", SecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
+            assertEquals("abv${env."+k+":-k182765ggh}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+            assertEquals("abv${env."+k+"}xyzabv${env."+k+"}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
+            assertEquals("abv${env."+k+":-k182765ggh}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
         }
     }
 }

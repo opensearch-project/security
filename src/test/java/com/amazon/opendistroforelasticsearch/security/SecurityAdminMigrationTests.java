@@ -21,6 +21,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.amazon.opendistroforelasticsearch.security.tools.SecurityAdmin;
 import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
@@ -32,7 +33,6 @@ import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
-import com.amazon.opendistroforelasticsearch.security.tools.OpenSearchSecurityAdmin;
 
 public class SecurityAdminMigrationTests extends SingleClusterTest {
     
@@ -68,7 +68,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         HttpResponse res;
@@ -78,7 +78,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         assertContains(res, "*strict*");
         assertNotContains(res, "*DOWN*");
         
-        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
     }
     
@@ -114,7 +114,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         argsAsList.add(new File("./securityconfig").getAbsolutePath()+"/v7");
         argsAsList.add("-nhnv");
 
-        int returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         argsAsList.add("-ts");
@@ -130,7 +130,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         
         
-        returnCode  = OpenSearchSecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
         HttpResponse res;

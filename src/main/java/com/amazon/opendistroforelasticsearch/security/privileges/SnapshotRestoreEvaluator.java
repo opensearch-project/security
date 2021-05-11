@@ -48,7 +48,7 @@ public class SnapshotRestoreEvaluator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final boolean enableSnapshotRestorePrivilege;
-    private final String openSearchSecurityIndex;
+    private final String securityIndex;
     private final AuditLog auditLog;
     private final boolean restoreSecurityIndexEnabled;
     
@@ -57,7 +57,7 @@ public class SnapshotRestoreEvaluator {
                 ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
         this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
 
-        this.openSearchSecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
     }
 
@@ -100,9 +100,9 @@ public class SnapshotRestoreEvaluator {
 
         final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
 
-        if (rs != null && (rs.contains(openSearchSecurityIndex) || rs.contains("_all") || rs.contains("*"))) {
+        if (rs != null && (rs.contains(securityIndex) || rs.contains("_all") || rs.contains("*"))) {
             auditLog.logSecurityIndexAttempt(request, action, task);
-            log.warn("{} for '{}' as source index is not allowed", action, openSearchSecurityIndex);
+            log.warn("{} for '{}' as source index is not allowed", action, securityIndex);
             presponse.allowed = false;
             return presponse.markComplete();            
         }

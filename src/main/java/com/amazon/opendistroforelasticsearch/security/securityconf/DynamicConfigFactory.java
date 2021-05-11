@@ -335,16 +335,16 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             return tmp==null?null:tmp.getHash();
         }
         
-        public List<String> getOpenSearchSecurityRoles(String user) {
+        public List<String> getSecurityRoles(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
 
-            // OpenSearch security roles should only contain roles that exist in the roles dynamic config.
+            // Security roles should only contain roles that exist in the roles dynamic config.
             // We should filter out any roles that have hidden rolesmapping.
             return tmp == null ? ImmutableList.of() :
                 tmp.getOpendistro_security_roles().stream().filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role)).collect(ImmutableList.toImmutableList());
         }
 
-        // Remove any hidden rolesmapping from the OpenSearch security roles
+        // Remove any hidden rolesmapping from the security roles
         private boolean isRolesMappingHidden(String rolename) {
             final RoleMappingsV7 roleMapping = rolesMappingsV7SecurityDynamicConfiguration.getCEntry(rolename);
             return roleMapping!=null && roleMapping.isHidden();
@@ -389,7 +389,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             return tmp==null?null:tmp.getHash();
         }
         
-        public List<String> getOpenSearchSecurityRoles(String user) {
+        public List<String> getSecurityRoles(String user) {
             return Collections.emptyList();
         }
     }

@@ -161,13 +161,13 @@ public class TenantInfoAction extends BaseRestHandler {
         // If user check failed by name and admin, check if the users belong to kibana opendistro role
         final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, true);
 
-        // check if kibanaOpenSearchRole is present in RolesMapping and if yes, check if user is a part of this role
+        // check if kibanaRole is present in RolesMapping and if yes, check if user is a part of this role
         if (rolesMappingConfiguration != null) {
-            String kibanaOpenSearchRole = evaluator.kibanaOpenSearchRole();
-            if (Strings.isNullOrEmpty(kibanaOpenSearchRole)) {
+            String kibanaRole = evaluator.kibanaRole();
+            if (Strings.isNullOrEmpty(kibanaRole)) {
                 return false;
             }
-            RoleMappings roleMapping = (RoleMappings) rolesMappingConfiguration.getCEntries().getOrDefault(kibanaOpenSearchRole, null);
+            RoleMappings roleMapping = (RoleMappings) rolesMappingConfiguration.getCEntries().getOrDefault(kibanaRole, null);
             return roleMapping != null && roleMapping.getUsers().contains(user.getName());
         }
 

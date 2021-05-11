@@ -284,7 +284,7 @@ public class AuditConfigSerializeTest {
         assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForWriteMatcher());
         assertTrue(configCompliance.getReadEnabledFields().isEmpty());
         assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
-        assertEquals(".opendistro_security", configCompliance.getOpenSearchsecurityIndex());
+        assertEquals(".opendistro_security", configCompliance.getSecurityIndex());
     }
 
     @Test
@@ -337,7 +337,7 @@ public class AuditConfigSerializeTest {
         assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForWriteMatcher());
         assertTrue(configCompliance.getReadEnabledFields().isEmpty());
         assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
-        assertEquals("test-security-index", configCompliance.getOpenSearchsecurityIndex());
+        assertEquals("test-security-index", configCompliance.getSecurityIndex());
         assertEquals("test-auditlog-index", configCompliance.getAuditLogIndex());
     }
 

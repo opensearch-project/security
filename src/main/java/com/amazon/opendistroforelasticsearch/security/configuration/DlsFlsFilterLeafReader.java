@@ -83,7 +83,7 @@ import com.amazon.opendistroforelasticsearch.security.dlic.rest.support.Utils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
 import com.amazon.opendistroforelasticsearch.security.support.MapUtils;
-import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
+import com.amazon.opendistroforelasticsearch.security.support.SecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -1155,7 +1155,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
     private MaskedFieldsMap getRuntimeMaskedFieldInfo() {
         final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
                 ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-        final String maskedEval = OpenSearchSecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
+        final String maskedEval = SecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
 
         if(maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);

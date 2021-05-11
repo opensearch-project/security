@@ -35,6 +35,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManagerFactory;
 
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import org.apache.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
 import org.opensearch.OpenSearchSecurityException;
@@ -58,7 +59,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
@@ -137,8 +137,8 @@ public class SSLTest extends SingleClusterTest {
                 .build();
         
         try {
-            String[] enabledCiphers = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledCipherSuites();
-            String[] enabledProtocols = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledProtocols();
+            String[] enabledCiphers = new DefaultSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledCipherSuites();
+            String[] enabledProtocols = new DefaultSecurityKeyStore(settings, Paths.get(".")).createHTTPSSLEngine().getEnabledProtocols();
 
             if(allowOpenSSL) {
                 Assert.assertEquals(2, enabledProtocols.length); //SSLv2Hello is always enabled when using openssl
@@ -166,8 +166,8 @@ public class SSLTest extends SingleClusterTest {
                     .put("path.home",".")
                     .build();
             
-            enabledCiphers = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledCipherSuites();
-            enabledProtocols = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledProtocols();
+            enabledCiphers = new DefaultSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledCipherSuites();
+            enabledProtocols = new DefaultSecurityKeyStore(settings, Paths.get(".")).createServerTransportSSLEngine().getEnabledProtocols();
 
             if(allowOpenSSL) {
                 Assert.assertEquals(2, enabledProtocols.length); //SSLv2Hello is always enabled when using openssl
@@ -180,8 +180,8 @@ public class SSLTest extends SingleClusterTest {
                 Assert.assertEquals(1, enabledCiphers.length);
                 Assert.assertEquals("SSL_RSA_EXPORT_WITH_RC4_40_MD5",enabledCiphers[0]);
             }
-            enabledCiphers = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1).getEnabledCipherSuites();
-            enabledProtocols = new DefaultOpenSearchSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1).getEnabledProtocols();
+            enabledCiphers = new DefaultSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1).getEnabledCipherSuites();
+            enabledProtocols = new DefaultSecurityKeyStore(settings, Paths.get(".")).createClientTransportSSLEngine(null, -1).getEnabledProtocols();
 
             if(allowOpenSSL) {
                 Assert.assertEquals(2, enabledProtocols.length); //SSLv2Hello is always enabled when using openssl
@@ -560,7 +560,7 @@ public class SSLTest extends SingleClusterTest {
         
         SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-        ExternalOpenSearchSecurityKeyStore.registerExternalSslContext("abcx", sslContext);
+        ExternalSecurityKeyStore.registerExternalSslContext("abcx", sslContext);
         
         try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
             

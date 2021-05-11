@@ -100,7 +100,7 @@ public class ComplianceConfig {
     private final WildcardMatcher watchedWriteIndicesMatcher;
     private final WildcardMatcher ignoredComplianceUsersForReadMatcher;
     private final WildcardMatcher ignoredComplianceUsersForWriteMatcher;
-    private final String openSearchSecurityIndex;
+    private final String securityIndex;
 
     private final Map<WildcardMatcher, Set<String>> readEnabledFields;
     private final LoadingCache<String, WildcardMatcher> readEnabledFieldsCache;
@@ -119,7 +119,7 @@ public class ComplianceConfig {
             final boolean logDiffsForWrite,
             final List<String> watchedWriteIndicesPatterns,
             final Set<String> ignoredComplianceUsersForWrite,
-            final String openSearchSecurityIndex,
+            final String securityIndex,
             final String destinationType,
             final String destinationIndex) {
         this.enabled = enabled;
@@ -131,7 +131,7 @@ public class ComplianceConfig {
         this.watchedWriteIndicesMatcher = WildcardMatcher.from(watchedWriteIndicesPatterns);
         this.ignoredComplianceUsersForReadMatcher = WildcardMatcher.from(ignoredComplianceUsersForRead);
         this.ignoredComplianceUsersForWriteMatcher = WildcardMatcher.from(ignoredComplianceUsersForWrite);
-        this.openSearchSecurityIndex = openSearchSecurityIndex;
+        this.securityIndex = securityIndex;
         this.watchedReadFields = watchedReadFields;
         this.ignoredComplianceUsersForRead = ignoredComplianceUsersForRead;
         this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
@@ -211,7 +211,7 @@ public class ComplianceConfig {
         logger.info("Auditing diffs for write requests is {}.", logDiffsForWrite ? "enabled" : "disabled");
         logger.info("Auditing write operation requests from {} users is disabled.", ignoredComplianceUsersForWriteMatcher);
         logger.info("Auditing will watch {} for write requests.", watchedWriteIndicesMatcher);
-        logger.info("{} is used as internal security index.", openSearchSecurityIndex);
+        logger.info("{} is used as internal security index.", securityIndex);
         logger.info("Internal index used for posting audit logs is {}", auditLogIndex);
     }
 
@@ -390,8 +390,8 @@ public class ComplianceConfig {
     }
 
     @VisibleForTesting
-    public String getOpenSearchsecurityIndex() {
-        return openSearchSecurityIndex;
+    public String getSecurityIndex() {
+        return securityIndex;
     }
 
     @VisibleForTesting
@@ -448,8 +448,8 @@ public class ComplianceConfig {
         if (index == null || !isEnabled()) {
             return false;
         }
-        // if OpenSearch index (internal index) check if internal config logging is enabled
-        if (openSearchSecurityIndex.equals(index)) {
+        // if security index (internal index) check if internal config logging is enabled
+        if (securityIndex.equals(index)) {
             return logInternalConfig;
         }
         // if the index is used for audit logging, return false
@@ -476,8 +476,8 @@ public class ComplianceConfig {
         if (!this.isEnabled()) {
             return false;
         }
-        // if OpenSearch index (internal index) check if internal config logging is enabled
-        if (openSearchSecurityIndex.equals(index)) {
+        // if security index (internal index) check if internal config logging is enabled
+        if (securityIndex.equals(index)) {
             return logInternalConfig;
         }
         try {
@@ -498,8 +498,8 @@ public class ComplianceConfig {
         if (!this.isEnabled()) {
             return false;
         }
-        // if OpenSearch index (internal index) check if internal config logging is enabled
-        if (openSearchSecurityIndex.equals(index)) {
+        // if security index (internal index) check if internal config logging is enabled
+        if (securityIndex.equals(index)) {
             return logInternalConfig;
         }
         WildcardMatcher matcher;
