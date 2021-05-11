@@ -50,9 +50,10 @@ import java.util.stream.Stream;
 import com.amazon.opendistroforelasticsearch.security.auditlog.NullAuditLog;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl;
-import com.amazon.opendistroforelasticsearch.security.configuration.*;
+import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsValveImpl;
 import com.amazon.opendistroforelasticsearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl;
+import com.amazon.opendistroforelasticsearch.security.configuration.Salt;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.SecurityRestApiActions;
 import com.amazon.opendistroforelasticsearch.security.filter.SecurityRestFilter;
 import com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport;
@@ -61,7 +62,6 @@ import com.amazon.opendistroforelasticsearch.security.ssl.rest.SecuritySSLReload
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.SecuritySSLCertsInfoAction;
 
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor;
-import com.amazon.opendistroforelasticsearch.security.support.*;
 import com.amazon.opendistroforelasticsearch.security.transport.SecurityInterceptor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -143,6 +143,11 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLogSslExcept
 import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog.Origin;
 import com.amazon.opendistroforelasticsearch.security.auth.BackendRegistry;
 import com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListener;
+import com.amazon.opendistroforelasticsearch.security.configuration.AdminDNs;
+import com.amazon.opendistroforelasticsearch.security.configuration.ClusterInfoHolder;
+import com.amazon.opendistroforelasticsearch.security.configuration.CompatConfig;
+import com.amazon.opendistroforelasticsearch.security.configuration.ConfigurationRepository;
+import com.amazon.opendistroforelasticsearch.security.configuration.DlsFlsRequestValve;
 import com.amazon.opendistroforelasticsearch.security.filter.SecurityFilter;
 import com.amazon.opendistroforelasticsearch.security.http.SecurityNonSslHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
@@ -158,6 +163,12 @@ import com.amazon.opendistroforelasticsearch.security.ssl.SslExceptionHandler;
 import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.ValidatingDispatcher;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.SecuritySSLNettyTransport;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
+import com.amazon.opendistroforelasticsearch.security.support.ModuleInfo;
+import com.amazon.opendistroforelasticsearch.security.support.ReflectionHelper;
+import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import com.amazon.opendistroforelasticsearch.security.support.SecurityUtils;
 import com.amazon.opendistroforelasticsearch.security.transport.DefaultInterClusterRequestEvaluator;
 import com.amazon.opendistroforelasticsearch.security.transport.InterClusterRequestEvaluator;
 import com.amazon.opendistroforelasticsearch.security.user.User;
@@ -435,13 +446,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             if(!SSLConfig.isSslOnlyMode()) {
                 handlers.add(new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new SecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
-                handlers.add(new SecuritySSLCertsInfoAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
+                handlers.add(new SecuritySSLCertsInfoAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 handlers.add(new DashboardsInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
 				Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
 
                 if (sslCertReloadEnabled) {
-                    handlers.add(new SecuritySSLReloadCertsAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
+                    handlers.add(new SecuritySSLReloadCertsAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 }
                 final Collection<RestHandler> apiHandlers = SecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog));
                 handlers.addAll(apiHandlers);
@@ -660,7 +671,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport",
                     () -> new SecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
-                            namedWriteableRegistry, circuitBreakerService, odsks, evaluateSslExceptionHandler(), sharedGroupFactory, SSLConfig));
+                            namedWriteableRegistry, circuitBreakerService, sks, evaluateSslExceptionHandler(), sharedGroupFactory, SSLConfig));
         }
         return transports;
     }
@@ -682,7 +693,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         settings, configPath, evaluateSslExceptionHandler());
                 //TODO close odshst
                 final SecurityHttpServerTransport odshst = new SecurityHttpServerTransport(settings, networkService, bigArrays,
-                        threadPool, odsks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory);
+                        threadPool, sks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory);
 
                 return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport",
                         () -> odshst);
