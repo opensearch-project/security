@@ -39,7 +39,7 @@ opendistro_security.authcz.admin_dn:
 
 # Define how backend roles should be mapped to Security roles
 # MAPPING_ONLY - mappings must be configured explicitely in roles_mapping.yml (default)
-# BACKENDROLES_ONLY - backend roles are mapped to OpenSearch Security roles directly. Settings in roles_mapping.yml have no effect.
+# BACKENDROLES_ONLY - backend roles are mapped to Security roles directly. Settings in roles_mapping.yml have no effect.
 # BOTH - backend roles are mapped to Security roles mapped directly and via roles_mapping.yml in addition
 opendistro_security.roles_mapping_resolution: MAPPING_ONLY
 

@@ -99,7 +99,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final boolean extendedKeyUsageEnabled;
     protected final Settings settings;
     protected final SharedGroupFactory sharedGroupFactory;
-    protected final SecurityKeyStore odsks;
+    protected final SecurityKeyStore sks;
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
     private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {};
@@ -118,7 +118,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             this.httpSSLEnabled = false;
             this.transportSSLEnabled = false;
             this.extendedKeyUsageEnabled = false;
-            this.odsks = null;
+            this.sks = null;
             this.configPath = null;
             SSLConfig = new SSLConfig(false, false);
             
@@ -212,9 +212,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         }
         
         if(ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
-            this.odsks = new ExternalSecurityKeyStore(settings);
+            this.sks = new ExternalSecurityKeyStore(settings);
         } else {
-            this.odsks = new DefaultSecurityKeyStore(settings, configPath);
+            this.sks = new DefaultSecurityKeyStore(settings, configPath);
         }
     }
 
@@ -228,7 +228,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
             final SecuritySSLNettyHttpServerTransport sgsnht =
                     new SecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool,
-                            odsks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings,
+                            sks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings,
                             sharedGroupFactory);
 
             return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
@@ -246,7 +246,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
         
         if (!client) {
-            handlers.add(new SecuritySSLInfoAction(settings, configPath, restController, odsks, Objects.requireNonNull(principalExtractor)));
+            handlers.add(new SecuritySSLInfoAction(settings, configPath, restController, sks, Objects.requireNonNull(principalExtractor)));
         }
         
         return handlers;
@@ -274,7 +274,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
             transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport",
-                    () -> new SecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory,
+                    () -> new SecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, sks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory,
                             SSLConfig));
 
         }
