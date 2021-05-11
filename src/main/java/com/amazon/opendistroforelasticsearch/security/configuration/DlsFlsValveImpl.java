@@ -15,6 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
+import com.amazon.opendistroforelasticsearch.security.support.SecurityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
@@ -58,7 +59,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.HeaderHelper;
-import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 
 import com.google.common.collect.ImmutableList;
 
@@ -141,7 +141,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
                     ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
 
-            final String dlsEval = OpenSearchSecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
+            final String dlsEval = SecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
 
             if (dlsEval != null) {
 

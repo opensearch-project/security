@@ -180,7 +180,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
 		if (existingConfiguration.getSeqNo() < 0) {
-		    forbidden(channel, "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use OpenSearchSecurityAdmin to populate.");
+		    forbidden(channel, "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate.");
 		    return;
 		}
 

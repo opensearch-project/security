@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import io.netty.util.internal.PlatformDependent;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -37,7 +38,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;

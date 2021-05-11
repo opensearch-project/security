@@ -34,7 +34,7 @@ import java.util.List;
 public class UserApiTest extends AbstractRestApiUnitTest {
 
     @Test
-    public void testOpenSearchSecurityRoles() throws Exception {
+    public void testSecurityRoles() throws Exception {
 
         setup();
 

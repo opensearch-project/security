@@ -19,7 +19,9 @@ package com.amazon.opendistroforelasticsearch.security.ssl;
 
 import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
 import com.amazon.opendistroforelasticsearch.security.NonValidatingObjectMapper;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenSearchSSLConfig;
+import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.SSLConfig;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.SecuritySSLNettyTransport;
 import com.fasterxml.jackson.databind.InjectableValues;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
@@ -78,12 +80,10 @@ import org.opensearch.transport.Transport;
 import org.opensearch.transport.TransportInterceptor;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyHttpServerTransport;
 import com.amazon.opendistroforelasticsearch.security.ssl.http.netty.ValidatingDispatcher;
-import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenSearchSecuritySSLInfoAction;
+import com.amazon.opendistroforelasticsearch.security.ssl.rest.SecuritySSLInfoAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExtractor;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenSearchSecuritySSLNettyTransport;
-import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenSearchSecuritySSLTransportInterceptor;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.SecuritySSLTransportInterceptor;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 
 //For ES5 this class has only effect when SSL only plugin is installed
@@ -99,11 +99,11 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final boolean extendedKeyUsageEnabled;
     protected final Settings settings;
     protected final SharedGroupFactory sharedGroupFactory;
-    protected final OpenSearchSecurityKeyStore odsks;
+    protected final SecurityKeyStore odsks;
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
     private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {};
-    protected final OpenSearchSSLConfig openSearchSSLConfig;
+    protected final SSLConfig SSLConfig;
 
 //    public OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath) {
 //        this(settings, configPath, false);
@@ -120,7 +120,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             this.extendedKeyUsageEnabled = false;
             this.odsks = null;
             this.configPath = null;
-            openSearchSSLConfig = new OpenSearchSSLConfig(false, false);
+            SSLConfig = new SSLConfig(false, false);
             
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 @Override
@@ -133,7 +133,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             
             return;
         }
-        openSearchSSLConfig = new OpenSearchSSLConfig(settings);
+        SSLConfig = new SSLConfig(settings);
         this.configPath = configPath;
         
         if(this.configPath != null) {
@@ -211,10 +211,10 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             System.err.println("SSL not activated for http and/or transport.");
         }
         
-        if(ExternalOpenSearchSecurityKeyStore.hasExternalSslContext(settings)) {
-            this.odsks = new ExternalOpenSearchSecurityKeyStore(settings);
+        if(ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
+            this.odsks = new ExternalSecurityKeyStore(settings);
         } else {
-            this.odsks = new DefaultOpenSearchSecurityKeyStore(settings, configPath);
+            this.odsks = new DefaultSecurityKeyStore(settings, configPath);
         }
     }
 
@@ -226,12 +226,12 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         if (!client && httpSSLEnabled) {
             
             final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
-            final OpenSearchSecuritySSLNettyHttpServerTransport sgsnht =
-                    new OpenSearchSecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool,
+            final SecuritySSLNettyHttpServerTransport sgsnht =
+                    new SecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool,
                             odsks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings,
                             sharedGroupFactory);
 
-            return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyHttpServerTransport", () -> sgsnht);
+            return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
             
         }
         return Collections.emptyMap();
@@ -246,7 +246,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
         
         if (!client) {
-            handlers.add(new OpenSearchSecuritySSLInfoAction(settings, configPath, restController, odsks, Objects.requireNonNull(principalExtractor)));
+            handlers.add(new SecuritySSLInfoAction(settings, configPath, restController, odsks, Objects.requireNonNull(principalExtractor)));
         }
         
         return handlers;
@@ -259,7 +259,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
         
         if(transportSSLEnabled && !client) {
-            interceptors.add(new OpenSearchSecuritySSLTransportInterceptor(settings, null, null, NOOP_SSL_EXCEPTION_HANDLER));
+            interceptors.add(new SecuritySSLTransportInterceptor(settings, null, null, NOOP_SSL_EXCEPTION_HANDLER));
         }
         
         return interceptors;
@@ -273,9 +273,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
-            transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyTransport",
-                    () -> new OpenSearchSecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory,
-                            openSearchSSLConfig));
+            transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport",
+                    () -> new SecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, odsks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory,
+                            SSLConfig));
 
         }
         return transports;
@@ -403,11 +403,11 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                log.info("Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in opensearch.yml");
            }
            
-           builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyHttpServerTransport");
+           builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport");
        }
         
        if (transportSSLEnabled) {
-           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.OpenSearchSecuritySSLNettyTransport");
+           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport");
        }
         
         return builder.build();

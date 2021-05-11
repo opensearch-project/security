@@ -119,8 +119,8 @@ public class PrivilegesEvaluator {
     private ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
-    private final OpenSearchSecurityIndexAccessEvaluator securityIndexAccessEvaluator;
-    private final OpenSearchProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
+    private final SecurityIndexAccessEvaluator securityIndexAccessEvaluator;
+    private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
 
     private final DlsFlsEvaluator dlsFlsEvaluator;
@@ -148,8 +148,8 @@ public class PrivilegesEvaluator {
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
-        securityIndexAccessEvaluator = new OpenSearchSecurityIndexAccessEvaluator(settings, auditLog, irr);
-        protectedIndexAccessEvaluator = new OpenSearchProtectedIndexAccessEvaluator(settings, auditLog);
+        securityIndexAccessEvaluator = new SecurityIndexAccessEvaluator(settings, auditLog, irr);
+        protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.dlsFlsEnabled = dlsFlsEnabled;
@@ -178,7 +178,7 @@ public class PrivilegesEvaluator {
             StringJoiner joiner = new StringJoiner("|");
             joiner.add(user.getName());
             joiner.add(String.join(",", user.getRoles()));
-            joiner.add(String.join(",", Sets.union(user.getOpenSearchSecurityRoles(), mappedRoles)));
+            joiner.add(String.join(",", Sets.union(user.getSecurityRoles(), mappedRoles)));
             String requestedTenant = user.getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
                 joiner.add(requestedTenant);

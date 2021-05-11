@@ -47,6 +47,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.amazon.opendistroforelasticsearch.security.auditlog.config.AuditConfig;
+import com.amazon.opendistroforelasticsearch.security.support.SecurityUtils;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -75,14 +76,13 @@ import com.amazon.opendistroforelasticsearch.security.securityconf.impl.Security
 import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigHelper;
-import com.amazon.opendistroforelasticsearch.security.support.OpenSearchSecurityUtils;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 public class ConfigurationRepository {
     private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);
 
-    private final String openSearchSecurityIndex;
+    private final String securityIndex;
     private final Client client;
     private final Cache<CType, SecurityDynamicConfiguration<?>> configCache;
     private final List<ConfigurationChangeListener> configurationChangedListener;
@@ -99,7 +99,7 @@ public class ConfigurationRepository {
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
                                     Client client, ClusterService clusterService, AuditLog auditLog) {
-        this.openSearchSecurityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
@@ -133,24 +133,24 @@ public class ConfigurationRepository {
 
                                     final boolean isSecurityIndexCreated = createSecurityIndexIfAbsent();
                                     if (isSecurityIndexCreated) {
-                                        ConfigHelper.uploadFile(client, cd+"config.yml", openSearchSecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd+"roles.yml", openSearchSecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", openSearchSecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd+"internal_users.yml", openSearchSecurityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd+"action_groups.yml", openSearchSecurityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", securityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"internal_users.yml", securityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"action_groups.yml", securityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
                                         if(DEFAULT_CONFIG_VERSION == 2) {
-                                            ConfigHelper.uploadFile(client, cd+"tenants.yml", openSearchSecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
+                                            ConfigHelper.uploadFile(client, cd+"tenants.yml", securityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
                                         }
                                         final boolean populateEmptyIfFileMissing = true;
-                                        ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", openSearchSecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
-                                        ConfigHelper.uploadFile(client, cd + "whitelist.yml", openSearchSecurityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                        ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", securityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                        ConfigHelper.uploadFile(client, cd + "whitelist.yml", securityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                         LOGGER.info("Default config applied");
                                     }
 
                                     // audit.yml is not packaged by default
                                     final String auditConfigPath = cd + "audit.yml";
                                     if (new File(auditConfigPath).exists()) {
-                                        ConfigHelper.uploadFile(client, auditConfigPath, openSearchSecurityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, auditConfigPath, securityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
                                     }
                                 }
                             } else {
@@ -164,7 +164,7 @@ public class ConfigurationRepository {
                     LOGGER.debug("Node started, try to initialize it. Wait for at least yellow cluster state....");
                     ClusterHealthResponse response = null;
                     try {
-                        response = client.admin().cluster().health(new ClusterHealthRequest(openSearchSecurityIndex)
+                        response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex)
                                 .waitForActiveShards(1)
                                 .waitForYellowStatus()).actionGet();
                     } catch (Exception e1) {
@@ -172,7 +172,7 @@ public class ConfigurationRepository {
                     }
 
                     while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-                        LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", openSearchSecurityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+                        LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", securityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e1) {
@@ -180,7 +180,7 @@ public class ConfigurationRepository {
                             Thread.currentThread().interrupt();
                         }
                         try {
-                            response = client.admin().cluster().health(new ClusterHealthRequest(openSearchSecurityIndex).waitForYellowStatus()).actionGet();
+                            response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex).waitForYellowStatus()).actionGet();
                         } catch (Exception e1) {
                             LOGGER.debug("Catched again a {} but we just try again ...", e1.toString());
                         }
@@ -235,17 +235,17 @@ public class ConfigurationRepository {
                     "index.number_of_shards", 1,
                     "index.auto_expand_replicas", "0-all"
             );
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(openSearchSecurityIndex)
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityIndex)
                     .settings(indexSettings);
             final boolean ok = client.admin()
                     .indices()
                     .create(createIndexRequest)
                     .actionGet()
                     .isAcknowledged();
-            LOGGER.info("Index {} created?: {}", openSearchSecurityIndex, ok);
+            LOGGER.info("Index {} created?: {}", securityIndex, ok);
             return ok;
         } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
-            LOGGER.info("Index {} already exists", openSearchSecurityIndex);
+            LOGGER.info("Index {} already exists", securityIndex);
             return false;
         }
     }
@@ -253,16 +253,16 @@ public class ConfigurationRepository {
     public void initOnNodeStart() {
         try {
             if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
-                LOGGER.info("Will attempt to create index {} and default configs if they are absent", openSearchSecurityIndex);
+                LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
                 installDefaultConfig.set(true);
                 bgThread.start();
             } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
                 LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
-                        openSearchSecurityIndex);
+                        securityIndex);
                 bgThread.start();
             } else {
                 LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
-                        openSearchSecurityIndex);
+                        securityIndex);
             }
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
@@ -357,7 +357,7 @@ public class ConfigurationRepository {
         try(StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-            IndexMetadata securityMetadata = clusterService.state().metadata().index(this.openSearchSecurityIndex);
+            IndexMetadata securityMetadata = clusterService.state().metadata().index(this.securityIndex);
             MappingMetadata mappingMetadata = securityMetadata==null?null:securityMetadata.mapping();
 
             if (securityMetadata != null && mappingMetadata != null) {
@@ -383,7 +383,7 @@ public class ConfigurationRepository {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
             fields.put(configurationType.toLCString(), Strings.toString(retVal.get(configurationType)));
-            auditLog.logDocumentRead(this.openSearchSecurityIndex, configurationType.toLCString(), null, fields);
+            auditLog.logDocumentRead(this.securityIndex, configurationType.toLCString(), null, fields);
         }
 
         return retVal;
@@ -399,7 +399,7 @@ public class ConfigurationRepository {
     }
 
     private static String formatDate(long date) {
-        return new SimpleDateFormat("yyyy-MM-dd", OpenSearchSecurityUtils.EN_Locale).format(new Date(date));
+        return new SimpleDateFormat("yyyy-MM-dd", SecurityUtils.EN_Locale).format(new Date(date));
     }
 
     public static int getDefaultConfigVersion() {

@@ -109,9 +109,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
         // Don't allow user to add non-existent role or a role for which role-mapping is hidden or reserved
-        final List<String> openSearchSecurityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-        if (openSearchSecurityRoles != null) {
-            for (final String role: openSearchSecurityRoles) {
+        final List<String> securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
+        if (securityRoles != null) {
+            for (final String role: securityRoles) {
                 if (!isValidRolesMapping(channel, role)) return;
             }
         }

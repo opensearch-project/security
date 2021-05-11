@@ -21,7 +21,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategor
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.integration.TestAuditlogImpl;
 import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import com.amazon.opendistroforelasticsearch.security.filter.OpenSearchSecurityRestFilter;
+import com.amazon.opendistroforelasticsearch.security.filter.SecurityRestFilter;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
@@ -43,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Testing class to verify that {@link WhitelistApiAction} works correctly.
- * Check {@link OpenSearchSecurityRestFilter} for extra tests for whitelisting functionality.
+ * Check {@link SecurityRestFilter} for extra tests for whitelisting functionality.
  */
 public class WhitelistApiTest extends AbstractRestApiUnitTest {
     private RestHelper.HttpResponse response;

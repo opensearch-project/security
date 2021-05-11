@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.test;
 
+import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import io.netty.handler.ssl.OpenSsl;
 
 import java.net.InetSocketAddress;
@@ -63,7 +64,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 
-import com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateAction;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateRequest;
 import com.amazon.opendistroforelasticsearch.security.action.configupdate.ConfigUpdateResponse;
@@ -74,7 +74,7 @@ import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
 import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterInfo;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
-import com.amazon.opendistroforelasticsearch.security.test.helper.rules.OpenSearchSecurityTestWatcher;
+import com.amazon.opendistroforelasticsearch.security.test.helper.rules.SecurityTestWatcher;
 
 public abstract class AbstractSecurityUnitTest {
 
@@ -111,7 +111,7 @@ public abstract class AbstractSecurityUnitTest {
     public final TemporaryFolder repositoryPath = new TemporaryFolder();
 
 	@Rule
-	public final TestWatcher testWatcher = new OpenSearchSecurityTestWatcher();
+	public final TestWatcher testWatcher = new SecurityTestWatcher();
 
     public static Header encodeBasicHeader(final String username, final String password) {
         return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(

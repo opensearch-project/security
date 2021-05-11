@@ -15,7 +15,7 @@
 package com.amazon.opendistroforelasticsearch.security.ssl.transport;
 
 
-import com.amazon.opendistroforelasticsearch.security.ssl.OpenSearchSecurityKeyStore;
+import com.amazon.opendistroforelasticsearch.security.ssl.SecurityKeyStore;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConnectionTestUtil;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.TLSUtil;
 import com.google.common.annotations.VisibleForTesting;
@@ -39,17 +39,17 @@ import java.util.List;
 public class DualModeSSLHandler extends ByteToMessageDecoder {
 
     private static final Logger logger = LogManager.getLogger(DualModeSSLHandler.class);
-    private final OpenSearchSecurityKeyStore openSearchSecurityKeyStore;
+    private final SecurityKeyStore securityKeyStore;
 
     private final SslHandler providedSSLHandler;
 
-    public DualModeSSLHandler(OpenSearchSecurityKeyStore openSearchSecurityKeyStore) {
-        this(openSearchSecurityKeyStore, null);
+    public DualModeSSLHandler(SecurityKeyStore securityKeyStore) {
+        this(securityKeyStore, null);
     }
 
     @VisibleForTesting
-    protected DualModeSSLHandler(OpenSearchSecurityKeyStore openSearchSecurityKeyStore, SslHandler providedSSLHandler) {
-        this.openSearchSecurityKeyStore = openSearchSecurityKeyStore;
+    protected DualModeSSLHandler(SecurityKeyStore securityKeyStore, SslHandler providedSSLHandler) {
+        this.securityKeyStore = securityKeyStore;
         this.providedSSLHandler = providedSSLHandler;
     }
 
@@ -82,7 +82,7 @@ public class DualModeSSLHandler extends ByteToMessageDecoder {
         if (providedSSLHandler != null) {
             sslHandler = providedSSLHandler;
         } else {
-            sslHandler = new SslHandler(openSearchSecurityKeyStore.createServerTransportSSLEngine());
+            sslHandler = new SslHandler(securityKeyStore.createServerTransportSSLEngine());
         }
         ChannelPipeline p = ctx.pipeline();
         p.addAfter("port_unification_handler", "ssl_server", sslHandler);

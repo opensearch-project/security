@@ -67,8 +67,8 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, true);
     }
 
-    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpenSearchSecurityIndex) throws Exception {
-        setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initOpenSearchSecurityIndex, ClusterConfiguration.DEFAULT);
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initSecurityIndex) throws Exception {
+        setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initSecurityIndex, ClusterConfiguration.DEFAULT);
     }
 
     private Settings ccs(Settings nodeOverride) throws Exception {
@@ -85,19 +85,19 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     }
 
 
-    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpenSearchSecurityIndex, ClusterConfiguration clusterConfiguration) throws Exception {
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initSecurityIndex, ClusterConfiguration clusterConfiguration) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration);
-        if(initOpenSearchSecurityIndex && dynamicSecuritySettings != null) {
+        if(initSecurityIndex && dynamicSecuritySettings != null) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
     }
 
     protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride
-            , boolean initOpenSearchSecurityIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {
+            , boolean initSecurityIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration, timeout, nodes);
-        if(initOpenSearchSecurityIndex) {
+        if(initSecurityIndex) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
     }
