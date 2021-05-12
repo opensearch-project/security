@@ -30,7 +30,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
-public class OpenDistroSecuritySSLCertsDashboardsInfoActionTests extends SingleClusterTest {
+public class OpenDistroSecuritySSLCertsInfoActionTests extends SingleClusterTest {
 
     private final String ENDPOINT = "_opendistro/_security/api/ssl/certs";
 

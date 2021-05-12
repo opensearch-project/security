@@ -28,7 +28,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-public class TenantDashboardsInfoActionTest extends AbstractRestApiUnitTest {
+public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     private String payload = "{\"hosts\":[],\"users\":[\"sarek\"]," +
             "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated " +
             "from v6\"}";
