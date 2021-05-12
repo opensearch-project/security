@@ -79,7 +79,7 @@ public class ConfigV6Test {
     }
 
     @Test
-    public void testOpenSearchDashboards() throws Exception {
+    public void testDashboards() throws Exception {
         ConfigV6.Kibana kibana;
         String json;
 

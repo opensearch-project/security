@@ -290,7 +290,7 @@ public class PrivilegesEvaluator {
                 } else {
                     if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceOpenSearchDashboardsIndex(request, action0, user, dcm, requestedResolved,
+                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, requestedResolved,
                                 mapTenants(user, mappedRoles));
 
                         if (isDebugEnabled) {
@@ -369,7 +369,7 @@ public class PrivilegesEvaluator {
 
         if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceOpenSearchDashboardsIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
+            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
 
             if (isDebugEnabled) {
                 log.debug("Result from privileges interceptor: {}", replaceResult);
@@ -492,7 +492,7 @@ public class PrivilegesEvaluator {
 
     public boolean multitenancyEnabled() {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && dcm.isOpenSearchDashboardsMultitenancyEnabled();
+                && dcm.isDashboardsMultitenancyEnabled();
     }
 
     public boolean notFailOnForbiddenEnabled() {
@@ -500,16 +500,16 @@ public class PrivilegesEvaluator {
                 && dcm.isDnfofEnabled();
     }
 
-    public String openSearchDashboardsIndex() {
-        return dcm.getOpenSearchDashboardsIndexname();
+    public String dashboardsIndex() {
+        return dcm.getDashboardsIndexname();
     }
 
-    public String openSearchDashboardsServerUsername() {
-        return dcm.getOpenSearchDashboardsServerUsername();
+    public String dashboardsServerUsername() {
+        return dcm.getDashboardsServerUsername();
     }
 
-    public String OpenSearchDashboardsOpenSearchRole() {
-        return dcm.getOpenSearchDashboardsOpenSearchRole();
+    public String dashboardsOpenSearchRole() {
+        return dcm.getDashboardsOpenSearchRole();
     }
 
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {

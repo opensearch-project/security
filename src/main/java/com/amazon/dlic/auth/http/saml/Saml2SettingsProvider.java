@@ -145,7 +145,7 @@ public class Saml2SettingsProvider {
 
     private void initSpEndpoints(HashMap<String, Object> configProperties) {
         configProperties.put(SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_URL_PROPERTY_KEY,
-                this.buildOpenSearchDashboardsAssertionConsumerEndpoint(this.opensearchSettings.get("kibana_url")));
+                this.buildDashboardsConsumerEndpoint(this.opensearchSettings.get("kibana_url")));
         configProperties.put(SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_BINDING_PROPERTY_KEY,
                 "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST");
         configProperties.put(SettingsBuilder.SP_ENTITYID_PROPERTY_KEY, this.opensearchSettings.get("sp.entity_id"));
@@ -215,12 +215,12 @@ public class Saml2SettingsProvider {
         return null;
     }
 
-    private String buildOpenSearchDashboardsAssertionConsumerEndpoint(String openSearchDashboardsRoot) {
+    private String buildDashboardsConsumerEndpoint(String dashboardsRoot) {
 
-        if (openSearchDashboardsRoot.endsWith("/")) {
-            return openSearchDashboardsRoot + "_opendistro/_security/saml/acs";
+        if (dashboardsRoot.endsWith("/")) {
+            return dashboardsRoot + "_opendistro/_security/saml/acs";
         } else {
-            return openSearchDashboardsRoot + "/_opendistro/_security/saml/acs";
+            return dashboardsRoot + "/_opendistro/_security/saml/acs";
         }
     }
 

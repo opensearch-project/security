@@ -458,7 +458,7 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         //opensearchDashboards special only, terms eval
-        public Set<String> getAllPermittedIndicesForOpenSearchDashboards(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+        public Set<String> getAllPermittedIndicesForDashboards(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
                 retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs));

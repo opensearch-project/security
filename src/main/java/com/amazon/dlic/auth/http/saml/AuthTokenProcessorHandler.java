@@ -79,7 +79,7 @@ class AuthTokenProcessorHandler {
     private String samlSubjectKey;
     private String samlRolesKey;
     private String samlRolesSeparator;
-    private String openSearchDashboardsRootUrl;
+    private String kibanaRootUrl;
 
     private long expiryOffset = 0;
     private ExpiryBaseValue expiryBaseValue = ExpiryBaseValue.AUTO;
@@ -96,7 +96,7 @@ class AuthTokenProcessorHandler {
         this.samlRolesKey = settings.get("roles_key");
         this.samlSubjectKey = settings.get("subject_key");
         this.samlRolesSeparator = settings.get("roles_seperator");
-        this.openSearchDashboardsRootUrl = settings.get("kibana_url");
+        this.kibanaRootUrl = settings.get("kibana_url");
 
         if (samlRolesKey == null || samlRolesKey.length() == 0) {
             log.warn("roles_key is not configured, will only extract subject from SAML");
@@ -450,7 +450,7 @@ class AuthTokenProcessorHandler {
             if (acsEndpointUri.isAbsolute()) {
                 return acsEndpoint;
             } else {
-                return new URI(this.openSearchDashboardsRootUrl).resolve(acsEndpointUri).toString();
+                return new URI(this.kibanaRootUrl).resolve(acsEndpointUri).toString();
             }
         } catch (URISyntaxException e) {
             log.error("Could not parse URI for acsEndpoint: {}", acsEndpoint);

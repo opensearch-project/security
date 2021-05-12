@@ -141,19 +141,19 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
         return config.dynamic.respect_request_indices_options;
     }
     @Override
-    public String getOpenSearchDashboardsServerUsername() {
+    public String getDashboardsServerUsername() {
         return config.dynamic.kibana.server_username;
     }
     @Override
-    public String getOpenSearchDashboardsOpenSearchRole() {
+    public String getDashboardsOpenSearchRole() {
         return config.dynamic.kibana.opendistro_role;
     }
     @Override
-    public String getOpenSearchDashboardsIndexname() {
+    public String getDashboardsIndexname() {
         return config.dynamic.kibana.index;
     }
     @Override
-    public boolean isOpenSearchDashboardsMultitenancyEnabled() {
+    public boolean isDashboardsMultitenancyEnabled() {
         return config.dynamic.kibana.multitenancy_enabled;
     }
     @Override

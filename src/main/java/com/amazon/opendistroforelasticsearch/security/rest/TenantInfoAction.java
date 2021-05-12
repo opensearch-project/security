@@ -154,20 +154,20 @@ public class TenantInfoAction extends BaseRestHandler {
         }
 
         // check if the user is a kibanauser or super admin
-        if (user.getName().equals(evaluator.openSearchDashboardsServerUsername()) || adminDns.isAdmin(user)) {
+        if (user.getName().equals(evaluator.dashboardsServerUsername()) || adminDns.isAdmin(user)) {
             return true;
         }
 
-        // If user check failed by name and admin, check if the users belong to kibana OpenSearch role
+        // If user check failed by name and admin, check if the users belong to dashboards role
         final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(CType.ROLESMAPPING, true);
 
-        // check if OpenSearchDashboardsOpenSearchRole is present in RolesMapping and if yes, check if user is a part of this role
+        // check if dashboardsOpenSearchRole is present in RolesMapping and if yes, check if user is a part of this role
         if (rolesMappingConfiguration != null) {
-            String openSearchDashboardsOpenSearchRole = evaluator.OpenSearchDashboardsOpenSearchRole();
-            if (Strings.isNullOrEmpty(openSearchDashboardsOpenSearchRole)) {
+            String dashboardsOpenSearchRole = evaluator.dashboardsOpenSearchRole();
+            if (Strings.isNullOrEmpty(dashboardsOpenSearchRole)) {
                 return false;
             }
-            RoleMappings roleMapping = (RoleMappings) rolesMappingConfiguration.getCEntries().getOrDefault(openSearchDashboardsOpenSearchRole, null);
+            RoleMappings roleMapping = (RoleMappings) rolesMappingConfiguration.getCEntries().getOrDefault(dashboardsOpenSearchRole, null);
             return roleMapping != null && roleMapping.getUsers().contains(user.getName());
         }
 
@@ -188,7 +188,7 @@ public class TenantInfoAction extends BaseRestHandler {
     	}
     	
     	
-    	if(!indexParts[0].equals(evaluator.openSearchDashboardsIndex())) {
+    	if(!indexParts[0].equals(evaluator.dashboardsIndex())) {
     		return null;
     	}
     	

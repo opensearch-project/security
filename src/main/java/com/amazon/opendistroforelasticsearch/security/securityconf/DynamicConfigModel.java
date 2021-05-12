@@ -73,10 +73,10 @@ public abstract class DynamicConfigModel {
     public abstract boolean isRestAuthDisabled();
     public abstract boolean isInterTransportAuthDisabled();
     public abstract boolean isRespectRequestIndicesEnabled();
-    public abstract String getOpenSearchDashboardsServerUsername();
-    public abstract String getOpenSearchDashboardsOpenSearchRole();
-    public abstract String getOpenSearchDashboardsIndexname();
-    public abstract boolean isOpenSearchDashboardsMultitenancyEnabled();
+    public abstract String getDashboardsServerUsername();
+    public abstract String getDashboardsOpenSearchRole();
+    public abstract String getDashboardsIndexname();
+    public abstract boolean isDashboardsMultitenancyEnabled();
     public abstract boolean isDnfofEnabled();
     public abstract boolean isMultiRolespanEnabled();
     public abstract String getFilteredAliasMode();
