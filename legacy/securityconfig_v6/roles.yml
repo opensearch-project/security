@@ -31,7 +31,7 @@
 # Index, alias or type names can not contain dots (.) in the <indexname or alias> or <type> expression.
 # Reason is that we currently parse the config file into a OpenSearch settings object which cannot cope with dots in keys.
 # Workaround: Just configure something like '?kibana' instead of '.kibana' or 'my?index' instead of 'my.index'
-# This limitation will likely removed with OpenSearch Security 6
+# This limitation will likely removed with Open Distro Security 6
 
 # DLS (Document level security)
 # https://opendistro.github.io/for-elasticsearch-docs/docs/security/document-level-security/
