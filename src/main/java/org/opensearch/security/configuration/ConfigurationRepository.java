@@ -145,7 +145,6 @@ public class ConfigurationRepository {
                                     final boolean populateEmptyIfFileMissing = true;
                                     ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", securityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                     ConfigHelper.uploadFile(client, cd + "whitelist.yml", securityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
-                                    LOGGER.info("Default config applied");
 
                                     // audit.yml is not packaged by default
                                     final String auditConfigPath = cd + "audit.yml";
@@ -157,7 +156,7 @@ public class ConfigurationRepository {
                                 LOGGER.error("{} does not exist", confFile.getAbsolutePath());
                             }
                         } catch (Exception e) {
-                            LOGGER.error("Cannot apply default config (this is maybe not an error!) due to {}", e.getMessage());
+                            LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
                         }
                     }
 
