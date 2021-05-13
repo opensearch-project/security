@@ -30,15 +30,14 @@ import org.ldaptive.Connection;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
 import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;
-import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
-import com.amazon.opendistroforelasticsearch.security.user.User;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.user.User;
 
 public class LdapBackendTest {
 

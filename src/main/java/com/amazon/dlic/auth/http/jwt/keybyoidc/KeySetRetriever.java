@@ -17,7 +17,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.io.IOException;
 
-import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import org.opensearch.security.DefaultObjectMapper;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
 import org.apache.cxf.rs.security.jose.jwk.JwkUtils;
 import org.apache.http.HttpEntity;

@@ -55,8 +55,8 @@ import org.apache.http.io.HttpMessageWriterFactory;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 
-import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
-import com.amazon.opendistroforelasticsearch.security.test.helper.network.SocketUtils;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.network.SocketUtils;
 
 class MockIpdServer implements Closeable {
 	final static String CTX_DISCOVER = "/discover";
