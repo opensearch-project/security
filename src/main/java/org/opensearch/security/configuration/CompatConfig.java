@@ -107,21 +107,21 @@ public class CompatConfig {
     public boolean transportInterClusterPassiveAuthEnabled() {
         final boolean interClusterAuthInitiallyPassive = staticSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, false);
 
-            if(interClusterAuthInitiallyPassive) {
-                if(dcm == null) {
-                    if(log.isTraceEnabled()) {
-                        log.trace("dynamicSecurityConfig is null, initially static interClusterAuthPassive");
-                    }
-                    return false;
-                } else {
-                    final boolean interClusterAuthDynamicallyPassive = dcm.isInterTransportAuthPassive();
-                    if(log.isTraceEnabled()) {
-                        log.trace("opendistro_security.dynamic.passive_intertransport_auth {}", interClusterAuthDynamicallyPassive);
-                    }
-                    return interClusterAuthDynamicallyPassive;
+        if(interClusterAuthInitiallyPassive) {
+            if(dcm == null) {
+                if(log.isTraceEnabled()) {
+                    log.trace("dynamicSecurityConfig is null, initially static interClusterAuthPassive");
                 }
-            } else {
                 return false;
+            } else {
+                final boolean interClusterAuthDynamicallyPassive = dcm.isInterTransportAuthPassive();
+                if(log.isTraceEnabled()) {
+                    log.trace("opendistro_security.dynamic.passive_intertransport_auth {}", interClusterAuthDynamicallyPassive);
+                }
+                return interClusterAuthDynamicallyPassive;
             }
+        } else {
+            return false;
+        }
     }
 }

@@ -191,7 +191,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile ClusterService cs;
     private volatile AuditLog auditLog;
     private volatile BackendRegistry backendRegistry;
-    private volatile CompatConfig compatConfig;
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
@@ -779,7 +778,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
 
-        compatConfig = new CompatConfig(environment);
+        CompatConfig compatConfig = new CompatConfig(environment);
 
         // DLS-FLS is enabled if not client and not disabled and not SSL only.
         final boolean dlsFlsEnabled = !SSLConfig.isSslOnlyMode();
