@@ -49,6 +49,7 @@ import java.util.stream.Stream;
 
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
+import org.opensearch.security.auditlog.AuditLog.Origin
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import org.opensearch.security.configuration.DlsFlsValveImpl;
 import org.opensearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
@@ -543,7 +544,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 @Override
                 public void onNewReaderContext(ReaderContext readerContext) {
                     final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
-                    if (AuditLog.Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
+                    if (Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                             && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
@@ -557,7 +558,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
                 @Override
                 public void onNewScrollContext(ReaderContext readerContext) {
                     final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
-                    if (AuditLog.Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
+                    if (Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                             && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
