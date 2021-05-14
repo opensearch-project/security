@@ -217,8 +217,10 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             Thread.sleep(10000);
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
         } finally {
-            if (System.getProperty("security.default_init.dir") != null) {
+            if (defaultInitDirectory != null) {
                 System.setProperty("security.default_init.dir", new File(defaultInitDirectory).getAbsolutePath());
+            } else {
+                System.clearProperty("security.default_init.dir");
             }
         }
     }
