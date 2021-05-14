@@ -40,8 +40,8 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 
-import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.user.AuthCredentials;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;

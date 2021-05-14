@@ -43,11 +43,11 @@ import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.Utils;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
-import com.amazon.opendistroforelasticsearch.security.auth.AuthenticationBackend;
-import com.amazon.opendistroforelasticsearch.security.auth.Destroyable;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
-import com.amazon.opendistroforelasticsearch.security.user.User;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
+import org.opensearch.security.auth.AuthenticationBackend;
+import org.opensearch.security.auth.Destroyable;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.user.User;
+import org.opensearch.security.support.WildcardMatcher;
 
 public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destroyable {
 

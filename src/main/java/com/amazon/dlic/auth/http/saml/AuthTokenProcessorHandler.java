@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
 
-import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import org.opensearch.security.DefaultObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
@@ -55,7 +55,7 @@ import org.opensearch.rest.RestStatus;
 import org.joda.time.DateTime;
 import org.xml.sax.SAXException;
 
-import com.amazon.opendistroforelasticsearch.security.dlic.rest.api.AuthTokenProcessorAction;
+import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

@@ -1,19 +1,19 @@
 opendistro_security:
   audit:
-    type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink
+    type: org.opensearch.security.auditlog.helper.LoggingSink
     endpoints:
       endpoint1:
-        type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.FailingSink
+        type: org.opensearch.security.auditlog.helper.FailingSink
       endpoint2:
-        type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink
+        type: org.opensearch.security.auditlog.helper.LoggingSink
       endpoint3:
-        type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.FailingSink
+        type: org.opensearch.security.auditlog.helper.FailingSink
       endpoint4:
-        type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink
+        type: org.opensearch.security.auditlog.helper.LoggingSink
       endpoint5:
-        type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink        
+        type: org.opensearch.security.auditlog.helper.LoggingSink
       fallback:
-        type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink
+        type: org.opensearch.security.auditlog.helper.LoggingSink
     routes:
       MISSING_PRIVILEGEs:
         endpoints:
@@ -31,4 +31,4 @@ opendistro_security:
           - endpoint4
           - endpoint5
     fallback:
-      type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink
+      type: org.opensearch.security.auditlog.helper.LoggingSink
