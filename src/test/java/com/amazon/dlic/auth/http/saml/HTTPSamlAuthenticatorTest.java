@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.KeyManagerFactory;
 
-import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import org.opensearch.security.DefaultObjectMapper;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.opensearch.common.bytes.BytesArray;
@@ -56,9 +56,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensaml.saml.saml2.core.NameIDType;
 
-import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
-import com.amazon.opendistroforelasticsearch.security.util.FakeRestRequest;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.FakeRestRequest;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableMap;
 

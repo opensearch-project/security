@@ -56,8 +56,8 @@ import org.ietf.jgss.Oid;
 
 import com.amazon.dlic.auth.http.kerberos.util.JaasKrbUtil;
 import com.amazon.dlic.auth.http.kerberos.util.KrbConstants;
-import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.user.AuthCredentials;
 import com.google.common.base.Strings;
 
 public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
