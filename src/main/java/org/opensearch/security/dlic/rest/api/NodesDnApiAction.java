@@ -56,7 +56,7 @@ import java.util.List;
  * For existing clusters, {@link SecurityAdmin} tool can
  * be used to populate the index.
  *
- * See {@link com.amazon.opendistroforelasticsearch.security.dlic.rest.api.NodesDnApiTest} for usage examples.
+ * See {@link org.opensearch.security.dlic.rest.api.NodesDnApiTest} for usage examples.
  */
 public class NodesDnApiAction extends PatchableResourceApiAction {
     public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";

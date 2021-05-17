@@ -232,7 +232,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                             sks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings,
                             sharedGroupFactory);
 
-            return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
+            return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
             
         }
         return Collections.emptyMap();
@@ -274,7 +274,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
-            transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport",
+            transports.put("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
                     () -> new SecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, sks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory,
                             SSLConfig));
 
@@ -404,11 +404,11 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                log.info("Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in opensearch.yml");
            }
            
-           builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport");
+           builder.put(NetworkModule.HTTP_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport");
        }
         
        if (transportSSLEnabled) {
-           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport");
+           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
        }
         
         return builder.build();
