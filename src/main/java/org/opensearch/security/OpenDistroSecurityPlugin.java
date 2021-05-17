@@ -49,7 +49,7 @@ import java.util.stream.Stream;
 
 import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
-import org.opensearch.security.auditlog.AuditLog.Origin
+import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import org.opensearch.security.configuration.DlsFlsValveImpl;
 import org.opensearch.security.configuration.OpenDistroSecurityFlsDlsIndexSearcherWrapper;
