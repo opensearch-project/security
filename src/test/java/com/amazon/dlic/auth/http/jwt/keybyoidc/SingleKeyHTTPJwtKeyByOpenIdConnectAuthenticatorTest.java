@@ -22,8 +22,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.util.FakeRestRequest;
+import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import com.amazon.opendistroforelasticsearch.security.util.FakeRestRequest;
 import com.google.common.collect.ImmutableMap;
 
 public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
