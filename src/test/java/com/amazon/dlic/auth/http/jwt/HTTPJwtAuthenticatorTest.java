@@ -38,8 +38,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.FieldSetter;
 
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
-import com.amazon.opendistroforelasticsearch.security.util.FakeRestRequest;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.FakeRestRequest;
 import com.google.common.io.BaseEncoding;
 
 public class HTTPJwtAuthenticatorTest {

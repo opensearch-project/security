@@ -26,11 +26,10 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.ssl.util.ExceptionUtils;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.user.AuthCredentials;
 
 @Ignore
 public class LdapBackendTestClientCert {

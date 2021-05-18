@@ -32,8 +32,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
-import com.amazon.opendistroforelasticsearch.security.test.helper.network.SocketUtils;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.network.SocketUtils;
 import com.google.common.io.CharStreams;
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
