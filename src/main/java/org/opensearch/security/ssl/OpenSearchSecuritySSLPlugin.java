@@ -104,7 +104,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
     private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {};
-    protected final org.opensearch.security.ssl.transport.SSLConfig SSLConfig;
+    protected final SSLConfig SSLConfig;
 
 //    public OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath) {
 //        this(settings, configPath, false);
