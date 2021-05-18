@@ -51,7 +51,12 @@ public class FlushCacheApiAction extends AbstractApiAction {
 			new Route(Method.DELETE, "/_opendistro/_security/api/cache"),
 			new Route(Method.GET, "/_opendistro/_security/api/cache"),
 			new Route(Method.PUT, "/_opendistro/_security/api/cache"),
-			new Route(Method.POST, "/_opendistro/_security/api/cache")
+			new Route(Method.POST, "/_opendistro/_security/api/cache"),
+
+			new Route(Method.DELETE, "/_plugins/_security/api/cache"),
+			new Route(Method.GET, "/_plugins/_security/api/cache"),
+			new Route(Method.PUT, "/_plugins/_security/api/cache"),
+			new Route(Method.POST, "/_plugins/_security/api/cache")
 	);
 
 	@Inject

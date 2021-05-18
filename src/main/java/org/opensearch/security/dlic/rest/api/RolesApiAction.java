@@ -52,7 +52,14 @@ public class RolesApiAction extends PatchableResourceApiAction {
 			new Route(Method.DELETE, "/_opendistro/_security/api/roles/{name}"),
 			new Route(Method.PUT, "/_opendistro/_security/api/roles/{name}"),
 			new Route(Method.PATCH, "/_opendistro/_security/api/roles/"),
-			new Route(Method.PATCH, "/_opendistro/_security/api/roles/{name}")
+			new Route(Method.PATCH, "/_opendistro/_security/api/roles/{name}"),
+
+			new Route(Method.GET, "/_plugins/_security/api/roles/"),
+			new Route(Method.GET, "/_plugins/_security/api/roles/{name}"),
+			new Route(Method.DELETE, "/_plugins/_security/api/roles/{name}"),
+			new Route(Method.PUT, "/_plugins/_security/api/roles/{name}"),
+			new Route(Method.PATCH, "/_plugins/_security/api/roles/"),
+			new Route(Method.PATCH, "/_plugins/_security/api/roles/{name}")
 	);
 
 	@Inject

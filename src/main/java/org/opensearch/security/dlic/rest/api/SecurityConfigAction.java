@@ -46,8 +46,9 @@ import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidat
 
 public class SecurityConfigAction extends PatchableResourceApiAction {
 
-    private static final List<Route> getRoutes = Collections.singletonList(
-            new Route(Method.GET, "/_opendistro/_security/api/securityconfig/")
+    private static final List<Route> getRoutes = ImmutableList.of(
+            new Route(Method.GET, "/_opendistro/_security/api/securityconfig/"),
+            new Route(Method.GET, "/_plugins/_security/api/securityconfig/")
     );
 
     private static final List<Route> allRoutes = new ImmutableList.Builder<Route>()

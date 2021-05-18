@@ -62,7 +62,14 @@ public class TenantsApiAction extends PatchableResourceApiAction {
             new Route(Method.DELETE, "/_opendistro/_security/api/tenants/{name}"),
             new Route(Method.PUT, "/_opendistro/_security/api/tenants/{name}"),
             new Route(Method.PATCH, "/_opendistro/_security/api/tenants/"),
-            new Route(Method.PATCH, "/_opendistro/_security/api/tenants/{name}")
+            new Route(Method.PATCH, "/_opendistro/_security/api/tenants/{name}"),
+
+            new Route(Method.GET, "/_plugins/_security/api/tenants/{name}"),
+            new Route(Method.GET, "/_plugins/_security/api/tenants/"),
+            new Route(Method.DELETE, "/_plugins/_security/api/tenants/{name}"),
+            new Route(Method.PUT, "/_plugins/_security/api/tenants/{name}"),
+            new Route(Method.PATCH, "/_plugins/_security/api/tenants/"),
+            new Route(Method.PATCH, "/_plugins/_security/api/tenants/{name}")
     );
 
     @Inject

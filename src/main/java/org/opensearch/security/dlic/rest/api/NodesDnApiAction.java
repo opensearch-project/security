@@ -68,7 +68,14 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
             new Route(Method.DELETE, "/_opendistro/_security/api/nodesdn/{name}"),
             new Route(Method.PUT, "/_opendistro/_security/api/nodesdn/{name}"),
             new Route(Method.PATCH, "/_opendistro/_security/api/nodesdn/"),
-            new Route(Method.PATCH, "/_opendistro/_security/api/nodesdn/{name}")
+            new Route(Method.PATCH, "/_opendistro/_security/api/nodesdn/{name}"),
+
+            new Route(Method.GET, "/_plugins/_security/api/nodesdn/{name}"),
+            new Route(Method.GET, "/_plugins/_security/api/nodesdn/"),
+            new Route(Method.DELETE, "/_plugins/_security/api/nodesdn/{name}"),
+            new Route(Method.PUT, "/_plugins/_security/api/nodesdn/{name}"),
+            new Route(Method.PATCH, "/_plugins/_security/api/nodesdn/"),
+            new Route(Method.PATCH, "/_plugins/_security/api/nodesdn/{name}")
     );
 
     @Inject

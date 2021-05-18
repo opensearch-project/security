@@ -59,7 +59,14 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 			new Route(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}"),
 			new Route(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}"),
 			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/"),
-			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}")
+			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}"),
+
+			new Route(Method.GET, "/_plugins/_security/api/rolesmapping/"),
+			new Route(Method.GET, "/_plugins/_security/api/rolesmapping/{name}"),
+			new Route(Method.DELETE, "/_plugins/_security/api/rolesmapping/{name}"),
+			new Route(Method.PUT, "/_plugins/_security/api/rolesmapping/{name}"),
+			new Route(Method.PATCH, "/_plugins/_security/api/rolesmapping/"),
+			new Route(Method.PATCH, "/_plugins/_security/api/rolesmapping/{name}")
 	);
 
 	@Inject

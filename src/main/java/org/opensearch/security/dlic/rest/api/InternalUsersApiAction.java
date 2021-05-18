@@ -68,13 +68,25 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             new Route(Method.DELETE, "/_opendistro/_security/api/user/{name}"),
             new Route(Method.PUT, "/_opendistro/_security/api/user/{name}"),
 
+            new Route(Method.GET, "/_plugins/_security/api/user/{name}"),
+            new Route(Method.GET, "/_plugins/_security/api/user/"),
+            new Route(Method.DELETE, "/_plugins/_security/api/user/{name}"),
+            new Route(Method.PUT, "/_plugins/_security/api/user/{name}"),
+
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/_opendistro/_security/api/internalusers/{name}"),
             new Route(Method.GET, "/_opendistro/_security/api/internalusers/"),
             new Route(Method.DELETE, "/_opendistro/_security/api/internalusers/{name}"),
             new Route(Method.PUT, "/_opendistro/_security/api/internalusers/{name}"),
             new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/"),
-            new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/{name}")
+            new Route(Method.PATCH, "/_opendistro/_security/api/internalusers/{name}"),
+
+            new Route(Method.GET, "/_plugins/_security/api/internalusers/{name}"),
+            new Route(Method.GET, "/_plugins/_security/api/internalusers/"),
+            new Route(Method.DELETE, "/_plugins/_security/api/internalusers/{name}"),
+            new Route(Method.PUT, "/_plugins/_security/api/internalusers/{name}"),
+            new Route(Method.PATCH, "/_plugins/_security/api/internalusers/"),
+            new Route(Method.PATCH, "/_plugins/_security/api/internalusers/{name}")
     );
 
     @Inject

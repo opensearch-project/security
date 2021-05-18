@@ -77,7 +77,10 @@ public class AccountApiAction extends AbstractApiAction {
     private static final String RESOURCE_NAME = "account";
     private static final List<Route> routes = ImmutableList.of(
             new Route(Method.GET, "/_opendistro/_security/api/account"),
-            new Route(Method.PUT, "/_opendistro/_security/api/account")
+            new Route(Method.PUT, "/_opendistro/_security/api/account"),
+
+            new Route(Method.GET, "/_plugins/_security/api/account"),
+            new Route(Method.PUT, "/_plugins/_security/api/account")
     );
 
     private final PrivilegesEvaluator privilegesEvaluator;

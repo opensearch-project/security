@@ -74,8 +74,9 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import com.google.common.collect.ImmutableList;
 
 public class MigrateApiAction extends AbstractApiAction {
-    private static final List<Route> routes = Collections.singletonList(
-            new Route(Method.POST, "/_opendistro/_security/api/migrate")
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(Method.POST, "/_opendistro/_security/api/migrate"),
+            new Route(Method.POST, "/_plugins/_security/api/migrate")
     );
 
     @Inject

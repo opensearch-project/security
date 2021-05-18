@@ -128,7 +128,11 @@ public class AuditApiAction extends PatchableResourceApiAction {
     private static final List<Route> routes = ImmutableList.of(
             new Route(RestRequest.Method.GET, "/_opendistro/_security/api/audit/"),
             new Route(RestRequest.Method.PUT, "/_opendistro/_security/api/audit/{name}"),
-            new Route(RestRequest.Method.PATCH, "/_opendistro/_security/api/audit/")
+            new Route(RestRequest.Method.PATCH, "/_opendistro/_security/api/audit/"),
+
+            new Route(RestRequest.Method.GET, "/_plugins/_security/api/audit/"),
+            new Route(RestRequest.Method.PUT, "/_plugins/_security/api/audit/{name}"),
+            new Route(RestRequest.Method.PATCH, "/_plugins/_security/api/audit/")
     );
 
     private static final String RESOURCE_NAME = "config";
