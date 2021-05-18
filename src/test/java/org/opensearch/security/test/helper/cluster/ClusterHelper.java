@@ -79,10 +79,12 @@ public final class ClusterHelper {
     protected final List<PluginAwareNode> opensearchNodes = new LinkedList<>();
 
     private final String clustername;
+    private ClusterState clusterState;
 
     public ClusterHelper(String clustername) {
         super();
         this.clustername = clustername;
+        this.clusterState = ClusterState.UNINITIALIZED;
     }
 
     public String getClusterName() {
@@ -97,22 +99,21 @@ public final class ClusterHelper {
      */
 
     public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration) throws Exception {
-        return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null, false);
+        return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null);
     }
 
-    public final ClusterInfo restartCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration) throws Exception {
-        stopClusterWithoutDeletingData();
-        return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null, true);
-    }
-
-    public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes, boolean isRestart)
+    public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
             throws Exception {
+
+        if (clusterState == ClusterState.STARTED) {
+            stopClusterWithoutDeletingData();
+        }
 
         if (!opensearchNodes.isEmpty()) {
             throw new RuntimeException("There are still " + opensearchNodes.size() + " nodes instantiated, close them first.");
         }
 
-        if(!isRestart) {
+        if(clusterState != ClusterState.STARTED && clusterState != ClusterState.STOPPED) { // Cleanup
             FileUtils.deleteDirectory(new File("./target/data/" + clustername));
         }
 
@@ -233,16 +234,19 @@ public final class ClusterHelper {
             throw new RuntimeException("Default template could not be created");
         }
 
+        clusterState = ClusterState.STARTED;
         return cInfo;
     }
 
     public final void stopCluster() throws Exception {
         closeAllNodes();
         FileUtils.deleteDirectory(new File("./target/data/"+clustername));
+        clusterState = ClusterState.STOPPED;
     }
 
-    public final void stopClusterWithoutDeletingData() throws Exception {
+    private final void stopClusterWithoutDeletingData() throws Exception {
         closeAllNodes();
+        clusterState = ClusterState.STOPPED;
     }
 
     private void closeAllNodes() throws  Exception {
@@ -384,4 +388,10 @@ public final class ClusterHelper {
 	    return (masterEligibleNodes/2) + 1;
 
 	}*/
+
+    private enum ClusterState{
+        UNINITIALIZED,
+        STARTED,
+        STOPPED
+    }
 }

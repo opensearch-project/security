@@ -72,7 +72,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     }
 
     protected void restart(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpendistroSecurityIndex) throws Exception {
-        clusterInfo = clusterHelper.restartCluster(minimumSecuritySettings(ccs(nodeOverride)), ClusterConfiguration.DEFAULT);
+        clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), ClusterConfiguration.DEFAULT);
         if(initOpendistroSecurityIndex && dynamicSecuritySettings != null) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
@@ -103,7 +103,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride
             , boolean initSecurityIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
-        clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration, timeout, nodes, false);
+        clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration, timeout, nodes);
         if(initSecurityIndex) {
             initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
         }
