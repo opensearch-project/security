@@ -86,7 +86,7 @@ public class TermsAggregationEvaluator {
                                && ab.getSubAggregations().isEmpty()) {
 
                            
-                           final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForKibana(resolved, user, READ_ACTIONS, resolver, clusterService);
+                           final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForDashboards(resolved, user, READ_ACTIONS, resolver, clusterService);
                            if(allPermittedIndices == null || allPermittedIndices.isEmpty()) {
                                sr.source().query(NONE_QUERY);
                            } else {

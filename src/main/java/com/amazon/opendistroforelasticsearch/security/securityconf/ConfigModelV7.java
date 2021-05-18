@@ -444,8 +444,8 @@ public class ConfigModelV7 extends ConfigModel {
 
         }
 
-      //kibana special only, terms eval
-        public Set<String> getAllPermittedIndicesForKibana(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
+      //opensearchDashboards special only, terms eval
+        public Set<String> getAllPermittedIndicesForDashboards(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {
             Set<String> retVal = new HashSet<>();
             for (SecurityRole sr : roles) {
                 retVal.addAll(sr.getAllResolvedPermittedIndices(Resolved._LOCAL_ALL, user, actions, resolver, cs));
@@ -531,7 +531,7 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         //get indices which are permitted for the given types and actions
-        //dnfof + kibana special only
+        //dnfof + opensearchDashboards special only
         private Set<String> getAllResolvedPermittedIndices(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver,
                 ClusterService cs) {
 

@@ -153,7 +153,7 @@ import com.amazon.opendistroforelasticsearch.security.http.XFFResolver;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesEvaluator;
 import com.amazon.opendistroforelasticsearch.security.privileges.PrivilegesInterceptor;
 import com.amazon.opendistroforelasticsearch.security.resolver.IndexResolverReplacer;
-import com.amazon.opendistroforelasticsearch.security.rest.KibanaInfoAction;
+import com.amazon.opendistroforelasticsearch.security.rest.DashboardsInfoAction;
 import com.amazon.opendistroforelasticsearch.security.rest.OpenDistroSecurityHealthAction;
 import com.amazon.opendistroforelasticsearch.security.rest.OpenDistroSecurityInfoAction;
 import com.amazon.opendistroforelasticsearch.security.rest.TenantInfoAction;
@@ -446,7 +446,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
             if(!openDistroSSLConfig.isSslOnlyMode()) {
                 handlers.add(new OpenDistroSecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
-                handlers.add(new KibanaInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
+                handlers.add(new DashboardsInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new OpenDistroSecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
                 handlers.add(new OpenDistroSecuritySSLCertsInfoAction(settings, restController, odsks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),

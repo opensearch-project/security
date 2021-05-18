@@ -238,7 +238,7 @@ public class MultitenancyTests extends SingleClusterTest {
                 .build();
         setup(settings);
 
-        final String kibanaIndex = ".kibana_92668751_admin_1";
+        final String dashboardsIndex = ".kibana_92668751_admin_1";
         try (TransportClient tc = getInternalTransportClient()) {
             String body = "{"+
                     "\"type\" : \"index-pattern\","+
@@ -249,12 +249,12 @@ public class MultitenancyTests extends SingleClusterTest {
             Map indexSettings = new HashMap();
             indexSettings.put("number_of_shards", 1);
             indexSettings.put("number_of_replicas", 0);
-            tc.admin().indices().create(new CreateIndexRequest(kibanaIndex)
+            tc.admin().indices().create(new CreateIndexRequest(dashboardsIndex)
                 .settings(indexSettings)
                 .alias(new Alias(".kibana_92668751_admin")))
                 .actionGet();
 
-            tc.index(new IndexRequest(kibanaIndex).type("doc")
+            tc.index(new IndexRequest(dashboardsIndex).type("doc")
                     .id("index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b")
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source(body, XContentType.JSON)).actionGet();
@@ -270,7 +270,7 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
         System.out.println("#### msearch");
         body =
@@ -282,7 +282,7 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
         System.out.println("#### get");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/doc/index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b?pretty", new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
@@ -290,7 +290,7 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
         System.out.println("#### mget");
         body = "{\"docs\" : [{\"_index\" : \".kibana\",\"_type\" : \"doc\",\"_id\" : \"index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b\"}]}";
@@ -298,7 +298,7 @@ public class MultitenancyTests extends SingleClusterTest {
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("humanresources"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
         System.out.println("#### index");
         body = "{"+
@@ -311,7 +311,7 @@ public class MultitenancyTests extends SingleClusterTest {
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
         Assert.assertTrue(res.getBody().contains("\"result\" : \"created\""));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
         System.out.println("#### bulk");
         body =
@@ -323,18 +323,18 @@ public class MultitenancyTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePutRequest("_bulk?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
         //System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("exception"));
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(dashboardsIndex));
         Assert.assertTrue(res.getBody().contains("\"errors\" : false"));
         Assert.assertTrue(res.getBody().contains("\"result\" : \"created\""));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_cat/indices", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertEquals(2, res.getBody().split(".kibana").length);
-        Assert.assertTrue(res.getBody().contains(kibanaIndex));
+        Assert.assertTrue(res.getBody().contains(dashboardsIndex));
 
     }
 
     @Test
-    public void testKibanaAlias() throws Exception {
+    public void testDashboardsAlias() throws Exception {
         final Settings settings = Settings.builder()
                 .build();
         setup(settings);
@@ -363,7 +363,7 @@ public class MultitenancyTests extends SingleClusterTest {
     }
 
     @Test
-    public void testKibanaAlias65() throws Exception {
+    public void testDashboardsAlias65() throws Exception {
         final Settings settings = Settings.builder()
                 .build();
         setup(settings);

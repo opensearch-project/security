@@ -78,8 +78,8 @@ public class PrivilegesInterceptor {
         this.threadPool = threadPool;
     }
 
-    public ReplaceResult replaceKibanaIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
-                                      final Resolved requestedResolved, final Map<String, Boolean> tenants) {
+    public ReplaceResult replaceDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
+                                                final Resolved requestedResolved, final Map<String, Boolean> tenants) {
         throw new RuntimeException("not implemented");
     }
     

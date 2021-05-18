@@ -57,7 +57,7 @@ public interface SecurityRoles {
 
     Tuple<Map<String, Set<String>>, Map<String, Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver, ClusterService clusterService);
 
-    Set<String> getAllPermittedIndicesForKibana(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs);
+    Set<String> getAllPermittedIndicesForDashboards(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs);
 
     SecurityRoles filter(Set<String> roles);
 

@@ -72,7 +72,7 @@ public class ConfigV7Test {
     }
 
     @Test
-    public void testKibana() throws Exception {
+    public void testDashboards() throws Exception {
         ConfigV7.Kibana kibana;
         String json;
 

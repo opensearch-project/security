@@ -56,7 +56,7 @@ import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import com.google.common.collect.ImmutableList;
 
-public class KibanaInfoAction extends BaseRestHandler {
+public class DashboardsInfoAction extends BaseRestHandler {
     private static final List<Route> routes = ImmutableList.of(
             new Route(GET, "/_opendistro/_security/kibanainfo"),
             new Route(POST, "/_opendistro/_security/kibanainfo")
@@ -66,7 +66,7 @@ public class KibanaInfoAction extends BaseRestHandler {
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
-    public KibanaInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
+    public DashboardsInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
@@ -94,8 +94,8 @@ public class KibanaInfoAction extends BaseRestHandler {
                     builder.field("user_name", user==null?null:user.getName());
                     builder.field("not_fail_on_forbidden_enabled", evaluator.notFailOnForbiddenEnabled());
                     builder.field("kibana_mt_enabled", evaluator.multitenancyEnabled());
-                    builder.field("kibana_index", evaluator.kibanaIndex());
-                    builder.field("kibana_server_user", evaluator.kibanaServerUsername());
+                    builder.field("kibana_index", evaluator.dashboardsIndex());
+                    builder.field("kibana_server_user", evaluator.dashboardsServerUsername());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
