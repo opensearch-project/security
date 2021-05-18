@@ -49,10 +49,10 @@ import org.opensearch.security.transport.InterClusterRequestEvaluator;
 
 public enum ModuleType implements Serializable {
 
-	REST_MANAGEMENT_API("REST Management API", "com.amazon.opendistroforelasticsearch.security.dlic.rest.api.SecurityRestApiActions", Boolean.TRUE),
-	DLSFLS("Document- and Field-Level Security", "com.amazon.opendistroforelasticsearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper", Boolean.TRUE),
-	AUDITLOG("Audit Logging", "com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditLogImpl", Boolean.TRUE),
-	MULTITENANCY("Kibana Multitenancy", "com.amazon.opendistroforelasticsearch.security.configuration.PrivilegesInterceptorImpl", Boolean.TRUE),
+	REST_MANAGEMENT_API("REST Management API", "org.opensearch.security.dlic.rest.api.SecurityRestApiActions", Boolean.TRUE),
+	DLSFLS("Document- and Field-Level Security", "org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper", Boolean.TRUE),
+	AUDITLOG("Audit Logging", "org.opensearch.security.auditlog.impl.AuditLogImpl", Boolean.TRUE),
+	MULTITENANCY("Kibana Multitenancy", "org.opensearch.security.configuration.PrivilegesInterceptorImpl", Boolean.TRUE),
 	LDAP_AUTHENTICATION_BACKEND("LDAP authentication backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend", Boolean.TRUE),
 	LDAP_AUTHORIZATION_BACKEND("LDAP authorization backend", "com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend", Boolean.TRUE),
 	KERBEROS_AUTHENTICATION_BACKEND("Kerberos authentication backend", "com.amazon.dlic.auth.http.kerberos.HTTPSpnegoAuthenticator", Boolean.TRUE),
@@ -71,7 +71,7 @@ public enum ModuleType implements Serializable {
 	CUSTOM_AUTHORIZATION_BACKEND("Custom authorization backend", null, Boolean.TRUE),
 	CUSTOM_INTERCLUSTER_REQUEST_EVALUATOR("Intercluster Request Evaluator", null, Boolean.FALSE),
 	CUSTOM_PRINCIPAL_EXTRACTOR("TLS Principal Extractor", null, Boolean.FALSE),
-	// COMPLIANCE("Compliance", "com.amazon.opendistroforelasticsearch.security.compliance.ComplianceIndexingOperationListenerImpl", Boolean.TRUE),
+	// COMPLIANCE("Compliance", "org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl", Boolean.TRUE),
 	UNKNOWN("Unknown type", null, Boolean.TRUE);
 
 	private String description;

@@ -31,8 +31,8 @@ public class DelegateTest {
 		testAuditType("DeBUg", DebugSink.class);
 		testAuditType("intERnal_OpenSearch", InternalOpenSearchSink.class);
 		testAuditType("EXTERnal_OpenSearch", ExternalOpenSearchSink.class);
-		testAuditType("com.amazon.opendistroforelasticsearch.security.auditlog.sink.MyOwnAuditLog", MyOwnAuditLog.class);
-		testAuditType("com.amazon.opendistroforelasticsearch.security.auditlog.sink.MyOwnAuditLog", null);
+		testAuditType("org.opensearch.security.auditlog.sink.MyOwnAuditLog", MyOwnAuditLog.class);
+		testAuditType("org.opensearch.security.auditlog.sink.MyOwnAuditLog", null);
 		testAuditType("idonotexist", null);
 	}
 

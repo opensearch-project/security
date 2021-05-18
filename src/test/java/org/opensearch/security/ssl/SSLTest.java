@@ -703,7 +703,7 @@ public class SSLTest extends SingleClusterTest {
                 .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("opendistro_security.ssl.transport.enforce_hostname_verification", false)
                 .put("opendistro_security.ssl.transport.resolve_hostname", false)
-                .put("opendistro_security.ssl.transport.principal_extractor_class", "com.amazon.opendistroforelasticsearch.security.ssl.TestPrincipalExtractor")
+                .put("opendistro_security.ssl.transport.principal_extractor_class", "org.opensearch.security.ssl.TestPrincipalExtractor")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
                 .put("opendistro_security.ssl.http.enabled", true)
                 .put("opendistro_security.ssl.http.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))

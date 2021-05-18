@@ -1154,7 +1154,7 @@ public class SecurityAdmin {
         
         if(nir.getNodes().size() > 0) {
             List<PluginInfo> pluginInfos = nir.getNodes().get(0).getInfo(PluginsAndModules.class).getPluginInfos();
-            String securityVersion = pluginInfos.stream().filter(p->p.getClassname().equals("com.amazon.opendistroforelasticsearch.security.OpenSearchSecurityPlugin")).map(p->p.getVersion()).findFirst().orElse("<unknown>");
+            String securityVersion = pluginInfos.stream().filter(p->p.getClassname().equals("org.opensearch.security.OpenSearchSecurityPlugin")).map(p->p.getVersion()).findFirst().orElse("<unknown>");
             System.out.println("OpenSearch Security Version: "+securityVersion);
         }
         

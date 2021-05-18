@@ -55,7 +55,7 @@ Please refer to the [technical documentation](https://opendistro.github.io/for-e
 
 ```
 <OpenSearch directory>/bin/opensearch-plugin install \
-  -b com.amazon.opendistroforelasticsearch:opensearch-security:1.0.0.0-beta1
+  -b org.opensearch:opensearch-security:1.0.0.0-beta1
 ```
 
 * ``cd`` into ``<OpenSearch directory>/plugins/opensearch-security/tools``

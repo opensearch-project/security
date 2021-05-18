@@ -78,7 +78,7 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
             NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
 
         final UserInjectingDispatcher validatingDispatcher = new UserInjectingDispatcher(dispatcher);
-        return ImmutableMap.of("com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport",
+        return ImmutableMap.of("org.opensearch.security.http.UserInjectingServerTransport",
                 () -> new UserInjectingServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory));
     }
     

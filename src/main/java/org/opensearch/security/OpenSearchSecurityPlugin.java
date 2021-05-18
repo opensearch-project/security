@@ -668,7 +668,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         }
 
         if (transportSSLEnabled) {
-            transports.put("com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport",
+            transports.put("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
                     () -> new SecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler,
                             namedWriteableRegistry, circuitBreakerService, sks, evaluateSslExceptionHandler(), sharedGroupFactory, SSLConfig));
         }
@@ -694,10 +694,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 final SecurityHttpServerTransport odshst = new SecurityHttpServerTransport(settings, networkService, bigArrays,
                         threadPool, sks, evaluateSslExceptionHandler(), xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory);
 
-                return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport",
+                return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport",
                         () -> odshst);
             } else if (!client) {
-                return Collections.singletonMap("com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport",
+                return Collections.singletonMap("org.opensearch.security.http.SecurityHttpServerTransport",
                         () -> new SecurityNonSslHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, clusterSettings, sharedGroupFactory));
             }
         }
@@ -847,8 +847,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         builder.put(super.additionalSettings());
 
         if(!SSLConfig.isSslOnlyMode()){
-          builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.ssl.http.netty.SecuritySSLNettyTransport");
-          builder.put(NetworkModule.HTTP_TYPE_KEY, "com.amazon.opendistroforelasticsearch.security.http.SecurityHttpServerTransport");
+          builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
+          builder.put(NetworkModule.HTTP_TYPE_KEY, "org.opensearch.security.http.SecurityHttpServerTransport");
         }
         return builder.build();
     }

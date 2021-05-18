@@ -49,7 +49,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()                
                 .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
-                .put("http.type", "com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport")
+                .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
                       
         setup(settings, ClusterConfiguration.USERINJECTOR);
@@ -93,7 +93,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     
         final Settings settings = Settings.builder()                
                 .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
-                .put("http.type", "com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport")
+                .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
                       
         setup(settings, ClusterConfiguration.USERINJECTOR);
@@ -190,7 +190,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     public void testInjectedUserDisabled() throws Exception {
     
         final Settings settings = Settings.builder()                
-                .put("http.type", "com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport")
+                .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
                       
         setup(settings, ClusterConfiguration.USERINJECTOR);
@@ -211,7 +211,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
               .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
               .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, true)
               .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
-              .put("http.type", "com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport")
+              .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
               .build();
                     
       setup(settings, ClusterConfiguration.USERINJECTOR);
@@ -238,7 +238,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         final Settings settings = Settings.builder()                
                 .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
-                .put("http.type", "com.amazon.opendistroforelasticsearch.security.http.UserInjectingServerTransport")
+                .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
                       
         setup(settings, ClusterConfiguration.USERINJECTOR);
