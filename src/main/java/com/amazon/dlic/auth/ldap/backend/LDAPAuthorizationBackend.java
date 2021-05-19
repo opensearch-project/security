@@ -73,12 +73,12 @@ import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import com.amazon.dlic.auth.ldap.util.Utils;
-import com.amazon.opendistroforelasticsearch.security.auth.AuthorizationBackend;
-import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.PemKeyReader;
-import com.amazon.opendistroforelasticsearch.security.support.WildcardMatcher;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
-import com.amazon.opendistroforelasticsearch.security.user.User;
+import org.opensearch.security.auth.AuthorizationBackend;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.PemKeyReader;
+import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.user.User;
 import com.google.common.collect.HashMultimap;
 
 import io.netty.util.internal.PlatformDependent;

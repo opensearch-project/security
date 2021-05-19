@@ -1,6 +1,6 @@
 ---
-# In this file users, backendroles and hosts can be mapped to Open Distro Security roles.
-# Permissions for Opendistro roles are configured in roles.yml
+# In this file users, backendroles and hosts can be mapped to Security roles.
+# Permissions for OpenSearch roles are configured in roles.yml
 
 _meta:
   type: "rolesmapping"

@@ -41,8 +41,8 @@ import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException
 import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.JwtVerifier;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
-import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.user.AuthCredentials;
 
 public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator {
     private final static Logger log = LogManager.getLogger(AbstractHTTPJwtAuthenticator.class);
@@ -227,7 +227,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     @Override
     public boolean reRequestAuthentication(RestChannel channel, AuthCredentials authCredentials) {
         final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"Open Distro Security\"");
+        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
     }

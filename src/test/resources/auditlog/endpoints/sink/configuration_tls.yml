@@ -40,4 +40,4 @@ opendistro_security:
               verify: true
               pemtrustedcas_content: dyn
       fallback:
-        type: com.amazon.opendistroforelasticsearch.security.auditlog.helper.LoggingSink
+        type: org.opensearch.security.auditlog.helper.LoggingSink

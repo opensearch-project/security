@@ -8,7 +8,7 @@ opendistro_security:
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
       authenticator:  
-        type: com.amazon.opendistroforelasticsearch.security.http.HTTPBasicAuthenticator
+        type: org.opensearch.security.http.HTTPBasicAuthenticator
     authcz:
       authentication_domain_basic_internal:
         enabled: true

@@ -1,4 +1,4 @@
-# This is the main Open Distro Security configuration file where authentication
+# This is the main OpenSearch Security configuration file where authentication
 # and authorization is defined.
 #
 # You need to configure at least one authentication domain in the authc of this file.

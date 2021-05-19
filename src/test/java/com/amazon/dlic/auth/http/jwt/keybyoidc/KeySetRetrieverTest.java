@@ -38,10 +38,9 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.amazon.dlic.auth.http.jwt.keybyoidc.KeySetRetriever;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
-import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
-import com.amazon.opendistroforelasticsearch.security.test.helper.network.SocketUtils;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.network.SocketUtils;
 import com.google.common.hash.Hashing;
 
 public class KeySetRetrieverTest {

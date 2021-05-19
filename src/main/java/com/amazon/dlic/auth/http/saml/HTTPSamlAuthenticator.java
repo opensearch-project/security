@@ -43,11 +43,11 @@ import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
 import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
-import com.amazon.opendistroforelasticsearch.security.auth.Destroyable;
-import com.amazon.opendistroforelasticsearch.security.auth.HTTPAuthenticator;
-import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
-import com.amazon.opendistroforelasticsearch.security.support.PemKeyReader;
-import com.amazon.opendistroforelasticsearch.security.user.AuthCredentials;
+import org.opensearch.security.auth.Destroyable;
+import org.opensearch.security.auth.HTTPAuthenticator;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.PemKeyReader;
+import org.opensearch.security.user.AuthCredentials;
 import com.google.common.base.Strings;
 import com.onelogin.saml2.authn.AuthnRequest;
 import com.onelogin.saml2.logout.LogoutRequest;
@@ -186,7 +186,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private String getWwwAuthenticateHeader(Saml2Settings saml2Settings) throws Exception {
         AuthnRequest authnRequest = this.buildAuthnRequest(saml2Settings);
 
-        return "X-Security-IdP realm=\"Open Distro Security\" location=\""
+        return "X-Security-IdP realm=\"OpenSearch Security\" location=\""
                 + StringEscapeUtils.escapeJava(getSamlRequestRedirectBindingLocation(IdpEndpointType.SSO, saml2Settings,
                         authnRequest.getEncodedAuthnRequest(true)))
                 + "\" requestId=\"" + StringEscapeUtils.escapeJava(authnRequest.getId()) + "\"";

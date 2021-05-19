@@ -1,5 +1,5 @@
-# In this file users, backendroles and hosts can be mapped to Open Distro Security roles.
-# Permissions for Open Distro Security roles are configured in opendistro_security_roles.yml
+# In this file users, backendroles and hosts can be mapped to Security roles.
+# Permissions for Security roles are configured in opendistro_security_roles.yml
 
 opendistro_security_all_access:
   readonly: true

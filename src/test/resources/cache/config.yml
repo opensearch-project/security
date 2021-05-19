@@ -29,10 +29,10 @@ config:
         order: 0
         http_authenticator:
           challenge: false
-          type: "com.amazon.opendistroforelasticsearch.security.cache.DummyHTTPAuthenticator"
+          type: "org.opensearch.security.cache.DummyHTTPAuthenticator"
           config: {}
         authentication_backend:
-          type: "com.amazon.opendistroforelasticsearch.security.cache.DummyAuthenticationBackend"
+          type: "org.opensearch.security.cache.DummyAuthenticationBackend"
           config: {}
         description: "Migrated from v6"
     authz:
@@ -40,7 +40,7 @@ config:
         http_enabled: true
         transport_enabled: true
         authorization_backend:
-          type: "com.amazon.opendistroforelasticsearch.security.cache.DummyAuthorizer"
+          type: "org.opensearch.security.cache.DummyAuthorizer"
           config: {}
         description: "Migrated from v6"
     do_not_fail_on_forbidden: false
