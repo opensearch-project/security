@@ -211,14 +211,14 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             Thread.sleep(10000);
             Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
 
-            System.setProperty("security.default_init.dir", new File(defaultInitDirectory).getAbsolutePath());
+            System.setProperty("security.default_init.dir", defaultInitDirectory);
             restart(Settings.EMPTY, null, settings, false);
             rh = nonSslRestHelper();
             Thread.sleep(10000);
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
         } finally {
             if (defaultInitDirectory != null) {
-                System.setProperty("security.default_init.dir", new File(defaultInitDirectory).getAbsolutePath());
+                System.setProperty("security.default_init.dir", defaultInitDirectory);
             } else {
                 System.clearProperty("security.default_init.dir");
             }

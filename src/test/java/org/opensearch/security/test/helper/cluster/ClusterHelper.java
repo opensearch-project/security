@@ -105,16 +105,17 @@ public final class ClusterHelper {
     public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
             throws Exception {
 
-        if (clusterState == ClusterState.STARTED) {
-            stopClusterWithoutDeletingData();
+        switch (clusterState) {
+            case UNINITIALIZED:
+                FileUtils.deleteDirectory(new File("./target/data/" + clustername));
+                break;
+            case STARTED:
+                closeAllNodes();
+                break;
         }
 
         if (!opensearchNodes.isEmpty()) {
             throw new RuntimeException("There are still " + opensearchNodes.size() + " nodes instantiated, close them first.");
-        }
-
-        if(clusterState != ClusterState.STARTED && clusterState != ClusterState.STOPPED) { // Cleanup
-            FileUtils.deleteDirectory(new File("./target/data/" + clustername));
         }
 
         List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
@@ -241,12 +242,6 @@ public final class ClusterHelper {
     public final void stopCluster() throws Exception {
         closeAllNodes();
         FileUtils.deleteDirectory(new File("./target/data/"+clustername));
-        clusterState = ClusterState.STOPPED;
-    }
-
-    private final void stopClusterWithoutDeletingData() throws Exception {
-        closeAllNodes();
-        clusterState = ClusterState.STOPPED;
     }
 
     private void closeAllNodes() throws  Exception {
@@ -256,6 +251,7 @@ public final class ClusterHelper {
         //close master nodes
         opensearchNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
         opensearchNodes.clear();
+        clusterState = ClusterState.STOPPED;
     }
 
     private static void closeNode(Node node) {
