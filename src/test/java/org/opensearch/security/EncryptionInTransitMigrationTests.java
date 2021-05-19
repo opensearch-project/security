@@ -17,6 +17,7 @@ package org.opensearch.security;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
@@ -42,7 +43,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         setupSslOnlyMode(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
         res = rh.executePutRequest("/xyz/_doc/1","{\"a\":5}");
@@ -99,7 +100,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         setupSslOnlyModeWithMasterNodeWithoutSSL(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("/_search");
+        HttpResponse res = rh.executeGetRequest("/_search");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
 
@@ -112,7 +113,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         setupSslOnlyModeWithDataNodeWithoutSSL(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("/_search");
+        HttpResponse res = rh.executeGetRequest("/_search");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
     }
 }

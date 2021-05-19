@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.junit.Assert;
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentBuilder;
@@ -36,6 +35,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumSet;
+
+import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
+import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
 
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -181,7 +183,7 @@ public class AuditConfigSerializeTest {
     @Test
     public void testSerialize() throws IOException {
         // arrange
-        final AuditConfig.Filter audit = new AuditConfig.Filter(true, true, true, true, true, true, ImmutableSet.of("ignore-user-1", "ignore-user-2"), ImmutableSet.of("ignore-request-1"), EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES), EnumSet.of(AuditCategory.AUTHENTICATED));
+        final AuditConfig.Filter audit = new AuditConfig.Filter(true, true, true, true, true, true, ImmutableSet.of("ignore-user-1", "ignore-user-2"), ImmutableSet.of("ignore-request-1"), EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.GRANTED_PRIVILEGES), EnumSet.of(AUTHENTICATED));
         final ComplianceConfig compliance = new ComplianceConfig(true, true, true, true, Collections.singletonMap("test-read-watch-field-1", Collections.emptyList()), Collections.singleton("test-user-1"), true, false,Collections.singletonList("test-write-watch-index"), Collections.singleton("test-user-2"), Settings.EMPTY);
         final AuditConfig auditConfig = new AuditConfig(true, audit, compliance);
         final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder()
@@ -274,8 +276,8 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
-        assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.AUTHENTICATED));
-        assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.AUTHENTICATED));
+        assertEquals(audit.getDisabledRestCategories(), EnumSet.of(GRANTED_PRIVILEGES, AUTHENTICATED));
+        assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(GRANTED_PRIVILEGES, AUTHENTICATED));
         assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
         assertEquals(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
         assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForReadMatcher());
@@ -327,8 +329,8 @@ public class AuditConfigSerializeTest {
         // assert
         final AuditConfig.Filter audit = auditConfig.getFilter();
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
-        assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.AUTHENTICATED));
-        assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.AUTHENTICATED));
+        assertEquals(audit.getDisabledRestCategories(), EnumSet.of(GRANTED_PRIVILEGES, AUTHENTICATED));
+        assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(GRANTED_PRIVILEGES, AUTHENTICATED));
         assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
         assertEquals(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
         assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForReadMatcher());

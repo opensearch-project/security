@@ -41,7 +41,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
@@ -199,7 +198,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             }
 
             ((ObjectNode) updatedResourceAsJsonNode).remove("password");
-            ((ObjectNode) updatedResourceAsJsonNode).set("hash", new TextNode(Utils.hash(plainTextPassword.toCharArray())));
+            ((ObjectNode) updatedResourceAsJsonNode).set("hash", new TextNode(hash(plainTextPassword.toCharArray())));
             return retVal;
         }
 

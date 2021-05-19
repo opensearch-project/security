@@ -879,7 +879,7 @@ public class IntegrationTests extends SingleClusterTest {
                 + "{ \"field2\" : \"value2\" }\n"
                 + "{ \"delete\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"config\" } }\n";
         res = rh.executePostRequest("_bulk?refresh=true&pretty", bulkBody, encodeBasicHeader("nagilum", "nagilum"));
-        JsonNode jsonNode = DefaultObjectMapper.readTree(res.getBody());
+        JsonNode jsonNode = readTree(res.getBody());
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertEquals(403, jsonNode.get("items").get(0).get("index").get("status").intValue());

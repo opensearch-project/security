@@ -54,6 +54,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
+import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator.ErrorType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hideable;
@@ -366,7 +367,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		// check if .opendistro_security index has been initialized
 		if (!ensureIndexExists()) {
-			return channel -> internalErrorResponse(channel, AbstractConfigurationValidator.ErrorType.SECURITY_NOT_INITIALIZED.getMessage());
+			return channel -> internalErrorResponse(channel, ErrorType.SECURITY_NOT_INITIALIZED.getMessage());
 		}
 
 		// check if request is authorized

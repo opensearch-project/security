@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.junit.Assert;
 import org.opensearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Rule;
@@ -505,7 +504,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": null}]", headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
-            Assert.assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
+            assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
     }
 
@@ -555,7 +554,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         // get config
         response = rh.executeGetRequest(ENDPOINT);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        final JsonNode configNode = DefaultObjectMapper.readTree(response.getBody()).get("config");
+        final JsonNode configNode = readTree(response.getBody()).get("config");
 
         // verify configs are same
         assertEquals(readTree(payload), configNode);

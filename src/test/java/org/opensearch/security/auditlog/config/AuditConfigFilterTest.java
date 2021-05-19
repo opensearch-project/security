@@ -45,7 +45,7 @@ public class AuditConfigFilterTest {
         final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(Settings.EMPTY);
-        // asser
+        // assert
         assertTrue(auditConfigFilter.isRestApiAuditEnabled());
         assertTrue(auditConfigFilter.isTransportApiAuditEnabled());
         assertTrue(auditConfigFilter.shouldLogRequestBody());

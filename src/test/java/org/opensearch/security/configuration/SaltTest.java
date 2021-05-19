@@ -16,7 +16,6 @@
 package org.opensearch.security.configuration;
 
 import org.opensearch.security.support.ConfigConstants;
-import org.junit.Assert;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.junit.Rule;
