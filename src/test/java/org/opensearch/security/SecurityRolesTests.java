@@ -36,6 +36,7 @@ import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -52,7 +53,7 @@ public class SecurityRolesTests extends SingleClusterTest {
 
 		RestHelper rh = nonSslRestHelper();
 
-		RestHelper.HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+		HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
 		Assert.assertTrue(resc.getBody().contains("anonymous"));
 		Assert.assertFalse(resc.getBody().contains("xyz_sr"));
 		Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
@@ -75,7 +76,7 @@ public class SecurityRolesTests extends SingleClusterTest {
 		RestHelper rh = nonSslRestHelper();
 		rh.sendAdminCertificate = false;
 
-		RestHelper.HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
+		HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"));
 		Assert.assertTrue(resc.getBody().contains("sr_user"));
 		Assert.assertTrue(resc.getBody().contains("xyz_sr"));
 
@@ -104,7 +105,7 @@ public class SecurityRolesTests extends SingleClusterTest {
 
 		RestHelper rh = nonSslRestHelper();
 
-		RestHelper.HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"), new BasicHeader("opendistro_security_impersonate_as", "sr_impuser"));
+		HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("sr_user", "nagilum"), new BasicHeader("opendistro_security_impersonate_as", "sr_impuser"));
 		Assert.assertFalse(resc.getBody().contains("sr_user"));
 		Assert.assertTrue(resc.getBody().contains("sr_impuser"));
 		Assert.assertFalse(resc.getBody().contains("xyz_sr"));

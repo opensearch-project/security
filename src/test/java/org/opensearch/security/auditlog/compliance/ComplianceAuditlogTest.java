@@ -28,6 +28,7 @@ import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.support.ConfigConstants;
@@ -81,7 +82,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 "}";
 
         TestAuditlogImpl.clear();
-        RestHelper.HttpResponse response = rh.executePostRequest("_search?pretty", search, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePostRequest("_search?pretty", search, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(response.getBody());
         Thread.sleep(1500);
@@ -184,7 +185,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 "}"+System.lineSeparator();
 
         TestAuditlogImpl.clear();
-        RestHelper.HttpResponse response = rh.executePostRequest("_msearch?pretty", search, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePostRequest("_msearch?pretty", search, encodeBasicHeader("admin", "admin"));
         assertNotContains(response, "*exception*");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Thread.sleep(1500);
@@ -222,7 +223,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         }
 
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search?pretty", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("_search?pretty", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
@@ -270,7 +271,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         }
 
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search?pretty", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("_search?pretty", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(response.getBody());
         Thread.sleep(1500);
@@ -310,7 +311,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         String body = "{\"doc\": {\"Age\":123}}";
 
-        RestHelper.HttpResponse response = rh.executePostRequest("humanresources/employees/100/_update?pretty", body, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePostRequest("humanresources/employees/100/_update?pretty", body, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(response.getBody());
         Thread.sleep(1500);
@@ -348,7 +349,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
 
         for(int i=0; i<1; i++) {
-            RestHelper.HttpResponse response = rh.executePostRequest("humanresources/employees/"+i+"", "{\"customer\": {\"Age\":"+i+"}}", encodeBasicHeader("admin", "admin"));
+            HttpResponse response = rh.executePostRequest("humanresources/employees/"+i+"", "{\"customer\": {\"Age\":"+i+"}}", encodeBasicHeader("admin", "admin"));
             Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
             response = rh.executePostRequest("humanresources/employees/"+i+"", "{\"customer\": {\"Age\":"+(i+2)+"}}", encodeBasicHeader("admin", "admin"));
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -395,7 +396,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         String body = "{\"doc\": {\"Age\":123}}";
 
-        RestHelper.HttpResponse response = rh.executePostRequest("humanresources/employees/100/_update?pretty", body, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePostRequest("humanresources/employees/100/_update?pretty", body, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(response.getBody());
         Thread.sleep(1500);

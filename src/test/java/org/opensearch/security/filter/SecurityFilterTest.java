@@ -82,6 +82,6 @@ public class SecurityFilterTest {
                 mock(IndexResolverReplacer.class),
                 mock(BackendRegistry.class)
         );
-        Assert.assertEquals(expected, filter.getImmutableIndicesMatcher());
+        assertEquals(expected, filter.getImmutableIndicesMatcher());
     }
 }

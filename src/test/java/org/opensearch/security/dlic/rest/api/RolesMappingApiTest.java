@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
@@ -39,7 +39,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = true;
 
 		// check rolesmapping exists, old config api
-		RestHelper.HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping");
+		HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping");
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// check rolesmapping exists, new API
@@ -330,9 +330,9 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 1);
 	}
 
-	private RestHelper.HttpResponse deleteAndputNewMapping(String fileName) throws Exception {
+	private HttpResponse deleteAndputNewMapping(String fileName) throws Exception {
 		rh.sendAdminCertificate = true;
-		RestHelper.HttpResponse response = rh.executeDeleteRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
+		HttpResponse response = rh.executeDeleteRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
 				new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
@@ -351,7 +351,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = false;
 		rh.sendHTTPClientCredentials = true;
 
-		RestHelper.HttpResponse response;
+		HttpResponse response;
 
 		// Delete read only roles mapping
 		response = rh.executeDeleteRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_library" , new Header[0]);

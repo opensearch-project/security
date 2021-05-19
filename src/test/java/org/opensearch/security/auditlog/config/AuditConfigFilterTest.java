@@ -25,6 +25,13 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.EnumSet;
 
+import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
+import static org.opensearch.security.auditlog.impl.AuditCategory.GRANTED_PRIVILEGES;
+import static org.opensearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;
+import static org.opensearch.security.auditlog.impl.AuditCategory.SSL_EXCEPTION;
+import static org.opensearch.security.auditlog.impl.AuditCategory.FAILED_LOGIN;
+import static org.opensearch.security.auditlog.impl.AuditCategory.MISSING_PRIVILEGES;
+
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -36,10 +43,10 @@ public class AuditConfigFilterTest {
     public void testDefault() {
         // arrange
         final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
-        final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AuditCategory.AUTHENTICATED, AuditCategory.GRANTED_PRIVILEGES);
+        final EnumSet<AuditCategory> defaultDisabledCategories = EnumSet.of(AUTHENTICATED, GRANTED_PRIVILEGES);
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(Settings.EMPTY);
-        // assert
+        // asser
         assertTrue(auditConfigFilter.isRestApiAuditEnabled());
         assertTrue(auditConfigFilter.isTransportApiAuditEnabled());
         assertTrue(auditConfigFilter.shouldLogRequestBody());
@@ -47,7 +54,7 @@ public class AuditConfigFilterTest {
         assertFalse(auditConfigFilter.shouldResolveBulkRequests());
         assertTrue(auditConfigFilter.shouldExcludeSensitiveHeaders());
         assertSame(WildcardMatcher.NONE, auditConfigFilter.getIgnoredAuditRequestsMatcher());
-        Assert.assertEquals(defaultIgnoredUserMatcher, auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertEquals(defaultIgnoredUserMatcher, auditConfigFilter.getIgnoredAuditUsersMatcher());
         assertEquals(auditConfigFilter.getDisabledRestCategories(), defaultDisabledCategories);
         assertEquals(auditConfigFilter.getDisabledTransportCategories(), defaultDisabledCategories);
     }
@@ -65,9 +72,9 @@ public class AuditConfigFilterTest {
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "test-request")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "test-user")
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
-                        AuditCategory.BAD_HEADERS.toString(), AuditCategory.SSL_EXCEPTION.toString())
+                        BAD_HEADERS.toString(), SSL_EXCEPTION.toString())
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
-                        AuditCategory.FAILED_LOGIN.toString(), AuditCategory.MISSING_PRIVILEGES.toString())
+                        FAILED_LOGIN.toString(), MISSING_PRIVILEGES.toString())
                 .build();
         // act
         final AuditConfig.Filter auditConfigFilter = AuditConfig.Filter.from(settings);
@@ -78,10 +85,10 @@ public class AuditConfigFilterTest {
         assertFalse(auditConfigFilter.shouldResolveIndices());
         assertTrue(auditConfigFilter.shouldResolveBulkRequests());
         assertFalse(auditConfigFilter.shouldExcludeSensitiveHeaders());
-        Assert.assertEquals(WildcardMatcher.from(Collections.singleton("test-user")), auditConfigFilter.getIgnoredAuditUsersMatcher());
-        Assert.assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), auditConfigFilter.getIgnoredAuditRequestsMatcher());
-        assertEquals(auditConfigFilter.getDisabledRestCategories(), EnumSet.of(AuditCategory.BAD_HEADERS, AuditCategory.SSL_EXCEPTION));
-        assertEquals(auditConfigFilter.getDisabledTransportCategories(), EnumSet.of(AuditCategory.FAILED_LOGIN, AuditCategory.MISSING_PRIVILEGES));
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-user")), auditConfigFilter.getIgnoredAuditUsersMatcher());
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), auditConfigFilter.getIgnoredAuditRequestsMatcher());
+        assertEquals(auditConfigFilter.getDisabledRestCategories(), EnumSet.of(BAD_HEADERS, SSL_EXCEPTION));
+        assertEquals(auditConfigFilter.getDisabledTransportCategories(), EnumSet.of(FAILED_LOGIN, MISSING_PRIVILEGES));
     }
 
     @Test

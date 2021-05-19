@@ -23,7 +23,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse
 
 public class FlsDlsTestMulti extends AbstractDlsFlsTest{
 
@@ -58,7 +58,7 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest{
             "}"+
         "}";
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager_multi", "password"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1710.0"));
@@ -76,7 +76,7 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager_multi", "password"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("ctype"));
@@ -214,7 +214,7 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         String query =
 
                 "{"+
@@ -249,7 +249,7 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         String query =
 
                 "{"+

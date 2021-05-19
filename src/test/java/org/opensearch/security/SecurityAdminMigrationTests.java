@@ -27,6 +27,7 @@ import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -70,7 +71,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         assertContains(res, "*UP*");
@@ -132,7 +133,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
         
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
         assertContains(res, "*UP*");

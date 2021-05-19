@@ -50,6 +50,8 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.dlic.rest.support.Utils.hash;
+
 public class InternalUsersApiAction extends PatchableResourceApiAction {
     private static final List<Route> routes = ImmutableList.of(
             new Route(Method.GET, "/_opendistro/_security/api/user/{name}"),
@@ -120,7 +122,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final String origHash = securityJsonNode.get("hash").asString();
         if (plainTextPassword != null && plainTextPassword.length() > 0) {
             contentAsNode.remove("password");
-            contentAsNode.put("hash", Utils.hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
         } else if (origHash != null && origHash.length() > 0) {
             contentAsNode.remove("password");
         } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {

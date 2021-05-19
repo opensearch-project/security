@@ -23,7 +23,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class FieldMaskedTest extends AbstractDlsFlsTest {
 
@@ -48,7 +48,7 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
 
         setup();
         String query;
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         query = "{"+
             "\"query\" : {"+
@@ -120,7 +120,7 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
             "}"+
         "}";
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("100.100"));
         Assert.assertTrue(res.getBody().contains("200.100"));
@@ -157,7 +157,7 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"value\" : 32,\n      \"relation"));
@@ -185,7 +185,7 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/deals/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));

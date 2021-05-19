@@ -26,7 +26,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import java.net.URLEncoder;
 import java.util.List;
@@ -42,7 +42,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // initial configuration, 6 users
-        RestHelper.HttpResponse response = rh
+        HttpResponse response = rh
                 .executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
@@ -66,7 +66,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // initial configuration, 6 users
-        RestHelper.HttpResponse response = rh
+        HttpResponse response = rh
                 .executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
@@ -392,7 +392,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // initial configuration, 6 users
-        RestHelper.HttpResponse response = rh
+        HttpResponse response = rh
                 .executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(response.getBody());
@@ -473,7 +473,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // initial configuration, 6 users
-        RestHelper.HttpResponse response = rh
+        HttpResponse response = rh
                 .executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
@@ -502,7 +502,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // initial configuration, 5 users
-        RestHelper.HttpResponse response;
+        HttpResponse response;
 
         addUserWithHash("user1", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_CREATED);
@@ -538,7 +538,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = false;
         rh.sendHTTPClientCredentials = true;
 
-        RestHelper.HttpResponse response;
+        HttpResponse response;
 
         // Delete read only user
         response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/sarek" , new Header[0]);

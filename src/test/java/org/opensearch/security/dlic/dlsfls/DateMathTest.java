@@ -28,7 +28,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.security.support.SecurityUtils;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class DateMathTest extends AbstractDlsFlsTest{
 
@@ -57,7 +57,7 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/logs/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());
@@ -83,7 +83,7 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());
@@ -103,7 +103,7 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-*/logs/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());
@@ -129,7 +129,7 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-1-*,logstash-20*/logs/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());

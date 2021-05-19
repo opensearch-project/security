@@ -23,7 +23,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class DlsScrollTest extends AbstractDlsFlsTest{
 
@@ -55,7 +55,7 @@ public class DlsScrollTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executeGetRequest("/deals/_search?scroll=1m&pretty=true&size=5", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"value\" : 101,"));
 

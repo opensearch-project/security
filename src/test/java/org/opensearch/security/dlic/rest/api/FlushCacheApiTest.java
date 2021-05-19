@@ -22,7 +22,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class FlushCacheApiTest extends AbstractRestApiUnitTest {
 
@@ -36,7 +36,7 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = true;
 
 		// GET
-		RestHelper.HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/cache");
+		HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/cache");
 		Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(settings.get("message"), "Method GET not supported for this action.");

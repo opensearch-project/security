@@ -24,7 +24,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
 
@@ -97,7 +97,7 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
                 "  }\n" +
                 "}";
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK,
                 (res = rh.executePostRequest("/data/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());

@@ -22,6 +22,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
@@ -45,7 +46,7 @@ public class CachingTest extends SingleClusterTest{
     public void testRestCaching() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
@@ -66,7 +67,7 @@ public class CachingTest extends SingleClusterTest{
         final Settings settings = Settings.builder().put("opendistro_security.cache.ttl_minutes", 0).build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
@@ -87,7 +88,7 @@ public class CachingTest extends SingleClusterTest{
         final Settings settings = Settings.builder().putList("opendistro_security.authcz.rest_impersonation_user.dummy", "*").build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", new BasicHeader("opendistro_security_impersonate_as", "impuser"));
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", new BasicHeader("opendistro_security_impersonate_as", "impuser"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", new BasicHeader("opendistro_security_impersonate_as", "impuser"));

@@ -25,6 +25,7 @@ import org.junit.rules.ExpectedException;
 
 import java.nio.charset.StandardCharsets;
 
+import static org.opensearch.security.configuration.Salt.SALT_SIZE;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -39,8 +40,8 @@ public class SaltTest {
         final Salt salt = Salt.from(Settings.EMPTY);
 
         // assert
-        Assert.assertEquals(Salt.SALT_SIZE, salt.getSalt16().length);
-        Assert.assertArrayEquals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
+        assertEquals(SALT_SIZE, salt.getSalt16().length);
+        assertArrayEquals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
     }
 
     @Test
@@ -56,7 +57,7 @@ public class SaltTest {
 
         // assert
         assertArrayEquals(testSalt.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
-        Assert.assertEquals(Salt.SALT_SIZE, salt.getSalt16().length);
+        assertEquals(SALT_SIZE, salt.getSalt16().length);
     }
 
     @Test
@@ -70,8 +71,8 @@ public class SaltTest {
         final Salt salt = Salt.from(settings);
 
         // assert
-        Assert.assertEquals(Salt.SALT_SIZE, salt.getSalt16().length);
-        assertArrayEquals(testSalt.substring(0, Salt.SALT_SIZE).getBytes(StandardCharsets.UTF_8), salt.getSalt16());
+        assertEquals(SALT_SIZE, salt.getSalt16().length);
+        assertArrayEquals(testSalt.substring(0, SALT_SIZE).getBytes(StandardCharsets.UTF_8), salt.getSalt16());
     }
 
     @Test

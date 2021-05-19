@@ -35,6 +35,7 @@ import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 @RunWith(Parameterized.class)
 public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
@@ -121,7 +122,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
         //on coordinating cluster
@@ -178,7 +179,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
         //on coordinating cluster
@@ -258,7 +259,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
         //on coordinating cluster

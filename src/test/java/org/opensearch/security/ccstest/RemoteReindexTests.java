@@ -42,6 +42,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
@@ -121,7 +122,7 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
         
         System.out.println(reindex);
         
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
         
         System.out.println("###################### reindex");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("_reindex?pretty", reindex, encodeBasicHeader("nagilum","nagilum"));

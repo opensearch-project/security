@@ -124,6 +124,7 @@ import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.AuditLogSslExceptionHandler;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
@@ -542,7 +543,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 @Override
                 public void onNewReaderContext(ReaderContext readerContext) {
                     final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
-                    if (AuditLog.Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
+                    if (Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                             && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {
@@ -556,7 +557,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 @Override
                 public void onNewScrollContext(ReaderContext readerContext) {
                     final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext());
-                    if (AuditLog.Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
+                    if (Origin.LOCAL.toString().equals(threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                             && (interClusterRequest || HeaderHelper.isDirectRequest(threadPool.getThreadContext()))
 
                     ) {

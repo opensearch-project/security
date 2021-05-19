@@ -24,7 +24,7 @@ import org.junit.Test;
 
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 
@@ -42,7 +42,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		// --- Allowed Access ---
 
 		// legacy user API, accessible for worf, single user
-		RestHelper.HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/admin", encodeBasicHeader("worf", "worf"));
+		HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/admin", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertTrue(settings.get("admin.hash") != null);

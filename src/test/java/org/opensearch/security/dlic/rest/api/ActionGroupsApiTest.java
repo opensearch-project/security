@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
@@ -40,7 +40,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
 		// --- GET_UT
         // GET_UT, actiongroup exists
-        RestHelper.HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", new Header[0]);
+        HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         List<String> permissions = settings.getAsList("CRUD_UT.allowed_actions");
@@ -320,7 +320,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = false;
         rh.sendHTTPClientCredentials = true;
 
-        RestHelper.HttpResponse response;
+        HttpResponse response;
 
         // Delete read only actiongroups
         response = rh.executeDeleteRequest("/_opendistro/_security/api/actiongroups/create_index" , new Header[0]);

@@ -54,6 +54,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -97,7 +98,7 @@ public class IntegrationTests extends SingleClusterTest {
         
         
         System.out.println("########search");
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         
         System.out.println(res.getBody());
@@ -131,7 +132,7 @@ public class IntegrationTests extends SingleClusterTest {
             Assert.assertFalse(wres.toString(), wres.isNodeCertificateRequest());
         }
         
-        RestHelper.HttpResponse res = rh.executePutRequest("test/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}", encodeBasicHeader("writer", "writer"));
+        HttpResponse res = rh.executePutRequest("test/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}", encodeBasicHeader("writer", "writer"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());  
         
         res = rh.executePostRequest("_cluster/reroute", "{}", encodeBasicHeader("writer", "writer"));
@@ -278,7 +279,7 @@ public class IntegrationTests extends SingleClusterTest {
         "}";
        
        RestHelper rh = nonSslRestHelper();
-       RestHelper.HttpResponse resc = rh.executePostRequest("_mget?refresh=true", mgetBody, encodeBasicHeader("picard", "picard"));
+       HttpResponse resc = rh.executePostRequest("_mget?refresh=true", mgetBody, encodeBasicHeader("picard", "picard"));
        System.out.println(resc.getBody());
        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
        Assert.assertFalse(resc.getBody().contains("type2"));
@@ -298,7 +299,7 @@ public class IntegrationTests extends SingleClusterTest {
         //knuddel:
         //    hash: _rest_impersonation_only_
     
-        RestHelper.HttpResponse resp;
+        HttpResponse resp;
         resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     
@@ -330,7 +331,7 @@ public class IntegrationTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         //opendistro_security_shakespeare -> picard
     
-        RestHelper.HttpResponse resc = rh.executeGetRequest("shakespeare/_search", encodeBasicHeader("picard", "picard"));
+        HttpResponse resc = rh.executeGetRequest("shakespeare/_search", encodeBasicHeader("picard", "picard"));
         System.out.println(resc.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\":1"));
@@ -358,7 +359,7 @@ public class IntegrationTests extends SingleClusterTest {
     
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_xff.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("x-forwarded-for", "10.0.0.7"), encodeBasicHeader("worf", "worf"));
+        HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("x-forwarded-for", "10.0.0.7"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("10.0.0.7"));
     }
@@ -395,7 +396,7 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("mindex_2").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
         }
         
-        RestHelper.HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         Assert.assertFalse(res.getBody().contains("\"content\":1"));
@@ -429,7 +430,7 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("mindex_4").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
         }
         
-        RestHelper.HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         
         res = rh.executeGetRequest("/mindex_1,mindex_3/_search", encodeBasicHeader("mindex12", "nagilum"));
@@ -446,7 +447,7 @@ public class IntegrationTests extends SingleClusterTest {
         setup();
         final RestHelper rh = nonSslRestHelper();
         
-        RestHelper.HttpResponse res = rh.executePostRequest("abc_xyz_2018_05_24/logs/1", "{\"content\":1}", encodeBasicHeader("underscore", "nagilum"));
+        HttpResponse res = rh.executePostRequest("abc_xyz_2018_05_24/logs/1", "{\"content\":1}", encodeBasicHeader("underscore", "nagilum"));
         
         res = rh.executeGetRequest("abc_xyz_2018_05_24/logs/1", encodeBasicHeader("underscore", "nagilum"));
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
@@ -469,7 +470,7 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executePostRequest("/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true", "{\"query\" : {\"match_all\" : {}}}", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"deleted\" : 3"));
 
@@ -489,7 +490,7 @@ public class IntegrationTests extends SingleClusterTest {
                     .source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
 
-        RestHelper.HttpResponse res = rh.executePostRequest("indexc/typec/0/_update?pretty=true&refresh=true", "{\"doc\" : {\"content\":2}}",
+        HttpResponse res = rh.executePostRequest("indexc/typec/0/_update?pretty=true&refresh=true", "{\"doc\" : {\"content\":2}}",
                 encodeBasicHeader("user_c", "user_c"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -530,7 +531,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         }
 
-        RestHelper.HttpResponse resc;
+        HttpResponse resc;
         Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("indexa"));
@@ -705,7 +706,7 @@ public class IntegrationTests extends SingleClusterTest {
 
         }
 
-        RestHelper.HttpResponse resc;
+        HttpResponse resc;
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());
 
@@ -840,7 +841,7 @@ public class IntegrationTests extends SingleClusterTest {
         setup();
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res = rh.executePutRequest(".opendistro_security/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
+        HttpResponse res = rh.executePutRequest(".opendistro_security/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
                 encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         res = rh.executePutRequest("*dis*rit*/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}",

@@ -23,7 +23,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class FlsDlsTestForbiddenField extends AbstractDlsFlsTest{
 
@@ -52,7 +52,7 @@ public class FlsDlsTestForbiddenField extends AbstractDlsFlsTest{
             "}"+
         "}";
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager_fls_dls", "password"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 0"));
@@ -69,7 +69,7 @@ public class FlsDlsTestForbiddenField extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("dept_manager_fls_dls", "password"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -151,7 +151,7 @@ public class FlsDlsTestForbiddenField extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("user_combined", "password"))).getStatusCode());
         System.out.println(res.getBody());

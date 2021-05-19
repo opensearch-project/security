@@ -27,7 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
 
@@ -67,7 +67,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
 
 
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/logs/_search?pretty&size=0", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());
 
@@ -159,7 +159,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertFalse(res.getBody().contains("88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1e3161f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"));

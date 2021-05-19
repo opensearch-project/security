@@ -22,7 +22,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.junit.Assert.*;
 
@@ -39,7 +39,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // test - unauthorized access as credentials are missing.
-        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT, new Header[0]);
+        HttpResponse response = rh.executeGetRequest(ENDPOINT, new Header[0]);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - incorrect password
@@ -77,7 +77,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // test - unauthorized access as credentials are missing.
-        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT, "", new Header[0]);
+        HttpResponse response = rh.executePutRequest(ENDPOINT, "", new Header[0]);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - bad request as body is missing
@@ -192,7 +192,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
 
         // create user
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest(internalUserEndpoint, createInternalUserPayload);
+        HttpResponse response = rh.executePutRequest(internalUserEndpoint, createInternalUserPayload);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         rh.sendAdminCertificate = false;
 

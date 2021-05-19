@@ -31,7 +31,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 @Ignore
 public class FlsPerfTest extends AbstractDlsFlsTest{
@@ -94,7 +94,7 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         StopWatch sw = new StopWatch("testFlsPerfNamed");
         sw.start("non fls");
@@ -141,7 +141,7 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         StopWatch sw = new StopWatch("testFlsPerfWcEx");
         sw.start("non fls");
@@ -188,7 +188,7 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         StopWatch sw = new StopWatch("testFlsPerfNamedEx");
         sw.start("non fls");
@@ -235,7 +235,7 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
 
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         StopWatch sw = new StopWatch("testFlsWcIn");
         sw.start("non fls");

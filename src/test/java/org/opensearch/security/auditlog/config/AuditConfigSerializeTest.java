@@ -109,14 +109,14 @@ public class AuditConfigSerializeTest {
         assertTrue(audit.shouldResolveIndices());
         assertTrue(audit.shouldExcludeSensitiveHeaders());
         assertSame(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
-        Assert.assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
         assertFalse(compliance.shouldLogExternalConfig());
         assertFalse(compliance.shouldLogInternalConfig());
         assertFalse(compliance.shouldLogReadMetadataOnly());
-        Assert.assertEquals(DEFAULT_IGNORED_USER, compliance.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, compliance.getIgnoredComplianceUsersForReadMatcher());
         assertFalse(compliance.shouldLogWriteMetadataOnly());
         assertFalse(compliance.shouldLogDiffsForWrite());
-        Assert.assertEquals(DEFAULT_IGNORED_USER, compliance.getIgnoredComplianceUsersForWriteMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, compliance.getIgnoredComplianceUsersForWriteMatcher());
     }
 
     @Test
@@ -167,15 +167,15 @@ public class AuditConfigSerializeTest {
         assertTrue(audit.shouldExcludeSensitiveHeaders());
         assertTrue(configCompliance.shouldLogExternalConfig());
         assertTrue(configCompliance.shouldLogInternalConfig());
-        Assert.assertEquals(WildcardMatcher.from(Collections.singleton("test-user-1")), audit.getIgnoredAuditUsersMatcher());
-        Assert.assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), audit.getIgnoredAuditRequestsMatcher());
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-user-1")), audit.getIgnoredAuditUsersMatcher());
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-request")), audit.getIgnoredAuditRequestsMatcher());
         assertTrue(configCompliance.shouldLogReadMetadataOnly());
-        Assert.assertEquals(WildcardMatcher.from(Collections.singleton("test-user-2")), configCompliance.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-user-2")), configCompliance.getIgnoredComplianceUsersForReadMatcher());
         assertEquals(Collections.singletonMap(WildcardMatcher.from("test-read-watch-field"), Collections.singleton("test-field-1")), configCompliance.getReadEnabledFields());
         assertTrue(configCompliance.shouldLogWriteMetadataOnly());
         assertFalse(configCompliance.shouldLogDiffsForWrite());
-        Assert.assertEquals(WildcardMatcher.from(Collections.singleton("test-user-3")), configCompliance.getIgnoredComplianceUsersForWriteMatcher());
-        Assert.assertEquals(WildcardMatcher.from("test-write-watch-index"), configCompliance.getWatchedWriteIndicesMatcher());
+        assertEquals(WildcardMatcher.from(Collections.singleton("test-user-3")), configCompliance.getIgnoredComplianceUsersForWriteMatcher());
+        assertEquals(WildcardMatcher.from("test-write-watch-index"), configCompliance.getWatchedWriteIndicesMatcher());
     }
 
     @Test
@@ -276,12 +276,12 @@ public class AuditConfigSerializeTest {
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
         assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.AUTHENTICATED));
         assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.AUTHENTICATED));
-        Assert.assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
-        Assert.assertEquals(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
-        Assert.assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForReadMatcher());
-        Assert.assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForWriteMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
+        assertEquals(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForWriteMatcher());
         assertTrue(configCompliance.getReadEnabledFields().isEmpty());
-        Assert.assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
+        assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
         assertEquals(".opendistro_security", configCompliance.getSecurityIndex());
     }
 
@@ -329,12 +329,12 @@ public class AuditConfigSerializeTest {
         final ComplianceConfig configCompliance = auditConfig.getCompliance();
         assertEquals(audit.getDisabledRestCategories(), EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.AUTHENTICATED));
         assertEquals(audit.getDisabledTransportCategories(), EnumSet.of(AuditCategory.GRANTED_PRIVILEGES, AuditCategory.AUTHENTICATED));
-        Assert.assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
-        Assert.assertEquals(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
-        Assert.assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForReadMatcher());
-        Assert.assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForWriteMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, audit.getIgnoredAuditUsersMatcher());
+        assertEquals(WildcardMatcher.NONE, audit.getIgnoredAuditRequestsMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(DEFAULT_IGNORED_USER, configCompliance.getIgnoredComplianceUsersForWriteMatcher());
         assertTrue(configCompliance.getReadEnabledFields().isEmpty());
-        Assert.assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
+        assertEquals(WildcardMatcher.NONE, configCompliance.getWatchedWriteIndicesMatcher());
         assertEquals("test-security-index", configCompliance.getSecurityIndex());
         assertEquals("test-auditlog-index", configCompliance.getAuditLogIndex());
     }

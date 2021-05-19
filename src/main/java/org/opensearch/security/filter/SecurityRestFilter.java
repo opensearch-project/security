@@ -50,6 +50,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.ExceptionUtils;
@@ -58,6 +59,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.threadpool.ThreadPool;
 
+import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.user.User;
 import org.greenrobot.eventbus.Subscribe;
@@ -129,7 +131,7 @@ public class SecurityRestFilter {
     private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel,
                                                 NodeClient client) throws Exception {
 
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, AuditLog.Origin.REST.toString());
+        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
         
         if(HTTPHelper.containsBadHeader(request)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
@@ -147,7 +149,7 @@ public class SecurityRestFilter {
             return true;
         }
 
-        final SSLRequestHelper.SSLInfo sslInfo;
+        final SSLInfo sslInfo;
         try {
             if((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
                 if(sslInfo.getPrincipal() != null) {

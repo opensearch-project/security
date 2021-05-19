@@ -27,6 +27,7 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class MigrationTests extends SingleClusterTest {
 
@@ -47,7 +48,7 @@ public class MigrationTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        RestHelper.HttpResponse res = rh.executePostRequest("_opendistro/_security/api/migrate?pretty", "");
+        HttpResponse res = rh.executePostRequest("_opendistro/_security/api/migrate?pretty", "");
         assertContains(res, "*Migration completed*");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
@@ -77,7 +78,7 @@ public class MigrationTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        RestHelper.HttpResponse res = rh.executePostRequest("_opendistro/_security/api/migrate?pretty", "");
+        HttpResponse res = rh.executePostRequest("_opendistro/_security/api/migrate?pretty", "");
         assertContains(res, "*Migration completed*");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
@@ -104,7 +105,7 @@ public class MigrationTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/api/validate?pretty");
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/api/validate?pretty");
         assertContains(res, "*OK*");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
@@ -126,7 +127,7 @@ public class MigrationTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/api/validate?accept_invalid=true&pretty");
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/api/validate?accept_invalid=true&pretty");
         assertContains(res, "*OK*");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
@@ -155,7 +156,7 @@ public class MigrationTests extends SingleClusterTest {
         String internalUsersWithEmptyPassword = "{\"logstash\":{\"hash\":\"\",\"roles\":[\"logstash\"]},\"Stephen_123\":{\"hash\":\"\", \"password\":\"\"},\"snapshotrestore\":{\"hash\":\"\",\"roles\":[\"snapshotrestore\"]},\"admin\":{\"attributes\":{\"attribute1\":\"value1\",\"attribute3\":\"value3\",\"attribute2\":\"value2\"},\"readonly\":\"true\",\"hash\":\"\",\"roles\":[\"admin\"]},\"kibanaserver\":{\"readonly\":\"true\",\"hash\":\"\"},\"kibanaro\":{\"hash\":\"\",\"roles\":[\"kibanauser\",\"readall\"]},\"readall\":{\"hash\":\"\",\"roles\":[\"readall\"]}}";
         String encodedInternalUsersWithEmptyPassword = BaseEncoding.base64().encode(internalUsersWithEmptyPassword.getBytes());
         String body = "{\"internalusers\":\"" + encodedInternalUsersWithEmptyPassword+ "\"}";
-        RestHelper.HttpResponse res = rh.executePutRequest(".opendistro_security/_doc/internalusers", body);
+        HttpResponse res = rh.executePutRequest(".opendistro_security/_doc/internalusers", body);
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executePostRequest("_opendistro/_security/api/migrate?pretty", "");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());

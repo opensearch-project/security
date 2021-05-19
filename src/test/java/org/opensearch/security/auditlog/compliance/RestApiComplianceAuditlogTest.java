@@ -25,7 +25,7 @@ import org.junit.Test;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
@@ -47,7 +47,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
         TestAuditlogImpl.clear();
         String body = "{ \"password\":\"test\",\"backend_roles\":[\"role1\",\"role2\"] }";
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
@@ -82,7 +82,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
+        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
@@ -117,7 +117,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
         System.out.println("----rest");
-        RestHelper.HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
+        HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping/opendistro_security_all_access?pretty");
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -176,7 +176,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         TestAuditlogImpl.clear();
         String body = "{ \"password\":\"test\",\"backend_roles\":[\"role1\",\"role2\"] }";
         System.out.println("exec");
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
@@ -206,7 +206,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
         System.out.println("req");
-        RestHelper.HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
+        HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/internalusers/admin?pretty");
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());

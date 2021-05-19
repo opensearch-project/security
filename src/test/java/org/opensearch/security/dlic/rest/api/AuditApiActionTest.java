@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -108,7 +109,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
         testPutRequest(json, HttpStatus.SC_OK, true);
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
-        List<String> actual = Streams.stream(DefaultObjectMapper.readTree(response.getBody()).at("/config/audit/disabled_rest_categories").iterator())
+        List<String> actual = Streams.stream(readTree(response.getBody()).at("/config/audit/disabled_rest_categories").iterator())
                 .map(JsonNode::textValue)
                 .collect(Collectors.toList());
         assertEquals(testCategories, actual);
@@ -124,7 +125,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                 ImmutableMap.of("disabled_rest_categories", ImmutableList.of("INDEX_EVENT", "COMPLIANCE_DOC_READ"))
         ), ComplianceConfig.DEFAULT);
         ObjectNode json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
-        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, DefaultObjectMapper.writeValueAsString(json, false));
+        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test success for REST disabled categories
@@ -133,7 +134,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                         ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES"))
         ), ComplianceConfig.DEFAULT);
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, DefaultObjectMapper.writeValueAsString(json, false));
+        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // test bad request for transport disabled categories
@@ -142,7 +143,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                         ImmutableList.of("COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE"))
         ), ComplianceConfig.DEFAULT);
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, DefaultObjectMapper.writeValueAsString(json, false));
+        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test success for transport disabled categories
@@ -151,7 +152,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                         ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES", "INDEX_EVENT", "OPENDISTRO_SECURITY_INDEX_ATTEMPT"))
         ), ComplianceConfig.DEFAULT);
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, DefaultObjectMapper.writeValueAsString(json, false));
+        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
@@ -166,7 +167,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         // test get
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        List<String> actual = Streams.stream(DefaultObjectMapper.readTree(response.getBody()).get("_readonly").iterator())
+        List<String> actual = Streams.stream(readTree(response.getBody()).get("_readonly").iterator())
                 .map(JsonNode::textValue)
                 .collect(Collectors.toList());
         assertEquals(readonlyFields, actual);
@@ -212,7 +213,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private void testPutRequest(final JsonNode json, final int expectedStatus, final boolean sendAdminCertificate, final Header... header) throws Exception {
         rh.sendAdminCertificate = sendAdminCertificate;
-        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, DefaultObjectMapper.writeValueAsString(json, false), header);
+        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false), header);
         assertEquals(expectedStatus, response.getStatusCode());
     }
 
@@ -279,7 +280,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         testMap = ImmutableMap.of("test-read-index-2", Collections.singletonList("test-field-2"), "test-read-index-1",  Collections.singletonList("test-field-1"));
         ((ObjectNode)json.at(config)).putPOJO(resource, testMap);
         testPutRequest(json, HttpStatus.SC_OK, false, adminCredsHeader);
-        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + resourcePath + "\",\"value\": " + DefaultObjectMapper.writeValueAsString(testMap, false) + "}]", adminCredsHeader);
+        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + resourcePath + "\",\"value\": " + writeValueAsString(testMap, false) + "}]", adminCredsHeader);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
@@ -370,7 +371,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
         if (expectedStatus == HttpStatus.SC_OK) {
             response = rh.executeGetRequest(ENDPOINT, headers);
-            Assert.assertEquals(DefaultObjectMapper.readTree(payload), DefaultObjectMapper.readTree(response.getBody()).get("config"));
+            assertEquals(readTree(payload), readTree(response.getBody()).get("config"));
         }
     }
 
@@ -378,7 +379,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT, headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
-            JsonNode jsonNode = DefaultObjectMapper.readTree(response.getBody());
+            JsonNode jsonNode = readTree(response.getBody());
 
             final JsonNode configNode = jsonNode.get("config");
             final JsonNode auditNode = configNode.get("audit");
@@ -438,7 +439,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + value + "}]", headers);
         assertEquals(expected, response.getStatusCode());
         if (expected == HttpStatus.SC_OK) {
-            Assert.assertEquals(value, DefaultObjectMapper.readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean());
+            assertEquals(value, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean());
         }
     }
 
@@ -460,14 +461,14 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": []}]", headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
-            Assert.assertEquals(0, DefaultObjectMapper.readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
+            assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
 
         // add value
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + jsonValue + "}]", headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
-            final JsonNode responseJson = DefaultObjectMapper.readTree(rh.executeGetRequest(ENDPOINT, headers).getBody());
+            final JsonNode responseJson = readTree(rh.executeGetRequest(ENDPOINT, headers).getBody());
             final List<String> actualList = DefaultObjectMapper.readValue(responseJson.at(patchResource).toString(), new TypeReference<List<String>>(){});
             assertEquals(expectedList.size(), actualList.size());
             assertTrue(actualList.containsAll(expectedList));
@@ -477,7 +478,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": []}]", headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
-            Assert.assertEquals(0, DefaultObjectMapper.readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
+            assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
     }
 
@@ -488,14 +489,14 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": {}}]", headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
-            Assert.assertEquals(0, DefaultObjectMapper.readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
+            assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
 
         // add value
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + jsonValue + "}]", headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
-            final JsonNode responseJson = DefaultObjectMapper.readTree(rh.executeGetRequest(ENDPOINT, headers).getBody());
+            final JsonNode responseJson = readTree(rh.executeGetRequest(ENDPOINT, headers).getBody());
             final Map<String, List<String>> actualMap = DefaultObjectMapper.readValue(responseJson.at(patchResource).toString(), new TypeReference<Map<String, List<String>>>(){});
             assertEquals(actualMap, expectedMap);
         }
@@ -504,7 +505,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": null}]", headers);
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
-            Assert.assertEquals(0, DefaultObjectMapper.readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
+            Assert.assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
     }
 
@@ -557,7 +558,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         final JsonNode configNode = DefaultObjectMapper.readTree(response.getBody()).get("config");
 
         // verify configs are same
-        Assert.assertEquals(DefaultObjectMapper.readTree(payload), configNode);
+        assertEquals(readTree(payload), configNode);
     }
 
     private String getTestPayload() {

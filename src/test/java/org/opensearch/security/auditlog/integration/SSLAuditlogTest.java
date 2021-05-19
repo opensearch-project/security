@@ -21,6 +21,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -83,7 +84,7 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search");
+        HttpResponse response = rh.executeGetRequest("_search");
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Thread.sleep(5000);
         response = rhMon.executeGetRequest("security-auditlog*/_refresh", encodeBasicHeader("admin", "admin"));
@@ -118,7 +119,7 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search");
+        HttpResponse response = rh.executeGetRequest("_search");
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Thread.sleep(5000);
         response = rhMon.executeGetRequest("security-auditlog*/_refresh", encodeBasicHeader("admin", "admin"));
@@ -151,7 +152,7 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search");
+        HttpResponse response = rh.executeGetRequest("_search");
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Thread.sleep(5000);
         response = rhMon.executeGetRequest("security-auditlog*/_refresh", encodeBasicHeader("admin", "admin"));

@@ -35,6 +35,7 @@ import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
@@ -46,7 +47,7 @@ public class HealthTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
         
         RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");
@@ -65,7 +66,7 @@ public class HealthTests extends SingleClusterTest {
         setup(Settings.EMPTY, null, Settings.EMPTY, false);
         
         RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/health?pretty&mode=lenient")).getStatusCode());
         System.out.println(res.getBody());
         assertContains(res, "*UP*");

@@ -54,6 +54,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -82,7 +83,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
                 "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
                          
             
-        RestHelper.HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("worf", "worf"));
+        HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"_index\":\"klingonempire\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("hits"));
@@ -126,7 +127,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         "{ \"delete\" : { \"_index\" : \"lorem\", \"_type\" : \"type1\", \"_id\" : \"5\" } }"+System.lineSeparator();
        
         System.out.println("############ _bulk");
-        RestHelper.HttpResponse res = rh.executePostRequest("_bulk?refresh=true&pretty=true", bulkBody, encodeBasicHeader("worf", "worf"));
+        HttpResponse res = rh.executePostRequest("_bulk?refresh=true&pretty=true", bulkBody, encodeBasicHeader("worf", "worf"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
         Assert.assertTrue(res.getBody().contains("\"errors\" : true"));
@@ -145,7 +146,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup();
         RestHelper rh = nonSslRestHelper();
               
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals("Unable to create index 'nag'", HttpStatus.SC_OK, rh.executePutRequest("nag1", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals("Unable to create index 'starfleet_library'", HttpStatus.SC_OK, rh.executePutRequest("starfleet_library", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         
@@ -184,7 +185,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         //opendistro_security_user1 -> worf
         //opendistro_security_user2 -> picard
         
-        RestHelper.HttpResponse resc = rh.executeGetRequest("alias*/_search", encodeBasicHeader("worf", "worf"));
+        HttpResponse resc = rh.executeGetRequest("alias*/_search", encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
         
         resc =  rh.executeGetRequest("theindex/_search", encodeBasicHeader("nagilum", "nagilum"));
@@ -227,7 +228,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
     
-        RestHelper.HttpResponse resc = rh.executeGetRequest("/foo1/bar/_search?pretty", encodeBasicHeader("baz", "worf"));
+        HttpResponse resc = rh.executeGetRequest("/foo1/bar/_search?pretty", encodeBasicHeader("baz", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
         
@@ -291,7 +292,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
         
-        RestHelper.HttpResponse res = null;
+        HttpResponse res = null;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
     
         //nonexistent index with permissions
@@ -379,7 +380,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         
         RestHelper rh = nonSslRestHelper();
         
-        RestHelper.HttpResponse res = null;
+        HttpResponse res = null;
         
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePostRequest("/mysgi/sg", "{}",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/mysgi/_search?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
@@ -437,7 +438,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
 
         // invalid_index_name_exception should be thrown and responded when invalid index name is mentioned in requests.
-        RestHelper.HttpResponse res = rh.executeGetRequest(URLEncoder.encode("_##pdt_data/_search", "UTF-8"), encodeBasicHeader("ccsresolv", "nagilum"));
+        HttpResponse res = rh.executeGetRequest(URLEncoder.encode("_##pdt_data/_search", "UTF-8"), encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("invalid_index_name_exception"));
     }
@@ -453,7 +454,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         }
 
         //ccsresolv has perm for ?abc*
-        RestHelper.HttpResponse res = rh.executeGetRequest("ggg:.abc-6,.abc-6/_search", encodeBasicHeader("ccsresolv", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("ggg:.abc-6,.abc-6/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
 
         res = rh.executeGetRequest("/*:.abc-6,.abc-6/_search", encodeBasicHeader("ccsresolv", "nagilum"));
@@ -475,7 +476,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         }
         
-        RestHelper.HttpResponse res = rh.executeGetRequest("/*:.abc,.abc/_search", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("/*:.abc,.abc/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
         
@@ -540,7 +541,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
                 "{\"index\": [\"tes*\",\"-security\",\"-missing\"], \"ignore_unavailable\": true}"+System.lineSeparator()+
                         "{\"size\":10, \"query\":{\"match_all\":{}}}"+System.lineSeparator();
 
-        RestHelper.HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("worf", "worf"));
+        HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"total\":{\"value\":1"));
     }
@@ -558,7 +559,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.admin().indices().delete(new DeleteIndexRequest("foo-index")).actionGet();
         }
         
-        RestHelper.HttpResponse resc = rh.executeGetRequest("/_cat/aliases", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse resc = rh.executeGetRequest("/_cat/aliases", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertFalse(resc.getBody().contains("foo"));
 
         resc = rh.executeGetRequest("/foo-alias/_search", encodeBasicHeader("foo_index", "nagilum"));
@@ -583,7 +584,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("foo-abc").type("_doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
         }
 
-        RestHelper.HttpResponse resc = rh.executeGetRequest("/**/_search", encodeBasicHeader("foo_all", "nagilum"));
+        HttpResponse resc = rh.executeGetRequest("/**/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         resc = rh.executeGetRequest("/*/_search", encodeBasicHeader("foo_all", "nagilum"));

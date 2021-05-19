@@ -64,6 +64,7 @@ import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.transport.TransportInfo;
 
+import org.opensearch.security.test.helper.cluster.ClusterConfiguration.NodeSettings;
 import org.opensearch.security.test.NodeSettingsSupplier;
 
 public final class ClusterHelper {
@@ -109,7 +110,7 @@ public final class ClusterHelper {
 
         FileUtils.deleteDirectory(new File("./target/data/"+clustername));
 
-        List<ClusterConfiguration.NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
+        List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 
         final String forkno = System.getProperty("forkno");
         int forkNumber = 1;
@@ -141,13 +142,13 @@ public final class ClusterHelper {
 
         final AtomicReference<Exception> err = new AtomicReference<Exception>();
 
-        List<ClusterConfiguration.NodeSettings> internalMasterNodeSettings = clusterConfiguration.getMasterNodeSettings();
-        List<ClusterConfiguration.NodeSettings> internalNonMasterNodeSettings = clusterConfiguration.getNonMasterNodeSettings();
+        List<NodeSettings> internalMasterNodeSettings = clusterConfiguration.getMasterNodeSettings();
+        List<NodeSettings> internalNonMasterNodeSettings = clusterConfiguration.getNonMasterNodeSettings();
 
         int nodeNumCounter = internalNodeSettings.size();
 
         for (int i = 0; i < internalMasterNodeSettings.size(); i++) {
-            ClusterConfiguration.NodeSettings setting = internalMasterNodeSettings.get(i);
+            NodeSettings setting = internalMasterNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
             PluginAwareNode node = new PluginAwareNode(setting.masterNode,
                     getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.masterNode, setting.dataNode, internalNodeSettings.size(), tcpMasterPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())
@@ -173,7 +174,7 @@ public final class ClusterHelper {
         }
 
         for (int i = 0; i < internalNonMasterNodeSettings.size(); i++) {
-            ClusterConfiguration.NodeSettings setting = internalNonMasterNodeSettings.get(i);
+            NodeSettings setting = internalNonMasterNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
             PluginAwareNode node = new PluginAwareNode(setting.masterNode,
                     getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.masterNode, setting.dataNode, internalNodeSettings.size(), tcpMasterPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())

@@ -83,6 +83,7 @@ import org.opensearch.index.reindex.UpdateByQueryRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
@@ -163,7 +164,7 @@ public class SecurityFilter implements ActionFilter {
         try {
 
             if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
-                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, AuditLog.Origin.LOCAL.toString());
+                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
 
             final ComplianceConfig complianceConfig = auditLog.getComplianceConfig();

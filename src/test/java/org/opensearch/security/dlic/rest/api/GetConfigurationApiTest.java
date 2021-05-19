@@ -23,7 +23,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 
@@ -35,7 +35,7 @@ public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = true;
 
 		// wrong config name -> bad request
-		RestHelper.HttpResponse response = null;
+		HttpResponse response = null;
 
 		// test that every config is accessible
 		// config

@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
 import static org.junit.Assert.assertEquals;
 
 
@@ -43,7 +44,7 @@ public class RolesInjectorTest {
     @Test
     public void testInjected() {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, "user1|role_1,role_2");
+        threadContext.putTransient(OPENDISTRO_SECURITY_INJECTED_ROLES, "user1|role_1,role_2");
 
         RolesInjector rolesInjector = new RolesInjector();
         Set<String> roles = rolesInjector.injectUserAndRoles(threadContext);
@@ -68,7 +69,7 @@ public class RolesInjectorTest {
 
         corruptedStrs.forEach(name -> {
             ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, name);
+            threadContext.putTransient(OPENDISTRO_SECURITY_INJECTED_ROLES, name);
 
             RolesInjector rolesInjector = new RolesInjector();
             Set<String> roles = rolesInjector.injectUserAndRoles(threadContext);

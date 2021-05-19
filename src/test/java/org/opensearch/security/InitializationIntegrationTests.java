@@ -46,6 +46,7 @@ import org.opensearch.common.transport.TransportAddress;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -142,7 +143,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
           
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
-            RestHelper.HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"), spock);
+            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"), spock);
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertFalse(res.getBody().contains("additionalrole"));
             Assert.assertTrue(res.getBody().contains("vulcan"));
@@ -158,7 +159,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
             log.debug("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort());
-            RestHelper.HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"), spock);
+            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"), spock);
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertTrue(res.getBody().contains("additionalrole1"));
             Assert.assertTrue(res.getBody().contains("additionalrole2"));
@@ -174,7 +175,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
-            RestHelper.HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"));
+            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"));
             log.debug(res.getBody());
             Assert.assertTrue(res.getBody().contains("role_host1"));
             Assert.assertTrue(res.getBody().contains("opendistro_security_anonymous"));
@@ -204,7 +205,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();
             
-        RestHelper.HttpResponse resc = rh.executeGetRequest("_search");
+        HttpResponse resc = rh.executeGetRequest("_search");
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("hits"));        
     }

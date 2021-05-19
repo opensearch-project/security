@@ -24,7 +24,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.security.test.DynamicSecurityConfig;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class Fls983Test extends AbstractDlsFlsTest{
 
@@ -40,7 +40,7 @@ public class Fls983Test extends AbstractDlsFlsTest{
 
         setup(new DynamicSecurityConfig().setSecurityRoles("roles_983.yml"));
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         String doc =  "{\"doc\" : {"+
             "\"x\" : \"y\""+

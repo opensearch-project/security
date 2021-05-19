@@ -27,6 +27,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
+import static org.opensearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;
+
 @RunWith(Enclosed.class)
 public class AuditCategoryTest {
 
@@ -45,11 +48,11 @@ public class AuditCategoryTest {
         public static Collection<Object[]> data() {
             return Arrays.asList(new Object[][]{
                     {Arrays.asList(), EnumSet.noneOf(AuditCategory.class)},
-                    {Arrays.asList("BAD_HEADERS"), EnumSet.of(AuditCategory.BAD_HEADERS)},
-                    {Arrays.asList("bad_headers"), EnumSet.of(AuditCategory.BAD_HEADERS)},
-                    {Arrays.asList("bAd_HeAdErS"), EnumSet.of(AuditCategory.BAD_HEADERS)},
-                    {Arrays.asList("bAd_HeAdErS"), EnumSet.of(AuditCategory.BAD_HEADERS)},
-                    {Arrays.asList("BAD_HEADERS", "AUTHENTICATED"), EnumSet.of(AuditCategory.BAD_HEADERS, AuditCategory.AUTHENTICATED)},
+                    {Arrays.asList("BAD_HEADERS"), EnumSet.of(BAD_HEADERS)},
+                    {Arrays.asList("bad_headers"), EnumSet.of(BAD_HEADERS)},
+                    {Arrays.asList("bAd_HeAdErS"), EnumSet.of(BAD_HEADERS)},
+                    {Arrays.asList("bAd_HeAdErS"), EnumSet.of(BAD_HEADERS)},
+                    {Arrays.asList("BAD_HEADERS", "AUTHENTICATED"), EnumSet.of(BAD_HEADERS, AUTHENTICATED)},
                     {Arrays.asList("BAD_HEADERS", "FAILED_LOGIN", "MISSING_PRIVILEGES", "GRANTED_PRIVILEGES",
                             "OPENDISTRO_SECURITY_INDEX_ATTEMPT", "SSL_EXCEPTION", "AUTHENTICATED", "INDEX_EVENT",
                             "COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE", "COMPLIANCE_EXTERNAL_CONFIG",

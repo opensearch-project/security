@@ -36,6 +36,7 @@ import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
@@ -57,7 +58,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         // username|role1,role2|remoteIP|attributes
         
-        RestHelper.HttpResponse resc;
+        HttpResponse resc;
         
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, null));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
@@ -101,7 +102,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         // username|role1,role2|remoteIP|attributes
         
-        RestHelper.HttpResponse resc;
+        HttpResponse resc;
                
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin||127.0.0:80|"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
@@ -198,7 +199,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         // username|role1,role2|remoteIP|attributes
         
-        RestHelper.HttpResponse resc;
+        HttpResponse resc;
                
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
@@ -217,7 +218,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
       setup(settings, ClusterConfiguration.USERINJECTOR);
       
       final RestHelper rh = nonSslRestHelper();
-      RestHelper.HttpResponse resc;
+      HttpResponse resc;
       
       // injected user is admin, access to Security index must be allowed
       resc = rh.executeGetRequest(".opendistro_security/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
@@ -244,7 +245,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         setup(settings, ClusterConfiguration.USERINJECTOR);
         
         final RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse resc;
+        HttpResponse resc;
         
         // injected user is admin, access to Security index must be allowed
         resc = rh.executeGetRequest(".opendistro_security/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));

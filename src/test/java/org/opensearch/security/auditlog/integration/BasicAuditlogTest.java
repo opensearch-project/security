@@ -42,7 +42,7 @@ import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import java.util.Collections;
 
@@ -91,7 +91,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         TestAuditlogImpl.clear();
 
         System.out.println("#### testSimpleAuthenticated");
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Thread.sleep(1500);
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
@@ -231,7 +231,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         setupStarfleetIndex();
         TestAuditlogImpl.clear();
 
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         Thread.sleep(1500);
@@ -277,7 +277,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     private void testPrivilegeRest(final int expectedStatus, final String endpoint, final AuditCategory category) throws Exception {
         TestAuditlogImpl.clear();
-        final RestHelper.HttpResponse response = rh.executeGetRequest(endpoint, encodeBasicHeader("admin", "admin"));
+        final HttpResponse response = rh.executeGetRequest(endpoint, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(expectedStatus, response.getStatusCode());
         final String auditlog = TestAuditlogImpl.sb.toString();
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
@@ -344,7 +344,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     public void testWrongUser() throws Exception {
 
-        RestHelper.HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("wronguser", "admin"));
+        HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("wronguser", "admin"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Thread.sleep(500);
         Assert.assertTrue(TestAuditlogImpl.sb.toString(),TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
@@ -358,7 +358,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     public void testUnknownAuthorization() throws Exception {
 
-        RestHelper.HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("unknown", "unknown"));
+        HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("unknown", "unknown"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString(),TestAuditlogImpl.sb.toString().contains("Basic dW5rbm93bjp1bmtub3du"));
@@ -372,7 +372,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testUnauthenticated() throws Exception {
 
         System.out.println("#### testUnauthenticated");
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search");
+        HttpResponse response = rh.executeGetRequest("_search");
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
         Thread.sleep(1500);
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
@@ -387,7 +387,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     }
 
     public void testJustAuthenticated() throws Exception {
-        RestHelper.HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertEquals(0, TestAuditlogImpl.messages.size());
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
@@ -396,7 +396,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     public void testSecurityIndexAttempt() throws Exception {
 
-        RestHelper.HttpResponse response = rh.executePutRequest(".opendistro_security/config/0", "{}", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePutRequest(".opendistro_security/config/0", "{}", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("MISSING_PRIVILEGES"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("OPENDISTRO_SECURITY_INDEX_ATTEMPT"));
@@ -410,7 +410,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     public void testBadHeader() throws Exception {
 
-        RestHelper.HttpResponse response = rh.executeGetRequest("", new BasicHeader("_opendistro_security_bad", "bad"), encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("", new BasicHeader("_opendistro_security_bad", "bad"), encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Assert.assertFalse(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("BAD_HEADERS"));
@@ -422,7 +422,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     public void testMissingPriv() throws Exception {
 
-        RestHelper.HttpResponse response = rh.executeGetRequest("sf/_search", encodeBasicHeader("worf", "worf"));
+        HttpResponse response = rh.executeGetRequest("sf/_search", encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("MISSING_PRIVILEGES"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/read/search"));
@@ -443,7 +443,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 "{\"size\":0,\"query\":{\"match_all\":{}}}"+System.lineSeparator();
 
         System.out.println("##### msaerch");
-        RestHelper.HttpResponse response = rh.executePostRequest("_msearch?pretty", msearch, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePostRequest("_msearch?pretty", msearch, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(response.getStatusReason(), HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertTrue(TestAuditlogImpl.sb.toString(), TestAuditlogImpl.sb.toString().contains("indices:data/read/msearch"));
@@ -472,7 +472,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 "{ \"field1\" : \"value3x\" }"+System.lineSeparator();
 
 
-        RestHelper.HttpResponse response = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("admin", "admin"));
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("\"errors\":false"));
@@ -501,7 +501,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 "{ \"create\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value3x\" }"+System.lineSeparator();
 
-        RestHelper.HttpResponse response = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("worf", "worf"));
+        HttpResponse response = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("worf", "worf"));
         System.out.println(response.getBody());
 
         System.out.println(TestAuditlogImpl.sb.toString());
@@ -529,7 +529,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
              "}"+
         "}";
 
-        RestHelper.HttpResponse response = rh.executePutRequest("_cluster/settings", json, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePutRequest("_cluster/settings", json, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
@@ -560,7 +560,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
-        RestHelper.HttpResponse res = rh.executeGetRequest("_cat/indices", new Header[0]);
+        HttpResponse res = rh.executeGetRequest("_cat/indices", new Header[0]);
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
 
@@ -600,7 +600,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         TestAuditlogImpl.clear();
 
-        RestHelper.HttpResponse response = rh.executeGetRequest("sf/_search?pretty", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("sf/_search?pretty", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("starfleet_academy"));
@@ -631,7 +631,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         TestAuditlogImpl.clear();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("admin", "admin"))).getStatusCode());
         int start = res.getBody().indexOf("_scroll_id") + 15;
         String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start+1));
@@ -673,7 +673,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         }
 
         TestAuditlogImpl.clear();
-        RestHelper.HttpResponse response = rh.executeGetRequest("thealias/_search?pretty", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("thealias/_search?pretty", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("thealias"));
@@ -698,7 +698,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
 
         TestAuditlogImpl.clear();
-        RestHelper.HttpResponse response = rh.executeGetRequest("_search?pretty", new BasicHeader("_opendistro_security_user", "xxx"), encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeGetRequest("_search?pretty", new BasicHeader("_opendistro_security_user", "xxx"), encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("YWRtaW46YWRtaW4"));
@@ -730,7 +730,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         TestAuditlogImpl.clear();
 
-        RestHelper.HttpResponse response = rh.executeDeleteRequest("index1?pretty", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executeDeleteRequest("index1?pretty", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executePostRequest("index2/_close?pretty", "", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -761,7 +761,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         TestAuditlogImpl.clear();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executePostRequest("/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true", "{\"query\" : {\"match_all\" : {}}}", encodeBasicHeader("admin", "admin"))).getStatusCode());
         assertContains(res, "*\"deleted\" : 3,*");
         String auditlogContents = TestAuditlogImpl.sb.toString();

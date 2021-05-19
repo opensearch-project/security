@@ -29,7 +29,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class DlsDateMathTest extends AbstractDlsFlsTest{
 
@@ -58,7 +58,7 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
         final Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS,true).build();
         setup(settings);
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode());
         System.out.println(res.getBody());
@@ -75,7 +75,7 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
     public void testDlsDateMathQueryNotAllowed() throws Exception {
         setup();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode());
         System.out.println(res.getBody());

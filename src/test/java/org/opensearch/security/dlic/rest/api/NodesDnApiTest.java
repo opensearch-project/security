@@ -26,7 +26,7 @@ import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Test;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,7 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 public class NodesDnApiTest extends AbstractRestApiUnitTest {
-    private RestHelper.HttpResponse response;
+    private HttpResponse response;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private <T> JsonNode asJsonNode(T t) throws Exception {

@@ -35,6 +35,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.security.auditlog.sink.WebhookSink.WebhookFormat;
 import org.opensearch.security.auditlog.helper.LoggingSink;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
 import org.opensearch.security.auditlog.helper.TestHttpHandler;
@@ -97,7 +98,7 @@ public class WebhookAuditLogTest {
 
 		MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
-		Assert.assertEquals(WebhookSink.WebhookFormat.TEXT, auditlog.webhookFormat);
+		Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, !auditlog.payload.startsWith("{\"text\":"));
 
@@ -111,7 +112,7 @@ public class WebhookAuditLogTest {
 				.build();
 		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
-		Assert.assertEquals(WebhookSink.WebhookFormat.TEXT, auditlog.webhookFormat);
+		Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, !auditlog.payload.startsWith("{\"text\":"));
 		auditlog.close();
@@ -126,7 +127,7 @@ public class WebhookAuditLogTest {
 				.build();
 		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
-		Assert.assertEquals(WebhookSink.WebhookFormat.TEXT, auditlog.webhookFormat);
+		Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, !auditlog.payload.startsWith("{\"text\":"));
 		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));
@@ -143,7 +144,7 @@ public class WebhookAuditLogTest {
 		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
 		System.out.println(auditlog.payload);
-		Assert.assertEquals(WebhookSink.WebhookFormat.JSON, auditlog.webhookFormat);
+		Assert.assertEquals(WebhookFormat.JSON, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.APPLICATION_JSON, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, !auditlog.payload.startsWith("{\"text\":"));
 		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));
@@ -159,7 +160,7 @@ public class WebhookAuditLogTest {
 				.build();
 		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
-		Assert.assertEquals(WebhookSink.WebhookFormat.SLACK, auditlog.webhookFormat);
+		Assert.assertEquals(WebhookFormat.SLACK, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.APPLICATION_JSON, auditlog.webhookFormat.getContentType());
 		Assert.assertTrue(auditlog.payload, auditlog.payload.startsWith("{\"text\":"));
 		Assert.assertTrue(auditlog.payload, auditlog.payload.contains(AuditMessage.UTC_TIMESTAMP));

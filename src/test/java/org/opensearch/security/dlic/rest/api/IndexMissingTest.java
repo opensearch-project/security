@@ -23,7 +23,7 @@ import org.junit.Test;
 
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 
 public class IndexMissingTest extends AbstractRestApiUnitTest {
@@ -45,7 +45,7 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = true;
 
 		// GET configuration
-		RestHelper.HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/roles");
+		HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/roles");
 		Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
 		String errorString = response.getBody();
 		System.out.println(errorString);

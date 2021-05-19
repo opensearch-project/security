@@ -46,8 +46,8 @@ public class ComplianceConfigTest {
         assertFalse(complianceConfig.shouldLogReadMetadataOnly());
         assertFalse(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        Assert.assertEquals(defaultIgnoredUserMatcher, complianceConfig.getIgnoredComplianceUsersForReadMatcher());
-        Assert.assertEquals(defaultIgnoredUserMatcher, complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
+        assertEquals(defaultIgnoredUserMatcher, complianceConfig.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(defaultIgnoredUserMatcher, complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
     }
 
     @Test
@@ -79,8 +79,8 @@ public class ComplianceConfigTest {
         assertTrue(complianceConfig.shouldLogReadMetadataOnly());
         assertTrue(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        Assert.assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-1", "test-user-2")), complianceConfig.getIgnoredComplianceUsersForReadMatcher());
-        Assert.assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-3", "test-user-4")), complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
+        assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-1", "test-user-2")), complianceConfig.getIgnoredComplianceUsersForReadMatcher());
+        assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-3", "test-user-4")), complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
 
         // test write history
         assertTrue(complianceConfig.writeHistoryEnabledForIndex(".opendistro_security"));

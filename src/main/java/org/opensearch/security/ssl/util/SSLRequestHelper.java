@@ -49,6 +49,7 @@ import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestRequest;
 
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
 
 public class SSLRequestHelper {
 
@@ -148,7 +149,7 @@ public class SSLRequestHelper {
                     if(validationFailure) {
                         throw new SSLPeerUnverifiedException("Unable to validate certificate (CRL)");
                     }
-                    principal = principalExtractor == null?null: principalExtractor.extractPrincipal(x509Certs[0], PrincipalExtractor.Type.HTTP);
+                    principal = principalExtractor == null?null: principalExtractor.extractPrincipal(x509Certs[0], Type.HTTP);
                 } else if (engine.getNeedClientAuth()) {
                     final OpenSearchException ex = new OpenSearchException("No client certificates found but such are needed (SG 9).");
                     throw ex;

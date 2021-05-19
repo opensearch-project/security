@@ -32,6 +32,9 @@ import java.util.regex.Pattern;
 
 import com.google.common.io.BaseEncoding;
 
+import static org.opensearch.security.support.Base64Helper.deserializeObject;
+import static org.opensearch.security.support.Base64Helper.serializeObject;
+
 public class Base64HelperTest {
 
     private static final class NotSafeSerializable implements Serializable {
@@ -39,7 +42,7 @@ public class Base64HelperTest {
     }
 
     private static Serializable ds(Serializable s) {
-        return Base64Helper.deserializeObject(Base64Helper.serializeObject(s));
+        return deserializeObject(serializeObject(s));
     }
 
     @Test
@@ -98,7 +101,7 @@ public class Base64HelperTest {
 
     @Test(expected = OpenSearchException.class)
     public void notSafeSerializable() {
-        Base64Helper.serializeObject(new NotSafeSerializable());
+        serializeObject(new NotSafeSerializable());
     }
 
     @Test(expected = OpenSearchException.class)
@@ -107,6 +110,6 @@ public class Base64HelperTest {
         try (final ObjectOutputStream out = new ObjectOutputStream(bos)) {
             out.writeObject(new NotSafeSerializable());
         }
-        Base64Helper.deserializeObject(BaseEncoding.base64().encode(bos.toByteArray()));
+        deserializeObject(BaseEncoding.base64().encode(bos.toByteArray()));
     }
 }

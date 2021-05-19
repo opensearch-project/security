@@ -28,7 +28,7 @@ import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidat
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator.ErrorType;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class RolesApiTest extends AbstractRestApiUnitTest {
 
@@ -41,7 +41,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         // check roles exists
-        RestHelper.HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/roles/admin", FileHelper.loadFile("restapi/simple_role.json"));
+        HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/roles/admin", FileHelper.loadFile("restapi/simple_role.json"));
         System.out.println(response.getBody());
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
@@ -61,7 +61,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/roles");
+        HttpResponse response = rh.executeGetRequest("_opendistro/_security/api/roles");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertFalse(response.getBody().contains("_meta"));
 
@@ -76,7 +76,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"cluster_permissions\": [\"*\"], \"cluster_permissions\": [\"*\"] }");
+        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"cluster_permissions\": [\"*\"], \"cluster_permissions\": [\"*\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         assertHealthy();
     }
@@ -88,7 +88,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"unknownkey\": [\"*\"], \"cluster_permissions\": [\"*\"] }");
+        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"unknownkey\": [\"*\"], \"cluster_permissions\": [\"*\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
@@ -101,7 +101,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"invalid\"::{{ [\"*\"], \"cluster_permissions\": [\"*\"] }");
+        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/roles/dup", "{ \"invalid\"::{{ [\"*\"], \"cluster_permissions\": [\"*\"] }");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         assertHealthy();
     }
@@ -115,7 +115,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // check roles exists
-        RestHelper.HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/roles");
+        HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/roles");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // -- GET
@@ -462,7 +462,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = false;
         rh.sendHTTPClientCredentials = true;
 
-        RestHelper.HttpResponse response;
+        HttpResponse response;
 
         // Delete read only roles
         response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client" , new Header[0]);

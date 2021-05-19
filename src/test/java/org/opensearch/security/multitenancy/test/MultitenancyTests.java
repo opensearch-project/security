@@ -38,6 +38,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class MultitenancyTests extends SingleClusterTest {
 
@@ -80,7 +81,7 @@ public class MultitenancyTests extends SingleClusterTest {
 
             }
 
-            RestHelper.HttpResponse resc;
+            HttpResponse resc;
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("indexa,indexb/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
             System.out.println(resc.getBody());
 
@@ -208,7 +209,7 @@ public class MultitenancyTests extends SingleClusterTest {
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         String body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "blafasel"), encodeBasicHeader("hr_employee", "hr_employee"))).getStatusCode());
 
@@ -262,7 +263,7 @@ public class MultitenancyTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
 
         System.out.println("#### search");
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         String body = "{\"query\" : {\"term\" : { \"_id\" : \"index-pattern:9fbbd1a0-c3c5-11e8-a13f-71b8ea5a4f7b\"}}}";
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest(".kibana/_search/?pretty",body, new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("admin", "admin"))).getStatusCode());
         //System.out.println(res.getBody());
@@ -353,7 +354,7 @@ public class MultitenancyTests extends SingleClusterTest {
 
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana-6/doc/6.2.2?pretty", encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/doc/6.2.2?pretty", encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
 
@@ -384,7 +385,7 @@ public class MultitenancyTests extends SingleClusterTest {
 
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest(".kibana/doc/6.2.2?pretty", new BasicHeader("securitytenant", "__user__"), encodeBasicHeader("kibanaro", "kibanaro"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains(".kibana_-900636979_kibanaro"));

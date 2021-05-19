@@ -27,7 +27,7 @@ import org.opensearch.common.transport.TransportAddress;
 
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.AuditLog.Origin;
 
 public class MockAuditMessageFactory {
 
@@ -48,7 +48,7 @@ public class MockAuditMessageFactory {
 
 		TransportAddress ta = new TransportAddress(new InetSocketAddress("8.8.8.8",80));
 
-		AuditMessage msg = new AuditMessage(category, cs, AuditLog.Origin.TRANSPORT, AuditLog.Origin.TRANSPORT);
+		AuditMessage msg = new AuditMessage(category, cs, Origin.TRANSPORT, Origin.TRANSPORT);
 		msg.addEffectiveUser("John Doe");
 		msg.addRemoteAddress(ta);
 		msg.addRequestType("IndexRequest");

@@ -64,7 +64,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Netty4Plugin;
@@ -286,11 +286,11 @@ public abstract class AbstractSecurityUnitTest {
         initialize(info, Settings.EMPTY, DynamicSecurityConfig);
     }
 
-    protected final void assertContains(RestHelper.HttpResponse res, String pattern) {
+    protected final void assertContains(HttpResponse res, String pattern) {
         Assert.assertTrue(WildcardMatcher.from(pattern).test(res.getBody()));
     }
 
-    protected final void assertNotContains(RestHelper.HttpResponse res, String pattern) {
+    protected final void assertNotContains(HttpResponse res, String pattern) {
         Assert.assertFalse(WildcardMatcher.from(pattern).test(res.getBody()));
     }
 

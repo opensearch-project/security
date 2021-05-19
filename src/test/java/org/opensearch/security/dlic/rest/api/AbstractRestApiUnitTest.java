@@ -34,6 +34,7 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -121,7 +122,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected void deleteUser(String username) throws Exception {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = true;
-		RestHelper.HttpResponse response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/" + username, new Header[0]);
+		HttpResponse response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/" + username, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		rh.sendAdminCertificate = sendAdminCertificate;
 	}
@@ -129,7 +130,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected void addUserWithPassword(String username, String password, int status) throws Exception {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = true;
-		RestHelper.HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username,
+		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username,
 				"{\"password\": \"" + password + "\"}", new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
 		rh.sendAdminCertificate = sendAdminCertificate;
@@ -146,7 +147,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 			}
 		}
 		payload += "]}";
-		RestHelper.HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
+		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
 		rh.sendAdminCertificate = sendAdminCertificate;
 	}
@@ -162,7 +163,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 			}
 		}
 		payload += "]}";
-		RestHelper.HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
+		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
 		rh.sendAdminCertificate = sendAdminCertificate;
 	}
@@ -174,7 +175,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected void addUserWithHash(String username, String hash, int status) throws Exception {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = true;
-		RestHelper.HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, "{\"hash\": \"" + hash + "\"}",
+		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, "{\"hash\": \"" + hash + "\"}",
 				new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
 		rh.sendAdminCertificate = sendAdminCertificate;
@@ -183,7 +184,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected void addUserWithPasswordAndHash(String username, String password, String hash, int status) throws Exception {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = true;
-		RestHelper.HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, "{\"hash\": \"" + hash + "\", \"password\": \"" + password + "\"}",
+		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, "{\"hash\": \"" + hash + "\", \"password\": \"" + password + "\"}",
 				new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
 		rh.sendAdminCertificate = sendAdminCertificate;
@@ -204,7 +205,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = false;
 		String action = indexName + "/" + type + "/" + id;
-		RestHelper.HttpResponse response = rh.executeGetRequest(action,
+		HttpResponse response = rh.executeGetRequest(action,
 				encodeBasicHeader(username, password));
 		int returnedStatus = response.getStatusCode();
 		Assert.assertEquals(status, returnedStatus);
@@ -220,7 +221,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		rh.sendAdminCertificate = false;
 		String action = indexName + "/" + type + "/" + id;
 		String payload = "{\"value\" : \"true\"}";
-		RestHelper.HttpResponse response = rh.executePutRequest(action, payload,
+		HttpResponse response = rh.executePutRequest(action, payload,
 				encodeBasicHeader(username, password));
 		int returnedStatus = response.getStatusCode();
 		Assert.assertEquals(status, returnedStatus);

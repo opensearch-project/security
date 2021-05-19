@@ -50,6 +50,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -57,7 +58,7 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
-import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.file.FileHelper;q
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 
@@ -137,7 +138,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest(".opendistro_security/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
             
-            RestHelper.HttpResponse resc = rh.executeGetRequest("_cat/indices/public?v",encodeBasicHeader("bug108", "nagilum"));
+            HttpResponse resc = rh.executeGetRequest("_cat/indices/public?v",encodeBasicHeader("bug108", "nagilum"));
             Assert.assertTrue(resc.getBody().contains("green"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
@@ -169,7 +170,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             }
             
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
-            RestHelper.HttpResponse res = rh.executeGetRequest("_search?pretty", encodeBasicHeader("nagilum", "nagilum"));
+            HttpResponse res = rh.executeGetRequest("_search?pretty", encodeBasicHeader("nagilum", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("\"value\" : 11"));
             Assert.assertTrue(!res.getBody().contains(".opendistro_security"));
@@ -269,7 +270,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         System.out.println(res);
         assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
@@ -290,7 +291,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         System.out.println(res);
         assertContains(res, "*ssl_protocol\":\"TLSv1.2*");
@@ -312,7 +313,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("worf", "wrong")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     
-            RestHelper.HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo");
+            HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo");
             Assert.assertTrue(resc.getBody().contains("opendistro_security_anonymous"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
@@ -377,7 +378,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         rh.keystore = "kirk-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/"+getType()+"/y", "{}").getStatusCode());
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_opendistro/_security/authinfo")).getStatusCode());
         System.out.println(res.getBody());
     }
@@ -428,7 +429,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_proxy_custom.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
         // separator is configured as ";" so separating roles with "," leads to one (wrong) backend role
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("user", "scotty"),new BasicHeader("roles", "starfleet,engineer"));
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("user", "scotty"),new BasicHeader("roles", "starfleet,engineer"));
         Assert.assertTrue("Expected one backend role since separator is incorrect", res.getBody().contains("\"backend_roles\":[\"starfleet,engineer\"]"));    
         // correct separator, now we should see two backend roles
         res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("x-forwarded-for", "localhost,192.168.0.1,10.0.0.2"),new BasicHeader("user", "scotty"),new BasicHeader("roles", "starfleet;engineer"));
@@ -510,7 +511,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeDeleteRequest(".opendistro_security/config/0",encodeBasicHeader("worf", "worf")).getStatusCode());
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/config/0","{}",encodeBasicHeader("worf", "worf")).getStatusCode());
             
-            RestHelper.HttpResponse resc = rh.executeGetRequest("_cat/indices/public",encodeBasicHeader("bug108", "nagilum"));
+            HttpResponse resc = rh.executeGetRequest("_cat/indices/public",encodeBasicHeader("bug108", "nagilum"));
             System.out.println(resc.getBody());
             //Assert.assertTrue(resc.getBody().contains("green"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
@@ -542,7 +543,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
                 "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
                 "{ \"field2\" : \"value2\" }"+System.lineSeparator();
     
-        RestHelper.HttpResponse res = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("bulk", "nagilum"));
+        HttpResponse res = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("bulk", "nagilum"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
         Assert.assertTrue(res.getBody().contains("\"errors\":false"));
@@ -563,7 +564,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
                         "{ \"index\" : { \"_index\" : \"myindex\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                         "{ \"a\" : \"b\" }"+System.lineSeparator();
 
-        RestHelper.HttpResponse res = rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("bulk_test_user", "nagilum"));
+        HttpResponse res = rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("bulk_test_user", "nagilum"));
         System.out.println(res.getBody());
         JsonNode jsonNode = DefaultObjectMapper.readTree(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -593,7 +594,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res = rh.executePostRequest("/*/_search", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":10}}}}", encodeBasicHeader("nagilum", "nagilum"));
+        HttpResponse res = rh.executePostRequest("/*/_search", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":10}}}}", encodeBasicHeader("nagilum", "nagilum"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
         Assert.assertTrue(res.getBody().contains("starfleet_academy"));
@@ -630,7 +631,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
 
         System.out.println("###1");
-        RestHelper.HttpResponse res = rh.executeGetRequest("/esb-prod-*/_search?pretty", encodeBasicHeader("itt1635", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("/esb-prod-*/_search?pretty", encodeBasicHeader("itt1635", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
         System.out.println("###2");
         res = rh.executeGetRequest("/esb-alias-*/_search?pretty", encodeBasicHeader("itt1635", "nagilum"));
@@ -680,7 +681,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/tenantinfo?pretty", encodeBasicHeader("itt1635", "nagilum"));
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/tenantinfo?pretty", encodeBasicHeader("itt1635", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());  
 
         res = rh.executeGetRequest("_opendistro/_security/tenantinfo?pretty", encodeBasicHeader("kibanaserver", "kibanaserver"));
@@ -706,7 +707,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         
         //rest impersonation
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as","someotherusernotininternalusersfile"), encodeBasicHeader("worf", "worf"));
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as","someotherusernotininternalusersfile"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("name=someotherusernotininternalusersfile"));
         Assert.assertFalse(res.getBody().contains("worf"));
@@ -720,7 +721,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setupSslOnlyMode(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        RestHelper.HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
+        HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
         res = rh.executePutRequest("/xyz/_doc/1","{\"a\":5}");

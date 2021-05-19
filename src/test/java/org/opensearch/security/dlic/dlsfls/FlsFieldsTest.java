@@ -27,7 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class FlsFieldsTest extends AbstractDlsFlsTest{
 
@@ -58,7 +58,7 @@ public class FlsFieldsTest extends AbstractDlsFlsTest{
 
         String query = FileHelper.loadFile("dlsfls/flsquery.json");
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("secret"));
         Assert.assertTrue(res.getBody().contains("@timestamp"));
@@ -78,7 +78,7 @@ public class FlsFieldsTest extends AbstractDlsFlsTest{
 
         String query = FileHelper.loadFile("dlsfls/flsquery2.json");
 
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty=true", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("secret"));
         Assert.assertTrue(res.getBody().contains("@timestamp"));

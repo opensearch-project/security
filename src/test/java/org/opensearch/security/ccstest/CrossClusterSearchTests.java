@@ -51,6 +51,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
@@ -132,7 +133,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         "}";
 
 
-        RestHelper.HttpResponse response = rh1.executePutRequest("_cluster/settings", json, encodeBasicHeader("sarek", "sarek"));
+        HttpResponse response = rh1.executePutRequest("_cluster/settings", json, encodeBasicHeader("sarek", "sarek"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
@@ -178,7 +179,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("nagilum","nagilum"));
@@ -241,7 +242,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
@@ -412,7 +413,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
@@ -577,7 +578,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
         ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter/tweet/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
@@ -613,7 +614,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### kibana indices agg");
         String dashboardsIndicesAgg = "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":100}}}}";
@@ -698,7 +699,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### kibana indices agg");
         String dashboardsIndicesAgg = "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":100}}}}";
@@ -783,7 +784,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### aggs");
         final String agg = "{\"size\":0,\"aggs\":{\"clusteragg\":{\"terms\":{\"field\":\"cluster.keyword\",\"size\":100}}}}";
@@ -853,7 +854,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        RestHelper.HttpResponse ccs = null;
+        HttpResponse ccs = null;
 
         System.out.println("###################### aggs");
         final String agg = "{\"size\":0,\"aggs\":{\"clusteragg\":{\"terms\":{\"field\":\"cluster.keyword\",\"size\":100}}}}";
@@ -931,7 +932,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         populateBaseData(cluster1, cluster2);
 
         String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
-        RestHelper.HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
+        HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
         System.out.println(ccs.getBody());
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         assertThat(ccs.getBody(), containsString("no OID or security.nodes_dn incorrect configured"));
@@ -953,7 +954,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         populateBaseData(cluster1, cluster2);
 
         String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
-        RestHelper.HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
+        HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
         System.out.println(ccs.getBody());
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(ccs.getBody(), not(containsString("security_exception")));
@@ -970,7 +971,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         setupCcs(new DynamicSecurityConfig().setSecurityNodesDn("nodes_dn_empty.yml"), cluster1, cluster2);
 
-        RestHelper.HttpResponse response = rh2.executePutRequest("_opendistro/_security/api/nodesdn/connection1",
+        HttpResponse response = rh2.executePutRequest("_opendistro/_security/api/nodesdn/connection1",
             "{\"nodes_dn\": [\"CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE\"]}",
             encodeBasicHeader("sarek", "sarek"));
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
@@ -978,7 +979,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         populateBaseData(cluster1, cluster2);
 
         String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
-        RestHelper.HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
+        HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
         System.out.println(ccs.getBody());
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(ccs.getBody(), not(containsString("security_exception")));

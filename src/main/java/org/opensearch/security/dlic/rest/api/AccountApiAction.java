@@ -55,6 +55,8 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.dlic.rest.support.Utils.hash;
+
 /**
  * Rest API action to fetch or update account details of the signed-in user.
  * Currently this action serves GET and PUT request for /_opendistro/_security/api/account endpoint
@@ -210,7 +212,7 @@ public class AccountApiAction extends AbstractApiAction {
         if (Strings.isNullOrEmpty(password)) {
             hash = securityJsonNode.get("hash").asString();
         } else {
-            hash = Utils.hash(password.toCharArray());
+            hash = hash(password.toCharArray());
         }
         if (Strings.isNullOrEmpty(hash)) {
             badRequestResponse(channel, "Both provided password and hash cannot be null/empty.");
