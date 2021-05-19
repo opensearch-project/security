@@ -20,7 +20,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
 import com.google.common.collect.ImmutableSet;
-import org.junit.Assert;
 import org.opensearch.common.settings.Settings;
 import org.junit.Test;
 

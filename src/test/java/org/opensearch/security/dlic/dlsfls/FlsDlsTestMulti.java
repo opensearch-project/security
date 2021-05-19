@@ -23,7 +23,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class FlsDlsTestMulti extends AbstractDlsFlsTest{
 

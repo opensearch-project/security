@@ -18,7 +18,6 @@ package org.opensearch.security.auditlog.config;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-import org.junit.Assert;
 import org.opensearch.common.settings.Settings;
 import org.junit.Test;
 

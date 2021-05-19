@@ -58,7 +58,7 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
-import org.opensearch.security.test.helper.file.FileHelper;q
+import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 
@@ -566,7 +566,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
 
         HttpResponse res = rh.executePostRequest("_bulk?refresh=true", bulkBody, encodeBasicHeader("bulk_test_user", "nagilum"));
         System.out.println(res.getBody());
-        JsonNode jsonNode = DefaultObjectMapper.readTree(res.getBody());
+        JsonNode jsonNode = readTree(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(jsonNode.get("errors").booleanValue());
         Assert.assertEquals(201, jsonNode.get("items").get(0).get("index").get("status").intValue());

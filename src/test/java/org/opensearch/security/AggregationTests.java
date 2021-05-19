@@ -44,6 +44,7 @@ import org.junit.Test;
 
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class AggregationTests extends SingleClusterTest {
 
@@ -78,7 +79,7 @@ public class AggregationTests extends SingleClusterTest {
 
         }
         
-        RestHelper.HttpResponse res;
+        HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_search?pretty", "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":40}}}}",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         System.out.println(res.getBody());
         assertNotContains(res, "*xception*");
