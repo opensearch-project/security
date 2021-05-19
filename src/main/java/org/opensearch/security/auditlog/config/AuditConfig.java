@@ -187,8 +187,8 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, "log_request_body", true);
             final boolean resolveIndices = getOrDefault(properties, "resolve_indices", true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, "exclude_sensitive_headers", true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(getOrDefault(properties,"disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(getOrDefault(properties, "disabled_transport_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(getOrDefault(properties,"disabled_rest_categories", ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(getOrDefault(properties, "disabled_transport_categories", ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
             final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(getOrDefault(properties, "ignore_users", DEFAULT_IGNORED_USERS));
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(getOrDefault(properties, "ignore_requests", Collections.emptyList()));
 
@@ -212,23 +212,23 @@ public class AuditConfig {
          * @return audit configuration filter
          */
         public static Filter from(Settings settings) {
-            final boolean isRestApiAuditEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true);
-            final boolean isTransportAuditEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true);
-            final boolean resolveBulkRequests = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false);
-            final boolean logRequestBody = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true);
-            final boolean resolveIndices = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true);
-            final boolean excludeSensitiveHeaders = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.from(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES);
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.from(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES);
+            final boolean isRestApiAuditEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_ENABLE_REST, true);
+            final boolean isTransportAuditEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT, true);
+            final boolean resolveBulkRequests = settings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false);
+            final boolean logRequestBody = settings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_LOG_REQUEST_BODY, true);
+            final boolean resolveIndices = settings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_RESOLVE_INDICES, true);
+            final boolean excludeSensitiveHeaders = settings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true);
+            final Set<AuditCategory> disabledRestCategories = AuditCategory.from(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES);
+            final Set<AuditCategory> disabledTransportCategories = AuditCategory.from(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES);
 
             final Set<String> ignoredAuditUsers = ConfigConstants.getSettingAsSet(
                     settings,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+                    ConfigConstants.SECURITY_AUDIT_IGNORE_USERS,
                     DEFAULT_IGNORED_USERS,
                     false);
 
             final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(settings.getAsList(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+                    ConfigConstants.SECURITY_AUDIT_IGNORE_REQUESTS,
                     Collections.emptyList()));
 
             return new Filter(isRestApiAuditEnabled,
@@ -376,25 +376,25 @@ public class AuditConfig {
      * List of keys that are deprecated
      */
     public static final List<String> DEPRECATED_KEYS = ImmutableList.of(
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES
+            ConfigConstants.SECURITY_AUDIT_ENABLE_REST,
+            ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+            ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT,
+            ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+            ConfigConstants.SECURITY_AUDIT_LOG_REQUEST_BODY,
+            ConfigConstants.SECURITY_AUDIT_RESOLVE_INDICES,
+            ConfigConstants.SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
+            ConfigConstants.SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
+            ConfigConstants.SECURITY_AUDIT_IGNORE_USERS,
+            ConfigConstants.SECURITY_AUDIT_IGNORE_REQUESTS,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES
     );
 
     public static Set<String> getDeprecatedKeys(final Settings settings) {

@@ -41,7 +41,7 @@ final public class RolesInjector {
     }
 
     public Set<String> injectUserAndRoles(final ThreadContext ctx) {
-        final String injectedUserAndRoles = ctx.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
+        final String injectedUserAndRoles = ctx.getTransient(ConfigConstants.SECURITY_INJECTED_ROLES);
         if (injectedUserAndRoles == null) {
             return null;
         }
@@ -73,9 +73,9 @@ final public class RolesInjector {
     }
 
     private void addUser(final User user, final ThreadContext threadContext) {
-        if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null)
+        if(threadContext.getTransient(ConfigConstants.SECURITY_USER) != null)
             return;
 
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+        threadContext.putTransient(ConfigConstants.SECURITY_USER, user);
     }
 }

@@ -183,10 +183,10 @@ public class BackendRegistry {
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
 
 
-        this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_CACHE_TTL_MINUTES, 60);
+        this.ttlInMin = settings.getAsInt(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60);
 
         // This is going to be defined in the opensearch.yml, so it's best suited to be initialized once.
-        this.injectedUserEnabled = opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED,false);
+        this.injectedUserEnabled = opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED,false);
 
         createCaches();
     }
@@ -211,7 +211,7 @@ public class BackendRegistry {
         invalidateCache();
         transportUsernameAttribute = dcm.getTransportUsernameAttribute();// config.dynamic.transport_userrname_attribute;
         anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled()//config.dynamic.http.anonymous_auth_enabled
-                && !opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
+                && !opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
         restAuthDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
         transportAuthDomains = Collections.unmodifiableSortedSet(dcm.getTransportAuthDomains());
@@ -363,11 +363,11 @@ public class BackendRegistry {
             return false;
         }
 
-        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
+        final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_SSL_PRINCIPAL);
 
         if(adminDns.isAdminDN(sslPrincipal)) {
             //PKI authenticated REST call
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
+            threadPool.getThreadContext().putTransient(ConfigConstants.SECURITY_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
@@ -390,7 +390,7 @@ public class BackendRegistry {
             log.trace("Rest authentication request from {} [original: {}]", remoteAddress, request.getHttpChannel().getRemoteAddress());
     	}
 
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, remoteAddress);
+        threadContext.putTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS, remoteAddress);
 
         boolean authenticated = false;
 
@@ -505,7 +505,7 @@ public class BackendRegistry {
 
         if(authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
+            threadContext.putTransient(ConfigConstants.SECURITY_USER, impersonatedUser==null?authenticatedUser:impersonatedUser);
             auditLog.logSucceededLogin((impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(), false,
                     authenticatedUser.getName(), request);
         } else {
@@ -514,7 +514,7 @@ public class BackendRegistry {
             }
 
             if(authCredenetials == null && anonymousAuthEnabled) {
-            	threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, User.ANONYMOUS);
+            	threadContext.putTransient(ConfigConstants.SECURITY_USER, User.ANONYMOUS);
             	auditLog.logSucceededLogin(User.ANONYMOUS.getName(), false, null, request);
                 if (isDebugEnabled) {
                     log.debug("Anonymous User is authenticated");

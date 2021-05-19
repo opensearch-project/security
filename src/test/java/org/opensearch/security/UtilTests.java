@@ -176,7 +176,7 @@ public class UtilTests {
     
     @Test
     public void testNoEnvReplace() {
-        Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
         assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
         assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
         assertEquals("abv${env.MYENV:-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));

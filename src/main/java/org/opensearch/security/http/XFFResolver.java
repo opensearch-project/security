@@ -72,7 +72,7 @@ public class XFFResolver {
                 
              
             if (isTraceEnabled) {
-                if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) == Boolean.TRUE) {
+                if(threadContext.getTransient(ConfigConstants.SECURITY_XFF_DONE) == Boolean.TRUE) {
                     log.trace("xff resolved {} to {}", request.getHttpChannel().getRemoteAddress(), isa);
                 } else {
                     log.trace("no xff done for {}",request.getClass());

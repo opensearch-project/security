@@ -103,7 +103,7 @@ public class SecuritySSLReloadCertsAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 // Check for Super admin user
-                final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                final User user = (User) threadContext.getTransient(ConfigConstants.SECURITY_USER);
                 if(user ==null||!adminDns.isAdmin(user)) {
                     response = new BytesRestResponse(RestStatus.FORBIDDEN, "");
                 } else {

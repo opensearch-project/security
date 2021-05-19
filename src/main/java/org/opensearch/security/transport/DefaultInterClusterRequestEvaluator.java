@@ -60,12 +60,12 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
     private volatile Map<String, WildcardMatcher> dynamicNodesDn;
 
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
-        this.certOid = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID, "1.2.3.4.5.5");
+        this.certOid = settings.get(ConfigConstants.SECURITY_CERT_OID, "1.2.3.4.5.5");
         this.staticNodesDnFromEsYml = WildcardMatcher.from(
-                settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, Collections.emptyList()),
+                settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList()),
                 false
         );
-        this.dynamicNodesDnConfigEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false);
+        this.dynamicNodesDnConfigEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false);
         this.dynamicNodesDn = Collections.emptyMap();
     }
 

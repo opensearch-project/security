@@ -70,7 +70,7 @@ public class RouterTest extends AbstractAuditlogiUnitTest{
 
 		Settings settings = settingsBuilder
     			.put("path.home", ".")
-    			.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+    			.put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .build();
 
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);

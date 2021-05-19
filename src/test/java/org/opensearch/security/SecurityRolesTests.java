@@ -97,7 +97,7 @@ public class SecurityRolesTests extends SingleClusterTest {
 	public void testSecurityRolesImpersonation() throws Exception {
 
 		Settings settings = Settings.builder()
-				.putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".sr_user", "sr_impuser")
+				.putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".sr_user", "sr_impuser")
 				.build();
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig()

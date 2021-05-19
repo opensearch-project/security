@@ -385,8 +385,8 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         permissions = DefaultObjectMapper.objectMapper.convertValue(settings.get("opendistro_security_role_starfleet").get("indices").get("sf").get("ships"), List.class);
         Assert.assertNotNull(permissions);
         Assert.assertEquals(2, permissions.size());
-        Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_READ"));
-        Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_SEARCH")); */
+        Assert.assertTrue(permissions.contains("SECURITY_READ"));
+        Assert.assertTrue(permissions.contains("SECURITY_SEARCH")); */
 
         // -- PATCH on whole config resource
         // PATCH on non-existing resource
@@ -418,13 +418,13 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = true;
-        response = rh.executePatchRequest("/_opendistro/_security/api/roles", "[{ \"op\": \"add\", \"path\": \"/newnewnew\", \"value\": {  \"hidden\": true, \"index_permissions\" : [ {\"index_patterns\" : [ \"sf\" ],\"allowed_actions\" : [ \"OPENDISTRO_SECURITY_READ\" ]}] }}]", new Header[0]);
+        response = rh.executePatchRequest("/_opendistro/_security/api/roles", "[{ \"op\": \"add\", \"path\": \"/newnewnew\", \"value\": {  \"hidden\": true, \"index_permissions\" : [ {\"index_patterns\" : [ \"sf\" ],\"allowed_actions\" : [ \"SECURITY_READ\" ]}] }}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // PATCH 
         rh.sendAdminCertificate = true;
-        response = rh.executePatchRequest("/_opendistro/_security/api/roles", "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {   \"index_permissions\" : [ {\"index_patterns\" : [ \"sf\" ],\"allowed_actions\" : [ \"OPENDISTRO_SECURITY_READ\" ]}] }}]", new Header[0]);
+        response = rh.executePatchRequest("/_opendistro/_security/api/roles", "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {   \"index_permissions\" : [ {\"index_patterns\" : [ \"sf\" ],\"allowed_actions\" : [ \"SECURITY_READ\" ]}] }}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest("/_opendistro/_security/api/roles/bulknew1", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -432,7 +432,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         permissions =  new SecurityJsonNode(settings).get("bulknew1").get("index_permissions").get(0).get("allowed_actions").asList();
         Assert.assertNotNull(permissions);
         Assert.assertEquals(1, permissions.size());
-        Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_READ"));
+        Assert.assertTrue(permissions.contains("SECURITY_READ"));
 
         // delete resource
         rh.sendAdminCertificate = true;

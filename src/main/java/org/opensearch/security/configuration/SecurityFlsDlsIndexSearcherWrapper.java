@@ -61,7 +61,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         this.clusterService = clusterService;
         this.indexService = indexService;
         this.auditlog = auditlog;
-        final boolean allowNowinDlsQueries = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false);
+        final boolean allowNowinDlsQueries = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false);
         if (allowNowinDlsQueries) {
             nowInMillis = () -> System.currentTimeMillis();
         } else {
@@ -84,11 +84,11 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         if(!isAdmin) {
 
             final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
-                    ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+                    ConfigConstants.SECURITY_FLS_FIELDS_HEADER);
             final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
-                    ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+                    ConfigConstants.SECURITY_DLS_QUERY_HEADER);
             final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
-                    ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+                    ConfigConstants.SECURITY_MASKED_FIELD_HEADER);
 
             final String flsEval = SecurityUtils.evalMap(allowedFlsFields, index.getName());
             final String dlsEval = SecurityUtils.evalMap(queries, index.getName());

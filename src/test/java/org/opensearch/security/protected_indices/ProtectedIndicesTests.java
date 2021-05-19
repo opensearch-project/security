@@ -84,9 +84,9 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     public void setupSettingsEnabled() throws Exception {
         // Setup settings
         Settings protectedIndexSettings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+                .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
+                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
+                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
                 .build();
         setup(Settings.EMPTY,
                 new DynamicSecurityConfig()
@@ -101,9 +101,9 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     public void setupSettingsIndexPatterns() throws Exception {
         // Setup settings
         Settings protectedIndexSettings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, listOfIndexPatternsToTest)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+                .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
+                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexPatternsToTest)
+                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
                 .build();
         setup(Settings.EMPTY,
                 new DynamicSecurityConfig()
@@ -125,9 +125,9 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     public void setupSettingsDisabled() throws Exception {
         // Setup settings
         Settings protectedIndexSettings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, false)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+                .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, false)
+                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
+                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
                 .build();
         setup(Settings.EMPTY,
                 new DynamicSecurityConfig()
@@ -142,9 +142,9 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     public void setupSettingsEnabledSnapshot() throws Exception {
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+                .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
+                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
+                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig()

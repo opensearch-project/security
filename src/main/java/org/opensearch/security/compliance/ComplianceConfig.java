@@ -195,9 +195,9 @@ public class ComplianceConfig {
                 logDiffsForWrite,
                 watchedWriteIndicesPatterns,
                 ignoredComplianceUsersForWrite,
-                settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
-                settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, null),
-                settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd")
+                settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.SECURITY_DEFAULT_CONFIG_INDEX),
+                settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null),
+                settings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd")
         );
     }
 
@@ -254,12 +254,12 @@ public class ComplianceConfig {
      * @return compliance configuration
      */
     public static ComplianceConfig from(Settings settings) {
-        final boolean logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
-        final boolean logInternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
-        final boolean logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
-        final boolean logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
-        final boolean logDiffsForWrite = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
-        final List<String> watchedReadFields = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+        final boolean logExternalConfig = settings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
+        final boolean logInternalConfig = settings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
+        final boolean logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
+        final boolean logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
+        final boolean logDiffsForWrite = settings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
+        final List<String> watchedReadFields = settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
         //opendistro_security.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
@@ -271,15 +271,15 @@ public class ComplianceConfig {
                         split -> split.length == 1 ?
                                 ImmutableList.of("*") : Arrays.stream(split).skip(1).collect(ImmutableList.toImmutableList())
                 ));
-        final List<String> watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
+        final List<String> watchedWriteIndices = settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
         final Set<String> ignoredComplianceUsersForRead = ConfigConstants.getSettingAsSet(
                 settings,
-                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
                 AuditConfig.DEFAULT_IGNORED_USERS,
                 false);
         final Set<String> ignoredComplianceUsersForWrite = ConfigConstants.getSettingAsSet(
                 settings,
-                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
                 AuditConfig.DEFAULT_IGNORED_USERS,
                 false);
 

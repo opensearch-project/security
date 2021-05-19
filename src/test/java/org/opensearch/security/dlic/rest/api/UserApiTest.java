@@ -381,8 +381,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         Settings nodeSettings =
                 Settings.builder()
-                        .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, "xxx")
-                        .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
+                        .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, "xxx")
+                        .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
                                 "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
                         .build();
 

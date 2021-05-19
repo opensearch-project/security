@@ -291,9 +291,9 @@ public class AuditConfigSerializeTest {
     public void testCustomSettings() throws IOException {
         // arrange
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, "test-security-index")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "internal_opensearch")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX,
+                .put(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, "test-security-index")
+                .put(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, "internal_opensearch")
+                .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,
                         "test-auditlog-index")
                 .build();
         final ObjectMapper customObjectMapper = new ObjectMapper();

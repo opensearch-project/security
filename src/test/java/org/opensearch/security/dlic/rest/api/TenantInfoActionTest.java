@@ -30,7 +30,7 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testTenantInfoAPI() throws Exception {
-        Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";

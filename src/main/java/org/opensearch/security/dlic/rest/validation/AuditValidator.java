@@ -44,7 +44,7 @@ public class AuditValidator extends AbstractConfigurationValidator {
             AuditCategory.GRANTED_PRIVILEGES,
             AuditCategory.MISSING_PRIVILEGES,
             AuditCategory.INDEX_EVENT,
-            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT
+            AuditCategory.SECURITY_INDEX_ATTEMPT
     );
 
     public AuditValidator(final RestRequest request,

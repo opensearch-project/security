@@ -37,7 +37,7 @@ public class PerfTest extends AbstractAuditlogiUnitTest {
 		Settings.Builder settingsBuilder = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/perftest.yml"));
 
 		Settings settings = settingsBuilder.put("path.home", ".")
-				.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+				.put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
 				.build();
 
 		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);

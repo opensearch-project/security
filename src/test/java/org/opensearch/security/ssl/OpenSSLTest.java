@@ -72,8 +72,8 @@ public class OpenSSLTest extends SSLTest {
     public void testEnsureOpenSSLAvailability() {
         //Assert.assertTrue("OpenSSL not available: "+String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
                 
-        final String openSSLOptional = System.getenv("OPENDISTRO_SECURITY_TEST_OPENSSL_OPT");
-        System.out.println("OPENDISTRO_SECURITY_TEST_OPENSSL_OPT "+openSSLOptional);
+        final String openSSLOptional = System.getenv("SECURITY_TEST_OPENSSL_OPT");
+        System.out.println("SECURITY_TEST_OPENSSL_OPT "+openSSLOptional);
         if(!Boolean.parseBoolean(openSSLOptional)) {
             System.out.println("OpenSSL must be available");
             Assert.assertTrue("OpenSSL not available: "+String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
@@ -202,16 +202,16 @@ public class OpenSSLTest extends SSLTest {
         Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L);
 
         final Settings settings = Settings.builder().put("opendistro_security.ssl.transport.enabled", true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+                .put(ConfigConstants.SECURITY_SSL_ONLY, true)
+                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
                 .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("opendistro_security.ssl.transport.enforce_hostname_verification", false)
                 .put("opendistro_security.ssl.transport.resolve_hostname", false)
-                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")
-                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_CHACHA20_POLY1305_SHA256")
+                .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")
+                .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_CHACHA20_POLY1305_SHA256")
                 .put("node.max_local_storage_nodes",4)
                 .build();
 

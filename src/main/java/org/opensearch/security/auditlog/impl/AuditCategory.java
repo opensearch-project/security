@@ -29,7 +29,7 @@ public enum AuditCategory {
     FAILED_LOGIN,
     MISSING_PRIVILEGES,
     GRANTED_PRIVILEGES,
-    OPENDISTRO_SECURITY_INDEX_ATTEMPT,
+    SECURITY_INDEX_ATTEMPT,
     SSL_EXCEPTION,
     AUTHENTICATED,
     INDEX_EVENT,
@@ -51,6 +51,6 @@ public enum AuditCategory {
     }
 
     public static Set<AuditCategory> from(final Settings settings, final String key) {
-        return parse(ConfigConstants.getSettingAsSet(settings, key, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT, true));
+        return parse(ConfigConstants.getSettingAsSet(settings, key, ConfigConstants.SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT, true));
     }
 }

@@ -62,7 +62,7 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     @Override
     public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
     	
-        if(context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) !=  Boolean.TRUE) {
+        if(context.getTransient(ConfigConstants.SECURITY_XFF_DONE) !=  Boolean.TRUE) {
             throw new OpenSearchSecurityException("xff not done");
         }
         

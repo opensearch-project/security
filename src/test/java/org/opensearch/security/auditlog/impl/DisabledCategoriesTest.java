@@ -69,7 +69,7 @@ public class DisabledCategoriesTest {
 
 		Builder settingsBuilder = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
-        settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "nonexistent");
+        settingsBuilder.put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "nonexistent");
 
 		AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 	}
@@ -80,7 +80,7 @@ public class DisabledCategoriesTest {
 
 		Builder settingsBuilder = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
-		settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "nonexistent");
+		settingsBuilder.put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "nonexistent");
 		AuditTestUtils.createAuditLog(settingsBuilder.build(), null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
 	}
 
@@ -100,8 +100,8 @@ public class DisabledCategoriesTest {
 		final Builder settingsBuilder  = Settings.builder();
 
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
-		settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE");
-        settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE");
+		settingsBuilder.put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE");
+        settingsBuilder.put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE");
 
 		// we use the debug output, no OpenSearch client is needed. Also, we
 		// do not need to close.
@@ -160,8 +160,8 @@ public class DisabledCategoriesTest {
 
 		Builder settingsBuilder  = Settings.builder();
 		settingsBuilder.put("opendistro_security.audit.type", TestAuditlogImpl.class.getName());
-		settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategoriesString);
-        settingsBuilder.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategoriesString);
+		settingsBuilder.put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, disabledCategoriesString);
+        settingsBuilder.put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, disabledCategoriesString);
 
 
 		// we use the debug output, no OpenSearch client is needed. Also, we

@@ -5,7 +5,7 @@
     "allowed_actions" : [ "blafasel" ]
   }, {
     "index_patterns" : [ "pub" ],
-    "allowed_actions" : [ "OPENDISTRO_SECURITY_CRUD" ]
+    "allowed_actions" : [ "SECURITY_CRUD" ]
   } ],
   "tenant_permissions" : [ {
     "tenant_patterns" : [ "tenant2" ],

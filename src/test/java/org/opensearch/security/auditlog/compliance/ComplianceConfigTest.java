@@ -54,17 +54,17 @@ public class ComplianceConfigTest {
         // arrange
         final String testSalt = "abcdefghijklmnop";
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "write_index1", "write_index_pattern*")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "read_index1,field1,field2", "read_index_pattern*,field1,field_pattern*")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, true)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, true)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_SALT, testSalt)
+                .putList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "write_index1", "write_index_pattern*")
+                .putList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "read_index1,field1,field2", "read_index_pattern*,field1,field_pattern*")
+                .putList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
                         "test-user-1", "test-user-2")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                .putList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
                         "test-user-3", "test-user-4")
                 .build();
 
@@ -109,9 +109,9 @@ public class ComplianceConfigTest {
     public void testNone() {
         // arrange
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                .putList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
                         "NONE")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                .putList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
                         "NONE")
                 .build();
         // act
@@ -125,9 +125,9 @@ public class ComplianceConfigTest {
     public void testEmpty() {
         // arrange
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                .putList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
                         Collections.emptyList())
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                .putList(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
                         Collections.emptyList())
                 .build();
         // act

@@ -181,14 +181,14 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     public void testWhitelistAuditComplianceLogging() throws Exception {
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_REST, false)
+                .put(ConfigConstants.SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
+                .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
+                .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
                 .build();
         setupWithRestRoles(settings);
         TestAuditlogImpl.clear();

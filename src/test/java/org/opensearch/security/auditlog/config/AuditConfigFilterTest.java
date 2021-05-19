@@ -62,17 +62,17 @@ public class AuditConfigFilterTest {
     public void testConfig() {
         // arrange
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, false)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, "test-request")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "test-user")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_REST, false)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+                .put(ConfigConstants.SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
+                .put(ConfigConstants.SECURITY_AUDIT_LOG_REQUEST_BODY, false)
+                .put(ConfigConstants.SECURITY_AUDIT_RESOLVE_INDICES, false)
+                .put(ConfigConstants.SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, false)
+                .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_REQUESTS, "test-request")
+                .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_USERS, "test-user")
+                .putList(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
                         BAD_HEADERS.toString(), SSL_EXCEPTION.toString())
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                .putList(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
                         FAILED_LOGIN.toString(), MISSING_PRIVILEGES.toString())
                 .build();
         // act
@@ -94,10 +94,10 @@ public class AuditConfigFilterTest {
     public void testNone() {
         // arrange
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "NONE")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_USERS, "NONE")
+                .putList(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
                         "None")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                .putList(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
                         "none")
                 .build();
         // act
@@ -112,11 +112,11 @@ public class AuditConfigFilterTest {
     public void testEmpty() {
         // arrange
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, Collections.emptyList())
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,  Collections.emptyList())
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+                .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_USERS, Collections.emptyList())
+                .putList(ConfigConstants.SECURITY_AUDIT_IGNORE_REQUESTS,  Collections.emptyList())
+                .putList(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
                         Collections.emptyList())
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+                .putList(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
                         Collections.emptyList())
                 .build();
         // act

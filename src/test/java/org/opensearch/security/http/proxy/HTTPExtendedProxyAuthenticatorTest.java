@@ -68,7 +68,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
 
     @Before
     public void setup() {
-        context.putTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
+        context.putTransient(ConfigConstants.SECURITY_XFF_DONE, Boolean.TRUE);
         settings = Settings.builder()
                 .put("user_header","user")
                 .build();

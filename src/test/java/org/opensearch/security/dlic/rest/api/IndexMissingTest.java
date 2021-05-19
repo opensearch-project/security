@@ -90,7 +90,7 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
 		response = rh.executeGetRequest("_opendistro/_security/api/roles");
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		SecurityJsonNode securityJsonNode = new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody()));
-		Assert.assertEquals("OPENDISTRO_SECURITY_CLUSTER_ALL", securityJsonNode.get("opendistro_security_admin").get("cluster_permissions").get(0).asString());
+		Assert.assertEquals("SECURITY_CLUSTER_ALL", securityJsonNode.get("opendistro_security_admin").get("cluster_permissions").get(0).asString());
 
 	}
 }

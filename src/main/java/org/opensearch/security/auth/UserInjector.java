@@ -63,7 +63,7 @@ public class UserInjector {
         this.threadPool = threadPool;
         this.auditLog = auditLog;
         this.xffResolver = xffResolver;
-        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
 
     }
 
@@ -107,7 +107,7 @@ public class UserInjector {
             return null;
         }
 
-        String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
+        String injectedUserString = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_INJECTED_USER);
 
         if (log.isDebugEnabled()) {
             log.debug("Injected user string: {}", injectedUserString);
@@ -185,12 +185,12 @@ public class UserInjector {
 
         // Set remote address into the thread context
         if (injectedUser.getTransportAddress() != null) {
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, injectedUser.getTransportAddress());
+            threadPool.getThreadContext().putTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS, injectedUser.getTransportAddress());
         } else {
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
+            threadPool.getThreadContext().putTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
         }
 
-        threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, injectedUser);
+        threadPool.getThreadContext().putTransient(ConfigConstants.SECURITY_USER, injectedUser);
         auditLog.logSucceededLogin(injectedUser.getName(), true, null, request);
 
         return true;

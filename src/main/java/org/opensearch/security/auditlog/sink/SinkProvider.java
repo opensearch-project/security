@@ -49,7 +49,7 @@ public class SinkProvider {
 		this.configPath = configPath;
 
 		// fall back sink, make sure we don't lose messages
-		String fallbackConfigPrefix = ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + FALLBACKSINK_NAME;
+		String fallbackConfigPrefix = ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + FALLBACKSINK_NAME;
 		Settings fallbackSinkSettings = settings.getAsSettings(fallbackConfigPrefix);
 		if(!fallbackSinkSettings.isEmpty()) {
 			this.fallbackSink = createSink(FALLBACKSINK_NAME, fallbackSinkSettings.get("type"), settings, fallbackConfigPrefix+".config");
@@ -63,7 +63,7 @@ public class SinkProvider {
 		allSinks.put(FALLBACKSINK_NAME, this.fallbackSink);
 
 		// create default sink
-		defaultSink = this.createSink(DEFAULTSINK_NAME, settings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT), settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT);
+		defaultSink = this.createSink(DEFAULTSINK_NAME, settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT), settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT);
 		if (defaultSink == null) {
 			log.error("Default endpoint could not be created, auditlog will not work properly.");
 			return;
@@ -72,7 +72,7 @@ public class SinkProvider {
 		allSinks.put(DEFAULTSINK_NAME, defaultSink);
 
 		// create all other sinks
-		Map<String, Object> sinkSettingsMap = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS));
+		Map<String, Object> sinkSettingsMap = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS));
 
 		for (Entry<String, Object> sinkEntry : sinkSettingsMap.entrySet()) {
 			String sinkName = sinkEntry.getKey();
@@ -80,12 +80,12 @@ public class SinkProvider {
 			if(sinkName.equalsIgnoreCase(FALLBACKSINK_NAME)) {
 				continue;
 			}
-			String type = settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + sinkName).get("type");
+			String type = settings.getAsSettings(ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + sinkName).get("type");
 			if (type == null) {
 				log.error("No type defined for endpoint {}.", sinkName);
 				continue;
 			}
-			AuditLogSink sink = createSink(sinkName, type, this.settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + sinkName + ".config");
+			AuditLogSink sink = createSink(sinkName, type, this.settings, ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + "." + sinkName + ".config");
 			if (sink == null) {
 				log.error("Endpoint '{}' could not be created, check log file for further information.", sinkName);
 				continue;

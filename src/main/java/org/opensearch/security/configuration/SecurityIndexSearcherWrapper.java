@@ -71,15 +71,15 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     public SecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs, final PrivilegesEvaluator evaluator) {
         index = indexService.index();
         threadContext = indexService.getThreadPool().getThreadContext();
-        this.securityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.SECURITY_DEFAULT_CONFIG_INDEX);
         this.evaluator = evaluator;
         this.adminDns = adminDNs;
-        this.protectedIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY));
-        this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY));
-        this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
+        this.protectedIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY));
+        this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY));
+        this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
 
-        this.systemIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT);
-        this.systemIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY));
+        this.systemIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT);
+        this.systemIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY));
     }
 
     @Subscribe
@@ -111,13 +111,13 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
 
     protected final boolean isAdminAuthenticatedOrInternalRequest() {
 
-        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getTransient(ConfigConstants.SECURITY_USER);
 
         if (user != null && adminDns.isAdmin(user)) {
             return true;
         }
 
-        if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER))) {
+        if ("true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.SECURITY_CONF_REQUEST_HEADER))) {
             return true;
         }
 
@@ -137,7 +137,7 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     }
 
     protected final boolean isAdminDnOrPluginRequest() {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadContext.getTransient(ConfigConstants.SECURITY_USER);
         if(user == null) {
             // allow request without user from plugin.
             return true;
@@ -149,8 +149,8 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     }
 
     protected final boolean isPermittedOnIndex() {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final User user = threadContext.getTransient(ConfigConstants.SECURITY_USER);
+        final TransportAddress caller = threadContext.getTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS);
         final Set<String> securityRoles = evaluator.mapRoles(user, caller);
         if (allowedRolesMatcher.matchAny(securityRoles)) {
             return true;

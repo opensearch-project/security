@@ -141,7 +141,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         NodeSettingsSupplier settings = minimumSecuritySettings(cluster.clusterSettings());
         ClusterInfo clusterInfo = ch.startCluster(settings, ClusterConfiguration.DEFAULT);
         initialize(clusterInfo, cluster.transportClientSettings(), dynamicSecurityConfig);
-        boolean httpsEnabled = settings.get(0).getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED, false);
+        boolean httpsEnabled = settings.get(0).getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, false);
         RestHelper rh = new RestHelper(clusterInfo, httpsEnabled, httpsEnabled, getResourceFolder());
         rh.sendAdminCertificate = httpsEnabled;
         rh.keystore = "restapi/kirk-keystore.jks";
@@ -883,24 +883,24 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
     private ClusterTransportClientSettings getBaseSettingsWithDifferentCert() {
         Settings cluster = Settings.builder()
-            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"))
-            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
-            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
-            .put(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
-            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
-            .putList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN,
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
+            .put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
+            .putList(ConfigConstants.SECURITY_NODES_DN,
                 "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")//, "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE")
-            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN,
+            .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN,
                 "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE",
                 "CN=kirk,OU=client,O=client,l=tEst, C=De")
-            .put(ConfigConstants.OPENDISTRO_SECURITY_CERT_OID,"1.2.3.4.5.6")
+            .put(ConfigConstants.SECURITY_CERT_OID,"1.2.3.4.5.6")
             .build();
         Settings transport = Settings.builder()
-            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
             .build();
         return new ClusterTransportClientSettings(cluster, transport);
     }
@@ -944,7 +944,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         ClusterTransportClientSettings cluster2 = getBaseSettingsWithDifferentCert();
         Settings updatedCluster2 = Settings.builder()
             .put(cluster2.clusterSettings())
-            .putList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN,
+            .putList(ConfigConstants.SECURITY_NODES_DN,
                 "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE",
                 "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE")
             .build();

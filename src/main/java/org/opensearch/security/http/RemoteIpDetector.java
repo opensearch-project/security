@@ -180,7 +180,7 @@ final class RemoteIpDetector {
                     log.trace("Incoming request {} with originalRemoteAddr '{}', originalRemoteHost='{}', will be seen as newRemoteAddr='{}'", request.uri(), originalRemoteAddr, originalRemoteHost, remoteIp);
                 }
 
-                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
+                threadContext.putTransient(ConfigConstants.SECURITY_XFF_DONE, Boolean.TRUE);
                 return remoteIp;
                 
             } else {

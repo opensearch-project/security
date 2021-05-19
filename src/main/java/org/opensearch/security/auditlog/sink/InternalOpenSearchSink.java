@@ -45,8 +45,8 @@ public final class InternalOpenSearchSink extends AuditLogSink {
 		this.clientProvider = clientProvider;
 		Settings sinkSettings = getSinkSettings(settingsPrefix);
 
-		this.index = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd");
-		this.type = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_TYPE, null);
+		this.index = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd");
+		this.type = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_TYPE, null);
 
 		this.threadPool = threadPool;
 		try {
@@ -63,7 +63,7 @@ public final class InternalOpenSearchSink extends AuditLogSink {
 
 	public boolean doStore(final AuditMessage msg) {
 
-		if (Boolean.parseBoolean((String) HeaderHelper.getSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER))) {
+		if (Boolean.parseBoolean((String) HeaderHelper.getSafeFromHeader(threadPool.getThreadContext(), ConfigConstants.SECURITY_CONF_REQUEST_HEADER))) {
 			if (log.isTraceEnabled()) {
 				log.trace("audit log of audit log will not be executed");
 			}
@@ -73,7 +73,7 @@ public final class InternalOpenSearchSink extends AuditLogSink {
 		try (StoredContext ctx = threadPool.getThreadContext().stashContext()) {
 			try {
 				final IndexRequestBuilder irb = clientProvider.prepareIndex(getExpandedIndexName(indexPattern, index), type).setRefreshPolicy(RefreshPolicy.IMMEDIATE).setSource(msg.getAsMap());
-				threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+				threadPool.getThreadContext().putHeader(ConfigConstants.SECURITY_CONF_REQUEST_HEADER, "true");
 				irb.setTimeout(TimeValue.timeValueMinutes(1));
 				irb.execute().actionGet();
 				return true;

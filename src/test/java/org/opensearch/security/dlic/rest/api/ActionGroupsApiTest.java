@@ -47,7 +47,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 		Assert.assertNotNull(permissions);
 		Assert.assertEquals(2, permissions.size());
         Assert.assertTrue(permissions.contains("READ_UT"));
-		Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_WRITE"));
+		Assert.assertTrue(permissions.contains("SECURITY_WRITE"));
 
 		// GET_UT, actiongroup does not exist
 		response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/nothinghthere", new Header[0]);
@@ -215,12 +215,12 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         // PATCH with relative JSON pointer, must fail
         rh.sendAdminCertificate = true;
-        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", "[{ \"op\": \"add\", \"path\": \"1/INTERNAL/allowed_actions/-\", \"value\": \"OPENDISTRO_SECURITY_DELETE\" }]", new Header[0]);
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", "[{ \"op\": \"add\", \"path\": \"1/INTERNAL/allowed_actions/-\", \"value\": \"SECURITY_DELETE\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH new format
         rh.sendAdminCertificate = true;
-        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", "[{ \"op\": \"add\", \"path\": \"/allowed_actions/-\", \"value\": \"OPENDISTRO_SECURITY_DELETE\" }]", new Header[0]);
+        response = rh.executePatchRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", "[{ \"op\": \"add\", \"path\": \"/allowed_actions/-\", \"value\": \"SECURITY_DELETE\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest("/_opendistro/_security/api/actiongroups/CRUD_UT", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -229,8 +229,8 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertNotNull(permissions);
         Assert.assertEquals(3, permissions.size());
         Assert.assertTrue(permissions.contains("READ_UT"));
-        Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_WRITE"));
-        Assert.assertTrue(permissions.contains("OPENDISTRO_SECURITY_DELETE"));
+        Assert.assertTrue(permissions.contains("SECURITY_WRITE"));
+        Assert.assertTrue(permissions.contains("SECURITY_DELETE"));
 
 
         // -- PATCH on whole config resource

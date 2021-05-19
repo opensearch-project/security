@@ -14,7 +14,7 @@ user1:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 role_klingons1:
   reserved: false
@@ -29,7 +29,7 @@ role_klingons1:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 role_klingons2:
   reserved: false
@@ -43,7 +43,7 @@ role_klingons2:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 role_starfleet:
   reserved: false
@@ -59,7 +59,7 @@ role_starfleet:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
     - "indices:*"
   - index_patterns:
     - "pub*"
@@ -67,5 +67,5 @@ role_starfleet:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []

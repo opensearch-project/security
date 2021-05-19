@@ -40,7 +40,7 @@ public class SaltTest {
 
         // assert
         assertEquals(SALT_SIZE, salt.getSalt16().length);
-        assertArrayEquals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
+        assertArrayEquals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT.getBytes(StandardCharsets.UTF_8), salt.getSalt16());
     }
 
     @Test
@@ -48,7 +48,7 @@ public class SaltTest {
         // arrange
         final String testSalt = "abcdefghijklmnop";
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_SALT, testSalt)
                 .build();
 
         // act
@@ -64,7 +64,7 @@ public class SaltTest {
         // arrange
         final String testSalt = "abcdefghijklmnopqrstuvwxyz";
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_SALT, testSalt)
                 .build();
         // act
         final Salt salt = Salt.from(settings);
@@ -83,7 +83,7 @@ public class SaltTest {
         // arrange
         final String testSalt = "abcd";
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, testSalt)
+                .put(ConfigConstants.SECURITY_COMPLIANCE_SALT, testSalt)
                 .build();
         // act
         final Salt salt = Salt.from(settings);

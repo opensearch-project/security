@@ -1,11 +1,11 @@
-OPENDISTRO_SECURITY_UNLIMITED:
+SECURITY_UNLIMITED:
   readonly: true
   permissions:
     - "*"
 
 ###### INDEX LEVEL ######
 
-OPENDISTRO_SECURITY_INDICES_ALL:
+SECURITY_INDICES_ALL:
   readonly: true
   permissions:
     - "indices:*"
@@ -16,19 +16,19 @@ ALL:
   permissions:
     - INDICES_ALL
 
-OPENDISTRO_SECURITY_MANAGE:
+SECURITY_MANAGE:
   readonly: true
   permissions:
     - "indices:monitor/*"
     - "indices:admin/*"
 
-OPENDISTRO_SECURITY_CREATE_INDEX:
+SECURITY_CREATE_INDEX:
   readonly: true
   permissions:
     - "indices:admin/create"
     - "indices:admin/mapping/put"
 
-OPENDISTRO_SECURITY_MANAGE_ALIASES:
+SECURITY_MANAGE_ALIASES:
   readonly: true
   permissions:
     - "indices:admin/aliases*"
@@ -39,53 +39,53 @@ MONITOR:
   permissions:
     - INDICES_MONITOR
 
-OPENDISTRO_SECURITY_INDICES_MONITOR:
+SECURITY_INDICES_MONITOR:
   readonly: true
   permissions:
     - "indices:monitor/*"
 
-OPENDISTRO_SECURITY_DATA_ACCESS:
+SECURITY_DATA_ACCESS:
   readonly: true
   permissions:
     - "indices:data/*"
     - CRUD
 
-OPENDISTRO_SECURITY_WRITE:
+SECURITY_WRITE:
   readonly: true
   permissions:
     - "indices:data/write*"
     - "indices:admin/mapping/put"
 
-OPENDISTRO_SECURITY_READ:
+SECURITY_READ:
   readonly: true
   permissions:
     - "indices:data/read*"
     - "indices:admin/mappings/fields/get*"
 
-OPENDISTRO_SECURITY_DELETE:
+SECURITY_DELETE:
   readonly: true
   permissions:
     - "indices:data/write/delete*"
 
-OPENDISTRO_SECURITY_CRUD:
+SECURITY_CRUD:
   readonly: true
   permissions:
     - READ
     - WRITE
 
-OPENDISTRO_SECURITY_SEARCH:
+SECURITY_SEARCH:
   readonly: true
   permissions:
     - "indices:data/read/search*"
     - "indices:data/read/msearch*"
     - SUGGEST
 
-OPENDISTRO_SECURITY_SUGGEST:
+SECURITY_SUGGEST:
   readonly: true
   permissions:
     - "indices:data/read/suggest*"
 
-OPENDISTRO_SECURITY_INDEX:
+SECURITY_INDEX:
   readonly: true
   permissions:
     - "indices:data/write/index*"
@@ -93,7 +93,7 @@ OPENDISTRO_SECURITY_INDEX:
     - "indices:admin/mapping/put"
     - "indices:data/write/bulk*"
 
-OPENDISTRO_SECURITY_GET:
+SECURITY_GET:
   readonly: true
   permissions:
     - "indices:data/read/get*"
@@ -101,17 +101,17 @@ OPENDISTRO_SECURITY_GET:
 
 ###### CLUSTER LEVEL ######
 
-OPENDISTRO_SECURITY_CLUSTER_ALL:
+SECURITY_CLUSTER_ALL:
   readonly: true
   permissions:
     - "cluster:*"
 
-OPENDISTRO_SECURITY_CLUSTER_MONITOR:
+SECURITY_CLUSTER_MONITOR:
   readonly: true
   permissions:
     - "cluster:monitor/*"
 
-OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO:
+SECURITY_CLUSTER_COMPOSITE_OPS_RO:
   readonly: true
   permissions:
     - "indices:data/read/mget"
@@ -121,7 +121,7 @@ OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO:
     - "indices:admin/aliases/get*"
     - "indices:data/read/scroll"
 
-OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS:
+SECURITY_CLUSTER_COMPOSITE_OPS:
   readonly: true
   permissions:
     - "indices:data/write/bulk"
@@ -129,7 +129,7 @@ OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS:
     - "indices:data/write/reindex"
     - CLUSTER_COMPOSITE_OPS_RO
   
-OPENDISTRO_SECURITY_MANAGE_SNAPSHOTS:
+SECURITY_MANAGE_SNAPSHOTS:
   readonly: true
   permissions:
     - "cluster:admin/snapshot/*"

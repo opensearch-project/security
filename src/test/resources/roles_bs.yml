@@ -7,7 +7,7 @@ public:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  - "SECURITY_CLUSTER_COMPOSITE_OPS"
   index_permissions:
   - index_patterns:
     - "*"

@@ -116,13 +116,13 @@ public class SecurityInterceptor {
             TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
 
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
-        final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final String injectedUserString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
-        final String origin0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
-        final Object remoteAddress0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        final String origCCSTransientDls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS);
-        final String origCCSTransientFls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS);
-        final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
+        final User user0 = getThreadContext().getTransient(ConfigConstants.SECURITY_USER);
+        final String injectedUserString = getThreadContext().getTransient(ConfigConstants.SECURITY_INJECTED_USER);
+        final String origin0 = getThreadContext().getTransient(ConfigConstants.SECURITY_ORIGIN);
+        final Object remoteAddress0 = getThreadContext().getTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS);
+        final String origCCSTransientDls = getThreadContext().getTransient(ConfigConstants.SECURITY_DLS_QUERY_CCS);
+        final String origCCSTransientFls = getThreadContext().getTransient(ConfigConstants.SECURITY_FLS_FIELDS_CCS);
+        final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
@@ -130,16 +130,16 @@ public class SecurityInterceptor {
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
             final Map<String, String> headerMap = new HashMap<>(Maps.filterKeys(origHeaders0, k->k!=null && (
-                    k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
+                    k.equals(ConfigConstants.SECURITY_CONF_REQUEST_HEADER)
+                            || k.equals(ConfigConstants.SECURITY_ORIGIN_HEADER)
+                            || k.equals(ConfigConstants.SECURITY_REMOTE_ADDRESS_HEADER)
+                            || k.equals(ConfigConstants.SECURITY_USER_HEADER)
+                            || k.equals(ConfigConstants.SECURITY_DLS_QUERY_HEADER)
+                            || k.equals(ConfigConstants.SECURITY_FLS_FIELDS_HEADER)
+                            || k.equals(ConfigConstants.SECURITY_MASKED_FIELD_HEADER)
                             || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
-                            || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
+                            || k.startsWith(ConfigConstants.SECURITY_INITIAL_ACTION_CLASS_HEADER)
             )));
 
             if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
@@ -151,9 +151,9 @@ public class SecurityInterceptor {
                 if (isDebugEnabled) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
                 }
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+                headerMap.remove(ConfigConstants.SECURITY_DLS_QUERY_HEADER);
+                headerMap.remove(ConfigConstants.SECURITY_MASKED_FIELD_HEADER);
+                headerMap.remove(ConfigConstants.SECURITY_FLS_FIELDS_HEADER);
             }
 
             if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
@@ -167,13 +167,13 @@ public class SecurityInterceptor {
                 }
 
                 if (origCCSTransientDls != null && !origCCSTransientDls.isEmpty()) {
-                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, origCCSTransientDls);
+                    headerMap.put(ConfigConstants.SECURITY_DLS_QUERY_HEADER, origCCSTransientDls);
                 }
                 if (origCCSTransientMf != null && !origCCSTransientMf.isEmpty()) {
-                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, origCCSTransientMf);
+                    headerMap.put(ConfigConstants.SECURITY_MASKED_FIELD_HEADER, origCCSTransientMf);
                 }
                 if (origCCSTransientFls != null && !origCCSTransientFls.isEmpty()) {
-                    headerMap.put(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, origCCSTransientFls);
+                    headerMap.put(ConfigConstants.SECURITY_FLS_FIELDS_HEADER, origCCSTransientFls);
                 }
             }
 
@@ -192,32 +192,32 @@ public class SecurityInterceptor {
     private void ensureCorrectHeaders(final Object remoteAdr, final User origUser, final String origin, final String injectedUserString) {
         // keep original address
 
-        if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
-            getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, origin);
+        if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.SECURITY_ORIGIN_HEADER) == null) {
+            getThreadContext().putHeader(ConfigConstants.SECURITY_ORIGIN_HEADER, origin);
         }
 
-        if(origin == null && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
-            getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
+        if(origin == null && getThreadContext().getHeader(ConfigConstants.SECURITY_ORIGIN_HEADER) == null) {
+            getThreadContext().putHeader(ConfigConstants.SECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
         }
 
         if (remoteAdr != null && remoteAdr instanceof TransportAddress) {
 
-            String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
+            String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.SECURITY_REMOTE_ADDRESS_HEADER);
 
             if(remoteAddressHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
+                getThreadContext().putHeader(ConfigConstants.SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
             }
         }
 
 
-        String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+        String userHeader = getThreadContext().getHeader(ConfigConstants.SECURITY_USER_HEADER);
 
         if(userHeader == null) {
             if(origUser != null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                getThreadContext().putHeader(ConfigConstants.SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
             }
             else if(StringUtils.isNotEmpty(injectedUserString)) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
+                getThreadContext().putHeader(ConfigConstants.SECURITY_INJECTED_USER_HEADER, injectedUserString);
             }
         }
 
@@ -247,9 +247,9 @@ public class SecurityInterceptor {
 
         @Override
         public void handleResponse(T response) {
-            final List<String> flsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
-            final List<String> dlsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
-            final List<String> maskedFieldsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+            final List<String> flsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.SECURITY_FLS_FIELDS_HEADER);
+            final List<String> dlsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.SECURITY_DLS_QUERY_HEADER);
+            final List<String> maskedFieldsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.SECURITY_MASKED_FIELD_HEADER);
 
             contextToRestore.restore();
 
@@ -258,14 +258,14 @@ public class SecurityInterceptor {
                 if (isDebugEnabled) {
                     log.debug("add flsResponseHeader as transient");
                 }
-                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
+                getThreadContext().putTransient(ConfigConstants.SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
             }
 
             if (response instanceof ClusterSearchShardsResponse && dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
                 if (isDebugEnabled) {
                     log.debug("add dlsResponseHeader as transient");
                 }
-                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
+                getThreadContext().putTransient(ConfigConstants.SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
 
             }
 
@@ -273,7 +273,7 @@ public class SecurityInterceptor {
                 if (isDebugEnabled) {
                     log.debug("add maskedFieldsResponseHeader as transient");
                 }
-                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));
+                getThreadContext().putTransient(ConfigConstants.SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));
             }
 
             innerHandler.handleResponse(response);

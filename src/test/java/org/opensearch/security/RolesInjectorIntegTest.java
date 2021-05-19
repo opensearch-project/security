@@ -68,7 +68,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
                                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                                    Supplier<RepositoriesService> repositoriesServiceSupplier) {
             if(injectedRoles != null)
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRoles);
+                threadPool.getThreadContext().putTransient(ConfigConstants.SECURITY_INJECTED_ROLES, injectedRoles);
             return new ArrayList<>();
         }
     }

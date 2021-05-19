@@ -7,7 +7,7 @@ esb_1:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  - "SECURITY_CLUSTER_COMPOSITE_OPS"
   index_permissions:
   - index_patterns:
     - "esb-prod-1"
@@ -22,7 +22,7 @@ esb_5:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  - "SECURITY_CLUSTER_COMPOSITE_OPS"
   index_permissions:
   - index_patterns:
     - "esb-prod-5"
@@ -37,7 +37,7 @@ esb_3:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  - "SECURITY_CLUSTER_COMPOSITE_OPS"
   index_permissions:
   - index_patterns:
     - "esb-prod-3"

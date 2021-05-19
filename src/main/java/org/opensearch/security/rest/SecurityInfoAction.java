@@ -97,9 +97,9 @@ public class SecurityInfoAction extends BaseRestHandler {
                     
                     final boolean verbose = request.paramAsBoolean("verbose", false);
                     
-                    final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES);
-                    final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+                    final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.SECURITY_SSL_PEER_CERTIFICATES);
+                    final User user = threadContext.getTransient(ConfigConstants.SECURITY_USER);
+                    final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS);
 
                     final Set<String> securityRoles = evaluator.mapRoles(user, remoteAddress);
 
@@ -112,7 +112,7 @@ public class SecurityInfoAction extends BaseRestHandler {
                     builder.field("custom_attribute_names", user==null?null:user.getCustomAttributesMap().keySet());
                     builder.field("roles", securityRoles);
                     builder.field("tenants", evaluator.mapTenants(user, securityRoles));
-                    builder.field("principal", (String)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL));
+                    builder.field("principal", (String)threadContext.getTransient(ConfigConstants.SECURITY_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
                     builder.field("sso_logout_url", (String)threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));
                     

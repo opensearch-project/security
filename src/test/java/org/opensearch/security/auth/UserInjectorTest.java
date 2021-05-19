@@ -32,7 +32,7 @@ public class UserInjectorTest {
     public void setup() {
         threadPool = mock(ThreadPool.class);
         Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .build();
         threadContext = new ThreadContext(settings);
         Mockito.when(threadPool.getThreadContext()).thenReturn(threadContext);
@@ -45,7 +45,7 @@ public class UserInjectorTest {
     public void testValidInjectUser() {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2");
+        threadContext.putTransient(ConfigConstants.SECURITY_INJECTED_USER, "user|role1,role2");
         User injectedUser = userInjector.getInjectedUser();
         assertEquals(injectedUser.getName(), "user");
         assertEquals(injectedUser.getRoles(), roles);
@@ -55,7 +55,7 @@ public class UserInjectorTest {
     public void testInvalidInjectUser() {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
-        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "|role1,role2");
+        threadContext.putTransient(ConfigConstants.SECURITY_INJECTED_USER, "|role1,role2");
         User injectedUser = userInjector.getInjectedUser();
         assertNull(injectedUser);
     }

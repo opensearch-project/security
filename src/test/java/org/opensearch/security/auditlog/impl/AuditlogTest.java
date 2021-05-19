@@ -54,7 +54,7 @@ public class AuditlogTest {
     public void testClusterHealthRequest() {
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+                .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
@@ -71,7 +71,7 @@ public class AuditlogTest {
 
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+                .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
@@ -84,9 +84,9 @@ public class AuditlogTest {
 
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_REST, true)
+                .put(ConfigConstants.SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         TestAuditlogImpl.clear();
@@ -103,11 +103,11 @@ public class AuditlogTest {
 
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", RetrySink.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_COUNT, 10)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_DELAY_MS, 500)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_REST, true)
+                .put(ConfigConstants.SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
+                .put(ConfigConstants.SECURITY_AUDIT_RETRY_COUNT, 10)
+                .put(ConfigConstants.SECURITY_AUDIT_RETRY_DELAY_MS, 500)
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         al.logSSLException(null, new Exception("test retry"));
@@ -122,11 +122,11 @@ public class AuditlogTest {
 
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.type", RetrySink.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_COUNT, 0)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_DELAY_MS, 500)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_REST, true)
+                .put(ConfigConstants.SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
+                .put(ConfigConstants.SECURITY_AUDIT_RETRY_COUNT, 0)
+                .put(ConfigConstants.SECURITY_AUDIT_RETRY_DELAY_MS, 500)
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         al.logSSLException(null, new Exception("test retry"));
@@ -136,7 +136,7 @@ public class AuditlogTest {
     @Test
     public void testRestFilterEnabledCheck() {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_REST, false)
                 .build();
         final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         for (AuditCategory category: AuditCategory.values()) {
@@ -147,7 +147,7 @@ public class AuditlogTest {
     @Test
     public void testTransportFilterEnabledCheck() {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .build();
         final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         for (AuditCategory category: AuditCategory.values()) {
@@ -158,8 +158,8 @@ public class AuditlogTest {
     @Test
     public void testTransportFilterMonitorActionsCheck() {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+                .put(ConfigConstants.SECURITY_AUDIT_ENABLE_TRANSPORT, true)
+                .put(ConfigConstants.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .build();
         final AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         for (AuditCategory category: AuditCategory.values()) {

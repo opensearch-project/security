@@ -109,7 +109,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         this.settings = settings;
         this.resolver = resolver;
         this.clusterService = clusterService;
-        this.securityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.SECURITY_DEFAULT_CONFIG_INDEX);
         this.environment = environment;
     }
 
@@ -308,12 +308,12 @@ public abstract class AbstractAuditLog implements AuditLog {
     @Override
     public void logSecurityIndexAttempt(TransportRequest request, String action, Task task) {
 
-        if(!checkTransportFilter(AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT, action, getUser(), request)) {
+        if(!checkTransportFilter(AuditCategory.SECURITY_INDEX_ATTEMPT, action, getUser(), request)) {
             return;
         }
 
         final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT, getOrigin(), action, null, getUser(), false, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), securityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
+        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.SECURITY_INDEX_ATTEMPT, getOrigin(), action, null, getUser(), false, null, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), securityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
 
         for(AuditMessage msg: msgs) {
             save(msg);
@@ -361,7 +361,7 @@ public abstract class AbstractAuditLog implements AuditLog {
             return;
         }
 
-        final String initiatingRequestClass = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
+        final String initiatingRequestClass = threadPool.getThreadContext().getHeader(ConfigConstants.SECURITY_INITIAL_ACTION_CLASS_HEADER);
 
         if(initiatingRequestClass != null && writeClasses.contains(initiatingRequestClass)) {
             return;
@@ -606,27 +606,27 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     private Origin getOrigin() {
-        String origin = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
+        String origin = (String) threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_ORIGIN);
 
-        if(origin == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) != null) {
-            origin = threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER);
+        if(origin == null && threadPool.getThreadContext().getHeader(ConfigConstants.SECURITY_ORIGIN_HEADER) != null) {
+            origin = threadPool.getThreadContext().getHeader(ConfigConstants.SECURITY_ORIGIN_HEADER);
         }
 
         return origin == null?null:Origin.valueOf(origin);
     }
 
     private TransportAddress getRemoteAddress() {
-        TransportAddress address = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        if(address == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER) != null) {
-            address = new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)));
+        TransportAddress address = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS);
+        if(address == null && threadPool.getThreadContext().getHeader(ConfigConstants.SECURITY_REMOTE_ADDRESS_HEADER) != null) {
+            address = new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(threadPool.getThreadContext().getHeader(ConfigConstants.SECURITY_REMOTE_ADDRESS_HEADER)));
         }
         return address;
     }
 
     private String getUser() {
-        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if(user == null && threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER) != null) {
-            user = (User) Base64Helper.deserializeObject(threadPool.getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER));
+        User user = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_USER);
+        if(user == null && threadPool.getThreadContext().getHeader(ConfigConstants.SECURITY_USER_HEADER) != null) {
+            user = (User) Base64Helper.deserializeObject(threadPool.getThreadContext().getHeader(ConfigConstants.SECURITY_USER_HEADER));
         }
         return user==null?null:user.getName();
     }

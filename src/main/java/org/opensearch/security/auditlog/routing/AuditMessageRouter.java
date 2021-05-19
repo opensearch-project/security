@@ -110,7 +110,7 @@ public class AuditMessageRouter {
         if (categorySinks != null) {
             return;
         }
-        Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_ROUTES));
+        Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.SECURITY_AUDIT_CONFIG_ROUTES));
         EnumSet<AuditCategory> presentAuditCategory = EnumSet.noneOf(AuditCategory.class);
         categorySinks = routesConfiguration.entrySet().stream()
             .peek(entry -> log.trace("Setting up routes for endpoint {}, configuration is {}", entry.getKey(), entry.getValue()))

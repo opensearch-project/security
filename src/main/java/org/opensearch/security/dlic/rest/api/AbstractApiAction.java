@@ -88,8 +88,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                                 ThreadPool threadPool, AuditLog auditLog) {
 		super();
 		this.settings = settings;
-		this.opendistroIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME,
-				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+		this.opendistroIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+				ConfigConstants.SECURITY_DEFAULT_CONFIG_INDEX);
 
 		this.adminDNs = adminDNs;
 		this.cl = cl;
@@ -373,7 +373,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		// check if request is authorized
 		String authError = restApiPrivilegesEvaluator.checkAccessPermissions(request, getEndpoint());
 
-		final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+		final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_USER);
 		final String userName = user == null ? null : user.getName();
 		if (authError != null) {
 			log.error("No permission to access REST API: " + authError);
@@ -385,17 +385,17 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 			auditLog.logGrantedPrivileges(userName, request);
 		}
 
-		final Object originalUser = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+		final Object originalUser = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_USER);
 		final Object originalRemoteAddress = threadPool.getThreadContext()
-				.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-		final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
+				.getTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS);
+		final Object originalOrigin = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_ORIGIN);
 
 		return channel -> threadPool.generic().submit(() -> {
 			try (StoredContext ignore = threadPool.getThreadContext().stashContext()) {
-				threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, originalUser);
-				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
-				threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originalOrigin);
+				threadPool.getThreadContext().putHeader(ConfigConstants.SECURITY_CONF_REQUEST_HEADER, "true");
+				threadPool.getThreadContext().putTransient(ConfigConstants.SECURITY_USER, originalUser);
+				threadPool.getThreadContext().putTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
+				threadPool.getThreadContext().putTransient(ConfigConstants.SECURITY_ORIGIN, originalOrigin);
 
 				handleApiRequest(channel, request, client);
 			} catch (Exception e) {
@@ -557,7 +557,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected abstract Endpoint getEndpoint();
 
 	protected boolean isSuperAdmin() {
-		User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+		User user = threadPool.getThreadContext().getTransient(ConfigConstants.SECURITY_USER);
 		return adminDNs.isAdmin(user);
 	}
 

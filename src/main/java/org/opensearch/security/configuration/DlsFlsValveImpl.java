@@ -139,7 +139,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
         try {
             final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
-                    ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+                    ConfigConstants.SECURITY_DLS_QUERY_HEADER);
 
             final String dlsEval = SecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
 

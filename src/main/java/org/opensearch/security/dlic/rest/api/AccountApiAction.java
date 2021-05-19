@@ -128,9 +128,9 @@ public class AccountApiAction extends AbstractApiAction {
 
         try {
             builder.startObject();
-            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            final User user = threadContext.getTransient(ConfigConstants.SECURITY_USER);
             if (user != null) {
-                final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+                final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS);
                 final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
                 final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
 
@@ -183,7 +183,7 @@ public class AccountApiAction extends AbstractApiAction {
      */
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadContext.getTransient(ConfigConstants.SECURITY_USER);
         final String username = user.getName();
         final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
 
@@ -231,7 +231,7 @@ public class AccountApiAction extends AbstractApiAction {
 
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = threadContext.getTransient(ConfigConstants.SECURITY_USER);
         return new AccountValidator(request, ref, this.settings, user.getName());
     }
 

@@ -106,14 +106,14 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             resolvedActionClass = ((ConcreteShardRequest) request).getRequest().getClass().getSimpleName();
         }
 
-        String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
+        String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.SECURITY_INITIAL_ACTION_CLASS_HEADER);
 
         final ThreadContext.StoredContext sgContext = getThreadContext().newStoredContext(false);
 
-        final String originHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER);
+        final String originHeader = getThreadContext().getHeader(ConfigConstants.SECURITY_ORIGIN_HEADER);
 
         if(!Strings.isNullOrEmpty(originHeader)) {
-            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, originHeader);
+            getThreadContext().putTransient(ConfigConstants.SECURITY_ORIGIN, originHeader);
         }
 
         try {
@@ -129,8 +129,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 channelType = innerChannel.getChannelType();
             }
 
-            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE, channelType);
-            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME, task.getAction());
+            getThreadContext().putTransient(ConfigConstants.SECURITY_CHANNEL_TYPE, channelType);
+            getThreadContext().putTransient(ConfigConstants.SECURITY_ACTION_NAME, task.getAction());
 
             if(request instanceof ShardSearchRequest) {
                 ShardSearchRequest sr = ((ShardSearchRequest) request);
@@ -141,21 +141,21 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             //bypass non-netty requests
             if(channelType.equals("direct")) {
-                final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
+                final String userHeader = getThreadContext().getHeader(ConfigConstants.SECURITY_USER_HEADER);
+                final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.SECURITY_INJECTED_USER_HEADER);
 
                 if(Strings.isNullOrEmpty(userHeader)) {
                     if(!Strings.isNullOrEmpty(injectedUserHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
+                        getThreadContext().putTransient(ConfigConstants.SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
+                    getThreadContext().putTransient(ConfigConstants.SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
                 }
 
-                final String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
+                final String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.SECURITY_REMOTE_ADDRESS_HEADER);
 
                 if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
+                    getThreadContext().putTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                 }
 
                 if (isActionTraceEnabled()) {
@@ -186,7 +186,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             String principal = null;
 
-            if ((principal = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL)) == null) {
+            if ((principal = getThreadContext().getTransient(ConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new OpenSearchSecurityException(
                         "No SSL client certificates found for transport type "+transportChannel.getChannelType()+". OpenSearch Security needs the OpenSearch Security SSL plugin to be installed");
                 auditLog.logSSLException(request, ex, task.getAction(), task);
@@ -195,31 +195,31 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 return;
             } else {
 
-                if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
+                if(getThreadContext().getTransient(ConfigConstants.SECURITY_ORIGIN) == null) {
+                    getThreadContext().putTransient(ConfigConstants.SECURITY_ORIGIN, Origin.TRANSPORT.toString());
                 }
 
                 //network intercluster request or cross search cluster request
                 if(HeaderHelper.isInterClusterRequest(getThreadContext())
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())) {
 
-                    final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-                    final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
+                    final String userHeader = getThreadContext().getHeader(ConfigConstants.SECURITY_USER_HEADER);
+                    final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.SECURITY_INJECTED_USER_HEADER);
 
                     if(Strings.isNullOrEmpty(userHeader)) {
                         if(!Strings.isNullOrEmpty(injectedUserHeader)) {
-                            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
+                            getThreadContext().putTransient(ConfigConstants.SECURITY_INJECTED_USER, injectedUserHeader);
                         }
                     } else {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
+                        getThreadContext().putTransient(ConfigConstants.SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
                     }
 
-                    String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
+                    String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.SECURITY_REMOTE_ADDRESS_HEADER);
 
                     if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
+                        getThreadContext().putTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                     } else {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
+                        getThreadContext().putTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS, request.remoteAddress());
                     }
 
                 } else {
@@ -227,7 +227,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     //this is a netty request from a non-server node (maybe also be internal: or a shard request)
                     //and therefore issued by a transport client
 
-                    if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
+                    if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.SECURITY_CONFIG_PREFIX)) {
                         final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
                         auditLog.logBadHeaders(request, task.getAction(), task);
                         log.error(exception);
@@ -253,8 +253,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                                 }
 
 
-                        log.error("Cannot authenticate {} for {}", getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER), task.getAction());
-                        transportChannel.sendResponse(new OpenSearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)));
+                        log.error("Cannot authenticate {} for {}", getThreadContext().getTransient(ConfigConstants.SECURITY_USER), task.getAction());
+                        transportChannel.sendResponse(new OpenSearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.SECURITY_USER)));
                         return;
                     } else {
                         // make it possible to filter logs by username
@@ -267,11 +267,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     //return;
                     //}
 
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                    getThreadContext().putTransient(ConfigConstants.SECURITY_USER, user);
                     TransportAddress originalRemoteAddress = request.remoteAddress();
 
                     if(originalRemoteAddress != null && (originalRemoteAddress instanceof TransportAddress)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
+                        getThreadContext().putTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
                     } else {
                         log.error("Request has no proper remote address {}", originalRemoteAddress);
                         transportChannel.sendResponse(new OpenSearchException("Request has no proper remote address"));
@@ -302,12 +302,12 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     
     private void putInitialActionClassHeader(String initialActionClassValue, String resolvedActionClass) {
         if(initialActionClassValue == null) {
-            if(getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER, resolvedActionClass);
+            if(getThreadContext().getHeader(ConfigConstants.SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
+                getThreadContext().putHeader(ConfigConstants.SECURITY_INITIAL_ACTION_CLASS_HEADER, resolvedActionClass);
             }
         } else {
-            if(getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER, initialActionClassValue);
+            if(getThreadContext().getHeader(ConfigConstants.SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {
+                getThreadContext().putHeader(ConfigConstants.SECURITY_INITIAL_ACTION_CLASS_HEADER, initialActionClassValue);
             }
         }
 
@@ -326,9 +326,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     log.trace("Is inter cluster request ({}/{}/{})", action, request.getClass(), request.remoteAddress());
                 }
 
-                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST, Boolean.TRUE);
+                getThreadContext().putTransient(ConfigConstants.SECURITY_SSL_TRANSPORT_INTERCLUSTER_REQUEST, Boolean.TRUE);
             } else {
-                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
+                getThreadContext().putTransient(ConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
             }
 
         } else {

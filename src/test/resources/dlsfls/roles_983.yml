@@ -20,7 +20,7 @@ opendistro_security_human_resources_trainee:
     - "LocalRules"
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
     - "indices:admin/shards/search_shards"
   - index_patterns:
     - "?kibana"

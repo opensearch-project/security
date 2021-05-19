@@ -66,7 +66,7 @@ opendistro_security_fls_fields_wc:
     - "*field*"
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 opendistro_security_aaa:
   reserved: false
@@ -130,7 +130,7 @@ opendistro_security_fls_fields:
     - "*field*"
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 opendistro_security_masked:
   reserved: false
@@ -164,7 +164,7 @@ opendistro_security_dls_without_field_perm:
     - "zip"
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 opendistro_security_dls_multi2:
   reserved: false
@@ -183,7 +183,7 @@ opendistro_security_dls_multi2:
     - "zip"
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 opendistro_security_perf_named_ex:
   reserved: false
@@ -1251,7 +1251,7 @@ opendistro_security_midsized_deals:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 opendistro_security_dls_multi1:
   reserved: false
@@ -1269,14 +1269,14 @@ opendistro_security_dls_multi1:
     - "amount"
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 opendistro_security_masked_nowc:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  - "SECURITY_CLUSTER_COMPOSITE_OPS"
   index_permissions:
   - index_patterns:
     - "logs"
@@ -1328,7 +1328,7 @@ opendistro_security_masked_nowc1:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  - "SECURITY_CLUSTER_COMPOSITE_OPS"
   index_permissions:
   - index_patterns:
     - "logs"
@@ -1377,14 +1377,14 @@ opendistro_security_prop_replace:
     fls: null
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   - index_patterns:
     - "prop2"
     dls: "{\"terms\" : { \"role\" : [${user.roles}]}}"
     fls: null
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []
 opendistro_security_logstash:
   reserved: false
@@ -2464,5 +2464,5 @@ opendistro_security_combined:
     - "amount"
     masked_fields: null
     allowed_actions:
-    - "OPENDISTRO_SECURITY_READ"
+    - "SECURITY_READ"
   tenant_permissions: []

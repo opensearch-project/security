@@ -127,7 +127,7 @@ public final class RequestResolver {
 
             if(category != AuditCategory.FAILED_LOGIN
                     && category != AuditCategory.MISSING_PRIVILEGES
-                    && category != AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT) {
+                    && category != AuditCategory.SECURITY_INDEX_ATTEMPT) {
 
                 return Collections.emptyList();
             }

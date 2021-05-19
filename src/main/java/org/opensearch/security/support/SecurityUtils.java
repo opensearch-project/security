@@ -124,7 +124,7 @@ public final class SecurityUtils {
             return in;
         }
         
-        if(settings == null || settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)) {
+        if(settings == null || settings.getAsBoolean(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)) {
             return in;
         }
         

@@ -78,21 +78,21 @@ public class DlsFlsEvaluator {
         if (maskedFieldsMap != null && !maskedFieldsMap.isEmpty()) {
 
             if(request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
-                threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
+                threadContext.addResponseHeader(ConfigConstants.SECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
                 if (isDebugEnabled) {
                     log.debug("Added response header for masked fields info: {}", maskedFieldsMap);
                 }
             } else {
-                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER) != null) {
-                    if (!maskedFieldsMap.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)))) {
-                        throw new OpenSearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " does not match  ");
+                if (threadContext.getHeader(ConfigConstants.SECURITY_MASKED_FIELD_HEADER) != null) {
+                    if (!maskedFieldsMap.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.SECURITY_MASKED_FIELD_HEADER)))) {
+                        throw new OpenSearchSecurityException(ConfigConstants.SECURITY_MASKED_FIELD_HEADER + " does not match  ");
                     } else {
                         if (isDebugEnabled) {
-                            log.debug("Header {} already set", ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+                            log.debug("Header {} already set", ConfigConstants.SECURITY_MASKED_FIELD_HEADER);
                         }
                     }
                 } else {
-                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
+                    threadContext.putHeader(ConfigConstants.SECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
                     if (isDebugEnabled) {
                         log.debug("Attach masked fields info: {}", maskedFieldsMap);
                     }
@@ -116,17 +116,17 @@ public class DlsFlsEvaluator {
         if (!dlsQueries.isEmpty()) {
 
             if(request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
-                threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
+                threadContext.addResponseHeader(ConfigConstants.SECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
                 if (isDebugEnabled) {
                     log.debug("Added response header for DLS info: {}", dlsQueries);
                 }
             } else {
-                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER) != null) {
-                    if (!dlsQueries.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)))) {
-                        throw new OpenSearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER + " does not match (SG 900D)");
+                if (threadContext.getHeader(ConfigConstants.SECURITY_DLS_QUERY_HEADER) != null) {
+                    if (!dlsQueries.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.SECURITY_DLS_QUERY_HEADER)))) {
+                        throw new OpenSearchSecurityException(ConfigConstants.SECURITY_DLS_QUERY_HEADER + " does not match (SG 900D)");
                     }
                 } else {
-                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
+                    threadContext.putHeader(ConfigConstants.SECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
                     if (isDebugEnabled) {
                         log.debug("Attach DLS info: {}", dlsQueries);
                     }
@@ -143,21 +143,21 @@ public class DlsFlsEvaluator {
         if (!flsFields.isEmpty()) {
 
             if(request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
-                threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
+                threadContext.addResponseHeader(ConfigConstants.SECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
                 if (isDebugEnabled) {
                     log.debug("Added response header for FLS info: {}", flsFields);
                 }
             } else {
-                if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER) != null) {
-                    if (!flsFields.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)))) {
-                        throw new OpenSearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER + " does not match  ");
+                if (threadContext.getHeader(ConfigConstants.SECURITY_FLS_FIELDS_HEADER) != null) {
+                    if (!flsFields.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.SECURITY_FLS_FIELDS_HEADER)))) {
+                        throw new OpenSearchSecurityException(ConfigConstants.SECURITY_FLS_FIELDS_HEADER + " does not match  ");
                     } else {
                         if (isDebugEnabled) {
-                            log.debug("Header {} already set", ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+                            log.debug("Header {} already set", ConfigConstants.SECURITY_FLS_FIELDS_HEADER);
                         }
                     }
                 } else {
-                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
+                    threadContext.putHeader(ConfigConstants.SECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
                     if (isDebugEnabled) {
                         log.debug("Attach FLS info: {}", flsFields);
                     }

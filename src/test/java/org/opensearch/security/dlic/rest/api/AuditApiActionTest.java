@@ -148,7 +148,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         // test success for transport disabled categories
         auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
                 ImmutableMap.of("disabled_transport_categories",
-                        ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES", "INDEX_EVENT", "OPENDISTRO_SECURITY_INDEX_ATTEMPT"))
+                        ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES", "INDEX_EVENT", "SECURITY_INDEX_ATTEMPT"))
         ), ComplianceConfig.DEFAULT);
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
         response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));

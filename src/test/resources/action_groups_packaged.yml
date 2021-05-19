@@ -2,7 +2,7 @@
 _meta:
   type: "actiongroups"
   config_version: 2
-OPENDISTRO_SECURITY_CLUSTER_ALL:
+SECURITY_CLUSTER_ALL:
   reserved: false
   hidden: false
   allowed_actions:
@@ -13,42 +13,42 @@ ALL:
   reserved: false
   hidden: false
   allowed_actions:
-  - "OPENDISTRO_SECURITY_INDICES_ALL"
+  - "SECURITY_INDICES_ALL"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_CRUD:
+SECURITY_CRUD:
   reserved: false
   hidden: false
   allowed_actions:
-  - "OPENDISTRO_SECURITY_READ"
-  - "OPENDISTRO_SECURITY_WRITE"
+  - "SECURITY_READ"
+  - "SECURITY_WRITE"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_SEARCH:
+SECURITY_SEARCH:
   reserved: false
   hidden: false
   allowed_actions:
   - "indices:data/read/search*"
   - "indices:data/read/msearch*"
-  - "OPENDISTRO_SECURITY_SUGGEST"
+  - "SECURITY_SUGGEST"
   type: "index"
   description: "Migrated from v6"
 MONITOR:
   reserved: false
   hidden: false
   allowed_actions:
-  - "OPENDISTRO_SECURITY_INDICES_MONITOR"
+  - "SECURITY_INDICES_MONITOR"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_DATA_ACCESS:
+SECURITY_DATA_ACCESS:
   reserved: false
   hidden: false
   allowed_actions:
   - "indices:data/*"
-  - "OPENDISTRO_SECURITY_CRUD"
+  - "SECURITY_CRUD"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_CREATE_INDEX:
+SECURITY_CREATE_INDEX:
   reserved: false
   hidden: false
   allowed_actions:
@@ -56,7 +56,7 @@ OPENDISTRO_SECURITY_CREATE_INDEX:
   - "indices:admin/mapping/put"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_WRITE:
+SECURITY_WRITE:
   reserved: false
   hidden: false
   allowed_actions:
@@ -64,14 +64,14 @@ OPENDISTRO_SECURITY_WRITE:
   - "indices:admin/mapping/put"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_MANAGE_ALIASES:
+SECURITY_MANAGE_ALIASES:
   reserved: false
   hidden: false
   allowed_actions:
   - "indices:admin/aliases*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_READ:
+SECURITY_READ:
   reserved: false
   hidden: false
   allowed_actions:
@@ -79,30 +79,30 @@ OPENDISTRO_SECURITY_READ:
   - "indices:admin/mappings/fields/get*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_INDICES_ALL:
+SECURITY_INDICES_ALL:
   reserved: false
   hidden: false
   allowed_actions:
   - "indices:*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_DELETE:
+SECURITY_DELETE:
   reserved: false
   hidden: false
   allowed_actions:
   - "indices:data/write/delete*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS:
+SECURITY_CLUSTER_COMPOSITE_OPS:
   reserved: false
   hidden: false
   allowed_actions:
   - "indices:data/write/bulk"
   - "indices:admin/aliases*"
-  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO"
+  - "SECURITY_CLUSTER_COMPOSITE_OPS_RO"
   type: "cluster"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO:
+SECURITY_CLUSTER_COMPOSITE_OPS_RO:
   reserved: false
   hidden: false
   allowed_actions:
@@ -114,7 +114,7 @@ OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS_RO:
   - "indices:admin/aliases/get*"
   type: "cluster"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_GET:
+SECURITY_GET:
   reserved: false
   hidden: false
   allowed_actions:
@@ -122,7 +122,7 @@ OPENDISTRO_SECURITY_GET:
   - "indices:data/read/mget*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_MANAGE:
+SECURITY_MANAGE:
   reserved: false
   hidden: false
   allowed_actions:
@@ -130,14 +130,14 @@ OPENDISTRO_SECURITY_MANAGE:
   - "indices:admin/*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_CLUSTER_MONITOR:
+SECURITY_CLUSTER_MONITOR:
   reserved: false
   hidden: false
   allowed_actions:
   - "cluster:monitor/*"
   type: "cluster"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_MANAGE_SNAPSHOTS:
+SECURITY_MANAGE_SNAPSHOTS:
   reserved: false
   hidden: false
   allowed_actions:
@@ -145,7 +145,7 @@ OPENDISTRO_SECURITY_MANAGE_SNAPSHOTS:
   - "cluster:admin/repository/*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_INDEX:
+SECURITY_INDEX:
   reserved: false
   hidden: false
   allowed_actions:
@@ -155,21 +155,21 @@ OPENDISTRO_SECURITY_INDEX:
   - "indices:data/write/bulk*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_UNLIMITED:
+SECURITY_UNLIMITED:
   reserved: false
   hidden: false
   allowed_actions:
   - "*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_INDICES_MONITOR:
+SECURITY_INDICES_MONITOR:
   reserved: false
   hidden: false
   allowed_actions:
   - "indices:monitor/*"
   type: "index"
   description: "Migrated from v6"
-OPENDISTRO_SECURITY_SUGGEST:
+SECURITY_SUGGEST:
   reserved: false
   hidden: false
   allowed_actions:

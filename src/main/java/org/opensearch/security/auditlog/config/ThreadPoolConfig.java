@@ -47,8 +47,8 @@ public class ThreadPoolConfig {
     }
 
     public static ThreadPoolConfig getConfig(Settings settings) {
-        int threadPoolSize = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_THREADPOOL_SIZE, DEFAULT_THREAD_POOL_SIZE);
-        int threadPoolMaxQueueLen = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN, DEFAULT_THREAD_POOL_MAX_QUEUE_LEN);
+        int threadPoolSize = settings.getAsInt(ConfigConstants.SECURITY_AUDIT_THREADPOOL_SIZE, DEFAULT_THREAD_POOL_SIZE);
+        int threadPoolMaxQueueLen = settings.getAsInt(ConfigConstants.SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN, DEFAULT_THREAD_POOL_MAX_QUEUE_LEN);
 
         return new ThreadPoolConfig(threadPoolSize, threadPoolMaxQueueLen);
     }

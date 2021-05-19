@@ -137,7 +137,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
 
-        if(opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
+        if(opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
                 loadStaticConfig();
             } catch (IOException e) {
@@ -147,7 +147,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             log.info("Static resources will not be loaded.");
         }
         
-        if(opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
+        if(opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
                 loadStaticConfig();
             } catch (IOException e) {

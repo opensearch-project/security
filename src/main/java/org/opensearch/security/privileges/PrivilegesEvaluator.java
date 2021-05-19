@@ -98,7 +98,7 @@ import org.opensearch.security.user.User;
 import com.google.common.collect.Sets;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class PrivilegesEvaluator {
 
@@ -142,8 +142,8 @@ public class PrivilegesEvaluator {
         this.privilegesInterceptor = privilegesInterceptor;
 
 
-        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
-                ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
+        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+                ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
 
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
@@ -174,7 +174,7 @@ public class PrivilegesEvaluator {
     }
 
     private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
-        if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
+        if (threadContext.getTransient(SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             joiner.add(user.getName());
             joiner.add(String.join(",", user.getRoles()));
@@ -183,7 +183,7 @@ public class PrivilegesEvaluator {
             if (!Strings.isNullOrEmpty(requestedTenant)) {
                 joiner.add(requestedTenant);
             }
-            threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
+            threadContext.putTransient(SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
 
@@ -206,7 +206,7 @@ public class PrivilegesEvaluator {
             action0 = PutMappingAction.NAME;
         }
 
-        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        final TransportAddress caller = threadContext.getTransient(ConfigConstants.SECURITY_REMOTE_ADDRESS);
         final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
@@ -565,7 +565,7 @@ public class PrivilegesEvaluator {
         }
 
         if (request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
-            additionalPermissionsRequired.addAll(ConfigConstants.OPENDISTRO_SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
+            additionalPermissionsRequired.addAll(ConfigConstants.SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
         }
 
         if (additionalPermissionsRequired.size() > 1) {

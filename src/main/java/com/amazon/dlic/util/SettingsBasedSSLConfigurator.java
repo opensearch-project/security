@@ -308,14 +308,14 @@ public class SettingsBasedSSLConfigurator {
 
         try {
             trustStore = PemKeyReader.loadKeyStore(
-                    PemKeyReader.resolve(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings,
+                    PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings,
                             configPath, !isTrustAllEnabled()),
-                    settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD,
+                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD,
                             SSLConfigConstants.DEFAULT_STORE_PASSWORD),
-                    settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
+                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
         } catch (Exception e) {
             throw new SSLConfigException("Error loading trust store from "
-                    + settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH), e);
+                    + settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH), e);
         }
 
         effectiveTruststoreAliases = getSettingAsList(CA_ALIAS, null);
@@ -324,17 +324,17 @@ public class SettingsBasedSSLConfigurator {
 
         try {
             keyStore = PemKeyReader.loadKeyStore(
-                    PemKeyReader.resolve(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, settings,
+                    PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, settings,
                             configPath, enableSslClientAuth),
-                    settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
+                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
                             SSLConfigConstants.DEFAULT_STORE_PASSWORD),
-                    settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE));
+                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE));
         } catch (Exception e) {
             throw new SSLConfigException("Error loading key store from "
-                    + settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH), e);
+                    + settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH), e);
         }
 
-        String keyStorePassword = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
+        String keyStorePassword = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
                 SSLConfigConstants.DEFAULT_STORE_PASSWORD);
         effectiveKeyPassword = keyStorePassword == null || keyStorePassword.isEmpty() ? null
                 : keyStorePassword.toCharArray();
