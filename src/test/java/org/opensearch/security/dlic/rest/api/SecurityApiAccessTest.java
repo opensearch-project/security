@@ -46,4 +46,29 @@ public class SecurityApiAccessTest extends AbstractRestApiUnitTest {
 
 	}
 
+	@Test
+	public void testRestApiPlugins() throws Exception {
+
+		setup();
+
+		// test with no cert, must fail
+		Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED,
+							rh.executeGetRequest("_plugins/_security/api/internalusers").getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
+							rh.executeGetRequest("_plugins/_security/api/internalusers",
+												 encodeBasicHeader("admin", "admin"))
+							  .getStatusCode());
+
+		// test with non-admin cert, must fail
+		rh.keystore = "restapi/node-0-keystore.jks";
+		rh.sendAdminCertificate = true;
+		Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED,
+							rh.executeGetRequest("_plugins/_security/api/internalusers").getStatusCode());
+		Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
+							rh.executeGetRequest("_plugins/_security/api/internalusers",
+												 encodeBasicHeader("admin", "admin"))
+							  .getStatusCode());
+
+	}
+
 }

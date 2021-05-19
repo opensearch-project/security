@@ -97,6 +97,55 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
+    private void testCrudScenariosPlugins(final int expectedStatus, final Header... headers) throws Exception {
+        response = rh.executeGetRequest("_plugins/_security/api/nodesdn?show_all=true", headers);
+        assertThat(response.getStatusCode(), equalTo(expectedStatus));
+        if (expectedStatus == HttpStatus.SC_OK) {
+            JsonNode expected = asJsonNode(ImmutableMap.of(
+                    "cluster1", nodesDnEntry("cn=popeye"),
+                    NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nodesDnEntry("CN=example.com")));
+
+            JsonNode node = OBJECT_MAPPER.readTree(response.getBody());
+            assertThat(node, equalTo(asJsonNode(expected)));
+        }
+
+        response = rh.executeGetRequest("_plugins/_security/api/nodesdn?show_all=false", headers);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+        if (expectedStatus == HttpStatus.SC_OK) {
+            JsonNode expected = asJsonNode(ImmutableMap.of("cluster1", nodesDnEntry("cn=popeye")));
+            JsonNode node = OBJECT_MAPPER.readTree(response.getBody());
+            assertThat(node, equalTo(asJsonNode(expected)));
+        }
+
+        response = rh.executeGetRequest("_plugins/_security/api/nodesdn", headers);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+        if (expectedStatus == HttpStatus.SC_OK) {
+            JsonNode expected = asJsonNode(ImmutableMap.of("cluster1", nodesDnEntry("cn=popeye")));
+            JsonNode node = OBJECT_MAPPER.readTree(response.getBody());
+            assertThat(node, equalTo(asJsonNode(expected)));
+        }
+
+        response = rh.executeGetRequest("_plugins/_security/api/nodesdn/cluster1", headers);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+        if (expectedStatus == HttpStatus.SC_OK) {
+            JsonNode expected = asJsonNode(ImmutableMap.of("cluster1", nodesDnEntry("cn=popeye")));
+            JsonNode node = OBJECT_MAPPER.readTree(response.getBody());
+            assertThat(node, equalTo(asJsonNode(expected)));
+        }
+
+        response = rh.executePutRequest("_plugins/_security/api/nodesdn/cluster1", "{\"nodes_dn\": [\"cn=popeye\"]}", headers);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+
+        response = rh.executePatchRequest("/_plugins/_security/api/nodesdn/cluster1", "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]", headers);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+
+        response = rh.executePatchRequest("/_plugins/_security/api/nodesdn", "[{ \"op\": \"remove\", \"path\": \"/cluster1/nodes_dn/0\"}]", headers);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+
+        response = rh.executeDeleteRequest("_plugins/_security/api/nodesdn/cluster1", headers);
+        assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+    }
+
     @Test
     public void testNodesDnApiWithDynamicConfigDisabled() throws Exception {
         setup();
@@ -104,6 +153,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         testCrudScenarios(HttpStatus.SC_BAD_REQUEST);
+        testCrudScenariosPlugins(HttpStatus.SC_BAD_REQUEST);
     }
 
     @Test
@@ -152,6 +202,56 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
             response = rh.executeDeleteRequest("_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nonAdminCredsHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+        }
+    }
+
+    @Test
+    public void testNodesDnApiPlugins() throws Exception {
+        Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
+                                    .putList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, "CN=example.com")
+                                    .build();
+        setupWithRestRoles(settings);
+
+        final Header adminCredsHeader = encodeBasicHeader("admin", "admin");
+        final Header nonAdminCredsHeader = encodeBasicHeader("sarek", "sarek");
+
+        {
+            // No creds, no admin certificate - UNAUTHORIZED
+            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.sendAdminCertificate = false;
+            testCrudScenarios(HttpStatus.SC_UNAUTHORIZED);
+        }
+
+        {
+            // admin creds, no admin certificate - FORBIDDEN
+            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.sendAdminCertificate = false;
+            testCrudScenarios(HttpStatus.SC_FORBIDDEN, adminCredsHeader);
+        }
+
+        {
+            // any creds, admin certificate - OK
+            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.sendAdminCertificate = true;
+            testCrudScenarios(HttpStatus.SC_OK, nonAdminCredsHeader);
+        }
+
+        {
+            // any creds, admin certificate, disallowed key - FORBIDDEN
+            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.sendAdminCertificate = true;
+
+            final int expectedStatus = HttpStatus.SC_FORBIDDEN;
+
+            response = rh.executePutRequest("_plugins/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, "{\"nodes_dn\": [\"cn=popeye\"]}", nonAdminCredsHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+
+            response = rh.executePatchRequest("/_plugins/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN,
+                                              "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]" , nonAdminCredsHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
+
+            response = rh.executeDeleteRequest("_plugins/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nonAdminCredsHeader);
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         }
     }

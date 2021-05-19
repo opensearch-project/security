@@ -36,6 +36,7 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
 
 		// test with no Security index at all
 		testHttpOperations();
+		testHttpOperationsPlugins();
 
 	}
 
@@ -88,6 +89,61 @@ public class IndexMissingTest extends AbstractRestApiUnitTest {
 
 		// GET configuration
 		response = rh.executeGetRequest("_opendistro/_security/api/roles");
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+		SecurityJsonNode securityJsonNode = new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody()));
+		Assert.assertEquals("OPENDISTRO_SECURITY_CLUSTER_ALL", securityJsonNode.get("opendistro_security_admin").get("cluster_permissions").get(0).asString());
+
+	}
+
+	protected void testHttpOperationsPlugins() throws Exception {
+
+		rh.keystore = "restapi/kirk-keystore.jks";
+		rh.sendAdminCertificate = true;
+
+		// GET configuration
+		HttpResponse response = rh.executeGetRequest("_plugins/_security/api/roles");
+		Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+		String errorString = response.getBody();
+		System.out.println(errorString);
+		Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+
+		// GET roles
+		response = rh.executeGetRequest("/_plugins/_security/api/roles/opendistro_security_role_starfleet", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+		errorString = response.getBody();
+		Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+
+		// GET rolesmapping
+		response = rh.executeGetRequest("/_plugins/_security/api/rolesmapping/opendistro_security_role_starfleet", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+		errorString = response.getBody();
+		Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+
+		// GET actiongroups
+		response = rh.executeGetRequest("_plugins/_security/api/actiongroups/READ");
+		Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+		errorString = response.getBody();
+		Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+
+		// GET internalusers
+		response = rh.executeGetRequest("_plugins/_security/api/internalusers/picard");
+		Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+		errorString = response.getBody();
+		Assert.assertEquals("{\"status\":\"INTERNAL_SERVER_ERROR\",\"message\":\"Security index not initialized\"}", errorString);
+
+		// PUT request
+		response = rh.executePutRequest("/_plugins/_security/api/actiongroups/READ", FileHelper.loadFile("restapi/actiongroup_read.json"), new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+
+		// DELETE request
+		response = rh.executeDeleteRequest("/_plugins/_security/api/roles/opendistro_security_role_starfleet", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
+
+		// setup index now
+		initialize(this.clusterInfo);
+
+		// GET configuration
+		response = rh.executeGetRequest("_plugins/_security/api/roles");
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		SecurityJsonNode securityJsonNode = new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody()));
 		Assert.assertEquals("OPENDISTRO_SECURITY_CLUSTER_ALL", securityJsonNode.get("opendistro_security_admin").get("cluster_permissions").get(0).asString());

@@ -60,4 +60,39 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(settings.get("message"), "Cache flushed successfully.");
 
 	}
+
+	@Test
+	public void testFlushCachePlugins() throws Exception {
+
+		setup();
+
+		// Only DELETE is allowed for flush cache
+		rh.keystore = "restapi/kirk-keystore.jks";
+		rh.sendAdminCertificate = true;
+
+		// GET
+		HttpResponse response = rh.executeGetRequest("/_plugins/_security/api/cache");
+		Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getStatusCode());
+		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+		Assert.assertEquals(settings.get("message"), "Method GET not supported for this action.");
+
+		// PUT
+		response = rh.executePutRequest("/_plugins/_security/api/cache", "{}", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getStatusCode());
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+		Assert.assertEquals(settings.get("message"), "Method PUT not supported for this action.");
+
+		// POST
+		response = rh.executePostRequest("/_plugins/_security/api/cache", "{}", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getStatusCode());
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+		Assert.assertEquals(settings.get("message"), "Method POST not supported for this action.");
+
+		// DELETE
+		response = rh.executeDeleteRequest("/_plugins/_security/api/cache", new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+		Assert.assertEquals(settings.get("message"), "Cache flushed successfully.");
+
+	}
 }
