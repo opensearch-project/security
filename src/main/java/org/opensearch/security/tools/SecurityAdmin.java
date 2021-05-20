@@ -531,7 +531,7 @@ public class SecurityAdmin {
                 if(!whoAmIRes.isNodeCertificateRequest()) {
                 	System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
                 	System.out.println("Make sure opensearch.yml on all nodes contains:");
-                    System.out.println("opendistro_security.authcz.admin_dn:"+System.lineSeparator()+
+                    System.out.println("plugins.security.authcz.admin_dn:"+System.lineSeparator()+
                                        "  - \""+whoAmIRes.getDn()+"\"");
                 } else {
                 	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in opensearch.yml");

@@ -77,8 +77,8 @@ public class ThreadPoolConfigTest {
     public void testGenerationFromSettings() {
         // arrange
         Settings settings = Settings.builder()
-                .put("opendistro_security.audit.threadpool.size", "8")
-                .put("opendistro_security.audit.threadpool.max_queue_len", "50")
+                .put("plugins.security.audit.threadpool.size", "8")
+                .put("plugins.security.audit.threadpool.max_queue_len", "50")
                 .build();
 
         // assert

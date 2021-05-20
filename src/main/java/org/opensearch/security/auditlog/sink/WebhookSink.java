@@ -76,7 +76,7 @@ public class WebhookSink extends AuditLogSink {
 		}
 
 		if (Strings.isEmpty(webhookUrl)) {
-			log.error("opendistro_security.audit.config.webhook.url not provided, webhook audit log will not work");
+			log.error("plugins.security.audit.config.webhook.url not provided, webhook audit log will not work");
 			return;
 		} else {
 			try {
@@ -89,7 +89,7 @@ public class WebhookSink extends AuditLogSink {
 		}
 
 		if (Strings.isEmpty(format)) {
-			log.warn("opendistro_security.audit.config.webhook.format not provided, falling back to 'text'");
+			log.warn("plugins.security.audit.config.webhook.format not provided, falling back to 'text'");
 			webhookFormat = WebhookFormat.TEXT;
 		} else {
 			try {

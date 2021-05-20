@@ -75,7 +75,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         super();
         try {
             final Path configDir = new Environment(settings, configPath).configFile();
-            final String krb5PathSetting = settings.get("opendistro_security.kerberos.krb5_filepath");
+            final String krb5PathSetting = settings.get("plugins.security.kerberos.krb5_filepath");
 
             final SecurityManager sm = System.getSecurityManager();
 
@@ -129,8 +129,8 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                     }
 
                     stripRealmFromPrincipalName = settings.getAsBoolean("strip_realm_from_principal", true);
-                    acceptorPrincipal = new HashSet<>(settings.getAsList("opendistro_security.kerberos.acceptor_principal", Collections.emptyList()));
-                    final String _acceptorKeyTabPath = settings.get("opendistro_security.kerberos.acceptor_keytab_filepath");
+                    acceptorPrincipal = new HashSet<>(settings.getAsList("plugins.security.kerberos.acceptor_principal", Collections.emptyList()));
+                    final String _acceptorKeyTabPath = settings.get("plugins.security.kerberos.acceptor_keytab_filepath");
 
                     if(acceptorPrincipal == null || acceptorPrincipal.size() == 0) {
                         log.error("acceptor_principal must not be null or empty. Kerberos authentication will not work");
@@ -138,10 +138,10 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                     }
 
                     if(_acceptorKeyTabPath == null || _acceptorKeyTabPath.length() == 0) {
-                        log.error("opendistro_security.kerberos.acceptor_keytab_filepath must not be null or empty. Kerberos authentication will not work");
+                        log.error("plugins.security.kerberos.acceptor_keytab_filepath must not be null or empty. Kerberos authentication will not work");
                         acceptorKeyTabPath = null;
                     } else {
-                        acceptorKeyTabPath = configDir.resolve(settings.get("opendistro_security.kerberos.acceptor_keytab_filepath"));
+                        acceptorKeyTabPath = configDir.resolve(settings.get("plugins.security.kerberos.acceptor_keytab_filepath"));
 
                         if(!Files.exists(acceptorKeyTabPath)) {
                             log.error("Unable to read keytab from {} - Maybe the file does not exist or is not readable. Kerberos authentication will not work", acceptorKeyTabPath);
@@ -159,7 +159,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
         } catch (Throwable e) {
             log.error("Cannot construct HTTPSpnegoAuthenticator due to {}", e.getMessage(), e);
-            log.error("Please make sure you configured 'opendistro_security.kerberos.acceptor_keytab_filepath' realtive to the ES config/ dir!");
+            log.error("Please make sure you configured 'plugins.security.kerberos.acceptor_keytab_filepath' realtive to the ES config/ dir!");
             throw e;
         }
 

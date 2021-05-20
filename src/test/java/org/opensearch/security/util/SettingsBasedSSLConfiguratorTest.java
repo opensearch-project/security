@@ -268,8 +268,8 @@ public class SettingsBasedSSLConfiguratorTest {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/truststore.jks");
 
             Settings settings = Settings.builder()
-                    .put("opendistro_security.ssl.transport.truststore_filepath", rootCaJksPath.getFileName().toString())
-                    .put("opendistro_security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
+                    .put("plugins.security.ssl.transport.truststore_filepath", rootCaJksPath.getFileName().toString())
+                    .put("plugins.security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
                     .put("path.home", rootCaJksPath.getParent().toString()).build();
             Path configPath = rootCaJksPath.getParent();
 
@@ -296,8 +296,8 @@ public class SettingsBasedSSLConfiguratorTest {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/other-root-ca.jks");
 
             Settings settings = Settings.builder()
-                    .put("opendistro_security.ssl.transport.truststore_filepath", rootCaJksPath.getFileName().toString())
-                    .put("opendistro_security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
+                    .put("plugins.security.ssl.transport.truststore_filepath", rootCaJksPath.getFileName().toString())
+                    .put("plugins.security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
                     .put("path.home", rootCaJksPath.getParent().toString()).build();
             Path configPath = rootCaJksPath.getParent();
 

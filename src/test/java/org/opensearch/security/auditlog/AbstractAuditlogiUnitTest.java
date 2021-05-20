@@ -59,10 +59,10 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     protected Settings defaultNodeSettings(Settings additionalSettings) {
         Settings.Builder builder = Settings.builder();
 
-        builder.put("opendistro_security.ssl.http.enabled", true)
-                .put("opendistro_security.ssl.http.keystore_filepath",
+        builder.put("plugins.security.ssl.http.enabled", true)
+                .put("plugins.security.ssl.http.keystore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath",
+                .put("plugins.security.ssl.http.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"));
 
         return builder.put(additionalSettings).build();
