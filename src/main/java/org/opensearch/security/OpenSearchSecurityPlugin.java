@@ -852,7 +852,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.addAll(super.getSettings());
-
+        //TODO: add fallbacksettings
         settings.add(SecuritySettings.SECURITY_SSL_ONLY);
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
         settings.add(SSLConfig.SSL_DUAL_MODE_SETTING);
