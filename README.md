@@ -3,7 +3,7 @@
 
 # OpenSearch Security
 
-OpenSearch Security is an OpenSearch plugin that offers encryption, authentication, and authorization. When combined with OpenSearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in Kibana.
+OpenSearch Security is an OpenSearch plugin that offers encryption, authentication, and authorization. When combined with OpenSearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in OpenSearch Dashboards.
 
 ## Features provided by Security
 
@@ -38,8 +38,8 @@ OpenSearch Security is an OpenSearch plugin that offers encryption, authenticati
 * Audit logging 
 * Compliance logging for GDPR, HIPAA, PCI, SOX and ISO compliance
 
-### Kibana multi-tenancy
-* True Kibana multi-tenancy
+### OpenSearch Dashboards multi-tenancy
+* True OpenSearch Dashboards multi-tenancy
 
 
 
