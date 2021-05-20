@@ -30,7 +30,6 @@ crud:
   reserved: true
   hidden: false
   static: true
-
   allowed_actions:
   - "read"
   - "write"
