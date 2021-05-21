@@ -19,13 +19,10 @@ import org.opensearch.security.support.ConfigConstants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.ClusterSettings;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.SecuritySettings;
 
 public class SSLConfig {
-
-    public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED,
-            false, Setting.Property.NodeScope, Setting.Property.Dynamic); // Not filtered
 
     private static final Logger logger = LogManager.getLogger(SSLConfig.class);
 
@@ -48,7 +45,7 @@ public class SSLConfig {
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
-        clusterSettings.addSettingsUpdateConsumer(SSL_DUAL_MODE_SETTING,
+        clusterSettings.addSettingsUpdateConsumer(SecuritySettings.SSL_DUAL_MODE_SETTING,
             dualModeEnabledClusterSetting -> {
                 logger.info("Detected change in settings, cluster setting for SSL dual mode is {}", dualModeEnabledClusterSetting ? "enabled" : "disabled");
                 setDualModeEnabled(dualModeEnabledClusterSetting);

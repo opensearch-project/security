@@ -36,7 +36,7 @@ import java.util.function.Function;
 
 public class LegacyOpenDistroSecuritySettings {
     public static final Setting<Boolean> SECURITY_SSL_ONLY = Setting.boolSetting(LegacyOpenDistroConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false, Setting.Property.NodeScope, Setting.Property.Filtered, Setting.Property.Deprecated);
-
+    public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(LegacyOpenDistroConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false, Setting.Property.NodeScope, Setting.Property.Dynamic, Setting.Property.Deprecated); // Not filtered
     // Protected index settings
     public static final Setting<Boolean> SECURITY_PROTECTED_INDICES_ENABLED_KEY = Setting.boolSetting(LegacyOpenDistroConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, LegacyOpenDistroConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Setting.Property.NodeScope, Setting.Property.Filtered, Setting.Property.Final, Setting.Property.Deprecated);
     public static final Setting<List<String>> SECURITY_PROTECTED_INDICES_KEY = Setting.listSetting(LegacyOpenDistroConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, LegacyOpenDistroConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT, Function.identity(), Setting.Property.NodeScope, Setting.Property.Filtered, Setting.Property.Final, Setting.Property.Deprecated);

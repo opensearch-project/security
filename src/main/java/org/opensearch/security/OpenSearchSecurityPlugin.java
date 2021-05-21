@@ -855,7 +855,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         settings.add(LegacyOpenDistroSecuritySettings.SECURITY_SSL_ONLY);
         settings.add(SecuritySettings.SECURITY_SSL_ONLY);
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
-        settings.add(SSLConfig.SSL_DUAL_MODE_SETTING);
+        settings.add(LegacyOpenDistroSecuritySettings.SSL_DUAL_MODE_SETTING);
+        settings.add(SecuritySettings.SSL_DUAL_MODE_SETTING);
         // Protected index settings
         settings.add(LegacyOpenDistroSecuritySettings.SECURITY_PROTECTED_INDICES_ENABLED_KEY);
         settings.add(LegacyOpenDistroSecuritySettings.SECURITY_PROTECTED_INDICES_KEY);

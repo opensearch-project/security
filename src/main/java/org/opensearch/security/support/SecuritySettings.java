@@ -36,7 +36,7 @@ import java.util.function.Function;
 
 public class SecuritySettings {
     public static final Setting<Boolean> SECURITY_SSL_ONLY = Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, LegacyOpenDistroSecuritySettings.SECURITY_SSL_ONLY, Setting.Property.NodeScope, Setting.Property.Filtered);
-
+    public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, LegacyOpenDistroSecuritySettings.SSL_DUAL_MODE_SETTING, Setting.Property.NodeScope, Setting.Property.Dynamic); // Not filtered
     // Protected index settings
     public static final Setting<Boolean> SECURITY_PROTECTED_INDICES_ENABLED_KEY = Setting.boolSetting(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, LegacyOpenDistroSecuritySettings.SECURITY_PROTECTED_INDICES_ENABLED_KEY, Setting.Property.NodeScope, Setting.Property.Filtered, Setting.Property.Final);
     public static final Setting<List<String>> SECURITY_PROTECTED_INDICES_KEY = Setting.listSetting(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, LegacyOpenDistroSecuritySettings.SECURITY_PROTECTED_INDICES_KEY, Function.identity(), Setting.Property.NodeScope, Setting.Property.Filtered, Setting.Property.Final);
