@@ -37,8 +37,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.PluginAwareNode;
 import org.elasticsearch.transport.Netty4Plugin;
+import org.apache.http.HttpStatus;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.common.unit.TimeValue;
+import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import org.junit.Assert;
 import org.junit.Test;
+import java.io.IOException;
 
 import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
@@ -157,6 +162,28 @@ public class SlowIntegrationTests extends SingleClusterTest {
         } catch (Exception e) {
             Assert.fail(e.toString());
         }
+    }
+
+    @Test
+    public void testDelayInSecurityIndexInitialization() throws Exception {
+        final Settings settings = Settings.builder()
+                .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                .put("cluster.routing.allocation.exclude._ip", "127.0.0.1")
+                .build();
+        try {
+            setup(Settings.EMPTY, null, settings, false);
+            Assert.fail("Expected IOException here due to red cluster state");
+        } catch (IOException e) {
+            // Index request has a default timeout of 1 minute, adding buffer between nodes initialization and cluster health check
+            Thread.sleep(1000*80);
+            // Ideally, we would want to remove this cluster setting, but default settings cannot be removed. So overriding with a reserved IP address
+            clusterHelper.nodeClient().admin().cluster().updateSettings(
+                    new ClusterUpdateSettingsRequest().transientSettings(Settings.builder().put("cluster.routing.allocation.exclude._ip", "192.0.2.0").build()));
+            this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10),3);
+        }
+        RestHelper rh = nonSslRestHelper();
+        Thread.sleep(10000);
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
     }
 
 }
