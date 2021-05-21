@@ -1068,3 +1068,51 @@ xyz_sr_reserved:
       allowed_actions:
         - "*"
   tenant_permissions: []
+
+index_template_perm:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/index_template/*"
+
+data_stream_1:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream*"
+      allowed_actions:
+        - "indices:admin/data_stream/get"
+        - "indices:admin/data_stream/create"
+        - "indices:admin/data_stream/delete"
+
+data_stream_2:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream2*"
+      allowed_actions:
+        - "indices:admin/data_stream/get"
+        - "indices:admin/data_stream/create"
+        - "indices:monitor/data_stream/stats"
+
+data_stream_3:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "DATASTREAM_ALL"
