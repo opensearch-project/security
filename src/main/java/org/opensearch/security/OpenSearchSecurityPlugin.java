@@ -62,7 +62,6 @@ import org.opensearch.security.ssl.rest.SecuritySSLReloadCertsAction;
 import org.opensearch.security.ssl.rest.SecuritySSLCertsInfoAction;
 
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
-import org.opensearch.security.support.*;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -167,6 +166,14 @@ import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.ModuleInfo;
+import org.opensearch.security.support.ReflectionHelper;
+import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.support.SecurityUtils;
+import org.opensearch.security.support.LegacyOpenDistroSecuritySettings;
+import org.opensearch.security.support.SecuritySettings;
 import com.google.common.collect.Lists;
 
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
