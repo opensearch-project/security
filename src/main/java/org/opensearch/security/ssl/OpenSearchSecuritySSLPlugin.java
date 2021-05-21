@@ -27,6 +27,7 @@ import io.netty.handler.ssl.OpenSsl;
 import io.netty.util.internal.PlatformDependent;
 
 import java.nio.file.Path;
+import java.rmi.dgc.Lease;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -76,6 +77,7 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.ssl.rest.SecuritySSLInfoAction;
 import org.opensearch.security.ssl.transport.*;
+import org.opensearch.security.ssl.util.LegacyOpenDistroSSLSecuritySettings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.ssl.util.SSLSecuritySettings;
 import org.opensearch.threadpool.ThreadPool;
@@ -319,7 +321,37 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
-        //TODO: add fallbackSettings
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_CLIENTAUTH_MODE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_KEYSTORE_ALIAS);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_KEYSTORE_TYPE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_ENABLED);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_ENABLED);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_ENABLED_CIPHERS);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS);
+
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED);
+
         settings.add(SSLSecuritySettings.SECURITY_SSL_HTTP_CLIENTAUTH_MODE);
         settings.add(SSLSecuritySettings.SECURITY_SSL_HTTP_KEYSTORE_ALIAS);
         settings.add(SSLSecuritySettings.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH);
@@ -351,6 +383,24 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
         settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED);
         if(extendedKeyUsageEnabled) {
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD);
+
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD);
+
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH);
+
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH);
+
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS);
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS);
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD);
@@ -369,6 +419,15 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD);
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH);
         } else {
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD);
+
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD);
+            settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH);
+
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS);
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS);
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD);
@@ -378,6 +437,19 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD);
             settings.add(SSLSecuritySettings.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH);
         }
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_PEMCERT_FILEPATH);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_PEMKEY_FILEPATH);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_PEMKEY_PASSWORD);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH);
+
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_CRL_FILE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_CRL_VALIDATE);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP);
+        settings.add(LegacyOpenDistroSSLSecuritySettings.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE);
+
         settings.add(SSLSecuritySettings.SECURITY_SSL_HTTP_PEMCERT_FILEPATH);
         settings.add(SSLSecuritySettings.SECURITY_SSL_HTTP_PEMKEY_FILEPATH);
         settings.add(SSLSecuritySettings.SECURITY_SSL_HTTP_PEMKEY_PASSWORD);

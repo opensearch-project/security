@@ -852,21 +852,44 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.addAll(super.getSettings());
-        //TODO: add fallbacksettings
+        settings.add(LegacyOpenDistroSecuritySettings.SECURITY_SSL_ONLY);
         settings.add(SecuritySettings.SECURITY_SSL_ONLY);
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
         settings.add(SSLConfig.SSL_DUAL_MODE_SETTING);
-
         // Protected index settings
+        settings.add(LegacyOpenDistroSecuritySettings.SECURITY_PROTECTED_INDICES_ENABLED_KEY);
+        settings.add(LegacyOpenDistroSecuritySettings.SECURITY_PROTECTED_INDICES_KEY);
+        settings.add(LegacyOpenDistroSecuritySettings.SECURITY_PROTECTED_INDICES_ROLES_KEY);
         settings.add(SecuritySettings.SECURITY_PROTECTED_INDICES_ENABLED_KEY);
         settings.add(SecuritySettings.SECURITY_PROTECTED_INDICES_KEY);
         settings.add(SecuritySettings.SECURITY_PROTECTED_INDICES_ROLES_KEY);
 
         // System index settings
+        settings.add(LegacyOpenDistroSecuritySettings.SECURITY_SYSTEM_INDICES_ENABLED_KEY);
+        settings.add(LegacyOpenDistroSecuritySettings.SECURITY_SYSTEM_INDICES_KEY);
         settings.add(SecuritySettings.SECURITY_SYSTEM_INDICES_ENABLED_KEY);
         settings.add(SecuritySettings.SECURITY_SYSTEM_INDICES_KEY);
 
         if(!SSLConfig.isSslOnlyMode()) {
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUTHCZ_ADMIN_DN);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_CONFIG_INDEX_NAME);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUTHCZ_IMPERSONATION_DN);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_CERT_OID);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_NODES_DN);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_DISABLED);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_CACHE_TTL_MINUTES);
+
             settings.add(SecuritySettings.SECURITY_AUTHCZ_ADMIN_DN);
 
             settings.add(SecuritySettings.SECURITY_CONFIG_INDEX_NAME);
@@ -887,6 +910,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(SecuritySettings.SECURITY_CACHE_TTL_MINUTES);
 
             //Security
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_ADVANCED_MODULES_ENABLED);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_ROLES_MAPPING_RESOLUTION);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_DISABLE_ENVVAR_REPLACEMENT);
+
             settings.add(SecuritySettings.SECURITY_ADVANCED_MODULES_ENABLED);
             settings.add(SecuritySettings.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES);
             settings.add(SecuritySettings.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX);
@@ -897,6 +929,22 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(SecuritySettings.SECURITY_DISABLE_ENVVAR_REPLACEMENT);
 
             // Security - Audit
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_TYPE_DEFAULT);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_CONFIG_ROUTES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_CONFIG_ENDPOINTS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_THREADPOOL_SIZE);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_LOG_REQUEST_BODY);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_RESOLVE_INDICES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_ENABLE_REST);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_ENABLE_TRANSPORT);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_IGNORE_USERS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_IGNORE_REQUESTS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_RESOLVE_BULK_REQUESTS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS);
+
             settings.add(SecuritySettings.SECURITY_AUDIT_TYPE_DEFAULT);
             settings.add(SecuritySettings.SECURITY_AUDIT_CONFIG_ROUTES);
             settings.add(SecuritySettings.SECURITY_AUDIT_CONFIG_ENDPOINTS);
@@ -915,10 +963,30 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
 
             // Security - Audit - Sink
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_OPENSEARCH_INDEX);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_OPENSEARCH_TYPE);
+
             settings.add(SecuritySettings.SECURITY_AUDIT_OPENSEARCH_INDEX);
             settings.add(SecuritySettings.SECURITY_AUDIT_OPENSEARCH_TYPE);
 
             // External OpenSearch
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS); //not filtered here
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_VERIFY_HOSTNAMES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLE_SSL_CLIENT_AUTH);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_CONTENT);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMCERT_FILEPATH);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_CONTENT);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_FILEPATH);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMKEY_PASSWORD);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_CONTENT);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PEMTRUSTEDCAS_FILEPATH);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_JKS_CERT_ALIAS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS);
+
             settings.add(SecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS); //not filtered here
             settings.add(SecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME);
             settings.add(SecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_PASSWORD);
@@ -937,6 +1005,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(SecuritySettings.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS);
 
             // Webhooks
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_WEBHOOK_URL);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_WEBHOOK_FORMAT);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT);
+
             settings.add(SecuritySettings.SECURITY_AUDIT_WEBHOOK_URL);
             settings.add(SecuritySettings.SECURITY_AUDIT_WEBHOOK_FORMAT);
             settings.add(SecuritySettings.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY);
@@ -944,17 +1018,30 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(SecuritySettings.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT);
 
             // Log4j
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_LOG4J_LOGGER_NAME);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_LOG4J_LEVEL);
+
             settings.add(SecuritySettings.SECURITY_AUDIT_LOG4J_LOGGER_NAME);
             settings.add(SecuritySettings.SECURITY_AUDIT_LOG4J_LEVEL);
 
 
             // Kerberos
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_KERBEROS_KRB5_FILEPATH);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL);
+
             settings.add(SecuritySettings.SECURITY_KERBEROS_KRB5_FILEPATH);
             settings.add(SecuritySettings.SECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH);
             settings.add(SecuritySettings.SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL);
 
 
             // Open Distro Security - REST API
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_RESTAPI_ROLES_ENABLED);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_RESTAPI_ENDPOINTS_DISABLED);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE);
+
             settings.add(SecuritySettings.SECURITY_RESTAPI_ROLES_ENABLED);
             settings.add(SecuritySettings.SECURITY_RESTAPI_ENDPOINTS_DISABLED);
 
@@ -963,6 +1050,21 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
 
             // Compliance
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_IMMUTABLE_INDICES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_SALT);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED);
+
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS);
+
             settings.add(SecuritySettings.SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES);
             settings.add(SecuritySettings.SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS);
             settings.add(SecuritySettings.SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY);
@@ -979,10 +1081,22 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(SecuritySettings.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS);
 
             //compat
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY);
+
             settings.add(SecuritySettings.SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY);
             settings.add(SecuritySettings.SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY);
 
             // system integration
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_SSL_CERT_RELOAD_ENABLED);
+            settings.add(LegacyOpenDistroSecuritySettings.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG);
+
             settings.add(SecuritySettings.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED);
             settings.add(SecuritySettings.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED);
             settings.add(SecuritySettings.SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED);
