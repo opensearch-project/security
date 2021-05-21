@@ -165,7 +165,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
     @Test
     public void testDelayInSecurityIndexInitialization() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                 .put("cluster.routing.allocation.exclude._ip", "127.0.0.1")
                 .build();
         try {
