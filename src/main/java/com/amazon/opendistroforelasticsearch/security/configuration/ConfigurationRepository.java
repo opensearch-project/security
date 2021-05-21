@@ -45,10 +45,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -126,15 +128,10 @@ public class ConfigurationRepository {
                                     threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
                                     LOGGER.info("Will create {} index so we can apply default config", opendistrosecurityIndex);
 
-                                    Map<String, Object> indexSettings = new HashMap<>();
-                                    indexSettings.put("index.number_of_shards", 1);
-                                    indexSettings.put("index.auto_expand_replicas", "0-all");
+                                    final boolean isSecurityIndexCreated = createSecurityIndexIfAbsent();
+                                    waitForSecurityIndexToBeAtLeastYellow();
 
-                                    boolean ok = client.admin().indices().create(new CreateIndexRequest(opendistrosecurityIndex)
-                                            .settings(indexSettings))
-                                            .actionGet().isAcknowledged();
-                                    LOGGER.info("Index {} created?: {}", opendistrosecurityIndex, ok);
-                                    if(ok) {
+                                    if (isSecurityIndexCreated) {
                                         ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
                                         ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
                                         ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
@@ -154,34 +151,8 @@ public class ConfigurationRepository {
                                 LOGGER.error("{} does not exist", confFile.getAbsolutePath());
                             }
                         } catch (Exception e) {
-                            LOGGER.debug("Cannot apply default config (this is maybe not an error!) due to {}", e.getMessage());
+                            LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
                         }
-                    }
-
-                    LOGGER.debug("Node started, try to initialize it. Wait for at least yellow cluster state....");
-                    ClusterHealthResponse response = null;
-                    try {
-                        response = client.admin().cluster().health(new ClusterHealthRequest(opendistrosecurityIndex)
-                                .waitForActiveShards(1)
-                                .waitForYellowStatus()).actionGet();
-                    } catch (Exception e1) {
-                        LOGGER.debug("Catched a {} but we just try again ...", e1.toString());
-                    }
-
-                    while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-                        LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", opendistrosecurityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException e1) {
-                            //ignore
-                            Thread.currentThread().interrupt();
-                        }
-                        try {
-                            response = client.admin().cluster().health(new ClusterHealthRequest(opendistrosecurityIndex).waitForYellowStatus()).actionGet();
-                        } catch (Exception e1) {
-                            LOGGER.debug("Catched again a {} but we just try again ...", e1.toString());
-                        }
-                        continue;
                     }
 
                     while(!dynamicConfigFactory.isInitialized()) {
@@ -209,6 +180,54 @@ public class ConfigurationRepository {
             }
         });
 
+    }
+
+    private boolean createSecurityIndexIfAbsent() {
+        try {
+            final Map<String, Object> indexSettings = ImmutableMap.of(
+                    "index.number_of_shards", 1,
+                    "index.auto_expand_replicas", "0-all"
+            );
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(opendistrosecurityIndex)
+                    .settings(indexSettings);
+            final boolean ok = client.admin()
+                    .indices()
+                    .create(createIndexRequest)
+                    .actionGet()
+                    .isAcknowledged();
+            LOGGER.info("Index {} created?: {}", opendistrosecurityIndex, ok);
+            return ok;
+        } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
+            LOGGER.info("Index {} already exists", opendistrosecurityIndex);
+            return false;
+        }
+    }
+
+    private void waitForSecurityIndexToBeAtLeastYellow() {
+        LOGGER.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
+        ClusterHealthResponse response = null;
+        try {
+            response = client.admin().cluster().health(new ClusterHealthRequest(opendistrosecurityIndex)
+                    .waitForActiveShards(1)
+                    .waitForYellowStatus()).actionGet();
+        } catch (Exception e) {
+            LOGGER.debug("Caught a {} but we just try again ...", e.toString());
+        }
+
+        while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
+            LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", opendistrosecurityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                //ignore
+                Thread.currentThread().interrupt();
+            }
+            try {
+                response = client.admin().cluster().health(new ClusterHealthRequest(opendistrosecurityIndex).waitForYellowStatus()).actionGet();
+            } catch (Exception e) {
+                LOGGER.debug("Caught again a {} but we just try again ...", e.toString());
+            }
+        }
     }
 
     public void initOnNodeStart() {
