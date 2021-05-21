@@ -48,8 +48,7 @@ public class SecuritySettings {
 
     public static final Setting<List<String>> SECURITY_AUTHCZ_ADMIN_DN = Setting.listSetting(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, LegacyOpenDistroSecuritySettings.SECURITY_AUTHCZ_ADMIN_DN, Function.identity(), Setting.Property.NodeScope); //not filtered here
     public static final Setting<String> SECURITY_CONFIG_INDEX_NAME = Setting.simpleString(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, LegacyOpenDistroSecuritySettings.SECURITY_CONFIG_INDEX_NAME, Setting.Property.NodeScope); //not filtered here
-    //groupSetting issue
-    public static final Setting<Settings> SECURITY_AUTHCZ_IMPERSONATION_DN = Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN+".", Setting.Property.NodeScope);
+    public static final Setting<Settings> SECURITY_AUTHCZ_IMPERSONATION_DN = Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN+".", LegacyOpenDistroSecuritySettings.SECURITY_AUTHCZ_IMPERSONATION_DN, Setting.Property.NodeScope);
     public static final Setting<String> SECURITY_CERT_OID = Setting.simpleString(ConfigConstants.SECURITY_CERT_OID, LegacyOpenDistroSecuritySettings.SECURITY_CERT_OID, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = Setting.simpleString(ConfigConstants.SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, LegacyOpenDistroSecuritySettings.SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<List<String>> SECURITY_NODES_DN = Setting.listSetting(ConfigConstants.SECURITY_NODES_DN, LegacyOpenDistroSecuritySettings.SECURITY_NODES_DN, Function.identity(), Setting.Property.NodeScope); //not filtered here
@@ -64,17 +63,14 @@ public class SecuritySettings {
     public static final Setting<Boolean> SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES = Setting.boolSetting(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, LegacyOpenDistroSecuritySettings.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Boolean> SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX = Setting.boolSetting(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, LegacyOpenDistroSecuritySettings.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Boolean> SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST = Setting.boolSetting(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, LegacyOpenDistroSecuritySettings.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, Setting.Property.NodeScope, Setting.Property.Filtered);
-    //groupSetting issue
-    public static final Setting<Settings> SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".", Setting.Property.NodeScope); //not filtered here
+    public static final Setting<Settings> SECURITY_AUTHCZ_REST_IMPERSONATION_USERS = Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".", LegacyOpenDistroSecuritySettings.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS, Setting.Property.NodeScope); //not filtered here
     public static final Setting<String> SECURITY_ROLES_MAPPING_RESOLUTION = Setting.simpleString(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, LegacyOpenDistroSecuritySettings.SECURITY_ROLES_MAPPING_RESOLUTION, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Boolean> SECURITY_DISABLE_ENVVAR_REPLACEMENT = Setting.boolSetting(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, LegacyOpenDistroSecuritySettings.SECURITY_DISABLE_ENVVAR_REPLACEMENT, Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Security - Audit
     public static final Setting<String> SECURITY_AUDIT_TYPE_DEFAULT = Setting.simpleString(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_TYPE_DEFAULT, Setting.Property.NodeScope, Setting.Property.Filtered);
-    //groupSetting issue
-    public static final Setting<Settings> SECURITY_AUDIT_CONFIG_ROUTES = Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ROUTES + ".", Setting.Property.NodeScope);
-    //groupSetting issue
-    public static final Setting<Settings> SECURITY_AUDIT_CONFIG_ENDPOINTS = Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + ".",  Setting.Property.NodeScope);
+    public static final Setting<Settings> SECURITY_AUDIT_CONFIG_ROUTES = Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ROUTES + ".", LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_CONFIG_ROUTES, Setting.Property.NodeScope);
+    public static final Setting<Settings> SECURITY_AUDIT_CONFIG_ENDPOINTS = Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ENDPOINTS + ".", LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_CONFIG_ENDPOINTS, Setting.Property.NodeScope);
     public static final Setting<Integer> SECURITY_AUDIT_THREADPOOL_SIZE = Setting.intSetting(ConfigConstants.SECURITY_AUDIT_THREADPOOL_SIZE, LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_THREADPOOL_SIZE, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN = Setting.intSetting(ConfigConstants.SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN, LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Boolean> SECURITY_AUDIT_LOG_REQUEST_BODY = Setting.boolSetting(ConfigConstants.SECURITY_AUDIT_LOG_REQUEST_BODY, LegacyOpenDistroSecuritySettings.SECURITY_AUDIT_LOG_REQUEST_BODY, Setting.Property.NodeScope, Setting.Property.Filtered);
@@ -128,8 +124,7 @@ public class SecuritySettings {
 
     // Open Distro Security - REST API
     public static final Setting<List<String>> SECURITY_RESTAPI_ROLES_ENABLED = Setting.listSetting(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, LegacyOpenDistroSecuritySettings.SECURITY_RESTAPI_ROLES_ENABLED, Function.identity(), Setting.Property.NodeScope); //not filtered here
-    //groupSetting issue
-    public static final Setting<Settings> SECURITY_RESTAPI_ENDPOINTS_DISABLED = Setting.groupSetting(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".", Setting.Property.NodeScope);
+    public static final Setting<Settings> SECURITY_RESTAPI_ENDPOINTS_DISABLED = Setting.groupSetting(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".", LegacyOpenDistroSecuritySettings.SECURITY_RESTAPI_ENDPOINTS_DISABLED, Setting.Property.NodeScope);
     public static final Setting<String> SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = Setting.simpleString(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, LegacyOpenDistroSecuritySettings.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE = Setting.simpleString(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, LegacyOpenDistroSecuritySettings.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Setting.Property.NodeScope, Setting.Property.Filtered);
 
