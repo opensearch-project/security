@@ -73,11 +73,13 @@ public final class ClusterHelper {
 
 	protected final List<PluginAwareNode> esNodes = new LinkedList<>();
 
-	private final String clustername;
+    private final String clustername;
+    private ClusterState clusterState;
 
 	public ClusterHelper(String clustername) {
         super();
         this.clustername = clustername;
+        this.clusterState = ClusterState.UNINITIALIZED;
     }
 
     public String getClusterName() {
@@ -96,23 +98,31 @@ public final class ClusterHelper {
 	}
 
 
-	public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
-			throws Exception {
+    public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
+            throws Exception {
 
-		if (!esNodes.isEmpty()) {
-			throw new RuntimeException("There are still " + esNodes.size() + " nodes instantiated, close them first.");
-		}
+        switch (clusterState) {
+            case UNINITIALIZED:
+                FileUtils.deleteDirectory(new File("./target/data/" + clustername));
+                break;
+            case STARTED:
+                closeAllNodes();
+                break;
+        }
 
-		FileUtils.deleteDirectory(new File("data/"+clustername));
+        if (!esNodes.isEmpty()) {
+            throw new RuntimeException("There are still " + esNodes.size() + " nodes instantiated, close them first.");
+        }
 
-		List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
+        List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 
-		final String forkno = System.getProperty("forkno");
-		int forkNumber = 1;
+        final String forkno = System.getProperty("forkno");
+        int forkNumber = 1;
 
-		if(forkno != null && forkno.length() > 0) {
-		    forkNumber = Integer.parseInt(forkno.split("_")[1]);
-		}
+        if(forkno != null && forkno.length() > 0) {
+            forkNumber = Integer.parseInt(forkno.split("_")[1]);
+        }
+
 
 		final int min = SocketUtils.PORT_RANGE_MIN+(forkNumber*5000);
 		final int max = SocketUtils.PORT_RANGE_MIN+((forkNumber+1)*5000)-1;
@@ -173,20 +183,25 @@ public final class ClusterHelper {
 		ClusterInfo cInfo = waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeout), nodes == null?esNodes.size():nodes.intValue());
 		cInfo.numNodes = internalNodeSettings.size();
 		cInfo.clustername = clustername;
-		return cInfo;
-	}
+        clusterState = ClusterState.STARTED;
+        return cInfo;
+    }
 
-	public final void stopCluster() throws Exception {
+    public final void stopCluster() throws Exception {
+        closeAllNodes();
+        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
+    }
 
-	    //close non master nodes
-	    esNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
+    private void closeAllNodes() throws  Exception {
+        //close non master nodes
+        esNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
 
 	    //close master nodes
 	    esNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
 		esNodes.clear();
 
-		FileUtils.deleteDirectory(new File("data/"+clustername));
-	}
+        clusterState = ClusterState.STOPPED;
+    }
 
 	private static void closeNode(Node node) {
 	    try {
@@ -324,6 +339,11 @@ public final class ClusterHelper {
 	    }
 
 	    return (masterEligibleNodes/2) + 1;
+        }
 
-	}
+        private enum ClusterState{
+            UNINITIALIZED,
+            STARTED,
+            STOPPED
+        }
 }
