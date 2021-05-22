@@ -14,18 +14,13 @@ package org.opensearch.security;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.LegacyOpenDistroSSLSecuritySettings;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.ssl.util.SSLSecuritySettings;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.LegacyOpenDistroSecuritySettings;
 import org.opensearch.security.support.SecuritySettings;
 
-import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 public class SecuritySettingsTests {
     
@@ -383,7 +378,7 @@ public class SecuritySettingsTests {
                 .put("opendistro_security.ssl.http.crl.disable_crldp", false)
                 .put("opendistro_security.ssl.http.crl.disable_ocsp", false)
                 .put("opendistro_security.ssl.http.crl.validation_date", 1)
-                .build();
+        .build();
         
         Assert.assertEquals(SSLSecuritySettings.SECURITY_SSL_HTTP_CLIENTAUTH_MODE.get(settings), "test");
         Assert.assertEquals(SSLSecuritySettings.SECURITY_SSL_HTTP_KEYSTORE_ALIAS.get(settings), "test");
