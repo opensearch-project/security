@@ -139,19 +139,18 @@ public class IndexBaseConfigurationRepository implements ConfigurationRepository
                                         try(StoredContext ctx = threadContext.stashContext()) {
                                             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                                            final boolean isSecurityIndexCreated = createSecurityIndexIfAbsent();
+                                            createSecurityIndexIfAbsent();
 					    waitForSecurityIndexToBeAtLeastYellow();
 
-                                            if(isSecurityIndexCreated) {
-                                                ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, "config");
-                                                ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, "roles");
-                                                ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, "rolesmapping");
-                                                ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, "internalusers");
-                                                ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, "actiongroups");
-                                                final boolean populateEmptyIfFileMissing = true;
-                                                ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, "nodesdn", populateEmptyIfFileMissing);
-                                                LOGGER.info("Default config applied");
-                                            }
+                                            ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, "config");
+                                            ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, "roles");
+                                            ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, "rolesmapping");
+                                            ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, "internalusers");
+                                            ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, "actiongroups");
+                                            
+                                            final boolean populateEmptyIfFileMissing = true;
+                                            ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, "nodesdn", populateEmptyIfFileMissing);
+                                            LOGGER.info("Default config applied");
 
                                             // audit.yml is not packaged by default
                                             final String auditConfigPath = cd + "audit.yml";
