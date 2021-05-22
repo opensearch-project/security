@@ -131,22 +131,19 @@ public class ConfigurationRepository {
                                 try(StoredContext ctx = threadContext.stashContext()) {
                                     threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                                    final boolean isSecurityIndexCreated = createSecurityIndexIfAbsent();
+                                    createSecurityIndexIfAbsent();
                                     waitForSecurityIndexToBeAtLeastYellow();
 
-                                    if (isSecurityIndexCreated) {
-                                        ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
-                                        ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
-                                        if(DEFAULT_CONFIG_VERSION == 2) {
-                                            ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
-                                        }
-                                        final boolean populateEmptyIfFileMissing = true;
-                                        ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
-                                        LOGGER.info("Default config applied");
+                                    ConfigHelper.uploadFile(client, cd+"config.yml", opendistrosecurityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                                    ConfigHelper.uploadFile(client, cd+"roles.yml", opendistrosecurityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                                    ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", opendistrosecurityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
+                                    ConfigHelper.uploadFile(client, cd+"internal_users.yml", opendistrosecurityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
+                                    ConfigHelper.uploadFile(client, cd+"action_groups.yml", opendistrosecurityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
+                                    if(DEFAULT_CONFIG_VERSION == 2) {
+                                        ConfigHelper.uploadFile(client, cd+"tenants.yml", opendistrosecurityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
                                     }
+                                    final boolean populateEmptyIfFileMissing = true;
+                                    ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", opendistrosecurityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
 
                                     // audit.yml is not packaged by default
                                     final String auditConfigPath = cd + "audit.yml";
