@@ -77,10 +77,12 @@ public final class ClusterHelper {
     protected final List<PluginAwareNode> esNodes = new LinkedList<>();
 
     private final String clustername;
+    private ClusterState clusterState;
 
     public ClusterHelper(String clustername) {
         super();
         this.clustername = clustername;
+        this.clusterState = ClusterState.UNINITIALIZED;
     }
 
     public String getClusterName() {
@@ -98,15 +100,21 @@ public final class ClusterHelper {
         return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null);
     }
 
-
     public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
             throws Exception {
+
+        switch (clusterState) {
+            case UNINITIALIZED:
+                FileUtils.deleteDirectory(new File("./target/data/" + clustername));
+                break;
+            case STARTED:
+                closeAllNodes();
+                break;
+        }
 
         if (!esNodes.isEmpty()) {
             throw new RuntimeException("There are still " + esNodes.size() + " nodes instantiated, close them first.");
         }
-
-        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
 
         List<NodeSettings> internalNodeSettings = clusterConfiguration.getNodeSettings();
 
@@ -225,11 +233,16 @@ public final class ClusterHelper {
             throw new RuntimeException("Default template could not be created");
         }
 
+        clusterState = ClusterState.STARTED;
         return cInfo;
     }
 
     public final void stopCluster() throws Exception {
+        closeAllNodes();
+        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
+    }
 
+    private void closeAllNodes() throws  Exception {
         //close non master nodes
         esNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
 
@@ -237,7 +250,7 @@ public final class ClusterHelper {
         esNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
         esNodes.clear();
 
-        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
+        clusterState = ClusterState.STOPPED;
     }
 
     private static void closeNode(Node node) {
@@ -372,4 +385,10 @@ public final class ClusterHelper {
 	    return (masterEligibleNodes/2) + 1;
 
 	}*/
+
+    private enum ClusterState{
+        UNINITIALIZED,
+        STARTED,
+        STOPPED
+    }
 }
