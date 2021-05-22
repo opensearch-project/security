@@ -1,0 +1,13 @@
+---
+_meta:
+  type: "config"
+  config_version: 2
+
+INVALID_BLOB_HERE
+
+config:
+  dynamic:
+    filtered_alias_mode: "disallow"
+    disable_rest_auth: false
+    disable_intertransport_auth: false
+    respect_request_indices_options: false
