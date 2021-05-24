@@ -11,12 +11,8 @@
 
 package org.opensearch.security.ssl.util;
 
-import io.netty.util.internal.PlatformDependent;
-import org.opensearch.common.Booleans;
 import org.opensearch.common.settings.Setting;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 

@@ -204,7 +204,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         try {
             System.setProperty("security.default_init.dir", new File("./src/test/resources/invalid_config").getAbsolutePath());
             final Settings settings = Settings.builder()
-                    .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                    .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                     .build();
             setup(Settings.EMPTY, null, settings, false);
             RestHelper rh = nonSslRestHelper();
