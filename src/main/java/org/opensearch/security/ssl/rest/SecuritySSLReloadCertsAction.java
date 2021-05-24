@@ -82,7 +82,7 @@ public class SecuritySSLReloadCertsAction extends BaseRestHandler {
      * PUT _opendistro/_security/api/ssl/http/reloadcerts
      *
      * NOTE: No request body is required. We will assume new certificates are loaded in the paths specified in your opensearch.yml file
-     * (https://docs-beta.opensearch.org/docs/security-configuration/tls/)
+     * (https://docs-beta.opensearch.org/docs/security/configuration/tls/)
      *
      * Sample response:
      * { "message": "updated http certs" }
