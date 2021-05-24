@@ -1,5 +1,5 @@
 
-##  opendistro-for-elasticsearch/security pull request intake form
+##  opensearch-security pull request intake form
 _Please provide as much details as possible to get feedback/acceptance on your PR quickly_
 
  
