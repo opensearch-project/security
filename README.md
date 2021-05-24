@@ -45,7 +45,7 @@ OpenSearch Security is an OpenSearch plugin that offers encryption, authenticati
 
 ## Documentation
 
-Please refer to the [technical documentation](https://opendistro.github.io/for-elasticsearch-docs/docs/security/configuration/) for detailed information on installing and configuring opensearch-security plugin.
+Please refer to the [technical documentation](https://docs-beta.opensearch.org/docs/security/configuration/) for detailed information on installing and configuring opensearch-security plugin.
 
 ## Quick Start
 
