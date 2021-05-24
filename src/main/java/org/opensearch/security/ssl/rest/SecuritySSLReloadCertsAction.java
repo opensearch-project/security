@@ -42,7 +42,7 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  * Rest API action to reload SSL certificates.
  * Can be used to reload SSL certificates that are about to expire without restarting OpenSearch node.
  * This API assumes that new certificates are in the same location specified by the security configurations in opensearch.yml
- * (https://opendistro.github.io/for-elasticsearch-docs/docs/security-configuration/tls/)
+ * (https://docs-beta.opensearch.org/docs/security-configuration/tls/)
  * To keep sensitive certificate reload secure, this API will only allow hot reload
  * with certificates issued by the same Issuer and Subject DN and SAN with expiry dates after the current one.
  * Currently this action serves PUT request for /_opendistro/_security/ssl/http/reloadcerts or /_opendistro/_security/ssl/transport/reloadcerts endpoint
@@ -82,7 +82,7 @@ public class SecuritySSLReloadCertsAction extends BaseRestHandler {
      * PUT _opendistro/_security/api/ssl/http/reloadcerts
      *
      * NOTE: No request body is required. We will assume new certificates are loaded in the paths specified in your opensearch.yml file
-     * (https://opendistro.github.io/for-elasticsearch-docs/docs/security-configuration/tls/)
+     * (https://docs-beta.opensearch.org/docs/security/configuration/tls/)
      *
      * Sample response:
      * { "message": "updated http certs" }
