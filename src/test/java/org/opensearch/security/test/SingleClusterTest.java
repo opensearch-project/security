@@ -71,6 +71,13 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initSecurityIndex, ClusterConfiguration.DEFAULT);
     }
 
+    protected void restart(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpendistroSecurityIndex) throws Exception {
+        clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), ClusterConfiguration.DEFAULT);
+        if(initOpendistroSecurityIndex && dynamicSecuritySettings != null) {
+            initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
+        }
+    }
+
     private Settings ccs(Settings nodeOverride) throws Exception {
         if(remoteClusterHelper != null) {
             Assert.assertNull("No remote clusters", remoteClusterInfo);

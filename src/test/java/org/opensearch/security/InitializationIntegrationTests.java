@@ -30,6 +30,7 @@
 
 package org.opensearch.security;
 
+import java.io.File;
 import java.util.Iterator;
 
 import org.apache.http.Header;
@@ -195,6 +196,33 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         Thread.sleep(10000);
         
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+    }
+
+    @Test
+    public void testInvalidDefaultConfig() throws Exception {
+        String defaultInitDirectory = System.getProperty("security.default_init.dir");
+        try {
+            System.setProperty("security.default_init.dir", new File("./src/test/resources/invalid_config").getAbsolutePath());
+            final Settings settings = Settings.builder()
+                    .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                    .build();
+            setup(Settings.EMPTY, null, settings, false);
+            RestHelper rh = nonSslRestHelper();
+            Thread.sleep(10000);
+            Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+
+            System.setProperty("security.default_init.dir", defaultInitDirectory);
+            restart(Settings.EMPTY, null, settings, false);
+            rh = nonSslRestHelper();
+            Thread.sleep(10000);
+            Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+        } finally {
+            if (defaultInitDirectory != null) {
+                System.setProperty("security.default_init.dir", defaultInitDirectory);
+            } else {
+                System.clearProperty("security.default_init.dir");
+            }
+        }
     }
 
     @Test
