@@ -37,7 +37,7 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    opensearchVersion = '1.0.0.0-rc1'
+    opensearchVersion = '1.0.0.0-snapshot'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
@@ -67,7 +67,7 @@ ospackage {
     user 'root'
     permissionGroup 'root'
 
-    requires('opensearch-oss', "1.0.0-rc1", EQUAL)
+    requires('opensearch-oss', "1.0.0-snapshot", EQUAL)
     packager = 'Amazon'
     vendor = 'Amazon'
     os = 'LINUX'
