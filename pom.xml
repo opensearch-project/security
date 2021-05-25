@@ -128,6 +128,11 @@
                 <artifactId>cryptacular</artifactId>
                 <version>${cryptacular.version}</version>
             </dependency>
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>2.4.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -383,7 +388,6 @@
             <artifactId>json-path</artifactId>
             <version>2.4.0</version>
         </dependency>
-
 
         <!-- Only test scoped dependencies hereafter -->
         <dependency>
