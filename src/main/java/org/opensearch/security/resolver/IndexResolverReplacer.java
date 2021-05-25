@@ -662,7 +662,7 @@ public class IndexResolverReplacer {
             }
             ((CreateIndexRequest) request).index(newIndices.length!=1?null:newIndices[0]);
         } else if (request instanceof CreateDataStreamAction.Request) {
-            String[] newDataStreams = provider.provide(((CreateDataStreamAction.Request) request).indices(), request, true);
+            String[] newDataStreams = provider.provide(((CreateDataStreamAction.Request) request).indices(), request, false);
             if(checkIndices(request, newDataStreams, true, allowEmptyIndices) == false) {
                 return false;
             }
