@@ -51,9 +51,6 @@ public class JwtVerifier {
 			String kid = escapedKid;
 			if (!Strings.isNullOrEmpty(kid)) {
 				kid = StringEscapeUtils.unescapeJava(escapedKid);
-				if (!escapedKid.equals(kid)) {
-					log.debug("Escaped Key ID from JWT Token");
-				}
 			}
 			JsonWebKey key = keyProvider.getKey(kid);
 			
