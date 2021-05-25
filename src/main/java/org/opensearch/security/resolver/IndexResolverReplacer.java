@@ -662,7 +662,7 @@ public class IndexResolverReplacer {
             }
             ((CreateIndexRequest) request).index(newIndices.length!=1?null:newIndices[0]);
         } else if (request instanceof CreateDataStreamAction.Request) {
-            String[] newDataStreams = provider.provide(((CreateDataStreamAction.Request) request).indices(), request, true);
+            provider.provide(((CreateDataStreamAction.Request) request).indices(), request, false);
         } else if (request instanceof ReindexRequest) {
             result = getOrReplaceAllIndices(((ReindexRequest) request).getDestination(), provider, false) && result;
             result = getOrReplaceAllIndices(((ReindexRequest) request).getSearchRequest(), provider, false) && result;
