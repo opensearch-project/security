@@ -47,8 +47,8 @@ import static org.junit.Assert.assertEquals;
 
 /**
  *  Test for opendistro system indices, to restrict configured indices access to adminDn
- *  Refer:    "opendistro_security.system_indices.enabled"
- *            "opendistro_security.system_indices.indices";
+ *  Refer:    "plugins.security.system_indices.enabled"
+ *            "plugins.security.system_indices.indices";
  */
 public class SystemIndicesTests extends SingleClusterTest {
 
@@ -63,9 +63,9 @@ public class SystemIndicesTests extends SingleClusterTest {
         Settings systemIndexSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, false)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
-                .put("opendistro_security.ssl.http.enabled",true)
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
                 .build();
         setup(Settings.EMPTY,
@@ -83,9 +83,9 @@ public class SystemIndicesTests extends SingleClusterTest {
         Settings systemIndexSettings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, true)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
-                .put("opendistro_security.ssl.http.enabled",true)
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
                 .build();
         setup(Settings.EMPTY,

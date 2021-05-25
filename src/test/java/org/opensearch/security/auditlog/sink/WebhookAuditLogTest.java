@@ -67,7 +67,7 @@ public class WebhookAuditLogTest {
 		// provide no settings, fallback must be used
 		Settings settings = Settings.builder()
 		        .put("path.home", ".")
-		        .put("opendistro_security.ssl.transport.truststore_filepath",
+		        .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 		        .build();
 		LoggingSink fallback = new LoggingSink("test", Settings.EMPTY, null, null);
@@ -89,11 +89,11 @@ public class WebhookAuditLogTest {
 
 		// provide no format, defaults to TEXT
 		Settings settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.url", url)
 				.put("path.home", ".")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
-                .put("opendistro_security.ssl.transport.enforce_hostname_verification", false)
+                .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
 				.build();
 
 		MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
@@ -104,9 +104,9 @@ public class WebhookAuditLogTest {
 
 		// provide faulty format, defaults to TEXT
 		settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "idonotexist")
-				.put("opendistro_security.ssl.transport.truststore_filepath",
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "idonotexist")
+				.put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -119,9 +119,9 @@ public class WebhookAuditLogTest {
 
 		// TEXT
 		settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "text")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "text")
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -135,9 +135,9 @@ public class WebhookAuditLogTest {
 
 		// JSON
 		settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "json")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "json")
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("path.home", ".")
 				.build();
@@ -152,9 +152,9 @@ public class WebhookAuditLogTest {
 
 		// SLACK
 		settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "slack")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "slack")
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -175,9 +175,9 @@ public class WebhookAuditLogTest {
 		String url = "faultyurl";
 
 		final Settings settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "slack")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "slack")
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -198,9 +198,9 @@ public class WebhookAuditLogTest {
 		String url = "http://localhost:8080/endpoint";
 
 		Settings settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "slack")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "slack")
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -233,10 +233,10 @@ public class WebhookAuditLogTest {
 
 		// SLACK
 		Settings settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "slack")
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "slack")
 				.put("path.home", ".")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
@@ -254,9 +254,9 @@ public class WebhookAuditLogTest {
 
 		// TEXT
 		settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "texT")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "texT")
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -272,9 +272,9 @@ public class WebhookAuditLogTest {
 
 		// JSON
 		settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "JSon")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "JSon")
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -289,10 +289,10 @@ public class WebhookAuditLogTest {
 
 		// URL POST
 		settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "URL_PARAMETER_POST")
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "URL_PARAMETER_POST")
 				.put("path.home", ".")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
@@ -306,10 +306,10 @@ public class WebhookAuditLogTest {
 
 		// URL GET
 		settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "URL_PARAMETER_GET")
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "URL_PARAMETER_GET")
 				.put("path.home", ".")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
@@ -337,10 +337,10 @@ public class WebhookAuditLogTest {
 		String url = "https://localhost:8081/endpoint";
 
 		Settings settings = Settings.builder()
-				.put("opendistro_security.audit.config.webhook.url", url)
-				.put("opendistro_security.audit.config.webhook.format", "slack")
+				.put("plugins.security.audit.config.webhook.url", url)
+				.put("plugins.security.audit.config.webhook.format", "slack")
 				.put("path.home", ".")
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
@@ -377,10 +377,10 @@ public class WebhookAuditLogTest {
 
         // try with ssl verification on, no trust ca, must fail
         Settings settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "slack")
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "slack")
                 .put("path.home", ".")
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .build();
 
 		LoggingSink fallback =  new LoggingSink("test", Settings.EMPTY, null, null);
@@ -396,9 +396,9 @@ public class WebhookAuditLogTest {
         // disable ssl verification, no ca, call must succeed
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.config.webhook.ssl.verify", false)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.config.webhook.ssl.verify", false)
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -411,10 +411,10 @@ public class WebhookAuditLogTest {
         // enable ssl verification, provide correct trust ca, call must succeed
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -427,10 +427,10 @@ public class WebhookAuditLogTest {
         // enable ssl verification, provide wrong trust ca, call must succeed
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -463,10 +463,10 @@ public class WebhookAuditLogTest {
         // test default with filepath
         handler.reset();
         Settings settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"))
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"))
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
         AuditLogSink auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -479,10 +479,10 @@ public class WebhookAuditLogTest {
         // test default with missing filepath and fallback to correct Security settings
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -495,11 +495,11 @@ public class WebhookAuditLogTest {
         // test default with wrong filepath and fallback to wrong Security settings
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.config.webhook.ssl.pemtrustedcas_filepath", "wrong")
-                .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", "wrong")
+                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -511,10 +511,10 @@ public class WebhookAuditLogTest {
         // test default with wrong/no filepath and no fallback to Security settings, must fail
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.ssl.pemtrustedcas_filepath", "wrong")
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", "wrong")
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -526,10 +526,10 @@ public class WebhookAuditLogTest {
         // test default with existing but wrong PEM, no fallback
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.crt.pem"))
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.crt.pem"))
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -541,11 +541,11 @@ public class WebhookAuditLogTest {
         // test default with existing but wrong PEM, fallback present but pemtrustedcas_filepath takes precedence and must fail
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.config.webhook.url", url)
-                .put("opendistro_security.audit.config.webhook.format", "jSoN")
-                .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
-                .put("opendistro_security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.crt.pem"))
-                .put("opendistro_security.audit.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.config.webhook.url", url)
+                .put("plugins.security.audit.config.webhook.format", "jSoN")
+                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.crt.pem"))
+                .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
@@ -577,13 +577,13 @@ public class WebhookAuditLogTest {
         // test default with filepath
         handler.reset();
         Settings settings = Settings.builder()
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.url", url)
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"))
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"))
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        AuditLogSink auditlog = new WebhookSink("name", settings, "opendistro_security.audit.endpoints.endpoint1.config", null, fallback);
+        AuditLogSink auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
         Assert.assertTrue(handler.method.equals("POST"));
         Assert.assertTrue(handler.body != null);
@@ -593,13 +593,13 @@ public class WebhookAuditLogTest {
         // test default with missing filepath and fallback to correct Security settings
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.url", url)
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
-                .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
+                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, "opendistro_security.audit.endpoints.endpoint1.config", null, fallback);
+        auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
         Assert.assertTrue(handler.method.equals("POST"));
         Assert.assertTrue(handler.body != null);
@@ -609,13 +609,13 @@ public class WebhookAuditLogTest {
         // test default with wrong filepath and fallback to wrong Security settings
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.url", url)
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
-                .put("opendistro_security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
+                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, "opendistro_security.audit.endpoints.endpoint1.config", null, fallback);
+        auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -624,12 +624,12 @@ public class WebhookAuditLogTest {
         // test default with wrong/no filepath and no fallback to Security settings, must fail
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.url", url)
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, "opendistro_security.audit.endpoints.endpoint1.config", null, fallback);
+        auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -638,13 +638,13 @@ public class WebhookAuditLogTest {
         // test default with existing but wrong PEM, no fallback
         handler.reset();
         settings = Settings.builder()
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.url", url)
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.crt.pem"))
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.crt.pem"))
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, "opendistro_security.audit.endpoints.endpoint1.config", null, fallback);
+        auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -674,14 +674,14 @@ public class WebhookAuditLogTest {
         // test  with filecontent
         handler.reset();
         Settings settings = Settings.builder()
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.url", url)
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_content", FileHelper.loadFile("auditlog/root-ca.pem"))
-                .put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_content", FileHelper.loadFile("auditlog/root-ca.pem"))
+                .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
 
-        AuditLogSink auditlog = new WebhookSink("name", settings, "opendistro_security.audit.endpoints.endpoint1.config", null, fallback);
+        AuditLogSink auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
         auditlog.store(msg);
         Assert.assertTrue(handler.method.equals("POST"));
         Assert.assertTrue(handler.body != null);

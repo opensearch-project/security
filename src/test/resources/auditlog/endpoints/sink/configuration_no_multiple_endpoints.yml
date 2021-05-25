@@ -1,5 +1,5 @@
-opendistro_security.audit.type: internal_opensearch
-opendistro_security.audit.config.index: "myownindex"
-opendistro_security.audit.config.type: "auditevents"
-opendistro_security.audit.threadpool.size: 5
-opendistro_security.audit.threadpool.max_queue_len: 200000
+plugins.security.audit.type: internal_opensearch
+plugins.security.audit.config.index: "myownindex"
+plugins.security.audit.config.type: "auditevents"
+plugins.security.audit.threadpool.size: 5
+plugins.security.audit.threadpool.max_queue_len: 200000

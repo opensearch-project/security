@@ -64,7 +64,7 @@ public class CachingTest extends SingleClusterTest{
 
     @Test
     public void testRestNoCaching() throws Exception {
-        final Settings settings = Settings.builder().put("opendistro_security.cache.ttl_minutes", 0).build();
+        final Settings settings = Settings.builder().put("plugins.security.cache.ttl_minutes", 0).build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty");
@@ -85,7 +85,7 @@ public class CachingTest extends SingleClusterTest{
 
     @Test
     public void testRestCachingWithImpersonation() throws Exception {
-        final Settings settings = Settings.builder().putList("opendistro_security.authcz.rest_impersonation_user.dummy", "*").build();
+        final Settings settings = Settings.builder().putList("plugins.security.authcz.rest_impersonation_user.dummy", "*").build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         final RestHelper rh = nonSslRestHelper();
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", new BasicHeader("opendistro_security_impersonate_as", "impuser"));

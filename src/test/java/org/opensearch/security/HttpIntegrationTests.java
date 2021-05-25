@@ -262,9 +262,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPSCompressionEnabled() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistro_security.ssl.http.enabled",true)
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .put("http.compression",true)
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
@@ -284,9 +284,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPSCompression() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistro_security.ssl.http.enabled",true)
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true);
         final RestHelper rh = restHelper(); //ssl resthelper
@@ -346,10 +346,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPClientCert() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistro_security.ssl.http.clientauth_mode","REQUIRE")
-                .put("opendistro_security.ssl.http.enabled",true)
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("plugins.security.ssl.http.clientauth_mode","REQUIRE")
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
                 .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
                 .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
@@ -389,9 +389,9 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         try {
             final Settings settings = Settings.builder()
-                    .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                    .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                    .put("opendistro_security.ssl.http.enabled", true)
+                    .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                    .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                    .put("plugins.security.ssl.http.enabled", true)
                     .build();
             setup(settings);
             RestHelper rh = nonSslRestHelper();

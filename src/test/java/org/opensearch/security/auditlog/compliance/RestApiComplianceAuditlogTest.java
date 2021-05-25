@@ -33,7 +33,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testRestApiRolesEnabled() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
@@ -63,7 +63,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testRestApiRolesDisabled() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -99,7 +99,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testRestApiRolesDisabledGet() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -135,7 +135,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testAutoInit() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -162,7 +162,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testRestApiNewUser() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
@@ -187,7 +187,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testRestInternalConfigRead() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
@@ -221,7 +221,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testBCryptHashRedaction() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)

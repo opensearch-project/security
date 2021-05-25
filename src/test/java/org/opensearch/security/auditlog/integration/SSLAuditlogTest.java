@@ -64,8 +64,8 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
         setupMonitoring();
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", "external_opensearch")
-                .put("opendistro_security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
+                .put("plugins.security.audit.type", "external_opensearch")
+                .put("plugins.security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
@@ -103,8 +103,8 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
         setupMonitoring();
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", "external_opensearch")
-                .put("opendistro_security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
+                .put("plugins.security.audit.type", "external_opensearch")
+                .put("plugins.security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
@@ -137,8 +137,8 @@ public class SSLAuditlogTest extends AbstractAuditlogiUnitTest {
         setupMonitoring();
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", "external_opensearch")
-                .put("opendistro_security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
+                .put("plugins.security.audit.type", "external_opensearch")
+                .put("plugins.security.audit.config.http_endpoints", monitoringClusterInfo.httpHost+":"+monitoringClusterInfo.httpPort)
                 .putList(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS, "*spock*","admin", "CN=kirk,OU=client,O=client,L=Test,C=DE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)

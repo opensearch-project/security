@@ -1018,7 +1018,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             return settingsFilter;
         }
 
-        settingsFilter.add("opendistro_security.*");
+        settingsFilter.add("plugins.security.*");
         return settingsFilter;
     }
     

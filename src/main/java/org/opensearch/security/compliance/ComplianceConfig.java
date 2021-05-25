@@ -261,7 +261,7 @@ public class ComplianceConfig {
         final boolean logDiffsForWrite = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
         final List<String> watchedReadFields = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
                 Collections.emptyList(), false);
-        //opendistro_security.compliance.pii_fields:
+        //plugins.security.compliance.pii_fields:
         //  - indexpattern,fieldpattern,fieldpattern,....
         final Map<String, List<String>> readEnabledFields = watchedReadFields.stream()
                 .map(watchedReadField -> watchedReadField.split(","))

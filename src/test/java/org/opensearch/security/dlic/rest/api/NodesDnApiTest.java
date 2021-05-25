@@ -160,7 +160,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
     public void testNodesDnApiAuditComplianceLogging() throws Exception {
         Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .putList(ConfigConstants.OPENDISTRO_SECURITY_NODES_DN, "CN=example.com")
-            .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)

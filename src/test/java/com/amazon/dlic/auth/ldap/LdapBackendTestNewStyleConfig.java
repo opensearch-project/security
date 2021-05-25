@@ -163,7 +163,7 @@ public class LdapBackendTestNewStyleConfig {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
                 .put("users.u1.search", "(uid={0})").put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks"))
                 .put("verify_hostnames", false).put("path.home", ".").build();
 
@@ -214,7 +214,7 @@ public class LdapBackendTestNewStyleConfig {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
                 .put("users.u1.search", "(uid={0})").put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks"))
                 .put("verify_hostnames", false).putList("enabled_ssl_protocols", "SSLv3").put("path.home", ".").build();
 
@@ -234,7 +234,7 @@ public class LdapBackendTestNewStyleConfig {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
                 .put("users.u1.search", "(uid={0})").put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks"))
                 .put("verify_hostnames", false).putList("enabled_ssl_ciphers", "AAA").put("path.home", ".").build();
 
@@ -254,7 +254,7 @@ public class LdapBackendTestNewStyleConfig {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
                 .put("users.u1.search", "(uid={0})").put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks"))
                 .put("verify_hostnames", false).putList("enabled_ssl_protocols", "TLSv1")
                 .putList("enabled_ssl_ciphers", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA").put("path.home", ".").build();
@@ -272,7 +272,7 @@ public class LdapBackendTestNewStyleConfig {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapsPort)
                 .put("users.u1.search", "(uid={0})").put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks"))
                 .put("verify_hostnames", false).put("path.home", ".").build();
 
@@ -317,7 +317,7 @@ public class LdapBackendTestNewStyleConfig {
                 .put("users.u1.search", "(uid={0})").put("users.u1.base", "ou=people,o=TEST")
                 .put("roles.g1.base", "ou=groups,o=TEST").put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
                 .put("roles.g1.search", "(uniqueMember={0})")
-                // .put("opendistro_security.authentication.authorization.ldap.userrolename",
+                // .put("plugins.security.authentication.authorization.ldap.userrolename",
                 // "(uniqueMember={0})")
                 .build();
 
@@ -516,7 +516,7 @@ public class LdapBackendTestNewStyleConfig {
         final Settings settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
                 .put("users.u1.search", "(uid={0})").put(ConfigConstants.LDAPS_ENABLE_START_TLS, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put("plugins.security.ssl.transport.truststore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks"))
                 .put("verify_hostnames", false).put("path.home", ".").build();
 

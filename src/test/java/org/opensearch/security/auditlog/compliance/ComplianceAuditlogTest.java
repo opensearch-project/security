@@ -46,7 +46,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testSourceFilter() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false)
@@ -98,7 +98,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testComplianceEnable() throws Exception {
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .build();
 
         setup(additionalSettings);
@@ -134,7 +134,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testSourceFilterMsearch() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false)
@@ -202,7 +202,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testInternalConfig() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -249,7 +249,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testExternalConfig() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -286,7 +286,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testUpdate() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
@@ -323,7 +323,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testUpdatePerf() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
@@ -373,7 +373,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testWriteHistory() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)

@@ -38,7 +38,7 @@ public class DelegateTest {
 
 	private void testAuditType(String type, Class<? extends AuditLogSink> expectedClass) throws Exception {
 		Builder settingsBuilder  = Settings.builder();
-		settingsBuilder.put("opendistro_security.audit.type", type);
+		settingsBuilder.put("plugins.security.audit.type", type);
 		settingsBuilder.put("path.home", ".");
 		AuditLogImpl auditLog = new AuditLogImpl(settingsBuilder.build(), null, null, null, null, null);
 		auditLog.close();

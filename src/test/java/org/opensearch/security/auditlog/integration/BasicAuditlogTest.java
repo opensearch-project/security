@@ -51,7 +51,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testAuditLogEnable() throws Exception {
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .build();
 
         setup(additionalSettings);
@@ -79,7 +79,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testSimpleAuthenticated() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated")
@@ -109,10 +109,10 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     //needs proper ssl plugin version
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.ssl.http.enabled",true)
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
@@ -140,7 +140,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testSimpleTransportAuthenticated() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
@@ -182,7 +182,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testTaskId() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
@@ -222,7 +222,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testDefaultsRest() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
@@ -250,7 +250,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testGrantedPrivilegesRest() throws Exception {
         final Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
@@ -265,7 +265,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testMissingPrivilegesRest() throws Exception {
         final Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .build();
@@ -290,7 +290,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testAuthenticated() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
@@ -318,7 +318,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testNonAuthenticated() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .build();
 
         setup(additionalSettings);
@@ -544,13 +544,13 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testIndexPattern() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", "internal_opensearch")
+                .put("plugins.security.audit.type", "internal_opensearch")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .put("opendistro_security.audit.threadpool.size", 10) //must be greater 0
-                .put("opendistro_security.audit.config.index", "'auditlog-'YYYY.MM.dd.ss")
+                .put("plugins.security.audit.threadpool.size", 10) //must be greater 0
+                .put("plugins.security.audit.config.index", "'auditlog-'YYYY.MM.dd.ss")
                 .build();
 
         setup(additionalSettings);
@@ -571,7 +571,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testAliases() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
@@ -615,7 +615,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testScroll() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
@@ -655,7 +655,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testAliasResolution() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
@@ -688,7 +688,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testAliasBadHeaders() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
@@ -713,7 +713,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testIndexCloseDelete() throws Exception {
 
         Settings additionalSettings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
@@ -745,7 +745,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testDeleteByQuery() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
@@ -773,7 +773,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testIndexRequests() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "AUTHENTICATED,GRANTED_PRIVILEGES")
@@ -816,7 +816,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testRestMethod() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
@@ -888,7 +888,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testSensitiveMethodRedaction() throws Exception {
         final Settings settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)

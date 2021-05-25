@@ -180,7 +180,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testWhitelistAuditComplianceLogging() throws Exception {
         Settings settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false)
