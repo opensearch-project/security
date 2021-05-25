@@ -146,3 +146,14 @@ OPENDISTRO_SECURITY_SUGGEST:
   - "indices:data/read/suggest*"
   type: "index"
   description: "Migrated from v6"
+DATASTREAM_ALL:
+  reserved: false
+  hidden: false
+  allowed_actions:
+  - "indices:admin/data_stream/get"
+  - "indices:admin/data_stream/create"
+  - "indices:admin/data_stream/delete"
+  - "indices:monitor/data_stream/stats"
+  type: "index"
+  description: "Migrated from v6"
+

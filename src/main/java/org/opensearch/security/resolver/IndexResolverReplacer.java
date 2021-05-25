@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.logging.log4j.LogManager;
@@ -660,6 +661,8 @@ public class IndexResolverReplacer {
                 return false;
             }
             ((CreateIndexRequest) request).index(newIndices.length!=1?null:newIndices[0]);
+        } else if (request instanceof CreateDataStreamAction.Request) {
+            provider.provide(((CreateDataStreamAction.Request) request).indices(), request, false);
         } else if (request instanceof ReindexRequest) {
             result = getOrReplaceAllIndices(((ReindexRequest) request).getDestination(), provider, false) && result;
             result = getOrReplaceAllIndices(((ReindexRequest) request).getSearchRequest(), provider, false) && result;

@@ -388,3 +388,23 @@ xyz_sr_hidden:
 bulk_test_user_role:
   users:
     - "bulk_test_user"
+index_template_perm:
+  reserved: false
+  hidden: false
+  users:
+    - "ds1"
+data_stream_1:
+  reserved: false
+  hidden: false
+  users:
+    - "ds1"
+data_stream_2:
+  reserved: false
+  hidden: false
+  users:
+    - "ds2"
+data_stream_3:
+  reserved: false
+  hidden: false
+  users:
+    - "ds3"
