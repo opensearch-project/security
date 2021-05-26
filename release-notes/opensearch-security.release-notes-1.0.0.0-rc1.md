@@ -5,7 +5,7 @@ Compatible with OpenSearch 1.0.0-rc1
 ### Enhancements
 
 * Allow attempt to load security config in case of plugin restart even if security index already exists ([#1154](https://github.com/opensearch-project/security/pull/1154))
-* owing granular access for data-stream related transport actions ([#1170](https://github.com/opensearch-project/security/pull/1170))
+* Allowing granular access for data-stream related transport actions ([#1170](https://github.com/opensearch-project/security/pull/1170))
 
 ### Bug fixes
 
