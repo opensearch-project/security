@@ -69,7 +69,7 @@ public class CompatConfig {
             } else {
                 final boolean restDynamicallyDisabled = dcm.isRestAuthDisabled();
                 if (isTraceEnabled) {
-                    log.trace("plugins.security.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
+                    log.trace("opendistro_security.dynamic.disable_rest_auth {}", restDynamicallyDisabled);
                 }
                 return !restDynamicallyDisabled;
             }
