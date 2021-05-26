@@ -10,14 +10,14 @@
 # Enable or disable the OpenSearch Security advanced modules
 # By default advanced modules are enabled, you can switch
 # all advanced features off by setting the following key to false
-opendistro_security.advanced_modules_enabled: true
+plugins.security.advanced_modules_enabled: true
 
 # Specify a list of DNs which denote the other nodes in the cluster.
 # This settings support wildcards and regular expressions
 # The list of DNs are also read from security index **in addition** to the yml configuration if
-# opendistro_security.nodes_dn_dynamic_config_enabled is true.
-# NOTE: This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
-opendistro_security.nodes_dn:
+# plugins.security.nodes_dn_dynamic_config_enabled is true.
+# NOTE: This setting only has effect if 'plugins.security.cert.intercluster_request_evaluator_class' is not set.
+plugins.security.nodes_dn:
   - "CN=*.example.com, OU=SSL, O=Test, L=Test, C=DE"
   - "CN=node.other.com, OU=SSL, O=Test, L=Test, C=DE"
 
@@ -26,34 +26,34 @@ opendistro_security.nodes_dn:
 # Setting nodes_dn_dynamic_config_enabled to true enables **super-admin callable** /_opendistro/_security/api/nodesdn APIs
 # which provide means to update/retrieve nodesdn dynamically.
 #
-# NOTE: The overall whitelisted nodes_dn evaluated comes from both the opendistro_security.nodes_dn and the ones stored
+# NOTE: The overall whitelisted nodes_dn evaluated comes from both the plugins.security.nodes_dn and the ones stored
 # in security index.
 # (default: false)
-# NOTE2: This setting only has effect if 'opendistro_security.cert.intercluster_request_evaluator_class' is not set.
-opendistro_security.nodes_dn_dynamic_config_enabled: false
+# NOTE2: This setting only has effect if 'plugins.security.cert.intercluster_request_evaluator_class' is not set.
+plugins.security.nodes_dn_dynamic_config_enabled: false
 
 # Defines the DNs (distinguished names) of certificates
 # to which admin privileges should be assigned (mandatory)
-opendistro_security.authcz.admin_dn:
+plugins.security.authcz.admin_dn:
   - "CN=kirk,OU=client,O=client,l=tEst, C=De"
 
 # Define how backend roles should be mapped to Security roles
 # MAPPING_ONLY - mappings must be configured explicitely in roles_mapping.yml (default)
 # BACKENDROLES_ONLY - backend roles are mapped to Security roles directly. Settings in roles_mapping.yml have no effect.
 # BOTH - backend roles are mapped to Security roles mapped directly and via roles_mapping.yml in addition
-opendistro_security.roles_mapping_resolution: MAPPING_ONLY
+plugins.security.roles_mapping_resolution: MAPPING_ONLY
 
 ############## REST Management API configuration settings ##############
 # Enable or disable role based access to the REST management API
 # Default is that no role is allowed to access the REST management API.
-#opendistro_security.restapi.roles_enabled: ["all_access","xyz_role"]
+#plugins.security.restapi.roles_enabled: ["all_access","xyz_role"]
 
 # Disable particular endpoints and their HTTP methods for roles. 
 # By default all endpoints/methods are allowed.
-#opendistro_security.restapi.endpoints_disabled.<role>.<endpoint>: <array of http methods>
+#plugins.security.restapi.endpoints_disabled.<role>.<endpoint>: <array of http methods>
 # Example:
-#opendistro_security.restapi.endpoints_disabled.all_access.ACTIONGROUPS: ["PUT","POST","DELETE"]
-#opendistro_security.restapi.endpoints_disabled.xyz_role.LICENSE: ["DELETE"]
+#plugins.security.restapi.endpoints_disabled.all_access.ACTIONGROUPS: ["PUT","POST","DELETE"]
+#plugins.security.restapi.endpoints_disabled.xyz_role.LICENSE: ["DELETE"]
 
 # The following endpoints exist:
 # ACTIONGROUPS
@@ -69,80 +69,80 @@ opendistro_security.roles_mapping_resolution: MAPPING_ONLY
 # General settings
 
 # Enable/disable rest request logging (default: true)
-#opendistro_security.audit.enable_rest: true
+#plugins.security.audit.enable_rest: true
 # Enable/disable transport request logging (default: false)
-#opendistro_security.audit.enable_transport: false
+#plugins.security.audit.enable_transport: false
 # Enable/disable bulk request logging (default: false)
 # If enabled all subrequests in bulk requests will be logged too
-#opendistro_security.audit.resolve_bulk_requests: false
+#plugins.security.audit.resolve_bulk_requests: false
 # Disable some categories
-#opendistro_security.audit.config.disabled_categories: ["AUTHENTICATED","GRANTED_PRIVILEGES"]
+#plugins.security.audit.config.disabled_categories: ["AUTHENTICATED","GRANTED_PRIVILEGES"]
 # Disable some requests (wildcard or regex of actions or rest request paths)
-#opendistro_security.audit.ignore_requests: ["indices:data/read/*","*_bulk"]
+#plugins.security.audit.ignore_requests: ["indices:data/read/*","*_bulk"]
 # Tune threadpool size, default is 10
-#opendistro_security.audit.threadpool.size: 10
+#plugins.security.audit.threadpool.size: 10
 # Tune threadpool max size queue length, default is 100000
-#opendistro_security.audit.threadpool.max_queue_len: 100000
+#plugins.security.audit.threadpool.max_queue_len: 100000
 
 # Ignore users, e.g. do not log audit requests from that users (default: no ignored users)
-#opendistro_security.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
+#plugins.security.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
 
 # Destination of the auditlog events
-opendistro_security.audit.type: internal_opensearch
-#opendistro_security.audit.type: external_opensearch
-#opendistro_security.audit.type: debug
-#opendistro_security.audit.type: webhook
+plugins.security.audit.type: internal_opensearch
+#plugins.security.audit.type: external_opensearch
+#plugins.security.audit.type: debug
+#plugins.security.audit.type: webhook
 
 # external_opensearch settings
-#opendistro_security.audit.config.http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']"
+#plugins.security.audit.config.http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']"
 # Auditlog index can be a static one or one with a date pattern (default is 'auditlog6')
-#opendistro_security.audit.config.index: auditlog6 # make sure you secure this index properly
-#opendistro_security.audit.config.index: "'auditlog6-'YYYY.MM.dd" #rotates index daily - make sure you secure this index properly
-#opendistro_security.audit.config.type: auditlog
-#opendistro_security.audit.config.username: auditloguser
-#opendistro_security.audit.config.password: auditlogpassword
-#opendistro_security.audit.config.enable_ssl: false
-#opendistro_security.audit.config.verify_hostnames: false
-#opendistro_security.audit.config.enable_ssl_client_auth: false
-#opendistro_security.audit.config.cert_alias: mycert
-#opendistro_security.audit.config.pemkey_filepath: key.pem
-#opendistro_security.audit.config.pemkey_content: <...pem base 64 content>
-#opendistro_security.audit.config.pemkey_password: secret
-#opendistro_security.audit.config.pemcert_filepath: cert.pem
-#opendistro_security.audit.config.pemcert_content: <...pem base 64 content>
-#opendistro_security.audit.config.pemtrustedcas_filepath: ca.pem
-#opendistro_security.audit.config.pemtrustedcas_content: <...pem base 64 content>
+#plugins.security.audit.config.index: auditlog6 # make sure you secure this index properly
+#plugins.security.audit.config.index: "'auditlog6-'YYYY.MM.dd" #rotates index daily - make sure you secure this index properly
+#plugins.security.audit.config.type: auditlog
+#plugins.security.audit.config.username: auditloguser
+#plugins.security.audit.config.password: auditlogpassword
+#plugins.security.audit.config.enable_ssl: false
+#plugins.security.audit.config.verify_hostnames: false
+#plugins.security.audit.config.enable_ssl_client_auth: false
+#plugins.security.audit.config.cert_alias: mycert
+#plugins.security.audit.config.pemkey_filepath: key.pem
+#plugins.security.audit.config.pemkey_content: <...pem base 64 content>
+#plugins.security.audit.config.pemkey_password: secret
+#plugins.security.audit.config.pemcert_filepath: cert.pem
+#plugins.security.audit.config.pemcert_content: <...pem base 64 content>
+#plugins.security.audit.config.pemtrustedcas_filepath: ca.pem
+#plugins.security.audit.config.pemtrustedcas_content: <...pem base 64 content>
 
 # webhook settings
-#opendistro_security.audit.config.webhook.url: "http://mywebhook/endpoint"
+#plugins.security.audit.config.webhook.url: "http://mywebhook/endpoint"
 # One of URL_PARAMETER_GET,URL_PARAMETER_POST,TEXT,JSON,SLACK
-#opendistro_security.audit.config.webhook.format: JSON
-#opendistro_security.audit.config.webhook.ssl.verify: false
-#opendistro_security.audit.config.webhook.ssl.pemtrustedcas_filepath: ca.pem
-#opendistro_security.audit.config.webhook.ssl.pemtrustedcas_content: <...pem base 64 content>
+#plugins.security.audit.config.webhook.format: JSON
+#plugins.security.audit.config.webhook.ssl.verify: false
+#plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath: ca.pem
+#plugins.security.audit.config.webhook.ssl.pemtrustedcas_content: <...pem base 64 content>
 
 # log4j settings
-#opendistro_security.audit.config.log4j.logger_name: auditlogger
-#opendistro_security.audit.config.log4j.level: INFO
+#plugins.security.audit.config.log4j.logger_name: auditlogger
+#plugins.security.audit.config.log4j.level: INFO
 
 ############## Kerberos configuration settings ##############
 # If Kerberos authentication should be used you have to configure:
 
 # The Path to the krb5.conf file
 # Can be absolute or relative to the OpenSearch config directory
-#opendistro_security.kerberos.krb5_filepath: '/etc/krb5.conf'
+#plugins.security.kerberos.krb5_filepath: '/etc/krb5.conf'
             
 # The Path to the keytab where the acceptor_principal credentials are stored.           
 # Must be relative to the OpenSearch config directory
-#opendistro_security.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
+#plugins.security.kerberos.acceptor_keytab_filepath: 'eskeytab.tab'
 
 # Acceptor (Server) Principal name, must be present in acceptor_keytab_path file
-#opendistro_security.kerberos.acceptor_principal: 'HTTP/localhost'
+#plugins.security.kerberos.acceptor_principal: 'HTTP/localhost'
 
 ############## Advanced configuration settings ##############
 # Enable transport layer impersonation
 # Allow DNs (distinguished names) to impersonate as other users
-#opendistro_security.authcz.impersonation_dn:
+#plugins.security.authcz.impersonation_dn:
 #  "CN=spock,OU=client,O=client,L=Test,C=DE":
 #    - worf
 #  "cn=webuser,ou=IT,ou=IT,dc=company,dc=com":
@@ -151,7 +151,7 @@ opendistro_security.audit.type: internal_opensearch
 
 # Enable rest layer impersonation
 # Allow users to impersonate as other users
-#opendistro_security.authcz.rest_impersonation_user:
+#plugins.security.authcz.rest_impersonation_user:
 #  "picard":
 #    - worf
 #  "john":
@@ -162,13 +162,13 @@ opendistro_security.audit.type: internal_opensearch
 # with the files in the config directory if the index does not exist.
 # WARNING: This will use well-known default passwords.
 #          Use only in a private network/environment.
-#opendistro_security.allow_default_init_securityindex: false
+#plugins.security.allow_default_init_securityindex: false
 
 # If this is set to true then allow to startup with demo certificates.
 # These are certificates issued by floragunn GmbH for demo purposes.
 # WARNING: This certificates are well known and therefore unsafe
 #          Use only in a private network/environment.
-#opendistro_security.allow_unsafe_democertificates: false
+#plugins.security.allow_unsafe_democertificates: false
 
 
 
@@ -177,8 +177,8 @@ opendistro_security.audit.type: internal_opensearch
 # Password validation rules can be configured through regex. In the below regex example, a user must need 
 # a password with minimum 8 characters length and must include minimum one uppercase, one lower case, one digit, and one special character. 
 # And a custom error message can be configured, in case if a password is not created according to the password strength rule.   
-# opendistro_security.restapi.password_validation_regex: '(?=.*[A-Z])(?=.*[^a-zA-Z\d])(?=.*[0-9])(?=.*[a-z]).{8,}'
-# opendistro_security.restapi.password_validation_error_message: "A password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character."
+# plugins.security.restapi.password_validation_regex: '(?=.*[A-Z])(?=.*[^a-zA-Z\d])(?=.*[0-9])(?=.*[a-z]).{8,}'
+# plugins.security.restapi.password_validation_error_message: "A password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character."
 
 
 ############## Expert settings ##############
@@ -188,46 +188,46 @@ opendistro_security.audit.type: internal_opensearch
 
 # Name of the index where .opendistro_security stores its configuration.
 
-#opendistro_security.config_index_name: .opendistro_security
+#plugins.security.config_index_name: .opendistro_security
 
 # This defines the OID of server node certificates
-#opendistro_security.cert.oid: '1.2.3.4.5.5'
+#plugins.security.cert.oid: '1.2.3.4.5.5'
 
 # This specifies the implementation of org.opensearch.security.transport.InterClusterRequestEvaluator
 # that is used to determine inter-cluster request.
 # Instances of org.opensearch.security.transport.InterClusterRequestEvaluator must implement a single argument
 # constructor that takes an org.opensearch.common.settings.Settings
-#opendistro_security.cert.intercluster_request_evaluator_class: org.opensearch.security.transport.DefaultInterClusterRequestEvaluator
+#plugins.security.cert.intercluster_request_evaluator_class: org.opensearch.security.transport.DefaultInterClusterRequestEvaluator
 
 # By default, normal users can restore snapshots if they have the priviliges 'cluster:admin/snapshot/restore', 
 # 'indices:admin/create', and 'indices:data/write/index' for the indices to be restored.
-# To disable snapshot restore for normal users set 'opendistro_security.enable_snapshot_restore_privilege: false'.
+# To disable snapshot restore for normal users set 'plugins.security.enable_snapshot_restore_privilege: false'.
 # This makes it so that only snapshot restore requests signed by an admin TLS certificate are accepted.
 # A snapshot can only be restored when it does not contain global state and does not restore the '.opendistro_security' index
-# If 'opendistro_security.check_snapshot_restore_write_privileges: false' is set then the additional indices checks are omitted.
-#opendistro_security.enable_snapshot_restore_privilege: true
-#opendistro_security.check_snapshot_restore_write_privileges: true
+# If 'plugins.security.check_snapshot_restore_write_privileges: false' is set then the additional indices checks are omitted.
+#plugins.security.enable_snapshot_restore_privilege: true
+#plugins.security.check_snapshot_restore_write_privileges: true
 
 # Authentication cache timeout in minutes (A value of 0 disables caching, default is 60)
-#opendistro_security.cache.ttl_minutes: 60
+#plugins.security.cache.ttl_minutes: 60
 
 # Disable OpenSearch Security
 # WARNING: This can expose your configuration (including passwords) to the public.
-#opendistro_security.disabled: false
+#plugins.security.disabled: false
 
 
 # Protected indices are even more secure than normal indices. These indices require a role to access like any other index, but they require an additional role
-# to be visible, listed in the opendistro_security.protected_indices.roles setting.
+# to be visible, listed in the plugins.security.protected_indices.roles setting.
 # Enable protected indices
-# opendistro_security.protected_indices.enabled: true
+# plugins.security.protected_indices.enabled: true
 # Specify a list of roles a user must be member of to touch any protected index.
-# opendistro_security.protected_indices.roles: ['all_access']
+# plugins.security.protected_indices.roles: ['all_access']
 # Specify a list of indices to mark as protected. These indices will only be visible / mutable by members of the above setting, in addition to needing permission to the index via a normal role.
-# opendistro_security.protected_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*']
+# plugins.security.protected_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*']
 
 # System indices are similar to security index, except the contents are not encrypted.
 # Indices configured as system indices can be accessed by only super-admin and no role will provide access to these indices.
 # Enable system indices
-# opendistro_security.system_indices.enabled: true
+# plugins.security.system_indices.enabled: true
 # Specify a list of indices to mark as system. These indices will only be visible / mutable by members of the above setting, in addition to needing permission to the index via a normal role.
-# opendistro_security.system_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*', '.opendistro-reports-*', '.opendistro-notifications-*', '.opendistro-notebooks', '.opendistro-asynchronous-search-response*']
+# plugins.security.system_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*', '.opendistro-reports-*', '.opendistro-notifications-*', '.opendistro-notebooks', '.opendistro-asynchronous-search-response*']
