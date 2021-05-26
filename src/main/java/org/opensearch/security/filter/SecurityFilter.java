@@ -131,7 +131,7 @@ public class SecurityFilter implements ActionFilter {
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
-        this.rolesInjector = new RolesInjector();
+        this.rolesInjector = new RolesInjector(auditLog);
         this.backendRegistry = backendRegistry;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
@@ -171,7 +171,7 @@ public class SecurityFilter implements ActionFilter {
             if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
-            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(threadContext);
+            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
             boolean enforcePrivilegesEvaluation = false;
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if(user == null && (user = backendRegistry.authenticate(request, null, task, action)) != null) {
