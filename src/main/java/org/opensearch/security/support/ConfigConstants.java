@@ -138,20 +138,20 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_ENDPOINTS = "plugins.security.audit.endpoints";
     public static final String OPENDISTRO_SECURITY_AUDIT_THREADPOOL_SIZE = "plugins.security.audit.threadpool.size";
     public static final String OPENDISTRO_SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN = "plugins.security.audit.threadpool.max_queue_len";
-    public static final String OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY = "plugins.security.audit.log_request_body";
-    public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES = "plugins.security.audit.resolve_indices";
-    public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_REST = "plugins.security.audit.enable_rest";
-    public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT = "plugins.security.audit.enable_transport";
-    public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES = "plugins.security.audit.config.disabled_transport_categories";
-    public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES = "plugins.security.audit.config.disabled_rest_categories";
+    public static final String OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY = "opendistro_security.audit.log_request_body";
+    public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES = "opendistro_security.audit.resolve_indices";
+    public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_REST = "opendistro_security.audit.enable_rest";
+    public static final String OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT = "opendistro_security.audit.enable_transport";
+    public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES = "opendistro_security.audit.config.disabled_transport_categories";
+    public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES = "opendistro_security.audit.config.disabled_rest_categories";
     public static final List<String> OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT = ImmutableList.of(AuditCategory.AUTHENTICATED.toString(),
             AuditCategory.GRANTED_PRIVILEGES.toString());
-    public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "plugins.security.audit.ignore_users";
-    public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "plugins.security.audit.ignore_requests";
-    public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS = "plugins.security.audit.resolve_bulk_requests";
+    public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS = "opendistro_security.audit.ignore_users";
+    public static final String OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS = "opendistro_security.audit.ignore_requests";
+    public static final String OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS = "opendistro_security.audit.resolve_bulk_requests";
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
-    public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "plugins.security.audit.exclude_sensitive_headers";
+    public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "opendistro_security.audit.exclude_sensitive_headers";
     
     public static final String OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "plugins.security.audit.config.";
 
@@ -209,19 +209,19 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION = "plugins.security.roles_mapping_resolution";
 
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY = "plugins.security.compliance.history.write.metadata_only";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY = "plugins.security.compliance.history.read.metadata_only";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS = "plugins.security.compliance.history.read.watched_fields";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES = "plugins.security.compliance.history.write.watched_indices";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS = "plugins.security.compliance.history.write.log_diffs";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS = "plugins.security.compliance.history.read.ignore_users";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS = "plugins.security.compliance.history.write.ignore_users";
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED  = "plugins.security.compliance.history.external_config_enabled";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY = "opendistro_security.compliance.history.write.metadata_only";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY = "opendistro_security.compliance.history.read.metadata_only";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS = "opendistro_security.compliance.history.read.watched_fields";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES = "opendistro_security.compliance.history.write.watched_indices";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS = "opendistro_security.compliance.history.write.log_diffs";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS = "opendistro_security.compliance.history.read.ignore_users";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS = "opendistro_security.compliance.history.write.ignore_users";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED  = "opendistro_security.compliance.history.external_config_enabled";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION  = "plugins.security.compliance.disable_anonymous_authentication";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES = "plugins.security.compliance.immutable_indices";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_SALT = "plugins.security.compliance.salt";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT = "e1ukloTsQlOgPquJ";//16 chars
-    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED  = "plugins.security.compliance.history.internal_config_enabled";
+    public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED  = "opendistro_security.compliance.history.internal_config_enabled";
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "plugins.security.ssl_only";
     public static final String OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED = "opendistro_security_config.ssl_dual_mode_enabled";
     public static final String OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED = "plugins.security.ssl_cert_reload_enabled";
