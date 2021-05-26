@@ -172,6 +172,7 @@ import org.opensearch.security.support.ModuleInfo;
 import org.opensearch.security.support.ReflectionHelper;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.support.SecurityUtils;
+import org.opensearch.security.support.SecuritySettings;
 import com.google.common.collect.Lists;
 
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
@@ -861,7 +862,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
-        settings.add(SSLConfig.SSL_DUAL_MODE_SETTING);
+        settings.add(SecuritySettings.SSL_DUAL_MODE_SETTING);
+        settings.add(SecuritySettings.LEGACY_OPENDISTRO_SSL_DUAL_MODE_SETTING);
 
         // Protected index settings
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered, Property.Final));

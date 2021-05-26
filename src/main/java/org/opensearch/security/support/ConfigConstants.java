@@ -223,7 +223,8 @@ public class ConfigConstants {
     public static final String SECURITY_COMPLIANCE_SALT_DEFAULT = "e1ukloTsQlOgPquJ";//16 chars
     public static final String SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED  = "opendistro_security.compliance.history.internal_config_enabled";
     public static final String SECURITY_SSL_ONLY = "plugins.security.ssl_only";
-    public static final String SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED = "opendistro_security_config.ssl_dual_mode_enabled";
+    public static final String SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED = "plugins.security_config.ssl_dual_mode_enabled";
+    public static final String LEGACY_OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED = "opendistro_security_config.ssl_dual_mode_enabled";
     public static final String SECURITY_SSL_CERT_RELOAD_ENABLED = "plugins.security.ssl_cert_reload_enabled";
     public static final String SECURITY_DISABLE_ENVVAR_REPLACEMENT = "plugins.security.disable_envvar_replacement";
 
