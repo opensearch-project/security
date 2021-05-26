@@ -1,4 +1,4 @@
-## 2021-06-02 Version 1.0.0.0-rc1
+## 2021-06-01 Version 1.0.0.0-rc1
 
 Compatible with OpenSearch 1.0.0-rc1
 
