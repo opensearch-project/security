@@ -207,7 +207,7 @@ public class OpenSSLTest extends SSLTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
                 .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")

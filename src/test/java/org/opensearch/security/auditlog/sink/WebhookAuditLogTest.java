@@ -41,6 +41,7 @@ import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
 import org.opensearch.security.auditlog.helper.TestHttpHandler;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
@@ -67,7 +68,7 @@ public class WebhookAuditLogTest {
 		// provide no settings, fallback must be used
 		Settings settings = Settings.builder()
 		        .put("path.home", ".")
-		        .put("plugins.security.ssl.transport.truststore_filepath",
+		        .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 		        .build();
 		LoggingSink fallback = new LoggingSink("test", Settings.EMPTY, null, null);
@@ -91,7 +92,7 @@ public class WebhookAuditLogTest {
 		Settings settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("path.home", ".")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
 				.build();
@@ -106,7 +107,7 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "idonotexist")
-				.put("plugins.security.ssl.transport.truststore_filepath",
+				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -121,7 +122,7 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "text")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -137,7 +138,7 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "json")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("path.home", ".")
 				.build();
@@ -154,7 +155,7 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -177,7 +178,7 @@ public class WebhookAuditLogTest {
 		final Settings settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -200,7 +201,7 @@ public class WebhookAuditLogTest {
 		Settings settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -236,7 +237,7 @@ public class WebhookAuditLogTest {
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
 				.put("path.home", ".")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
@@ -256,7 +257,7 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "texT")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -274,7 +275,7 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "JSon")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
@@ -292,7 +293,7 @@ public class WebhookAuditLogTest {
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "URL_PARAMETER_POST")
 				.put("path.home", ".")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
@@ -309,7 +310,7 @@ public class WebhookAuditLogTest {
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "URL_PARAMETER_GET")
 				.put("path.home", ".")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
@@ -340,7 +341,7 @@ public class WebhookAuditLogTest {
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
 				.put("path.home", ".")
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
@@ -413,7 +414,7 @@ public class WebhookAuditLogTest {
         settings = Settings.builder()
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
@@ -429,7 +430,7 @@ public class WebhookAuditLogTest {
         settings = Settings.builder()
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
@@ -481,7 +482,7 @@ public class WebhookAuditLogTest {
         settings = Settings.builder()
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
@@ -498,7 +499,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
                 .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", "wrong")
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
@@ -543,7 +544,7 @@ public class WebhookAuditLogTest {
         settings = Settings.builder()
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.crt.pem"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
@@ -596,7 +597,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
@@ -612,7 +613,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);

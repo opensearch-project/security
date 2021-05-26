@@ -156,7 +156,7 @@ public class SSLTest extends SingleClusterTest {
                     .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                     .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                     .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                    .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                    .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                      //WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
                     .put("plugins.security.ssl.transport.enabled_ciphers","SSL_RSA_EXPORT_WITH_RC4_40_MD5")
                      //WEAK and insecure protocol, do NOT use this, its here for unittesting only!!!
@@ -240,7 +240,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
 
@@ -354,7 +354,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
 
@@ -493,7 +493,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false).build();
 
@@ -530,7 +530,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false).build();
 
@@ -597,7 +597,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
                 .build();
@@ -642,7 +642,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false).build();
 
@@ -651,7 +651,7 @@ public class SSLTest extends SingleClusterTest {
         final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername)
                 .put("path.home", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks").getParent())
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore_fail.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore_fail.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false).build();
 
@@ -700,7 +700,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
                 .put("plugins.security.ssl.transport.principal_extractor_class", "org.opensearch.security.ssl.TestPrincipalExtractor")
@@ -818,7 +818,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
                 .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")
@@ -862,7 +862,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
@@ -891,7 +891,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD, "changeit")
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
@@ -938,7 +938,7 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS, "root-ca")
 
             .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/node-0-keystore.jks"))
-            .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks"))
+            .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks"))
             .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, "changeit")
             .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, "changeit")
             .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
@@ -982,7 +982,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put("plugins.security.ssl.transport.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD, "wrongpass")
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)

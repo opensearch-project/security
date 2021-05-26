@@ -141,7 +141,7 @@ public abstract class AbstractSecurityUnitTest {
 
         Settings tcSettings = Settings.builder()
                 .put("cluster.name", info.clustername)
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.keystore_filepath",
@@ -160,7 +160,7 @@ public abstract class AbstractSecurityUnitTest {
 
         Settings tcSettings = Settings.builder()
                 .put("cluster.name", info.clustername)
-                .put("plugins.security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.keystore_filepath",
