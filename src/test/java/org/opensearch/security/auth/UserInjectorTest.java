@@ -19,6 +19,7 @@ import java.util.HashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UserInjectorTest {
 
@@ -32,12 +33,13 @@ public class UserInjectorTest {
     public void setup() {
         threadPool = mock(ThreadPool.class);
         Settings settings = Settings.builder()
-                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
                 .build();
         threadContext = new ThreadContext(settings);
         Mockito.when(threadPool.getThreadContext()).thenReturn(threadContext);
         transportRequest = mock(TransportRequest.class);
         task = mock(Task.class);
+        when(transportRequest.remoteAddress()).thenReturn(null);
         userInjector = new UserInjector(settings, threadPool, mock(AuditLog.class), mock(XFFResolver.class));
     }
 
@@ -46,7 +48,7 @@ public class UserInjectorTest {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "user|role1,role2");
-        User injectedUser = userInjector.getInjectedUser();
+        User injectedUser = userInjector.injectUser(transportRequest);
         assertEquals(injectedUser.getName(), "user");
         assertEquals(injectedUser.getRoles(), roles);
     }
@@ -56,13 +58,13 @@ public class UserInjectorTest {
         HashSet<String> roles = new HashSet<>();
         roles.addAll(Arrays.asList("role1", "role2"));
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "|role1,role2");
-        User injectedUser = userInjector.getInjectedUser();
+        User injectedUser = userInjector.injectUser(transportRequest);
         assertNull(injectedUser);
     }
 
     @Test
     public void testEmptyInjectUserHeader() {
-        User injectedUser = userInjector.getInjectedUser();
+        User injectedUser = userInjector.injectUser(transportRequest);
         assertNull(injectedUser);
     }
 }

@@ -131,7 +131,7 @@ public class SecurityFilter implements ActionFilter {
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
-        this.rolesInjector = new RolesInjector();
+        this.rolesInjector = new RolesInjector(auditLog);
         this.backendRegistry = backendRegistry;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
@@ -171,7 +171,7 @@ public class SecurityFilter implements ActionFilter {
             if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
-            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(threadContext);
+            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
             boolean enforcePrivilegesEvaluation = false;
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if(user == null && (user = backendRegistry.authenticate(request, null, task, action)) != null) {
@@ -348,9 +348,13 @@ public class SecurityFilter implements ActionFilter {
                 }
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
-                String err = (injectedRoles == null) ?
-                        String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user) :
-                        String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), injectedRoles);
+                String err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
+                if(!pres.getMissingSecurityRoles().isEmpty()) {
+                    err = String.format("no permissions for user %s to assume roles %s", user, pres.getMissingSecurityRoles());
+                }
+                else if(injectedRoles != null) {
+                    err = String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), pres.getResolvedSecurityRoles());
+                }
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
             }

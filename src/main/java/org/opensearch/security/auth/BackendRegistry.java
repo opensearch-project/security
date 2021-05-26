@@ -240,8 +240,7 @@ public class BackendRegistry {
             return null;
         }
 
-        User injectedUser = userInjector.getInjectedUser();
-
+        User injectedUser = userInjector.injectUser(request);
         if(injectedUser != null) {
             auditLog.logSucceededLogin(injectedUser.getName(), true, null, request, action, task);
             return injectedUser;

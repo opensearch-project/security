@@ -264,6 +264,9 @@ public class ConfigConstants {
 
     // Roles injection for plugins
     public static final String OPENDISTRO_SECURITY_INJECTED_ROLES = "opendistro_security_injected_roles";
+    public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER = "opendistro_security_injected_roles_header";
+    public static final String OPENDISTRO_SECURITY_ASSUME_ROLES = "opendistro_security_assume_roles";
+    public static final String OPENDISTRO_SECURITY_ASSUME_ROLES_HEADER = "opendistro_security_assume_roles_header";
 
     // System indices settings
     public static final String SECURITY_SYSTEM_INDICES_ENABLED_KEY = "plugins.security.system_indices.enabled";
