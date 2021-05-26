@@ -21,11 +21,28 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import com.google.common.collect.ImmutableList;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+@RunWith(Parameterized.class)
 public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
+	private final String ENDPOINT;
+
+	public GetConfigurationApiTest(String endpoint){
+		ENDPOINT = endpoint;
+	}
+
+	@Parameterized.Parameters
+	public static Iterable<String> endpoints() {
+		return ImmutableList.of(
+				"/_opendistro/_security/api",
+				"/_plugins/_security/api"
+		);
+	}
 
 	@Test
 	public void testGetConfiguration() throws Exception {
@@ -39,7 +56,7 @@ public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 
 		// test that every config is accessible
 		// config
-		response = rh.executeGetRequest("_opendistro/_security/api/securityconfig");
+		response = rh.executeGetRequest(ENDPOINT + "/securityconfig");
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(
@@ -48,7 +65,7 @@ public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 		Assert.assertNull(settings.get("_opendistro_security_meta.type"));
 
 		// internalusers
-		response = rh.executeGetRequest("_opendistro/_security/api/internalusers");
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers");
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals("", settings.get("admin.hash"));
@@ -56,21 +73,21 @@ public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 		Assert.assertNull(settings.get("_opendistro_security_meta.type"));
 
 		// roles
-		response = rh.executeGetRequest("_opendistro/_security/api/roles");
+		response = rh.executeGetRequest(ENDPOINT + "/roles");
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		JsonNode jnode = DefaultObjectMapper.readTree(response.getBody());
 		Assert.assertEquals(jnode.get("opendistro_security_all_access").get("cluster_permissions").get(0).asText(), "cluster:*");
 		Assert.assertNull(settings.get("_opendistro_security_meta.type"));
 
 		// roles
-		response = rh.executeGetRequest("_opendistro/_security/api/rolesmapping");
+		response = rh.executeGetRequest(ENDPOINT + "/rolesmapping");
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(settings.getAsList("opendistro_security_role_starfleet.backend_roles").get(0), "starfleet");
 		Assert.assertNull(settings.get("_opendistro_security_meta.type"));
 
 		// action groups
-		response = rh.executeGetRequest("_opendistro/_security/api/actiongroups");
+		response = rh.executeGetRequest(ENDPOINT + "/actiongroups");
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(settings.getAsList("ALL.allowed_actions").get(0), "indices:*");

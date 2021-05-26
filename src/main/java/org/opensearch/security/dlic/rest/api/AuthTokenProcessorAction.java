@@ -40,12 +40,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class AuthTokenProcessorAction extends AbstractApiAction {
-	private static final List<Route> routes = Collections.singletonList(
-			new Route(Method.POST, "/_opendistro/_security/api/authtoken")
-	);
+	private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(
+			new Route(Method.POST, "/authtoken")
+	));
 
 	@Inject
 	public AuthTokenProcessorAction(final Settings settings, final Path configPath, final RestController controller,

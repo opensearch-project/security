@@ -43,16 +43,17 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.opensearch.security.securityconf.impl.CType;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesMappingApiAction extends PatchableResourceApiAction {
-	private static final List<Route> routes = ImmutableList.of(
-			new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/"),
-			new Route(Method.GET, "/_opendistro/_security/api/rolesmapping/{name}"),
-			new Route(Method.DELETE, "/_opendistro/_security/api/rolesmapping/{name}"),
-			new Route(Method.PUT, "/_opendistro/_security/api/rolesmapping/{name}"),
-			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/"),
-			new Route(Method.PATCH, "/_opendistro/_security/api/rolesmapping/{name}")
-	);
+	private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+			new Route(Method.GET, "/rolesmapping/"),
+			new Route(Method.GET, "/rolesmapping/{name}"),
+			new Route(Method.DELETE, "/rolesmapping/{name}"),
+			new Route(Method.PUT, "/rolesmapping/{name}"),
+			new Route(Method.PATCH, "/rolesmapping/"),
+			new Route(Method.PATCH, "/rolesmapping/{name}")
+	));
 
 	@Inject
 	public RolesMappingApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,

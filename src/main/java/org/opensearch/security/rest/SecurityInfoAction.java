@@ -61,12 +61,13 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import com.google.common.collect.ImmutableList;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityInfoAction extends BaseRestHandler {
-    private static final List<Route> routes = ImmutableList.of(
-            new Route(GET, "/_opendistro/_security/authinfo"),
-            new Route(POST, "/_opendistro/_security/authinfo")
-    );
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+            new Route(GET, "/authinfo"),
+            new Route(POST, "/authinfo")
+    ),"/_opendistro/_security", "/_plugins/_security");
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;

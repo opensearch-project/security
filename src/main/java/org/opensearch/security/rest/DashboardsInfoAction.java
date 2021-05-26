@@ -55,12 +55,24 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.security.user.User;
 
 import com.google.common.collect.ImmutableList;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class DashboardsInfoAction extends BaseRestHandler {
-    private static final List<Route> routes = ImmutableList.of(
-            new Route(GET, "/_opendistro/_security/kibanainfo"),
-            new Route(POST, "/_opendistro/_security/kibanainfo")
-    );
+
+    private static final List<Route> routes = ImmutableList.<Route>builder()
+        .addAll(addRoutesPrefix(
+            ImmutableList.of(
+                new Route(GET, "/dashboardsinfo"),
+                new Route(POST, "/dashboardsinfo")
+            ),
+            "/_plugins/_security"))
+        .addAll(addRoutesPrefix(
+            ImmutableList.of(
+                new Route(GET, "/kibanainfo"),
+                new Route(POST, "/kibanainfo")
+            ),
+            "/_opendistro/_security"))
+        .build();
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;

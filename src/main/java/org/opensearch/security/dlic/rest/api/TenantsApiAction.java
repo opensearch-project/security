@@ -53,16 +53,17 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import com.google.common.collect.ImmutableList;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantsApiAction extends PatchableResourceApiAction {
-    private static final List<Route> routes = ImmutableList.of(
-            new Route(Method.GET, "/_opendistro/_security/api/tenants/{name}"),
-            new Route(Method.GET, "/_opendistro/_security/api/tenants/"),
-            new Route(Method.DELETE, "/_opendistro/_security/api/tenants/{name}"),
-            new Route(Method.PUT, "/_opendistro/_security/api/tenants/{name}"),
-            new Route(Method.PATCH, "/_opendistro/_security/api/tenants/"),
-            new Route(Method.PATCH, "/_opendistro/_security/api/tenants/{name}")
-    );
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+            new Route(Method.GET, "/tenants/{name}"),
+            new Route(Method.GET, "/tenants/"),
+            new Route(Method.DELETE, "/tenants/{name}"),
+            new Route(Method.PUT, "/tenants/{name}"),
+            new Route(Method.PATCH, "/tenants/"),
+            new Route(Method.PATCH, "/tenants/{name}")
+    ));
 
     @Inject
     public TenantsApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,

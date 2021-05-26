@@ -45,14 +45,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.security.securityconf.impl.CType;
 
 import com.google.common.collect.ImmutableList;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+
 
 public class FlushCacheApiAction extends AbstractApiAction {
-	private static final List<Route> routes = ImmutableList.of(
-			new Route(Method.DELETE, "/_opendistro/_security/api/cache"),
-			new Route(Method.GET, "/_opendistro/_security/api/cache"),
-			new Route(Method.PUT, "/_opendistro/_security/api/cache"),
-			new Route(Method.POST, "/_opendistro/_security/api/cache")
-	);
+	private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+			new Route(Method.DELETE, "/cache"),
+			new Route(Method.GET, "/cache"),
+			new Route(Method.PUT, "/cache"),
+			new Route(Method.POST, "/cache")
+	));
 
 	@Inject
 	public FlushCacheApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,

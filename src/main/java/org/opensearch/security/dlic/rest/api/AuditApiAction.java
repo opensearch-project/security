@@ -47,6 +47,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+
 /**
  * Rest handler for fetching and updating audit configuration.
  * Supported REST endpoints
@@ -125,11 +127,11 @@ import java.util.Map;
  * [{"op": "replace", "path": "/config/compliance/internal_config", "value": "true"}]
  */
 public class AuditApiAction extends PatchableResourceApiAction {
-    private static final List<Route> routes = ImmutableList.of(
-            new Route(RestRequest.Method.GET, "/_opendistro/_security/api/audit/"),
-            new Route(RestRequest.Method.PUT, "/_opendistro/_security/api/audit/{name}"),
-            new Route(RestRequest.Method.PATCH, "/_opendistro/_security/api/audit/")
-    );
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+            new Route(RestRequest.Method.GET, "/audit/"),
+            new Route(RestRequest.Method.PUT, "/audit/{name}"),
+            new Route(RestRequest.Method.PATCH, "/audit/")
+    ));
 
     private static final String RESOURCE_NAME = "config";
     @VisibleForTesting
