@@ -10,35 +10,34 @@ plugins.security.ssl.http.truststore_filepath: "http.truststore_filepath"
 plugins.security.ssl.http.enable_openssl_if_available: true
 plugins.security.ssl.http.clientauth_mode: OPTIONAL
 
-plugins:
-  security:
-    audit:
-      type: webhook
-      config:
-        webhook:
-          url: https://localhost:8083
-          format: JSON
-          ssl:
-            verify: true
-            pemtrustedcas_filepath: dyn
-      endpoints:
-        endpoint1:
-          type: webhook
-          config:
-            webhook:
-              url: https://localhost:8083
-              format: JSON
-              ssl:
-                verify: true
-                pemtrustedcas_filepath: dyn
-        endpoint2:
-          type: webhook
-          config:
-            webhook:
-              url: https://localhost:8083
-              format: JSON
-              ssl:
-                verify: true
-                pemtrustedcas_content: dyn
-        fallback:
-          type: org.opensearch.security.auditlog.helper.LoggingSink
+plugins.security:
+  audit:
+    type: webhook
+    config:
+      webhook:
+        url: https://localhost:8083
+        format: JSON
+        ssl:
+          verify: true
+          pemtrustedcas_filepath: dyn
+    endpoints:
+      endpoint1:
+        type: webhook
+        config:
+          webhook:
+            url: https://localhost:8083
+            format: JSON
+            ssl:
+              verify: true
+              pemtrustedcas_filepath: dyn
+      endpoint2:
+        type: webhook
+        config:
+          webhook:
+            url: https://localhost:8083
+            format: JSON
+            ssl:
+              verify: true
+              pemtrustedcas_content: dyn
+      fallback:
+        type: org.opensearch.security.auditlog.helper.LoggingSink

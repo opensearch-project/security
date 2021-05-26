@@ -1,13 +1,12 @@
-plugins:
-  security:
-    audit:
-      type: org.opensearch.security.auditlog.helper.SlowSink
-      endpoints:
-        endpoint1:
-          type: org.opensearch.security.auditlog.helper.SlowSink
-      routes:
-        MISSING_PRIVILEGEs:
-          endpoints:
-            - endpoint1
-      fallback:
-        type: org.opensearch.security.auditlog.helper.LoggingSink
+plugins.security:
+  audit:
+    type: org.opensearch.security.auditlog.helper.SlowSink
+    endpoints:
+      endpoint1:
+        type: org.opensearch.security.auditlog.helper.SlowSink
+    routes:
+      MISSING_PRIVILEGEs:
+        endpoints:
+          - endpoint1
+    fallback:
+      type: org.opensearch.security.auditlog.helper.LoggingSink

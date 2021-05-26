@@ -1,8 +1,7 @@
-plugins:
-  security:
-    audit:
-      type: kafka
-      config:
-        bootstrap_servers: _RPLC_BOOTSTRAP_SERVERS_
-        topic_name: compliance
-        client_id: opensearch_cluster_1
+plugins.security:
+  audit:
+    type: kafka
+    config:
+      bootstrap_servers: _RPLC_BOOTSTRAP_SERVERS_
+      topic_name: compliance
+      client_id: opensearch_cluster_1
