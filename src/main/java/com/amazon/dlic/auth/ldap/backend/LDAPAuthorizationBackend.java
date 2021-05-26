@@ -561,23 +561,23 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             } else {
                 final KeyStore trustStore = PemKeyReader.loadKeyStore(
-                        PemKeyReader.resolve(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings,
+                        PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings,
                                 configPath, !trustAll),
-                        settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD,
+                        settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD,
                                 SSLConfigConstants.DEFAULT_STORE_PASSWORD),
-                        settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
+                        settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
 
                 final List<String> trustStoreAliases = settings.getAsList(ConfigConstants.LDAPS_JKS_TRUST_ALIAS, null);
 
                 // for client authentication
                 final KeyStore keyStore = PemKeyReader.loadKeyStore(
-                        PemKeyReader.resolve(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, settings,
+                        PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, settings,
                                 configPath, enableClientAuth),
-                        settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
+                        settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
                                 SSLConfigConstants.DEFAULT_STORE_PASSWORD),
-                        settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE));
+                        settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE));
                 final String keyStorePassword = settings.get(
-                        SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
+                        SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
                         SSLConfigConstants.DEFAULT_STORE_PASSWORD);
 
                 final String keyStoreAlias = settings.get(ConfigConstants.LDAPS_JKS_CERT_ALIAS, null);

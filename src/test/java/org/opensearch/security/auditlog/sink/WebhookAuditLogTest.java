@@ -68,11 +68,11 @@ public class WebhookAuditLogTest {
 		// provide no settings, fallback must be used
 		Settings settings = Settings.builder()
 		        .put("path.home", ".")
-		        .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+		        .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 		        .build();
 		LoggingSink fallback = new LoggingSink("test", Settings.EMPTY, null, null);
-		MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, fallback);
+		MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, fallback);
 		auditlog.store(msg);
 		// Webhook sink has failed ...
 		Assert.assertEquals(null, auditlog.webhookFormat);
@@ -92,12 +92,12 @@ public class WebhookAuditLogTest {
 		Settings settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("path.home", ".")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
 				.build();
 
-		MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
+		MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
 		Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
@@ -107,11 +107,11 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "idonotexist")
-				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+				.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
-		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
+		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
 		Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
@@ -122,11 +122,11 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "text")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
-		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
+		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
 		Assert.assertEquals(WebhookFormat.TEXT, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.TEXT_PLAIN, auditlog.webhookFormat.getContentType());
@@ -138,11 +138,11 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "json")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("path.home", ".")
 				.build();
-		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
+		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
 		System.out.println(auditlog.payload);
 		Assert.assertEquals(WebhookFormat.JSON, auditlog.webhookFormat);
@@ -155,11 +155,11 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
-		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null);
+		auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null);
 		auditlog.store(msg);
 		Assert.assertEquals(WebhookFormat.SLACK, auditlog.webhookFormat);
 		Assert.assertEquals(ContentType.APPLICATION_JSON, auditlog.webhookFormat.getContentType());
@@ -178,12 +178,12 @@ public class WebhookAuditLogTest {
 		final Settings settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
 		LoggingSink fallback =  new LoggingSink("test", Settings.EMPTY, null, null);;
-		MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, fallback);
+		MockWebhookAuditLog auditlog = new MockWebhookAuditLog(settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, fallback);
 		AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
 		auditlog.store(msg);
 		Assert.assertEquals(null, auditlog.url);
@@ -201,13 +201,13 @@ public class WebhookAuditLogTest {
 		Settings settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
 
 		LoggingSink fallback =  new LoggingSink("test", Settings.EMPTY, null, null);;
-		WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+		WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
 		AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
 		auditlog.store(msg);
 		// can't connect, no server running ...
@@ -237,12 +237,12 @@ public class WebhookAuditLogTest {
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
 				.put("path.home", ".")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
 		LoggingSink fallback =  new LoggingSink("test", Settings.EMPTY, null, null);;
-		WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+		WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
 		AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
 		auditlog.store(msg);
 		Assert.assertTrue(handler.method.equals("POST"));
@@ -257,12 +257,12 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "texT")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
 
-		auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+		auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
 		auditlog.store(msg);
 		Assert.assertTrue(handler.method.equals("POST"));
 		Assert.assertTrue(handler.body != null);
@@ -275,12 +275,12 @@ public class WebhookAuditLogTest {
 		settings = Settings.builder()
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "JSon")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.put("path.home", ".")
 				.build();
 
-		auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+		auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
 		auditlog.store(msg);
 		Assert.assertTrue(handler.method.equals("POST"));
 		Assert.assertTrue(handler.body != null);
@@ -293,11 +293,11 @@ public class WebhookAuditLogTest {
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "URL_PARAMETER_POST")
 				.put("path.home", ".")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
-		auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+		auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
 		auditlog.store(msg);
 		Assert.assertTrue(handler.method.equals("POST"));
 		Assert.assertTrue(handler.body.equals(""));
@@ -310,11 +310,11 @@ public class WebhookAuditLogTest {
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "URL_PARAMETER_GET")
 				.put("path.home", ".")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
-		auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+		auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
 		auditlog.store(msg);
 		Assert.assertTrue(handler.method.equals("GET"));
 		Assert.assertEquals(null, handler.body);
@@ -341,12 +341,12 @@ public class WebhookAuditLogTest {
 				.put("plugins.security.audit.config.webhook.url", url)
 				.put("plugins.security.audit.config.webhook.format", "slack")
 				.put("path.home", ".")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
 				.build();
 
 		LoggingSink fallback =  new LoggingSink("test", Settings.EMPTY, null, null);;
-		WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+		WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
 		AuditMessage msg = MockAuditMessageFactory.validAuditMessage();
 		auditlog.store(msg);
 		Assert.assertTrue(handler.method == null);
@@ -385,7 +385,7 @@ public class WebhookAuditLogTest {
                 .build();
 
 		LoggingSink fallback =  new LoggingSink("test", Settings.EMPTY, null, null);
-		WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+		WebhookSink auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -402,7 +402,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.config.webhook.ssl.verify", false)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertTrue(handler.method.equals("POST"));
         Assert.assertTrue(handler.body != null);
@@ -414,11 +414,11 @@ public class WebhookAuditLogTest {
         settings = Settings.builder()
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertTrue(handler.method.equals("POST"));
         Assert.assertTrue(handler.body != null);
@@ -430,11 +430,11 @@ public class WebhookAuditLogTest {
         settings = Settings.builder()
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -470,7 +470,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        AuditLogSink auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        AuditLogSink auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertTrue(handler.method.equals("POST"));
         Assert.assertTrue(handler.body != null);
@@ -482,11 +482,11 @@ public class WebhookAuditLogTest {
         settings = Settings.builder()
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertTrue(handler.method.equals("POST"));
         Assert.assertTrue(handler.body != null);
@@ -499,11 +499,11 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
                 .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", "wrong")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -518,7 +518,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -533,7 +533,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -544,12 +544,12 @@ public class WebhookAuditLogTest {
         settings = Settings.builder()
                 .put("plugins.security.audit.config.webhook.url", url)
                 .put("plugins.security.audit.config.webhook.format", "jSoN")
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/spock.crt.pem"))
                 .put("plugins.security.audit.config.webhook.ssl.verify", true)
                 .put("path.home", ".")
                 .build();
-        auditlog = new WebhookSink("name", settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
+        auditlog = new WebhookSink("name", settings, ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT, null, fallback);
         auditlog.store(msg);
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
@@ -597,7 +597,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);
@@ -613,7 +613,7 @@ public class WebhookAuditLogTest {
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", url)
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.format", "jSoN")
                 .put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.verify", true)
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore_fail.jks"))
                 .put("path.home", ".")
                 .build();
         auditlog = new WebhookSink("name", settings, "plugins.security.audit.endpoints.endpoint1.config", null, fallback);

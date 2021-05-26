@@ -70,7 +70,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
     @Test
     public void testSecurityUserInjection() throws Exception {
         final Settings clusterNodeSettings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .build();
         setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
         final Settings tcSettings = Settings.builder()
@@ -85,7 +85,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .put("node.name", "testclient")
                 .put("discovery.initial_state_timeout", "8s")
                 .put("plugins.security.allow_default_init_securityindex", "true")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
                 .build();
 
@@ -127,7 +127,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
     @Test
     public void testSecurityUserInjectionWithConfigDisabled() throws Exception {
         final Settings clusterNodeSettings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
                 .build();
         setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
         final Settings tcSettings = Settings.builder()
@@ -142,7 +142,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .put("node.name", "testclient")
                 .put("discovery.initial_state_timeout", "8s")
                 .put("plugins.security.allow_default_init_securityindex", "true")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
                 .build();
 

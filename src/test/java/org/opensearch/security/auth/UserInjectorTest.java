@@ -32,7 +32,7 @@ public class UserInjectorTest {
     public void setup() {
         threadPool = mock(ThreadPool.class);
         Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .build();
         threadContext = new ThreadContext(settings);
         Mockito.when(threadPool.getThreadContext()).thenReturn(threadContext);

@@ -355,7 +355,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     public void testAliases() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
 
         setup(settings);

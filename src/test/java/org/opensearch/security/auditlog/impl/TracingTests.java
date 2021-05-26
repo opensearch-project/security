@@ -60,7 +60,7 @@ public class TracingTests extends SingleClusterTest {
         logger.setLevel(Level.TRACE);
 
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "debug")
+                .put(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, "debug")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, "true")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "*")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "*")
@@ -245,7 +245,7 @@ public class TracingTests extends SingleClusterTest {
         });
 
     final Settings settings = Settings.builder()
-            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+            .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
@@ -311,7 +311,7 @@ public class TracingTests extends SingleClusterTest {
         });
 
     final Settings settings = Settings.builder()
-            .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+            .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
@@ -344,7 +344,7 @@ public class TracingTests extends SingleClusterTest {
         Settings settings = Settings.builder()
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "*")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "*")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "debug").build();
+                .put(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, "debug").build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true, ClusterConfiguration.DEFAULT);
 
         RestHelper rh = nonSslRestHelper();
@@ -394,9 +394,9 @@ public class TracingTests extends SingleClusterTest {
     @Test
     public void testImmutableIndex() throws Exception {
         Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "myindex1")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_TYPE_DEFAULT, "debug").build();
+                .put(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, "opendistro_security_all_access")
+                .put(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "myindex1")
+                .put(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, "debug").build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings, true, ClusterConfiguration.DEFAULT);
 

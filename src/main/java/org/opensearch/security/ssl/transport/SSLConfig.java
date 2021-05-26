@@ -24,7 +24,7 @@ import org.opensearch.common.settings.Settings;
 
 public class SSLConfig {
 
-    public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED,
+    public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED,
             false, Setting.Property.NodeScope, Setting.Property.Dynamic); // Not filtered
 
     private static final Logger logger = LogManager.getLogger(SSLConfig.class);
@@ -43,8 +43,8 @@ public class SSLConfig {
     }
 
     public SSLConfig(final Settings settings) {
-        this(settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, false),
-            settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false));
+        this(settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false),
+            settings.getAsBoolean(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false));
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {

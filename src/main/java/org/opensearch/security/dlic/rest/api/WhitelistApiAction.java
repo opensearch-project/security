@@ -54,7 +54,7 @@ import java.util.List;
  * These APIs allow the SuperAdmin to enable/disable whitelisting, and also change the list of whitelisted APIs.
  * <p>
  * A SuperAdmin is identified by a certificate which represents a distinguished name(DN).
- * SuperAdmin DN's can be set in {@link ConfigConstants#OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN}
+ * SuperAdmin DN's can be set in {@link ConfigConstants#SECURITY_AUTHCZ_ADMIN_DN}
  * SuperAdmin certificate for the default superuser is stored as a kirk.pem file in config folder of OpenSearch
  * <p>
  * Example calling the PUT API as SuperAdmin using curl (if http basic auth is on):
@@ -81,7 +81,7 @@ import java.util.List;
  *      "value": true
  * }
  *
- * The backing data is stored in {@link ConfigConstants#OPENDISTRO_SECURITY_CONFIG_INDEX_NAME} which is populated during bootstrap.
+ * The backing data is stored in {@link ConfigConstants#SECURITY_CONFIG_INDEX_NAME} which is populated during bootstrap.
  * For existing clusters, {@link SecurityAdmin} tool can
  * be used to populate the index.
  * <p>

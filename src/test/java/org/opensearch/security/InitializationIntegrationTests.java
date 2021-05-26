@@ -67,7 +67,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testEnsureInitViaRestDoesWork() throws Exception {
         
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+                .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
                 .put("plugins.security.ssl.http.enabled",true)
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
@@ -189,7 +189,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testDefaultConfig() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                 .build();
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();
@@ -204,7 +204,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         try {
             System.setProperty("security.default_init.dir", new File("./src/test/resources/invalid_config").getAbsolutePath());
             final Settings settings = Settings.builder()
-                    .put(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
+                    .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                     .build();
             setup(Settings.EMPTY, null, settings, false);
             RestHelper rh = nonSslRestHelper();

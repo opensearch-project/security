@@ -63,7 +63,7 @@ public class UserInjector {
         this.threadPool = threadPool;
         this.auditLog = auditLog;
         this.xffResolver = xffResolver;
-        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
 
     }
 

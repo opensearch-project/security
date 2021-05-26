@@ -96,12 +96,12 @@ public class RestApiPrivilegesEvaluator {
 		this.allEndpoints = Collections.unmodifiableMap(allEndpoints);
 
 		// setup role based permissions
-		allowedRoles.addAll(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ROLES_ENABLED));
+		allowedRoles.addAll(settings.getAsList(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED));
 
 		this.roleBasedAccessEnabled = !allowedRoles.isEmpty();
 
 		// globally disabled endpoints, disables access to Endpoint/Method combination for all roles
-		Settings globalSettings = settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".global");
+		Settings globalSettings = settings.getAsSettings(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".global");
 		if (!globalSettings.isEmpty()) {
 			globallyDisabledEndpoints = parseDisabledEndpoints(globalSettings);
 		}
@@ -112,7 +112,7 @@ public class RestApiPrivilegesEvaluator {
 		}
 
 		for (String role : allowedRoles) {
-			Settings settingsForRole = settings.getAsSettings(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_ENDPOINTS_DISABLED + "." + role);
+			Settings settingsForRole = settings.getAsSettings(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + "." + role);
 			if (settingsForRole.isEmpty()) {
 				if (isDebugEnabled) {
 					logger.debug("No disabled endpoints/methods for permitted role {} found, allowing all", role);

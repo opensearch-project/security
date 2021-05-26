@@ -77,7 +77,7 @@ public class LdapBackendIntegTest extends SingleClusterTest {
         String securityConfigAsYamlString = FileHelper.loadFile("ldap/config.yml");
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".cn=Captain Spock,ou=people,o=TEST", "*")
+                .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".cn=Captain Spock,ou=people,o=TEST", "*")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), settings);
         final RestHelper rh = nonSslRestHelper();

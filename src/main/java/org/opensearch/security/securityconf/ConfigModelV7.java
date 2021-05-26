@@ -89,7 +89,7 @@ public class ConfigModelV7 extends ConfigModel {
         
         try {
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(
-                    opensearchSettings.get(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
+                    opensearchSettings.get(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
                             .toUpperCase());
         } catch (Exception e) {
             log.error("Cannot apply roles mapping resolution", e);

@@ -277,7 +277,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     @Test
     public void testSecurityAdminReloadInvalidConfig() throws Exception {
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+                .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
                 .put("plugins.security.ssl.http.enabled",true)
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))

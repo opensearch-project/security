@@ -130,7 +130,7 @@ public class SecurityFilter implements ActionFilter {
         this.cs = cs;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
-        this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
+        this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         this.rolesInjector = new RolesInjector();
         this.backendRegistry = backendRegistry;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);

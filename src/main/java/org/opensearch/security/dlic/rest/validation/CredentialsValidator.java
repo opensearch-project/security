@@ -51,7 +51,7 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
             return false;
         }
 
-        final String regex = this.opensearchSettings.get(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, null);
+        final String regex = this.opensearchSettings.get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, null);
 
         if ((request.method() == RestRequest.Method.PUT || request.method() == RestRequest.Method.PATCH)
                 && this.content != null

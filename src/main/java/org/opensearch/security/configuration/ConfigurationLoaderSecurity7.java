@@ -82,7 +82,7 @@ public class ConfigurationLoaderSecurity7 {
         super();
         this.client = client;
         this.settings = settings;
-        this.securityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.cs = cs;
         log.debug("Index is: {}", securityIndex);
     }

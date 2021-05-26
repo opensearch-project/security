@@ -63,10 +63,10 @@ public class AdminDNs {
 
     public AdminDNs(final Settings settings) {
 
-        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
-        this.injectAdminUserEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false);
+        this.injectUserEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false);
+        this.injectAdminUserEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, false);
 
-        final List<String> adminDnsA = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList());
+        final List<String> adminDnsA = settings.getAsList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList());
         
         for (String dn:adminDnsA) {
             try {
@@ -87,7 +87,7 @@ public class AdminDNs {
        
         log.debug("Loaded {} admin DN's {}",adminDn.size(), adminDn);
 
-        final Settings impersonationDns = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN+".");
+        final Settings impersonationDns = settings.getByPrefix(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN+".");
 
         allowedDnsImpersonations = impersonationDns.keySet().stream()
             .map(this::toLdapName)
@@ -95,19 +95,19 @@ public class AdminDNs {
             .collect(
                 ImmutableMap.toImmutableMap(
                     Function.identity(),
-                    ldapName -> WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_IMPERSONATION_DN + "." + ldapName))
+                    ldapName -> WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN + "." + ldapName))
                 )
             );
 
         log.debug("Loaded {} impersonation DN's {}", allowedDnsImpersonations.size(), allowedDnsImpersonations);
         
-        final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".");
+        final Settings impersonationUsersRest = settings.getByPrefix(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".");
 
         allowedRestImpersonations = impersonationUsersRest.keySet().stream()
             .collect(
                 ImmutableMap.toImmutableMap(
                     Function.identity(),
-                    user -> WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+"."+user))
+                    user -> WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+"."+user))
                 )        
             );    
         

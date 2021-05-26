@@ -49,7 +49,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     public void testInjectedUserMalformed() throws Exception {
     
         final Settings settings = Settings.builder()                
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
                       
@@ -93,7 +93,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     public void testInjectedUser() throws Exception {
     
         final Settings settings = Settings.builder()                
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
                       
@@ -209,9 +209,9 @@ public class SystemIntegratorsTests extends SingleClusterTest {
   public void testInjectedAdminUser() throws Exception {
   
       final Settings settings = Settings.builder()                
-              .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
-              .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, true)
-              .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
+              .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+              .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, true)
+              .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
               .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
               .build();
                     
@@ -237,8 +237,8 @@ public class SystemIntegratorsTests extends SingleClusterTest {
     public void testInjectedAdminUserAdminInjectionDisabled() throws Exception {
     
         final Settings settings = Settings.builder()                
-                .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
+                .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
                 .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
                       

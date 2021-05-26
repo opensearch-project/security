@@ -106,8 +106,8 @@ public class AuditlogTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_COUNT, 10)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_DELAY_MS, 500)
+                .put(ConfigConstants.SECURITY_AUDIT_RETRY_COUNT, 10)
+                .put(ConfigConstants.SECURITY_AUDIT_RETRY_DELAY_MS, 500)
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         al.logSSLException(null, new Exception("test retry"));
@@ -125,8 +125,8 @@ public class AuditlogTest {
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true)
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_COUNT, 0)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_DELAY_MS, 500)
+                .put(ConfigConstants.SECURITY_AUDIT_RETRY_COUNT, 0)
+                .put(ConfigConstants.SECURITY_AUDIT_RETRY_DELAY_MS, 500)
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null,  null, AbstractSecurityUnitTest.MOCK_POOL, null, cs);
         al.logSSLException(null, new Exception("test retry"));
