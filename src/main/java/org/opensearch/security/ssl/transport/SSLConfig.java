@@ -21,11 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.SecuritySettings;
 
 public class SSLConfig {
-
-    public static final Setting<Boolean> SSL_DUAL_MODE_SETTING = Setting.boolSetting(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED,
-            false, Setting.Property.NodeScope, Setting.Property.Dynamic); // Not filtered
 
     private static final Logger logger = LogManager.getLogger(SSLConfig.class);
 
@@ -36,7 +34,7 @@ public class SSLConfig {
         this.sslOnly = sslOnly;
         this.dualModeEnabled = dualModeEnabled;
         if (this.dualModeEnabled && !this.sslOnly) {
-            logger.warn("opendistro_security_config.ssl_dual_mode_enabled is enabled but plugins.security.ssl_only mode is disabled. "
+            logger.warn("plugins.security_config.ssl_dual_mode_enabled is enabled but plugins.security.ssl_only mode is disabled. "
                 + "SSL Dual mode is supported only when security plugin is in ssl_only mode");
         }
         logger.info("SSL dual mode is {}", isDualModeEnabled() ? "enabled" : "disabled");
@@ -44,11 +42,11 @@ public class SSLConfig {
 
     public SSLConfig(final Settings settings) {
         this(settings.getAsBoolean(ConfigConstants.SECURITY_SSL_ONLY, false),
-            settings.getAsBoolean(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false));
+            SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings));
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
-        clusterSettings.addSettingsUpdateConsumer(SSL_DUAL_MODE_SETTING,
+        clusterSettings.addSettingsUpdateConsumer(SecuritySettings.SSL_DUAL_MODE_SETTING,
             dualModeEnabledClusterSetting -> {
                 logger.info("Detected change in settings, cluster setting for SSL dual mode is {}", dualModeEnabledClusterSetting ? "enabled" : "disabled");
                 setDualModeEnabled(dualModeEnabledClusterSetting);
