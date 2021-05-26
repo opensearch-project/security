@@ -92,7 +92,7 @@ public class CompatConfig {
             } else {
                 final boolean interClusterAuthDynamicallyDisabled = dcm.isInterTransportAuthDisabled();
                 if (isTraceEnabled) {
-                    log.trace("opendistro_security.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
+                    log.trace("plugins.security.dynamic.disable_intertransport_auth {}", interClusterAuthDynamicallyDisabled);
                 }
                 return !interClusterAuthDynamicallyDisabled;
             }

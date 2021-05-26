@@ -84,7 +84,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .put("path.home", "./target")
                 .put("node.name", "testclient")
                 .put("discovery.initial_state_timeout", "8s")
-                .put("opendistro_security.allow_default_init_securityindex", "true")
+                .put("plugins.security.allow_default_init_securityindex", "true")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
                 .build();
@@ -141,7 +141,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .put("path.home", "./target")
                 .put("node.name", "testclient")
                 .put("discovery.initial_state_timeout", "8s")
-                .put("opendistro_security.allow_default_init_securityindex", "true")
+                .put("plugins.security.allow_default_init_securityindex", "true")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
                 .build();

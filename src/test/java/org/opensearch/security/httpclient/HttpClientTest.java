@@ -35,7 +35,7 @@ public class HttpClientTest extends SingleClusterTest {
     public void testPlainConnection() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put("opendistro_security.ssl.http.enabled", false)
+                .put("plugins.security.ssl.http.enabled", false)
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
@@ -77,11 +77,11 @@ public class HttpClientTest extends SingleClusterTest {
     public void testSslConnection() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put("opendistro_security.ssl.http.enabled", true)
+                .put("plugins.security.ssl.http.enabled", true)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, false)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
@@ -109,12 +109,12 @@ public class HttpClientTest extends SingleClusterTest {
     public void testSslConnectionPKIAuth() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put("opendistro_security.ssl.http.enabled", true)
-                .put("opendistro_security.ssl.http.clientauth_mode", "REQUIRE")
+                .put("plugins.security.ssl.http.enabled", true)
+                .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, false)
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"))
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);

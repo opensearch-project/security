@@ -418,6 +418,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     public List<String> getSettingsFilter() {
         List<String> settingsFilter = new ArrayList<>();
         settingsFilter.add("opendistro_security.*");
+        settingsFilter.add("plugins.security.*");
         return settingsFilter;
     }
 }

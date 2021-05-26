@@ -78,7 +78,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 		Settings tcSettings = Settings.builder()
 				.put(settings)
-				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
 				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.build();
 
@@ -364,7 +364,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientImpersonation() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+				.putList("plugins.security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
 				.build();
 
 
@@ -379,7 +379,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 		}
 
 		Settings tcSettings = Settings.builder()
-				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
 				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.put("path.home", ".")
 				.put("request.headers.opendistro_security_impersonate_as", "worf")
@@ -395,14 +395,14 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientImpersonationWildcard() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
+				.putList("plugins.security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
 				.build();
 
 
 		setup(settings);
 
 		Settings tcSettings = Settings.builder()
-				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
 				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.put("path.home", ".")
 				.put("request.headers.opendistro_security_impersonate_as", "worf")
@@ -436,7 +436,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 		Settings tcSettings = Settings.builder()
 				.put(settings)
-				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
 				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.build();
 
@@ -722,7 +722,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientImpersonationUsernameAttribute() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
+				.putList("plugins.security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "worf", "nagilum")
 				.build();
 
 
@@ -740,7 +740,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 		}
 
 		Settings tcSettings = Settings.builder()
-				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
 				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.put("path.home", ".")
 				.put("request.headers.opendistro_security_impersonate_as", "worf")
@@ -756,7 +756,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 	public void testTransportClientImpersonationWildcardUsernameAttribute() throws Exception {
 
 		final Settings settings = Settings.builder()
-				.putList("opendistro_security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
+				.putList("plugins.security.authcz.impersonation_dn.CN=spock,OU=client,O=client,L=Test,C=DE", "*")
 				.build();
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_transport_username.yml")
@@ -765,7 +765,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				, settings);
 		
 		Settings tcSettings = Settings.builder()
-				.put("opendistro_security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
+				.put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
 				.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
 				.put("path.home", ".")
 				.put("request.headers.opendistro_security_impersonate_as", "worf")

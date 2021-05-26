@@ -1,16 +1,16 @@
-opendistro_security.ssl.transport.enabled: true
-opendistro_security.ssl.transport.keystore_filepath: "transport.keystore_filepath"
-opendistro_security.ssl.transport.truststore_filepath: "transport.truststore_filepath"
-opendistro_security.ssl.transport.enforce_hostname_verification: true
-opendistro_security.ssl.transport.resolve_hostname: true
-opendistro_security.ssl.transport.enable_openssl_if_available: true
-opendistro_security.ssl.http.enabled: true
-opendistro_security.ssl.http.keystore_filepath: "http.keystore_filepath"
-opendistro_security.ssl.http.truststore_filepath: "http.truststore_filepath"
-opendistro_security.ssl.http.enable_openssl_if_available: true
-opendistro_security.ssl.http.clientauth_mode: OPTIONAL
+plugins.security.ssl.transport.enabled: true
+plugins.security.ssl.transport.keystore_filepath: "transport.keystore_filepath"
+plugins.security.ssl.transport.truststore_filepath: "transport.truststore_filepath"
+plugins.security.ssl.transport.enforce_hostname_verification: true
+plugins.security.ssl.transport.resolve_hostname: true
+plugins.security.ssl.transport.enable_openssl_if_available: true
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.keystore_filepath: "http.keystore_filepath"
+plugins.security.ssl.http.truststore_filepath: "http.truststore_filepath"
+plugins.security.ssl.http.enable_openssl_if_available: true
+plugins.security.ssl.http.clientauth_mode: OPTIONAL
 
-opendistro_security:
+plugins.security:
   audit:
     type: webhook
     config:

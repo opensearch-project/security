@@ -68,9 +68,9 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-                .put("opendistro_security.ssl.http.enabled",true)
-                .put("opendistro_security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("opendistro_security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
         setup(Settings.EMPTY, null, settings, false);
         final RestHelper rh = restHelper(); //ssl resthelper
@@ -97,7 +97,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("opendistro_security.unsupported.inject_user.enabled", true)
+                .put("plugins.security.unsupported.inject_user.enabled", true)
                 .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_disable_all.yml"), settings, true);
@@ -228,7 +228,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testDisabled() throws Exception {
     
-        final Settings settings = Settings.builder().put("opendistro_security.disabled", true).build();
+        final Settings settings = Settings.builder().put("plugins.security.disabled", true).build();
         
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();

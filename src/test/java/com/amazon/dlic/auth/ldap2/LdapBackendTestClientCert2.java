@@ -29,6 +29,7 @@ import org.junit.Test;
 import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
 @Ignore
@@ -47,7 +48,7 @@ public class LdapBackendTestClientCert2 {
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:636")
                 .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
                 .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,dc=example,dc=com")
                 .put(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, "uid")
                 .put("path.home",".")
@@ -74,7 +75,7 @@ public class LdapBackendTestClientCert2 {
                 .putList(ConfigConstants.LDAP_HOSTS, "kdc.dummy.com:636")
                 .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
                 .put(ConfigConstants.LDAPS_VERIFY_HOSTNAMES, false)
                 .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,dc=example,dc=com")
                 .put(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, "uid")
@@ -102,7 +103,7 @@ public class LdapBackendTestClientCert2 {
                 .putList(ConfigConstants.LDAP_HOSTS, "kdc.dummy.com:636")
                 .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/wrong/truststore.jks")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/wrong/truststore.jks")
                 .put(ConfigConstants.LDAPS_VERIFY_HOSTNAMES, false)
                 .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,dc=example,dc=com")
                 .put(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, "uid")
@@ -133,7 +134,7 @@ public class LdapBackendTestClientCert2 {
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:636")
                 .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.truststore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
                 .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,dc=example,dc=com")
                 .put(ConfigConstants.LDAP_AUTHC_USERNAME_ATTRIBUTE, "uid")
                 .put(ConfigConstants.LDAP_BIND_DN, "cn=ldapbinder,ou=people,dc=example,dc=com")
@@ -155,8 +156,8 @@ public class LdapBackendTestClientCert2 {
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:636")
                 .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.keystore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/spock-keystore.jks")
-                .put("opendistro_security.ssl.transport.truststore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
+                .put("plugins.security.ssl.transport.keystore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/spock-keystore.jks")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH, true)
                 .put(ConfigConstants.LDAPS_JKS_CERT_ALIAS, "spock")
                 .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,dc=example,dc=com")
@@ -204,8 +205,8 @@ public class LdapBackendTestClientCert2 {
                 .putList(ConfigConstants.LDAP_HOSTS, "localhost:636")
                 .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                .put("opendistro_security.ssl.transport.keystore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/kirk-keystore.jks")
-                .put("opendistro_security.ssl.transport.truststore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
+                .put("plugins.security.ssl.transport.keystore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/kirk-keystore.jks")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH, true)
                 .put(ConfigConstants.LDAPS_JKS_CERT_ALIAS, "kirk")
                 .put(ConfigConstants.LDAP_AUTHC_USERBASE, "ou=people,dc=example,dc=com")
@@ -229,8 +230,8 @@ public class LdapBackendTestClientCert2 {
                 .putList(ConfigConstants.LDAP_HOSTS, "kdc.dummy.com:636")
                 .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
                 .put(ConfigConstants.LDAPS_ENABLE_SSL, true)
-                //.put("opendistro_security.ssl.transport.keystore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/cn=ldapbinder,ou=people,dc=example,dc=com-keystore.jks")
-                .put("opendistro_security.ssl.transport.truststore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
+                //.put("plugins.security.ssl.transport.keystore_filepath", "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/cn=ldapbinder,ou=people,dc=example,dc=com-keystore.jks")
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, "/Users/temp/opendistro_security_integration_tests/ldap/ssl-root-ca/truststore.jks")
                 //.put("verify_hostnames", false)
                 //.put(ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH, true)
                 //.put(ConfigConstants.LDAPS_JKS_CERT_ALIAS, "cn=ldapbinder,ou=people,dc=example,dc=com")

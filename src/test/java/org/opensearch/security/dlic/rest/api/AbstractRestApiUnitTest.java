@@ -53,10 +53,10 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected final void setup() throws Exception {
 		Settings.Builder builder = Settings.builder();
 
-		builder.put("opendistro_security.ssl.http.enabled", true)
-				.put("opendistro_security.ssl.http.keystore_filepath",
+		builder.put("plugins.security.ssl.http.enabled", true)
+				.put("plugins.security.ssl.http.keystore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-				.put("opendistro_security.ssl.http.truststore_filepath",
+				.put("plugins.security.ssl.http.truststore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
 
 		setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), init);
@@ -68,10 +68,10 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected final void setup(Settings nodeOverride) throws Exception {
 		Settings.Builder builder = Settings.builder();
 
-		builder.put("opendistro_security.ssl.http.enabled", true)
-				.put("opendistro_security.ssl.http.keystore_filepath",
+		builder.put("plugins.security.ssl.http.enabled", true)
+				.put("plugins.security.ssl.http.keystore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-				.put("opendistro_security.ssl.http.truststore_filepath",
+				.put("plugins.security.ssl.http.truststore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"))
 				.put(nodeOverride);
 
@@ -89,24 +89,24 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected final void setupWithRestRoles(Settings nodeOverride) throws Exception {
 		Settings.Builder builder = Settings.builder();
 
-		builder.put("opendistro_security.ssl.http.enabled", true)
-				.put("opendistro_security.ssl.http.keystore_filepath",
+		builder.put("plugins.security.ssl.http.enabled", true)
+				.put("plugins.security.ssl.http.keystore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-				.put("opendistro_security.ssl.http.truststore_filepath",
+				.put("plugins.security.ssl.http.truststore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
 
-		builder.put("opendistro_security.restapi.roles_enabled.0", "opendistro_security_role_klingons");
-		builder.put("opendistro_security.restapi.roles_enabled.1", "opendistro_security_role_vulcans");
-		builder.put("opendistro_security.restapi.roles_enabled.2", "opendistro_security_test");
+		builder.put("plugins.security.restapi.roles_enabled.0", "opendistro_security_role_klingons");
+		builder.put("plugins.security.restapi.roles_enabled.1", "opendistro_security_role_vulcans");
+		builder.put("plugins.security.restapi.roles_enabled.2", "opendistro_security_test");
 
-		builder.put("opendistro_security.restapi.endpoints_disabled.global.CACHE.0", "*");
+		builder.put("plugins.security.restapi.endpoints_disabled.global.CACHE.0", "*");
 
-		builder.put("opendistro_security.restapi.endpoints_disabled.opendistro_security_role_klingons.conFiGuration.0", "*");
-		builder.put("opendistro_security.restapi.endpoints_disabled.opendistro_security_role_klingons.wRongType.0", "WRONGType");
-		builder.put("opendistro_security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.0", "PUT");
-		builder.put("opendistro_security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.1", "DELETE");
+		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.conFiGuration.0", "*");
+		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.wRongType.0", "WRONGType");
+		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.0", "PUT");
+		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.1", "DELETE");
 
-		builder.put("opendistro_security.restapi.endpoints_disabled.opendistro_security_role_vulcans.CONFIG.0", "*");
+		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_vulcans.CONFIG.0", "*");
 
 		if (null != nodeOverride) {
 			builder.put(nodeOverride);
@@ -248,10 +248,10 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		Settings.Builder builder = Settings.builder();
 
 		if (enableRestSSL) {
-			builder.put("opendistro_security.ssl.http.enabled", true)
-					.put("opendistro_security.ssl.http.keystore_filepath",
+			builder.put("plugins.security.ssl.http.enabled", true)
+					.put("plugins.security.ssl.http.keystore_filepath",
 							FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-					.put("opendistro_security.ssl.http.truststore_filepath",
+					.put("plugins.security.ssl.http.truststore_filepath",
 							FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
 		}
 		return builder.build();

@@ -1,4 +1,4 @@
-opendistro_security:
+plugins.security:
   audit:
     type: internal_opensearch
     endpoints:

@@ -73,6 +73,7 @@ import org.junit.rules.ExpectedException;
 
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfig;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
 
@@ -268,8 +269,8 @@ public class SettingsBasedSSLConfiguratorTest {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/truststore.jks");
 
             Settings settings = Settings.builder()
-                    .put("opendistro_security.ssl.transport.truststore_filepath", rootCaJksPath.getFileName().toString())
-                    .put("opendistro_security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
+                    .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, rootCaJksPath.getFileName().toString())
+                    .put("plugins.security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
                     .put("path.home", rootCaJksPath.getParent().toString()).build();
             Path configPath = rootCaJksPath.getParent();
 
@@ -296,8 +297,8 @@ public class SettingsBasedSSLConfiguratorTest {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/other-root-ca.jks");
 
             Settings settings = Settings.builder()
-                    .put("opendistro_security.ssl.transport.truststore_filepath", rootCaJksPath.getFileName().toString())
-                    .put("opendistro_security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
+                    .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, rootCaJksPath.getFileName().toString())
+                    .put("plugins.security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
                     .put("path.home", rootCaJksPath.getParent().toString()).build();
             Path configPath = rootCaJksPath.getParent();
 

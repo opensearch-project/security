@@ -141,10 +141,10 @@ public abstract class AbstractSecurityUnitTest {
 
         Settings tcSettings = Settings.builder()
                 .put("cluster.name", info.clustername)
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
-                .put("opendistro_security.ssl.transport.enforce_hostname_verification", false)
-                .put("opendistro_security.ssl.transport.keystore_filepath",
+                .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
+                .put("plugins.security.ssl.transport.keystore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks"))
                 .put(initTransportClientSettings)
                 .build();
@@ -160,10 +160,10 @@ public abstract class AbstractSecurityUnitTest {
 
         Settings tcSettings = Settings.builder()
                 .put("cluster.name", info.clustername)
-                .put("opendistro_security.ssl.transport.truststore_filepath",
+                .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
-                .put("opendistro_security.ssl.transport.enforce_hostname_verification", false)
-                .put("opendistro_security.ssl.transport.keystore_filepath",
+                .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
+                .put("plugins.security.ssl.transport.keystore_filepath",
                         FileHelper.getAbsoluteFilePathFromClassPath(prefix+keyStore))
                 .put(initTransportClientSettings)
                 .build();
@@ -233,11 +233,11 @@ public abstract class AbstractSecurityUnitTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
                     FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
-                .put("opendistro_security.ssl.transport.enforce_hostname_verification", false);
+                .put("plugins.security.ssl.transport.enforce_hostname_verification", false);
         }
 
         if(!sslOnly) {
-            builder.putList("opendistro_security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
+            builder.putList("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
             builder.put(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
 

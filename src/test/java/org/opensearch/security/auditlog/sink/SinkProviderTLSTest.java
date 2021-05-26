@@ -67,9 +67,9 @@ public class SinkProviderTLSTest {
 		builder.put("path.home", "/");
 
 		// replace some values with absolute paths for unit tests
-		builder.put("opendistro_security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"));
-		builder.put("opendistro_security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"));
-		builder.put("opendistro_security.audit.endpoints.endpoint2.config.webhook.ssl.pemtrustedcas_content", FileHelper.loadFile("auditlog/root-ca.pem"));
+		builder.put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"));
+		builder.put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"));
+		builder.put("plugins.security.audit.endpoints.endpoint2.config.webhook.ssl.pemtrustedcas_content", FileHelper.loadFile("auditlog/root-ca.pem"));
 
 		SinkProvider provider = new SinkProvider(builder.build(), null, null, null);
 		WebhookSink defaultSink = (WebhookSink) provider.defaultSink;

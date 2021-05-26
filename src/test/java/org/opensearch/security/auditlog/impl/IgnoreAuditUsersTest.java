@@ -72,7 +72,7 @@ public class IgnoreAuditUsersTest {
 
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.ignore_users", ignoreUser)
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .build();
         AbstractAuditLog al = AuditTestUtils.createAuditLog(settings, null, null, newThreadPool(ConfigConstants.OPENDISTRO_SECURITY_USER, ignoreUserObj), null, cs);
         TestAuditlogImpl.clear();
@@ -84,7 +84,7 @@ public class IgnoreAuditUsersTest {
     public void testNonConfiguredIgnoreUser() {
         Settings settings = Settings.builder()
                 .put("opendistro_security.audit.ignore_users", nonIgnoreUser)
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
@@ -97,7 +97,7 @@ public class IgnoreAuditUsersTest {
     @Test
     public void testNonExistingIgnoreUser() {
         Settings settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .build();
@@ -121,7 +121,7 @@ public class IgnoreAuditUsersTest {
         //sr.source("{\"query\": false}");
 
         Settings settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
                 .putList("opendistro_security.audit.ignore_users", "*")
                 .build();
@@ -137,7 +137,7 @@ public class IgnoreAuditUsersTest {
         Assert.assertEquals(0, TestAuditlogImpl.messages.size());
 
         settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .putList("opendistro_security.audit.ignore_users", "xxx")
@@ -151,7 +151,7 @@ public class IgnoreAuditUsersTest {
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
 
         settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .putList("opendistro_security.audit.ignore_users", "John Doe","Capatin Kirk")
@@ -167,7 +167,7 @@ public class IgnoreAuditUsersTest {
         Assert.assertEquals(TestAuditlogImpl.messages.toString(), 0, TestAuditlogImpl.messages.size());
 
         settings = Settings.builder()
-                .put("opendistro_security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
                 .putList("opendistro_security.audit.ignore_users", "Wil Riker","Capatin Kirk")

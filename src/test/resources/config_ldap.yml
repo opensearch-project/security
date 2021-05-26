@@ -1,4 +1,4 @@
-opendistro_security:
+plugins.security:
   dynamic:
     http:
       xff:
