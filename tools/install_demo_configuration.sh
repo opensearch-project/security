@@ -353,27 +353,27 @@ echo "$ADMIN_CERT_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/kirk-key.pem" > /de
 echo "" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE"
 echo "######## Start OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.transport.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.transport.enforce_hostname_verification: false" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.http.enabled: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.transport.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.transport.enforce_hostname_verification: false" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.http.enabled: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 if [ "$initsecurity" == 1 ]; then
-    echo "opendistro_security.allow_default_init_securityindex: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+    echo "plugins.security.allow_default_init_securityindex: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 fi
-echo "opendistro_security.authcz.admin_dn:" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.authcz.admin_dn:" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.audit.type: internal_opensearch" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "opendistro_security.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo 'opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo 'opendistro_security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo 'opendistro_security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opendistro-asynchronous-search-response*"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.audit.type: internal_opensearch" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.check_snapshot_restore_write_privileges: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo 'plugins.security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opendistro-asynchronous-search-response*"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
