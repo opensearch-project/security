@@ -45,8 +45,8 @@ public final class InternalOpenSearchSink extends AuditLogSink {
 		this.clientProvider = clientProvider;
 		Settings sinkSettings = getSinkSettings(settingsPrefix);
 
-		this.index = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd");
-		this.type = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_OPENSEARCH_TYPE, null);
+		this.index = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd");
+		this.type = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_OPENSEARCH_TYPE, null);
 
 		this.threadPool = threadPool;
 		try {

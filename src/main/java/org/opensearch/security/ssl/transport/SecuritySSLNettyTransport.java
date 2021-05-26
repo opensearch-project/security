@@ -214,9 +214,9 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         public SSLClientChannelInitializer(DiscoveryNode node) {
             this.node = node;
             hostnameVerificationEnabled = settings.getAsBoolean(
-                    SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true);
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true);
             hostnameVerificationResovleHostName = settings.getAsBoolean(
-                    SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true);
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true);
 
             connectionTestResult = SSLConnectionTestResult.SSL_AVAILABLE;
             if (SSLConfig.isDualModeEnabled()) {

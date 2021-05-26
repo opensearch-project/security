@@ -55,7 +55,7 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
     
     @Test
     public void testDlsDateMathQuery() throws Exception {
-        final Settings settings = Settings.builder().put(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS,true).build();
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS,true).build();
         setup(settings);
 
         HttpResponse res;

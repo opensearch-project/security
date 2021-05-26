@@ -43,9 +43,9 @@ public class ProtectedIndexAccessEvaluator {
 
 
     public ProtectedIndexAccessEvaluator(final Settings settings, AuditLog auditLog) {
-        this.indexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_DEFAULT));
-        this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ROLES_DEFAULT));
-        this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.OPENDISTRO_SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
+        this.indexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_DEFAULT));
+        this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_DEFAULT));
+        this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
         this.auditLog = auditLog;
 
         final List<String> indexDeniedActionPatterns = new ArrayList<String>();

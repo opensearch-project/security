@@ -61,7 +61,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         this.clusterService = clusterService;
         this.indexService = indexService;
         this.auditlog = auditlog;
-        final boolean allowNowinDlsQueries = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false);
+        final boolean allowNowinDlsQueries = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false);
         if (allowNowinDlsQueries) {
             nowInMillis = () -> System.currentTimeMillis();
         } else {

@@ -143,7 +143,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             log.info("OpenSearch Config path is not set");
         }
         
-        final boolean allowClientInitiatedRenegotiation = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION, false);
+        final boolean allowClientInitiatedRenegotiation = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION, false);
         final boolean rejectClientInitiatedRenegotiation = Boolean.parseBoolean(System.getProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION));
    
         if(allowClientInitiatedRenegotiation && !rejectClientInitiatedRenegotiation) {
@@ -199,12 +199,12 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
         client = !"node".equals(this.settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE));
         
-        httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED,
-                SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_DEFAULT);
-        transportSSLEnabled = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED,
-                SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
-        extendedKeyUsageEnabled = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED,
-                SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT);
+        httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED,
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT);
+        transportSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED,
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
+        extendedKeyUsageEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED,
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT);
 
         if (!httpSSLEnabled && !transportSSLEnabled) {
             log.error("SSL not activated for http and/or transport.");
@@ -295,7 +295,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             return components;
         }
         
-        final String principalExtractorClass = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
+        final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
             principalExtractor = new DefaultPrincipalExtractor();
@@ -318,77 +318,77 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     @Override
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_KEYSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, OPENSSL_SUPPORTED, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED, SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, OPENSSL_SUPPORTED,Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED, SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_TYPE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, OPENSSL_SUPPORTED, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, OPENSSL_SUPPORTED,Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.listSetting(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.listSetting(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.listSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.listSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, Property.NodeScope, Property.Filtered));
 
 
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED, SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED, SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
         if(extendedKeyUsageEnabled) {
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered));
 
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered));
 
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
 
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
         } else {
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD, Property.NodeScope, Property.Filtered));
 
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
+            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
         }
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_PASSWORD, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
 
-        settings.add(Setting.simpleString(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_FILE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_VALIDATE, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.longSetting(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.simpleString(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false, Property.NodeScope, Property.Filtered));
+        settings.add(Setting.longSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered));
         return settings;
     }
 

@@ -183,10 +183,10 @@ public class BackendRegistry {
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
 
 
-        this.ttlInMin = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_CACHE_TTL_MINUTES, 60);
+        this.ttlInMin = settings.getAsInt(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60);
 
         // This is going to be defined in the opensearch.yml, so it's best suited to be initialized once.
-        this.injectedUserEnabled = opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED,false);
+        this.injectedUserEnabled = opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED,false);
 
         createCaches();
     }
@@ -211,7 +211,7 @@ public class BackendRegistry {
         invalidateCache();
         transportUsernameAttribute = dcm.getTransportUsernameAttribute();// config.dynamic.transport_userrname_attribute;
         anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled()//config.dynamic.http.anonymous_auth_enabled
-                && !opensearchSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
+                && !opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
         restAuthDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
         transportAuthDomains = Collections.unmodifiableSortedSet(dcm.getTransportAuthDomains());

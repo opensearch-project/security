@@ -142,8 +142,8 @@ public class PrivilegesEvaluator {
         this.privilegesInterceptor = privilegesInterceptor;
 
 
-        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
-                ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
+        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+                ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
 
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
@@ -565,7 +565,7 @@ public class PrivilegesEvaluator {
         }
 
         if (request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
-            additionalPermissionsRequired.addAll(ConfigConstants.OPENDISTRO_SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
+            additionalPermissionsRequired.addAll(ConfigConstants.SECURITY_SNAPSHOT_RESTORE_NEEDED_WRITE_PRIVILEGES);
         }
 
         if (additionalPermissionsRequired.size() > 1) {

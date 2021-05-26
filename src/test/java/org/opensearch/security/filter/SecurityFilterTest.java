@@ -57,11 +57,11 @@ public class SecurityFilterTest {
         return Arrays.asList(new Object[][]{
                 {Settings.EMPTY, WildcardMatcher.NONE},
                 {Settings.builder()
-                        .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "immutable1", "immutable2")
+                        .putList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "immutable1", "immutable2")
                         .build(),
                         WildcardMatcher.from(ImmutableSet.of("immutable1", "immutable2"))},
                 {Settings.builder()
-                        .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "immutable1", "immutable2", "immutable2")
+                        .putList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, "immutable1", "immutable2", "immutable2")
                         .build(),
                         WildcardMatcher.from(ImmutableSet.of("immutable1", "immutable2"))},
         });

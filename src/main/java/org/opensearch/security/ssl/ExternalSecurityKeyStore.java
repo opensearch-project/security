@@ -45,7 +45,7 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
     public ExternalSecurityKeyStore(final Settings settings) {
         this.settings = Objects.requireNonNull(settings);
         final String externalContextId = settings
-                .get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
+                .get(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
                 
         if(externalContextId == null || externalContextId.length() == 0) {
             throw new OpenSearchException("no external ssl context id was set");
@@ -134,7 +134,7 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
     public static boolean hasExternalSslContext(Settings settings) {
         
         final String externalContextId = settings
-                .get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
+                .get(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
                 
         if(externalContextId == null || externalContextId.length() == 0) {
             return false;

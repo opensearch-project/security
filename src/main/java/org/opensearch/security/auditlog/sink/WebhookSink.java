@@ -64,10 +64,10 @@ public class WebhookSink extends AuditLogSink {
 
 	    this.effectiveTruststore = getEffectiveKeyStore(configPath);
 
-		final String webhookUrl = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_URL);
-		final String format = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_FORMAT);
+		final String webhookUrl = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_URL);
+		final String format = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_FORMAT);
 
-		verifySSL = sinkSettings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_SSL_VERIFY, true);
+		verifySSL = sinkSettings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY, true);
 		httpClient = getHttpClient();
 
 		if(httpClient == null) {
@@ -308,14 +308,14 @@ public class WebhookSink extends AuditLogSink {
 				try {
 					Settings sinkSettings = settings.getAsSettings(settingsPrefix);
 
-					final boolean pem = sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, null) != null
-			                || sinkSettings.get(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, null) != null;
+					final boolean pem = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, null) != null
+			                || sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, null) != null;
 
 					if(pem) {
-					    X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(PemKeyReader.resolveStream(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, sinkSettings));
+					    X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(PemKeyReader.resolveStream(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, sinkSettings));
 
 			            if(trustCertificates == null) {
-			            	String fullPath = settingsPrefix + "." + ConfigConstants.OPENDISTRO_SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH;
+			            	String fullPath = settingsPrefix + "." + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH;
 			                trustCertificates = PemKeyReader.loadCertificatesFromFile(PemKeyReader.resolve(fullPath, settings, configPath, false));
 			            }
 
@@ -323,9 +323,9 @@ public class WebhookSink extends AuditLogSink {
 
 
 					} else {
-					    return PemKeyReader.loadKeyStore(PemKeyReader.resolve(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, false)
-			                    , settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, SSLConfigConstants.DEFAULT_STORE_PASSWORD)
-			                    , settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
+					    return PemKeyReader.loadKeyStore(PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, false)
+			                    , settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, SSLConfigConstants.DEFAULT_STORE_PASSWORD)
+			                    , settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
 					}
 				} catch(Exception ex) {
 					log.error("Could not load key material. Make sure your certificates are located relative to the config directory", ex);

@@ -47,7 +47,7 @@ public class Salt {
 
     private Salt(final String saltAsString) {
         this.salt16 = new byte[SALT_SIZE];
-        if (saltAsString.equals(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT)) {
+        if (saltAsString.equals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT)) {
             log.warn("If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes", saltAsString);
         }
         try {
@@ -76,7 +76,7 @@ public class Salt {
      * @return configuration
      */
     public static Salt from(final Settings settings) {
-        final String saltAsString = settings.get(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT_DEFAULT);
+        final String saltAsString = settings.get(ConfigConstants.SECURITY_COMPLIANCE_SALT, ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT);
         return new Salt(saltAsString);
     }
 }

@@ -180,7 +180,7 @@ public class SSLRequestHelper {
     
     private static boolean validate(X509Certificate[] x509Certs, final Settings settings, final Path configPath) {
         
-        final boolean validateCrl = settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_VALIDATE, false);
+        final boolean validateCrl = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, false);
 
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
@@ -196,7 +196,7 @@ public class SSLRequestHelper {
         try {
         
             Collection<? extends CRL> crls = null;
-            final String crlFile = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_FILE);
+            final String crlFile = settings.get(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE);
 
             if(crlFile != null) {
                 final File crl = env.configFile().resolve(crlFile).toAbsolutePath().toFile();
@@ -213,13 +213,13 @@ public class SSLRequestHelper {
                 }
             }
          
-            final String truststore = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH);
+            final String truststore = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH);
             CertificateValidator validator = null;
             
             if(truststore != null) {
-                final String truststoreType = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, "JKS");
-                final String truststorePassword = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD, "changeit");
-                //final String truststoreAlias = settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, null);
+                final String truststoreType = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, "JKS");
+                final String truststorePassword = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD, "changeit");
+                //final String truststoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, null);
     
                 final KeyStore ts = KeyStore.getInstance(truststoreType);
                 try(FileInputStream fin = new FileInputStream(new File(env.configFile().resolve(truststore).toAbsolutePath().toString()))) {
@@ -227,18 +227,18 @@ public class SSLRequestHelper {
                 }
                 validator = new CertificateValidator(ts, crls);
             } else {
-                final File trustedCas = env.configFile().resolve(settings.get(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, "")).toAbsolutePath().toFile();
+                final File trustedCas = env.configFile().resolve(settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, "")).toAbsolutePath().toFile();
                 try(FileInputStream trin = new FileInputStream(trustedCas)) {
                     Collection<? extends Certificate> cert =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
                     validator = new CertificateValidator(cert.toArray(new X509Certificate[0]), crls);
                 }               
             }
             
-            validator.setEnableCRLDP(!settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false));
-            validator.setEnableOCSP(!settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false));
-            validator.setCheckOnlyEndEntities(settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true));
-            validator.setPreferCrl(settings.getAsBoolean(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP, false));
-            Long dateTimestamp = settings.getAsLong(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, null);
+            validator.setEnableCRLDP(!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false));
+            validator.setEnableOCSP(!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false));
+            validator.setCheckOnlyEndEntities(settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true));
+            validator.setPreferCrl(settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP, false));
+            Long dateTimestamp = settings.getAsLong(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, null);
             if(dateTimestamp != null && dateTimestamp.longValue() < 0) {
                 dateTimestamp = null;
             }

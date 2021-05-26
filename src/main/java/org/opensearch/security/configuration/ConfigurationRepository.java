@@ -99,14 +99,14 @@ public class ConfigurationRepository {
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
                                     Client client, ClusterService clusterService, AuditLog auditLog) {
-        this.securityIndex = settings.get(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.auditLog = auditLog;
         this.configurationChangedListener = new ArrayList<>();
-        this.acceptInvalid = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false);
+        this.acceptInvalid = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false);
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
 
         configCache = CacheBuilder
@@ -252,11 +252,11 @@ public class ConfigurationRepository {
 
     public void initOnNodeStart() {
         try {
-            if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
+            if (settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
                 installDefaultConfig.set(true);
                 bgThread.start();
-            } else if (settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
+            } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
                 LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
                         securityIndex);
                 bgThread.start();

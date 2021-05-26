@@ -243,7 +243,7 @@ public abstract class AbstractConfigurationValidator {
                     break;
                 case INVALID_PASSWORD:
                     builder.field("status", "error");
-                    builder.field("reason", opensearchSettings.get(ConfigConstants.OPENDISTRO_SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
+                    builder.field("reason", opensearchSettings.get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
                             "Password does not match minimum criteria"));
                     break;
                 case WRONG_DATATYPE:

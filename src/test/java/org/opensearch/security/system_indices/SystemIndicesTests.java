@@ -61,8 +61,8 @@ public class SystemIndicesTests extends SingleClusterTest {
     private void setupSystemIndicesDisabledWithSsl() throws Exception {
 
         Settings systemIndexSettings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, false)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
+                .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, false)
+                .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
                 .put("plugins.security.ssl.http.enabled",true)
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
@@ -81,8 +81,8 @@ public class SystemIndicesTests extends SingleClusterTest {
     private void setupSystemIndicesEnabledWithSsl() throws Exception {
 
         Settings systemIndexSettings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_ENABLED_KEY, true)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
+                .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, true)
+                .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
                 .put("plugins.security.ssl.http.enabled",true)
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))

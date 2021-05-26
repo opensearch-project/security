@@ -46,8 +46,8 @@ public abstract class AuditLogSink {
         this.settingsPrefix = settingsPrefix;
         this.fallbackSink = fallbackSink;
 
-        retryCount = settings.getAsInt(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_COUNT, 0);
-        delayMs = settings.getAsLong(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RETRY_DELAY_MS, 1000L);
+        retryCount = settings.getAsInt(ConfigConstants.SECURITY_AUDIT_RETRY_COUNT, 0);
+        delayMs = settings.getAsLong(ConfigConstants.SECURITY_AUDIT_RETRY_DELAY_MS, 1000L);
     }
 
     public boolean isHandlingBackpressure() {

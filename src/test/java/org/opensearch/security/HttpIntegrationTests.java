@@ -69,7 +69,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testHTTPBasic() throws Exception {
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
+                .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
                 .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -350,10 +350,10 @@ public class HttpIntegrationTests extends SingleClusterTest {
                 .put("plugins.security.ssl.http.enabled",true)
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
-                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
-                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
-                .putList(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+                .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
+                .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+                .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1","TLSv1.2")
+                .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
                 .build();
         
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_clientcert.yml"), settings, true);
@@ -532,7 +532,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testBulk() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_bulk.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
@@ -553,7 +553,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testBulkWithOneIndexFailure() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_bulk.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
@@ -576,7 +576,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void test557() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         
@@ -607,7 +607,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testITT1635() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+                .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml").setSecurityRoles("roles_itt1635.yml"), settings);
         
@@ -701,7 +701,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testRestImpersonation() throws Exception {
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "someotherusernotininternalusersfile")
+                .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "someotherusernotininternalusersfile")
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_rest_impersonation.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
@@ -716,7 +716,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
     @Test
     public void testSslOnlyMode() throws Exception {
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_SSL_ONLY, true)
+                .put(ConfigConstants.SECURITY_SSL_ONLY, true)
                 .build();
         setupSslOnlyMode(settings);
         final RestHelper rh = nonSslRestHelper();
