@@ -34,7 +34,7 @@ public class SSLConfig {
         this.sslOnly = sslOnly;
         this.dualModeEnabled = dualModeEnabled;
         if (this.dualModeEnabled && !this.sslOnly) {
-            logger.warn("opendistro_security_config.ssl_dual_mode_enabled is enabled but plugins.security.ssl_only mode is disabled. "
+            logger.warn("plugins.security_config.ssl_dual_mode_enabled is enabled but plugins.security.ssl_only mode is disabled. "
                 + "SSL Dual mode is supported only when security plugin is in ssl_only mode");
         }
         logger.info("SSL dual mode is {}", isDualModeEnabled() ? "enabled" : "disabled");
