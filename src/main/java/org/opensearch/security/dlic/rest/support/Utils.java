@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.List;
 
 import com.google.common.collect.ImmutableSet;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
@@ -38,6 +39,7 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.rest.RestHandler.Route;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -45,7 +47,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opensearch.security.DefaultObjectMapper;
 
+import com.google.common.collect.ImmutableList;
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+
+import com.google.common.collect.ImmutableList;
+import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+
+
 
 public class Utils {
 
@@ -212,5 +220,30 @@ public class Utils {
                 .stream()
                 .map(field -> prefix + field)
                 .collect(ImmutableSet.toImmutableSet());
+    }
+
+    /**
+     * Add prefixes(_opendistro... and _plugins...) to rest API routes
+     * @param routes routes
+     * @return new list of API routes prefixed with _opendistro... and _plugins...
+     *Total number of routes is expanded as twice as the number of routes passed in
+     */
+    public static List<Route> addRoutesPrefix(List<Route> routes){
+        return addRoutesPrefix(routes, "/_opendistro/_security/api", "/_plugins/_security/api");
+    }
+
+    /**
+     * Add customized prefix(_opendistro... and _plugins...)to API rest routes
+     * @param routes routes
+     * @param prefixes all api prefix
+     * @return new list of API routes prefixed with the strings listed in prefixes
+     * Total number of routes will be expanded len(prefixes) as much comparing to the list passed in
+     */
+    public static List<Route> addRoutesPrefix(List<Route> routes, final String... prefixes){
+        return routes.stream()
+             .flatMap(
+                r -> Arrays.stream(prefixes)
+                   .map(p -> new Route(r.getMethod(), p + r.getPath())))
+             .collect(ImmutableList.toImmutableList());
     }
 }

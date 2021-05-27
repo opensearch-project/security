@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import org.opensearch.security.dlic.rest.validation.SecurityConfigValidator;
 import org.opensearch.security.securityconf.impl.CType;
@@ -43,17 +45,22 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigAction extends PatchableResourceApiAction {
 
-    private static final List<Route> getRoutes = Collections.singletonList(
-            new Route(Method.GET, "/_opendistro/_security/api/securityconfig/")
-    );
+    private static final List<Route> getRoutes = addRoutesPrefix(Collections.singletonList(
+            new Route(Method.GET, "/securityconfig/")
+    ));
 
     private static final List<Route> allRoutes = new ImmutableList.Builder<Route>()
             .addAll(getRoutes)
-            .add(new Route(Method.PUT, "/_opendistro/_security/api/securityconfig/{name}"))
-            .add(new Route(Method.PATCH, "/_opendistro/_security/api/securityconfig/"))
+            .addAll(addRoutesPrefix(
+                ImmutableList.of(
+                    new Route(Method.PUT, "/securityconfig/{name}"),
+                    new Route(Method.PATCH, "/securityconfig/")
+                )
+            ))
             .build();
 
     private final boolean allowPutOrPatch;

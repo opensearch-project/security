@@ -36,27 +36,29 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.opensearch.security.securityconf.impl.CType;
-
 import com.google.common.collect.ImmutableList;
+
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ActionGroupsApiAction extends PatchableResourceApiAction {
 
-	private static final List<Route> routes = ImmutableList.of(
+	private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
 			// legacy mapping for backwards compatibility
 			// TODO: remove in next version
-			new Route(Method.GET, "/_opendistro/_security/api/actiongroup/{name}"),
-			new Route(Method.GET, "/_opendistro/_security/api/actiongroup/"),
-			new Route(Method.DELETE, "/_opendistro/_security/api/actiongroup/{name}"),
-			new Route(Method.PUT, "/_opendistro/_security/api/actiongroup/{name}"),
+			new Route(Method.GET, "/actiongroup/{name}"),
+			new Route(Method.GET, "/actiongroup/"),
+			new Route(Method.DELETE, "/actiongroup/{name}"),
+			new Route(Method.PUT, "/actiongroup/{name}"),
 
 			// corrected mapping, introduced in OpenSearch Security
-			new Route(Method.GET, "/_opendistro/_security/api/actiongroups/{name}"),
-			new Route(Method.GET, "/_opendistro/_security/api/actiongroups/"),
-			new Route(Method.DELETE, "/_opendistro/_security/api/actiongroups/{name}"),
-			new Route(Method.PUT, "/_opendistro/_security/api/actiongroups/{name}"),
-			new Route(Method.PATCH, "/_opendistro/_security/api/actiongroups/"),
-			new Route(Method.PATCH, "/_opendistro/_security/api/actiongroups/{name}")
-	);
+			new Route(Method.GET, "/actiongroups/{name}"),
+			new Route(Method.GET, "/actiongroups/"),
+			new Route(Method.DELETE, "/actiongroups/{name}"),
+			new Route(Method.PUT, "/actiongroups/{name}"),
+			new Route(Method.PATCH, "/actiongroups/"),
+			new Route(Method.PATCH, "/actiongroups/{name}")
+
+	));
 
 	@Override
 	protected Endpoint getEndpoint() {

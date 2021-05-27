@@ -65,12 +65,15 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import com.google.common.collect.ImmutableList;
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantInfoAction extends BaseRestHandler {
-    private static final List<Route> routes = ImmutableList.of(
-            new Route(GET, "/_opendistro/_security/tenantinfo"),
-            new Route(POST, "/_opendistro/_security/tenantinfo")
-    );
+    private static final List<Route> routes = addRoutesPrefix(
+            ImmutableList.of(
+                new Route(GET, "/tenantinfo"),
+                new Route(POST, "/tenantinfo")
+            ),
+            "/_opendistro/_security", "/_plugins/_security");
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;

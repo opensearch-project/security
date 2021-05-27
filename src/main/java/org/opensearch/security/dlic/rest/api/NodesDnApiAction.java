@@ -45,6 +45,8 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+
 /**
  * This class implements CRUD operations to manage dynamic NodesDn. The primary usecase is targeted at cross-cluster where
  * in node restart can be avoided by populating the coordinating cluster's nodes_dn values.
@@ -62,14 +64,14 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
-    private static final List<Route> routes = ImmutableList.of(
-            new Route(Method.GET, "/_opendistro/_security/api/nodesdn/{name}"),
-            new Route(Method.GET, "/_opendistro/_security/api/nodesdn/"),
-            new Route(Method.DELETE, "/_opendistro/_security/api/nodesdn/{name}"),
-            new Route(Method.PUT, "/_opendistro/_security/api/nodesdn/{name}"),
-            new Route(Method.PATCH, "/_opendistro/_security/api/nodesdn/"),
-            new Route(Method.PATCH, "/_opendistro/_security/api/nodesdn/{name}")
-    );
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+            new Route(Method.GET, "/nodesdn/{name}"),
+            new Route(Method.GET, "/nodesdn/"),
+            new Route(Method.DELETE, "/nodesdn/{name}"),
+            new Route(Method.PUT, "/nodesdn/{name}"),
+            new Route(Method.PATCH, "/nodesdn/"),
+            new Route(Method.PATCH, "/nodesdn/{name}")
+    ));
 
     @Inject
     public NodesDnApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,

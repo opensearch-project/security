@@ -26,19 +26,37 @@ import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.google.common.collect.ImmutableList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+@RunWith(Parameterized.class)
 public class NodesDnApiTest extends AbstractRestApiUnitTest {
     private HttpResponse response;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private final String ENDPOINT;
+
+    public NodesDnApiTest(String endpoint){
+        ENDPOINT = endpoint;
+    }
+
+    @Parameterized.Parameters
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                "/_opendistro/_security/api",
+                "/_plugins/_security/api"
+        );
+    }
 
     private <T> JsonNode asJsonNode(T t) throws Exception {
         return OBJECT_MAPPER.readTree(OBJECT_MAPPER.writeValueAsString(t));
@@ -49,18 +67,18 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
     }
 
     private void testCrudScenarios(final int expectedStatus, final Header... headers) throws Exception {
-        response = rh.executeGetRequest("_opendistro/_security/api/nodesdn?show_all=true", headers);
+        response = rh.executeGetRequest(ENDPOINT + "/nodesdn?show_all=true", headers);
         assertThat(response.getStatusCode(), equalTo(expectedStatus));
         if (expectedStatus == HttpStatus.SC_OK) {
             JsonNode expected = asJsonNode(ImmutableMap.of(
                 "cluster1", nodesDnEntry("cn=popeye"),
-                NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nodesDnEntry("CN=example.com")));
+                 NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nodesDnEntry("CN=example.com")));
 
             JsonNode node = OBJECT_MAPPER.readTree(response.getBody());
             assertThat(node, equalTo(asJsonNode(expected)));
         }
 
-        response = rh.executeGetRequest("_opendistro/_security/api/nodesdn?show_all=false", headers);
+        response = rh.executeGetRequest(ENDPOINT + "/nodesdn?show_all=false", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         if (expectedStatus == HttpStatus.SC_OK) {
             JsonNode expected = asJsonNode(ImmutableMap.of("cluster1", nodesDnEntry("cn=popeye")));
@@ -68,7 +86,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             assertThat(node, equalTo(asJsonNode(expected)));
         }
 
-        response = rh.executeGetRequest("_opendistro/_security/api/nodesdn", headers);
+        response = rh.executeGetRequest(ENDPOINT + "/nodesdn", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         if (expectedStatus == HttpStatus.SC_OK) {
             JsonNode expected = asJsonNode(ImmutableMap.of("cluster1", nodesDnEntry("cn=popeye")));
@@ -76,7 +94,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             assertThat(node, equalTo(asJsonNode(expected)));
         }
 
-        response = rh.executeGetRequest("_opendistro/_security/api/nodesdn/cluster1", headers);
+        response = rh.executeGetRequest(ENDPOINT + "/nodesdn/cluster1", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         if (expectedStatus == HttpStatus.SC_OK) {
             JsonNode expected = asJsonNode(ImmutableMap.of("cluster1", nodesDnEntry("cn=popeye")));
@@ -84,16 +102,16 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             assertThat(node, equalTo(asJsonNode(expected)));
         }
 
-        response = rh.executePutRequest("_opendistro/_security/api/nodesdn/cluster1", "{\"nodes_dn\": [\"cn=popeye\"]}", headers);
+        response = rh.executePutRequest(ENDPOINT + "/nodesdn/cluster1", "{\"nodes_dn\": [\"cn=popeye\"]}", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
-        response = rh.executePatchRequest("/_opendistro/_security/api/nodesdn/cluster1", "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]", headers);
+        response = rh.executePatchRequest(ENDPOINT + "/nodesdn/cluster1", "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
-        response = rh.executePatchRequest("/_opendistro/_security/api/nodesdn", "[{ \"op\": \"remove\", \"path\": \"/cluster1/nodes_dn/0\"}]", headers);
+        response = rh.executePatchRequest(ENDPOINT + "/nodesdn", "[{ \"op\": \"remove\", \"path\": \"/cluster1/nodes_dn/0\"}]", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
-        response = rh.executeDeleteRequest("_opendistro/_security/api/nodesdn/cluster1", headers);
+        response = rh.executeDeleteRequest(ENDPOINT + "/nodesdn/cluster1", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
@@ -108,6 +126,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testNodesDnApi() throws Exception {
+
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .putList(ConfigConstants.SECURITY_NODES_DN, "CN=example.com")
             .build();
@@ -144,20 +163,21 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
             final int expectedStatus = HttpStatus.SC_FORBIDDEN;
 
-            response = rh.executePutRequest("_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, "{\"nodes_dn\": [\"cn=popeye\"]}", nonAdminCredsHeader);
+            response = rh.executePutRequest(ENDPOINT + "/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, "{\"nodes_dn\": [\"cn=popeye\"]}", nonAdminCredsHeader);
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
-            response = rh.executePatchRequest("/_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN,
+            response = rh.executePatchRequest(ENDPOINT + "/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN,
                 "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]" , nonAdminCredsHeader);
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
-            response = rh.executeDeleteRequest("_opendistro/_security/api/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nonAdminCredsHeader);
+            response = rh.executeDeleteRequest(ENDPOINT + "/nodesdn/" + NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nonAdminCredsHeader);
             assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         }
     }
 
     @Test
     public void testNodesDnApiAuditComplianceLogging() throws Exception {
+
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .putList(ConfigConstants.SECURITY_NODES_DN, "CN=example.com")
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
@@ -191,4 +211,5 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
     }
+
 }

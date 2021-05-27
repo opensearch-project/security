@@ -63,6 +63,8 @@ import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.user.User;
 import org.greenrobot.eventbus.Subscribe;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SecurityRestFilter {
 
@@ -76,6 +78,13 @@ public class SecurityRestFilter {
     private final CompatConfig compatConfig;
 
     private WhitelistingSettings whitelistingSettings;
+
+    private static final String LEGACY_OPENDISTRO_PREFIX = "/_opendistro/_security/";
+    private static final String PLUGINS_PREFIX = "/_plugins/_security/";
+    private static final String HEALTH_SUFFIX = "health";
+
+    private static final String REGEX_PATH_PREFIX = "("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")" +"(.*)";
+    private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
 
     public SecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
@@ -173,8 +182,9 @@ public class SecurityRestFilter {
             return false;
         }
 
-        if(request.method() != Method.OPTIONS 
-                && !"/_opendistro/_security/health".equals(request.path())) {
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
+        final String suffix = matcher.matches() ? matcher.group(2) : null;
+        if(request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix))) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");

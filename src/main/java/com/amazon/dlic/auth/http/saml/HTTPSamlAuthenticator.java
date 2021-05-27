@@ -64,6 +64,8 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
@@ -72,6 +74,15 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     public static final String IDP_METADATA_URL = "idp.metadata_url";
     public static final String IDP_METADATA_FILE = "idp.metadata_file";
     public static final String IDP_METADATA_CONTENT = "idp.metadata_content";
+
+    private static final String LEGACY_OPENDISTRO_PREFIX = "/_opendistro/_security/";
+    private static final String PLUGINS_PREFIX = "/_plugins/_security/";
+    private static final String API_AUTHTOKEN_SUFFIX = "api/authtoken";
+    private static final String AUTHINFO_SUFFIX = "authinfo";
+
+    private static final String REGEX_PATH_PREFIX = "(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")" +"(.*)";
+    private static final  Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
+
 
     private static boolean openSamlInitialized = false;
 
@@ -141,13 +152,15 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     @Override
     public AuthCredentials extractCredentials(RestRequest restRequest, ThreadContext threadContext)
             throws OpenSearchSecurityException {
-        if ("/_opendistro/_security/api/authtoken".equals(restRequest.path())) {
+        Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+        final String suffix = matcher.matches() ? matcher.group(2) : null;
+        if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
             return null;
         }
 
         AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(restRequest, threadContext);
 
-        if ("/_opendistro/_security/authinfo".equals(restRequest.path())) {
+        if (AUTHINFO_SUFFIX.equals(suffix)) {
             this.initLogoutUrl(restRequest, threadContext, authCredentials);
         }
 
@@ -163,9 +176,10 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     public boolean reRequestAuthentication(RestChannel restChannel, AuthCredentials authCredentials) {
         try {
             RestRequest restRequest = restChannel.request();
-
-            if ("/_opendistro/_security/api/authtoken".equals(restRequest.path())
-                    && this.authTokenProcessorHandler.handle(restRequest, restChannel)) {
+            Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
+            final String suffix = matcher.matches() ? matcher.group(2) : null;
+            if (API_AUTHTOKEN_SUFFIX.equals(suffix)
+                    && this.authTokenProcessorHandler.handle(restRequest, restChannel)){
                 return true;
             }
 

@@ -21,12 +21,30 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import com.google.common.collect.ImmutableList;
 
+@RunWith(Parameterized.class)
 public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
+
+	private final String ENDPOINT;
+
+	public RoleBasedAccessTest(String endpoint){
+		ENDPOINT = endpoint;
+	}
+
+	@Parameterized.Parameters
+	public static Iterable<String> endpoints() {
+		return ImmutableList.of(
+				"/_opendistro/_security/api",
+				"/_plugins/_security/api"
+		);
+	}
 
 	@Test
 	public void testActionGroupsApi() throws Exception {
@@ -42,20 +60,20 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		// --- Allowed Access ---
 
 		// legacy user API, accessible for worf, single user
-		HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/admin", encodeBasicHeader("worf", "worf"));
+		HttpResponse response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertTrue(settings.get("admin.hash") != null);
 		Assert.assertEquals("", settings.get("admin.hash"));
 
 		// new user API, accessible for worf, single user
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/admin", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-		 settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertTrue(settings.get("admin.hash") != null);
 
 		// legacy user API, accessible for worf, get complete config
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers/", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals("", settings.get("admin.hash"));
@@ -63,7 +81,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals("", settings.get("worf.hash"));
 
 		// new user API, accessible for worf
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers/", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals("", settings.get("admin.hash"));
@@ -71,7 +89,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals("", settings.get("worf.hash"));
 
 		// legacy user API, accessible for worf, get complete config, no trailing slash
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals("", settings.get("admin.hash"));
@@ -79,7 +97,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals("", settings.get("worf.hash"));
 
 		// new user API, accessible for worf, get complete config, no trailing slash
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals("", settings.get("admin.hash"));
@@ -87,7 +105,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals("", settings.get("worf.hash"));
 
 		// roles API, GET accessible for worf
-		response = rh.executeGetRequest("/_opendistro/_security/api/rolesmapping", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/rolesmapping", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals("", settings.getAsList("opendistro_security_all_access.users").get(0), "nagilum");
@@ -128,80 +146,80 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		Assert.assertTrue(response.getBody().contains("does not have any access to endpoint CACHE"));
 
 		// Admin user has no eligible role at all
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/admin", encodeBasicHeader("admin", "admin"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("does not have any role privileged for admin access"));
 
 		// Admin user has no eligible role at all
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/admin", encodeBasicHeader("admin", "admin"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("does not have any role privileged for admin access"));
 
 		// Admin user has no eligible role at all
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers", encodeBasicHeader("admin", "admin"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers", encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("does not have any role privileged for admin access"));
 
 		// Admin user has no eligible role at all
-		response = rh.executeGetRequest("/_opendistro/_security/api/roles", encodeBasicHeader("admin", "admin"));
+		response = rh.executeGetRequest(ENDPOINT + "/roles", encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("does not have any role privileged for admin access"));
 
 		// --- DELETE ---
 
 		// Admin user has no eligible role at all
-		response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/admin", encodeBasicHeader("admin", "admin"));
+		response = rh.executeDeleteRequest(ENDPOINT + "/internalusers/admin", encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("does not have any role privileged for admin access"));
 
 		// Worf, has access to internalusers API, able to delete
-		response = rh.executeDeleteRequest("/_opendistro/_security/api/internalusers/other", encodeBasicHeader("worf", "worf"));
+		response = rh.executeDeleteRequest(ENDPOINT + "/internalusers/other", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("'other' deleted"));
 
 		// Worf, has access to internalusers API, user "other" deleted now
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/other", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers/other", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("'other' not found"));
 
 		// Worf, has access to roles API, get captains role
-		response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Assert.assertEquals(new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted("opendistro_security_role_starfleet_captains.cluster_permissions").get(0).asString(), "cluster:monitor*");
 
 		// Worf, has access to roles API, able to delete
-		response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
+		response = rh.executeDeleteRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("'opendistro_security_role_starfleet_captains' deleted"));
 
 		// Worf, has access to roles API, captains role deleted now
-		response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("'opendistro_security_role_starfleet_captains' not found"));
 
 		// Worf, has no DELETE access to rolemappings API
-		response = rh.executeDeleteRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_unittest_1", encodeBasicHeader("worf", "worf"));
+		response = rh.executeDeleteRequest(ENDPOINT + "/rolesmapping/opendistro_security_unittest_1", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
 		// Worf, has no DELETE access to rolemappings API, legacy endpoint
-		response = rh.executeDeleteRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_unittest_1", encodeBasicHeader("worf", "worf"));
+		response = rh.executeDeleteRequest(ENDPOINT + "/rolesmapping/opendistro_security_unittest_1", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
 		// --- PUT ---
 
 		// admin, no access
-		response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains",
-				FileHelper.loadFile("restapi/roles_captains_tenants.json"), encodeBasicHeader("admin", "admin"));
+		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+										FileHelper.loadFile("restapi/roles_captains_tenants.json"), encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
 		// worf, restore role starfleet captains
-		response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains",
-				FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("worf", "worf"));
+		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+										FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 
 		// starfleet role present again
-		response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
+		response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Assert.assertEquals(new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted("opendistro_security_role_starfleet_captains.index_permissions").get(0).get("allowed_actions").get(0).asString(), "blafasel");
 
@@ -209,7 +227,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = true;
 
 		// admin
-		response = rh.executeGetRequest("/_opendistro/_security/api/internalusers/admin", encodeBasicHeader("la", "lu"));
+		response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", encodeBasicHeader("la", "lu"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertTrue(settings.get("admin.hash") != null);
@@ -239,21 +257,21 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
 		// PUT roles
-		response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains",
-				FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("test", "test"));
+		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+										FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("test", "test"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// GET captions role
-		response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("test", "test"));
+		response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("test", "test"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// Delete captions role
-		response = rh.executeDeleteRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("test", "test"));
+		response = rh.executeDeleteRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("test", "test"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		Assert.assertTrue(response.getBody().contains("'opendistro_security_role_starfleet_captains' deleted"));
 
 		// GET captions role
-		response = rh.executeGetRequest("/_opendistro/_security/api/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("test", "test"));
+		response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("test", "test"));
 		Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
 

@@ -15,6 +15,8 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.opensearch.security.securityconf.impl.CType;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
@@ -23,12 +25,27 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import java.util.Arrays;
 
 import static org.junit.Assert.*;
 
+@RunWith(Parameterized.class)
 public class AccountApiTest extends AbstractRestApiUnitTest {
+    private final String BASE_ENDPOINT;
+    private final String ENDPOINT;
 
-    public static final String ENDPOINT = "/_opendistro/_security/api/account";
+    public AccountApiTest(String baseEndpoint, String endpoint){
+        BASE_ENDPOINT = baseEndpoint;
+        ENDPOINT = endpoint;
+    }
+
+    @Parameterized.Parameters
+    public static Iterable<String[]> endpoints() {
+        return Arrays.asList(new String[][] {
+                {"/_opendistro/_security/api/", "/_opendistro/_security/api/account"},
+                {"/_plugins/_security/api/", "/_plugins/_security/api/account"}
+        });
+    }
 
     @Test
     public void testGetAccount() throws Exception {
@@ -137,7 +154,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         // create users from - resources/restapi/internal_users.yml
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executeGetRequest("_opendistro/_security/api/" + CType.INTERNALUSERS.toLCString());
+        response = rh.executeGetRequest(BASE_ENDPOINT + CType.INTERNALUSERS.toLCString());
         rh.sendAdminCertificate = false;
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
@@ -188,7 +205,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
                 "  }\n" +
                 "}";
         final String changePasswordPayload = "{\"password\":\"" + newPassword + "\", \"current_password\":\"" + testPassword + "\"}";
-        final String internalUserEndpoint = "/_opendistro/_security/api/internalusers/" + testUsername;
+        final String internalUserEndpoint = BASE_ENDPOINT+"internalusers/" + testUsername;
 
         // create user
         rh.sendAdminCertificate = true;
@@ -205,9 +222,9 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(internalUserEndpoint);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings responseBody = Settings.builder()
-                .loadFromSource(response.getBody(), XContentType.JSON)
-                .build()
-                .getAsSettings(testUsername);
+                 .loadFromSource(response.getBody(), XContentType.JSON)
+                 .build()
+                 .getAsSettings(testUsername);
         assertTrue(responseBody.getAsList("backend_roles").contains("test-backend-role-1"));
         assertTrue(responseBody.getAsList("opendistro_security_roles").contains("opendistro_security_all_access"));
         assertEquals(responseBody.getAsSettings("attributes").get("attribute1"), "value1");

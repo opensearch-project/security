@@ -21,10 +21,28 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import com.google.common.collect.ImmutableList;
 
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+@RunWith(Parameterized.class)
 public class FlushCacheApiTest extends AbstractRestApiUnitTest {
+
+	private final String ENDPOINT;
+
+	public FlushCacheApiTest(String endpoint){
+		ENDPOINT = endpoint;
+	}
+
+	@Parameterized.Parameters
+	public static Iterable<String> endpoints() {
+		return ImmutableList.of(
+				"/_opendistro/_security/api/cache",
+				"/_plugins/_security/api/cache"
+		);
+	}
 
 	@Test
 	public void testFlushCache() throws Exception {
@@ -36,28 +54,29 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = true;
 
 		// GET
-		HttpResponse response = rh.executeGetRequest("/_opendistro/_security/api/cache");
+		HttpResponse response = rh.executeGetRequest(ENDPOINT);
 		Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getStatusCode());
 		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(settings.get("message"), "Method GET not supported for this action.");
 
 		// PUT
-		response = rh.executePutRequest("/_opendistro/_security/api/cache", "{}", new Header[0]);
+		response = rh.executePutRequest(ENDPOINT, "{}", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(settings.get("message"), "Method PUT not supported for this action.");
 
 		// POST
-		response = rh.executePostRequest("/_opendistro/_security/api/cache", "{}", new Header[0]);
+		response = rh.executePostRequest(ENDPOINT, "{}", new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(settings.get("message"), "Method POST not supported for this action.");
 
 		// DELETE
-		response = rh.executeDeleteRequest("/_opendistro/_security/api/cache", new Header[0]);
+		response = rh.executeDeleteRequest(ENDPOINT, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(settings.get("message"), "Cache flushed successfully.");
 
 	}
+
 }

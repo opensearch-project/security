@@ -27,15 +27,11 @@ import org.junit.runners.Parameterized;
 import java.util.Arrays;
 
 @RunWith(Parameterized.class)
-public class TenantInfoActionTest extends AbstractRestApiUnitTest {
-    private String payload = "{\"hosts\":[],\"users\":[\"sarek\"]," +
-            "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated " +
-            "from v6\"}";
-
+public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT_API;
     private final String ENDPOINT;
 
-    public TenantInfoActionTest(String endpointApi, String endpoint){
+    public SecurityInfoActionTest(String endpointApi, String endpoint){
         ENDPOINT_API = endpointApi;
         ENDPOINT = endpoint;
     }
@@ -47,35 +43,22 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
                 {"_plugins/_security/api", "_plugins/_security"}
         });
     }
+
     @Test
-    public void testTenantInfoAPI() throws Exception {
+    public void testSecurityInfoAPI() throws Exception {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/tenantinfo");
+        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/authinfo");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
+        response = rh.executePutRequest(ENDPOINT_API + "/securityconfig", "{\"xxx\": 1}", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
+
         rh.sendAdminCertificate = false;
-        response = rh.executeGetRequest(ENDPOINT + "/tenantinfo");
+        response = rh.executeGetRequest(ENDPOINT + "/authinfo");
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
-
-        rh.sendHTTPClientCredentials = true;
-        response = rh.executeGetRequest(ENDPOINT + "/tenantinfo");
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        rh.sendAdminCertificate = true;
-
-        //update security config
-        response = rh.executePatchRequest(ENDPOINT_API + "/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\",\"value\": \"opendistro_security_internal\"}]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executePutRequest(ENDPOINT_API + "/rolesmapping/opendistro_security_internal", payload, new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        rh.sendAdminCertificate = false;
-        response = rh.executeGetRequest(ENDPOINT + "/tenantinfo");
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 }

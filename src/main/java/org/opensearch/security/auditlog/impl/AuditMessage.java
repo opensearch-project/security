@@ -60,7 +60,12 @@ public final class AuditMessage {
     private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization", false);
     private static final String SENSITIVE_KEY = "password";
     private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
-    private static final Pattern SENSITIVE_PATHS = Pattern.compile("/_opendistro/_security/api/(account.*|internalusers.*|user.*)");
+
+    private static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
+    private static final String PLUGINS_PREFIX = "_plugins/_security";
+    private static final Pattern SENSITIVE_PATHS = Pattern.compile( "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX +
+                                                                    ")/api/(account.*|internalusers.*|user.*)");
+
     @VisibleForTesting
     public static final Pattern BCRYPT_HASH = Pattern.compile("\\$2[ayb]\\$.{56}");
     private static final String BCRYPT_HASH_REPLACEMENT_VALUE = "__HASH__";

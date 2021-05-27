@@ -18,8 +18,26 @@ package org.opensearch.security.dlic.rest.api;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import com.google.common.collect.ImmutableList;
 
+@RunWith(Parameterized.class)
 public class SecurityApiAccessTest extends AbstractRestApiUnitTest {
+
+	private final String ENDPOINT;
+
+	public SecurityApiAccessTest(String endpoint){
+		ENDPOINT = endpoint;
+	}
+
+	@Parameterized.Parameters
+	public static Iterable<String> endpoints() {
+		return ImmutableList.of(
+				"_opendistro/_security/api/internalusers",
+				"_plugins/_security/api/internalusers"
+		);
+	}
 
 	@Test
 	public void testRestApi() throws Exception {
@@ -28,9 +46,9 @@ public class SecurityApiAccessTest extends AbstractRestApiUnitTest {
 
 		// test with no cert, must fail
 		Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED,
-				rh.executeGetRequest("_opendistro/_security/api/internalusers").getStatusCode());
+				rh.executeGetRequest(ENDPOINT).getStatusCode());
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
-				rh.executeGetRequest("_opendistro/_security/api/internalusers",
+				rh.executeGetRequest(ENDPOINT,
 						encodeBasicHeader("admin", "admin"))
 						.getStatusCode());
 
@@ -38,12 +56,11 @@ public class SecurityApiAccessTest extends AbstractRestApiUnitTest {
 		rh.keystore = "restapi/node-0-keystore.jks";
 		rh.sendAdminCertificate = true;
 		Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED,
-				rh.executeGetRequest("_opendistro/_security/api/internalusers").getStatusCode());
+				rh.executeGetRequest(ENDPOINT).getStatusCode());
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
-				rh.executeGetRequest("_opendistro/_security/api/internalusers",
+				rh.executeGetRequest(ENDPOINT,
 						encodeBasicHeader("admin", "admin"))
 						.getStatusCode());
 
 	}
-
 }
