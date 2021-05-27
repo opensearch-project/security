@@ -9,7 +9,7 @@ kibana_all_write:
   allowed_actions:
   - "kibana:saved_objects/*/write"
   type: "kibana"
-  description: "Allow writing in all kibana apps"
+  description: "Allow writing in all OpenSearch Dashboards apps"
 kibana_all_read:
   reserved: true
   hidden: false
@@ -17,7 +17,7 @@ kibana_all_read:
   allowed_actions:
   - "kibana:saved_objects/*/read"
   type: "kibana"
-  description: "Allow reading in all kibana apps"
+  description: "Allow reading in all OpenSearch Dashboards apps"
 cluster_all:
   reserved: true
   hidden: false

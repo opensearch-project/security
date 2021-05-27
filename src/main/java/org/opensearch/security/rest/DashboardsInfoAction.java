@@ -105,9 +105,9 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     builder.startObject();
                     builder.field("user_name", user==null?null:user.getName());
                     builder.field("not_fail_on_forbidden_enabled", evaluator.notFailOnForbiddenEnabled());
-                    builder.field("kibana_mt_enabled", evaluator.multitenancyEnabled());
-                    builder.field("kibana_index", evaluator.dashboardsIndex());
-                    builder.field("kibana_server_user", evaluator.dashboardsServerUsername());
+                    builder.field("opensearch_dashboards_mt_enabled", evaluator.multitenancyEnabled());
+                    builder.field("opensearch_dashboards_index", evaluator.dashboardsIndex());
+                    builder.field("opensearch_dashboards_server_user", evaluator.dashboardsServerUsername());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
