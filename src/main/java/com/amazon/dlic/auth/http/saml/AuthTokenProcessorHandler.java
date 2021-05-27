@@ -410,8 +410,6 @@ class AuthTokenProcessorHandler {
 
         if (samlRolesSeparator != null) {
             values = splitRoles(values);
-        } else {
-            //values = trimRoles(values);
         }
 
         return values.toArray(new String[values.size()]);
