@@ -37,14 +37,14 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    opensearchVersion = '1.0.0.0-beta1'
+    securityPluginVersion = '1.0.0.0-rc1'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
 group = "org.opensearch"
 // Increment the final digit when there's a new plugin versions for the same opensearch version
 // Reset the final digit to 0 when upgrading to a new opensearch version
-version = "${opensearchVersion}" + (isSnapshot ? "-SNAPSHOT" : "")
+version = "${securityPluginVersion}" + (isSnapshot ? "-SNAPSHOT" : "")
 
 if (!project.hasProperty("archivePath")) {
     throw new GradleException("Missing -ParchivePath command line switch pointing to built plugin ZIP")

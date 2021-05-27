@@ -5,7 +5,7 @@ template: |
 
 # Setting the formatting and sorting for the release notes body
 name-template: Version (set version here)
-change-template: '* $TITLE ([#$NUMBER](https://github.com/opendistro-for-elasticsearch/security/pull/$NUMBER))'
+change-template: '* $TITLE ([#$NUMBER](https://github.com/opensearch-project/security/pull/$NUMBER))'
 sort-by: merged_at
 sort-direction: ascending
 replacers:
