@@ -30,3 +30,4 @@ Compatible with OpenSearch 1.0.0-rc1
 * Add fallback for opendistro_security_config.ssl_dual_mode_enabled ([#1190](https://github.com/opensearch-project/security/pull/1190))
 * Change security plugin REST API to support both opensearch and opendistro routes ([#1172](https://github.com/opensearch-project/security/pull/1172))
 * Fix CODEOWNERS file ([#1193](https://github.com/opensearch-project/security/pull/1193))
+* Dashboards rename related changes ([#1192](https://github.com/opensearch-project/security/pull/1192))
