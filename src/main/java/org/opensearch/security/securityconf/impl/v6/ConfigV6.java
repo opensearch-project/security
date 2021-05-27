@@ -61,7 +61,6 @@ public class ConfigV6 {
         public String filtered_alias_mode = "warn";
         public boolean disable_rest_auth;
         public boolean disable_intertransport_auth;
-        public boolean passive_intertransport_auth;
         public boolean respect_request_indices_options;
         public String license;
         public Kibana kibana = new Kibana();

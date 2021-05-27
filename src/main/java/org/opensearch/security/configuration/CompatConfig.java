@@ -30,6 +30,7 @@
 
 package org.opensearch.security.configuration;
 
+import com.amazon.opendistroforelasticsearch.security.setting.OpensearchDynamicSetting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
@@ -39,15 +40,19 @@ import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 
+import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY;
+
 public class CompatConfig {
 
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings staticSettings;
     private DynamicConfigModel dcm;
+    private final OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
 
-    public CompatConfig(final Environment environment) {
+    public CompatConfig(final Environment environment, final OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting) {
         super();
-        this.staticSettings = environment.settings(); 
+        this.staticSettings = environment.settings();
+        this.transportPassiveAuthSetting = transportPassiveAuthSetting;
     }
     
     @Subscribe
@@ -105,23 +110,10 @@ public class CompatConfig {
      * Returns true if passive transport auth is enabled
      */
     public boolean transportInterClusterPassiveAuthEnabled() {
-        final boolean interClusterAuthInitiallyPassive = staticSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, false);
-
-        if(interClusterAuthInitiallyPassive) {
-            if(dcm == null) {
-                if(log.isTraceEnabled()) {
-                    log.trace("dynamicSecurityConfig is null, initially static interClusterAuthPassive");
-                }
-                return false;
-            } else {
-                final boolean interClusterAuthDynamicallyPassive = dcm.isInterTransportAuthPassive();
-                if(log.isTraceEnabled()) {
-                    log.trace("opendistro_security.dynamic.passive_intertransport_auth {}", interClusterAuthDynamicallyPassive);
-                }
-                return interClusterAuthDynamicallyPassive;
-            }
-        } else {
-            return false;
+        final boolean interClusterAuthInitiallyPassive = transportPassiveAuthSetting.getDynamicSettingValue();
+        if(log.isTraceEnabled()) {
+            log.trace("{} {}", SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, interClusterAuthInitiallyPassive);
         }
+        return interClusterAuthInitiallyPassive;
     }
 }
