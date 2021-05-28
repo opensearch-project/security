@@ -186,7 +186,7 @@ echo "OpenSearch lib dir: $OPENSEARCH_LIB_PATH"
 echo "Detected OpenSearch Version: $OPENSEARCH_VERSION"
 echo "Detected OpenSearch Security Version: $SECURITY_VERSION"
 
-if $SUDO_CMD grep --quiet -i opendistro_security "$OPENSEARCH_CONF_FILE"; then
+if $SUDO_CMD grep --quiet -i plugins.security "$OPENSEARCH_CONF_FILE"; then
   echo "$OPENSEARCH_CONF_FILE seems to be already configured for Security. Quit."
   exit $skip_updates
 fi
