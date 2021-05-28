@@ -62,8 +62,8 @@ import org.opensearch.security.ssl.rest.SecuritySSLReloadCertsAction;
 import org.opensearch.security.ssl.rest.SecuritySSLCertsInfoAction;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.transport.SecurityInterceptor;
-import com.amazon.opendistroforelasticsearch.security.setting.OpensearchDynamicSetting;
-import com.amazon.opendistroforelasticsearch.security.setting.TransportPassiveAuthSetting;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.setting.TransportPassiveAuthSetting;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

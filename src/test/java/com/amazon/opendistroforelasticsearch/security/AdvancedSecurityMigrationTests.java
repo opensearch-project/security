@@ -26,7 +26,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.opensearch.security.support.ConfigConstants;
 
 import java.io.File;
 import java.util.Arrays;
