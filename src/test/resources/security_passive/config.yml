@@ -7,7 +7,6 @@ config:
     filtered_alias_mode: "disallow"
     disable_rest_auth: false
     disable_intertransport_auth: false
-    passive_intertransport_auth: true
     respect_request_indices_options: false
     kibana:
       multitenancy_enabled: true

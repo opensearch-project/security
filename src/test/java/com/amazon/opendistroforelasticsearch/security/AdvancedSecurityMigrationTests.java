@@ -29,7 +29,6 @@ import org.junit.Test;
 import org.opensearch.security.support.ConfigConstants;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 
 public class AdvancedSecurityMigrationTests extends SingleClusterTest {
@@ -199,13 +198,16 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
 
     @Test
     public void testWithPassiveAuthDisabledDynamic() throws Exception {
-        System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
 
-        final Settings advSecSettings = getAdvSecSettingsDualMode().build();
+        final Settings advSecSettings = getAdvSecSettingsDualMode()
+                .put(ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, false)
+                .build();
         final Settings disabledSettings = getDisabledSettings().build();
 
         setupGenericNodes(Arrays.asList(disabledSettings, disabledSettings, advSecSettings, advSecSettings),
                 Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+
+        Thread.sleep(5*1000);
 
         RestHelper.HttpResponse res;
         RestHelper rh = nonSslRestHelper();
@@ -215,7 +217,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
     }
 
     private void commonTestsForAdvancedSecurityMigration(final RestHelper rh, final Header basicHeaders) throws Exception {
-        //Thread.sleep(5*1000);
+        Thread.sleep(5*1000);
 
         RestHelper.HttpResponse res;
         res = rh.executePutRequest("testindex", getIndexSettingsForAdvSec(), basicHeaders);
@@ -254,6 +256,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
                 .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, true)
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
+                .put("cluster.routing.allocation.disk.threshold_enabled", false)
                 .put("node.attr.custom_node", true);
     }
 
@@ -264,12 +267,14 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
 
     private Settings.Builder getSSLOnlyModeSettings() {
         return Settings.builder()
-                .put(ConfigConstants.SECURITY_SSL_ONLY, true);
+                .put(ConfigConstants.SECURITY_SSL_ONLY, true)
+                .put("cluster.routing.allocation.disk.threshold_enabled", false);
     }
 
     private Settings.Builder getDisabledSettings() {
         return Settings.builder()
-                .put(ConfigConstants.SECURITY_DISABLED, true);
+                .put(ConfigConstants.SECURITY_DISABLED, true)
+                .put("cluster.routing.allocation.disk.threshold_enabled", false);
     }
 
     // Create index with shards only in adv sec nodes
