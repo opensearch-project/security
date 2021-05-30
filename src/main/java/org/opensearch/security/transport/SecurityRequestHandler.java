@@ -163,7 +163,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 }
 
                 final String assumeRoles = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ASSUME_ROLES_HEADER);
-                if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
+                if(!Strings.isNullOrEmpty(assumeRoles)) {
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ASSUME_ROLES, assumeRoles);
                 }
 
@@ -236,7 +236,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     }
 
                     final String assumeRoles = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ASSUME_ROLES_HEADER);
-                    if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
+                    if(!Strings.isNullOrEmpty(assumeRoles)) {
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ASSUME_ROLES, assumeRoles);
                     }
 

@@ -179,7 +179,11 @@ public class SecurityInterceptor {
                 }
             }
 
-            if(StringUtils.isNotEmpty(assumeRolesString)) {
+            if(StringUtils.isNotEmpty(assumeRolesString)
+                    && OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
+                    && !clusterInfoHolder.hasNode(connection.getNode())
+                    && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ASSUME_ROLES_HEADER) == null) {
+                // Sending assume roles for only cross cluster requests
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ASSUME_ROLES_HEADER, assumeRolesString);
             }
 

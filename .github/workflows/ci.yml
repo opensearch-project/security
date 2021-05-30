@@ -57,7 +57,7 @@ jobs:
       uses: github/codeql-action/analyze@v1
 
     - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true mvn -B test
+      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true mvn -B -Dtest=org.opensearch.security.AssumeRolesIntegTest test
 
     - name: Coverage
       uses: codecov/codecov-action@v1

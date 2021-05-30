@@ -1,12 +1,13 @@
 package org.opensearch.security;
 
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.DynamicSecurityConfig;
-import org.opensearch.security.test.SingleClusterTest;
+import org.junit.Assert;
+import org.junit.Test;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -21,24 +22,25 @@ import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.DynamicSecurityConfig;
+import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Netty4Plugin;
 import org.opensearch.watcher.ResourceWatcherService;
-import org.junit.Assert;
-import org.junit.Test;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Supplier;
 
-public class TransportUserInjectorIntegTest extends SingleClusterTest {
+public class AssumeRolesIntegTest extends SingleClusterTest {
 
-    public static class UserInjectorPlugin extends Plugin implements ActionPlugin {
+    public static class AssumeRolesPlugin extends Plugin implements ActionPlugin {
         Settings settings;
-        public static String injectedUser = null;
+        public static String assumeRoles = null;
 
-        public UserInjectorPlugin(final Settings settings, final Path configPath) {
+        public AssumeRolesPlugin(final Settings settings, final Path configPath) {
             this.settings = settings;
         }
 
@@ -49,8 +51,8 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                                                    NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
                                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                                    Supplier<RepositoriesService> repositoriesServiceSupplier) {
-            if(injectedUser != null)
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUser);
+            if(assumeRoles != null)
+                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ASSUME_ROLES, assumeRoles);
             return new ArrayList<>();
         }
     }
@@ -68,11 +70,9 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
     }
 
     @Test
-    public void testSecurityUserInjection() throws Exception {
-        final Settings clusterNodeSettings = Settings.builder()
-                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
-                .build();
-        setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
+    public void testAssumeRoles() throws Exception {
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles.yml"), Settings.EMPTY);
+
         final Settings tcSettings = Settings.builder()
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
@@ -88,37 +88,33 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
                 .build();
 
-
-        // 1. without user injection
+        // 1. Without assume roles
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
-                OpenSearchSecurityPlugin.class, UserInjectorPlugin.class).start()) {
+                OpenSearchSecurityPlugin.class, AssumeRolesPlugin.class).start()) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-1")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());
+            IndicesExistsResponse ier = node.client().admin().indices().exists(new IndicesExistsRequest("captain-logs-1")).actionGet();
+            Assert.assertTrue(ier.isExists());
         }
 
-
-        // 2. with invalid backend roles
-        UserInjectorPlugin.injectedUser = "ttt|kkk";
-        Exception exception = null;
+        // 2. with assume roles invalid to the user
+        AssumeRolesPlugin.assumeRoles = "invalid_role";
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
-                OpenSearchSecurityPlugin.class, UserInjectorPlugin.class).start()) {
+                OpenSearchSecurityPlugin.class, AssumeRolesPlugin.class).start()) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-2")).actionGet();
-            Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
-            exception = ex;
-            log.warn(ex);
-            Assert.assertNotNull(exception);
-            Assert.assertTrue(exception.getMessage().contains("indices:admin/create"));
+            Assert.assertNotNull(ex);
+            Assert.assertTrue(ex.getMessage().contains("assume roles"));
         }
 
-        // 3. with valid backend roles for injected user
-        UserInjectorPlugin.injectedUser = "injectedadmin|injecttest";
+        // 3. with assume roles invalid to the user
+        AssumeRolesPlugin.assumeRoles = "opendistro_security_all_access";
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
-                OpenSearchSecurityPlugin.class, UserInjectorPlugin.class).start()) {
+                OpenSearchSecurityPlugin.class, AssumeRolesPlugin.class).start()) {
             waitForInit(node.client());
-            CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-2")).actionGet();
+            CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-3")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());
         }
     }
