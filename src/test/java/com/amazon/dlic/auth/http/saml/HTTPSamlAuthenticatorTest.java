@@ -371,12 +371,12 @@ public class HTTPSamlAuthenticatorTest {
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
         mockSamlIdpServer.setAuthenticateUser("horst");
-        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("a", "b"));
+        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("a ,c", "b   ,d,   e", "f", "g,,h, ,i"));
         mockSamlIdpServer.setEndpointQueryString(null);
 
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
+                .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").put("roles_seperator", ",").build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
 
@@ -401,7 +401,7 @@ public class HTTPSamlAuthenticatorTest {
         JwtToken jwt = jwtConsumer.getJwtToken();
 
         Assert.assertEquals("horst", jwt.getClaim("sub"));
-        Assert.assertArrayEquals(new String[] { "a", "b" },
+        Assert.assertArrayEquals(new String[] { "a ", "c", "b   ", "d", "   e", "f", "g", "h", " ", "i" },
                 ((List<String>) jwt.getClaim("roles")).toArray(new String[0]));
     }
 
