@@ -79,14 +79,13 @@ class AuthTokenProcessorHandler {
     private String jwtRolesKey;
     private String samlSubjectKey;
     private String samlRolesKey;
-    private String samlRolesSeparator;
     private String kibanaRootUrl;
 
     private long expiryOffset = 0;
     private ExpiryBaseValue expiryBaseValue = ExpiryBaseValue.AUTO;
     private JsonWebKey signingKey;
     private JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
-    private Pattern samlRolesPattern;
+    private Pattern samlRolesSeparatorPattern;
 
     AuthTokenProcessorHandler(Settings settings, Settings jwtSettings, Saml2SettingsProvider saml2SettingsProvider)
             throws Exception {
@@ -97,10 +96,11 @@ class AuthTokenProcessorHandler {
 
         this.samlRolesKey = settings.get("roles_key");
         this.samlSubjectKey = settings.get("subject_key");
-        this.samlRolesSeparator = settings.get("roles_seperator");
+        String samlRolesSeparator = settings.get("roles_seperator");
         this.kibanaRootUrl = settings.get("kibana_url");
-
-        this.samlRolesPattern = Pattern.compile(samlRolesSeparator);
+        if (samlRolesSeparator != null) {
+            this.samlRolesSeparatorPattern = Pattern.compile(samlRolesSeparator);
+        }
 
         if (samlRolesKey == null || samlRolesKey.length() == 0) {
             log.warn("roles_key is not configured, will only extract subject from SAML");
@@ -412,7 +412,7 @@ class AuthTokenProcessorHandler {
             return null;
         }
 
-        if (samlRolesSeparator != null) {
+        if (samlRolesSeparatorPattern != null) {
             values = splitRoles(values);
         }
 
@@ -421,7 +421,7 @@ class AuthTokenProcessorHandler {
 
     private List<String> splitRoles(List<String> values) {
         return values.stream()
-                .flatMap(v -> samlRolesPattern.splitAsStream(v))
+                .flatMap(v -> samlRolesSeparatorPattern.splitAsStream(v))
                 .filter(r -> !Strings.isNullOrEmpty(r))
                 .collect(Collectors.toList());
     }
