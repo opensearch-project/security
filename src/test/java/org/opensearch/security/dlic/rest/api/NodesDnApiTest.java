@@ -74,7 +74,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         if (expectedStatus == HttpStatus.SC_OK) {
             JsonNode expected = asJsonNode(ImmutableMap.of(
                 "cluster1", nodesDnEntry("cn=popeye"),
-                 NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nodesDnEntry("CN=example.com")));
+                NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nodesDnEntry("CN=example.com")));
 
             JsonNode node = OBJECT_MAPPER.readTree(response.getBody());
             assertThat(node, equalTo(asJsonNode(expected)));
@@ -128,7 +128,6 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testNodesDnApi() throws Exception {
-
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .putList(ConfigConstants.SECURITY_NODES_DN, "CN=example.com")
             .build();
@@ -179,7 +178,6 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testNodesDnApiAuditComplianceLogging() throws Exception {
-
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .putList(ConfigConstants.SECURITY_NODES_DN, "CN=example.com")
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())

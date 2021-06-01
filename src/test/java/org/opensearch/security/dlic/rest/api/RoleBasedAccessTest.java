@@ -209,12 +209,12 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 
 		// admin, no access
 		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/roles_captains_tenants.json"), encodeBasicHeader("admin", "admin"));
+						FileHelper.loadFile("restapi/roles_captains_tenants.json"), encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
 		// worf, restore role starfleet captains
 		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("worf", "worf"));
+						FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 
@@ -258,7 +258,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 
 		// PUT roles
 		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("test", "test"));
+						FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("test", "test"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// GET captions role

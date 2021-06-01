@@ -386,4 +386,5 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
+
 }

@@ -275,7 +275,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // SuperAdmin can add read only users
         rh.sendAdminCertificate = true;
         addUserWithHash("sarek", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
-                        HttpStatus.SC_OK);
+                HttpStatus.SC_OK);
 
         // add/update user, user is hidden, forbidden, allowed for super admin
         rh.sendAdminCertificate = true;
@@ -285,7 +285,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // add users
         rh.sendAdminCertificate = true;
         addUserWithHash("nagilum", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
-                 HttpStatus.SC_CREATED);
+                HttpStatus.SC_CREATED);
 
         // access must be allowed now
         checkGeneralAccess(HttpStatus.SC_OK, "nagilum", "nagilum");

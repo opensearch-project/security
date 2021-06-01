@@ -165,14 +165,14 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
 		// put new configuration with invalid payload, must fail
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/rolesmapping_not_parseable.json"), new Header[0]);
+						FileHelper.loadFile("restapi/rolesmapping_not_parseable.json"), new Header[0]);
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.BODY_NOT_PARSEABLE.getMessage(), settings.get("reason"));
 
 		// put new configuration with invalid keys, must fail
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/rolesmapping_invalid_keys.json"), new Header[0]);
+						FileHelper.loadFile("restapi/rolesmapping_invalid_keys.json"), new Header[0]);
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage(), settings.get("reason"));
@@ -183,7 +183,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
 		// wrong datatypes
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/rolesmapping_backendroles_captains_single_wrong_datatype.json"), new Header[0]);
+						FileHelper.loadFile("restapi/rolesmapping_backendroles_captains_single_wrong_datatype.json"), new Header[0]);
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
@@ -192,7 +192,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		Assert.assertTrue(settings.get("users") == null);
 
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/rolesmapping_hosts_single_wrong_datatype.json"), new Header[0]);
+						FileHelper.loadFile("restapi/rolesmapping_hosts_single_wrong_datatype.json"), new Header[0]);
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
@@ -201,7 +201,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		Assert.assertTrue(settings.get("users") == null);
 
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/rolesmapping_users_picard_single_wrong_datatype.json"), new Header[0]);
+						FileHelper.loadFile("restapi/rolesmapping_users_picard_single_wrong_datatype.json"), new Header[0]);
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
