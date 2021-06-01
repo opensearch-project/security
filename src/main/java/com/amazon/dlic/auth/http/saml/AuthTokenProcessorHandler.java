@@ -417,10 +417,11 @@ class AuthTokenProcessorHandler {
 
     private List<String> splitRoles(List<String> values) {
         ArrayList<String> result = new ArrayList<String>(values.size() * 5);
+        Pattern pattern = Pattern.compile(samlRolesSeparator);
 
         for (String role : values) {
             if (role != null) {
-                for (String splitRole : role.split(samlRolesSeparator)) {
+                for (String splitRole : pattern.split(role)) {
                     if (!splitRole.isEmpty()) {
                         result.add(splitRole);
                     }
