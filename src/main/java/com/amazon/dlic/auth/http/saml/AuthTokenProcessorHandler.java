@@ -421,20 +421,10 @@ class AuthTokenProcessorHandler {
         for (String role : values) {
             if (role != null) {
                 for (String splitRole : role.split(samlRolesSeparator)) {
-                    result.add(splitRole);
+                    if (!splitRole.isEmpty()) {
+                        result.add(splitRole);
+                    }
                 }
-            }
-        }
-
-        return result;
-    }
-
-    private List<String> trimRoles(List<String> values) {
-        ArrayList<String> result = new ArrayList<>(values);
-
-        for (int i = 0; i < result.size(); i++) {
-            if (result.get(i) != null) {
-                result.set(i, result.get(i).trim());
             }
         }
 
