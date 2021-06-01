@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
@@ -85,6 +86,7 @@ class AuthTokenProcessorHandler {
     private ExpiryBaseValue expiryBaseValue = ExpiryBaseValue.AUTO;
     private JsonWebKey signingKey;
     private JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
+    private Pattern samlRolesPattern;
 
     AuthTokenProcessorHandler(Settings settings, Settings jwtSettings, Saml2SettingsProvider saml2SettingsProvider)
             throws Exception {
@@ -97,6 +99,8 @@ class AuthTokenProcessorHandler {
         this.samlSubjectKey = settings.get("subject_key");
         this.samlRolesSeparator = settings.get("roles_seperator");
         this.kibanaRootUrl = settings.get("kibana_url");
+
+        this.samlRolesPattern = Pattern.compile(samlRolesSeparator);
 
         if (samlRolesKey == null || samlRolesKey.length() == 0) {
             log.warn("roles_key is not configured, will only extract subject from SAML");
@@ -416,20 +420,10 @@ class AuthTokenProcessorHandler {
     }
 
     private List<String> splitRoles(List<String> values) {
-        ArrayList<String> result = new ArrayList<String>(values.size() * 5);
-        Pattern pattern = Pattern.compile(samlRolesSeparator);
-
-        for (String role : values) {
-            if (role != null) {
-                for (String splitRole : pattern.split(role)) {
-                    if (!splitRole.isEmpty()) {
-                        result.add(splitRole);
-                    }
-                }
-            }
-        }
-
-        return result;
+        return values.stream()
+                .flatMap(v -> samlRolesPattern.splitAsStream(v))
+                .filter(r -> !Strings.isNullOrEmpty(r))
+                .collect(Collectors.toList());
     }
 
     private String getAbsoluteAcsEndpoint(String acsEndpoint) {
