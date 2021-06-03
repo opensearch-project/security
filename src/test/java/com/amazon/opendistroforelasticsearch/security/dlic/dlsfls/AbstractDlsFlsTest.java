@@ -26,8 +26,15 @@ import com.amazon.opendistroforelasticsearch.security.test.DynamicSecurityConfig
 import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
 import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.rules.Timeout;
+
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractDlsFlsTest extends SingleClusterTest {
+
+    @Rule
+    public Timeout timeout = new Timeout(5, TimeUnit.MINUTES);
 
     protected RestHelper rh = null;
 
