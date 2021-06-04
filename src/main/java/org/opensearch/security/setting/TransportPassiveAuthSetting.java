@@ -21,12 +21,21 @@ import org.opensearch.common.settings.Settings;
 
 public class TransportPassiveAuthSetting extends OpensearchDynamicSetting<Boolean> {
 
+    private static final String SETTING = ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY;
+
     public TransportPassiveAuthSetting(final Settings settings) {
-        super(Setting.boolSetting(
-                ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY,
+        super(getSetting(), getSettingInitialValue(settings));
+    }
+
+    private static Setting<Boolean> getSetting() {
+        return Setting.boolSetting(
+                SETTING,
                 false,
-                Setting.Property.NodeScope, Setting.Property.Filtered, Setting.Property.Dynamic),
-                settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, false));
+                Setting.Property.NodeScope, Setting.Property.Dynamic);
+    }
+
+    private static Boolean getSettingInitialValue(final Settings settings) {
+        return settings.getAsBoolean(SETTING, false);
     }
 
     @Override

@@ -27,14 +27,14 @@ import org.opensearch.common.settings.Setting;
  * @param <T> The type of the Setting
  */
 public abstract class OpensearchDynamicSetting<T> {
-    private volatile T dynamicSettingValue;
     private final Setting<T> dynamicSetting;
+    private volatile T dynamicSettingValue;
 
     private final Logger logger = LogManager.getLogger(getClass());
 
     public OpensearchDynamicSetting(Setting<T> dynamicSetting, T dynamicSettingValue) {
-        this.dynamicSettingValue = dynamicSettingValue;
         this.dynamicSetting = dynamicSetting;
+        this.dynamicSettingValue = dynamicSettingValue;
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
@@ -60,5 +60,4 @@ public abstract class OpensearchDynamicSetting<T> {
     public Setting<T> getDynamicSetting() {
         return dynamicSetting;
     }
-
 }
