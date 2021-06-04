@@ -255,7 +255,6 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
                 .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, true)
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
-                .put("cluster.routing.allocation.disk.threshold_enabled", false)
                 .put("node.attr.custom_node", true);
     }
 
@@ -266,14 +265,12 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
 
     private Settings.Builder getSSLOnlyModeSettings() {
         return Settings.builder()
-                .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-                .put("cluster.routing.allocation.disk.threshold_enabled", false);
+                .put(ConfigConstants.SECURITY_SSL_ONLY, true);
     }
 
     private Settings.Builder getDisabledSettings() {
         return Settings.builder()
-                .put(ConfigConstants.SECURITY_DISABLED, true)
-                .put("cluster.routing.allocation.disk.threshold_enabled", false);
+                .put(ConfigConstants.SECURITY_DISABLED, true);
     }
 
     // Create index with shards only in adv sec nodes
