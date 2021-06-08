@@ -31,3 +31,5 @@ Compatible with OpenSearch 1.0.0-rc1
 * Change security plugin REST API to support both opensearch and opendistro routes ([#1172](https://github.com/opensearch-project/security/pull/1172))
 * Fix CODEOWNERS file ([#1193](https://github.com/opensearch-project/security/pull/1193))
 * Dashboards rename related changes ([#1192](https://github.com/opensearch-project/security/pull/1192))
+* Build OpenSearch 1.0 branch on CI ([#1189](https://github.com/opensearch-project/security/pull/1189))
+* Fix install_demo_configuration.sh ([#1211](https://github.com/opensearch-project/security/pull/1211))
