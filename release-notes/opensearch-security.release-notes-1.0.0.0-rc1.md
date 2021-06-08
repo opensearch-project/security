@@ -33,3 +33,4 @@ Compatible with OpenSearch 1.0.0-rc1
 * Dashboards rename related changes ([#1192](https://github.com/opensearch-project/security/pull/1192))
 * Build OpenSearch 1.0 branch on CI ([#1189](https://github.com/opensearch-project/security/pull/1189))
 * Fix install_demo_configuration.sh ([#1211](https://github.com/opensearch-project/security/pull/1211))
+* Update RC1 release notes ([#1248](https://github.com/opensearch-project/security/pull/1248))
