@@ -1,0 +1,396 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+opendistro_security_own_index:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "spock"
+    - "kirk"
+  and_backend_roles: []
+  description: "Migrated from v6"
+unittest_1:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "CN=spock,OU=client,O=client,L=Test,C=DE"
+  and_backend_roles: []
+  description: "Migrated from v6"
+rexclude:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "rexclude"
+  and_backend_roles: []
+  description: "Migrated from v6"
+underscore:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "underscore"
+  and_backend_roles: []
+  description: "Migrated from v6"
+role_vulcans_admin:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "vulcanadmin"
+  hosts: []
+  users: []
+  and_backend_roles: []
+  description: "Migrated from v6"
+shakespeare:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "picard"
+  and_backend_roles: []
+  description: "Migrated from v6"
+aliastest:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "aliastest"
+    - "dummy"
+  and_backend_roles: []
+  description: "Migrated from v6"
+user1:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "worf"
+  and_backend_roles: []
+  description: "Migrated from v6"
+role_vulcans:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "vulcangov"
+  hosts: []
+  users:
+    - "kirk"
+  and_backend_roles: []
+  description: "Migrated from v6"
+flsdls:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "sarek"
+  and_backend_roles: []
+  description: "Migrated from v6"
+ccsresolv:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "ccsresolv"
+  and_backend_roles: []
+  description: "Migrated from v6"
+user2:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "picard"
+  and_backend_roles: []
+  description: "Migrated from v6"
+role_starfleet_captains:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "captains"
+  hosts: []
+  users: []
+  and_backend_roles: []
+  description: "Migrated from v6"
+restore:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "restoreuser"
+  and_backend_roles: []
+  description: "Migrated from v6"
+attr:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "custattr"
+  and_backend_roles: []
+  description: "Migrated from v6"
+mindex3:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "mindex12"
+  and_backend_roles: []
+  description: "Migrated from v6"
+role_starfleet_library:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "starfleet*"
+    - "ambassador"
+  hosts: []
+  users: []
+  and_backend_roles: []
+  description: "Migrated from v6"
+baz:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "baz"
+  and_backend_roles: []
+  description: "Migrated from v6"
+mindex2:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "mindex12"
+  and_backend_roles: []
+  description: "Migrated from v6"
+mindex1:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "mindex12"
+  and_backend_roles: []
+  description: "Migrated from v6"
+role_klingons1:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "klingon"
+  hosts: []
+  users: []
+  and_backend_roles: []
+  description: "Migrated from v6"
+snapres:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "snapresuser"
+  and_backend_roles: []
+  description: "Migrated from v6"
+role_klingons2:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "klingon"
+  hosts: []
+  users: []
+  and_backend_roles: []
+  description: "Migrated from v6"
+kibana4:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "bug108"
+  and_backend_roles: []
+  description: "Migrated from v6"
+dlsnoinvest:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "dlsnoinvest"
+  and_backend_roles: []
+  description: "Migrated from v6"
+theindex_admin:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "theindexadmin"
+  and_backend_roles: []
+  description: "Migrated from v6"
+remote_ccs:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "crusherw"
+  and_backend_roles: []
+  description: "Migrated from v6"
+zdummy_all:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "bug108"
+  and_backend_roles: []
+  description: "Migrated from v6"
+multiget:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "picard"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_kibana_server:
+  reserved: true
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "kibanaserver"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_all_access:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "nagilum"
+  and_backend_roles: []
+  description: "Migrated from v6"
+public:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "*"
+  and_backend_roles: []
+  description: "Migrated from v6"
+writer:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "writer"
+  and_backend_roles: []
+  description: "Migrated from v6"
+opendistro_security_logstash:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "opendistro_security_logstash"
+  and_backend_roles: []
+  description: "Migrated from v6"
+role01_role02:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users: []
+  and_backend_roles:
+    - "role01"
+    - "role02"
+  description: "Migrated from v6"
+role_starfleet:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "starfleet"
+    - "captains"
+    - "defectors"
+  hosts:
+    - "*.starfleetintranet.com"
+  users:
+    - "nagilum"
+  and_backend_roles: []
+  description: "Migrated from v6"
+role_host1:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts:
+    - "127.0.0.1"
+    - "localhost"
+  users: []
+  and_backend_roles: []
+  description: "Migrated from v6"
+role_host2:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "host_127.0.0.1"
+    - "host_localhost"
+  and_backend_roles: []
+  description: "Migrated from v6"
+twitter:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "twitter"
+  and_backend_roles: []
+  description: "Migrated from v6"
+env_test:
+  users:
+    - env.replace@example.comp.com
+ODS_ALL_ACCESS:
+  users:
+    - static_role_user
+role_foo_index:
+  users:
+    - foo_index
+role_foo_all:
+  users:
+    - foo_all
+xyz_sr_hidden:
+  reserved: false
+  hidden: true
+  backend_roles: []
+  hosts: []
+  users:
+    - "test_user"
+  and_backend_roles: []
+  description: "Migrated from v6"
+bulk_test_user_role:
+  users:
+    - "bulk_test_user"
+default_role:
+  users:
+    - "*"
+admin:
+  users:
+    - "admin"
