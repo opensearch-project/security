@@ -46,18 +46,22 @@ public final class OpenDistroSecuritySSLTransportInterceptor implements Transpor
     protected final ThreadPool threadPool;
     protected final PrincipalExtractor principalExtractor;
     protected final SslExceptionHandler errorHandler;
-    
-    public OpenDistroSecuritySSLTransportInterceptor(final Settings settings, final  ThreadPool threadPool, 
-            PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
+    protected final OpenDistroSSLConfig openDistroSSLConfig;
+
+    public OpenDistroSecuritySSLTransportInterceptor(final Settings settings, final  ThreadPool threadPool,
+            PrincipalExtractor principalExtractor, final OpenDistroSSLConfig openDistroSSLConfig,
+                                                     final SslExceptionHandler errorHandler) {
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
         this.errorHandler = errorHandler;
+        this.openDistroSSLConfig = openDistroSSLConfig;
     }
 
     @Override
     public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action, String executor, boolean forceExecution,
             TransportRequestHandler<T> actualHandler) {
-        return new OpenDistroSecuritySSLRequestHandler<T>(action, actualHandler, threadPool, principalExtractor, errorHandler);
+        return new OpenDistroSecuritySSLRequestHandler<>(action, actualHandler, threadPool, principalExtractor, openDistroSSLConfig, errorHandler);
+
     }
     
     

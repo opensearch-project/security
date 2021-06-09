@@ -69,6 +69,9 @@ import com.amazon.opendistroforelasticsearch.security.ssl.transport.PrincipalExt
 import com.amazon.opendistroforelasticsearch.security.support.Base64Helper;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
+
+
 import com.google.common.collect.Maps;
 
 public class OpenDistroSecurityInterceptor {
@@ -84,6 +87,8 @@ public class OpenDistroSecurityInterceptor {
     private final Settings settings;
     private final SslExceptionHandler sslExceptionHandler;
     private final ClusterInfoHolder clusterInfoHolder;
+    private final OpenDistroSSLConfig openDistroSSLConfig;
+
 
     public OpenDistroSecurityInterceptor(final Settings settings,
             final ThreadPool threadPool, final BackendRegistry backendRegistry,
@@ -91,7 +96,8 @@ public class OpenDistroSecurityInterceptor {
             final InterClusterRequestEvaluator requestEvalProvider,
             final ClusterService cs,
             final SslExceptionHandler sslExceptionHandler,
-            final ClusterInfoHolder clusterInfoHolder) {
+            final ClusterInfoHolder clusterInfoHolder,
+            final OpenDistroSSLConfig openDistroSSLConfig) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -101,12 +107,14 @@ public class OpenDistroSecurityInterceptor {
         this.settings = settings;
         this.sslExceptionHandler = sslExceptionHandler;
         this.clusterInfoHolder = clusterInfoHolder;
+        this.openDistroSSLConfig = openDistroSSLConfig;
     }
+
 
     public <T extends TransportRequest> OpenDistroSecurityRequestHandler<T> getHandler(String action,
             TransportRequestHandler<T> actualHandler) {
         return new OpenDistroSecurityRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog,
-                principalExtractor, requestEvalProvider, cs, sslExceptionHandler);
+                principalExtractor, requestEvalProvider, cs, openDistroSSLConfig, sslExceptionHandler);
     }
 
 
