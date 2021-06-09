@@ -30,6 +30,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
 
+import com.amazon.opendistroforelasticsearch.security.setting.OpenDistroDynamicSetting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
@@ -43,10 +44,12 @@ public class CompatConfig implements ConfigurationChangeListener {
     private final Logger log = LogManager.getLogger(getClass());
     private final Settings staticSettings;
     private Settings dynamicSecurityConfig;
+    private final OpenDistroDynamicSetting<Boolean> transportPassiveAuthSetting;
 
-    public CompatConfig(final Environment environment) {
+    public CompatConfig(final Environment environment, final OpenDistroDynamicSetting<Boolean> transportPassiveAuthSetting) {
         super();
-        this.staticSettings = environment.settings(); 
+        this.staticSettings = environment.settings();
+        this.transportPassiveAuthSetting = transportPassiveAuthSetting;
     }
     
     @Override
@@ -98,5 +101,16 @@ public class CompatConfig implements ConfigurationChangeListener {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Returns true if passive transport auth is enabled
+     */
+    public boolean transportInterClusterPassiveAuthEnabled() {
+        final boolean interClusterAuthInitiallyPassive = transportPassiveAuthSetting.getDynamicSettingValue();
+        if(log.isTraceEnabled()) {
+            log.trace("{} {}", ConfigConstants.OPENDISTRO_SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, interClusterAuthInitiallyPassive);
+        }
+        return interClusterAuthInitiallyPassive;
     }
 }

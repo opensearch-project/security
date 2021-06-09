@@ -54,6 +54,10 @@ public enum ClusterConfiguration {
     //3 nodes (1m, 2d)
     DEFAULT(new NodeSettings(true, false, false), new NodeSettings(false, true, false), new NodeSettings(false, true, false)),
 
+	//2 nodes (1m, 3d)
+	ONE_MASTER_THREE_DATA(new NodeSettings(true, false, false), new NodeSettings(false, true, false), new NodeSettings(false, true, false), new NodeSettings(false, true, false)),
+
+
     DEFAULT_MASTER_WITHOUT_SECURITY_PLUGIN(new NodeSettings(true, false, false)
 		.removePluginIfPresent(OpenDistroSecurityPlugin.class)
 		, new NodeSettings(false, true, false)
