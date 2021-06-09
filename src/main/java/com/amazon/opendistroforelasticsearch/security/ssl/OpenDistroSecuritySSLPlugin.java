@@ -247,7 +247,7 @@ public class OpenDistroSecuritySSLPlugin extends Plugin implements ActionPlugin,
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
         
         if(transportSSLEnabled && !client) {
-            interceptors.add(new OpenDistroSecuritySSLTransportInterceptor(settings, null, null, NOOP_SSL_EXCEPTION_HANDLER));
+            interceptors.add(new OpenDistroSecuritySSLTransportInterceptor(settings, null, null, openDistroSSLConfig, NOOP_SSL_EXCEPTION_HANDLER));
         }
         
         return interceptors;

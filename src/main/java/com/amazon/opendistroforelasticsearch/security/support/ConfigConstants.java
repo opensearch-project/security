@@ -221,6 +221,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED  = "opendistro_security.compliance.history.internal_config_enabled";
     public static final String OPENDISTRO_SECURITY_SSL_ONLY = "opendistro_security.ssl_only";
     public static final String OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED = "opendistro_security_config.ssl_dual_mode_enabled";
+    public static final String OPENDISTRO_SECURITY_SSL_DUAL_MODE_SKIP_SECURITY = OPENDISTRO_SECURITY_CONFIG_PREFIX+"passive_security";
     public static final String OPENDISTRO_SECURITY_SSL_CERT_RELOAD_ENABLED = "opendistro_security.ssl_cert_reload_enabled";
     public static final String OPENDISTRO_SECURITY_DISABLE_ENVVAR_REPLACEMENT = "opendistro_security.disable_envvar_replacement";
 
@@ -241,6 +242,7 @@ public class ConfigConstants {
     // Illegal Opcodes from here on
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "opendistro_security.unsupported.disable_rest_auth_initially";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY = "opendistro_security.unsupported.disable_intertransport_auth_initially";
+    public static final String OPENDISTRO_SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY = "opendistro_security.unsupported.passive_intertransport_auth_initially";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED = "opendistro_security.unsupported.restore.securityindex.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_USER_ENABLED = "opendistro_security.unsupported.inject_user.enabled";
     public static final String OPENDISTRO_SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED = "opendistro_security.unsupported.inject_user.admin.enabled";
