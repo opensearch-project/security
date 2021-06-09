@@ -63,6 +63,9 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
+import org.opensearch.security.ssl.transport.SecuritySSLRequestHandler;
+import org.opensearch.security.ssl.transport.SSLConfig;
+
 import com.google.common.base.Strings;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
@@ -73,21 +76,24 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
+    private final SSLConfig SSLConfig;
 
-    SecurityRequestHandler(String action,
-                           final TransportRequestHandler<T> actualHandler,
-                           final ThreadPool threadPool,
-                           final BackendRegistry backendRegistry,
-                           final AuditLog auditLog,
-                           final PrincipalExtractor principalExtractor,
-                           final InterClusterRequestEvaluator requestEvalProvider,
-                           final ClusterService cs,
-                           final SslExceptionHandler sslExceptionHandler) {
-        super(action, actualHandler, threadPool, principalExtractor, sslExceptionHandler);
+        SecurityRequestHandler(String action,
+            final TransportRequestHandler<T> actualHandler,
+            final ThreadPool threadPool,
+            final BackendRegistry backendRegistry,
+            final AuditLog auditLog,
+            final PrincipalExtractor principalExtractor,
+            final InterClusterRequestEvaluator requestEvalProvider,
+            final ClusterService cs,
+            final SSLConfig SSLConfig,
+            final SslExceptionHandler sslExceptionHandler) {
+        super(action, actualHandler, threadPool, principalExtractor, SSLConfig, sslExceptionHandler);
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
+        this.SSLConfig = SSLConfig;
     }
 
     @Override
@@ -166,6 +172,25 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
                 super.messageReceivedDecorate(request, handler, transportChannel, task);
                 return;
+            }
+
+            boolean skipSecurityIfDualMode = getThreadContext().getTransient(ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY) == Boolean.TRUE;
+
+                if(skipSecurityIfDualMode) {
+                    if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) == null) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
+                    }
+
+                    if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
+                    }
+
+                    if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == null) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
+                    }
+
+                    super.messageReceivedDecorate(request, handler, transportChannel, task);
+                    return;
             }
 
             //if the incoming request is an internal:* or a shard request allow only if request was sent by a server node

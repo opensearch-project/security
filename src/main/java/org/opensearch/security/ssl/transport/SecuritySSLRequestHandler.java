@@ -24,6 +24,7 @@ import java.util.Arrays;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import org.opensearch.security.support.ConfigConstants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -54,14 +55,18 @@ implements TransportRequestHandler<T> {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrincipalExtractor principalExtractor;
     private final SslExceptionHandler errorHandler;
+    private final SSLConfig SSLConfig;
 
     public SecuritySSLRequestHandler(String action, TransportRequestHandler<T> actualHandler,
-                                     ThreadPool threadPool, final PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
+            ThreadPool threadPool, final PrincipalExtractor principalExtractor, final SSLConfig SSLConfig,
+                                               final SslExceptionHandler errorHandler) {
+
         super();
         this.action = action;
         this.actualHandler = actualHandler;
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
+        this.SSLConfig = SSLConfig;
         this.errorHandler = errorHandler;
     }
     
@@ -69,7 +74,7 @@ implements TransportRequestHandler<T> {
         if(threadPool == null) {
             return null;
         }
-        
+
         return threadPool.getThreadContext();
     }
 
@@ -111,6 +116,12 @@ implements TransportRequestHandler<T> {
             final SslHandler sslhandler = (SslHandler) nettyChannel.getNettyChannel().pipeline().get("ssl_server");
 
             if (sslhandler == null) {
+                if (SSLConfig.isDualModeEnabled()) {
+                    log.info("Communication in dual mode. Skipping SSL handler check");
+                    threadContext.putTransient(ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY, Boolean.TRUE);
+                    messageReceivedDecorate(request, actualHandler, channel, task);
+                    return;
+                }
                 final String msg = "No ssl handler found (SG 11)";
                 //log.error(msg);
                 final Exception exception = new OpenSearchException(msg);

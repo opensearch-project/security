@@ -60,9 +60,11 @@ import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.rest.SecuritySSLReloadCertsAction;
 import org.opensearch.security.ssl.rest.SecuritySSLCertsInfoAction;
-
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.transport.SecurityInterceptor;
+import org.opensearch.security.setting.OpensearchDynamicSetting;
+import org.opensearch.security.setting.TransportPassiveAuthSetting;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
@@ -200,6 +202,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
+    private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
 
     public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
@@ -247,6 +250,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         disabled = isDisabled(settings);
         sslCertReloadEnabled = isSslCertReloadEnabled(settings);
+
+        transportPassiveAuthSetting = new TransportPassiveAuthSetting(settings);
 
         if (disabled) {
             this.sslCertReloadEnabled = false;
@@ -740,6 +745,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         if (client || disabled) {
             return components;
         }
+
+        //Register opensearch dynamic settings
+        transportPassiveAuthSetting.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+
         final ClusterInfoHolder cih = new ClusterInfoHolder();
         this.cs.addListener(cih);
         this.salt = Salt.from(settings);
@@ -778,7 +787,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
 
-        final CompatConfig compatConfig = new CompatConfig(environment);
+        final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
         // DLS-FLS is enabled if not client and not disabled and not SSL only.
         final boolean dlsFlsEnabled = !SSLConfig.isSslOnlyMode();
@@ -813,7 +822,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         cr.setDynamicConfigFactory(dcf);
 
         si = new SecurityInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
-                interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
+                interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih), SSLConfig);
         components.add(principalExtractor);
 
         // NOTE: We need to create DefaultInterClusterRequestEvaluator before creating ConfigurationRepository since the latter requires security index to be accessible which means
@@ -990,6 +999,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.listSetting(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_COMPLIANCE_SALT, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
+            settings.add(transportPassiveAuthSetting.getDynamicSetting());
 
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false, Property.NodeScope,
                     Property.Filtered));

@@ -196,6 +196,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         Thread.sleep(10000);
         
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+        HttpResponse res = rh.executeGetRequest("/_cluster/health", encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(res.getBody(), HttpStatus.SC_OK, res.getStatusCode());
     }
 
     @Test

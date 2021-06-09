@@ -32,6 +32,7 @@ package org.opensearch.security.test.helper.cluster;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -297,6 +298,8 @@ public final class ClusterHelper {
 
             final List<NodeInfo> masterNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE)).collect(Collectors.toList());
             final List<NodeInfo> dataNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE)).collect(Collectors.toList());
+            // Sorting the nodes so that the node receiving the http requests is always deterministic
+            dataNodes.sort(Comparator.comparing(nodeInfo -> nodeInfo.getNode().getName()));
             final List<NodeInfo> clientNodes = nodes.stream().filter(n->!n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE)).collect(Collectors.toList());
 
 

@@ -70,6 +70,12 @@ import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
+
+import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.ssl.transport.SSLConfig;
+import org.opensearch.security.ssl.transport.PrincipalExtractor;
+
 import com.google.common.collect.Maps;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
@@ -86,14 +92,16 @@ public class SecurityInterceptor {
     private final Settings settings;
     private final SslExceptionHandler sslExceptionHandler;
     private final ClusterInfoHolder clusterInfoHolder;
+    private final SSLConfig SSLConfig;
 
     public SecurityInterceptor(final Settings settings,
-                               final ThreadPool threadPool, final BackendRegistry backendRegistry,
-                               final AuditLog auditLog, final PrincipalExtractor principalExtractor,
-                               final InterClusterRequestEvaluator requestEvalProvider,
-                               final ClusterService cs,
-                               final SslExceptionHandler sslExceptionHandler,
-                               final ClusterInfoHolder clusterInfoHolder) {
+            final ThreadPool threadPool, final BackendRegistry backendRegistry,
+            final AuditLog auditLog, final PrincipalExtractor principalExtractor,
+            final InterClusterRequestEvaluator requestEvalProvider,
+            final ClusterService cs,
+            final SslExceptionHandler sslExceptionHandler,
+            final ClusterInfoHolder clusterInfoHolder,
+            final SSLConfig SSLConfig) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -103,12 +111,13 @@ public class SecurityInterceptor {
         this.settings = settings;
         this.sslExceptionHandler = sslExceptionHandler;
         this.clusterInfoHolder = clusterInfoHolder;
+        this.SSLConfig = SSLConfig;
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action,
-                                                                             TransportRequestHandler<T> actualHandler) {
+            TransportRequestHandler<T> actualHandler) {
         return new SecurityRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog,
-                principalExtractor, requestEvalProvider, cs, sslExceptionHandler);
+                principalExtractor, requestEvalProvider, cs, SSLConfig, sslExceptionHandler);
     }
 
 
