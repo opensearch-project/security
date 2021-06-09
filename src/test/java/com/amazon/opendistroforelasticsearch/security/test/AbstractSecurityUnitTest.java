@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -270,6 +271,19 @@ public abstract class AbstractSecurityUnitTest {
                 }
                 return minimumSecuritySettingsBuilder(i, true, other).build();
             }
+        };
+    }
+
+    protected NodeSettingsSupplier genericMinimumSecuritySettings(List<Settings> others, List<Boolean> sslOnly) {
+
+        return i -> {
+            assert i > 0; // i is 1-indexed
+
+            // Set to default if input does not have value at (i-1) index
+            boolean sslOnlyFlag = i > sslOnly.size() ? false : sslOnly.get(i-1);
+            Settings settings = i > others.size() ? Settings.EMPTY : others.get(i-1);
+
+            return minimumSecuritySettingsBuilder(i, sslOnlyFlag, settings).build();
         };
     }
 
