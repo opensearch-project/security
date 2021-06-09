@@ -51,6 +51,16 @@ import java.util.stream.Stream;
 import org.apache.lucene.index.DirectoryReader;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLReloadCertsAction;
 import com.amazon.opendistroforelasticsearch.security.ssl.rest.OpenDistroSecuritySSLCertsInfoAction;
+import com.amazon.opendistroforelasticsearch.security.filter.OpenDistroSecurityRestFilter;
+import com.amazon.opendistroforelasticsearch.security.http.OpenDistroSecurityHttpServerTransport;
+import com.amazon.opendistroforelasticsearch.security.ssl.OpenDistroSecuritySSLPlugin;
+import com.amazon.opendistroforelasticsearch.security.transport.OpenDistroSecurityInterceptor;
+import com.amazon.opendistroforelasticsearch.security.setting.OpenDistroDynamicSetting;
+import com.amazon.opendistroforelasticsearch.security.setting.TransportPassiveAuthSetting;
+import com.amazon.opendistroforelasticsearch.security.ssl.transport.DefaultPrincipalExtractor;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import com.amazon.opendistroforelasticsearch.security.ssl.transport.OpenDistroSSLConfig;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
@@ -191,6 +201,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
     private volatile IndexResolverReplacer irr;
     private volatile NamedXContentRegistry namedXContentRegistry = null;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
+    private volatile OpenDistroDynamicSetting<Boolean> transportPassiveAuthSetting;
 
     @Override
     public void close() throws IOException {
@@ -224,6 +235,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
 
         disabled = isDisabled(settings);
         sslCertReloadEnabled = isSslCertReloadEnabled(settings);
+
+        transportPassiveAuthSetting = new TransportPassiveAuthSetting(settings);
 
         if (disabled) {
             this.dlsFlsAvailable = false;
@@ -737,6 +750,10 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         if (client || disabled) {
             return components;
         }
+
+        //Register opensearch dynamic settings
+        transportPassiveAuthSetting.registerClusterSettingsChangeListener(clusterService.getClusterSettings());
+
         final ClusterInfoHolder cih = new ClusterInfoHolder();
         this.cs.addListener(cih);
 
@@ -772,10 +789,8 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
         //cr.subscribeOnLicenseChange(complianceConfig); TODO : Remove this line post compilation
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
-        
-        final CompatConfig compatConfig = new CompatConfig(environment);
-        
 
+        final CompatConfig compatConfig = new CompatConfig(environment, transportPassiveAuthSetting);
 
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
                 settings, privilegesInterceptor, cih, irr, advancedModulesEnabled);
@@ -801,8 +816,9 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
 
+
         odsi = new OpenDistroSecurityInterceptor(settings, threadPool, backendRegistry, auditLog, principalExtractor,
-                interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih));
+                interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih), openDistroSSLConfig);
         components.add(principalExtractor);
 
 
@@ -966,7 +982,7 @@ public final class OpenDistroSecurityPlugin extends OpenDistroSecuritySSLPlugin 
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.simpleString(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_SALT, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false, Property.NodeScope, Property.Filtered));
-
+            settings.add(transportPassiveAuthSetting.getDynamicSetting());
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false, Property.NodeScope,
                     Property.Filtered));
 
