@@ -35,10 +35,6 @@ public class OpenDistroSSLConfig {
     public OpenDistroSSLConfig(final boolean sslOnly, final boolean dualModeEnabled) {
         this.sslOnly = sslOnly;
         this.dualModeEnabled = dualModeEnabled;
-        if (this.dualModeEnabled && !this.sslOnly) {
-            logger.warn("opendistro_security_config.ssl_dual_mode_enabled is enabled but opendistro_security.ssl_only mode is disabled. "
-                + "SSL Dual mode is supported only when security plugin is in ssl_only mode");
-        }
         logger.info("SSL dual mode is {}", isDualModeEnabled() ? "enabled" : "disabled");
     }
 
@@ -60,8 +56,7 @@ public class OpenDistroSSLConfig {
     }
 
     public boolean isDualModeEnabled() {
-        // currently dual mode can be enabled only when SSLOnly is enabled. This stance can change in future.
-        return sslOnly && dualModeEnabled;
+        return dualModeEnabled;
     }
 
     public boolean isSslOnlyMode() {
