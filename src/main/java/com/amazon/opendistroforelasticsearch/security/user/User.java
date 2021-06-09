@@ -55,6 +55,11 @@ import com.google.common.collect.Lists;
 public class User implements Serializable, Writeable, CustomAttributesAware {
 
     public static final User ANONYMOUS = new User("opendistro_security_anonymous", Lists.newArrayList("opendistro_security_anonymous_backendrole"), null);
+
+    // This is a default user that is injected into a transport request when a user info is not present and passive_intertransport_auth is enabled.
+    // This is to be used in scenarios where some of the nodes do not have security enabled, and therefore do not pass any user information in threadcontext, yet we need the communication to not break between the nodes.
+    // Attach the required permissions to either the user or the backend role.
+    public static final User DEFAULT_TRANSPORT_USER = new User("opendistro_security_default_transport_user", Lists.newArrayList("opendistro_security_default_transport_backendrole"), null);
     
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
