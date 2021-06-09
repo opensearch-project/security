@@ -1,0 +1,185 @@
+all_access:
+  readonly: true
+  cluster:
+    - UNLIMITED
+  indices:
+    '*':
+      '*':
+        - UNLIMITED
+  tenants:
+    admin_tenant: RW
+
+# Read all, but no write permissions
+readall:
+  readonly: true
+  cluster:
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '*':
+      '*':
+        - READ
+
+# Read all and monitor, but no write permissions
+readall_and_monitor:
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS_RO
+  indices:
+    '*':
+      '*':
+        - READ
+
+# For users which use kibana, access to indices must be granted separately
+kibana_user:
+  readonly: true
+  cluster:
+    - INDICES_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '?kibana':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '?kibana-6':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '?kibana_*':
+      '*':
+        - MANAGE
+        - INDEX
+        - READ
+        - DELETE
+    '?tasks':
+      '*':
+        - INDICES_ALL
+    '?management-beats':
+      '*':
+        - INDICES_ALL
+    '*':
+      '*':
+        - indices:data/read/field_caps*
+        - indices:data/read/xpack/rollup*
+        - indices:admin/mappings/get*
+        - indices:admin/get
+
+# For the kibana server
+kibana_server:
+  readonly: true
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+    - cluster:admin/xpack/monitoring*
+    - indices:admin/template*
+    - indices:data/read/scroll*
+  indices:
+    '?kibana':
+      '*':
+        - INDICES_ALL
+    '?kibana-6':
+      '*':
+        - INDICES_ALL
+    '?kibana_*':
+      '*':
+        - INDICES_ALL
+    '?reporting*':
+      '*':
+        - INDICES_ALL
+    '?monitoring*':
+      '*':
+        - INDICES_ALL
+    '?tasks':
+      '*':
+        - INDICES_ALL
+    '?management-beats*':
+      '*':
+        - INDICES_ALL
+    '*':
+      '*':
+        - "indices:admin/aliases*"
+
+# For logstash and beats
+logstash:
+  cluster:
+    - CLUSTER_MONITOR
+    - CLUSTER_COMPOSITE_OPS
+    - indices:admin/template/get
+    - indices:admin/template/put
+    - cluster:admin/ingest/pipeline/put
+    - cluster:admin/ingest/pipeline/get
+  indices:
+    'logstash-*':
+      '*':
+        - CRUD
+        - CREATE_INDEX
+    '*beat*':
+      '*':
+        - CRUD
+        - CREATE_INDEX
+
+# Allows adding and modifying repositories and creating and restoring snapshots
+manage_snapshots:
+  cluster:
+    - MANAGE_SNAPSHOTS
+  indices:
+    '*':
+      '*':
+        - "indices:data/write/index"
+        - "indices:admin/create"
+
+# Allows user to access security rest apis programatically
+security_rest_api_access:
+  readonly: true
+
+# Restrict users so they can only view visualization and dashboard on kibana
+kibana_read_only:
+  readonly: true
+
+# Allows each user to access own named index
+own_index:
+  cluster:
+    - CLUSTER_COMPOSITE_OPS
+  indices:
+    '${user_name}':
+      '*':
+        - INDICES_ALL
+
+# Allows users to view alerts
+alerting_view_alerts:
+  readonly: true
+  indices:
+    '?opendistro-alerting-alert*':
+      '*':
+        - READ
+
+# Allows users to view and acknowledge alerts
+alerting_crud_alerts:
+  readonly: true
+  indices:
+    '?opendistro-alerting-alert*':
+      '*':
+        - CRUD
+
+# Allows users to use all alerting functionality
+alerting_full_access:
+  readonly: true
+  indices:
+    '?opendistro-alerting-config':
+      '*':
+        - CRUD
+    '?opendistro-alerting-alert*':
+      '*':
+        - CRUD
+
+default_role:
+  cluster:
+    - '*'
+  indices:
+    '*':
+      '*':
+        - '*'
+

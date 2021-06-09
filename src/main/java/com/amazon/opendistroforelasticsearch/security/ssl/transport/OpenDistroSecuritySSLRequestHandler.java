@@ -37,6 +37,7 @@ import java.util.Arrays;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -67,14 +68,18 @@ implements TransportRequestHandler<T> {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrincipalExtractor principalExtractor;
     private final SslExceptionHandler errorHandler;
+    private final OpenDistroSSLConfig openDistroSSLConfig;
 
-    public OpenDistroSecuritySSLRequestHandler(String action, TransportRequestHandler<T> actualHandler, 
-            ThreadPool threadPool, final PrincipalExtractor principalExtractor, final SslExceptionHandler errorHandler) {
+
+    public OpenDistroSecuritySSLRequestHandler(String action, TransportRequestHandler<T> actualHandler,
+            ThreadPool threadPool, final PrincipalExtractor principalExtractor, final OpenDistroSSLConfig openDistroSSLConfig,
+                                               final SslExceptionHandler errorHandler) {
         super();
         this.action = action;
         this.actualHandler = actualHandler;
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
+        this.openDistroSSLConfig = openDistroSSLConfig;
         this.errorHandler = errorHandler;
     }
     
@@ -82,7 +87,7 @@ implements TransportRequestHandler<T> {
         if(threadPool == null) {
             return null;
         }
-        
+
         return threadPool.getThreadContext();
     }
 
@@ -135,7 +140,13 @@ implements TransportRequestHandler<T> {
             final SslHandler sslhandler = (SslHandler) nettyChannel.getLowLevelChannel().pipeline().get("ssl_server");
 
             if (sslhandler == null) {
-                final String msg = "No ssl handler found (Security 11)";
+                if (openDistroSSLConfig.isDualModeEnabled()) {
+                    log.info("Communication in dual mode. Skipping SSL handler check");
+                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_DUAL_MODE_SKIP_SECURITY, Boolean.TRUE);
+                    messageReceivedDecorate(request, actualHandler, channel, task);
+                    return;
+                }
+                final String msg = "No ssl handler found (SG 11)";
                 //log.error(msg);
                 final Exception exception = new ElasticsearchException(msg);
                 channel.sendResponse(exception);
