@@ -53,6 +53,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 
 public final class AuditMessage {
 
@@ -61,9 +62,8 @@ public final class AuditMessage {
     private static final String SENSITIVE_KEY = "password";
     private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
 
-    private static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
-    private static final String PLUGINS_PREFIX = "_plugins/_security";
-    private static final Pattern SENSITIVE_PATHS = Pattern.compile( "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX +
+    private static final Pattern SENSITIVE_PATHS =
+            Pattern.compile( "/(" + OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX + "|" + OpenSearchSecurityPlugin.PLUGINS_PREFIX +
                                                                     ")/api/(account.*|internalusers.*|user.*)");
 
     @VisibleForTesting

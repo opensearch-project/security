@@ -73,6 +73,8 @@ public class SecurityInfoAction extends BaseRestHandler {
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
+    public static final String AUTHINFO_SUFFIX = "authinfo";
+
     public SecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
         super();
         this.threadContext = threadPool.getThreadContext();

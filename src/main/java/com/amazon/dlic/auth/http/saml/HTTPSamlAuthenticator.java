@@ -68,6 +68,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
+import org.opensearch.security.rest.SecurityInfoAction;
 
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
@@ -152,13 +153,13 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             throws OpenSearchSecurityException {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (authTokenProcessorHandler.API_AUTHTOKEN_SUFFIX.equals(suffix)) {
+        if (AuthTokenProcessorAction.API_AUTHTOKEN_SUFFIX.equals(suffix)) {
             return null;
         }
 
         AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(restRequest, threadContext);
 
-        if (authTokenProcessorHandler.AUTHINFO_SUFFIX.equals(suffix)) {
+        if (SecurityInfoAction.AUTHINFO_SUFFIX.equals(suffix)) {
             this.initLogoutUrl(restRequest, threadContext, authCredentials);
         }
 
@@ -176,7 +177,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             RestRequest restRequest = restChannel.request();
             Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
             final String suffix = matcher.matches() ? matcher.group(2) : null;
-            if (authTokenProcessorHandler.API_AUTHTOKEN_SUFFIX.equals(suffix)
+            if (AuthTokenProcessorAction.API_AUTHTOKEN_SUFFIX.equals(suffix)
                     && this.authTokenProcessorHandler.handle(restRequest, restChannel)){
                 return true;
             }

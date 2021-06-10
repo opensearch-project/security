@@ -78,5 +78,4 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(settings.get("message"), "Cache flushed successfully.");
 
 	}
-
 }

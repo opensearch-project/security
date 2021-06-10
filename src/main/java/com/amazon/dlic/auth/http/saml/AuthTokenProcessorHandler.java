@@ -87,9 +87,6 @@ class AuthTokenProcessorHandler {
     private JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
     private Pattern samlRolesSeparatorPattern;
 
-    public final String API_AUTHTOKEN_SUFFIX = "api/authtoken";
-    public final String AUTHINFO_SUFFIX = "authinfo";
-
     AuthTokenProcessorHandler(Settings settings, Settings jwtSettings, Saml2SettingsProvider saml2SettingsProvider)
             throws Exception {
         this.saml2SettingsProvider = saml2SettingsProvider;
