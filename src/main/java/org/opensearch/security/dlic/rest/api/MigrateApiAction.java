@@ -76,7 +76,7 @@ import com.google.common.collect.ImmutableList;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class MigrateApiAction extends AbstractApiAction {
-    private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(
+    private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(Collections.singletonList(
             new Route(Method.POST, "/migrate")
     ));
 
@@ -89,7 +89,12 @@ public class MigrateApiAction extends AbstractApiAction {
 
     @Override
     public List<Route> routes() {
-        return routes;
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
     }
 
     @Override

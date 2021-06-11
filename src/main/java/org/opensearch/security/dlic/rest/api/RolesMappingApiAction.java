@@ -47,7 +47,7 @@ import org.opensearch.security.securityconf.impl.CType;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesMappingApiAction extends PatchableResourceApiAction {
-	private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+	private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(ImmutableList.of(
 			new Route(Method.GET, "/rolesmapping/"),
 			new Route(Method.GET, "/rolesmapping/{name}"),
 			new Route(Method.DELETE, "/rolesmapping/{name}"),
@@ -95,8 +95,13 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 
 	@Override
 	public List<Route> routes() {
-		return routes;
+		return ImmutableList.of();
 	}
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
+    }
 
 	@Override
 	protected Endpoint getEndpoint() {

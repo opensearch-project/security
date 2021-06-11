@@ -15,6 +15,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -60,7 +61,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 
 public class ValidateApiAction extends AbstractApiAction {
-    private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(
+    private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(Collections.singletonList(
             new Route(Method.GET, "/validate")
     ));
 
@@ -73,7 +74,12 @@ public class ValidateApiAction extends AbstractApiAction {
 
     @Override
     public List<Route> routes() {
-        return routes;
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
     }
 
     @Override

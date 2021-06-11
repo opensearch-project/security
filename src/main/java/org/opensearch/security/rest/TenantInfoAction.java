@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.SortedMap;
 import com.google.common.base.Strings;
 
+import org.opensearch.cluster.metadata.RepositoriesMetadata;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -68,12 +69,12 @@ import com.google.common.collect.ImmutableList;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantInfoAction extends BaseRestHandler {
-    private static final List<Route> routes = addRoutesPrefix(
+    private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(
             ImmutableList.of(
                 new Route(GET, "/tenantinfo"),
                 new Route(POST, "/tenantinfo")
             ),
-            "/_opendistro/_security", "/_plugins/_security");
+            "/_plugins/_security", "/_opendistro/_security");
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
@@ -95,7 +96,12 @@ public class TenantInfoAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return routes;
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
     }
 
     @Override

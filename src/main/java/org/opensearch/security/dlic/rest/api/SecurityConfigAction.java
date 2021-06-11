@@ -48,11 +48,11 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigAction extends PatchableResourceApiAction {
 
-    private static final List<Route> getRoutes = addRoutesPrefix(Collections.singletonList(
+    private static final List<ReplacedRoute> getRoutes = addRoutesPrefix(Collections.singletonList(
             new Route(Method.GET, "/securityconfig/")
     ));
 
-    private static final List<Route> allRoutes = new ImmutableList.Builder<Route>()
+    private static final List<ReplacedRoute> allRoutes = new ImmutableList.Builder<ReplacedRoute>()
             .addAll(getRoutes)
             .addAll(addRoutesPrefix(
                 ImmutableList.of(
@@ -75,6 +75,11 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
 
     @Override
     public List<Route> routes() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
         return allowPutOrPatch ? allRoutes : getRoutes;
     }
 

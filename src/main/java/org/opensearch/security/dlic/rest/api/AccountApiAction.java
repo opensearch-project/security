@@ -62,7 +62,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  */
 public class AccountApiAction extends AbstractApiAction {
     private static final String RESOURCE_NAME = "account";
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+    private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/account"),
             new Route(Method.PUT, "/account")
     ));
@@ -88,7 +88,12 @@ public class AccountApiAction extends AbstractApiAction {
 
     @Override
     public List<Route> routes() {
-        return routes;
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
     }
 
     /**

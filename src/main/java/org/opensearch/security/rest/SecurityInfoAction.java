@@ -64,10 +64,10 @@ import com.google.common.collect.ImmutableList;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityInfoAction extends BaseRestHandler {
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+    private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(ImmutableList.of(
             new Route(GET, "/authinfo"),
             new Route(POST, "/authinfo")
-    ),"/_opendistro/_security", "/_plugins/_security");
+    ),"/_plugins/_security", "/_opendistro/_security");
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
@@ -81,7 +81,12 @@ public class SecurityInfoAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return routes;
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
     }
 
     @Override

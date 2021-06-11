@@ -64,7 +64,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+    private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/nodesdn/{name}"),
             new Route(Method.GET, "/nodesdn/"),
             new Route(Method.DELETE, "/nodesdn/{name}"),
@@ -82,9 +82,12 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    public List<Route> routes() {
+    public List<Route> routes() { return ImmutableList.of(); }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
         if (settings.getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {
-            return routes;
+            return replacedRoutes;
         }
         return Collections.emptyList();
     }

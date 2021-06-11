@@ -15,6 +15,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import com.google.common.collect.ImmutableList;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -44,7 +45,7 @@ import java.util.List;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class AuthTokenProcessorAction extends AbstractApiAction {
-	private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(
+	private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(Collections.singletonList(
 			new Route(Method.POST, "/authtoken")
 	));
 
@@ -59,8 +60,13 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 
 	@Override
 	public List<Route> routes() {
-		return routes;
+		return ImmutableList.of();
 	}
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
+    }
 
 	@Override
 	protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {

@@ -40,6 +40,7 @@ import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.rest.RestHandler.Route;
+import org.opensearch.rest.RestHandler.ReplacedRoute;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -224,22 +225,22 @@ public class Utils {
      * @return new list of API routes prefixed with _opendistro... and _plugins...
      *Total number of routes is expanded as twice as the number of routes passed in
      */
-    public static List<Route> addRoutesPrefix(List<Route> routes){
-        return addRoutesPrefix(routes, "/_opendistro/_security/api", "/_plugins/_security/api");
+    public static List<ReplacedRoute> addRoutesPrefix(List<Route> routes){
+        return addRoutesPrefix(routes, "/_plugins/_security/api", "/_opendistro/_security/api");
     }
 
     /**
      * Add customized prefix(_opendistro... and _plugins...)to API rest routes
      * @param routes routes
-     * @param prefixes all api prefix
+     * @param newPrefix new prefix
+     * @param oldPrefix old prefix
      * @return new list of API routes prefixed with the strings listed in prefixes
      * Total number of routes will be expanded len(prefixes) as much comparing to the list passed in
      */
-    public static List<Route> addRoutesPrefix(List<Route> routes, final String... prefixes){
+    public static List<ReplacedRoute> addRoutesPrefix(List<Route> routes, final String newPrefix, final String oldPrefix){
         return routes.stream()
-             .flatMap(
-                r -> Arrays.stream(prefixes)
-                   .map(p -> new Route(r.getMethod(), p + r.getPath())))
-             .collect(ImmutableList.toImmutableList());
+                     .map(p -> new ReplacedRoute(p.getMethod(), newPrefix + p.getPath(),
+                        p.getMethod(), oldPrefix + p.getPath()))
+                .collect(ImmutableList.toImmutableList());
     }
 }

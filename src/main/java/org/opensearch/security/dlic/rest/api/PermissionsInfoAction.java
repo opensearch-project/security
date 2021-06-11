@@ -52,7 +52,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * Provides the evaluated REST API permissions for the currently logged in user
  */
 public class PermissionsInfoAction extends BaseRestHandler {
-	private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(
+	private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(Collections.singletonList(
 			new Route(Method.GET, "/permissionsinfo")
 	));
 
@@ -78,8 +78,13 @@ public class PermissionsInfoAction extends BaseRestHandler {
 
 	@Override
 	public List<Route> routes() {
-		return routes;
+		return ImmutableList.of();
 	}
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
+    }
 
 	@Override
 	protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {

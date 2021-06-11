@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.opensearch.action.ActionListener;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.RepositoryCleanupInProgress;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.inject.Inject;
@@ -48,7 +49,7 @@ import com.google.common.collect.ImmutableList;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class FlushCacheApiAction extends AbstractApiAction {
-	private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+	private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(ImmutableList.of(
 			new Route(Method.DELETE, "/cache"),
 			new Route(Method.GET, "/cache"),
 			new Route(Method.PUT, "/cache"),
@@ -64,8 +65,13 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
 	@Override
 	public List<Route> routes() {
-		return routes;
+		return ImmutableList.of();
 	}
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
+        return replacedRoutes;
+    }
 
 	@Override
 	protected Endpoint getEndpoint() {
