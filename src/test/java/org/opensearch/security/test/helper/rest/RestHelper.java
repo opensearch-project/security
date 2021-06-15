@@ -132,7 +132,7 @@ public class RestHelper {
 			client.start();
 			List<Future<org.apache.http.HttpResponse>> futures = new ArrayList<>();
 			HttpResponse[] responses = new HttpResponse[numOfRequests];
-			HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
+			HttpPut uriRequest = new HttpPut(getHttpServerUri() + request);
 			uriRequest.addHeader("Content-Type", "application/json");
 			if (body != null && !body.isEmpty()) {
 				uriRequest.setEntity(new StringEntity(body));
