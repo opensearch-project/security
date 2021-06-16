@@ -215,3 +215,12 @@ cluster_manage_pipelines:
   - "cluster:admin/ingest/pipeline/*"
   type: "cluster"
   description: "Manage pipelines"
+manage_data_streams:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+  - "indices:admin/data_stream/*"
+  - "indices:monitor/data_stream/stats"
+  type: "index"
+  description: "Manage data streams"
