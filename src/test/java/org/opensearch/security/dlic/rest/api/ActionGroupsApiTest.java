@@ -375,4 +375,15 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
     }
+
+    @Test
+    public void checkNullElementsInArray() throws Exception{
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        String body = FileHelper.loadFile("restapi/actiongroup_null_array_element.json");
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+    }
 }
