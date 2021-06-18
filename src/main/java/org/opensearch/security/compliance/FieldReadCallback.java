@@ -37,7 +37,7 @@ import org.opensearch.index.shard.ShardId;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.support.SourceFieldsContext;
+import com.amazon.opendistroforelasticsearch.security.support.SourceFieldsContext;
 import org.opensearch.security.support.WildcardMatcher;
 import com.github.wnameless.json.flattener.JsonFlattener;
 

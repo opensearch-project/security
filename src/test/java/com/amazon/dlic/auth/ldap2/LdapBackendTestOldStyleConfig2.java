@@ -48,7 +48,7 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 @RunWith(Parameterized.class)
 public class LdapBackendTestOldStyleConfig2 {

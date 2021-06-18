@@ -146,7 +146,7 @@ import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.RemoteClusterService;

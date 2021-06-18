@@ -18,7 +18,7 @@ package org.opensearch.security.ssl.rest;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

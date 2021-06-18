@@ -28,7 +28,7 @@
  * permissions and limitations under the License.
  */
 
-package org.opensearch.security.user;
+package com.amazon.opendistroforelasticsearch.security.user;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -45,6 +45,8 @@ import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.common.io.stream.Writeable;
 
 import com.google.common.collect.Lists;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.user.CustomAttributesAware;
 
 /**
  * A authenticated user and attributes associated to them (like roles, tenant, custom attributes)

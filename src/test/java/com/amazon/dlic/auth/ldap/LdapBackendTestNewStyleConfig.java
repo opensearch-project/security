@@ -37,7 +37,7 @@ import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class LdapBackendTestNewStyleConfig {
 

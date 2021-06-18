@@ -55,7 +55,7 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.collect.HashMultimap;
 
 public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroyable {

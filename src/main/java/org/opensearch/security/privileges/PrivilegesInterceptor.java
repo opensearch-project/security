@@ -42,7 +42,7 @@ import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class PrivilegesInterceptor {
 

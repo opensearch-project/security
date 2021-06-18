@@ -14,10 +14,11 @@
  */
 package org.opensearch.security.support;
 
+import com.amazon.opendistroforelasticsearch.security.support.SourceFieldsContext;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;

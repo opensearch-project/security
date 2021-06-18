@@ -35,7 +35,7 @@ import java.util.Set;
 
 import org.opensearch.common.transport.TransportAddress;
 
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 
 public abstract class ConfigModel {

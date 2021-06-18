@@ -31,6 +31,7 @@
 package org.opensearch.security.support;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
+import com.amazon.opendistroforelasticsearch.security.support.SourceFieldsContext;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -62,7 +63,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.Strings;
 
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;

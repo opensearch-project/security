@@ -46,7 +46,7 @@ import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.securityconf.InternalUsersModel;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.greenrobot.eventbus.Subscribe;
 
 public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {

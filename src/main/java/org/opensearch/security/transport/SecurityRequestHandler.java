@@ -62,8 +62,7 @@ import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.user.User;
-import org.opensearch.security.ssl.transport.SecuritySSLRequestHandler;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.opensearch.security.ssl.transport.SSLConfig;
 
 import com.google.common.base.Strings;

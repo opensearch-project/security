@@ -18,7 +18,7 @@ package org.opensearch.security.ssl.rest;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;

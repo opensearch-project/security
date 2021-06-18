@@ -16,7 +16,7 @@
 package org.opensearch.security.auth;
 
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;

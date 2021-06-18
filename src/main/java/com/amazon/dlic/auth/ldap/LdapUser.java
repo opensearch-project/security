@@ -25,7 +25,7 @@ import org.ldaptive.LdapEntry;
 import com.amazon.dlic.auth.ldap.util.Utils;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class LdapUser extends User {
 

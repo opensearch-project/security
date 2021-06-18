@@ -44,7 +44,7 @@ import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import com.amazon.dlic.auth.ldap.util.Utils;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.opensearch.security.support.WildcardMatcher;
 
 public class LDAPAuthenticationBackend implements AuthenticationBackend {

@@ -69,12 +69,9 @@ import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
-import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 
 import com.google.common.collect.Maps;
 

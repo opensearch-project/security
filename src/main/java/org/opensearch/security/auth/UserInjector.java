@@ -45,7 +45,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import com.google.common.base.Strings;

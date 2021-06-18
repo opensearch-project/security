@@ -3,7 +3,7 @@ package org.opensearch.security.auth;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.tasks.Task;

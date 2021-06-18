@@ -36,7 +36,7 @@ import org.opensearch.common.settings.Settings;
 
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class NoOpAuthorizationBackend implements AuthorizationBackend {
 

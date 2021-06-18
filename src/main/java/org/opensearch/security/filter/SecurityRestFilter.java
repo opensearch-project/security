@@ -61,7 +61,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;;
 import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 import org.greenrobot.eventbus.Subscribe;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

@@ -28,7 +28,7 @@
  * permissions and limitations under the License.
  */
 
-package org.opensearch.security.support;
+package com.amazon.opendistroforelasticsearch.security.support;
 
 import java.io.Serializable;
 import java.util.Arrays;

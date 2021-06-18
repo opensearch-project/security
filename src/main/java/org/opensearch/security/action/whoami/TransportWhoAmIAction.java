@@ -43,7 +43,7 @@ import org.opensearch.transport.TransportService;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public class TransportWhoAmIAction
 extends

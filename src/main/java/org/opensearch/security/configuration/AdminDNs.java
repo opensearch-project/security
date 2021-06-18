@@ -47,7 +47,7 @@ import org.opensearch.common.settings.Settings;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 import com.google.common.collect.ImmutableMap;
 

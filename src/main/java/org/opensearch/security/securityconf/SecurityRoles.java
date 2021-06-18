@@ -39,7 +39,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.user.User;
+import com.amazon.opendistroforelasticsearch.security.user.User;
 
 public interface SecurityRoles {
 
