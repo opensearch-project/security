@@ -31,6 +31,9 @@
 package org.opensearch.security.support;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
+import org.apache.commons.lang3.SerializationUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -46,6 +49,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -70,6 +74,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 
 public class Base64Helper {
+    private static final Logger logger = LogManager.getLogger(Base64Helper.class);
 
     private static final Set<Class<?>> SAFE_CLASSES = ImmutableSet.of(
         String.class,
@@ -138,6 +143,7 @@ public class Base64Helper {
 
         private SafeObjectOutputStream(OutputStream out) throws IOException {
             super(out);
+            //useProtocolVersion(PROTOCOL_VERSION_2);
 
             SecurityManager sm = System.getSecurityManager();
             if (sm != null) {
@@ -147,6 +153,24 @@ public class Base64Helper {
             AccessController.doPrivileged(
                 (PrivilegedAction<Boolean>) () -> enableReplaceObject(true)
             );
+        }
+
+        @Override
+        protected void writeClassDescriptor(ObjectStreamClass desc) throws IOException {
+            if (desc.getName().equals(User.class.getName())) {
+                final Field name;
+                try {
+                    desc = SerializationUtils.clone(desc);
+                    name = desc.getClass().getDeclaredField("name");
+                    name.setAccessible(true);
+                    name.set(desc, "com.amazon.opendistroforelasticsearch.security.user.User");
+                    logger.warn("Changed desc {}", desc);
+                } catch (ReflectiveOperationException e) {
+                    logger.error("Failed to change desc {} name", desc, e);
+                }
+                //desc = ObjectStreamClass.lookup(com.amazon.opendistroforelasticsearch.security.user.User.class);
+            }
+            super.writeClassDescriptor(desc);
         }
 
         @Override
@@ -201,6 +225,18 @@ public class Base64Helper {
             }
 
             throw new InvalidClassException("Unauthorized deserialization attempt ", clazz.getName());
+        }
+
+        @Override
+        protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
+            ObjectStreamClass desc = super.readClassDescriptor();
+
+            if (desc.getName().equals("com.amazon.opendistroforelasticsearch.security.user.User")) {
+                desc = ObjectStreamClass.lookup(org.opensearch.security.user.User.class);
+                logger.warn("replaced class desc {}", desc);
+            }
+
+            return desc;
         }
     }
 }
