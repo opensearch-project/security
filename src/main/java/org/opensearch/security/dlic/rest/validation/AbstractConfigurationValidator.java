@@ -22,9 +22,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.HashMap;
+import java.util.Iterator;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.DefaultObjectMapper;
@@ -43,6 +42,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
@@ -196,33 +196,8 @@ public abstract class AbstractConfigurationValidator {
             DataType dataType = allowedKey.getValue();
             JsonNode value = contentAsNode.get(allowedKey.getKey());
             if (dataType == DataType.ARRAY && value != null) {
-                try {
-                    List contentArray = DefaultObjectMapper.objectMapper.convertValue(value, java.util.List.class);
-                    if (contentArray.contains(null)) {
-                        this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
-                        return false;
-                    }
-                    else {
-                        for (int i = 0; i < contentArray.size(); i++) {
-                            if (contentArray.get(i) instanceof HashMap) {
-                                for (Object valueList : ((HashMap) contentArray.get(i)).values()) {
-                                    if (((List) valueList).contains(null)) {
-                                        this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
-                                        return false;
-                                    }
-                                }
-                            }
-                            else if(contentArray.get(i) instanceof ArrayList){
-                                if(((ArrayList) contentArray.get(i)).contains(null)){
-                                    this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
-                    this.errorType = ErrorType.BODY_NOT_PARSEABLE;
+                if (hasNullElement(value)) {
+                    this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
                     return false;
                 }
             }
@@ -340,5 +315,26 @@ public abstract class AbstractConfigurationValidator {
 
     protected final boolean hasParams() {
         return param != null && param.length > 0;
+    }
+
+    private boolean hasNullElement(JsonNode currentNode) {
+        if (currentNode.isArray()) {
+            List contentArray = DefaultObjectMapper.objectMapper.convertValue(currentNode, java.util.List.class);
+            if(contentArray.contains(null)){
+                return true;
+            }
+            ArrayNode arrayNode = (ArrayNode) currentNode;
+            Iterator<JsonNode> node = arrayNode.elements();
+            while (node.hasNext()) {
+                if( hasNullElement(node.next())) return true;
+            }
+        }
+        else if (currentNode.isObject()) {
+            Iterator<Entry<String, JsonNode>> entry_it = currentNode.fields();
+            while (entry_it.hasNext()) {
+                if (hasNullElement(entry_it.next().getValue())) return true;
+            }
+        }
+        return false;
     }
 }

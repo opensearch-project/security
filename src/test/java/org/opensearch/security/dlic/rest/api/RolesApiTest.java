@@ -510,8 +510,8 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // put hidden role
-        response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_internal",
-                                        FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
+        String body = FileHelper.loadFile("restapi/roles_captains.json");
+        response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_internal", body, new Header[0]);
         Assert.assertEquals(org.apache.http.HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Patch single hidden roles
