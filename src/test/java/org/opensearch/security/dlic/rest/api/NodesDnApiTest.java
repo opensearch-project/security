@@ -221,7 +221,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
-        HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/nodesdn", body, new Header[0]);
+        HttpResponse response = rh.executePutRequest(ENDPOINT+ "/nodesdn", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 }
