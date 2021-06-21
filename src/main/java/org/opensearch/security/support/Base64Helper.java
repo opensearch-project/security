@@ -31,6 +31,7 @@
 package org.opensearch.security.support;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
+import com.amazon.opendistroforelasticsearch.security.support.LegacyClassConverter;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -163,9 +164,17 @@ public class Base64Helper {
 
         Preconditions.checkArgument(object != null, "object must not be null");
 
+        Serializable _object = object;
+        if (object instanceof org.opensearch.security.user.User) {
+            _object = LegacyClassConverter.User.Opensearch2ODFE((org.opensearch.security.user.User)object);
+        }
+        else if (object instanceof org.opensearch.security.support.SourceFieldsContext) {
+            _object = LegacyClassConverter.SourceFieldsContext.Opensearch2ODFE((org.opensearch.security.support.SourceFieldsContext)object);
+        }
+
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (final ObjectOutputStream out = SafeObjectOutputStream.create(bos)) {
-            out.writeObject(object);
+            out.writeObject(_object);
         } catch (final Exception e) {
             throw new OpenSearchException("Instance {} of class {} is not serializable", e, object, object.getClass());
         }
@@ -180,7 +189,15 @@ public class Base64Helper {
         final byte[] bytes = BaseEncoding.base64().decode(string);
         final ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         try (SafeObjectInputStream in = new SafeObjectInputStream(bis)) {
-            return (Serializable) in.readObject();
+            Serializable ret = (Serializable) in.readObject();
+
+            if (ret instanceof com.amazon.opendistroforelasticsearch.security.user.User) {
+                ret = LegacyClassConverter.User.ODFE2Opensearch((com.amazon.opendistroforelasticsearch.security.user.User)ret);
+            }
+            else if (ret instanceof com.amazon.opendistroforelasticsearch.security.support.SourceFieldsContext) {
+                ret = LegacyClassConverter.SourceFieldsContext.ODFE2Opensearch((com.amazon.opendistroforelasticsearch.security.support.SourceFieldsContext)ret);
+            }
+            return ret;
         } catch (final Exception e) {
             throw new OpenSearchException(e);
         }
