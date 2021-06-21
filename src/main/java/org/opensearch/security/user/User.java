@@ -67,7 +67,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      * roles == backend_roles
      */
     private final Set<String> roles = new HashSet<String>();
-    private final Set<String> securityRoles = new HashSet<String>();
+    private final Set<String> openDistroSecurityRoles = new HashSet<String>();
     private String requestedTenant;
     private Map<String, String> attributes = new HashMap<>();
     private boolean isInjected = false;
@@ -78,7 +78,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         roles.addAll(in.readList(StreamInput::readString));
         requestedTenant = in.readString();
         attributes = in.readMap(StreamInput::readString, StreamInput::readString);
-        securityRoles.addAll(in.readList(StreamInput::readString));
+        openDistroSecurityRoles.addAll(in.readList(StreamInput::readString));
     }
     
     /**
@@ -244,7 +244,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         out.writeStringCollection(new ArrayList<String>(roles));
         out.writeString(requestedTenant);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
-        out.writeStringCollection(securityRoles ==null?Collections.emptyList():new ArrayList<String>(securityRoles));
+        out.writeStringCollection(openDistroSecurityRoles ==null?Collections.emptyList():new ArrayList<String>(openDistroSecurityRoles));
     }
 
     /**
@@ -260,12 +260,12 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
     
     public final void addSecurityRoles(final Collection<String> securityRoles) {
-        if(securityRoles != null && this.securityRoles != null) {
-            this.securityRoles.addAll(securityRoles);
+        if(securityRoles != null && this.openDistroSecurityRoles != null) {
+            this.openDistroSecurityRoles.addAll(securityRoles);
         }
     }
     
     public final Set<String> getSecurityRoles() {
-        return this.securityRoles == null ? Collections.emptySet() : Collections.unmodifiableSet(this.securityRoles);
+        return this.openDistroSecurityRoles == null ? Collections.emptySet() : Collections.unmodifiableSet(this.openDistroSecurityRoles);
     }
 }

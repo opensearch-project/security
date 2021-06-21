@@ -31,6 +31,9 @@
 package org.opensearch.security.support;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
+import org.apache.commons.lang3.SerializationUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -46,6 +49,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -56,6 +60,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
 
 import org.opensearch.OpenSearchException;
@@ -70,6 +76,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 
 public class Base64Helper {
+    private static final Logger logger = LogManager.getLogger(Base64Helper.class);
+
+    private static final String ODFE_PACKAGE = "com.amazon.opendistroforelasticsearch";
+    private static final String OS_PACKAGE = "org.opensearch";
 
     private static final Set<Class<?>> SAFE_CLASSES = ImmutableSet.of(
         String.class,
@@ -104,9 +114,68 @@ public class Base64Helper {
             SAFE_ASSIGNABLE_FROM_CLASSES.stream().anyMatch(c -> c.isAssignableFrom(cls));
     }
 
+    private static class DescriptorNameSetter {
+        private static final Field NAME = getField();
+
+        private DescriptorNameSetter() {
+        }
+
+        private static Field getFieldPrivileged() {
+            try {
+                final Field field = ObjectStreamClass.class.getDeclaredField("name");
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException | SecurityException e) {
+                logger.error("Failed to get ObjectStreamClass declared field", e);
+                if (e instanceof RuntimeException) {
+                    throw (RuntimeException) e;
+                } else {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        private static Field getField() {
+            SpecialPermission.check();
+            return AccessController.doPrivileged((PrivilegedAction<Field>) () -> getFieldPrivileged());
+        }
+
+        public static void setName(ObjectStreamClass desc, String name) {
+            try {
+                logger.debug("replacing descriptor name from [{}] to [{}]", desc.getName(), name);
+                NAME.set(desc, name);
+            } catch (IllegalAccessException e) {
+                logger.error("Failed to replace descriptor name from {} to {}", desc.getName(), name, e);
+                throw new OpenSearchException(e);
+            }
+        }
+    }
+
+    private static class DescriptorReplacer {
+        private final ConcurrentMap<String, ObjectStreamClass> nameToDescriptor = new ConcurrentHashMap<>();
+
+        public ObjectStreamClass replace(final ObjectStreamClass desc) {
+            final String name = desc.getName();
+            if (name.startsWith(OS_PACKAGE)) {
+                return nameToDescriptor.computeIfAbsent(name, s -> {
+                    SpecialPermission.check();
+                    // we can't modify original descriptor as it is cached by ObjectStreamClass, create clone
+                    final ObjectStreamClass clone = AccessController.doPrivileged(
+                        (PrivilegedAction<ObjectStreamClass>)() -> SerializationUtils.clone(desc)
+                    );
+                    DescriptorNameSetter.setName(clone, s.replace(OS_PACKAGE, ODFE_PACKAGE));
+                    return clone;
+                });
+            }
+            return desc;
+        }
+    }
+
     private final static class SafeObjectOutputStream extends ObjectOutputStream {
 
         private static final boolean useSafeObjectOutputStream = checkSubstitutionPermission();
+
+        private final DescriptorReplacer descriptorReplacer = new DescriptorReplacer();
 
         private static boolean checkSubstitutionPermission() {
             SecurityManager sm = System.getSecurityManager();
@@ -147,6 +216,11 @@ public class Base64Helper {
             AccessController.doPrivileged(
                 (PrivilegedAction<Boolean>) () -> enableReplaceObject(true)
             );
+        }
+
+        @Override
+        protected void writeClassDescriptor(final ObjectStreamClass desc) throws IOException {
+            super.writeClassDescriptor(descriptorReplacer.replace(desc));
         }
 
         @Override
@@ -201,6 +275,17 @@ public class Base64Helper {
             }
 
             throw new InvalidClassException("Unauthorized deserialization attempt ", clazz.getName());
+        }
+
+        @Override
+        protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
+            ObjectStreamClass desc = super.readClassDescriptor();
+            final String name = desc.getName();
+            if (name.startsWith(ODFE_PACKAGE)) {
+                desc = ObjectStreamClass.lookup(Class.forName(name.replace(ODFE_PACKAGE, OS_PACKAGE)));
+                logger.debug("replaced descriptor name from [{}] to [{}]", name, desc.getName());
+            }
+            return desc;
         }
     }
 }
