@@ -193,9 +193,8 @@ public abstract class AbstractConfigurationValidator {
 
         //null element in the values of all the possible keys with DataType as ARRAY
         for (Entry<String, DataType> allowedKey : allowedKeys.entrySet()) {
-            DataType dataType = allowedKey.getValue();
             JsonNode value = contentAsNode.get(allowedKey.getKey());
-            if (dataType == DataType.ARRAY && value != null) {
+            if (value != null) {
                 if (hasNullElement(value)) {
                     this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
                     return false;
@@ -317,20 +316,21 @@ public abstract class AbstractConfigurationValidator {
         return param != null && param.length > 0;
     }
 
-    private boolean hasNullElement(JsonNode currentNode) {
-        if (currentNode.isArray()) {
-            List contentArray = DefaultObjectMapper.objectMapper.convertValue(currentNode, java.util.List.class);
-            if(contentArray.contains(null)){
-                return true;
+    private boolean hasNullElement(JsonNode node) {
+        if (node.isArray()) {
+            for (JsonNode jsonNode: node){
+                if(jsonNode.isNull()){
+                    return true;
+                }
             }
-            ArrayNode arrayNode = (ArrayNode) currentNode;
-            Iterator<JsonNode> node = arrayNode.elements();
-            while (node.hasNext()) {
-                if( hasNullElement(node.next())) return true;
+            ArrayNode arrayNode = (ArrayNode) node;
+            Iterator<JsonNode> nodeIter = arrayNode.elements();
+            while (nodeIter.hasNext()) {
+                if (hasNullElement(nodeIter.next())) return true;
             }
         }
-        else if (currentNode.isObject()) {
-            Iterator<Entry<String, JsonNode>> entry_it = currentNode.fields();
+        else if (node.isObject()) {
+            Iterator<Entry<String, JsonNode>> entry_it = node.fields();
             while (entry_it.hasNext()) {
                 if (hasNullElement(entry_it.next().getValue())) return true;
             }
