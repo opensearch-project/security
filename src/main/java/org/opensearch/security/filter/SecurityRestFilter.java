@@ -65,8 +65,10 @@ import org.opensearch.security.user.User;
 import org.greenrobot.eventbus.Subscribe;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.rest.SecurityHealthAction;
+
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.rest.SecurityHealthAction.HEALTH_SUFFIX;
 
 public class SecurityRestFilter {
 
@@ -81,8 +83,7 @@ public class SecurityRestFilter {
 
     private WhitelistingSettings whitelistingSettings;
 
-    private static final String REGEX_PATH_PREFIX = "("+ OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX + "|" + OpenSearchSecurityPlugin.PLUGINS_PREFIX +
-            ")" +"(.*)";
+    private static final String REGEX_PATH_PREFIX = "/("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
 
@@ -183,7 +184,7 @@ public class SecurityRestFilter {
 
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if(request.method() != Method.OPTIONS && !(SecurityHealthAction.HEALTH_SUFFIX.equals(suffix))) {
+        if(request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix))) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");

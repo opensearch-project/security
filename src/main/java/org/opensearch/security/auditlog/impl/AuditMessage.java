@@ -53,7 +53,9 @@ import org.joda.time.format.DateTimeFormatter;
 import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.OpenSearchSecurityPlugin;
+
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public final class AuditMessage {
 
@@ -63,8 +65,7 @@ public final class AuditMessage {
     private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
 
     private static final Pattern SENSITIVE_PATHS =
-            Pattern.compile( "(" + OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX + "|" + OpenSearchSecurityPlugin.PLUGINS_PREFIX +
-                                                                    ")api/(account.*|internalusers.*|user.*)");
+            Pattern.compile( "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/api/(account.*|internalusers.*|user.*)");
 
     @VisibleForTesting
     public static final Pattern BCRYPT_HASH = Pattern.compile("\\$2[ayb]\\$.{56}");

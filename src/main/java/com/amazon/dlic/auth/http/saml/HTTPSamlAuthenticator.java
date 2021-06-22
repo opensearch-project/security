@@ -66,9 +66,11 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
-import org.opensearch.security.rest.SecurityInfoAction;
+
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction.API_AUTHTOKEN_SUFFIX;
+import static org.opensearch.security.rest.SecurityInfoAction.AUTHINFO_SUFFIX;
 
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
@@ -78,8 +80,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     public static final String IDP_METADATA_FILE = "idp.metadata_file";
     public static final String IDP_METADATA_CONTENT = "idp.metadata_content";
 
-    private static final String REGEX_PATH_PREFIX =
-            "(" + OpenSearchSecurityPlugin. LEGACY_OPENDISTRO_PREFIX + "|" + OpenSearchSecurityPlugin.PLUGINS_PREFIX + ")" +"(.*)";
+    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
     private static final  Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
 
@@ -153,13 +154,13 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             throws OpenSearchSecurityException {
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (AuthTokenProcessorAction.API_AUTHTOKEN_SUFFIX.equals(suffix)) {
+        if (API_AUTHTOKEN_SUFFIX.equals(suffix)) {
             return null;
         }
 
         AuthCredentials authCredentials = this.httpJwtAuthenticator.extractCredentials(restRequest, threadContext);
 
-        if (SecurityInfoAction.AUTHINFO_SUFFIX.equals(suffix)) {
+        if (AUTHINFO_SUFFIX.equals(suffix)) {
             this.initLogoutUrl(restRequest, threadContext, authCredentials);
         }
 
@@ -177,7 +178,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
             RestRequest restRequest = restChannel.request();
             Matcher matcher = PATTERN_PATH_PREFIX.matcher(restRequest.path());
             final String suffix = matcher.matches() ? matcher.group(2) : null;
-            if (AuthTokenProcessorAction.API_AUTHTOKEN_SUFFIX.equals(suffix)
+            if (API_AUTHTOKEN_SUFFIX.equals(suffix)
                     && this.authTokenProcessorHandler.handle(restRequest, restChannel)){
                 return true;
             }
