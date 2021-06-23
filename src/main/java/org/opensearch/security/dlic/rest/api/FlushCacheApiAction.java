@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.opensearch.action.ActionListener;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.RepositoryCleanupInProgress;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.inject.Inject;
