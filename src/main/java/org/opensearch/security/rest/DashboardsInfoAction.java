@@ -58,20 +58,10 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class DashboardsInfoAction extends BaseRestHandler {
 
-    private static final List<ReplacedRoute> replacedRoutes = ImmutableList.<ReplacedRoute>builder()
-        .addAll(addRoutesPrefix(
-            ImmutableList.of(
-                new Route(GET, "/dashboardsinfo"),
-                new Route(POST, "/dashboardsinfo")
-            ),
-            "/_plugins/_security", ""))
-        .addAll(addRoutesPrefix(
-            ImmutableList.of(
-                new Route(GET, "/kibanainfo"),
-                new Route(POST, "/kibanainfo")
-            ),
-            "/_opendistro/_security", ""))
-        .build();
+    private static final List<ReplacedRoute> replacedRoutes = ImmutableList.of(
+            new ReplacedRoute(GET, "/_plugins/_security/dashboardsinfo", GET,"/_opendistro/_security/kibanainfo"),
+            new ReplacedRoute(POST, "/_plugins/_security/dashboardsinfo", POST, "/_opendistro/_security/kibanainfo")
+    );
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
