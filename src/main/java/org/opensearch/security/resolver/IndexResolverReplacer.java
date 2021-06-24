@@ -135,10 +135,11 @@ public class IndexResolverReplacer {
         return false;
     }
 
-    private static final boolean isLocalAll(final String... requestedPatterns) {
+    private static final boolean isLocalAll(String... requestedPatterns) {
+        return isLocalAll(requestedPatterns == null ? null : Arrays.asList(requestedPatterns));
+    }
 
-        final List<String> patterns = requestedPatterns==null?null:Arrays.asList(requestedPatterns);
-
+    private static final boolean isLocalAll(Collection<String> patterns) {
         if(IndexNameExpressionResolver.isAllIndices(patterns)) {
             return true;
         }
@@ -371,7 +372,7 @@ public class IndexResolverReplacer {
             this.allIndices = allIndices;
             this.originalRequested = originalRequested;
             this.remoteIndices = remoteIndices;
-            this.isLocalAll = IndexResolverReplacer.isLocalAll(originalRequested.toArray(new String[0])) || (aliases.contains("*") && allIndices.contains("*"));
+            this.isLocalAll = isLocalAll(originalRequested, aliases, remoteIndices, allIndices);
         }
 
         public boolean isLocalAll() {
@@ -441,6 +442,14 @@ public class IndexResolverReplacer {
             } else if (!remoteIndices.equals(other.remoteIndices))
                 return false;
             return true;
+        }
+
+        private static boolean isLocalAll(Set<String> originalRequested, Set<String> aliases, Set<String> indices, Set<String> allIndices) {
+            if(IndexResolverReplacer.isLocalAll(originalRequested)) {
+                return true;
+            }
+
+            return aliases.contains("*") && indices.contains("*") && allIndices.contains("*");
         }
     }
 
