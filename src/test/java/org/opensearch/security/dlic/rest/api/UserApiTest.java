@@ -81,7 +81,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10, "/_opendistro/_security/api/internalusers/test1", "{\"password\":\"test1\"}");
+        HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10, ENDPOINT + "/internalusers/test1", "{\"password\":\"test1\"}");
         boolean created = false;
         for (int i = 0; i < 10; i++) {
             int sc = responses[i].getStatusCode();
