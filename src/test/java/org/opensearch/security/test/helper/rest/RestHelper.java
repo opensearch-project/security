@@ -317,10 +317,6 @@ public class RestHelper {
 		private final int statusCode;
 		private final String statusReason;
 
-		public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
-			this((org.apache.http.HttpResponse)inner);
-		}
-
 		public HttpResponse(org.apache.http.HttpResponse inner) throws IllegalStateException, IOException {
 			super();
 			this.inner = inner;
