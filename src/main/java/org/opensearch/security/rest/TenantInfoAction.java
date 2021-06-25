@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.SortedMap;
 import com.google.common.base.Strings;
 
-import org.opensearch.cluster.metadata.RepositoriesMetadata;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
