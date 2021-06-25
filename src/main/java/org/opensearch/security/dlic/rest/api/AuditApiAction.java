@@ -168,7 +168,6 @@ public class AuditApiAction extends PatchableResourceApiAction {
         }
     }
 
-    @Override
     public List<Route> routes() {
         return ImmutableList.of();
     }

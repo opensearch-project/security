@@ -79,7 +79,6 @@ public class SecurityInfoAction extends BaseRestHandler {
         this.evaluator = evaluator;
     }
 
-    @Override
     public List<Route> routes() {
         return ImmutableList.of();
     }

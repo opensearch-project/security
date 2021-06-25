@@ -93,7 +93,6 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 		});
 	}
 
-	@Override
 	public List<Route> routes() {
 		return ImmutableList.of();
 	}

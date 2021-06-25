@@ -153,7 +153,6 @@ public class WhitelistApiAction extends PatchableResourceApiAction {
     }
 
 
-    @Override
     public List<Route> routes() {
         return ImmutableList.of();
     }

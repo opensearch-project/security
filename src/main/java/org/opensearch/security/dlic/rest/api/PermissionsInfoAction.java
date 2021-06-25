@@ -76,7 +76,6 @@ public class PermissionsInfoAction extends BaseRestHandler {
 		return getClass().getSimpleName();
 	}
 
-	@Override
 	public List<Route> routes() {
 		return ImmutableList.of();
 	}

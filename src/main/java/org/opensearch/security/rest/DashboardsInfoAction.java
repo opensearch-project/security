@@ -73,7 +73,6 @@ public class DashboardsInfoAction extends BaseRestHandler {
         this.evaluator = evaluator;
     }
 
-    @Override
     public List<Route> routes() {
         return ImmutableList.of();
     }

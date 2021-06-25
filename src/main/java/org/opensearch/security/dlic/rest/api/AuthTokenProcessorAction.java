@@ -58,7 +58,6 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 				auditLog);
 	}
 
-	@Override
 	public List<Route> routes() {
 		return ImmutableList.of();
 	}

@@ -76,7 +76,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                 auditLog);
     }
 
-    @Override
     public List<Route> routes() {
         return ImmutableList.of();
     }

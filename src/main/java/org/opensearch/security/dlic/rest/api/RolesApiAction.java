@@ -57,7 +57,6 @@ public class RolesApiAction extends PatchableResourceApiAction {
 		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
 	}
 
-	@Override
 	public List<Route> routes() {
 		return ImmutableList.of();
 	}

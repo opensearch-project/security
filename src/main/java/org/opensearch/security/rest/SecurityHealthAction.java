@@ -64,7 +64,6 @@ public class SecurityHealthAction extends BaseRestHandler {
         this.registry = registry;
     }
 
-    @Override
     public List<Route> routes() {
         return ImmutableList.of();
     }
