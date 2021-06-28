@@ -15,6 +15,12 @@
 
 package org.opensearch.security.ssl;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.kafka.common.protocol.types.Field;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -24,7 +30,6 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import net.minidev.json.JSONObject;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -32,8 +37,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
@@ -79,11 +86,24 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         rh.keystore = "ssl/reload/kirk-keystore.jks";
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
+        ObjectMapper mapper3 = new ObjectMapper();
+        ObjectNode certDetailsResponseNode = mapper3.readValue(certDetailsResponse, ObjectNode.class);
+        certDetailsResponse = mapper3.writeValueAsString(certDetailsResponseNode);
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode rootNode = mapper.createObjectNode();
 
-        JSONObject expectedJsonResponse = new JSONObject();
-        expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
-        expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
-        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+//        ObjectNode childNode = mapper.createObjectNode();
+//        ImmutableMap<String, String> NODE_CERT_DETAIL = (ImmutableMap<String, String>) NODE_CERT_DETAILS.get(0);
+//        for (Map.Entry<String, String> entry : NODE_CERT_DETAIL.entrySet()) {
+//            childNode.put(entry.getKey(), entry.getValue());
+//        }
+//        rootNode.set("http_certificates_list", childNode);
+//        rootNode.set("transport_certificates_list", childNode);
+        rootNode.put("http_certificates_list", String.valueOf(NODE_CERT_DETAILS));
+        rootNode.put("transport_certificates_list", String.valueOf(NODE_CERT_DETAILS));
+        String expectedJsonResponse = mapper.writeValueAsString(rootNode);
+
+        Assert.assertEquals(expectedJsonResponse, certDetailsResponse);
 
         // Test Valid Case: Change transport file details to "ssl/pem/node-new.crt.pem" and "ssl/pem/node-new.key.pem"
         FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node-new.crt.pem").toString(), pemCertFilePath);
@@ -91,15 +111,19 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
 
         Assert.assertEquals(200, reloadCertsResponse.getStatusCode());
-        expectedJsonResponse = new JSONObject();
-        expectedJsonResponse.appendField("message", "updated transport certs");
-        Assert.assertEquals(expectedJsonResponse.toString(), reloadCertsResponse.getBody());
+        mapper = new ObjectMapper();
+        rootNode = mapper.createObjectNode();
+        rootNode.put("message", "updated transport certs");
+        expectedJsonResponse = mapper.writeValueAsString(rootNode);
+        Assert.assertEquals(expectedJsonResponse, reloadCertsResponse.getBody());
 
         certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
-        expectedJsonResponse = new JSONObject();
-        expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
-        expectedJsonResponse.appendField("transport_certificates_list", NEW_NODE_CERT_DETAILS);
-        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+        mapper = new ObjectMapper();
+        rootNode = mapper.createObjectNode();
+        rootNode.put("http_certificates_list", String.valueOf(NODE_CERT_DETAILS));
+        rootNode.put("transport_certificates_list", String.valueOf(NEW_NODE_CERT_DETAILS));
+        expectedJsonResponse = mapper.writeValueAsString(rootNode);
+        Assert.assertEquals(expectedJsonResponse, certDetailsResponse);
     }
 
     @Test
@@ -118,9 +142,10 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         rh.keystore = "ssl/reload/kirk-keystore.jks";
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
-        JSONObject expectedJsonResponse = new JSONObject();
-        expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
-        expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode expectedJsonResponse = mapper.createObjectNode();
+        expectedJsonResponse.put("http_certificates_list", String.valueOf(NODE_CERT_DETAILS));
+        expectedJsonResponse.put("transport_certificates_list", String.valueOf(NODE_CERT_DETAILS));
         Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
 
         // Test Valid Case: Change rest file details to "ssl/pem/node-new.crt.pem" and "ssl/pem/node-new.key.pem"
@@ -129,14 +154,16 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_HTTP_CERTS_ENDPOINT, null);
 
         Assert.assertEquals(200, reloadCertsResponse.getStatusCode());
-        expectedJsonResponse = new JSONObject();
-        expectedJsonResponse.appendField("message", "updated http certs");
+        mapper = new ObjectMapper();
+        expectedJsonResponse = mapper.createObjectNode();
+        expectedJsonResponse.put("message", "updated http certs");
         Assert.assertEquals(expectedJsonResponse.toString(), reloadCertsResponse.getBody());
 
         certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
-        expectedJsonResponse = new JSONObject();
-        expectedJsonResponse.appendField("http_certificates_list", NEW_NODE_CERT_DETAILS);
-        expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
+        mapper = new ObjectMapper();
+        expectedJsonResponse = mapper.createObjectNode();
+        expectedJsonResponse.put("http_certificates_list", String.valueOf(NEW_NODE_CERT_DETAILS));
+        expectedJsonResponse.put("transport_certificates_list", String.valueOf(NODE_CERT_DETAILS));
         Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
     }
 
@@ -157,7 +184,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         rh.keystore = "ssl/reload/kirk-keystore.jks";
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest("_opendistro/_security/api/ssl/wrong/reloadcerts", null);
-        JSONObject expectedResponse = new JSONObject();
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode expectedResponse = mapper.createObjectNode();
         // Note: toString and toJSONString replace / with \/. This helps get rid of the additional \ character.
         expectedResponse.put("message", "invalid uri path, please use /_opendistro/_security/api/ssl/http/reload or /_opendistro/_security/api/ssl/transport/reload");
         final String expectedResponseString = expectedResponse.toString().replace("\\", "");
@@ -207,8 +235,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         Assert.assertEquals(500, reloadCertsResponse.getStatusCode());
-        JSONObject expectedResponse = new JSONObject();
-        expectedResponse.appendField("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: " +
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode expectedResponse = mapper.createObjectNode();
+        expectedResponse.put("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: " +
             "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];");
         Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
 
@@ -219,8 +248,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         Assert.assertEquals(500, reloadCertsResponse.getStatusCode());
-        expectedResponse = new JSONObject();
-        expectedResponse.appendField("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: New certificates should not expire before the current ones.]; nested: Exception[New certificates should not expire before the current ones.];");
+        mapper = new ObjectMapper();
+        expectedResponse = mapper.createObjectNode();
+        expectedResponse.put("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: New certificates should not expire before the current ones.]; nested: Exception[New certificates should not expire before the current ones.];");
         Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
     }
 
@@ -244,8 +274,9 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         final RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         Assert.assertEquals(400, reloadCertsResponse.getStatusCode());
-        JSONObject expectedResponse = new JSONObject();
-        expectedResponse.appendField("error", "no handler found for uri [/_opendistro/_security/api/ssl/transport/reloadcerts] and method [PUT]");
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode expectedResponse = mapper.createObjectNode();
+        expectedResponse.put("error", "no handler found for uri [/_opendistro/_security/api/ssl/transport/reloadcerts] and method [PUT]");
         // Note: toString and toJSONString replace / with \/. This helps get rid of the additional \ character.
         final String expectedResponseString = expectedResponse.toString().replace("\\", "");
         Assert.assertEquals(expectedResponseString, reloadCertsResponse.getBody());
