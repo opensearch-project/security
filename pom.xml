@@ -34,7 +34,7 @@
     <groupId>org.opensearch</groupId>
     <artifactId>opensearch-security</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0.0-rc1</version>
+    <version>1.0.0.0</version>
     <name>OpenSearch Security</name>
     <description>OpenSearch Security</description>
     <url>https://github.com/opensearch-project/security</url>
@@ -103,7 +103,7 @@
         <url>https://github.com/opensearch-project/security</url>
         <connection>scm:git:git@github.com:opensearch-project/security.git</connection>
         <developerConnection>scm:git:git@github.com:opensearch-project/security.git</developerConnection>
-        <tag>1.0.0.0-rc1</tag>
+        <tag>1.0.0.0</tag>
     </scm>
 
     <issueManagement>

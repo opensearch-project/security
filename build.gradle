@@ -37,7 +37,7 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    securityPluginVersion = '1.0.0.0-rc1'
+    securityPluginVersion = '1.0.0.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
