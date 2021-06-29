@@ -20,3 +20,4 @@ Compatible with OpenSearch 1.0.0
 * Cleanup md files ([#1298](https://github.com/opensearch-project/security/pull/1298))
 * Upgrade json-smart from 2.4.2 to 2.4.7 ([#1299](https://github.com/opensearch-project/security/pull/1299))
 * Bump version to 1.0.0.0 and create release notes ([#1303](https://github.com/opensearch-project/security/pull/1303))
+* Build on OpenSearch 1.0.0 ([#1304](https://github.com/opensearch-project/security/pull/1304))
