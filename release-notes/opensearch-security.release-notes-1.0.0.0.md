@@ -44,3 +44,4 @@ Compatible with OpenSearch 1.0.0
 * Upgrade json-smart from 2.4.2 to 2.4.7 ([#1299](https://github.com/opensearch-project/security/pull/1299))
 * Bump version to 1.0.0.0 and create release notes ([#1303](https://github.com/opensearch-project/security/pull/1303))
 * Build on OpenSearch 1.0.0 ([#1304](https://github.com/opensearch-project/security/pull/1304))
+* Consolidate the release notes for RC1 and GA ([#1305](https://github.com/opensearch-project/security/pull/1305))
