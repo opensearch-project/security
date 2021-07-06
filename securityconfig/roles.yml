@@ -128,3 +128,21 @@ asynchronous_search_read_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opendistro/asynchronous_search/get'
+
+# Allow users to read stats
+ml_readonly_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/openserach/ml/stats'
+
+# Allows users to use all Machine Learning functionality
+ml_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster_monitor'
+    - 'cluster:admin/opensearch/ml/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices_monitor'
