@@ -41,6 +41,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
@@ -315,15 +316,22 @@ public abstract class AbstractConfigurationValidator {
     }
 
     private boolean hasNullElement(JsonNode node) {
-        for (JsonNode jsonNode : node) {
-            if(jsonNode.isNull()){
-                return  true;
-            }
-            else{
-                Iterator<JsonNode> nodeIter = node.iterator();
-                while(nodeIter.hasNext()){
-                    if (hasNullElement(nodeIter.next())) return true;
+        if (node.isArray()) {
+            for (JsonNode jsonNode: node){
+                if(jsonNode.isNull()){
+                    return true;
                 }
+            }
+            ArrayNode arrayNode = (ArrayNode) node;
+            Iterator<JsonNode> nodeIter = arrayNode.elements();
+            while (nodeIter.hasNext()) {
+                if (hasNullElement(nodeIter.next())) return true;
+            }
+        }
+        else if (node.isObject()) {
+            Iterator<Entry<String, JsonNode>> entry_it = node.fields();
+            while (entry_it.hasNext()) {
+                if (hasNullElement(entry_it.next().getValue())) return true;
             }
         }
         return false;
