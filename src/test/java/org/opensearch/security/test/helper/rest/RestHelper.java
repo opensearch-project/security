@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
@@ -131,6 +132,14 @@ public class RestHelper {
 		Future<HttpResponse>[] futures = new Future[numOfRequests];
 		for (int i = 0; i < numOfRequests; i++) {
 			futures[i] = executorService.submit(() -> executePutRequest(request, body, new Header[0]));
+		}
+		executorService.shutdown();
+		try {
+			if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+				executorService.shutdownNow();
+			}
+		} catch (InterruptedException e) {
+			executorService.shutdownNow();
 		}
 		return Arrays.stream(futures)
 				.map(HttpResponse::from)
