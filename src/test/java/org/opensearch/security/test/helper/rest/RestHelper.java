@@ -39,6 +39,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import javax.net.ssl.SSLContext;
@@ -66,9 +68,6 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
@@ -128,25 +127,16 @@ public class RestHelper {
 	}
 
 	public HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
-		try (CloseableHttpAsyncClient client = getHTTPAsyncClient(numOfRequests)) {
-			client.start();
-			List<Future<org.apache.http.HttpResponse>> futures = new ArrayList<>();
-			HttpResponse[] responses = new HttpResponse[numOfRequests];
-			HttpPut uriRequest = new HttpPut(getHttpServerUri() + request);
-			uriRequest.addHeader("Content-Type", "application/json");
-			if (body != null && !body.isEmpty()) {
-				uriRequest.setEntity(new StringEntity(body));
-			}
-			for (int i = 0; i < numOfRequests; i++) {
-				futures.add(client.execute(uriRequest, null));
-			}
-			for (int i = 0; i < numOfRequests; i++) {
-				responses[i] = new HttpResponse(futures.get(i).get());
-			}
-			return responses;
+		final ExecutorService executorService = Executors.newFixedThreadPool(numOfRequests);
+		Future<HttpResponse>[] futures = new Future[numOfRequests];
+		for (int i = 0; i < numOfRequests; i++) {
+			futures[i] = executorService.submit(() -> executePutRequest(request, body, new Header[0]));
 		}
+		return Arrays.stream(futures)
+				.map(HttpResponse::from)
+				.toArray(s -> new HttpResponse[s]);
 	}
-
+	
 	public HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
 	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
 	}
@@ -222,33 +212,15 @@ public class RestHelper {
 		return address;
 	}
 
-	protected final CloseableHttpAsyncClient getHTTPAsyncClient(int numOfRequests) throws Exception {
-
-		final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom().setMaxConnPerRoute(numOfRequests);
-
-		if (sendHTTPClientCredentials) {
-			hcb.setDefaultCredentialsProvider(getClientCredentials());
-		}
-
-		if (enableHTTPClientSSL) {
-			hcb.setSSLContext(setHTTPClientSSL());
-			hcb.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE);
-		}
-
-		return hcb.build();
-	}
-
 	protected final CloseableHttpClient getHTTPClient() throws Exception {
 
 		final HttpClientBuilder hcb = HttpClients.custom();
-
-		if (sendHTTPClientCredentials) {
-			hcb.setDefaultCredentialsProvider(getClientCredentials());
-		}
+		
+		hcb.setDefaultCredentialsProvider(getClientCredentials());
 
 		if (enableHTTPClientSSL) {
 
-			final SSLContext sslContext = setHTTPClientSSL();
+			final SSLContext sslContext = getSSLContext();
 
 			String[] protocols = null;
 
@@ -272,7 +244,7 @@ public class RestHelper {
 		return hcb.build();
 	}
 
-	protected final SSLContext setHTTPClientSSL() throws Exception {
+	protected final SSLContext getSSLContext() throws Exception {
 
 		log.debug("Configure HTTP client with SSL");
 
@@ -303,14 +275,17 @@ public class RestHelper {
 	}
 
 	protected final CredentialsProvider getClientCredentials() {
-		CredentialsProvider provider = new BasicCredentialsProvider();
-		UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
-		provider.setCredentials(AuthScope.ANY, credentials);
-		return provider;
+		if (sendHTTPClientCredentials) {
+			CredentialsProvider provider = new BasicCredentialsProvider();
+			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
+			provider.setCredentials(AuthScope.ANY, credentials);
+			return provider;
+		} else {
+			return null;
+		}
 	}
-
 	
-	public class HttpResponse {
+	public static class HttpResponse {
 		private final org.apache.http.HttpResponse inner;
 		private final String body;
 		private final Header[] header;
@@ -379,8 +354,13 @@ public class RestHelper {
             return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
                     + ", statusReason=" + statusReason + "]";
         }
-
+        
+		private static HttpResponse from(Future<HttpResponse> future) {
+			try {
+				return future.get();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
-
-	
 }
