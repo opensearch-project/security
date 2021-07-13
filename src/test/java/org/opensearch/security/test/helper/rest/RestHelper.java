@@ -134,7 +134,6 @@ public class RestHelper {
 			futures[i] = executorService.submit(() -> executePutRequest(request, body, new Header[0]));
 		}
 		executorService.shutdown();
-		executorService.shutdownNow();
 		return Arrays.stream(futures)
 				.map(HttpResponse::from)
 				.toArray(s -> new HttpResponse[s]);
