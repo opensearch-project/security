@@ -134,13 +134,7 @@ public class RestHelper {
 			futures[i] = executorService.submit(() -> executePutRequest(request, body, new Header[0]));
 		}
 		executorService.shutdown();
-		try {
-			if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
-				executorService.shutdownNow();
-			}
-		} catch (InterruptedException e) {
-			executorService.shutdownNow();
-		}
+		executorService.shutdownNow();
 		return Arrays.stream(futures)
 				.map(HttpResponse::from)
 				.toArray(s -> new HttpResponse[s]);
