@@ -74,7 +74,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 public class RestHelper {
 
 	protected final Logger log = LogManager.getLogger(RestHelper.class);
-
+	
 	public boolean enableHTTPClientSSL = true;
 	public boolean enableHTTPClientSSLv3Only = false;
 	public boolean sendAdminCertificate = false;
@@ -84,12 +84,12 @@ public class RestHelper {
 	public final String prefix;
 	//public String truststore = "truststore.jks";
 	private ClusterInfo clusterInfo;
-
+	
 	public RestHelper(ClusterInfo clusterInfo, String prefix) {
 		this.clusterInfo = clusterInfo;
 		this.prefix = prefix;
 	}
-
+	
 	public RestHelper(ClusterInfo clusterInfo, boolean enableHTTPClientSSL, boolean trustHTTPServerCertificate, String prefix) {
 		this.clusterInfo = clusterInfo;
 		this.enableHTTPClientSSL = enableHTTPClientSSL;
@@ -122,16 +122,16 @@ public class RestHelper {
 	}
 
 	public HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
-		return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
+	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
 	}
-
+	
 	public HttpResponse executeHeadRequest(final String request, Header... header) throws Exception {
-		return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
-	}
-
+        return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
+    }
+	
 	public HttpResponse executeOptionsRequest(final String request) throws Exception {
-		return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
-	}
+        return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
+    }
 
 	public HttpResponse executePutRequest(final String request, String body, Header... header) throws Exception {
 		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
@@ -153,15 +153,15 @@ public class RestHelper {
 
 		return executeRequest(uriRequest, header);
 	}
-
-	public HttpResponse executePatchRequest(final String request, String body, Header... header) throws Exception {
-		HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
-		if (body != null && !body.isEmpty()) {
-			uriRequest.setEntity(new StringEntity(body));
-		}
-		return executeRequest(uriRequest, header);
-	}
-
+	
+    public HttpResponse executePatchRequest(final String request, String body, Header... header) throws Exception {
+        HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
+        if (body != null && !body.isEmpty()) {
+            uriRequest.setEntity(new StringEntity(body));
+        }
+        return executeRequest(uriRequest, header);
+    }	
+	
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) throws Exception {
 
 		CloseableHttpClient httpClient = null;
@@ -177,7 +177,7 @@ public class RestHelper {
 			}
 
 			if (!uriRequest.containsHeader("Content-Type")) {
-				uriRequest.addHeader("Content-Type","application/json");
+			    uriRequest.addHeader("Content-Type","application/json");
 			}
 			HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
 			log.debug(res.getBody());
@@ -189,13 +189,13 @@ public class RestHelper {
 			}
 		}
 	}
-
+	
 	protected final String getHttpServerUri() {
 		final String address = "http" + (enableHTTPClientSSL ? "s" : "") + "://" + clusterInfo.httpHost + ":" + clusterInfo.httpPort;
 		log.debug("Connect to {}", address);
 		return address;
 	}
-
+	
 	protected final CloseableHttpClient getHTTPClient() throws Exception {
 
 		final HttpClientBuilder hcb = HttpClients.custom();
@@ -210,13 +210,13 @@ public class RestHelper {
 		if (enableHTTPClientSSL) {
 
 			log.debug("Configure HTTP client with SSL");
-
+			
 			if(prefix != null && !keystore.contains("/")) {
-				keystore = prefix+"/"+keystore;
+			    keystore = prefix+"/"+keystore;
 			}
-
-			final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
-
+			
+            final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
+                        
 			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
 			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
 					"changeit".toCharArray());
@@ -245,9 +245,9 @@ public class RestHelper {
 			}
 
 			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-					sslContext,
-					protocols,
-					null,
+			        sslContext, 
+			        protocols, 
+			        null,
 					NoopHostnameVerifier.INSTANCE);
 
 			hcb.setSSLSocketFactory(sslsf);
@@ -258,7 +258,7 @@ public class RestHelper {
 		return hcb.build();
 	}
 
-
+	
 	public class HttpResponse {
 		private final CloseableHttpResponse inner;
 		private final String body;
@@ -271,9 +271,9 @@ public class RestHelper {
 			this.inner = inner;
 			final HttpEntity entity = inner.getEntity();
 			if(entity == null) { //head request does not have a entity
-				this.body = "";
+			    this.body = "";
 			} else {
-				this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
+			    this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
 			}
 			this.header = inner.getAllHeaders();
 			this.statusCode = inner.getStatusLine().getStatusCode();
@@ -321,13 +321,13 @@ public class RestHelper {
 			return header==null?Collections.emptyList():Arrays.asList(header);
 		}
 
-		@Override
-		public String toString() {
-			return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
-					+ ", statusReason=" + statusReason + "]";
-		}
+        @Override
+        public String toString() {
+            return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
+                    + ", statusReason=" + statusReason + "]";
+        }
 
 	}
 
-
+	
 }
