@@ -30,19 +30,13 @@
 
 package org.opensearch.security.test.helper.rest;
 
-import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
@@ -80,7 +74,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 public class RestHelper {
 
 	protected final Logger log = LogManager.getLogger(RestHelper.class);
-	
+
 	public boolean enableHTTPClientSSL = true;
 	public boolean enableHTTPClientSSLv3Only = false;
 	public boolean sendAdminCertificate = false;
@@ -90,12 +84,12 @@ public class RestHelper {
 	public final String prefix;
 	//public String truststore = "truststore.jks";
 	private ClusterInfo clusterInfo;
-	
+
 	public RestHelper(ClusterInfo clusterInfo, String prefix) {
 		this.clusterInfo = clusterInfo;
 		this.prefix = prefix;
 	}
-	
+
 	public RestHelper(ClusterInfo clusterInfo, boolean enableHTTPClientSSL, boolean trustHTTPServerCertificate, String prefix) {
 		this.clusterInfo = clusterInfo;
 		this.enableHTTPClientSSL = enableHTTPClientSSL;
@@ -127,29 +121,17 @@ public class RestHelper {
 		}
 	}
 
-	public HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
-		final ExecutorService executorService = Executors.newFixedThreadPool(numOfRequests);
-		Future<HttpResponse>[] futures = new Future[numOfRequests];
-		for (int i = 0; i < numOfRequests; i++) {
-			futures[i] = executorService.submit(() -> executePutRequest(request, body, new Header[0]));
-		}
-		executorService.shutdown();
-		return Arrays.stream(futures)
-				.map(HttpResponse::from)
-				.toArray(s -> new HttpResponse[s]);
-	}
-	
 	public HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
-	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
+		return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
 	}
-	
+
 	public HttpResponse executeHeadRequest(final String request, Header... header) throws Exception {
-        return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
-    }
-	
+		return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
+	}
+
 	public HttpResponse executeOptionsRequest(final String request) throws Exception {
-        return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
-    }
+		return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
+	}
 
 	public HttpResponse executePutRequest(final String request, String body, Header... header) throws Exception {
 		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
@@ -171,15 +153,15 @@ public class RestHelper {
 
 		return executeRequest(uriRequest, header);
 	}
-	
-    public HttpResponse executePatchRequest(final String request, String body, Header... header) throws Exception {
-        HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
-        if (body != null && !body.isEmpty()) {
-            uriRequest.setEntity(new StringEntity(body));
-        }
-        return executeRequest(uriRequest, header);
-    }	
-	
+
+	public HttpResponse executePatchRequest(final String request, String body, Header... header) throws Exception {
+		HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
+		if (body != null && !body.isEmpty()) {
+			uriRequest.setEntity(new StringEntity(body));
+		}
+		return executeRequest(uriRequest, header);
+	}
+
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) throws Exception {
 
 		CloseableHttpClient httpClient = null;
@@ -195,7 +177,7 @@ public class RestHelper {
 			}
 
 			if (!uriRequest.containsHeader("Content-Type")) {
-			    uriRequest.addHeader("Content-Type","application/json");
+				uriRequest.addHeader("Content-Type","application/json");
 			}
 			HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
 			log.debug(res.getBody());
@@ -207,7 +189,7 @@ public class RestHelper {
 			}
 		}
 	}
-	
+
 	protected final String getHttpServerUri() {
 		final String address = "http" + (enableHTTPClientSSL ? "s" : "") + "://" + clusterInfo.httpHost + ":" + clusterInfo.httpPort;
 		log.debug("Connect to {}", address);
@@ -217,12 +199,42 @@ public class RestHelper {
 	protected final CloseableHttpClient getHTTPClient() throws Exception {
 
 		final HttpClientBuilder hcb = HttpClients.custom();
-		
-		hcb.setDefaultCredentialsProvider(getClientCredentials());
+
+		if (sendHTTPClientCredentials) {
+			CredentialsProvider provider = new BasicCredentialsProvider();
+			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
+			provider.setCredentials(AuthScope.ANY, credentials);
+			hcb.setDefaultCredentialsProvider(provider);
+		}
 
 		if (enableHTTPClientSSL) {
 
-			final SSLContext sslContext = getSSLContext();
+			log.debug("Configure HTTP client with SSL");
+
+			if(prefix != null && !keystore.contains("/")) {
+				keystore = prefix+"/"+keystore;
+			}
+
+			final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
+
+			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
+			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
+					"changeit".toCharArray());
+
+			final KeyStore keyStore = KeyStore.getInstance("JKS");
+			keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
+
+			final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
+
+			if (trustHTTPServerCertificate) {
+				sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
+			}
+
+			if (sendAdminCertificate) {
+				sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
+			}
+
+			final SSLContext sslContext = sslContextbBuilder.build();
 
 			String[] protocols = null;
 
@@ -233,9 +245,9 @@ public class RestHelper {
 			}
 
 			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-			        sslContext, 
-			        protocols, 
-			        null,
+					sslContext,
+					protocols,
+					null,
 					NoopHostnameVerifier.INSTANCE);
 
 			hcb.setSSLSocketFactory(sslsf);
@@ -246,55 +258,15 @@ public class RestHelper {
 		return hcb.build();
 	}
 
-	protected final SSLContext getSSLContext() throws Exception {
 
-		log.debug("Configure HTTP client with SSL");
-
-		if(prefix != null && !keystore.contains("/")) {
-			keystore = prefix+"/"+keystore;
-		}
-
-		final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
-
-		final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-		myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
-				"changeit".toCharArray());
-
-		final KeyStore keyStore = KeyStore.getInstance("JKS");
-		keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
-
-		final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
-
-		if (trustHTTPServerCertificate) {
-			sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
-		}
-
-		if (sendAdminCertificate) {
-			sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
-		}
-
-		return sslContextbBuilder.build();
-	}
-
-	protected final CredentialsProvider getClientCredentials() {
-		if (sendHTTPClientCredentials) {
-			CredentialsProvider provider = new BasicCredentialsProvider();
-			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
-			provider.setCredentials(AuthScope.ANY, credentials);
-			return provider;
-		} else {
-			return null;
-		}
-	}
-	
-	public static class HttpResponse {
-		private final org.apache.http.HttpResponse inner;
+	public class HttpResponse {
+		private final CloseableHttpResponse inner;
 		private final String body;
 		private final Header[] header;
 		private final int statusCode;
 		private final String statusReason;
 
-		public HttpResponse(org.apache.http.HttpResponse inner) throws IllegalStateException, IOException {
+		public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
 			super();
 			this.inner = inner;
 			final HttpEntity entity = inner.getEntity();
@@ -306,9 +278,7 @@ public class RestHelper {
 			this.header = inner.getAllHeaders();
 			this.statusCode = inner.getStatusLine().getStatusCode();
 			this.statusReason = inner.getStatusLine().getReasonPhrase();
-			if (inner instanceof Closeable) {
-				((Closeable)inner).close();
-			}
+			inner.close();
 		}
 
 		public String getContentType() {
@@ -327,7 +297,7 @@ public class RestHelper {
 			return ct.contains("application/json");
 		}
 
-		public org.apache.http.HttpResponse getInner() {
+		public CloseableHttpResponse getInner() {
 			return inner;
 		}
 
@@ -351,18 +321,13 @@ public class RestHelper {
 			return header==null?Collections.emptyList():Arrays.asList(header);
 		}
 
-        @Override
-        public String toString() {
-            return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
-                    + ", statusReason=" + statusReason + "]";
-        }
-        
-		private static HttpResponse from(Future<HttpResponse> future) {
-			try {
-				return future.get();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+		@Override
+		public String toString() {
+			return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
+					+ ", statusReason=" + statusReason + "]";
 		}
+
 	}
+
+
 }
