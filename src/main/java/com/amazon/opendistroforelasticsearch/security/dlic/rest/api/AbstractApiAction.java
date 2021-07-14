@@ -39,6 +39,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
@@ -286,7 +287,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		@Override
 		public final void onFailure(Exception e) {
-			internalErrorResponse(channel, "Error "+e.getMessage());
+			if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
+				conflict(channel, e.getMessage());
+			} else {
+				internalErrorResponse(channel, "Error "+e.getMessage());
+			}
 		}
 
 	}
@@ -495,6 +500,10 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected void unprocessable(RestChannel channel, String message) {
 		response(channel, RestStatus.UNPROCESSABLE_ENTITY, message);
+	}
+
+	protected void conflict(RestChannel channel, String message) {
+		response(channel, RestStatus.CONFLICT, message);
 	}
 
 	protected void notImplemented(RestChannel channel, Method method) {
