@@ -39,6 +39,7 @@ import org.opensearch.common.xcontent.ToXContent;
 import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
@@ -291,7 +292,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 		@Override
 		public final void onFailure(Exception e) {
-			internalErrorResponse(channel, "Error "+e.getMessage());
+			if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
+				conflict(channel, e.getMessage());
+			} else {
+				internalErrorResponse(channel, "Error "+e.getMessage());
+			}
 		}
 
 	}

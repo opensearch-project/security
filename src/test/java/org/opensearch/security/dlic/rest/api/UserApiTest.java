@@ -76,6 +76,28 @@ public class UserApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
+    public void testParallelPutRequests() throws Exception {
+        
+        setup();
+        
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10, ENDPOINT + "/internalusers/test1", "{\"password\":\"test1\"}");
+        boolean created = false;
+        for (HttpResponse response : responses) {
+            int sc = response.getStatusCode();
+            if (sc == HttpStatus.SC_CREATED) {
+                Assert.assertFalse(created);
+                created = true;
+            } else {
+                Assert.assertEquals(HttpStatus.SC_CONFLICT, sc);
+            }
+        }
+        deleteUser("test1");
+    }
+
+    @Test
     public void testUserApi() throws Exception {
 
         setup();
