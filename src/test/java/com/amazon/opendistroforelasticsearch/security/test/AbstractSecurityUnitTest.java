@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -214,7 +215,7 @@ public abstract class AbstractSecurityUnitTest {
         }
     }
 
-    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly, boolean hasCustomTransportSettings) {
+    protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly, Settings other) {
 
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
 
@@ -223,7 +224,7 @@ public abstract class AbstractSecurityUnitTest {
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL);
 
         // If custom transport settings are not defined use defaults
-        if (!hasCustomTransportSettings) {
+        if (!hasCustomTransportSettings(other)) {
             builder.put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
                 .put(SSLConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
                     FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
@@ -236,6 +237,8 @@ public abstract class AbstractSecurityUnitTest {
             builder.put(ConfigConstants.OPENDISTRO_SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
 
+        builder.put(other);
+
         return builder;
     }
 
@@ -243,7 +246,7 @@ public abstract class AbstractSecurityUnitTest {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, false, hasCustomTransportSettings(other)).put(other).build();
+                return minimumSecuritySettingsBuilder(i, false, other).build();
             }
         };
     }
@@ -253,7 +256,7 @@ public abstract class AbstractSecurityUnitTest {
         return new NodeSettingsSupplier() {
             @Override
             public Settings get(int i) {
-                return minimumSecuritySettingsBuilder(i, true, false).put(other).build();
+                return minimumSecuritySettingsBuilder(i, true, other).build();
             }
         };
     }
@@ -266,8 +269,21 @@ public abstract class AbstractSecurityUnitTest {
                 if (i == nonSSLNodeNum) {
                     return Settings.builder().build();
                 }
-                return minimumSecuritySettingsBuilder(i, true, false).put(other).build();
+                return minimumSecuritySettingsBuilder(i, true, other).build();
             }
+        };
+    }
+
+    protected NodeSettingsSupplier genericMinimumSecuritySettings(List<Settings> others, List<Boolean> sslOnly) {
+
+        return i -> {
+            assert i > 0; // i is 1-indexed
+
+            // Set to default if input does not have value at (i-1) index
+            boolean sslOnlyFlag = i > sslOnly.size() ? false : sslOnly.get(i-1);
+            Settings settings = i > others.size() ? Settings.EMPTY : others.get(i-1);
+
+            return minimumSecuritySettingsBuilder(i, sslOnlyFlag, settings).build();
         };
     }
 
