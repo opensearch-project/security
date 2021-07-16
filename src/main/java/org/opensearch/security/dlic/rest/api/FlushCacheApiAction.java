@@ -35,6 +35,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.NoOpValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -48,7 +49,7 @@ import com.google.common.collect.ImmutableList;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class FlushCacheApiAction extends AbstractApiAction {
-	private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(ImmutableList.of(
+	private static final List<ReplacedRoute> replacedRoutes = Utils.replaceRoutes(ImmutableList.of(
 			new Route(Method.DELETE, "/cache"),
 			new Route(Method.GET, "/cache"),
 			new Route(Method.PUT, "/cache"),

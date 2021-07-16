@@ -39,6 +39,7 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestHandler.Route;
 import org.opensearch.rest.RestHandler.ReplacedRoute;
 
@@ -48,10 +49,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opensearch.security.DefaultObjectMapper;
 
+<<<<<<< HEAD
 import com.google.common.collect.ImmutableList;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
+=======
+import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+
+>>>>>>> e41d82d7... Use replaceRoutes() method from RestHandler instead of addRoutesPrefix()
 public class Utils {
 
     private static final ObjectMapper internalMapper = new ObjectMapper();
@@ -225,22 +231,7 @@ public class Utils {
      * @return new list of API routes prefixed with _opendistro... and _plugins...
      *Total number of routes is expanded as twice as the number of routes passed in
      */
-    public static List<ReplacedRoute> addRoutesPrefix(List<Route> routes){
-        return addRoutesPrefix(routes, "/_plugins/_security/api", "/_opendistro/_security/api");
-    }
-
-    /**
-     * Add customized prefix(_opendistro... and _plugins...)to API rest routes
-     * @param routes routes
-     * @param newPrefix new prefix
-     * @param oldPrefix old prefix
-     * @return new list of API routes prefixed with the strings listed in prefixes
-     * Total number of routes will be expanded len(prefixes) as much comparing to the list passed in
-     */
-    public static List<ReplacedRoute> addRoutesPrefix(List<Route> routes, final String newPrefix, final String oldPrefix){
-        return routes.stream()
-                     .map(p -> new ReplacedRoute(p.getMethod(), newPrefix + p.getPath(),
-                        p.getMethod(), oldPrefix + p.getPath()))
-                .collect(ImmutableList.toImmutableList());
+    public static List<ReplacedRoute> replaceRoutes(List<Route> routes){
+        return RestHandler.replaceRoutes(routes, "/_plugins/_security/api", "/_opendistro/_security/api");
     }
 }

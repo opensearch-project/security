@@ -52,6 +52,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -61,10 +62,8 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import com.google.common.collect.ImmutableList;
 
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-
 public class SecurityInfoAction extends BaseRestHandler {
-    private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(ImmutableList.of(
+    private static final List<ReplacedRoute> replacedRoutes = RestHandler.replaceRoutes(ImmutableList.of(
             new Route(GET, "/authinfo"),
             new Route(POST, "/authinfo")
     ),"/_plugins/_security", "/_opendistro/_security");

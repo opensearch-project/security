@@ -18,6 +18,7 @@ package org.opensearch.security.dlic.rest.api;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.NodesDnValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -45,8 +46,6 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-
 /**
  * This class implements CRUD operations to manage dynamic NodesDn. The primary usecase is targeted at cross-cluster where
  * in node restart can be avoided by populating the coordinating cluster's nodes_dn values.
@@ -64,7 +63,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
-    private static final List<ReplacedRoute> replacedRoutes = addRoutesPrefix(ImmutableList.of(
+    private static final List<ReplacedRoute> replacedRoutes = Utils.replaceRoutes(ImmutableList.of(
             new Route(Method.GET, "/nodesdn/{name}"),
             new Route(Method.GET, "/nodesdn/"),
             new Route(Method.DELETE, "/nodesdn/{name}"),

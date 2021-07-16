@@ -36,6 +36,7 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -44,17 +45,15 @@ import org.opensearch.threadpool.ThreadPool;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-
 public class SecurityConfigAction extends PatchableResourceApiAction {
 
-    private static final List<ReplacedRoute> getRoutes = addRoutesPrefix(Collections.singletonList(
+    private static final List<ReplacedRoute> getRoutes = Utils.replaceRoutes(Collections.singletonList(
             new Route(Method.GET, "/securityconfig/")
     ));
 
     private static final List<ReplacedRoute> allRoutes = new ImmutableList.Builder<ReplacedRoute>()
             .addAll(getRoutes)
-            .addAll(addRoutesPrefix(
+            .addAll(Utils.replaceRoutes(
                 ImmutableList.of(
                     new Route(Method.PUT, "/securityconfig/{name}"),
                     new Route(Method.PATCH, "/securityconfig/")
