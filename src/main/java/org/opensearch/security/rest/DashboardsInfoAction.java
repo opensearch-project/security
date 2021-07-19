@@ -54,8 +54,6 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.security.user.User;
 import com.google.common.collect.ImmutableList;
 
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
-
 public class DashboardsInfoAction extends BaseRestHandler {
 
     private static final List<ReplacedRoute> replacedRoutes = ImmutableList.of(

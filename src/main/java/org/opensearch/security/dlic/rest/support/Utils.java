@@ -49,15 +49,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opensearch.security.DefaultObjectMapper;
 
-<<<<<<< HEAD
-import com.google.common.collect.ImmutableList;
-
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
-=======
-import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
-
->>>>>>> e41d82d7... Use replaceRoutes() method from RestHandler instead of addRoutesPrefix()
 public class Utils {
 
     private static final ObjectMapper internalMapper = new ObjectMapper();
