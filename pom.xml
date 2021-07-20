@@ -849,7 +849,7 @@
                                     <descriptors>
                                         <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
                                     </descriptors>
-                                    <finalName>opensearch-security-${version}</finalName>
+                                    <finalName>opensearch-security-${project.version}</finalName>
                                 </configuration>
                                 <goals>
                                     <goal>single</goal>
@@ -865,7 +865,7 @@
                                     <descriptors>
                                         <descriptor>${securitystandalone.descriptor}</descriptor>
                                     </descriptors>
-                                    <finalName>opensearch-security-${version}</finalName>
+                                    <finalName>opensearch-security-${project.version}</finalName>
                                 </configuration>
                                 <goals>
                                     <goal>single</goal>
@@ -890,7 +890,7 @@
                                 <fileSet>
                                     <directory>${project.build.directory}/releases/</directory>
                                     <includes>
-                                        <include>opensearch-security-${version}.zip</include>
+                                        <include>opensearch-security-${project.version}.zip</include>
                                     </includes>
                                 </fileSet>
                             </fileSets>
