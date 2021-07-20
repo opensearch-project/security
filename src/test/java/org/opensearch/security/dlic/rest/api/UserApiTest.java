@@ -84,15 +84,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10, ENDPOINT + "/internalusers/test1", "{\"password\":\"test1\"}");
-        boolean created = false;
         for (HttpResponse response : responses) {
             int sc = response.getStatusCode();
-            if (sc == HttpStatus.SC_CREATED) {
-                Assert.assertFalse(created);
-                created = true;
-            } else {
-                Assert.assertEquals(HttpStatus.SC_CONFLICT, sc);
-            }
+            Assert.assertTrue("Status code should be 409 or 200", sc == HttpStatus.SC_CREATED);
         }
         deleteUser("test1");
     }
