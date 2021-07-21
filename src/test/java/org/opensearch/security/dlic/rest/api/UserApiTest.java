@@ -87,11 +87,17 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         boolean created = false;
         for (HttpResponse response : responses) {
             int sc = response.getStatusCode();
-            if (sc == HttpStatus.SC_CREATED) {
-                Assert.assertFalse(created);
-                created = true;
-            } else {
-                Assert.assertTrue("Status code should be 409 or 200", sc == HttpStatus.SC_CONFLICT || sc == HttpStatus.SC_CREATED);
+            switch (sc) {
+                case HttpStatus.SC_CREATED:
+                    Assert.assertFalse(created);
+                    created = true;
+                    break;
+                case HttpStatus.SC_OK:
+                    Assert.assertTrue(created);
+                    break;
+                default:
+                    Assert.assertEquals(HttpStatus.SC_CONFLICT, sc);
+                    break;
             }
         }
         deleteUser("test1");
