@@ -93,7 +93,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                     created = true;
                     break;
                 case HttpStatus.SC_OK:
-                    Assert.assertTrue(created);
                     break;
                 default:
                     Assert.assertEquals(HttpStatus.SC_CONFLICT, sc);
