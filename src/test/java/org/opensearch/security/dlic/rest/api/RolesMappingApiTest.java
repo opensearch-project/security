@@ -15,7 +15,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.Header;

@@ -59,8 +59,6 @@ public class SecurityHealthAction extends BaseRestHandler {
 
     private final BackendRegistry registry;
 
-    public static final String HEALTH_SUFFIX = "health";
-
     public SecurityHealthAction(final Settings settings, final RestController controller, final BackendRegistry registry) {
         super();
         this.registry = registry;

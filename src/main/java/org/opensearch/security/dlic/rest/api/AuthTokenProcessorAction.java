@@ -48,8 +48,6 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 			new Route(Method.POST, "/authtoken")
 	));
 
-	public static final String API_AUTHTOKEN_SUFFIX = "api/authtoken";
-
 	@Inject
 	public AuthTokenProcessorAction(final Settings settings, final Path configPath, final RestController controller,
                                     final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,

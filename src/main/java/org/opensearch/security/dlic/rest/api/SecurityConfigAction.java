@@ -19,8 +19,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
-import java.util.stream.Collectors;
 
 import org.opensearch.security.dlic.rest.validation.SecurityConfigValidator;
 import org.opensearch.security.securityconf.impl.CType;

@@ -69,8 +69,6 @@ import java.util.regex.Pattern;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction.API_AUTHTOKEN_SUFFIX;
-import static org.opensearch.security.rest.SecurityInfoAction.AUTHINFO_SUFFIX;
 
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
@@ -80,6 +78,8 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     public static final String IDP_METADATA_FILE = "idp.metadata_file";
     public static final String IDP_METADATA_CONTENT = "idp.metadata_content";
 
+    private static final String API_AUTHTOKEN_SUFFIX = "api/authtoken";
+    private static final String AUTHINFO_SUFFIX = "authinfo";
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
     private static final  Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 

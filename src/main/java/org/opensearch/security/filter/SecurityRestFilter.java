@@ -68,7 +68,6 @@ import java.util.regex.Pattern;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
-import static org.opensearch.security.rest.SecurityHealthAction.HEALTH_SUFFIX;
 
 public class SecurityRestFilter {
 
@@ -83,6 +82,7 @@ public class SecurityRestFilter {
 
     private WhitelistingSettings whitelistingSettings;
 
+    private static final String HEALTH_SUFFIX = "health";
     private static final String REGEX_PATH_PREFIX = "/("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
