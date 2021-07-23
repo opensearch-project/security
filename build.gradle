@@ -67,7 +67,7 @@ ospackage {
     user 'root'
     permissionGroup 'root'
 
-    requires('opensearch-oss', "1.0.0", EQUAL)
+    requires('opensearch-oss', "1.1.0", EQUAL)
     packager = 'Amazon'
     vendor = 'Amazon'
     os = 'LINUX'
