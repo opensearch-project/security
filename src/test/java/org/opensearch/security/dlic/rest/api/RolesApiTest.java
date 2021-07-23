@@ -15,7 +15,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.runner.RunWith;
@@ -489,7 +488,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // Put read only roles
-        response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_transport_client",
+        response = rh.executePutRequest( ENDPOINT + "/roles/opendistro_security_transport_client",
                                         FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
@@ -511,7 +510,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // put hidden role
         String body = FileHelper.loadFile("restapi/roles_captains.json");
-        response = rh.executePutRequest("/_opendistro/_security/api/roles/opendistro_security_internal", body, new Header[0]);
+        response = rh.executePutRequest( ENDPOINT+ "/roles/opendistro_security_internal", body, new Header[0]);
         Assert.assertEquals(org.apache.http.HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Patch single hidden roles

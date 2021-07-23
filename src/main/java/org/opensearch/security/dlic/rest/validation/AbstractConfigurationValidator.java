@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Iterator;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.DefaultObjectMapper;
@@ -41,7 +40,6 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
@@ -194,7 +192,7 @@ public abstract class AbstractConfigurationValidator {
         for (Entry<String, DataType> allowedKey : allowedKeys.entrySet()) {
             JsonNode value = contentAsNode.get(allowedKey.getKey());
             if (value != null) {
-                if (hasNullElement(value)) {
+                if (hasNullArrayElement(value)) {
                     this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
                     return false;
                 }
@@ -315,13 +313,15 @@ public abstract class AbstractConfigurationValidator {
         return param != null && param.length > 0;
     }
 
-    private boolean hasNullElement(JsonNode node) {
-        for (JsonNode jsonNode: node) {
-            if(jsonNode.isNull() && node.isArray()) {
-                return true;
+    private boolean hasNullArrayElement(JsonNode node) {
+        for (JsonNode element: node) {
+            if(element.isNull()) {
+                if (node.isArray())
+                    return true;
             }
-            else {
-                if (hasNullElement(jsonNode)) return true;
+            else if (element.isContainerNode()) {
+                if (hasNullArrayElement(element))
+                    return true;
             }
         }
         return false;
