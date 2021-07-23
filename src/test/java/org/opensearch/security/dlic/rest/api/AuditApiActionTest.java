@@ -49,6 +49,8 @@ import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class AuditApiActionTest extends AbstractRestApiUnitTest {
@@ -69,8 +71,8 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String[]> endpoints() {
         return Arrays.asList(new String[][] {
-                {"/_opendistro/_security/api/audit/config", "/_opendistro/_security/api/audit"},
-                {"/_plugins/_security/api/audit/config", "/_plugins/_security/api/audit"}
+                {LEGACY_OPENDISTRO_PREFIX + "/api/audit/config", LEGACY_OPENDISTRO_PREFIX + "/api/audit"},
+                {PLUGINS_PREFIX + "/api/audit/config", PLUGINS_PREFIX + "/api/audit"}
         });
     }
 

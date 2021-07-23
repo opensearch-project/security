@@ -26,6 +26,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 @RunWith(Parameterized.class)
 public class SecurityHealthActionTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
@@ -37,8 +40,8 @@ public class SecurityHealthActionTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                "_opendistro/_security",
-                "_plugins/_security"
+                LEGACY_OPENDISTRO_PREFIX + "",
+                PLUGINS_PREFIX + ""
         );
     }
 

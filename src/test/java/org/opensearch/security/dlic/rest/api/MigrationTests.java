@@ -32,6 +32,9 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 @RunWith(Parameterized.class)
 public class MigrationTests extends SingleClusterTest {
     private final String ENDPOINT;
@@ -43,8 +46,8 @@ public class MigrationTests extends SingleClusterTest {
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                "_opendistro/_security/api",
-                "_plugins/_security/api"
+                LEGACY_OPENDISTRO_PREFIX + "/api",
+                PLUGINS_PREFIX + "/api"
         );
     }
 

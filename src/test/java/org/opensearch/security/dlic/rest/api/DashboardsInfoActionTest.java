@@ -22,28 +22,10 @@ import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import java.util.Arrays;
 
-@RunWith(Parameterized.class)
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+
 public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
-
-    private final String ENDPOINT;
-    private final String CONFIG_ENDPOINT;
-
-    public DashboardsInfoActionTest(String configEndpoint, String endpoint){
-        CONFIG_ENDPOINT = configEndpoint;
-        ENDPOINT = endpoint;
-    }
-
-    @Parameterized.Parameters
-    public static Iterable<Object[]> endpoints() {
-        return Arrays.asList(new String[][] {
-                {"_opendistro/_security/kibanainfo", "/_opendistro/_security/api/securityconfigt"},
-                {"_security/_security/kibanainfo", "/_security/_security/api/securityconfigt"}
-        });
-    }
 
     @Test
     public void testDashboardsInfoAPI() throws Exception {
@@ -52,10 +34,10 @@ public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executeGetRequest("_opendistro/_security/kibanainfo");
+        RestHelper.HttpResponse response = rh.executeGetRequest(LEGACY_OPENDISTRO_PREFIX + "/kibanainfo");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePostRequest("/_opendistro/_security/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
+        response = rh.executePostRequest(LEGACY_OPENDISTRO_PREFIX + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
     }

@@ -26,6 +26,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import java.util.Arrays;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 @RunWith(Parameterized.class)
 public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     private String payload = "{\"hosts\":[],\"users\":[\"sarek\"]," +
@@ -43,8 +46,8 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String[]> endpoints() {
         return Arrays.asList(new String[][]{
-                {"_opendistro/_security/api", "_opendistro/_security"},
-                {"_plugins/_security/api", "_plugins/_security"}
+                {LEGACY_OPENDISTRO_PREFIX + "/api", LEGACY_OPENDISTRO_PREFIX},
+                {PLUGINS_PREFIX + "/api", PLUGINS_PREFIX}
         });
     }
     @Test

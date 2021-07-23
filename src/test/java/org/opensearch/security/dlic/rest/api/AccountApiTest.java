@@ -28,6 +28,8 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class AccountApiTest extends AbstractRestApiUnitTest {
@@ -42,8 +44,8 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String[]> endpoints() {
         return Arrays.asList(new String[][] {
-                {"/_opendistro/_security/api/", "/_opendistro/_security/api/account"},
-                {"/_plugins/_security/api/", "/_plugins/_security/api/account"}
+                { LEGACY_OPENDISTRO_PREFIX + "/api/", LEGACY_OPENDISTRO_PREFIX + "/api/account"},
+                { PLUGINS_PREFIX + "/api/", PLUGINS_PREFIX + "/api/account"}
         });
     }
 
