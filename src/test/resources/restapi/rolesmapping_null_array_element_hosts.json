@@ -1,0 +1,14 @@
+{
+  "users": [
+    "user1",
+    "user2"
+  ],
+  "backend_roles": [
+    "captains",
+    "role2"
+  ],
+  "hosts": [
+    null,
+    "8.8.4.4"
+  ]
+}
