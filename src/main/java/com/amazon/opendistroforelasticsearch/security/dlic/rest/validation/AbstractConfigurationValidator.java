@@ -188,6 +188,16 @@ public abstract class AbstractConfigurationValidator {
             return false;
         }
 
+        //null element in the values of all the possible keys with DataType as ARRAY
+        for (Entry<String, DataType> allowedKey : allowedKeys.entrySet()) {
+            JsonNode value = contentAsNode.get(allowedKey.getKey());
+            if (value != null) {
+                if (hasNullArrayElement(value)) {
+                    this.errorType = ErrorType.NULL_ARRAY_ELEMENT;
+                    return false;
+                }
+            }
+        }
         return valid;
     }
 
@@ -253,6 +263,10 @@ public abstract class AbstractConfigurationValidator {
                         builder.field(entry.getKey(), entry.getValue());
                     }
                     break;
+                case NULL_ARRAY_ELEMENT:
+                    builder.field("status", "error");
+                    builder.field("reason", ErrorType.NULL_ARRAY_ELEMENT.getMessage());
+                    break;
                 default:
                     builder.field("status", "error");
                     builder.field("reason", errorType.getMessage());
@@ -281,7 +295,8 @@ public abstract class AbstractConfigurationValidator {
     public static enum ErrorType {
         NONE("ok"), INVALID_CONFIGURATION("Invalid configuration"), INVALID_PASSWORD("Invalid password"), WRONG_DATATYPE("Wrong datatype"),
         BODY_NOT_PARSEABLE("Could not parse content of request."), PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
-        PAYLOAD_MANDATORY("Request body required for this action."), SECURITY_NOT_INITIALIZED("Security index not initialized");
+        PAYLOAD_MANDATORY("Request body required for this action."), SECURITY_NOT_INITIALIZED("Security index not initialized"),
+        NULL_ARRAY_ELEMENT("`null` is not allowed as json array element");
 
         private String message;
 
@@ -296,5 +311,20 @@ public abstract class AbstractConfigurationValidator {
 
     protected final boolean hasParams() {
         return param != null && param.length > 0;
+    }
+
+    private boolean hasNullArrayElement(JsonNode node) {
+        for (JsonNode element: node) {
+            if(element.isNull()) {
+                if (node.isArray()) {
+                    return true;
+                }
+            } else if (element.isContainerNode()) {
+                if (hasNullArrayElement(element)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
