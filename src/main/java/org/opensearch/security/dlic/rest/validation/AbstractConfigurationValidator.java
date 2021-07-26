@@ -316,12 +316,13 @@ public abstract class AbstractConfigurationValidator {
     private boolean hasNullArrayElement(JsonNode node) {
         for (JsonNode element: node) {
             if(element.isNull()) {
-                if (node.isArray())
+                if (node.isArray()) {
                     return true;
-            }
-            else if (element.isContainerNode()) {
-                if (hasNullArrayElement(element))
+                }
+            } else if (element.isContainerNode()) {
+                if (hasNullArrayElement(element)) {
                     return true;
+                }
             }
         }
         return false;
