@@ -19,6 +19,7 @@ import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategor
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.integration.TestAuditlogImpl;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
+import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -192,4 +194,14 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
     }
 
+    @Test
+    public void checkNullElementsInArray() throws Exception{
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
+        HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/nodesdn", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+    }
 }
