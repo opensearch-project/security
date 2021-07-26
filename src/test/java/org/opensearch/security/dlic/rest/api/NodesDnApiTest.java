@@ -29,11 +29,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.test.helper.file.FileHelper;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.junit.Assert;
 import com.google.common.collect.ImmutableList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -212,4 +214,14 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
     }
 
+    @Test
+    public void checkNullElementsInArray() throws Exception{
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
+        HttpResponse response = rh.executePutRequest(ENDPOINT+ "/nodesdn", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+    }
 }

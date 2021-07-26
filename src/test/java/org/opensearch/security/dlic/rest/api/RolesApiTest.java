@@ -15,7 +15,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.runner.RunWith;
@@ -489,7 +488,8 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // Put read only roles
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_transport_client", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
+        response = rh.executePutRequest( ENDPOINT + "/roles/opendistro_security_transport_client",
+                                        FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // Patch single read only roles
@@ -509,8 +509,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // put hidden role
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+        String body = FileHelper.loadFile("restapi/roles_captains.json");
+        response = rh.executePutRequest( ENDPOINT+ "/roles/opendistro_security_internal", body, new Header[0]);
+        Assert.assertEquals(org.apache.http.HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Patch single hidden roles
         response = rh.executePatchRequest(ENDPOINT + "/roles/opendistro_security_internal", "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
@@ -520,6 +521,37 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest(ENDPOINT + "/roles/", "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
+    }
+
+    @Test
+    public void checkNullElementsInArray() throws Exception{
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        String body = FileHelper.loadFile("restapi/roles_null_array_element_cluster_permissions.json");
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        body = FileHelper.loadFile("restapi/roles_null_array_element_index_permissions.json");
+        response = rh.executePutRequest(ENDPOINT+ "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        body = FileHelper.loadFile("restapi/roles_null_array_element_tenant_permissions.json");
+        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        body = FileHelper.loadFile("restapi/roles_null_array_element_index_patterns.json");
+        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        body = FileHelper.loadFile("restapi/roles_null_array_element_masked_fields.json");
+        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        body = FileHelper.loadFile("restapi/roles_null_array_element_allowed_actions.json");
+        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
 }
