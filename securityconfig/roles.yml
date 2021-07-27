@@ -5,6 +5,20 @@ _meta:
 # Restrict users so they can only view visualization and dashboard on OpenSearchDashboards
 kibana_read_only:
   reserved: true
+  cluster_permissions:
+    - 'cluster_composite_ops_ro'
+  index_permissions:
+    - index_patterns:
+        - ".kibana"
+        - ".kibana-6"
+        - ".kibana_*"
+      allowed_actions:
+        - "read"
+  tenant_permissions:
+    - tenant_patterns:
+        - "*"
+      allowed_actions:
+        - "kibana_all_read"
 
 # The security REST API access role is used to assign specific users access to change the security settings through the REST API.
 security_rest_api_access:
