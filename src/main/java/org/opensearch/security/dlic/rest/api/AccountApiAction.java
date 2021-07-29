@@ -64,7 +64,9 @@ public class AccountApiAction extends AbstractApiAction {
     private static final String RESOURCE_NAME = "account";
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/account"),
-            new Route(Method.PUT, "/account")
+            new Route(Method.PUT, "/account"),
+            new Route(Method.GET, "/account/saved_tenant"),
+            new Route(Method.PUT, "/account/saved_tenant")
     ));
 
     private final PrivilegesEvaluator privilegesEvaluator;
