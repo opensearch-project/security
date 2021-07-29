@@ -1,0 +1,5 @@
+{
+  "cluster_permissions" : ["cluster:monitor1*"],
+  "index_permissions" : [null],
+  "tenant_permissions" : [ ]
+}
