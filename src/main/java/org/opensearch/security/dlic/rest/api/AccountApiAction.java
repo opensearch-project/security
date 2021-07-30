@@ -152,8 +152,7 @@ public class AccountApiAction extends AbstractApiAction {
                 if (request.path().endsWith(SAVED_TENANT)){
                     builder.field("saved_tenant", "needs method to find saved tenant")
                             .field("hey", "at least it's routing properly");
-                }
-                else {
+                } else {
                     builder.field("user_name", user.getName())
                         .field("is_reserved", isReserved(configuration, user.getName()))
                         .field("is_hidden", configuration.isHidden(user.getName()))
@@ -232,15 +231,66 @@ public class AccountApiAction extends AbstractApiAction {
         }
 
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
-        final String currentPassword = content.get("current_password").asText();
         final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(username);
-        final String currentHash = internalUserEntry.getHash();
+        if (request.endsWith(SAVED_TENANT)){
+            // checks; should this hash check be a helper method? (used twice)
+            // if password is set, it takes precedence over hash
+            final String password = securityJsonNode.get("password").asString();
+            final String hash;
+            if (Strings.isNullOrEmpty(password)) {
+                hash = securityJsonNode.get("hash").asString();
+            } else {
+                hash = hash(password.toCharArray());
+            }
+            if (Strings.isNullOrEmpty(hash)) {
+                badRequestResponse(channel, "hash cannot be null/empty.");
+                return;
+            }
+            internalUserEntry.setHash(hash);
 
-        if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
-            badRequestResponse(channel, "Could not validate your current password.");
-            return;
+            // checks are done, updating time
+            final String new_saved_tenant = content.get("saved_tenant").asText();
+            saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
+                @Override
+                public void onResponse(IndexResponse response) {
+                    // this response is fine, although I feel like having this line twice is close to being verbose
+                    successResponse(channel, "'" + username + "' updated.");
+                }
+            });
+        } else{
+            final String currentPassword = content.get("current_password").asText();
+            final String currentHash = internalUserEntry.getHash();
+    
+            if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
+                badRequestResponse(channel, "Could not validate your current password.");
+                return;
+            }
+    
+            // if password is set, it takes precedence over hash
+            final String password = securityJsonNode.get("password").asString();
+            final String hash;
+            if (Strings.isNullOrEmpty(password)) {
+                hash = securityJsonNode.get("hash").asString();
+            } else {
+                hash = hash(password.toCharArray());
+            }
+            if (Strings.isNullOrEmpty(hash)) {
+                badRequestResponse(channel, "Both provided password and hash cannot be null/empty.");
+                return;
+            }
+            internalUserEntry.setHash(hash);
+    
+            // checks are done, does updating here
+            saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
+                @Override
+                public void onResponse(IndexResponse response) {
+                    successResponse(channel, "'" + username + "' updated.");
+                }
+            });
         }
+    }
 
+    public void verifyAndSetHash(SecurityJsonNode securityJsonNode, RestChannel channel){
         // if password is set, it takes precedence over hash
         final String password = securityJsonNode.get("password").asString();
         final String hash;
@@ -255,14 +305,6 @@ public class AccountApiAction extends AbstractApiAction {
         }
 
         internalUserEntry.setHash(hash);
-
-        // checks are done, does updating here
-        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
-            @Override
-            public void onResponse(IndexResponse response) {
-                successResponse(channel, "'" + username + "' updated.");
-            }
-        });
     }
 
     @Override
