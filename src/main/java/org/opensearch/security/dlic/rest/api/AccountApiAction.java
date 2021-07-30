@@ -61,12 +61,13 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * Currently this action serves GET and PUT request for /_opendistro/_security/api/account endpoint
  */
 public class AccountApiAction extends AbstractApiAction {
+    static final String SAVED_TENANT = "saved_tenant";
     private static final String RESOURCE_NAME = "account";
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/account"),
             new Route(Method.PUT, "/account"),
-            new Route(Method.GET, "/account/saved_tenant"),
-            new Route(Method.PUT, "/account/saved_tenant")
+            new Route(Method.GET, "/account/" + SAVED_TENANT),
+            new Route(Method.PUT, "/account/" + SAVED_TENANT)
     ));
 
     private final PrivilegesEvaluator privilegesEvaluator;
@@ -115,6 +116,19 @@ public class AccountApiAction extends AbstractApiAction {
      *     "own_index"
      *   ]
      * }
+     * 
+     * GET request to fetch user's saved tenant
+     * 
+     * Sample request:
+     * GET _opendistro/security/api/account/saved_tenant
+     * 
+     * Sample response:
+     * {
+     *      "status":"OK",
+     *      "body":{
+     *          "saved_tenant":"global-tenant"
+     *      }
+     * }
      *
      * @param channel channel to return response
      * @param request request to be served
@@ -135,7 +149,12 @@ public class AccountApiAction extends AbstractApiAction {
                 final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
                 final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
 
-                builder.field("user_name", user.getName())
+                if (request.path().endsWith(SAVED_TENANT)){
+                    builder.field("saved_tenant", "needs method to find saved tenant")
+                            .field("hey", "at least it's routing properly");
+                }
+                else {
+                    builder.field("user_name", user.getName())
                         .field("is_reserved", isReserved(configuration, user.getName()))
                         .field("is_hidden", configuration.isHidden(user.getName()))
                         .field("is_internal_user", configuration.exists(user.getName()))
@@ -144,6 +163,7 @@ public class AccountApiAction extends AbstractApiAction {
                         .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
                         .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
                         .field("roles", securityRoles);
+                }
             }
             builder.endObject();
 
@@ -175,7 +195,21 @@ public class AccountApiAction extends AbstractApiAction {
      *     "status":"OK",
      *     "message":"'test' updated."
      * }
-     *
+     * 
+     * PUT request to update account saved tenant
+     * 
+     * Sample request:
+     * PUT _opendistro/security/api/account/saved_tenant
+     * {
+     *      "saved_tenant":"arbitrary-tenant"
+     * }
+     * 
+     * Sample response:
+     * {
+     *      "status":"OK",
+     *      "message":"'saved_tenant' updated"
+     * }
+     * 
      * @param channel channel to return response
      * @param request request to be served
      * @param client client
@@ -222,6 +256,7 @@ public class AccountApiAction extends AbstractApiAction {
 
         internalUserEntry.setHash(hash);
 
+        // checks are done, does updating here
         saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
             @Override
             public void onResponse(IndexResponse response) {
