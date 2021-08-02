@@ -20,6 +20,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.AccountValidator;
+import org.opensearch.security.dlic.rest.validation.SavedTenantValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
@@ -157,7 +158,7 @@ public class AccountApiAction extends AbstractApiAction {
                         InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
                         builder.field("saved_tenant", iu.getSavedTenant());
                     } else {
-                        builder.field("message", "sorry, saved tenant currently only stored for internal users.");
+                        builder.field("message", "Sorry, saved tenant currently only stored for internal users.");
                     }
                 } else {
                     builder.field("user_name", user.getName())
@@ -239,8 +240,20 @@ public class AccountApiAction extends AbstractApiAction {
 
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
         final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(username);
-        if (request.endsWith(SAVED_TENANT)){
-                // checks; should this hash check be a helper method? (used twice)
+        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
+        if (request.path().endsWith(SAVED_TENANT)){
+            if (configuration.exists(user.getName())){
+                InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
+                iu.setSavedTenant(content.get("saved_tenant").asText());
+            } else {
+                //badRequestResponse(channel, "Sorry, saved_tenant is only stored for internal users.");
+                final String currentHash = internalUserEntry.getHash();
+                final String currentPassword = content.get("current_password").asText();
+                if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
+                    badRequestResponse(channel, "Could not validate your existing hash.");
+                    return;
+                }
+
                 // if password is set, it takes precedence over hash
                 final String password = securityJsonNode.get("password").asString();
                 final String hash;
@@ -254,16 +267,13 @@ public class AccountApiAction extends AbstractApiAction {
                     return;
                 }
                 internalUserEntry.setHash(hash);
-
-                // checks are done, updating time
-                //final String new_saved_tenant = content.get("saved_tenant").asText();
-                saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
-                    @Override
-                    public void onResponse(IndexResponse response) {
-                        // this response is fine, although I feel like having this line twice is close to being verbose
-                        successResponse(channel, "'" + username + "' updated.");
-                    }
-                });
+            }
+            saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
+                @Override
+                public void onResponse(IndexResponse response) {
+                    successResponse(channel, "'" + username + "' updated.");
+                }
+            });
         } else{
             final String currentPassword = content.get("current_password").asText();
             final String currentHash = internalUserEntry.getHash();
