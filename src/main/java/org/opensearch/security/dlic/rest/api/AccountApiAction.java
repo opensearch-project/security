@@ -24,6 +24,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
@@ -144,14 +145,20 @@ public class AccountApiAction extends AbstractApiAction {
         try {
             builder.startObject();
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            final String username = user.getName();
+            final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
             if (user != null) {
                 final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
                 final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
                 final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
 
-                if (request.path().endsWith(SAVED_TENANT)){
-                    builder.field("saved_tenant", "needs method to find saved tenant")
-                            .field("hey", "at least it's routing properly");
+               if (request.path().endsWith(SAVED_TENANT)){
+                    if (configuration.exists(user.getName())){
+                        InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
+                        builder.field("saved_tenant", iu.getSavedTenant());
+                    } else {
+                        builder.field("message", "sorry, saved tenant currently only stored for internal users.");
+                    }
                 } else {
                     builder.field("user_name", user.getName())
                         .field("is_reserved", isReserved(configuration, user.getName()))
@@ -233,30 +240,30 @@ public class AccountApiAction extends AbstractApiAction {
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
         final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(username);
         if (request.endsWith(SAVED_TENANT)){
-            // checks; should this hash check be a helper method? (used twice)
-            // if password is set, it takes precedence over hash
-            final String password = securityJsonNode.get("password").asString();
-            final String hash;
-            if (Strings.isNullOrEmpty(password)) {
-                hash = securityJsonNode.get("hash").asString();
-            } else {
-                hash = hash(password.toCharArray());
-            }
-            if (Strings.isNullOrEmpty(hash)) {
-                badRequestResponse(channel, "hash cannot be null/empty.");
-                return;
-            }
-            internalUserEntry.setHash(hash);
-
-            // checks are done, updating time
-            final String new_saved_tenant = content.get("saved_tenant").asText();
-            saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
-                @Override
-                public void onResponse(IndexResponse response) {
-                    // this response is fine, although I feel like having this line twice is close to being verbose
-                    successResponse(channel, "'" + username + "' updated.");
+                // checks; should this hash check be a helper method? (used twice)
+                // if password is set, it takes precedence over hash
+                final String password = securityJsonNode.get("password").asString();
+                final String hash;
+                if (Strings.isNullOrEmpty(password)) {
+                    hash = securityJsonNode.get("hash").asString();
+                } else {
+                    hash = hash(password.toCharArray());
                 }
-            });
+                if (Strings.isNullOrEmpty(hash)) {
+                    badRequestResponse(channel, "hash cannot be null/empty.");
+                    return;
+                }
+                internalUserEntry.setHash(hash);
+
+                // checks are done, updating time
+                //final String new_saved_tenant = content.get("saved_tenant").asText();
+                saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
+                    @Override
+                    public void onResponse(IndexResponse response) {
+                        // this response is fine, although I feel like having this line twice is close to being verbose
+                        successResponse(channel, "'" + username + "' updated.");
+                    }
+                });
         } else{
             final String currentPassword = content.get("current_password").asText();
             final String currentHash = internalUserEntry.getHash();
@@ -290,26 +297,12 @@ public class AccountApiAction extends AbstractApiAction {
         }
     }
 
-    public void verifyAndSetHash(SecurityJsonNode securityJsonNode, RestChannel channel){
-        // if password is set, it takes precedence over hash
-        final String password = securityJsonNode.get("password").asString();
-        final String hash;
-        if (Strings.isNullOrEmpty(password)) {
-            hash = securityJsonNode.get("hash").asString();
-        } else {
-            hash = hash(password.toCharArray());
-        }
-        if (Strings.isNullOrEmpty(hash)) {
-            badRequestResponse(channel, "Both provided password and hash cannot be null/empty.");
-            return;
-        }
-
-        internalUserEntry.setHash(hash);
-    }
-
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (request.path().endsWith(SAVED_TENANT)){
+            return new SavedTenantValidator(request, ref, this.settings, user.getName());
+        }
         return new AccountValidator(request, ref, this.settings, user.getName());
     }
 
