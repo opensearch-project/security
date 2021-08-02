@@ -615,7 +615,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
 
                 <configuration>
-                    <argLine>-Xmx3072m</argLine>
+                    <argLine>-Xmx768m</argLine>
                     <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <forkCount>3</forkCount>
                     <reuseForks>true</reuseForks>
@@ -625,6 +625,7 @@
                      -->
                     <systemPropertyVariables>
                         <forkno>fork_${surefire.forkNumber}</forkno>
+                        <opensearch.use_unpooled_allocator>true</opensearch.use_unpooled_allocator>
                     </systemPropertyVariables>
 
                     <includes>
