@@ -53,6 +53,8 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         private Map<String, String> attributes = Collections.emptyMap();
         private String description;
         private List<String> opendistro_security_roles = Collections.emptyList();
+        // default tenant set to global-tenant
+        private String saved_tenant = "global-tenant";
 
         private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes) {
             super();
@@ -83,8 +85,6 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         public void setHash(String hash) {
             this.hash = hash;
         }
-
-        
         
         public boolean isHidden() {
             return hidden;
@@ -92,7 +92,6 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         public void setHidden(boolean hidden) {
             this.hidden = hidden;
         }
-       
 
         public List<String> getBackend_roles() {
             return backend_roles;
@@ -119,7 +118,7 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
 
         @Override
         public String toString() {
-            return "InternalUserV7 [hash=" + hash + ", reserved=" + reserved + ", hidden=" + hidden + ", _static=" + _static + ", backend_roles="
+            return "InternalUserV7 [hash=" + hash + ", saved_tenant=" + saved_tenant + ", reserved=" + reserved + ", hidden=" + hidden + ", _static=" + _static + ", backend_roles="
                     + backend_roles + ", attributes=" + attributes + ", description=" + description + "]";
         }
 
@@ -154,5 +153,11 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
             this._static = _static;
         }
         
-        
+        public String getSavedTenant(){
+            return saved_tenant;
+        }
+
+        public void setSavedTenant(String s){
+            saved_tenant = s;
+        }
     }
