@@ -300,7 +300,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 									   final SecurityDynamicConfiguration<?> configuration, OnSucessActionListener<IndexResponse> actionListener) {
 		final IndexRequest ir = new IndexRequest(this.opendistroIndex);
 
-		//final String type = "_doc";
+		//final String type = "_doc"; 
 		final String id = cType.toLCString();
 
 		configuration.removeStatic();
