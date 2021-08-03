@@ -24,6 +24,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
 
@@ -38,6 +39,12 @@ public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executePostRequest(LEGACY_OPENDISTRO_PREFIX + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
+
+        response = rh.executeGetRequest(PLUGINS_PREFIX + "/dashboardsinfo");
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        response = rh.executePostRequest(PLUGINS_PREFIX + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
     }
