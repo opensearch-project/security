@@ -647,6 +647,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         String body = FileHelper.loadFile("restapi/users_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/internalusers/picard", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
     }
 
 }

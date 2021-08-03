@@ -385,5 +385,6 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         String body = FileHelper.loadFile("restapi/actiongroup_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
     }
 }

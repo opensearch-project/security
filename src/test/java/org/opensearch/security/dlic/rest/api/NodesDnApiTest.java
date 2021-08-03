@@ -117,6 +117,14 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
+    private void checkNullElementsInArray(final Header headers) throws Exception{
+
+        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/nodesdn/cluster1", body, headers);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
+    }
+
     @Test
     public void testNodesDnApiWithDynamicConfigDisabled() throws Exception {
         setup();
@@ -156,6 +164,12 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             rh.keystore = "restapi/kirk-keystore.jks";
             rh.sendAdminCertificate = true;
             testCrudScenarios(HttpStatus.SC_OK, nonAdminCredsHeader);
+        }
+
+        {
+            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.sendAdminCertificate = true;
+            checkNullElementsInArray(nonAdminCredsHeader);
         }
 
         {
@@ -214,14 +228,4 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
     }
 
-    @Test
-    public void checkNullElementsInArray() throws Exception{
-        setup();
-        rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendAdminCertificate = true;
-
-        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
-        HttpResponse response = rh.executePutRequest(ENDPOINT+ "/nodesdn", body, new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-    }
 }

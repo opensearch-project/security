@@ -422,15 +422,18 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		HttpResponse response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_backend_roles.json");
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_hosts.json");
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 										 body, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
 	}
 }

@@ -532,26 +532,32 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         String body = FileHelper.loadFile("restapi/roles_null_array_element_cluster_permissions.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_index_permissions.json");
         response = rh.executePutRequest(ENDPOINT+ "/roles/opendistro_security_role_starfleet", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_tenant_permissions.json");
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_index_patterns.json");
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_masked_fields.json");
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_allowed_actions.json");
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
     }
 
 }
