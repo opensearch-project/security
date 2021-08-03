@@ -15,6 +15,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import com.google.common.collect.ImmutableList;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.apache.http.Header;
@@ -24,7 +25,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import java.util.Arrays;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
@@ -35,20 +35,18 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
             "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated " +
             "from v6\"}";
 
-    private final String ENDPOINT_API;
     private final String ENDPOINT;
 
-    public TenantInfoActionTest(String endpointApi, String endpoint){
-        ENDPOINT_API = endpointApi;
+    public TenantInfoActionTest(String endpoint){
         ENDPOINT = endpoint;
     }
 
     @Parameterized.Parameters
-    public static Iterable<String[]> endpoints() {
-        return Arrays.asList(new String[][]{
-                {LEGACY_OPENDISTRO_PREFIX + "/api", LEGACY_OPENDISTRO_PREFIX},
-                {PLUGINS_PREFIX + "/api", PLUGINS_PREFIX}
-        });
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                LEGACY_OPENDISTRO_PREFIX,
+                PLUGINS_PREFIX
+        );
     }
     @Test
     public void testTenantInfoAPI() throws Exception {
@@ -71,10 +69,11 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         //update security config
-        response = rh.executePatchRequest(ENDPOINT_API + "/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\",\"value\": \"opendistro_security_internal\"}]", new Header[0]);
+        response = rh.executePatchRequest(ENDPOINT + "/api/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\"," +
+                "\"value\": \"opendistro_security_internal\"}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT_API + "/rolesmapping/opendistro_security_internal", payload, new Header[0]);
+        response = rh.executePutRequest(ENDPOINT + "/api/rolesmapping/opendistro_security_internal", payload, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         rh.sendAdminCertificate = false;

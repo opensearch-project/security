@@ -41,7 +41,6 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -56,24 +55,22 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private final String ENDPOINT;
-    private final String CONFIG_ENDPOINT;
 
     // admin cred with roles in test yml files
     final Header adminCredsHeader = encodeBasicHeader("sarek", "sarek");
     // non-admin
     final Header nonAdminCredsHeader = encodeBasicHeader("random", "random");
 
-    public AuditApiActionTest(String configEndpoint, String endpoint){
-        CONFIG_ENDPOINT = configEndpoint;
+    public AuditApiActionTest(String endpoint){
         ENDPOINT = endpoint;
     }
 
     @Parameterized.Parameters
-    public static Iterable<String[]> endpoints() {
-        return Arrays.asList(new String[][] {
-                {LEGACY_OPENDISTRO_PREFIX + "/api/audit/config", LEGACY_OPENDISTRO_PREFIX + "/api/audit"},
-                {PLUGINS_PREFIX + "/api/audit/config", PLUGINS_PREFIX + "/api/audit"}
-        });
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                LEGACY_OPENDISTRO_PREFIX + "/api/audit",
+                PLUGINS_PREFIX + "/api/audit"
+        );
     }
 
     @Rule
@@ -143,7 +140,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                 ImmutableMap.of("disabled_rest_categories", ImmutableList.of("INDEX_EVENT", "COMPLIANCE_DOC_READ"))
         ), ComplianceConfig.DEFAULT);
         ObjectNode json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
-        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
+        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT + "/config", writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test success for REST disabled categories
@@ -152,7 +149,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                         ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES"))
         ), ComplianceConfig.DEFAULT);
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
+        response = rh.executePutRequest(ENDPOINT + "/config", writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // test bad request for transport disabled categories
@@ -161,7 +158,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                         ImmutableList.of("COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE"))
         ), ComplianceConfig.DEFAULT);
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
+        response = rh.executePutRequest(ENDPOINT + "/config", writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test success for transport disabled categories
@@ -170,7 +167,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
                         ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES", "INDEX_EVENT", "OPENDISTRO_SECURITY_INDEX_ATTEMPT"))
         ), ComplianceConfig.DEFAULT);
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
-        response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
+        response = rh.executePutRequest(ENDPOINT + "/config", writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
@@ -231,7 +228,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private void testPutRequest(final JsonNode json, final int expectedStatus, final boolean sendAdminCertificate, final Header... header) throws Exception {
         rh.sendAdminCertificate = sendAdminCertificate;
-        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false), header);
+        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT + "/config", writeValueAsString(json, false), header);
         assertEquals(expectedStatus, response.getStatusCode());
     }
 
@@ -384,7 +381,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     }
 
     private void testPutAction(final String payload, final int expectedStatus, final Header... headers) throws Exception {
-        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, payload, headers);
+        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT + "/config", payload, headers);
         assertEquals(expectedStatus, response.getStatusCode());
 
         if (expectedStatus == HttpStatus.SC_OK) {
@@ -563,7 +560,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         final String payload = DefaultObjectMapper.writeValueAsString(auditConfig, false);
 
         // update config
-        RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, payload);
+        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT + "/config", payload);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // make patch request
