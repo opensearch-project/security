@@ -245,35 +245,11 @@ public class AccountApiAction extends AbstractApiAction {
             if (configuration.exists(user.getName())){
                 InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
                 iu.setSavedTenant(content.get("saved_tenant").asText());
-            } else {
-                //badRequestResponse(channel, "Sorry, saved_tenant is only stored for internal users.");
-                final String currentHash = internalUserEntry.getHash();
-                final String currentPassword = content.get("current_password").asText();
-                if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
-                    badRequestResponse(channel, "Could not validate your existing hash.");
-                    return;
-                }
-
-                // if password is set, it takes precedence over hash
-                final String password = securityJsonNode.get("password").asString();
-                final String hash;
-                if (Strings.isNullOrEmpty(password)) {
-                    hash = securityJsonNode.get("hash").asString();
-                } else {
-                    hash = hash(password.toCharArray());
-                }
-                if (Strings.isNullOrEmpty(hash)) {
-                    badRequestResponse(channel, "hash cannot be null/empty.");
-                    return;
-                }
-                internalUserEntry.setHash(hash);
+            } 
+            else {
+                badRequestResponse(channel, "Sorry, saved_tenant is only stored for internal users.");
+                return;
             }
-            saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
-                @Override
-                public void onResponse(IndexResponse response) {
-                    successResponse(channel, "'" + username + "' updated.");
-                }
-            });
         } else{
             final String currentPassword = content.get("current_password").asText();
             final String currentHash = internalUserEntry.getHash();
@@ -296,15 +272,13 @@ public class AccountApiAction extends AbstractApiAction {
                 return;
             }
             internalUserEntry.setHash(hash);
-    
-            // checks are done, does updating here
-            saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
-                @Override
-                public void onResponse(IndexResponse response) {
-                    successResponse(channel, "'" + username + "' updated.");
-                }
-            });
         }
+        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
+            @Override
+            public void onResponse(IndexResponse response) {
+                successResponse(channel, "'" + username + "' updated.");
+            }
+        });
     }
 
     @Override
