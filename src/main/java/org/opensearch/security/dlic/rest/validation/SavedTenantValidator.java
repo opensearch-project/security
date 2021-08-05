@@ -26,5 +26,6 @@ public class SavedTenantValidator extends CredentialsValidator {
     public SavedTenantValidator(RestRequest request, BytesReference ref, Settings opensearchSettings, Object... param) {
         super(request, ref, opensearchSettings, param);
         mandatoryKeys.add("saved_tenant");
+        mandatoryKeys.add("saved_tenant");
     }
 }
