@@ -78,7 +78,7 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testSetTenant() throws Exception{
+    public void testSet_tenant() throws Exception{
         // arrange
         setup();
         final String testUser = "test-user";
