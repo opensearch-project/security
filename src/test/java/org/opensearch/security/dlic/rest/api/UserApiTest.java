@@ -38,6 +38,8 @@ import java.util.List;
 public class UserApiTest extends AbstractRestApiUnitTest {
 
     private final String ENDPOINT;
+    final int INTERNAL_USER_SIZE = 64;
+    final int INTERNAL_USER_PARAMETER_COUNT = 8;
 
     public UserApiTest(String endpoint){
         ENDPOINT = endpoint;
@@ -79,9 +81,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
     public void testUserApi() throws Exception {
 
         setup();
-
-        final int INTERNAL_USER_SIZE = 64;
-        final int INTERNAL_USER_PARAMETER_COUNT = 8;
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
