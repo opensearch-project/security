@@ -156,7 +156,7 @@ public class AccountApiAction extends AbstractApiAction {
                if (request.path().endsWith(SAVED_TENANT)){
                     if (configuration.exists(user.getName())){
                         InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
-                        builder.field("saved_tenant", iu.getSavedTenant());
+                        builder.field("saved_tenant", iu.getSaved_tenant());
                     } else {
                         builder.field("message", "Sorry, saved tenant currently only stored for internal users.");
                     }
@@ -244,7 +244,7 @@ public class AccountApiAction extends AbstractApiAction {
         if (request.path().endsWith(SAVED_TENANT)){
             if (configuration.exists(user.getName())){
                 InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
-                iu.setSavedTenant(content.get("saved_tenant").asText());
+                iu.setSaved_tenant(content.get("saved_tenant").asText());
             } 
             else {
                 badRequestResponse(channel, "Sorry, saved_tenant is only stored for internal users.");

@@ -153,11 +153,11 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
             this._static = _static;
         }
         
-        public String getSavedTenant(){
+        public String getSaved_tenant(){
             return saved_tenant;
         }
 
-        public void setSavedTenant(String s){
+        public void setSaved_tenant(String s){
             saved_tenant = s;
         }
     }

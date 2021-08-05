@@ -25,7 +25,6 @@ import org.opensearch.rest.RestRequest;
 public class SavedTenantValidator extends CredentialsValidator {
     public SavedTenantValidator(RestRequest request, BytesReference ref, Settings opensearchSettings, Object... param) {
         super(request, ref, opensearchSettings, param);
-        allowedKeys.put("saved_tenant", DataType.STRING);
         mandatoryKeys.add("saved_tenant");
     }
 }
