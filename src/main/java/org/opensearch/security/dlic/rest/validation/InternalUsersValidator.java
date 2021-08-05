@@ -32,5 +32,6 @@ public class InternalUsersValidator extends CredentialsValidator {
         allowedKeys.put("description", DataType.STRING);
         allowedKeys.put("opendistro_security_roles", DataType.ARRAY);
         if (isSuperAdmin) allowedKeys.put("reserved", DataType.BOOLEAN);
+        allowedKeys.put("saved_tenant", DataType.STRING);
     }
 }
