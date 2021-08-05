@@ -27,6 +27,8 @@ import org.junit.Test;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import java.util.Arrays;
 
+import com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator;
+
 import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
@@ -107,6 +109,19 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
 
         // test - incorrect user; not possible to check until later (when adding a (target) user parameter in body)
         // can't do this until user manager; check if only users who can manage this user can get/set this info
+
+        /*
+        // test - specified tenant does not exist
+        // Set<String> tenants = securityRole.getValue().getTenants().keySet();
+
+
+        // test - user does not have access to specified tenant
+
+        // test - invalid payload
+        final String badPayload = "{\"foo\":\"bar\"}";
+        response = rh.executePutRequest(savedTenantEndpoint, badPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        */
 
         // test - valid PUT request
         response = rh.executePutRequest(savedTenantEndpoint, changeSavedTenantPayload, encodeBasicHeader(testUser, testPass));
