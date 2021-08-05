@@ -95,7 +95,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", new Header[0]);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(7, settings.size());
+        Assert.assertEquals(8, settings.size());
         // hash must be filtered
         Assert.assertEquals("", settings.get("admin.hash"));
 
