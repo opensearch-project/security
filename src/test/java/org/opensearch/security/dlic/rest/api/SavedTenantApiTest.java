@@ -110,7 +110,6 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         // test - incorrect user; not possible to check until later (when adding a (target) user parameter in body)
         // can't do this until user manager; check if only users who can manage this user can get/set this info
 
-        /*
         // test - specified tenant does not exist
         // Set<String> tenants = securityRole.getValue().getTenants().keySet();
 
@@ -121,7 +120,6 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         final String badPayload = "{\"foo\":\"bar\"}";
         response = rh.executePutRequest(savedTenantEndpoint, badPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        */
 
         // test - valid PUT request
         response = rh.executePutRequest(savedTenantEndpoint, changeSavedTenantPayload, encodeBasicHeader(testUser, testPass));
