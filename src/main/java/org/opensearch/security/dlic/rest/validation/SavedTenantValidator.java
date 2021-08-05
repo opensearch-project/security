@@ -1,5 +1,5 @@
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -27,9 +27,5 @@ public class SavedTenantValidator extends CredentialsValidator {
         super(request, ref, opensearchSettings, param);
         allowedKeys.put("saved_tenant", DataType.STRING);
         mandatoryKeys.add("saved_tenant");
-        /*
-        allowedKeys.put("target_user", DataType.STRING);
-        mandatoryKeys.add("target_user");
-        */
     }
 }

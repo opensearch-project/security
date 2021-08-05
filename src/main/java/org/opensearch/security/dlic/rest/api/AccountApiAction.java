@@ -1,16 +1,16 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License").
- *  You may not use this file except in compliance with the License.
- *  A copy of the License is located at
+ * Licensed under the Apache License, Version 2.0 (the "License").
+ * You may not use this file except in compliance with the License.
+ * A copy of the License is located at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  or in the "license" file accompanying this file. This file is distributed
- *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *  express or implied. See the License for the specific language governing
- *  permissions and limitations under the License.
+ * or in the "license" file accompanying this file. This file is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
  */
 
 package org.opensearch.security.dlic.rest.api;
@@ -63,7 +63,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * Currently this action serves GET and PUT request for /_opendistro/_security/api/account endpoint
  */
 public class AccountApiAction extends AbstractApiAction {
-    static final String SAVED_TENANT = "saved_tenant";
+    private static final String SAVED_TENANT = "saved_tenant";
     private static final String RESOURCE_NAME = "account";
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/account"),
@@ -158,7 +158,7 @@ public class AccountApiAction extends AbstractApiAction {
                         InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
                         builder.field("saved_tenant", iu.getSaved_tenant());
                     } else {
-                        builder.field("message", "Sorry, saved tenant currently only stored for internal users.");
+                        builder.field("message", "Sorry, saved tenant is currently only stored for existing internal users.");
                     }
                 } else {
                     builder.field("user_name", user.getName())
@@ -247,7 +247,7 @@ public class AccountApiAction extends AbstractApiAction {
                 iu.setSaved_tenant(content.get("saved_tenant").asText());
             } 
             else {
-                badRequestResponse(channel, "Sorry, saved_tenant is only stored for internal users.");
+                badRequestResponse(channel, "Sorry, saved tenant is currently only stored for existing internal users.");
                 return;
             }
         } else{
