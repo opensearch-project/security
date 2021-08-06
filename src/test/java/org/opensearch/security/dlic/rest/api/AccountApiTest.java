@@ -101,8 +101,6 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - bad request as body is missing
-        System.out.println("ENDPOINT");
-        System.out.println(ENDPOINT);
         response = rh.executePutRequest(ENDPOINT, "", encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
