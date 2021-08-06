@@ -72,7 +72,14 @@ public class AccountApiAction extends AbstractApiAction {
             new Route(Method.PUT, "/account/" + SAVED_TENANT)
     ));
 
+    // each user has access to the global tenant
     private final String DEFAULT_TENANT = "global-tenant";
+    // PRIVATE_TENANT represents a user's personal tenant
+    // each user should have access to their own tenant
+    // if user A sets user B's 'saved_tenant' = PRIVATE_TENANT,
+    //     user B will see their own private tenant when they
+    //     log in (as opposed to user A's private tenant)
+    private final String PRIVATE_TENANT = "private-tenant";
 
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
@@ -251,7 +258,7 @@ public class AccountApiAction extends AbstractApiAction {
                 SecurityDynamicConfiguration<?> rolesMappings = load(CType.ROLESMAPPING, false);
                 InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
                 final String newSavedTenant = content.get("saved_tenant").asText();
-                if (!newSavedTenant.equals(DEFAULT_TENANT)){
+                if (!(newSavedTenant.equals(DEFAULT_TENANT) || newSavedTenant.equals(PRIVATE_TENANT))){
                     /*
                     TODO: implement tenant validity checks
                     boolean tenantExists = true; // assert passed saved tenant exists
