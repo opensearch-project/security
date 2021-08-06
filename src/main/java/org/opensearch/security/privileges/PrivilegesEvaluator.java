@@ -105,6 +105,13 @@ import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURIT
 public class PrivilegesEvaluator {
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
+
+    private static final Pattern DNFOF_PATTERNS = Pattern.compile(
+            "indices:(data/read/.*|(admin/(mappings/fields/get.*|shards/search_shards|resolve/index)))"
+    );
+
+    private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
+
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ClusterService clusterService;
 
@@ -129,12 +136,6 @@ public class PrivilegesEvaluator {
 
     private final boolean dlsFlsEnabled;
     private DynamicConfigModel dcm;
-
-    private static final Pattern dnfofPatterns = Pattern.compile(
-            "indices:(data/read/.*|(admin/(mappings/fields/get.*|shards/search_shards|resolve/index)))"
-    );
-
-    private static final IndicesOptions idxOptAllowEmpty = IndicesOptions.fromOptions(true, true, false, false);
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
@@ -394,7 +395,7 @@ public class PrivilegesEvaluator {
             }
         }
 
-        if (dnfofEnabled && dnfofPatterns.matcher(action0).matches()) {
+        if (dnfofEnabled && DNFOF_PATTERNS.matcher(action0).matches()) {
 
             if(requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
@@ -412,11 +413,11 @@ public class PrivilegesEvaluator {
                     presponse.allowed = true;
 
                     if(request instanceof SearchRequest) {
-                        ((SearchRequest) request).indicesOptions(idxOptAllowEmpty);
+                        ((SearchRequest) request).indicesOptions(ALLOW_EMPTY);
                     } else if(request instanceof ClusterSearchShardsRequest) {
-                        ((ClusterSearchShardsRequest) request).indicesOptions(idxOptAllowEmpty);
+                        ((ClusterSearchShardsRequest) request).indicesOptions(ALLOW_EMPTY);
                     } else if(request instanceof GetFieldMappingsRequest) {
-                        ((GetFieldMappingsRequest) request).indicesOptions(idxOptAllowEmpty);
+                        ((GetFieldMappingsRequest) request).indicesOptions(ALLOW_EMPTY);
                     }
 
                     return presponse;
