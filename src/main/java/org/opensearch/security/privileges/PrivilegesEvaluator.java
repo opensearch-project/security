@@ -406,7 +406,7 @@ public class PrivilegesEvaluator {
             Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
             if(reduced.isEmpty()) {
-                if(dcm.isDnfofForEmptyResultsEnabled() && request instanceof IndicesRequest.Replaceable) {
+                if(dcm.isDnfofForEmptyResultsEnabled()) {
 
                     ((IndicesRequest.Replaceable) request).indices(new String[0]);
                     presponse.missingPrivileges.clear();
