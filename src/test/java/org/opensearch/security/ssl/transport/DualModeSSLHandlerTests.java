@@ -20,7 +20,6 @@ import java.util.List;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
@@ -38,6 +37,7 @@ public class DualModeSSLHandlerTests {
 
     public static final int TLS_MAJOR_VERSION = 3;
     public static final int TLS_MINOR_VERSION = 0;
+    private static final ByteBufAllocator ALLOCATOR = getAllocator();
 
     private SecurityKeyStore securityKeyStore;
     private ChannelPipeline pipeline;
@@ -58,8 +58,7 @@ public class DualModeSSLHandlerTests {
     public void testInvalidMessage() throws Exception {
         DualModeSSLHandler handler = new DualModeSSLHandler(securityKeyStore);
 
-        ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-        handler.decode(ctx, alloc.directBuffer(4), null);
+        handler.decode(ctx, ALLOCATOR.buffer(4), null);
         // ensure pipeline is not fetched and manipulated
         Mockito.verify(ctx, Mockito.times(0)).pipeline();
     }
@@ -68,8 +67,7 @@ public class DualModeSSLHandlerTests {
     public void testValidTLSMessage() throws Exception {
         DualModeSSLHandler handler = new DualModeSSLHandler(securityKeyStore, sslHandler);
 
-        ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-        ByteBuf buffer = alloc.directBuffer(6);
+        ByteBuf buffer = ALLOCATOR.buffer(6);
         buffer.writeByte(20);
         buffer.writeByte(TLS_MAJOR_VERSION);
         buffer.writeByte(TLS_MINOR_VERSION);
@@ -90,8 +88,7 @@ public class DualModeSSLHandlerTests {
     public void testNonTLSMessage() throws Exception {
         DualModeSSLHandler handler = new DualModeSSLHandler(securityKeyStore, sslHandler);
 
-        ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-        ByteBuf buffer = alloc.directBuffer(6);
+        ByteBuf buffer = ALLOCATOR.buffer(6);
 
         for (int i = 0; i < 6; i++) {
             buffer.writeByte(1);
@@ -112,8 +109,7 @@ public class DualModeSSLHandlerTests {
         Mockito.when(ctx.writeAndFlush(Mockito.any())).thenReturn(channelFuture);
         Mockito.when(channelFuture.addListener(Mockito.any())).thenReturn(channelFuture);
 
-        ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-        ByteBuf buffer = alloc.directBuffer(6);
+        ByteBuf buffer = ALLOCATOR.buffer(6);
         buffer.writeCharSequence(SSLConnectionTestUtil.DUAL_MODE_CLIENT_HELLO_MSG, StandardCharsets.UTF_8);
 
         DualModeSSLHandler handler = new DualModeSSLHandler(securityKeyStore, sslHandler);

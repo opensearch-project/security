@@ -16,15 +16,17 @@ package org.opensearch.security.ssl.util;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.opensearch.transport.NettyAllocator.getAllocator;
 
 public class TLSUtilTests {
 
     public static final int TLS_MAJOR_VERSION = 3;
     public static final int TLS_MINOR_VERSION = 0;
+    private static final ByteBufAllocator ALLOCATOR = getAllocator();
 
     @Before
     public void setup() {
@@ -35,8 +37,7 @@ public class TLSUtilTests {
     public void testSSLUtilSuccess() {
         // byte 20 to 24 are ssl headers
         for (int byteToSend = 20; byteToSend <= 24; byteToSend++) {
-            ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-            ByteBuf buffer = alloc.directBuffer(5);
+            ByteBuf buffer = ALLOCATOR.buffer(5);
             buffer.writeByte(byteToSend);
             buffer.writeByte(TLS_MAJOR_VERSION);
             buffer.writeByte(TLS_MINOR_VERSION);
@@ -50,8 +51,7 @@ public class TLSUtilTests {
     public void testSSLUtilWrongTLSVersion() {
         // byte 20 to 24 are ssl headers
         for (int byteToSend = 20; byteToSend <= 24; byteToSend++) {
-            ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-            ByteBuf buffer = alloc.directBuffer(5);
+            ByteBuf buffer = ALLOCATOR.buffer(5);
             buffer.writeByte(byteToSend);
             //setting invalid TLS version 100
             buffer.writeByte(100);
@@ -66,8 +66,7 @@ public class TLSUtilTests {
     public void testSSLUtilInvalidContentLength() {
         // byte 20 to 24 are ssl headers
         for (int byteToSend = 20; byteToSend <= 24; byteToSend++) {
-            ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-            ByteBuf buffer = alloc.directBuffer(5);
+            ByteBuf buffer = ALLOCATOR.buffer(5);
             buffer.writeByte(byteToSend);
             buffer.writeByte(TLS_MAJOR_VERSION);
             buffer.writeByte(TLS_MINOR_VERSION);
