@@ -61,6 +61,26 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         // add user
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
+        // test - valid request
+        response = rh.executeGetRequest(savedTenantEndpoint, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        assertEquals(defaultTenantValue, body.get("saved_tenant"));
+    }
+
+    @Test
+    // tests InternalUserV7.getSaved_tenant()
+    public void testGetTenant() throws Exception{
+        // arrange
+        setup();
+        final String testUser = "test-user";
+        final String testPass = "test-pass";
+        final String defaultTenantValue = "global-tenant";
+        final String savedTenantEndpoint = BASE_ENDPOINT + "account/saved_tenant";
+
+        // add user
+        addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
+
         // test - unauthorized access as credentials are missing.
         HttpResponse response = rh.executeGetRequest(savedTenantEndpoint);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
@@ -72,6 +92,9 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         // test - incorrect user; not possible to check until later (when adding a (target) user parameter in body)
         // can't do this until user manager; check if only users who can manage this user can get/set this info
 
+        // don't need to test if currently saved tenant is unaccessible by user; that's handled when user attempts to
+        //     load it
+
         // test - valid request
         response = rh.executeGetRequest(savedTenantEndpoint, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -80,7 +103,8 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testSet_tenant() throws Exception{
+    // tests InternalUserV7.setSaved_tenant()
+    public void testSetTenant() throws Exception{
         // arrange
         setup();
         final String testUser = "test-user";
