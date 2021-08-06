@@ -158,21 +158,10 @@ public class AccountApiAction extends AbstractApiAction {
                 
                 if (request.path().endsWith(SAVED_TENANT)){
                    if (configuration.exists(user.getName())){
+                        // not responsible for verifying tenant accessibility
+                        // check for tenant accessibility is done when user tries to access said tenant
                         InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
-                        String savedTenant = iu.getSaved_tenant();
-                        /*
-                        TODO: finish implementing valid tenant checks
-                        boolean tenantExists = true; // check if saved tenant exists
-                        boolean userHasAccessToSavedTenant = true; //user does not have access to it
-                        // case: tenant does not exist or user does not have access to their saved tenant
-                        //     set their saved tenant to the default value ("global-tenant", which
-                        //     every user should have access to)
-                        if (!tenantExists || !userHasAccessToSavedTenant){
-                            savedTenant = DEFAULT_TENANT;
-                            iu.setSaved_tenant(savedTenant);
-                        }
-                        */
-                        builder.field("saved_tenant", savedTenant);
+                        builder.field("saved_tenant", iu.getSaved_tenant());
                     } else {
                         builder.field("message", "Sorry, saved tenant is currently only stored for existing internal users.");
                     }
@@ -259,19 +248,23 @@ public class AccountApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
         if (request.path().endsWith(SAVED_TENANT)){
             if (configuration.exists(user.getName())){
+                SecurityDynamicConfiguration<?> rolesMappings = load(CType.ROLESMAPPING, false);
                 InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
-                iu.setSaved_tenant(content.get("saved_tenant").asText());
-                /*
-                TODO: implement tenant validity checks
-                boolean tenantExists = true; // assert passed saved tenant exists
-                boolean userHasAccessToTenant = true; // assert user has access to passed saved tenant
-                if (tenantExists && userHasAccessToTenant){
-                    iu.setSaved_tenant(content.get("saved_tenant").asText());
-                } else { // case: trying to set user's tenant to a nonexistent or unaccessible (by user) tenant
-                    badRequestResponse(channel, "User does not have access to provided tenant.");
-                return;
+                final String newSavedTenant = content.get("saved_tenant").asText();
+                if (!newSavedTenant.equals(DEFAULT_TENANT)){
+                    /*
+                    TODO: implement tenant validity checks
+                    boolean tenantExists = true; // assert passed saved tenant exists
+                    boolean userHasAccessToTenant = true; // assert user has access to passed saved tenant
+                    if (tenantExists && userHasAccessToTenant){
+                        iu.setSaved_tenant(content.get("saved_tenant").asText());
+                    } else { // case: trying to set user's tenant to a nonexistent or unaccessible (by user) tenant
+                        badRequestResponse(channel, "User does not have access to provided tenant.");
+                    return;
+                    }
+                    */
                 }
-                */
+                iu.setSaved_tenant(newSavedTenant);
             } 
             else {
                 badRequestResponse(channel, "Sorry, saved tenant is currently only stored for existing internal users.");
