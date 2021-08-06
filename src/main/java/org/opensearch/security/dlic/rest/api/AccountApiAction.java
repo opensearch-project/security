@@ -1,16 +1,16 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
+ *  Licensed under the Apache License, Version 2.0 (the "License").
+ *  You may not use this file except in compliance with the License.
+ *  A copy of the License is located at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
+ *  or in the "license" file accompanying this file. This file is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
  */
 
 package org.opensearch.security.dlic.rest.api;
@@ -71,6 +71,8 @@ public class AccountApiAction extends AbstractApiAction {
             new Route(Method.GET, "/account/" + SAVED_TENANT),
             new Route(Method.PUT, "/account/" + SAVED_TENANT)
     ));
+
+    private final String DEFAULT_TENANT = "global-tenant";
 
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
@@ -152,11 +154,25 @@ public class AccountApiAction extends AbstractApiAction {
                 final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
                 final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
                 final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
-
-               if (request.path().endsWith(SAVED_TENANT)){
-                    if (configuration.exists(user.getName())){
+            
+                
+                if (request.path().endsWith(SAVED_TENANT)){
+                   if (configuration.exists(user.getName())){
                         InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
-                        builder.field("saved_tenant", iu.getSaved_tenant());
+                        String savedTenant = iu.getSaved_tenant();
+                        /*
+                        TODO: finish implementing valid tenant checks
+                        boolean tenantExists = true; // check if saved tenant exists
+                        boolean userHasAccessToSavedTenant = true; //user does not have access to it
+                        // case: tenant does not exist or user does not have access to their saved tenant
+                        //     set their saved tenant to the default value ("global-tenant", which
+                        //     every user should have access to)
+                        if (!tenantExists || !userHasAccessToSavedTenant){
+                            savedTenant = DEFAULT_TENANT;
+                            iu.setSaved_tenant(savedTenant);
+                        }
+                        */
+                        builder.field("saved_tenant", savedTenant);
                     } else {
                         builder.field("message", "Sorry, saved tenant is currently only stored for existing internal users.");
                     }
@@ -245,6 +261,17 @@ public class AccountApiAction extends AbstractApiAction {
             if (configuration.exists(user.getName())){
                 InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
                 iu.setSaved_tenant(content.get("saved_tenant").asText());
+                /*
+                TODO: implement tenant validity checks
+                boolean tenantExists = true; // assert passed saved tenant exists
+                boolean userHasAccessToTenant = true; // assert user has access to passed saved tenant
+                if (tenantExists && userHasAccessToTenant){
+                    iu.setSaved_tenant(content.get("saved_tenant").asText());
+                } else { // case: trying to set user's tenant to a nonexistent or unaccessible (by user) tenant
+                    badRequestResponse(channel, "User does not have access to provided tenant.");
+                return;
+                }
+                */
             } 
             else {
                 badRequestResponse(channel, "Sorry, saved tenant is currently only stored for existing internal users.");

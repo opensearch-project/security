@@ -1,16 +1,16 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
+ *  Licensed under the Apache License, Version 2.0 (the "License").
+ *  You may not use this file except in compliance with the License.
+ *  A copy of the License is located at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
+ *  or in the "license" file accompanying this file. This file is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
  */
 
 package org.opensearch.security.dlic.rest.api;
@@ -107,14 +107,23 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(savedTenantEndpoint, changeSavedTenantPayload, encodeBasicHeader(testUser, testPass + "invalidating text"));
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
-        // test - incorrect user; not possible to check until later (when adding a (target) user parameter in body)
+        // TODO: test - incorrect user; not possible to check until later (when adding a (target) user parameter in body)
         // can't do this until user manager; check if only users who can manage this user can get/set this info
 
-        // test - specified tenant does not exist
+        // TODO: test - specified tenant does not exist
         // Set<String> tenants = securityRole.getValue().getTenants().keySet();
+        final String nonexistentTenant = "s+{!)#$";
+        // assertTrue(!tenantSet.contains(nonexistentTenant));
+        final String nonexistentTenantPayload = "{\"saved_tenant\":\"" + nonexistentTenant + "\"}";
+        response = rh.executePutRequest(savedTenantEndpoint, nonexistentTenantPayload, encodeBasicHeader(testUser, testPass + "invalidating text"));
+        assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
-
-        // test - user does not have access to specified tenant
+        // TODO: test - user does not have access to specified tenant
+        // put a new tenant into the map
+        /*
+        response = rh.executePutRequest(savedTenantEndpoint, nonexistentTenantPayload, encodeBasicHeader(testUser, testPass + "invalidating text"));
+        assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
+        */
 
         // test - invalid payload
         final String badPayload = "{\"foo\":\"bar\"}";
