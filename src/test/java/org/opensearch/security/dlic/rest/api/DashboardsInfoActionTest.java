@@ -22,11 +22,29 @@ import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import com.google.common.collect.ImmutableList;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
+@RunWith(Parameterized.class)
 public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
+
+    private final String ENDPOINT;
+
+    public DashboardsInfoActionTest(String endpoint){
+        ENDPOINT = endpoint;
+    }
+
+    @Parameterized.Parameters
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                LEGACY_OPENDISTRO_PREFIX + "/api/securityconfig",
+                PLUGINS_PREFIX + "/api/securityconfig"
+        );
+    }
 
     @Test
     public void testDashboardsInfoAPI() throws Exception {
@@ -38,13 +56,11 @@ public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
         RestHelper.HttpResponse response = rh.executeGetRequest(LEGACY_OPENDISTRO_PREFIX + "/kibanainfo");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePostRequest(LEGACY_OPENDISTRO_PREFIX + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
-
         response = rh.executeGetRequest(PLUGINS_PREFIX + "/dashboardsinfo");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePostRequest(PLUGINS_PREFIX + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
+
+        response = rh.executePostRequest(ENDPOINT, "{\"xxx\": 1}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
     }
