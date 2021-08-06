@@ -31,10 +31,13 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
+    private final String BASE_ENDPOINT;
     private final String ENDPOINT;
 
     public SecurityInfoActionTest(String endpoint){
-        ENDPOINT = endpoint;
+
+        BASE_ENDPOINT = endpoint;
+        ENDPOINT = BASE_ENDPOINT + "/authinfo";
     }
 
     @Parameterized.Parameters
@@ -52,14 +55,14 @@ public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/authinfo");
+        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
+        response = rh.executePutRequest(BASE_ENDPOINT + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
         rh.sendAdminCertificate = false;
-        response = rh.executeGetRequest(ENDPOINT + "/authinfo");
+        response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
     }
 }

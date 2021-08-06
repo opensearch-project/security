@@ -33,10 +33,13 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class AccountApiTest extends AbstractRestApiUnitTest {
+    private final String BASE_ENDPOINT;
     private final String ENDPOINT;
 
+
     public AccountApiTest(String endpoint){
-        ENDPOINT = endpoint;
+        BASE_ENDPOINT = endpoint;
+        ENDPOINT = BASE_ENDPOINT + "account";
     }
 
     @Parameterized.Parameters
@@ -56,19 +59,19 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // test - unauthorized access as credentials are missing.
-        HttpResponse response = rh.executeGetRequest(ENDPOINT + "account", new Header[0]);
+        HttpResponse response = rh.executeGetRequest(ENDPOINT, new Header[0]);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - incorrect password
-        response = rh.executeGetRequest(ENDPOINT + "account", encodeBasicHeader(testUser, "wrong-pass"));
+        response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader(testUser, "wrong-pass"));
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - incorrect user
-        response = rh.executeGetRequest(ENDPOINT + "account", encodeBasicHeader("wrong-user", testPass));
+        response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader("wrong-user", testPass));
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - valid request
-        response = rh.executeGetRequest(ENDPOINT + "account", encodeBasicHeader(testUser, testPass));
+        response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader(testUser, testPass));
         Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         assertEquals(testUser, body.get("user_name"));
@@ -94,98 +97,100 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // test - unauthorized access as credentials are missing.
-        HttpResponse response = rh.executePutRequest(ENDPOINT + "account", "", new Header[0]);
+        HttpResponse response = rh.executePutRequest(ENDPOINT, "", new Header[0]);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - bad request as body is missing
-        response = rh.executePutRequest(ENDPOINT + "account", "", encodeBasicHeader(testUser, testPass));
+        System.out.println("ENDPOINT");
+        System.out.println(ENDPOINT);
+        response = rh.executePutRequest(ENDPOINT, "", encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - bad request as current password is missing
         String payload = "{\"password\":\"new-pass\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - bad request as current password is incorrect
         payload = "{\"password\":\"" + testNewPass + "\", \"current_password\":\"" + "wrong-pass" + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - bad request as hash/password is missing
         payload = "{\"current_password\":\"" + testPass + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - bad request as password is empty
         payload = "{\"password\":\"" + "" + "\", \"current_password\":\"" + testPass + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - bad request as hash is empty
         payload = "{\"hash\":\"" + "" + "\", \"current_password\":\"" + testPass + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - bad request as hash and password are empty
         payload = "{\"hash\": \"\", \"password\": \"\", \"current_password\":\"" + testPass + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - bad request as invalid parameters are present
         payload = "{\"password\":\"new-pass\", \"current_password\":\"" + testPass + "\", \"backend_roles\": []}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - invalid user
         payload = "{\"password\":\"" + testNewPass + "\", \"current_password\":\"" + testPass + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader("wrong-user", testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("wrong-user", testPass));
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - valid password change with hash
         payload = "{\"hash\":\"" + testNewPassHash + "\", \"current_password\":\"" + testPass + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // test - valid password change
         payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + testNewPass + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader(testUser, testNewPass));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testNewPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // create users from - resources/restapi/internal_users.yml
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executeGetRequest(ENDPOINT + CType.INTERNALUSERS.toLCString());
+        response = rh.executeGetRequest(BASE_ENDPOINT + CType.INTERNALUSERS.toLCString());
         rh.sendAdminCertificate = false;
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
         // test - reserved user - sarek
-        response = rh.executeGetRequest(ENDPOINT + "account", encodeBasicHeader("sarek", "sarek"));
+        response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader("sarek", "sarek"));
         Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         // check reserved user exists
         assertTrue(body.getAsBoolean("is_reserved", false));
         payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + "sarek" + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader("sarek", "sarek"));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("sarek", "sarek"));
         assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // test - hidden user - hide
-        response = rh.executeGetRequest(ENDPOINT + "account", encodeBasicHeader("hide", "hide"));
+        response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader("hide", "hide"));
         body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         // check hidden user exists
         assertTrue(body.getAsBoolean("is_hidden", false));
         payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + "hide" + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader("hide", "hide"));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("hide", "hide"));
         assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // test - admin with admin cert - internal user does not exist
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executeGetRequest(ENDPOINT + "account", encodeBasicHeader("admin", "admin"));
+        response = rh.executeGetRequest(ENDPOINT, encodeBasicHeader("admin", "admin"));
         body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals("CN=kirk,OU=client,O=client,L=Test,C=DE", body.get("user_name"));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());        // check admin user exists
         System.out.println(response.getBody());
         payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + "admin" + "\"}";
-        response = rh.executePutRequest(ENDPOINT + "account", payload, encodeBasicHeader("admin", "admin"));
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("admin", "admin"));
         assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
     }
 
@@ -205,7 +210,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
                 "  }\n" +
                 "}";
         final String changePasswordPayload = "{\"password\":\"" + newPassword + "\", \"current_password\":\"" + testPassword + "\"}";
-        final String internalUserEndpoint = ENDPOINT+"internalusers/" + testUsername;
+        final String internalUserEndpoint = BASE_ENDPOINT + "internalusers/" + testUsername;
 
         // create user
         rh.sendAdminCertificate = true;
@@ -214,7 +219,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = false;
 
         // change password to new-password
-        response = rh.executePutRequest(ENDPOINT + "account", changePasswordPayload, encodeBasicHeader(testUsername, testPassword));
+        response = rh.executePutRequest(ENDPOINT, changePasswordPayload, encodeBasicHeader(testUsername, testPassword));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // assert account information has not changed
