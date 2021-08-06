@@ -62,7 +62,7 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // test - valid request
-        response = rh.executeGetRequest(savedTenantEndpoint, encodeBasicHeader(testUser, testPass));
+        HttpResponse response = rh.executeGetRequest(savedTenantEndpoint, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals(defaultTenantValue, body.get("saved_tenant"));
