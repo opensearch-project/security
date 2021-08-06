@@ -38,11 +38,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesAction;
@@ -127,6 +129,12 @@ public class PrivilegesEvaluator {
 
     private final boolean dlsFlsEnabled;
     private DynamicConfigModel dcm;
+
+    private static final Pattern dnfofPatterns = Pattern.compile(
+            "indices:(data/read/.*|(admin/(mappings/fields/get.*|shards/search_shards|resolve/index)))"
+    );
+
+    private static final IndicesOptions idxOptAllowEmpty = IndicesOptions.fromOptions(true, true, false, false);
 
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
@@ -386,10 +394,7 @@ public class PrivilegesEvaluator {
             }
         }
 
-        if (dnfofEnabled
-                && (action0.startsWith("indices:data/read/")
-                || action0.startsWith("indices:admin/mappings/fields/get")
-                || action0.equals("indices:admin/shards/search_shards"))) {
+        if (dnfofEnabled && dnfofPatterns.matcher(action0).matches()) {
 
             if(requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
@@ -397,34 +402,24 @@ public class PrivilegesEvaluator {
                 return presponse;
             }
 
-
             Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
             if(reduced.isEmpty()) {
-                if(dcm.isDnfofForEmptyResultsEnabled()) {
+                if(dcm.isDnfofForEmptyResultsEnabled() && request instanceof IndicesRequest.Replaceable) {
+
+                    ((IndicesRequest.Replaceable) request).indices(new String[0]);
+                    presponse.missingPrivileges.clear();
+                    presponse.allowed = true;
+
                     if(request instanceof SearchRequest) {
-                        ((SearchRequest) request).indices(new String[0]);
-                        ((SearchRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
+                        ((SearchRequest) request).indicesOptions(idxOptAllowEmpty);
+                    } else if(request instanceof ClusterSearchShardsRequest) {
+                        ((ClusterSearchShardsRequest) request).indicesOptions(idxOptAllowEmpty);
+                    } else if(request instanceof GetFieldMappingsRequest) {
+                        ((GetFieldMappingsRequest) request).indicesOptions(idxOptAllowEmpty);
                     }
 
-                    if(request instanceof ClusterSearchShardsRequest) {
-                        ((ClusterSearchShardsRequest) request).indices(new String[0]);
-                        ((ClusterSearchShardsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
-                    }
-
-                    if(request instanceof GetFieldMappingsRequest) {
-                        ((GetFieldMappingsRequest) request).indices(new String[0]);
-                        ((GetFieldMappingsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
-                    }
+                    return presponse;
                 }
                 presponse.allowed = false;
                 return presponse;

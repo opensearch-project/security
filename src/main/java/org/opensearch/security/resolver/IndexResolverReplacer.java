@@ -44,6 +44,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
+import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.logging.log4j.LogManager;
@@ -87,6 +88,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.snapshots.SnapshotInfo;
 import org.opensearch.snapshots.SnapshotUtils;
 import org.opensearch.transport.RemoteClusterService;
@@ -294,7 +296,9 @@ public class IndexResolverReplacer {
         @Override
         public String[] provide(String[] original, Object localRequest, boolean supportsReplace) {
             final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
-            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
+            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest
+                    || localRequest instanceof SearchRequest
+                    || localRequest instanceof ResolveIndexAction.Request;
             // skip the whole thing if we have seen this exact resolveIndexPatterns request
             if (alreadyResolved.add(new MultiKey(indicesOptions, enableCrossClusterResolution,
                     (original != null) ? new MultiKey(original, false) : null))) {
