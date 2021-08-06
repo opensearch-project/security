@@ -42,6 +42,7 @@ search:
   allowed_actions:
   - "indices:data/read/search*"
   - "indices:data/read/msearch*"
+  - "indices:admin/resolve/index"
   - "suggest"
   type: "index"
   description: "Allow searching"
@@ -87,6 +88,7 @@ read:
   allowed_actions:
   - "indices:data/read*"
   - "indices:admin/mappings/fields/get*"
+  - "indices:admin/resolve/index"
   type: "index"
   description: "Allow all read operations"
 indices_all:
@@ -127,6 +129,7 @@ cluster_composite_ops_ro:
   - "indices:admin/aliases/exists*"
   - "indices:admin/aliases/get*"
   - "indices:data/read/scroll"
+  - "indices:admin/resolve/index"
   type: "cluster"
   description: "Allow readonly bulk and m* operations"
 get:
