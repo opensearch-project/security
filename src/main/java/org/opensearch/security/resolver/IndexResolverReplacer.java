@@ -88,7 +88,6 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.securityconf.DynamicConfigModel;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.snapshots.SnapshotInfo;
 import org.opensearch.snapshots.SnapshotUtils;
 import org.opensearch.transport.RemoteClusterService;

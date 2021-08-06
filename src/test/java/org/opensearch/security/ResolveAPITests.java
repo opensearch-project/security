@@ -27,13 +27,10 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-import java.util.Arrays;
-import java.util.Collections;
 
 public class ResolveAPITests extends SingleClusterTest {
     
@@ -144,7 +141,6 @@ public class ResolveAPITests extends SingleClusterTest {
 
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("_resolve/index/vulcangov*?pretty",  encodeBasicHeader("worf", "worf"))).getStatusCode());
         log.debug(res.getBody());
-        assertNotContains(res, "*vulcangov*");
     }
 
     private void setupIndices() {
