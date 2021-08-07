@@ -23,9 +23,12 @@ import org.opensearch.security.dlic.rest.validation.AccountValidator;
 import org.opensearch.security.dlic.rest.validation.SavedTenantValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
+import org.opensearch.security.securityconf.RoleMappings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
+import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
@@ -53,6 +56,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+
+import javax.management.relation.Role;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.HashMap;
 import com.google.common.collect.ImmutableList;
 
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
@@ -167,8 +176,8 @@ public class AccountApiAction extends AbstractApiAction {
                    if (configuration.exists(user.getName())){
                         // not responsible for verifying tenant accessibility
                         // check for tenant accessibility is done when user tries to access said tenant
-                        InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
-                        builder.field("saved_tenant", iu.getSaved_tenant());
+                        InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(username);
+                        builder.field("saved_tenant", target_user.getSaved_tenant());
                     } else {
                         builder.field("message", "Sorry, saved tenant is currently only stored for existing internal users.");
                     }
@@ -255,23 +264,38 @@ public class AccountApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
         if (request.path().endsWith(SAVED_TENANT)){
             if (configuration.exists(user.getName())){
-                SecurityDynamicConfiguration<?> rolesMappings = load(CType.ROLESMAPPING, false);
-                InternalUserV7 iu = (InternalUserV7) internalUser.getCEntry(username);
+                InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(username);
                 final String newSavedTenant = content.get("saved_tenant").asText();
+                // each user has access to the global tenant and their own private tenant
                 if (!(newSavedTenant.equals(DEFAULT_TENANT) || newSavedTenant.equals(PRIVATE_TENANT))){
-                    /*
-                    TODO: implement tenant validity checks
-                    boolean tenantExists = true; // assert passed saved tenant exists
-                    boolean userHasAccessToTenant = true; // assert user has access to passed saved tenant
-                    if (tenantExists && userHasAccessToTenant){
-                        iu.setSaved_tenant(content.get("saved_tenant").asText());
-                    } else { // case: trying to set user's tenant to a nonexistent or unaccessible (by user) tenant
-                        badRequestResponse(channel, "User does not have access to provided tenant.");
-                    return;
+                    SecurityDynamicConfiguration<?> rolesMappingsConfiguration = load(CType.ROLESMAPPING, false);
+                    Set<String> userRoles = new HashSet<>();
+                    Set<String> accessibleTenants = new HashSet<>();
+
+                    // find user roles
+                    for (String role : rolesMappingsConfiguration.getCEntries().keySet()){
+                        RoleMappings rm = (RoleMappings) rolesMappingsConfiguration.getCEntry(role);
+                        if (rm.getUsers().contains(username)){
+                            userRoles.add(role);
+                        }
                     }
-                    */
+
+                    // find accessible tenants based on roles
+                    final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+                    for (String roleName : userRoles){
+                        if (rolesConfiguration.exists((roleName))){
+                            RoleV7 role = (RoleV7) rolesConfiguration.getCEntry(roleName);
+                            accessibleTenants.addAll(role.accessibleTenants());
+                        }
+                    }
+
+                    // bad response if requested tenant is not accessible by target user
+                    if (!accessibleTenants.contains(newSavedTenant)){
+                        badRequestResponse(channel, "Target user does not have access to specified tenant");
+                        return;
+                    }
                 }
-                iu.setSaved_tenant(newSavedTenant);
+                target_user.setSaved_tenant(newSavedTenant);
             } 
             else {
                 badRequestResponse(channel, "Sorry, saved tenant is currently only stored for existing internal users.");
