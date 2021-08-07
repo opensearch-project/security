@@ -76,6 +76,7 @@ OPENDISTRO_SECURITY_READ:
   hidden: false
   allowed_actions:
   - "indices:data/read*"
+  - "indices:admin/resolve/index"
   type: "index"
   description: "Migrated from v6"
 OPENDISTRO_SECURITY_DELETE:
@@ -113,6 +114,7 @@ OPENDISTRO_SECURITY_GET:
   allowed_actions:
   - "indices:data/read/get*"
   - "indices:data/read/mget*"
+  - "indices:admin/resolve/index"
   type: "index"
   description: "Migrated from v6"
 OPENDISTRO_SECURITY_MANAGE:

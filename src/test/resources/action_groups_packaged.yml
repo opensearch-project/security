@@ -77,6 +77,7 @@ OPENDISTRO_SECURITY_READ:
   allowed_actions:
   - "indices:data/read*"
   - "indices:admin/mappings/fields/get*"
+  - "indices:admin/resolve/index"
   type: "index"
   description: "Migrated from v6"
 OPENDISTRO_SECURITY_INDICES_ALL:
