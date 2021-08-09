@@ -32,6 +32,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.dlic.rest.api.RolesApiTest.EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG;
+
 @RunWith(Parameterized.class)
 public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
@@ -422,18 +424,18 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		HttpResponse response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-		Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
+		Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_backend_roles.json");
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-		Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
+		Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_hosts.json");
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 										 body, new Header[0]);
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-		Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
+		Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
 	}
 }

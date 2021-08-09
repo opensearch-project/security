@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.dlic.rest.api.RolesApiTest.EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG;
 
 @RunWith(Parameterized.class)
 public class NodesDnApiTest extends AbstractRestApiUnitTest {
@@ -122,7 +123,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/nodesdn/cluster1", body, headers);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains("`null` is not allowed as json array element"));
+        Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
     }
 
     @Test
