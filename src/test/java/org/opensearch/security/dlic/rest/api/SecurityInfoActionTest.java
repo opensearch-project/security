@@ -35,7 +35,6 @@ public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
 
     public SecurityInfoActionTest(String endpoint){
-
         BASE_ENDPOINT = endpoint;
         ENDPOINT = BASE_ENDPOINT + "/authinfo";
     }

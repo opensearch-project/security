@@ -40,7 +40,6 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
 
 
     public TenantInfoActionTest(String endpoint){
-
         BASE_ENDPOINT = endpoint;
         ENDPOINT = BASE_ENDPOINT + "/tenantinfo";
     }

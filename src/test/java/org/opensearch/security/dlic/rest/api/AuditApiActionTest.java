@@ -63,10 +63,8 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     final Header nonAdminCredsHeader = encodeBasicHeader("random", "random");
 
     public AuditApiActionTest(String endpoint){
-        
         ENDPOINT = endpoint;
         CONFIG_ENDPOINT = ENDPOINT + "/config";
-        
     }
 
     @Parameterized.Parameters
