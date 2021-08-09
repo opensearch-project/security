@@ -247,6 +247,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
         this.tenant_permissions = tenant_permissions;
     }
 
+    // returns a list of strings representing tenants that this role has access to
     public List<String> accessibleTenants(){
         List<String> accessibleTenants = new ArrayList<>();
         for (Tenant tenant : tenant_permissions){
