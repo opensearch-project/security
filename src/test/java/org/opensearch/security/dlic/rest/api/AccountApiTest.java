@@ -200,13 +200,13 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         final String testPassword = "test-password";
         final String newPassword = "new-password";
         final String createInternalUserPayload = "{\n" +
-		"  \"password\": \"" + testPassword + "\",\n" +
-		"  \"backend_roles\": [\"test-backend-role-1\"],\n" +
-		"  \"opendistro_security_roles\": [\"opendistro_security_all_access\"],\n" +
-		"  \"attributes\": {\n" +
-		"    \"attribute1\": \"value1\"\n" +
-		"  }\n" +
-		"}";
+                "  \"password\": \"" + testPassword + "\",\n" +
+                "  \"backend_roles\": [\"test-backend-role-1\"],\n" +
+                "  \"opendistro_security_roles\": [\"opendistro_security_all_access\"],\n" +
+                "  \"attributes\": {\n" +
+                "    \"attribute1\": \"value1\"\n" +
+                "  }\n" +
+                "}";
         final String changePasswordPayload = "{\"password\":\"" + newPassword + "\", \"current_password\":\"" + testPassword + "\"}";
         final String internalUserEndpoint = BASE_ENDPOINT + "internalusers/" + testUsername;
 
@@ -225,9 +225,9 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(internalUserEndpoint);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings responseBody = Settings.builder()
-		.loadFromSource(response.getBody(), XContentType.JSON)
-		.build()
-		.getAsSettings(testUsername);
+                .loadFromSource(response.getBody(), XContentType.JSON)
+                .build()
+                .getAsSettings(testUsername);
         assertTrue(responseBody.getAsList("backend_roles").contains("test-backend-role-1"));
         assertTrue(responseBody.getAsList("opendistro_security_roles").contains("opendistro_security_all_access"));
         assertEquals(responseBody.getAsSettings("attributes").get("attribute1"), "value1");
