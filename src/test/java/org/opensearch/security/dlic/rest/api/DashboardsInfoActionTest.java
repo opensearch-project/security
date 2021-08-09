@@ -47,21 +47,39 @@ public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testDashboardsInfoAPI() throws Exception {
+    public void testSecurityConfig() throws Exception {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executeGetRequest(LEGACY_OPENDISTRO_PREFIX + "/kibanainfo");
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest(PLUGINS_PREFIX + "/dashboardsinfo");
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-
-        response = rh.executePostRequest(ENDPOINT, "{\"xxx\": 1}", new Header[0]);
+        RestHelper.HttpResponse response = rh.executePostRequest(ENDPOINT, "{\"xxx\": 1}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
     }
+
+    @Test
+    public void testDashboardsInfo() throws Exception {
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        setup(settings);
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        RestHelper.HttpResponse response = rh.executeGetRequest(PLUGINS_PREFIX + "/dashboardsinfo");
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+    }
+
+    @Test
+    public void testKibanaInfo() throws Exception {
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        setup(settings);
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        RestHelper.HttpResponse response = rh.executeGetRequest(LEGACY_OPENDISTRO_PREFIX + "/kibanainfo");
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+    }
+
 }
