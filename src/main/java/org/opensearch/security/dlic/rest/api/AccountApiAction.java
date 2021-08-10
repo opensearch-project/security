@@ -244,25 +244,23 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        final JsonNode newSavedTenantNode = content.get("saved_tenant");
-        final JsonNode passwordNode = content.get("password");
-        final JsonNode hashNode = content.get("hash");
-        final JsonNode currentPasswordNode = content.get("current_password");
-
-        if (!(newSavedTenantNode != null || (currentPasswordNode != null && (passwordNode != null || hashNode != null)))){
+        // request must have 'saved_tenant' AND/OR ('current_password' AND ('password' OR 'hash'))
+        if (!(content.get("saved_tenant") != null || (content.get("current_password") != null && (content.get("password") != null || content.get("hash") != null)))){
             badRequestResponse(channel, "Invalid request. Needs a saved_tenant AND/OR (saved_password AND (password OR hash)");
             return;
         }
 
-        if (newSavedTenantNode != null){
+        // process PUT for 'saved_tenant'
+        if (content.get("saved_tenant") != null){
+            final String newSavedTenant = content.get("saved_tenant").asText();
             // user is not InternalUserV7
             if (!(internalUser.getCEntry(user.getName()) instanceof InternalUserV7)){
                 badRequestResponse(channel, "Cannot modified saved_tenant for non-InternalUserV7.");
                 return;
             }
-            InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName()) ;
+            InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName());
             // each user has access to the global tenant and their own private tenant
-            if (!(newSavedTenantNode.asText().equals(DEFAULT_TENANT) || newSavedTenantNode.asText().equals(PRIVATE_TENANT))){
+            if (!(newSavedTenant.equals(DEFAULT_TENANT) || newSavedTenant.equals(PRIVATE_TENANT))){
                 SecurityDynamicConfiguration<?> rolesMappingsConfiguration = load(CType.ROLESMAPPING, false);
                 Set<String> userRoles = new HashSet<>();
                 Set<String> accessibleTenants = new HashSet<>();
@@ -285,14 +283,15 @@ public class AccountApiAction extends AbstractApiAction {
                 }
 
                 // bad response if requested tenant is not accessible by target user
-                if (!accessibleTenants.contains(newSavedTenantNode.asText())){
+                if (!accessibleTenants.contains(newSavedTenant)){
                     badRequestResponse(channel, "Target user does not have access to specified tenant");
                     return;
                 }
             }
-            targetUser.setSaved_tenant(newSavedTenantNode.asText());
+            targetUser.setSaved_tenant(newSavedTenant);
         }
         
+        // process PUT for 'password'/'hash'
         if (content.get("current_password") != null){
             final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
             final String currentPassword = content.get("current_password").asText();
