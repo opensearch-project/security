@@ -286,6 +286,8 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(endpoint, vermillionForestPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
+        // TODO: PUT call for 'saved_tenant' for non-InternalUserV7
+
         // test - calling user does not have access to manage target user
         //    for future implementation
 
@@ -296,6 +298,26 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         // test - valid PUT request for write access
         response = rh.executePutRequest(endpoint, xaanPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // ================================== START PUT TESTS FOR 'saved_tenant' in tandem with 'password'/'hash' ==================================
+        // note: many of the invalid input cases have already been handled within original 'password'/'hash'-only tests
+        // test - valid saved_tenant and password change with hash
+        payload = "{\"hash\":\"" + testNewPassHash + "\", \"current_password\":\"" + testPass + "\", \"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // test - valid saved_tenant and password change
+        payload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + testNewPass + "\", \"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testNewPass));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // test - bad request as current password is missing
+        payload = "{\"hash\":\"" + testNewPassHash + "\", \"password\":\"" + testPass + "\"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
+        response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // TODO: valid PUT call with 'saved_tenant' and 'password'/'hash' for non-InternalUser V7
+        //     'saved_tenant' should not be modified, but should 'password'/'hash' be?
     }
 
     @Test
