@@ -34,6 +34,12 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
     // each user has access to the global tenant
     private final String DEFAULT_TENANT = "global-tenant";
+    // PRIVATE_TENANT represents a user's personal tenant
+    // each user should have access to their own tenant
+    // if user A sets user B's 'saved_tenant' = PRIVATE_TENANT,
+    //     user B will see their own private tenant when they
+    //     log in (as opposed to user A's private tenant)
+    private final String PRIVATE_TENANT = "private-tenant";
 
     public AccountApiTest(String baseEndpoint, String endpoint){
         BASE_ENDPOINT = baseEndpoint;
@@ -230,5 +236,155 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertTrue(responseBody.getAsList("backend_roles").contains("test-backend-role-1"));
         assertTrue(responseBody.getAsList("opendistro_security_roles").contains("opendistro_security_all_access"));
         assertEquals(responseBody.getAsSettings("attributes").get("attribute1"), "value1");
+    }
+
+    @Test
+    // tests InternalUserV7.getSaved_tenant()
+    public void testGetTenant() throws Exception{
+        // arrange
+        setup();
+        final String testUser = "test-user";
+        final String testPass = "test-pass";
+        final String defaultTenantValue = "global-tenant";
+        final String endpoint = BASE_ENDPOINT + "account";
+
+        // add user
+        addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
+
+        // test - unauthorized access as credentials are missing.
+        HttpResponse response = rh.executeGetRequest(endpoint);
+        assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
+
+        // test - incorrect password
+        response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass + "invalidating text"));
+        assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
+
+        // test - incorrect user; not possible to check until later (when adding a (target) user parameter in body)
+        //     can't do this until user manager; check if only users who can manage this user can get/set this info
+
+        // don't need to test if currently saved tenant is unaccessible by user; that's handled when user attempts to
+        //     load it
+
+        // test - valid request
+        response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        assertEquals(defaultTenantValue, body.get("saved_tenant"));
+    }
+
+    @Test
+    // tests InternalUserV7.setSaved_tenant()
+    public void testSetTenant() throws Exception{
+        // ======================================= START SETUP ====================================================
+        // arrange
+        setup();
+        final String testUser = "test-user";
+        final String testPass = "test-pass";
+        final String defaultTenantValue = "global-tenant";
+        final String magaariPayload = "{\"saved_tenant\":\"Magaari\"}";
+        final String xaanPayload = "{\"saved_tenant\":\"Xaan\"}";
+        final String vermillionForestPayload = "{\"saved_tenant\":\"Vermillion_Forest\"}";
+        final String nonexistentTenantPayload = "{\"saved_tenant\":\"great_tree_of_eyos\"}";
+        final String endpoint = BASE_ENDPOINT + "account";
+
+        // add user
+        addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
+
+        // check newly created user has valid saved_tenant value
+        HttpResponse response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        assertEquals(defaultTenantValue, body.get("saved_tenant"));
+
+        // create new tenants
+        rh.sendAdminCertificate = true;
+        final String createTenantEndpoint = BASE_ENDPOINT + "tenants/";
+        final String newTenantPayload = "{\"description\":\"duelyst dance\"}";
+        response = rh.executePutRequest(createTenantEndpoint + "Magaari", newTenantPayload);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        response = rh.executePutRequest(createTenantEndpoint + "Xaan", newTenantPayload);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        response = rh.executePutRequest(createTenantEndpoint + "Vermillion_Forest", newTenantPayload);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = false;
+
+        // create new roles
+        rh.sendAdminCertificate = true;
+        final String createRoleEndpoint = BASE_ENDPOINT + "roles/";
+        final String newRolePayload1 = 
+        "{\n" + 
+        "   \"tenant_permissions\": [{\n" +
+        "       \"tenant_patterns\": [\n" +
+        "           \"Magaari\"\n" +
+        "       ],\n" +
+        "       \"allowed_actions\": [\n" +
+        "           \"kibana_all_read\"\n" +
+        "       ]\n" +
+        "   }]\n" +
+        "}";
+        final String newRolePayload2 = 
+        "{\n" + 
+        "   \"tenant_permissions\": [{\n" +
+        "       \"tenant_patterns\": [\n" +
+        "           \"Xaan\"\n" +
+        "       ],\n" +
+        "       \"allowed_actions\": [\n" +
+        "           \"kibana_all_write\"\n" +
+        "       ]\n" +
+        "   }]\n" +
+        "}";
+        response = rh.executePutRequest(createRoleEndpoint + "Magmar", newRolePayload1, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        response = rh.executePutRequest(createRoleEndpoint + "Songhai", newRolePayload2, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = false;
+
+        // assign roles to user
+        rh.sendAdminCertificate = true;
+        final String createRolesMappingEndpoint = "_plugins/_security/api/rolesmapping/";
+        final String roleMappingPayload = 
+        "{\n" +
+        "   \"backend_roles\": [],\n" +
+        "   \"hosts\": [],\n" +
+        "   \"users\": [\"" + testUser + "\"]\n" +
+        "}";
+        response = rh.executePutRequest(createRolesMappingEndpoint + "Magmar", roleMappingPayload, new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        response = rh.executePutRequest(createRolesMappingEndpoint + "Songhai", roleMappingPayload, new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = false;
+
+        // ======================================= START PUT TESTS ====================================================
+        // test - unauthorized access as credentials are missing.
+        response = rh.executePutRequest(endpoint, magaariPayload);
+        assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
+
+        // test - incorrect password
+        response = rh.executePutRequest(endpoint, magaariPayload, encodeBasicHeader(testUser, testPass + "invalidating text"));
+        assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
+
+        // test - invalid payload
+        final String badPayload = "{\"foo\":\"bar\"}";
+        response = rh.executePutRequest(endpoint, badPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - specified tenant does not exist
+        response = rh.executePutRequest(endpoint, nonexistentTenantPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - user does not have access to tenant
+        response = rh.executePutRequest(endpoint, vermillionForestPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // TODO: test - calling user does not have access to manage target user
+        //    for future implementation
+
+        // test - valid PUT request for read access
+        response = rh.executePutRequest(endpoint, magaariPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // test - valid PUT request for write access
+        response = rh.executePutRequest(endpoint, xaanPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 }
