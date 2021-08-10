@@ -164,9 +164,12 @@ public class AccountApiAction extends AbstractApiAction {
         try {
             builder.startObject();
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            final String username = user.getName();
             final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
-            if (user != null) {
+
+            if (user == null){
+                badRequestResponse(channel, "User not found.");
+                return;
+            } else{
                 final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
                 final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
                 final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
@@ -176,7 +179,7 @@ public class AccountApiAction extends AbstractApiAction {
                    if (configuration.exists(user.getName())){
                         // not responsible for verifying tenant accessibility
                         // check for tenant accessibility is done when user tries to access said tenant
-                        InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(username);
+                        InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(user.getName());
                         builder.field("saved_tenant", target_user.getSaved_tenant());
                     } else {
                         badRequestResponse(channel, "Saved tenant only stored for internal users.");
@@ -247,24 +250,28 @@ public class AccountApiAction extends AbstractApiAction {
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final String username = user.getName();
         final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
 
-        if (!internalUser.exists(username)) {
+        if (user == null){
+            badRequestResponse(channel, "User not found.");
+            return;
+        }
+
+        if (!internalUser.exists(user.getName())) {
             notFound(channel, "Could not find user.");
             return;
         }
 
-        if (!isWriteable(channel, internalUser, username)) {
+        if (!isWriteable(channel, internalUser, user.getName())) {
             return;
         }
 
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
-        final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(username);
+        final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(user.getName());
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
         if (request.path().endsWith(SAVED_TENANT)){
             if (configuration.exists(user.getName())){
-                InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(username);
+                InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(user.getName());
                 final String newSavedTenant = content.get("saved_tenant").asText();
                 // each user has access to the global tenant and their own private tenant
                 if (!(newSavedTenant.equals(DEFAULT_TENANT) || newSavedTenant.equals(PRIVATE_TENANT))){
@@ -275,7 +282,7 @@ public class AccountApiAction extends AbstractApiAction {
                     // find user roles
                     for (String role : rolesMappingsConfiguration.getCEntries().keySet()){
                         RoleMappings rm = (RoleMappings) rolesMappingsConfiguration.getCEntry(role);
-                        if (rm.getUsers().contains(username)){
+                        if (rm.getUsers().contains(user.getName)){
                             userRoles.add(role);
                         }
                     }
@@ -327,7 +334,7 @@ public class AccountApiAction extends AbstractApiAction {
         saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
             @Override
             public void onResponse(IndexResponse response) {
-                successResponse(channel, "'" + username + "' updated.");
+                successResponse(channel, "'" + user.getName() + "' updated.");
             }
         });
     }
