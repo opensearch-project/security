@@ -56,13 +56,13 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         final String testUser = "test-user";
         final String testPass = "test-pass";
         final String defaultTenantValue = "global-tenant";
-        final String savedTenantEndpoint = BASE_ENDPOINT + "account/saved_tenant";
+        final String endpoint = BASE_ENDPOINT + "account";
 
         // add user
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // test - valid request
-        HttpResponse response = rh.executeGetRequest(savedTenantEndpoint, encodeBasicHeader(testUser, testPass));
+        HttpResponse response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals(defaultTenantValue, body.get("saved_tenant"));
@@ -76,17 +76,17 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         final String testUser = "test-user";
         final String testPass = "test-pass";
         final String defaultTenantValue = "global-tenant";
-        final String savedTenantEndpoint = BASE_ENDPOINT + "account/saved_tenant";
+        final String endpoint = BASE_ENDPOINT + "account";
 
         // add user
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // test - unauthorized access as credentials are missing.
-        HttpResponse response = rh.executeGetRequest(savedTenantEndpoint);
+        HttpResponse response = rh.executeGetRequest(endpoint);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - incorrect password
-        response = rh.executeGetRequest(savedTenantEndpoint, encodeBasicHeader(testUser, testPass + "invalidating text"));
+        response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass + "invalidating text"));
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - incorrect user; not possible to check until later (when adding a (target) user parameter in body)
@@ -96,7 +96,7 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         //     load it
 
         // test - valid request
-        response = rh.executeGetRequest(savedTenantEndpoint, encodeBasicHeader(testUser, testPass));
+        response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals(defaultTenantValue, body.get("saved_tenant"));
@@ -115,13 +115,13 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
         final String xaanPayload = "{\"saved_tenant\":\"Xaan\"}";
         final String vermillionForestPayload = "{\"saved_tenant\":\"Vermillion_Forest\"}";
         final String nonexistentTenantPayload = "{\"saved_tenant\":\"great_tree_of_eyos\"}";
-        final String savedTenantEndpoint = BASE_ENDPOINT + "account/saved_tenant";
+        final String endpoint = BASE_ENDPOINT + "account";
 
         // add user
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // check newly created user has valid saved_tenant value
-        HttpResponse response = rh.executeGetRequest(savedTenantEndpoint, encodeBasicHeader(testUser, testPass));
+        HttpResponse response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         assertEquals(defaultTenantValue, body.get("saved_tenant"));
@@ -186,35 +186,35 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
 
         // ======================================= START PUT TESTS ====================================================
         // test - unauthorized access as credentials are missing.
-        response = rh.executePutRequest(savedTenantEndpoint, magaariPayload);
+        response = rh.executePutRequest(endpoint, magaariPayload);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - incorrect password
-        response = rh.executePutRequest(savedTenantEndpoint, magaariPayload, encodeBasicHeader(testUser, testPass + "invalidating text"));
+        response = rh.executePutRequest(endpoint, magaariPayload, encodeBasicHeader(testUser, testPass + "invalidating text"));
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
 
         // test - invalid payload
         final String badPayload = "{\"foo\":\"bar\"}";
-        response = rh.executePutRequest(savedTenantEndpoint, badPayload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(endpoint, badPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - specified tenant does not exist
-        response = rh.executePutRequest(savedTenantEndpoint, nonexistentTenantPayload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(endpoint, nonexistentTenantPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test - user does not have access to tenant
-        response = rh.executePutRequest(savedTenantEndpoint, vermillionForestPayload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(endpoint, vermillionForestPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // TODO: test - calling user does not have access to manage target user
         //    for future implementation
 
         // test - valid PUT request for read access
-        response = rh.executePutRequest(savedTenantEndpoint, magaariPayload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(endpoint, magaariPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // test - valid PUT request for write access
-        response = rh.executePutRequest(savedTenantEndpoint, xaanPayload, encodeBasicHeader(testUser, testPass));
+        response = rh.executePutRequest(endpoint, xaanPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 }

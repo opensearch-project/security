@@ -20,7 +20,6 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.AccountValidator;
-import org.opensearch.security.dlic.rest.validation.SavedTenantValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.RoleMappings;
@@ -72,13 +71,10 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * Currently this action serves GET and PUT request for /_opendistro/_security/api/account endpoint
  */
 public class AccountApiAction extends AbstractApiAction {
-    private static final String SAVED_TENANT = "saved_tenant";
     private static final String RESOURCE_NAME = "account";
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/account"),
-            new Route(Method.PUT, "/account"),
-            new Route(Method.GET, "/account/" + SAVED_TENANT),
-            new Route(Method.PUT, "/account/" + SAVED_TENANT)
+            new Route(Method.PUT, "/account")
     ));
 
     // each user has access to the global tenant
@@ -134,21 +130,10 @@ public class AccountApiAction extends AbstractApiAction {
      *   },
      *   "roles" : [
      *     "own_index"
-     *   ]
+     *   ],
+     *   "saved_tenant" : "global-tenant"
      * }
      * 
-     * GET request to fetch user's saved tenant
-     * 
-     * Sample request:
-     * GET _opendistro/security/api/account/saved_tenant
-     * 
-     * Sample response:
-     * {
-     *      "status":"OK",
-     *      "body":{
-     *          "saved_tenant":"global-tenant"
-     *      }
-     * }
      *
      * @param channel channel to return response
      * @param request request to be served
@@ -169,32 +154,26 @@ public class AccountApiAction extends AbstractApiAction {
             if (user == null){
                 badRequestResponse(channel, "User not found.");
                 return;
-            } else{
-                final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-                final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
-                final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
-            
-                
-                if (request.path().endsWith(SAVED_TENANT)){
-                   if (configuration.exists(user.getName())){
-                        // not responsible for verifying tenant accessibility
-                        // check for tenant accessibility is done when user tries to access said tenant
-                        InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(user.getName());
-                        builder.field("saved_tenant", target_user.getSaved_tenant());
-                    } else {
-                        badRequestResponse(channel, "Saved tenant only stored for internal users.");
-                    }
-                } else {
-                    builder.field("user_name", user.getName())
-                        .field("is_reserved", isReserved(configuration, user.getName()))
-                        .field("is_hidden", configuration.isHidden(user.getName()))
-                        .field("is_internal_user", configuration.exists(user.getName()))
-                        .field("user_requested_tenant", user.getRequestedTenant())
-                        .field("backend_roles", user.getRoles())
-                        .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
-                        .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
-                        .field("roles", securityRoles);
-                }
+            }
+            final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+            final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
+            final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
+        
+            builder.field("user_name", user.getName())
+                .field("is_reserved", isReserved(configuration, user.getName()))
+                .field("is_hidden", configuration.isHidden(user.getName()))
+                .field("is_internal_user", configuration.exists(user.getName()))
+                .field("user_requested_tenant", user.getRequestedTenant())
+                .field("backend_roles", user.getRoles())
+                .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
+                .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
+                .field("roles", securityRoles);
+            // saved_tenant only stored for internal users
+            if (configuration.exists(user.getName())){
+                // not responsible for verifying tenant accessibility
+                // check for tenant accessibility is done when user tries to access said tenant
+                InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(user.getName());
+                builder.field("saved_tenant", target_user.getSaved_tenant());
             }
             builder.endObject();
 
@@ -230,15 +209,15 @@ public class AccountApiAction extends AbstractApiAction {
      * PUT request to update account saved tenant
      * 
      * Sample request:
-     * PUT _opendistro/security/api/account/saved_tenant
+     * PUT _opendistro/security/api/account
      * {
-     *      "saved_tenant":"arbitrary-tenant"
+     *      "saved_tenant":"private-tenant"
      * }
      * 
      * Sample response:
      * {
      *      "status":"OK",
-     *      "message":"'saved_tenant' updated"
+     *      "message":"'test' updated"
      * }
      * 
      * @param channel channel to return response
@@ -266,57 +245,65 @@ public class AccountApiAction extends AbstractApiAction {
             return;
         }
 
-        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
-        final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(user.getName());
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
-        if (request.path().endsWith(SAVED_TENANT)){
-            if (configuration.exists(user.getName())){
-                InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(user.getName());
-                final String newSavedTenant = content.get("saved_tenant").asText();
-                // each user has access to the global tenant and their own private tenant
-                if (!(newSavedTenant.equals(DEFAULT_TENANT) || newSavedTenant.equals(PRIVATE_TENANT))){
-                    SecurityDynamicConfiguration<?> rolesMappingsConfiguration = load(CType.ROLESMAPPING, false);
-                    Set<String> userRoles = new HashSet<>();
-                    Set<String> accessibleTenants = new HashSet<>();
+        final JsonNode newSavedTenantNode = content.get("saved_tenant");
+        final JsonNode passwordNode = content.get("password");
+        final JsonNode hashNode = content.get("hash");
+        final JsonNode currentPasswordNode = content.get("current_password");
 
-                    // find user roles
-                    for (String role : rolesMappingsConfiguration.getCEntries().keySet()){
-                        RoleMappings rm = (RoleMappings) rolesMappingsConfiguration.getCEntry(role);
-                        if (rm.getUsers().contains(user.getName)){
-                            userRoles.add(role);
-                        }
-                    }
+        if (!(newSavedTenantNode != null || (currentPasswordNode != null && (passwordNode != null || hashNode != null)))){
+            badRequestResponse(channel, "Invalid request. Needs a saved_tenant AND/OR (saved_password AND (password OR hash)");
+            return;
+        }
 
-                    // find accessible tenants based on roles
-                    final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
-                    for (String roleName : userRoles){
-                        if (rolesConfiguration.exists((roleName))){
-                            RoleV7 role = (RoleV7) rolesConfiguration.getCEntry(roleName);
-                            accessibleTenants.addAll(role.accessibleTenants());
-                        }
-                    }
-
-                    // bad response if requested tenant is not accessible by target user
-                    if (!accessibleTenants.contains(newSavedTenant)){
-                        badRequestResponse(channel, "Target user does not have access to specified tenant");
-                        return;
-                    }
-                }
-                target_user.setSaved_tenant(newSavedTenant);
-            } 
-            else {
-                badRequestResponse(channel, "Sorry, saved tenant is currently only stored for existing internal users.");
+        if (newSavedTenantNode != null){
+            if (!internalUser.exists(user.getName())){
+                badRequestResponse(channel, "Saved tenant is currently only stored for existing internal users.");
                 return;
             }
-        } else{
+            InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(user.getName());
+            // each user has access to the global tenant and their own private tenant
+            if (!(newSavedTenantNode.asText().equals(DEFAULT_TENANT) || newSavedTenantNode.asText().equals(PRIVATE_TENANT))){
+                SecurityDynamicConfiguration<?> rolesMappingsConfiguration = load(CType.ROLESMAPPING, false);
+                Set<String> userRoles = new HashSet<>();
+                Set<String> accessibleTenants = new HashSet<>();
+
+                // find user roles
+                for (String role : rolesMappingsConfiguration.getCEntries().keySet()){
+                    RoleMappings rm = (RoleMappings) rolesMappingsConfiguration.getCEntry(role);
+                    if (rm.getUsers().contains(user.getName())){
+                        userRoles.add(role);
+                    }
+                }
+
+                // find accessible tenants based on roles
+                final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+                for (String roleName : userRoles){
+                    if (rolesConfiguration.exists((roleName))){
+                        RoleV7 role = (RoleV7) rolesConfiguration.getCEntry(roleName);
+                        accessibleTenants.addAll(role.accessibleTenants());
+                    }
+                }
+
+                // bad response if requested tenant is not accessible by target user
+                if (!accessibleTenants.contains(newSavedTenantNode.asText())){
+                    badRequestResponse(channel, "Target user does not have access to specified tenant");
+                    return;
+                }
+            }
+            target_user.setSaved_tenant(newSavedTenantNode.asText());
+        }
+        
+        if (content.get("current_password") != null){
+            final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
             final String currentPassword = content.get("current_password").asText();
+            final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(user.getName());
             final String currentHash = internalUserEntry.getHash();
-    
+
             if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
                 badRequestResponse(channel, "Could not validate your current password.");
                 return;
             }
-    
+
             // if password is set, it takes precedence over hash
             final String password = securityJsonNode.get("password").asString();
             final String hash;
@@ -329,8 +316,10 @@ public class AccountApiAction extends AbstractApiAction {
                 badRequestResponse(channel, "Both provided password and hash cannot be null/empty.");
                 return;
             }
+
             internalUserEntry.setHash(hash);
         }
+        
         saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
             @Override
             public void onResponse(IndexResponse response) {
@@ -342,9 +331,6 @@ public class AccountApiAction extends AbstractApiAction {
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if (request.path().endsWith(SAVED_TENANT)){
-            return new SavedTenantValidator(request, ref, this.settings, user.getName());
-        }
         return new AccountValidator(request, ref, this.settings, user.getName());
     }
 

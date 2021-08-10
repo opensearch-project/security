@@ -26,6 +26,6 @@ public class AccountValidator extends CredentialsValidator {
     public AccountValidator(RestRequest request, BytesReference ref, Settings opensearchSettings, Object... param) {
         super(request, ref, opensearchSettings, param);
         allowedKeys.put("current_password", DataType.STRING);
-        mandatoryKeys.add("current_password");
+        allowedKeys.put("saved_tenant", DataType.STRING);
     }
 }
