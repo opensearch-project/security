@@ -15,6 +15,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
@@ -30,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,7 +42,7 @@ import com.google.common.collect.ImmutableList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.security.dlic.rest.api.RolesApiTest.EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG;
+
 
 @RunWith(Parameterized.class)
 public class NodesDnApiTest extends AbstractRestApiUnitTest {
@@ -122,8 +124,9 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
         String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/nodesdn/cluster1", body, headers);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
     }
 
     @Test

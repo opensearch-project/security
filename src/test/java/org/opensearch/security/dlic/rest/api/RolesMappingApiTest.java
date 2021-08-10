@@ -15,7 +15,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.Header;
@@ -31,8 +30,6 @@ import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidat
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.google.common.collect.ImmutableList;
-
-import static org.opensearch.security.dlic.rest.api.RolesApiTest.EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG;
 
 @RunWith(Parameterized.class)
 public class RolesMappingApiTest extends AbstractRestApiUnitTest {
@@ -423,19 +420,22 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		String body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_users.json");
 		HttpResponse response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
+		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-		Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_backend_roles.json");
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-		Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_hosts.json");
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 										 body, new Header[0]);
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-		Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 	}
 }

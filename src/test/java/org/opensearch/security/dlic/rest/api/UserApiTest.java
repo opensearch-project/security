@@ -34,8 +34,6 @@ import java.net.URLEncoder;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
-import static org.opensearch.security.dlic.rest.api.RolesApiTest.EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG;
-
 @RunWith(Parameterized.class)
 public class UserApiTest extends AbstractRestApiUnitTest {
 
@@ -648,8 +646,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         String body = FileHelper.loadFile("restapi/users_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/internalusers/picard", body, new Header[0]);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
     }
 
 }

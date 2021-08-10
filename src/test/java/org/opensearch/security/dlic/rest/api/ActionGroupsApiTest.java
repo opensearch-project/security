@@ -30,8 +30,6 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.google.common.collect.ImmutableList;
 
-import static org.opensearch.security.dlic.rest.api.RolesApiTest.EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG;
-
 @RunWith(Parameterized.class)
 public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
@@ -386,7 +384,8 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         String body = FileHelper.loadFile("restapi/actiongroup_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", body, new Header[0]);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody().contains(EXPECTED_NULL_ELEMENT_IN_ARRAY_MSG));
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
     }
 }
