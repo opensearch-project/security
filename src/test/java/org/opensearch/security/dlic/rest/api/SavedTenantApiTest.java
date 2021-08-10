@@ -50,25 +50,6 @@ public class SavedTenantApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testDefaultTenantValueCheck() throws Exception {
-        // arrange
-        setup();
-        final String testUser = "test-user";
-        final String testPass = "test-pass";
-        final String defaultTenantValue = "global-tenant";
-        final String endpoint = BASE_ENDPOINT + "account";
-
-        // add user
-        addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
-
-        // test - valid request
-        HttpResponse response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass));
-        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        assertEquals(defaultTenantValue, body.get("saved_tenant"));
-    }
-
-    @Test
     // tests InternalUserV7.getSaved_tenant()
     public void testGetTenant() throws Exception{
         // arrange
