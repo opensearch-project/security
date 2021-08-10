@@ -58,6 +58,7 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -319,7 +320,9 @@ public class IndexResolverReplacer {
 
         getOrReplaceAllIndices(request, (original, localRequest, supportsReplace) -> {
             final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
-            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
+            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest
+                    || localRequest instanceof SearchRequest
+                    || localRequest instanceof ResolveIndexAction.Request;
             final IndexResolveKey key = new IndexResolveKey(indicesOptions, enableCrossClusterResolution, original);
             // skip the whole thing if we have seen this exact resolveIndexPatterns request
             if (!alreadyResolved.contains(key)) {
