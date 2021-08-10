@@ -251,9 +251,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
     public List<String> accessibleTenants(){
         List<String> accessibleTenants = new ArrayList<>();
         for (Tenant tenant : tenant_permissions){
-            if (tenant.getAllowed_actions().contains("kibana_all_write") || tenant.getAllowed_actions().contains("kibana_all_read")){
-                accessibleTenants.addAll(tenant.getTenant_patterns());
-            }
+            accessibleTenants.addAll(tenant.getTenant_patterns());
         }
         return accessibleTenants;
     }
