@@ -32,6 +32,8 @@ import static org.junit.Assert.*;
 public class AccountApiTest extends AbstractRestApiUnitTest {
     private final String BASE_ENDPOINT;
     private final String ENDPOINT;
+    // each user has access to the global tenant
+    private final String DEFAULT_TENANT = "global-tenant";
 
     public AccountApiTest(String baseEndpoint, String endpoint){
         BASE_ENDPOINT = baseEndpoint;
@@ -79,6 +81,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertNotNull(body.getAsList("custom_attribute_names").size());
         assertNotNull(body.getAsSettings("tenants"));
         assertNotNull(body.getAsList("roles"));
+        assertEquals(DEFAULT_TENANT, body.get("saved_tenant"));
     }
 
     @Test
