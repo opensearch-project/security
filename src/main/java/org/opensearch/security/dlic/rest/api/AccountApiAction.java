@@ -179,7 +179,7 @@ public class AccountApiAction extends AbstractApiAction {
                         InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(username);
                         builder.field("saved_tenant", target_user.getSaved_tenant());
                     } else {
-                        builder.field("message", "Sorry, saved tenant is currently only stored for existing internal users.");
+                        badRequestResponse(channel, "Saved tenant only stored for internal users.");
                     }
                 } else {
                     builder.field("user_name", user.getName())
