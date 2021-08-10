@@ -26,7 +26,6 @@ import org.opensearch.security.securityconf.RoleMappings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
-import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
@@ -276,7 +275,7 @@ public class AccountApiAction extends AbstractApiAction {
                 // find accessible tenants based on roles
                 final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
                 for (String roleName : userRoles){
-                    if (rolesConfiguration.exists((roleName))){
+                    if (rolesConfiguration.exists((roleName)) && rolesConfiguration.getCEntry(roleName) instanceof RoleV7){
                         RoleV7 role = (RoleV7) rolesConfiguration.getCEntry(roleName);
                         accessibleTenants.addAll(role.accessibleTenants());
                     }
