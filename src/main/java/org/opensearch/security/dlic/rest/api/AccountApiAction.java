@@ -168,12 +168,12 @@ public class AccountApiAction extends AbstractApiAction {
                 .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
                 .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
                 .field("roles", securityRoles);
-            // saved_tenant only stored for internal users
-            if (configuration.exists(user.getName())){
-                // not responsible for verifying tenant accessibility
+            // saved_tenant only stored for InternalUserV7
+            if (configuration.exists(user.getName()) && internalUser.getCEntry(user.getName()) instanceof InternalUserV7){
+                // not responsible for verifying tenant accessibility in getter
                 // check for tenant accessibility is done when user tries to access said tenant
-                InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(user.getName());
-                builder.field("saved_tenant", target_user.getSaved_tenant());
+                InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName());
+                builder.field("saved_tenant", targetUser.getSaved_tenant());
             }
             builder.endObject();
 
@@ -256,11 +256,12 @@ public class AccountApiAction extends AbstractApiAction {
         }
 
         if (newSavedTenantNode != null){
-            if (!internalUser.exists(user.getName())){
-                badRequestResponse(channel, "Saved tenant is currently only stored for existing internal users.");
+            // user is not InternalUserV7
+            if (!(internalUser.getCEntry(user.getName()) instanceof InternalUserV7)){
+                badRequestResponse(channel, "Cannot modified saved_tenant for non-InternalUserV7.");
                 return;
             }
-            InternalUserV7 target_user = (InternalUserV7) internalUser.getCEntry(user.getName());
+            InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName()) ;
             // each user has access to the global tenant and their own private tenant
             if (!(newSavedTenantNode.asText().equals(DEFAULT_TENANT) || newSavedTenantNode.asText().equals(PRIVATE_TENANT))){
                 SecurityDynamicConfiguration<?> rolesMappingsConfiguration = load(CType.ROLESMAPPING, false);
@@ -290,7 +291,7 @@ public class AccountApiAction extends AbstractApiAction {
                     return;
                 }
             }
-            target_user.setSaved_tenant(newSavedTenantNode.asText());
+            targetUser.setSaved_tenant(newSavedTenantNode.asText());
         }
         
         if (content.get("current_password") != null){
