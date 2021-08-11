@@ -119,20 +119,6 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		AuditTestUtils.updateAuditConfig(rh, nodeOverride != null ? nodeOverride : Settings.EMPTY);
 	}
 
-	protected final void setupWithLegacy() throws Exception {
-		Settings.Builder builder = Settings.builder();
-
-		builder.put("plugins.security.ssl.http.enabled", true)
-				.put("plugins.security.ssl.http.keystore_filepath",
-						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-				.put("plugins.security.ssl.http.truststore_filepath",
-						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
-
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), builder.build(), init);
-		rh = restHelper();
-		rh.keystore = "restapi/kirk-keystore.jks";
-	}
-
 	protected void deleteUser(String username) throws Exception {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = true;
