@@ -102,73 +102,6 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         final String testNewPassHash = "$2y$12$cclJJdVdXMMVzkhqQhEoE.hoERKE8bDzctR0S3aYj2EPHq45Y.GXC"; // hash for test-old-pass
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
-        // arranging information for tenant checks
-        final String defaultTenantValue = "global-tenant";
-        final String magaariPayload = "{\"saved_tenant\":\"Magaari\"}";
-        final String xaanPayload = "{\"saved_tenant\":\"Xaan\"}";
-        final String vermillionForestPayload = "{\"saved_tenant\":\"Vermillion_Forest\"}";
-        final String nonexistentTenantPayload = "{\"saved_tenant\":\"great_tree_of_eyos\"}";
-        final String endpoint = BASE_ENDPOINT + "account";
-
-         // create new tenants
-         rh.sendAdminCertificate = true;
-         final String createTenantEndpoint = BASE_ENDPOINT + "tenants/";
-         final String newTenantPayload = "{\"description\":\"duelyst dance\"}";
-         response = rh.executePutRequest(createTenantEndpoint + "Magaari", newTenantPayload);
-         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-         response = rh.executePutRequest(createTenantEndpoint + "Xaan", newTenantPayload);
-         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-         response = rh.executePutRequest(createTenantEndpoint + "Vermillion_Forest", newTenantPayload);
-         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-         rh.sendAdminCertificate = false;
-
-         // create new roles
-        rh.sendAdminCertificate = true;
-        final String createRoleEndpoint = BASE_ENDPOINT + "roles/";
-        final String newRolePayload1 = 
-        "{\n" + 
-        "   \"tenant_permissions\": [{\n" +
-        "       \"tenant_patterns\": [\n" +
-        "           \"Magaari\"\n" +
-        "       ],\n" +
-        "       \"allowed_actions\": [\n" +
-        "           \"kibana_all_read\"\n" +
-        "       ]\n" +
-        "   }]\n" +
-        "}";
-        final String newRolePayload2 = 
-        "{\n" + 
-        "   \"tenant_permissions\": [{\n" +
-        "       \"tenant_patterns\": [\n" +
-        "           \"Xaan\"\n" +
-        "       ],\n" +
-        "       \"allowed_actions\": [\n" +
-        "           \"kibana_all_write\"\n" +
-        "       ]\n" +
-        "   }]\n" +
-        "}";
-
-        response = rh.executePutRequest(createRoleEndpoint + "Magmar", newRolePayload1, new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        response = rh.executePutRequest(createRoleEndpoint + "Songhai", newRolePayload2, new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        rh.sendAdminCertificate = false;
-
-        // assign roles to user
-        rh.sendAdminCertificate = true;
-        final String createRolesMappingEndpoint = "_plugins/_security/api/rolesmapping/";
-        final String roleMappingPayload = 
-        "{\n" +
-        "   \"backend_roles\": [],\n" +
-        "   \"hosts\": [],\n" +
-        "   \"users\": [\"" + testUser + "\"]\n" +
-        "}";
-        response = rh.executePutRequest(createRolesMappingEndpoint + "Magmar", roleMappingPayload, new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        response = rh.executePutRequest(createRolesMappingEndpoint + "Songhai", roleMappingPayload, new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        rh.sendAdminCertificate = false;
-
         // test - unauthorized access as credentials are missing.
         HttpResponse response = rh.executePutRequest(ENDPOINT, "", new Header[0]);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
@@ -264,6 +197,74 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader("admin", "admin"));
         assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
+        // arranging information for tenant checks
+        final String defaultTenantValue = "global-tenant";
+        final String magaariPayload = "{\"saved_tenant\":\"Magaari\"}";
+        final String xaanPayload = "{\"saved_tenant\":\"Xaan\"}";
+        final String vermillionForestPayload = "{\"saved_tenant\":\"Vermillion_Forest\"}";
+        final String nonexistentTenantPayload = "{\"saved_tenant\":\"great_tree_of_eyos\"}";
+        final String endpoint = BASE_ENDPOINT + "account";
+
+         // create new tenants
+         rh.sendAdminCertificate = true;
+         final String createTenantEndpoint = BASE_ENDPOINT + "tenants/";
+         final String newTenantPayload = "{\"description\":\"duelyst dance\"}";
+         response = rh.executePutRequest(createTenantEndpoint + "Magaari", newTenantPayload);
+         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+         response = rh.executePutRequest(createTenantEndpoint + "Xaan", newTenantPayload);
+         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+         response = rh.executePutRequest(createTenantEndpoint + "Vermillion_Forest", newTenantPayload);
+         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+         rh.sendAdminCertificate = false;
+
+         // create new roles
+        rh.sendAdminCertificate = true;
+        final String createRoleEndpoint = BASE_ENDPOINT + "roles/";
+        final String newRolePayload1 = 
+        "{\n" + 
+        "   \"tenant_permissions\": [{\n" +
+        "       \"tenant_patterns\": [\n" +
+        "           \"Magaari\"\n" +
+        "       ],\n" +
+        "       \"allowed_actions\": [\n" +
+        "           \"kibana_all_read\"\n" +
+        "       ]\n" +
+        "   }]\n" +
+        "}";
+        final String newRolePayload2 = 
+        "{\n" + 
+        "   \"tenant_permissions\": [{\n" +
+        "       \"tenant_patterns\": [\n" +
+        "           \"Xaan\"\n" +
+        "       ],\n" +
+        "       \"allowed_actions\": [\n" +
+        "           \"kibana_all_write\"\n" +
+        "       ]\n" +
+        "   }]\n" +
+        "}";
+
+        response = rh.executePutRequest(createRoleEndpoint + "Magmar", newRolePayload1, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        response = rh.executePutRequest(createRoleEndpoint + "Songhai", newRolePayload2, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = false;
+
+        // assign roles to user
+        rh.sendAdminCertificate = true;
+        final String createRolesMappingEndpoint = "_plugins/_security/api/rolesmapping/";
+        final String roleMappingPayload = 
+        "{\n" +
+        "   \"backend_roles\": [],\n" +
+        "   \"hosts\": [],\n" +
+        "   \"users\": [\"" + testUser + "\"]\n" +
+        "}";
+        response = rh.executePutRequest(createRolesMappingEndpoint + "Magmar", roleMappingPayload, new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        response = rh.executePutRequest(createRolesMappingEndpoint + "Songhai", roleMappingPayload, new Header[0]);
+		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = false;
+
+        // ================================== START PUT TESTS EXCLUSIVELY FOR 'saved_tenant' ==================================
         // test - unauthorized access as credentials are missing.
         response = rh.executePutRequest(endpoint, magaariPayload);
         assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
@@ -285,6 +286,11 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(endpoint, vermillionForestPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
+        // TODO: PUT call for 'saved_tenant' for non-InternalUserV7
+
+        // test - calling user does not have access to manage target user
+        //    for future implementation
+
         // test - valid PUT request for read access
         response = rh.executePutRequest(endpoint, magaariPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -292,7 +298,8 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         // test - valid PUT request for write access
         response = rh.executePutRequest(endpoint, xaanPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        
+
+        // ================================== START PUT TESTS FOR 'saved_tenant' in tandem with 'password'/'hash' ==================================
         // note: many of the invalid input cases have already been handled within original 'password'/'hash'-only tests
         // test - valid saved_tenant and password change with hash
         payload = "{\"hash\":\"" + testNewPassHash + "\", \"current_password\":\"" + testPass + "\", \"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
@@ -309,9 +316,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        // TODO: PUT call for 'saved_tenant' for non-InternalUserV7
-
-        // TODO: PUT call with 'saved_tenant' and 'password'/'hash' for non-InternalUser V7
+        // TODO: valid PUT call with 'saved_tenant' and 'password'/'hash' for non-InternalUser V7
         //     'saved_tenant' should not be modified, but should 'password'/'hash' be?
     }
 
