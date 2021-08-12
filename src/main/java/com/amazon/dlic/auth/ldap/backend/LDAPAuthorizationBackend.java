@@ -49,9 +49,11 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
+import org.ldaptive.BindConnectionInitializer;
 import org.ldaptive.BindRequest;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionConfig;
+import org.ldaptive.Credential;
 import org.ldaptive.DefaultConnectionFactory;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -62,6 +64,8 @@ import org.ldaptive.SearchScope;
 import org.ldaptive.control.RequestControl;
 import org.ldaptive.provider.ProviderConnection;
 import org.ldaptive.provider.jndi.JndiConnection;
+import org.ldaptive.sasl.Mechanism;
+import org.ldaptive.sasl.SaslConfig;
 import org.ldaptive.ssl.AllowAnyHostnameVerifier;
 import org.ldaptive.ssl.AllowAnyTrustManager;
 import org.ldaptive.ssl.CredentialConfig;
@@ -215,14 +219,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 throw new LdapException("no bindDn or no Password");
             }
 
-            final Map<String, Object> props = new HashMap<>();
+            ConnectionConfig config = ConnectionConfig.newConnectionConfig(connectionConfig);
+            config.setConnectionInitializer(new BindConnectionInitializer(bindDn, new Credential(password)));
 
-            props.put(JndiConnection.AUTHENTICATION, "simple");
-            props.put(JndiConnection.PRINCIPAL, bindDn);
-            props.put(JndiConnection.CREDENTIALS, password);
-
-            DefaultConnectionFactory connFactory = new DefaultConnectionFactory(connectionConfig);
-            connFactory.getProvider().getProviderConfig().setProperties(props);
+            DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
             connection = connFactory.getConnection();
 
             connection.open();
@@ -284,7 +284,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     log.trace("Connect to {}", config.getLdapUrl());
                 }
 
-                final Map<String, Object> props = configureSSL(config, settings, configPath);
+                configureSSL(config, settings, configPath);
 
                 final String bindDn = settings.get(ConfigConstants.LDAP_BIND_DN, null);
                 final String password = settings.get(ConfigConstants.LDAP_PASSWORD, null);
@@ -315,17 +315,18 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 }
 
                 if (bindDn != null && password != null && password.length() > 0) {
-                    props.put(JndiConnection.AUTHENTICATION, "simple");
-                    props.put(JndiConnection.PRINCIPAL, bindDn);
-                    props.put(JndiConnection.CREDENTIALS, password.getBytes(StandardCharsets.UTF_8));
+                    config.setConnectionInitializer(new BindConnectionInitializer(bindDn, new Credential(password)));
                 } else if (enableClientAuth) {
-                    props.put(JndiConnection.AUTHENTICATION, "EXTERNAL");
+                    SaslConfig saslConfig = new SaslConfig();
+                    saslConfig.setMechanism(Mechanism.EXTERNAL);
+                    BindConnectionInitializer bindConnectionInitializer = new BindConnectionInitializer();
+                    bindConnectionInitializer.setBindSaslConfig(saslConfig);
+                    config.setConnectionInitializer(bindConnectionInitializer);
                 } else {
-                    props.put(JndiConnection.AUTHENTICATION, "none");
+                    // No authentication
                 }
 
                 DefaultConnectionFactory connFactory = new DefaultConnectionFactory(config);
-                connFactory.getProvider().getProviderConfig().setProperties(props);
                 connection = connFactory.getConnection();
 
                 connection.open();
@@ -491,11 +492,10 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
     }
 
-    private static Map<String, Object> configureSSL(final ConnectionConfig config, final Settings settings,
+    private static void configureSSL(final ConnectionConfig config, final Settings settings,
             final Path configPath) throws Exception {
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-        final Map<String, Object> props = new HashMap<String, Object>();
         final boolean enableSSL = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_SSL, false);
         final boolean enableStartTLS = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_START_TLS, false);
 
@@ -515,7 +515,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             }
 
             if (enableStartTLS && !verifyHostnames) {
-                props.put("jndi.starttls.allowAnyHostname", "true");
+                System.setProperty("jndi.starttls.allowAnyHostname", "true");
             }
 
             final boolean pem = settings.get(ConfigConstants.LDAPS_PEMTRUSTEDCAS_FILEPATH, null) != null
@@ -653,8 +653,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             log.debug("Connect timeout: " + config.getConnectTimeout() + "/ResponseTimeout: "
                     + config.getResponseTimeout());
         }
-        return props;
-
     }
 
     @Override
