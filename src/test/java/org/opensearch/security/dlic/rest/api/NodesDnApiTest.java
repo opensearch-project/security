@@ -15,6 +15,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
@@ -30,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+
 
 @RunWith(Parameterized.class)
 public class NodesDnApiTest extends AbstractRestApiUnitTest {
@@ -117,6 +120,15 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
+    private void checkNullElementsInArray(final Header headers) throws Exception{
+
+        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/nodesdn/cluster1", body, headers);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
+    }
+
     @Test
     public void testNodesDnApiWithDynamicConfigDisabled() throws Exception {
         setup();
@@ -156,6 +168,12 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
             rh.keystore = "restapi/kirk-keystore.jks";
             rh.sendAdminCertificate = true;
             testCrudScenarios(HttpStatus.SC_OK, nonAdminCredsHeader);
+        }
+
+        {
+            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.sendAdminCertificate = true;
+            checkNullElementsInArray(nonAdminCredsHeader);
         }
 
         {
@@ -214,14 +232,4 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
     }
 
-    @Test
-    public void checkNullElementsInArray() throws Exception{
-        setup();
-        rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendAdminCertificate = true;
-
-        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
-        HttpResponse response = rh.executePutRequest(ENDPOINT+ "/nodesdn", body, new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-    }
 }

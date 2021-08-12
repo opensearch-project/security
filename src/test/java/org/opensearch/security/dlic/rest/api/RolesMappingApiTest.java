@@ -15,7 +15,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.Header;
@@ -421,16 +420,22 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		String body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_users.json");
 		HttpResponse response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
+		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_backend_roles.json");
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_hosts.json");
 		response = rh.executePutRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
 										 body, new Header[0]);
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 	}
 }
