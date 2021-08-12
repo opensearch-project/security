@@ -367,7 +367,9 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         String body = FileHelper.loadFile("restapi/actiongroup_null_array_element.json");
         HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/actiongroup/CRUD_UT", body, new Header[0]);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
     }
 
 }

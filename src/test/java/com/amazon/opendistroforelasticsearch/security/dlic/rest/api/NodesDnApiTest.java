@@ -18,6 +18,7 @@ package com.amazon.opendistroforelasticsearch.security.dlic.rest.api;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditCategory;
 import com.amazon.opendistroforelasticsearch.security.auditlog.impl.AuditMessage;
 import com.amazon.opendistroforelasticsearch.security.auditlog.integration.TestAuditlogImpl;
+import com.amazon.opendistroforelasticsearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
@@ -27,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -99,6 +101,15 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
+    private void checkNullElementsInArray(final Header headers) throws Exception{
+
+        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
+        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/nodesdn/cluster1", body, headers);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
+    }
+
     @Test
     public void testNodesDnApiWithDynamicConfigDisabled() throws Exception {
         setup();
@@ -140,7 +151,13 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         }
 
         {
-            // any creds, admin certificate, disallowed key - OK
+            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.sendAdminCertificate = true;
+            checkNullElementsInArray(nonAdminCredsHeader);
+        }
+
+        {
+            // any creds, admin certificate, disallowed key - FORBIDDEN
             rh.keystore = "restapi/kirk-keystore.jks";
             rh.sendAdminCertificate = true;
 
@@ -192,17 +209,6 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         Map<AuditCategory, Long> actualCategoryCounts = TestAuditlogImpl.messages.stream().collect(Collectors.groupingBy(AuditMessage::getCategory, Collectors.counting()));
 
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
-    }
-
-    @Test
-    public void checkNullElementsInArray() throws Exception{
-        setup();
-        rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendAdminCertificate = true;
-
-        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
-        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/nodesdn", body, new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
 }
