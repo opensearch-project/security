@@ -94,16 +94,19 @@ public class SecurityRolesTests extends SingleClusterTest {
 	}
 
 	@Test
-	public void testRecursiveRoles() throws Exception {
-		setup(Settings.EMPTY, new DynamicSecurityConfig()
-				.setSecurityRolesMapping("roles_mapping.yml")
-				.setSecurityInternalUsers("internal_users.yml"), Settings.EMPTY, true);
+	public void testRecursiveActionGroup() throws Exception {
+		// ConfigUpdateResponse is expected to fail and throw AssertionError
+		Assert.assertThrows(AssertionError.class, () -> {
+			setup(Settings.EMPTY, new DynamicSecurityConfig()
+					.setSecurityRolesMapping("roles_mapping.yml")
+					.setSecurityInternalUsers("internal_users.yml"), Settings.EMPTY, true);
+		});
 
 		RestHelper rh = nonSslRestHelper();
 		rh.sendAdminCertificate = false;
 
-		HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("recursive_internal_user", "nagilum"));
-		Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+		HttpResponse resc = rh.executeGetRequest("_cat/nodes?pretty", encodeBasicHeader("recursive_internal_user", "nagilum"));
+		Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, resc.getStatusCode());
 	}
 
 	@Test
