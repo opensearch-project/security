@@ -150,28 +150,26 @@ public class AccountApiAction extends AbstractApiAction {
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
 
-            if (user == null){
-                badRequestResponse(channel, "User not found.");
-                return;
-            }
-            final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-            final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
-        
-            builder.field("user_name", user.getName())
-                .field("is_reserved", isReserved(internalUser, user.getName()))
-                .field("is_hidden", internalUser.isHidden(user.getName()))
-                .field("is_internal_user", internalUser.exists(user.getName()))
-                .field("user_requested_tenant", user.getRequestedTenant())
-                .field("backend_roles", user.getRoles())
-                .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
-                .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
-                .field("roles", securityRoles);
-            // saved_tenant only stored for InternalUserV7
-            if (internalUser.exists(user.getName()) && internalUser.getCEntry(user.getName()) instanceof InternalUserV7){
-                // not responsible for verifying tenant accessibility in getter
-                // check for tenant accessibility is done when user tries to access said tenant
-                InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName());
-                builder.field("saved_tenant", targetUser.getSaved_tenant());
+            if (user != null){
+                final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+                final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
+            
+                builder.field("user_name", user.getName())
+                    .field("is_reserved", isReserved(internalUser, user.getName()))
+                    .field("is_hidden", internalUser.isHidden(user.getName()))
+                    .field("is_internal_user", internalUser.exists(user.getName()))
+                    .field("user_requested_tenant", user.getRequestedTenant())
+                    .field("backend_roles", user.getRoles())
+                    .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
+                    .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
+                    .field("roles", securityRoles);
+                // saved_tenant only stored for InternalUserV7
+                if (internalUser.exists(user.getName()) && internalUser.getCEntry(user.getName()) instanceof InternalUserV7){
+                    // not responsible for verifying tenant accessibility in getter
+                    // check for tenant accessibility is done when user tries to access said tenant
+                    InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName());
+                    builder.field("saved_tenant", targetUser.getSaved_tenant());
+                }
             }
             builder.endObject();
 
