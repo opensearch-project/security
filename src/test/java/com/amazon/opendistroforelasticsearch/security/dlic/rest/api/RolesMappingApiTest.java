@@ -400,18 +400,24 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = true;
 
 		String body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_users.json");
-		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api//rolesmapping/opendistro_security_role_starfleet_captains",
+		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
+		Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_backend_roles.json");
 		response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
 													 body, new Header[0]);
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
 		body = FileHelper.loadFile("restapi/rolesmapping_null_array_element_hosts.json");
 		response = rh.executePutRequest("/_opendistro/_security/api/rolesmapping/opendistro_security_role_starfleet_captains",
 										 body, new Header[0]);
+		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+		Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 	}
 }
