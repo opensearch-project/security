@@ -25,6 +25,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import java.util.Arrays;
+import com.google.common.io.BaseEncoding;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.DynamicSecurityConfig;
+import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.junit.Assert.*;
 
@@ -286,8 +290,6 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(endpoint, vermillionForestPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        // TODO: PUT call for 'saved_tenant' for non-InternalUserV7
-
         // test - calling user does not have access to manage target user
         //    for future implementation
 
@@ -315,9 +317,93 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         payload = "{\"hash\":\"" + testNewPassHash + "\", \"password\":\"" + testPass + "\"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
         response = rh.executePutRequest(ENDPOINT, payload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+    }
 
-        // TODO: valid PUT call with 'saved_tenant' and 'password'/'hash' for non-InternalUser V7
-        //     'saved_tenant' should not be modified, but should 'password'/'hash' be?
+    @Test
+    public void testGetSavedTenantInternalUserV6() throws Exception {
+        // arrange
+        Settings.Builder builder = Settings.builder();
+
+		builder.put("plugins.security.ssl.http.enabled", true)
+				.put("plugins.security.ssl.http.keystore_filepath",
+						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
+				.put("plugins.security.ssl.http.truststore_filepath",
+						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
+
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), builder.build(), true);
+		RestHelper rh = restHelper();
+		rh.keystore = "restapi/kirk-keystore.jks";
+
+        final String testUser = "test-user";
+        final String testPass = "test-old-pass";
+        final String savedTenantOnlyPayload = "{\"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
+        final String savedTenantCurrentPasswordPasswordPayload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + testPass + "\", \"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
+        final String newUserPayload = "{\"password\":\"" + testPass + "\"}";
+        final String endpoint = BASE_ENDPOINT + "account";
+
+        // PUT user internally; this *should* be InternalUserV6 (setup uses .setLegacy(), which sets a config value to v6)
+        rh.sendAdminCertificate = true;
+        HttpResponse response = rh.executePutRequest("_plugins/_security/api/internalusers/" + testUser, newUserPayload);
+        assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = false;
+
+        // test - GET does not have 'saved_tenant' in response, but should contain everything else
+        response = rh.executeGetRequest(endpoint, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Settings body = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        assertEquals(testUser, body.get("user_name"));
+        assertFalse(body.getAsBoolean("is_reserved", true));
+        assertFalse(body.getAsBoolean("is_hidden", true));
+        assertTrue(body.getAsBoolean("is_internal_user", false));
+        assertNull(body.get("user_requested_tenant"));
+        assertNotNull(body.getAsList("backend_roles").size());
+        assertNotNull(body.getAsList("custom_attribute_names").size());
+        assertNotNull(body.getAsSettings("tenants"));
+        assertNotNull(body.getAsList("roles"));
+        assertNull(body.get("saved_tenant"));
+    }
+
+    @Test
+    public void testPutSavedTenantInternalUserV6() throws Exception {
+        // arrange
+        Settings.Builder builder = Settings.builder();
+
+		builder.put("plugins.security.ssl.http.enabled", true)
+				.put("plugins.security.ssl.http.keystore_filepath",
+						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
+				.put("plugins.security.ssl.http.truststore_filepath",
+						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
+
+		setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), builder.build(), true);
+		RestHelper rh = restHelper();
+		rh.keystore = "restapi/kirk-keystore.jks";
+
+        final String testUser = "test-user";
+        final String testPass = "test-old-pass";
+        final String testPassHash = "$2y$12$b7TNPn2hgl0nS7gXJ.beuOd8JGl6Nz5NsTyxofglGCItGNyDdwivK"; // hash for test-old-pass
+        final String savedTenantOnlyPayload = "{\"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
+        final String savedTenantCurrentPasswordPasswordPayload = "{\"password\":\"" + testPass + "\", \"current_password\":\"" + testPass + "\", \"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
+        final String savedTenantCurrentPasswordHashPayload = "{\"hash\":\"" + testPassHash + "\", \"current_password\":\"" + testPass + "\", \"saved_tenant\":\"" + PRIVATE_TENANT + "\"}";
+        final String newUserPayload = "{\"password\":\"" + testPass + "\"}";
+        final String endpoint = BASE_ENDPOINT + "account";
+
+        // PUT user internally; this *should* be InternalUserV6 (setup uses .setLegacy(), which sets a config value to v6)
+        rh.sendAdminCertificate = true;
+        HttpResponse response = rh.executePutRequest("_plugins/_security/api/internalusers/" + testUser, newUserPayload);
+        assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = false;
+
+        // test - PUT 'saved_tenant' with InternalUserV6
+        response = rh.executePutRequest(endpoint, savedTenantOnlyPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - PUT 'saved_tenant' and 'password' simultaneously for InternalUserV6
+        response = rh.executePutRequest(endpoint, savedTenantCurrentPasswordPasswordPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        // test - PUT 'saved_tenant' and 'hash' simultaneously for InternalUserV6
+        response = rh.executePutRequest(endpoint, savedTenantCurrentPasswordPasswordPayload, encodeBasicHeader(testUser, testPass));
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
