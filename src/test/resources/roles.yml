@@ -1116,19 +1116,3 @@ data_stream_3:
         - "*"
       allowed_actions:
         - "DATASTREAM_ALL"
-
-recursive:
-  reserved: false
-  hidden: false
-  description: "Has the action group with the same name as the role"
-  cluster_permissions:
-    - "recursive"
-  index_permissions:
-    - index_patterns:
-        - "*"
-      dls: null
-      fls: null
-      masked_fields: null
-      allowed_actions:
-        - "recursive"
-  tenant_permissions: []

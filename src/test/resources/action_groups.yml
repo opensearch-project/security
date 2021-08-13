@@ -158,11 +158,3 @@ DATASTREAM_ALL:
   - "indices:monitor/data_stream/stats"
   type: "index"
   description: "Migrated from v6"
-recursive:
-  reserved: false
-  hidden: false
-  allowed_actions:
-    - "recursive"
-  type: "index"
-  description: "Has a role with the same name as action group"
-
