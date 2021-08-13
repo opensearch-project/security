@@ -136,6 +136,7 @@ public class ConfigModelV7 extends ConfigModel {
                     // try SG6 format including readonly and permissions key
                 //  en = actionGroups.getAsList(DotPath.of(entry + "." + ConfigConstants.CONFIGKEY_ACTION_GROUPS_PERMISSIONS));
                     //}
+                
                 if(!actionGroups.getCEntries().containsKey(entry)) {
                     return Collections.emptySet();
                 }
@@ -145,6 +146,7 @@ public class ConfigModelV7 extends ConfigModel {
                 final Object actionGroupAsObject = actionGroups.getCEntries().get(entry);
                 
                 if(actionGroupAsObject != null && actionGroupAsObject instanceof List) {
+                    
                     for (final String perm: ((List<String>) actionGroupAsObject)) {
                         if (perm == entry) {
                             throw new OpenSearchSecurityException("Recursive actiongroup: " + perm);
