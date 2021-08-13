@@ -158,3 +158,4 @@ DATASTREAM_ALL:
   - "indices:monitor/data_stream/stats"
   type: "index"
   description: "Migrated from v6"
+
