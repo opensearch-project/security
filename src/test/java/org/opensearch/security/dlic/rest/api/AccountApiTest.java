@@ -25,7 +25,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import java.util.Arrays;
-import com.google.common.io.BaseEncoding;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper;
@@ -36,13 +35,10 @@ import static org.junit.Assert.*;
 public class AccountApiTest extends AbstractRestApiUnitTest {
     private final String BASE_ENDPOINT;
     private final String ENDPOINT;
-    // each user has access to the global tenant
+    // each user always has access to the global tenant
     private final String DEFAULT_TENANT = "global-tenant";
     // PRIVATE_TENANT represents a user's personal tenant
-    // each user should have access to their own tenant
-    // if user A sets user B's 'saved_tenant' = PRIVATE_TENANT,
-    //     user B will see their own private tenant when they
-    //     log in (as opposed to user A's private tenant)
+    // each user should always have access to their own tenant
     private final String PRIVATE_TENANT = "private-tenant";
 
     public AccountApiTest(String baseEndpoint, String endpoint){
@@ -203,8 +199,10 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
 
         // arranging information for tenant checks
         final String defaultTenantValue = "global-tenant";
-        final String magaariPayload = "{\"saved_tenant\":\"Magaari\"}";
-        final String xaanPayload = "{\"saved_tenant\":\"Xaan\"}";
+        final String magmarTenant = "Magaari";
+        final String songhaiTenant = "Xaan";
+        final String magaariPayload = "{\"saved_tenant\":\"" + magmarTenant + "\"}";
+        final String xaanPayload = "{\"saved_tenant\":\"" + songhaiTenant + "\"}";
         final String vermillionForestPayload = "{\"saved_tenant\":\"Vermillion_Forest\"}";
         final String nonexistentTenantPayload = "{\"saved_tenant\":\"great_tree_of_eyos\"}";
         final String endpoint = BASE_ENDPOINT + "account";
@@ -212,10 +210,10 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
          // create new tenants
          rh.sendAdminCertificate = true;
          final String createTenantEndpoint = BASE_ENDPOINT + "tenants/";
-         final String newTenantPayload = "{\"description\":\"duelyst dance\"}";
-         response = rh.executePutRequest(createTenantEndpoint + "Magaari", newTenantPayload);
+         final String newTenantPayload = "{\"description\":\"duelyst dance ligma\"}";
+         response = rh.executePutRequest(createTenantEndpoint + magmarTenant, newTenantPayload);
          Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-         response = rh.executePutRequest(createTenantEndpoint + "Xaan", newTenantPayload);
+         response = rh.executePutRequest(createTenantEndpoint + songhaiTenant, newTenantPayload);
          Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
          response = rh.executePutRequest(createTenantEndpoint + "Vermillion_Forest", newTenantPayload);
          Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
@@ -228,7 +226,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         "{\n" + 
         "   \"tenant_permissions\": [{\n" +
         "       \"tenant_patterns\": [\n" +
-        "           \"Magaari\"\n" +
+        "           \"" + magmarTenant + "\"\n" +
         "       ],\n" +
         "       \"allowed_actions\": [\n" +
         "           \"kibana_all_read\"\n" +
@@ -239,7 +237,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         "{\n" + 
         "   \"tenant_permissions\": [{\n" +
         "       \"tenant_patterns\": [\n" +
-        "           \"Xaan\"\n" +
+        "           \"" + songhaiTenant + "\"\n" +
         "       ],\n" +
         "       \"allowed_actions\": [\n" +
         "           \"kibana_all_write\"\n" +
@@ -263,9 +261,9 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         "   \"users\": [\"" + testUser + "\"]\n" +
         "}";
         response = rh.executePutRequest(createRolesMappingEndpoint + "Magmar", roleMappingPayload, new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         response = rh.executePutRequest(createRolesMappingEndpoint + "Songhai", roleMappingPayload, new Header[0]);
-		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         rh.sendAdminCertificate = false;
 
         // ================================== START PUT TESTS EXCLUSIVELY FOR 'saved_tenant' ==================================
@@ -289,9 +287,6 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         // test - user does not have access to tenant
         response = rh.executePutRequest(endpoint, vermillionForestPayload, encodeBasicHeader(testUser, testPass));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-
-        // test - calling user does not have access to manage target user
-        //    for future implementation
 
         // test - valid PUT request for read access
         response = rh.executePutRequest(endpoint, magaariPayload, encodeBasicHeader(testUser, testPass));
@@ -324,15 +319,15 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         // arrange
         Settings.Builder builder = Settings.builder();
 
-		builder.put("plugins.security.ssl.http.enabled", true)
-				.put("plugins.security.ssl.http.keystore_filepath",
-						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-				.put("plugins.security.ssl.http.truststore_filepath",
-						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
+        builder.put("plugins.security.ssl.http.enabled", true)
+                .put("plugins.security.ssl.http.keystore_filepath",
+                        FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath",
+                        FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
 
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), builder.build(), true);
-		RestHelper rh = restHelper();
-		rh.keystore = "restapi/kirk-keystore.jks";
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), builder.build(), true);
+        RestHelper rh = restHelper();
+        rh.keystore = "restapi/kirk-keystore.jks";
 
         final String testUser = "test-user";
         final String testPass = "test-old-pass";
@@ -341,7 +336,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         final String newUserPayload = "{\"password\":\"" + testPass + "\"}";
         final String endpoint = BASE_ENDPOINT + "account";
 
-        // PUT user internally; this *should* be InternalUserV6 (setup uses .setLegacy(), which sets a config value to v6)
+        // PUT user internally; setup uses .setLegacy(), which sets a config value to v6
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest("_plugins/_security/api/internalusers/" + testUser, newUserPayload);
         assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
@@ -368,15 +363,15 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         // arrange
         Settings.Builder builder = Settings.builder();
 
-		builder.put("plugins.security.ssl.http.enabled", true)
-				.put("plugins.security.ssl.http.keystore_filepath",
-						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-				.put("plugins.security.ssl.http.truststore_filepath",
-						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
+        builder.put("plugins.security.ssl.http.enabled", true)
+                .put("plugins.security.ssl.http.keystore_filepath",
+                        FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath",
+                        FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
 
-		setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), builder.build(), true);
-		RestHelper rh = restHelper();
-		rh.keystore = "restapi/kirk-keystore.jks";
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setLegacy(), builder.build(), true);
+        RestHelper rh = restHelper();
+        rh.keystore = "restapi/kirk-keystore.jks";
 
         final String testUser = "test-user";
         final String testPass = "test-old-pass";
@@ -387,7 +382,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         final String newUserPayload = "{\"password\":\"" + testPass + "\"}";
         final String endpoint = BASE_ENDPOINT + "account";
 
-        // PUT user internally; this *should* be InternalUserV6 (setup uses .setLegacy(), which sets a config value to v6)
+        // PUT user internally; setup uses .setLegacy(), which sets a config value to v6
         rh.sendAdminCertificate = true;
         HttpResponse response = rh.executePutRequest("_plugins/_security/api/internalusers/" + testUser, newUserPayload);
         assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());

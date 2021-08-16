@@ -76,13 +76,10 @@ public class AccountApiAction extends AbstractApiAction {
             new Route(Method.PUT, "/account")
     ));
 
-    // each user has access to the global tenant
+    // each user always has access to the global tenant
     private final String DEFAULT_TENANT = "global-tenant";
     // PRIVATE_TENANT represents a user's personal tenant
-    // each user should have access to their own tenant
-    // if user A sets user B's 'saved_tenant' = PRIVATE_TENANT,
-    //     user B will see their own private tenant when they
-    //     log in (as opposed to user A's private tenant)
+    // each user always has access to their own private tenant
     private final String PRIVATE_TENANT = "private-tenant";
 
     private final PrivilegesEvaluator privilegesEvaluator;
@@ -165,8 +162,8 @@ public class AccountApiAction extends AbstractApiAction {
                     .field("roles", securityRoles);
                 // saved_tenant only stored for InternalUserV7
                 if (internalUser.exists(user.getName()) && internalUser.getCEntry(user.getName()) instanceof InternalUserV7){
-                    // not responsible for verifying tenant accessibility in getter
-                    // check for tenant accessibility is done when user tries to access said tenant
+                    // not responsible for verifying tenant accessibility in GET
+                    // kibana checks and handles tenant accessibility when user attempts to access a tenant
                     InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName());
                     builder.field("saved_tenant", targetUser.getSaved_tenant());
                 }
@@ -202,12 +199,27 @@ public class AccountApiAction extends AbstractApiAction {
      *     "message":"'test' updated."
      * }
      * 
-     * PUT request to update account saved tenant
+     * PUT request to update account saved_tenant
      * 
      * Sample request:
      * PUT _opendistro/security/api/account
      * {
      *      "saved_tenant":"private-tenant"
+     * }
+     * 
+     * Sample response:
+     * {
+     *      "status":"OK",
+     *      "message":"'test' updated"
+     * }
+     * 
+     * PUT request to update account password AND saved_tenant
+     * Sample request:
+     * PUT _opendistro/security/api/account
+     * {
+     *      "saved_tenant":"private-tenant",
+     *      "current_password": "old-pass",
+     *      "password": "new-pass"
      * }
      * 
      * Sample response:
@@ -242,7 +254,10 @@ public class AccountApiAction extends AbstractApiAction {
         }
 
         // request must have 'saved_tenant' AND/OR ('current_password' AND ('password' OR 'hash'))
-        if (!(content.get("saved_tenant") != null || (content.get("current_password") != null && (content.get("password") != null || content.get("hash") != null)))){
+        final boolean invalidSavedTenantBody = content.get("saved_tenant") == null;
+        final boolean invalidPasswordBody = content.get("current_password") == null || (content.get("password") == null && content.get("hash") == null);
+        // bad case: no valid saved_tenant body nor password body
+        if (invalidSavedTenantBody && invalidPasswordBody){
             badRequestResponse(channel, "Invalid request. Needs a saved_tenant AND/OR (saved_password AND (password OR hash)");
             return;
         }
@@ -250,13 +265,13 @@ public class AccountApiAction extends AbstractApiAction {
         // process PUT for 'saved_tenant'
         if (content.get("saved_tenant") != null){
             final String newSavedTenant = content.get("saved_tenant").asText();
-            // user is not InternalUserV7
+            // invalid action; user is not InternalUserV7
             if (!(internalUser.getCEntry(user.getName()) instanceof InternalUserV7)){
                 badRequestResponse(channel, "Cannot modify saved_tenant for non-InternalUserV7.");
                 return;
             }
             InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName());
-            // each user has access to the global tenant and their own private tenant
+            // each user always has access to the global tenant and their own private tenant
             if (!(newSavedTenant.equals(DEFAULT_TENANT) || newSavedTenant.equals(PRIVATE_TENANT))){
                 SecurityDynamicConfiguration<?> rolesMappingsConfiguration = load(CType.ROLESMAPPING, false);
                 Set<String> userRoles = new HashSet<>();
@@ -273,13 +288,15 @@ public class AccountApiAction extends AbstractApiAction {
                 // find accessible tenants based on roles
                 final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
                 for (String roleName : userRoles){
+                    // only using OS 1.0+, which uses V7
+                    // not supported for V6 (pre-OS 1.0)
                     if (rolesConfiguration.exists((roleName)) && rolesConfiguration.getCEntry(roleName) instanceof RoleV7){
                         RoleV7 role = (RoleV7) rolesConfiguration.getCEntry(roleName);
                         accessibleTenants.addAll(role.accessibleTenants());
                     }
                 }
 
-                // bad response if requested tenant is not accessible by target user
+                // equested tenant is not accessible by target user
                 if (!accessibleTenants.contains(newSavedTenant)){
                     badRequestResponse(channel, "Target user does not have access to specified tenant");
                     return;
