@@ -128,3 +128,32 @@ asynchronous_search_read_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opendistro/asynchronous_search/get'
+
+# Allows users to use all cross cluster replication functionality at leader cluster
+cross_cluster_replication_leader_full_access:
+  reserved: true
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - "indices:admin/plugins/replication/index/setup/validate"
+        - "indices:data/read/plugins/replication/changes"
+        - "indices:data/read/plugins/replication/file_chunk"
+
+# Allows users to use all cross cluster replication functionality at follower cluster
+cross_cluster_replication_follower_full_access:
+  reserved: true
+  cluster_permissions:
+    - "cluster:admin/plugins/replication/autofollow/update"
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - "indices:admin/plugins/replication/index/setup/validate"
+        - "indices:data/write/plugins/replication/changes"
+        - "indices:admin/plugins/replication/index/start"
+        - "indices:admin/plugins/replication/index/pause"
+        - "indices:admin/plugins/replication/index/resume"
+        - "indices:admin/plugins/replication/index/stop"
+        - "indices:admin/plugins/replication/index/update"
+        - "indices:admin/plugins/replication/index/status_check"
