@@ -38,7 +38,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -148,9 +147,6 @@ public class ConfigModelV7 extends ConfigModel {
                 if(actionGroupAsObject != null && actionGroupAsObject instanceof List) {
                     
                     for (final String perm: ((List<String>) actionGroupAsObject)) {
-                        if (perm == entry) {
-                            throw new OpenSearchSecurityException("Recursive actiongroup: " + perm);
-                        }
                         if (actionGroups.getCEntries().keySet().contains(perm)) {
                             ret.addAll(resolve(actionGroups,perm));
                         } else {
@@ -161,9 +157,6 @@ public class ConfigModelV7 extends ConfigModel {
                     
                 } else if(actionGroupAsObject != null &&  actionGroupAsObject instanceof ActionGroupsV7) {
                     for (final String perm: ((ActionGroupsV7) actionGroupAsObject).getAllowed_actions()) {
-                        if (perm == entry) {
-                            throw new OpenSearchSecurityException("Recursive actiongroup: " + perm);
-                        }
                         if (actionGroups.getCEntries().keySet().contains(perm)) {
                             ret.addAll(resolve(actionGroups,perm));
                         } else {
