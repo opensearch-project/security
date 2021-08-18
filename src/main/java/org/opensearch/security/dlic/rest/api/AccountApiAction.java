@@ -152,14 +152,14 @@ public class AccountApiAction extends AbstractApiAction {
                 final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
             
                 builder.field("user_name", user.getName())
-                    .field("is_reserved", isReserved(configuration, user.getName()))
-                    .field("is_hidden", configuration.isHidden(user.getName()))
-                    .field("is_internal_user", configuration.exists(user.getName()))
-                    .field("user_requested_tenant", user.getRequestedTenant())
-                    .field("backend_roles", user.getRoles())
-                    .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
-                    .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
-                    .field("roles", securityRoles);
+                        .field("is_reserved", isReserved(configuration, user.getName()))
+                        .field("is_hidden", configuration.isHidden(user.getName()))
+                        .field("is_internal_user", configuration.exists(user.getName()))
+                        .field("user_requested_tenant", user.getRequestedTenant())
+                        .field("backend_roles", user.getRoles())
+                        .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
+                        .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
+                        .field("roles", securityRoles);
                 // saved_tenant only stored for InternalUserV7
                 if (configuration.exists(user.getName()) && configuration.getCEntry(user.getName()) instanceof InternalUserV7){
                     // not responsible for verifying tenant accessibility in GET
