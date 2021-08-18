@@ -28,6 +28,7 @@ import java.util.Arrays;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.dlic.rest.api.AccountApiAction;
 
 import static org.junit.Assert.*;
 
@@ -36,10 +37,10 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
     private final String BASE_ENDPOINT;
     private final String ENDPOINT;
     // each user always has access to the global tenant
-    private final String DEFAULT_TENANT = "global-tenant";
+    private final String DEFAULT_TENANT = AccountApiAction.DEFAULT_TENANT;
     // PRIVATE_TENANT represents a user's personal tenant
     // each user should always have access to their own tenant
-    private final String PRIVATE_TENANT = "private-tenant";
+    private final String PRIVATE_TENANT = AccountApiAction.PRIVATE_TENANT;
 
     public AccountApiTest(String baseEndpoint, String endpoint){
         BASE_ENDPOINT = baseEndpoint;
