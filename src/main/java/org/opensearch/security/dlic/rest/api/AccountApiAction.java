@@ -77,10 +77,10 @@ public class AccountApiAction extends AbstractApiAction {
     ));
 
     // each user always has access to the global tenant
-    private static final String DEFAULT_TENANT = "global-tenant";
+    public static final String DEFAULT_TENANT = "global-tenant";
     // PRIVATE_TENANT represents a user's personal tenant
     // each user always has access to their own private tenant
-    private static final String PRIVATE_TENANT = "private-tenant";
+    public static final String PRIVATE_TENANT = "private-tenant";
 
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
