@@ -182,7 +182,6 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     /************************************************************************************************
      * Tests with a user who has all index permissions but is not member of the protectedIndexRoles
      ***********************************************************************************************/
-
     // Test data search
     @Test
     public void testNoSearchResults() throws Exception {
