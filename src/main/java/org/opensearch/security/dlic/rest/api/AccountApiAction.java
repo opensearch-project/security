@@ -145,26 +145,26 @@ public class AccountApiAction extends AbstractApiAction {
         try {
             builder.startObject();
             final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
+            final SecurityDynamicConfiguration<?> configuration = load(CType.INTERNALUSERS, false);
 
             if (user != null){
                 final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
                 final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
             
                 builder.field("user_name", user.getName())
-                    .field("is_reserved", isReserved(internalUser, user.getName()))
-                    .field("is_hidden", internalUser.isHidden(user.getName()))
-                    .field("is_internal_user", internalUser.exists(user.getName()))
+                    .field("is_reserved", isReserved(configuration, user.getName()))
+                    .field("is_hidden", configuration.isHidden(user.getName()))
+                    .field("is_internal_user", configuration.exists(user.getName()))
                     .field("user_requested_tenant", user.getRequestedTenant())
                     .field("backend_roles", user.getRoles())
                     .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
                     .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
                     .field("roles", securityRoles);
                 // saved_tenant only stored for InternalUserV7
-                if (internalUser.exists(user.getName()) && internalUser.getCEntry(user.getName()) instanceof InternalUserV7){
+                if (configuration.exists(user.getName()) && configuration.getCEntry(user.getName()) instanceof InternalUserV7){
                     // not responsible for verifying tenant accessibility in GET
                     // kibana checks and handles tenant accessibility when user attempts to access a tenant
-                    InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName());
+                    InternalUserV7 targetUser = (InternalUserV7) configuration.getCEntry(user.getName());
                     builder.field("saved_tenant", targetUser.getSaved_tenant());
                 }
             }
@@ -237,19 +237,19 @@ public class AccountApiAction extends AbstractApiAction {
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
+        final SecurityDynamicConfiguration<?> configuration = load(CType.INTERNALUSERS, false);
 
         if (user == null){
             badRequestResponse(channel, "User not found.");
             return;
         }
 
-        if (!internalUser.exists(user.getName())) {
+        if (!configuration.exists(user.getName())) {
             notFound(channel, "Could not find user.");
             return;
         }
 
-        if (!isWriteable(channel, internalUser, user.getName())) {
+        if (!isWriteable(channel, configuration, user.getName())) {
             return;
         }
 
@@ -266,11 +266,11 @@ public class AccountApiAction extends AbstractApiAction {
         if (content.get("saved_tenant") != null){
             final String newSavedTenant = content.get("saved_tenant").asText();
             // invalid action; user is not InternalUserV7
-            if (!(internalUser.getCEntry(user.getName()) instanceof InternalUserV7)){
+            if (!(configuration.getCEntry(user.getName()) instanceof InternalUserV7)){
                 badRequestResponse(channel, "Cannot modify saved_tenant for non-InternalUserV7.");
                 return;
             }
-            InternalUserV7 targetUser = (InternalUserV7) internalUser.getCEntry(user.getName());
+            InternalUserV7 targetUser = (InternalUserV7) configuration.getCEntry(user.getName());
             // each user always has access to the global tenant and their own private tenant
             if (!(newSavedTenant.equals(DEFAULT_TENANT) || newSavedTenant.equals(PRIVATE_TENANT))){
                 SecurityDynamicConfiguration<?> rolesMappingsConfiguration = load(CType.ROLESMAPPING, false);
@@ -309,7 +309,7 @@ public class AccountApiAction extends AbstractApiAction {
         if (content.get("current_password") != null){
             final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
             final String currentPassword = content.get("current_password").asText();
-            final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(user.getName());
+            final Hashed internalUserEntry = (Hashed) configuration.getCEntry(user.getName());
             final String currentHash = internalUserEntry.getHash();
 
             if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
@@ -333,7 +333,7 @@ public class AccountApiAction extends AbstractApiAction {
             internalUserEntry.setHash(hash);
         }
         
-        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, configuration, new OnSucessActionListener<IndexResponse>(channel) {
             @Override
             public void onResponse(IndexResponse response) {
                 successResponse(channel, "'" + user.getName() + "' updated.");
