@@ -132,7 +132,7 @@ public class SecurityIndexAccessEvaluator {
             }
         }
 
-        if(requestedResolved.getAllIndices().contains(securityIndex) || requestedResolved.isLocalAll()
+        if(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().contains(securityIndex)
                 || matchAnySystemIndices(requestedResolved)) {
 
             if(request instanceof SearchRequest) {
