@@ -263,7 +263,7 @@ public class AccountApiAction extends AbstractApiAction {
         }
 
         // process PUT for 'saved_tenant'
-        if (content.get("saved_tenant") != null){
+        if (!invalidSavedTenantBody){
             final String newSavedTenant = content.get("saved_tenant").asText();
             // invalid action; user is not InternalUserV7
             if (!(configuration.getCEntry(user.getName()) instanceof InternalUserV7)){
@@ -299,6 +299,7 @@ public class AccountApiAction extends AbstractApiAction {
         }
         
         // process PUT for 'password'/'hash'
+        // additional checks for valid body are done inside
         if (content.get("current_password") != null){
             final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
             final String currentPassword = content.get("current_password").asText();
