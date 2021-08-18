@@ -372,7 +372,7 @@ public class IndexResolverReplacer {
             this.allIndices = allIndices;
             this.originalRequested = originalRequested;
             this.remoteIndices = remoteIndices;
-            this.isLocalAll = isLocalAll(originalRequested, aliases, remoteIndices, allIndices);
+            this.isLocalAll = IndexResolverReplacer.isLocalAll(originalRequested.toArray(new String[0])) || (aliases.contains("*") && allIndices.contains("*"));
         }
 
         public boolean isLocalAll() {
@@ -442,14 +442,6 @@ public class IndexResolverReplacer {
             } else if (!remoteIndices.equals(other.remoteIndices))
                 return false;
             return true;
-        }
-
-        private static boolean isLocalAll(Set<String> originalRequested, Set<String> aliases, Set<String> indices, Set<String> allIndices) {
-            if(IndexResolverReplacer.isLocalAll(originalRequested)) {
-                return true;
-            }
-
-            return aliases.contains("*") && indices.contains("*") && allIndices.contains("*");
         }
     }
 
