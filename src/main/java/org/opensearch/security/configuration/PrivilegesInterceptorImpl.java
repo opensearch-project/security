@@ -143,7 +143,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         //request not made by the kibana server and user index is the only index/alias involved
-        if (!user.getName().equals(dashboardsServerUsername)) {
+        if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.isLocalAll()) {
             final Set<String> indices = requestedResolved.getAllIndices();
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1 && indices.iterator().next().startsWith(tenantIndexName) &&
@@ -341,11 +341,15 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     private static boolean resolveToDashboardsIndexOrAlias(final Resolved requestedResolved, final String dashboardsIndexName) {
-        final Set<String> allIndices = requestedResolved.getAllIndices();
-        if (allIndices.size() == 1 && allIndices.iterator().next().equals(dashboardsIndexName)) {
-            return true;
+        if (!requestedResolved.isLocalAll()) {
+            final Set<String> allIndices = requestedResolved.getAllIndices();
+            if (allIndices.size() == 1 && allIndices.iterator().next().equals(dashboardsIndexName)) {
+                return true;
+            }
+            final Set<String> aliases = requestedResolved.getAliases();
+            return (aliases.size() == 1 && aliases.iterator().next().equals(dashboardsIndexName));
+        } else {
+            return false;
         }
-        final Set<String> aliases = requestedResolved.getAliases();
-        return (aliases.size() == 1 && aliases.iterator().next().equals(dashboardsIndexName));
     }
 }
