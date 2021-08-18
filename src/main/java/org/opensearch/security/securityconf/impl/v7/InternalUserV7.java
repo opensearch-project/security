@@ -41,6 +41,7 @@ import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
+import org.opensearch.security.dlic.rest.api.AccountApiAction;
 
 public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         
@@ -54,7 +55,7 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         private String description;
         private List<String> opendistro_security_roles = Collections.emptyList();
         // default tenant set to global-tenant
-        private String saved_tenant = "global-tenant";
+        private String saved_tenant = AccountApiAction.DEFAULT_TENANT;
 
         private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes) {
             super();
