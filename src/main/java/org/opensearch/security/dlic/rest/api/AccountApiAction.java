@@ -274,20 +274,13 @@ public class AccountApiAction extends AbstractApiAction {
             // each user always has access to the global tenant and their own private tenant
             if (!(newSavedTenant.equals(DEFAULT_TENANT) || newSavedTenant.equals(PRIVATE_TENANT))){
                 SecurityDynamicConfiguration<?> rolesMappingsConfiguration = load(CType.ROLESMAPPING, false);
-                Set<String> userRoles = new HashSet<>();
+                final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+                final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
                 Set<String> accessibleTenants = new HashSet<>();
-
-                // find user roles
-                for (String role : rolesMappingsConfiguration.getCEntries().keySet()){
-                    RoleMappings rm = (RoleMappings) rolesMappingsConfiguration.getCEntry(role);
-                    if (rm.getUsers().contains(user.getName())){
-                        userRoles.add(role);
-                    }
-                }
 
                 // find accessible tenants based on roles
                 final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
-                for (String roleName : userRoles){
+                for (String roleName : securityRoles){
                     // only using OS 1.0+, which uses V7
                     // not supported for V6 (pre-OS 1.0)
                     if (rolesConfiguration.exists((roleName)) && rolesConfiguration.getCEntry(roleName) instanceof RoleV7){
