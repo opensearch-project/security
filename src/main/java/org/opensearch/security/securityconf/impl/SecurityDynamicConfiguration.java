@@ -100,16 +100,23 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         sdc.primaryTerm = primaryTerm;
         sdc.version = version;
 
-        if (sdc.ctype.toLCString().equals("actiongroups")) {
-            Map<String, ActionGroupsV7> cEntries = (Map<String, ActionGroupsV7>) sdc.centries;
-            cEntries.forEach((cEntry, actionGroup) -> {
-                ArrayList allowedActions = (ArrayList) actionGroup.getAllowed_actions();
-                allowedActions.forEach((allowedAction) -> {
-                    if (allowedAction.equals(cEntry)) {
-                        throw new OpenSearchSecurityException("Recursive actiongroup: " + cEntry);
-                    }
+        if (sdc.ctype != null && sdc.ctype.toLCString().equals("actiongroups")) {
+            try{
+                Map<String, ActionGroupsV7> cEntries = (Map<String, ActionGroupsV7>) sdc.centries;
+                cEntries.forEach((cEntry, actionGroup) -> {
+                    ArrayList allowedActions = (ArrayList) actionGroup.getAllowed_actions();
+                    allowedActions.forEach((allowedAction) -> {
+                        if (allowedAction.equals(cEntry)) {
+                            throw new OpenSearchSecurityException("Recursive actiongroup: " + cEntry);
+                        }
+                    });
                 });
-            });
+            } catch (OpenSearchSecurityException e) {
+                throw e;
+            } finally {
+                sdc = SecurityDynamicConfiguration.empty();
+                sdc.setCType(ctype);
+            }
         }
 
         return sdc;
