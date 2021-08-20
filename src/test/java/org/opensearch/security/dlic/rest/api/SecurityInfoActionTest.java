@@ -31,19 +31,17 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
-    private final String BASE_ENDPOINT;
     private final String ENDPOINT;
 
     public SecurityInfoActionTest(String endpoint){
-        BASE_ENDPOINT = endpoint;
-        ENDPOINT = BASE_ENDPOINT + "/authinfo";
+        ENDPOINT = endpoint;
     }
 
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX,
-                PLUGINS_PREFIX
+                LEGACY_OPENDISTRO_PREFIX +  "/authinfo",
+                PLUGINS_PREFIX +  "/authinfo"
         );
     }
 
@@ -56,9 +54,6 @@ public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executePutRequest(BASE_ENDPOINT + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest(ENDPOINT);

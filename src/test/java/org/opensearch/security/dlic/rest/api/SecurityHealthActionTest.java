@@ -55,8 +55,5 @@ public class SecurityHealthActionTest extends AbstractRestApiUnitTest {
 
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/health");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executePostRequest(ENDPOINT + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
     }
 }
