@@ -57,6 +57,7 @@ import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+import org.opensearch.security.support.ConfigHelper;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
     
@@ -99,25 +100,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         sdc.seqNo = seqNo;
         sdc.primaryTerm = primaryTerm;
         sdc.version = version;
-
-        if (sdc.ctype != null && sdc.ctype.toLCString().equals("actiongroups")) {
-            try{
-                Map<String, ActionGroupsV7> cEntries = (Map<String, ActionGroupsV7>) sdc.centries;
-                cEntries.forEach((cEntry, actionGroup) -> {
-                    ArrayList allowedActions = (ArrayList) actionGroup.getAllowed_actions();
-                    allowedActions.forEach((allowedAction) -> {
-                        if (allowedAction.equals(cEntry)) {
-                            throw new OpenSearchSecurityException("Recursive actiongroup: " + cEntry);
-                        }
-                    });
-                });
-            } catch (OpenSearchSecurityException e) {
-                throw e;
-            } finally {
-                sdc = SecurityDynamicConfiguration.empty();
-                sdc.setCType(ctype);
-            }
-        }
 
         return sdc;
     }

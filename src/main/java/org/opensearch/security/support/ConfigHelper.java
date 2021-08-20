@@ -35,7 +35,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Map;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.securityconf.impl.Meta;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,6 +57,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -70,7 +74,18 @@ public class ConfigHelper {
         LOGGER.info("Will update '" + configType + "' with " + filepath + " and populate it with empty doc if file missing and populateEmptyIfFileMissing=" + populateEmptyIfFileMissing);
 
         if (!populateEmptyIfFileMissing) {
-            ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
+            SecurityDynamicConfiguration<?> securityDynamicConfiguration = ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
+            if (cType != null && cType.toLCString().equals("actiongroups")) {
+                    Map<String, ActionGroupsV7> cEntries = (Map<String, ActionGroupsV7>) securityDynamicConfiguration.getCEntries();
+                    cEntries.forEach((cEntry, actionGroup) -> {
+                        ArrayList allowedActions = (ArrayList) actionGroup.getAllowed_actions();
+                        allowedActions.forEach((allowedAction) -> {
+                            if (allowedAction.equals(cEntry)) {
+                                throw new OpenSearchSecurityException("Recursive actiongroup: " + cEntry);
+                            }
+                        });
+                    });
+            }
         }
 
         try (Reader reader = createFileOrStringReader(cType, configVersion, filepath, populateEmptyIfFileMissing)) {
