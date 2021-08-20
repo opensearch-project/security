@@ -48,16 +48,16 @@ jobs:
       run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
 
     - name: Checkstyle
-      run: mvn -B checkstyle:checkstyle
+      run: ./mvnw -B checkstyle:checkstyle
 
     - name: Package
-      run: mvn -B clean package -Padvanced -DskipTests
+      run: ./mvnw -B clean package -Padvanced -DskipTests
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
 
     - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true mvn -B test
+      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./mvnw -B test
 
     - name: Coverage
       uses: codecov/codecov-action@v1

@@ -25,7 +25,7 @@ OpenSearch components build using Java 14 at a minimum. This means you must have
 To build from the command line,
 
 ```
-mvn clean package -Padvanced -DskipTests
+./mvnw clean package -Padvanced -DskipTests
 ```
 
 ### Using IntelliJ IDEA
