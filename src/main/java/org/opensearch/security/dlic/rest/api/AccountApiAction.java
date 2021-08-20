@@ -267,7 +267,7 @@ public class AccountApiAction extends AbstractApiAction {
             final String newSavedTenant = content.get("saved_tenant").asText();
             // invalid action; user is not InternalUserV7
             if (!(configuration.getCEntry(user.getName()) instanceof InternalUserV7)){
-                badRequestResponse(channel, "Cannot modify saved_tenant for non-InternalUserV7.");
+                badRequestResponse(channel, "Only 7.x versions can modify saved_tenant for internal users (InternalUserV7).");
                 return;
             }
             InternalUserV7 targetUser = (InternalUserV7) configuration.getCEntry(user.getName());
