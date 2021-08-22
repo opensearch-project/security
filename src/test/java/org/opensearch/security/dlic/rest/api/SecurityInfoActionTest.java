@@ -18,7 +18,6 @@ package org.opensearch.security.dlic.rest.api;
 import com.google.common.collect.ImmutableList;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
