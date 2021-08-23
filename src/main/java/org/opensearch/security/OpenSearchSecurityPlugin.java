@@ -183,6 +183,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenSearchSecurityPlugin.class);
 
+    public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
+    public static final String PLUGINS_PREFIX = "_plugins/_security";
+
     private boolean sslCertReloadEnabled;
     private volatile SecurityRestFilter securityRestHandler;
     private volatile SecurityInterceptor si;

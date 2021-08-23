@@ -34,6 +34,9 @@ import java.net.URLEncoder;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 @RunWith(Parameterized.class)
 public class UserApiTest extends AbstractRestApiUnitTest {
 
@@ -46,8 +49,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                "/_opendistro/_security/api",
-                "/_plugins/_security/api"
+                LEGACY_OPENDISTRO_PREFIX + "/api",
+                PLUGINS_PREFIX + "/api"
         );
     }
 
@@ -275,7 +278,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // SuperAdmin can add read only users
         rh.sendAdminCertificate = true;
         addUserWithHash("sarek", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
-                        HttpStatus.SC_OK);
+                HttpStatus.SC_OK);
 
         // add/update user, user is hidden, forbidden, allowed for super admin
         rh.sendAdminCertificate = true;
@@ -285,7 +288,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // add users
         rh.sendAdminCertificate = true;
         addUserWithHash("nagilum", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
-                 HttpStatus.SC_CREATED);
+                HttpStatus.SC_CREATED);
 
         // access must be allowed now
         checkGeneralAccess(HttpStatus.SC_OK, "nagilum", "nagilum");
@@ -459,21 +462,21 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithPasswordAndHash("empty_password", "", "$%^123", HttpStatus.SC_BAD_REQUEST);
         addUserWithPasswordAndHash("null_password", null, "$%^123", HttpStatus.SC_BAD_REQUEST);
 
-        response = rh.executePatchRequest("/_plugins/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
+        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        response = rh.executePatchRequest("/_plugins/_security/api/internalusers", "[{ \"op\": \"replace\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
+        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"replace\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         addUserWithPassword("ok4", "123", HttpStatus.SC_BAD_REQUEST);
 
-        response = rh.executePatchRequest("/_plugins/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
+        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         addUserWithPassword("ok4", "$1aAAAAAAAAC", HttpStatus.SC_OK);
 
         //its not allowed to use the username as password (case insensitive)
-        response = rh.executePatchRequest("/_plugins/_security/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/$1aAAAAAAAAB\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
+        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/$1aAAAAAAAAB\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword("$1aAAAAAAAac", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
@@ -481,7 +484,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;:test&~@^", "UTF-8").replace("+", "%2B"), "$1aAAAAAAAac%!=\\\"/\\\\;:test&~@^", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", HttpStatus.SC_CREATED);
 
-        response = rh.executeGetRequest("/_plugins/_security/api/internalusers/nothinghthere?pretty", new Header[0]);
+        response = rh.executeGetRequest(PLUGINS_PREFIX + "/api/internalusers/nothinghthere?pretty", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("NOT_FOUND"));
 
@@ -490,21 +493,21 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 "{ \"op\": \"add\", \"path\": \"/testuser2\",  \"value\": { \"password\": \"testpassword2\", \"backend_roles\": [\"testrole2\"] } }" +
                 "]";
 
-        response = rh.executePatchRequest("/_plugins/_security/api/internalusers", patchPayload, new BasicHeader("Content-Type", "application/json"));
+        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", patchPayload, new BasicHeader("Content-Type", "application/json"));
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("error"));
         Assert.assertTrue(response.getBody().contains("xxx"));
 
-        response = rh.executePutRequest("/_plugins/_security/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"\"}", new Header[0]);
+        response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"\"}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        response = rh.executePutRequest("/_plugins/_security/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"Admin_123\"}", new Header[0]);
+        response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"Admin_123\"}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest("/_plugins/_security/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{}}", new Header[0]);
+        response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{}}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest("/_plugins/_security/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"bla\"}",
+        response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"bla\"}",
                 new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }

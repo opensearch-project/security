@@ -44,6 +44,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 /**
  * Testing class to verify that {@link WhitelistApiAction} works correctly.
  * Check {@link SecurityRestFilter} for extra tests for whitelisting functionality.
@@ -68,8 +71,8 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                "/_opendistro/_security/api",
-                "/_plugins/_security/api"
+                LEGACY_OPENDISTRO_PREFIX + "/api",
+                PLUGINS_PREFIX + "/api"
         );
     }
 
