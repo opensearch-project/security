@@ -20,3 +20,4 @@ Compatible with OpenSearch 1.0.0
 * Checkout OpenSearch after Cache in CD ([#1410](https://github.com/opensearch-project/security/pull/1410))
 * Address follow up comments for PR #1172 ([#1224](https://github.com/opensearch-project/security/pull/1224))
 * Upgrade CXF to v3.4.4 ([#1412](https://github.com/opensearch-project/security/pull/1412))
+* Bump version to 1.0.1.0 ([#1418](https://github.com/opensearch-project/security/pull/1418))
