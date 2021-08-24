@@ -422,9 +422,8 @@ public class SecurityFilter implements ActionFilter {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
         if (resolved.isLocalAll()) {
             return true;
-        } else {
-            final Set<String> allIndices = resolved.getAllIndices();
-            return immutableIndicesMatcher.matchAny(allIndices);
         }
+        final Set<String> allIndices = resolved.getAllIndices();
+        return immutableIndicesMatcher.matchAny(allIndices);
     }
 }

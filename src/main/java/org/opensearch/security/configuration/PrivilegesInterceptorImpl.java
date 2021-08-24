@@ -341,15 +341,14 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     private static boolean resolveToDashboardsIndexOrAlias(final Resolved requestedResolved, final String dashboardsIndexName) {
-        if (!requestedResolved.isLocalAll()) {
-            final Set<String> allIndices = requestedResolved.getAllIndices();
-            if (allIndices.size() == 1 && allIndices.iterator().next().equals(dashboardsIndexName)) {
-                return true;
-            }
-            final Set<String> aliases = requestedResolved.getAliases();
-            return (aliases.size() == 1 && aliases.iterator().next().equals(dashboardsIndexName));
-        } else {
+        if (requestedResolved.isLocalAll()) {
             return false;
         }
+        final Set<String> allIndices = requestedResolved.getAllIndices();
+        if (allIndices.size() == 1 && allIndices.iterator().next().equals(dashboardsIndexName)) {
+            return true;
+        }
+        final Set<String> aliases = requestedResolved.getAliases();
+        return (aliases.size() == 1 && aliases.iterator().next().equals(dashboardsIndexName));
     }
 }
