@@ -994,16 +994,16 @@ public class ConfigModelV6 extends ConfigModel {
                     .toArray(IndexMatcherAndTypePermissions[]::new);
         }
 
-            return resolved.getAllIndices()
-                    .stream().allMatch(index ->
-                            resolved.getTypes().stream().allMatch(type ->
-                                    Arrays.stream(requestedActions).allMatch(action ->
-                                            Arrays.stream(indexMatcherAndTypePermissions).anyMatch(ipatp ->
-                                                    ipatp.matches(index, type, action)
-                                            )
-                                    )
-                            )
-                    );
+        return resolved.getAllIndices()
+                .stream().allMatch(index ->
+                        resolved.getTypes().stream().allMatch(type ->
+                                Arrays.stream(requestedActions).allMatch(action ->
+                                        Arrays.stream(indexMatcherAndTypePermissions).anyMatch(ipatp ->
+                                                ipatp.matches(index, type, action)
+                                        )
+                                )
+                        )
+                );
     }
 
     
