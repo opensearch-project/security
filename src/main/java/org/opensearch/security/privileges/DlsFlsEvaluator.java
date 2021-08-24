@@ -100,8 +100,8 @@ public class DlsFlsEvaluator {
             }
 
             presponse.maskedFields = maskedFieldsMap.entrySet().stream()
-                .filter(!(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty()) ?
-                    entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()) : entry -> true)
+                .filter(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty() ?
+                        entry -> true : entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()))
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
         }
@@ -134,8 +134,8 @@ public class DlsFlsEvaluator {
             }
 
             presponse.queries = dlsQueries.entrySet().stream()
-                .filter(!(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty()) ?
-                        entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()) : entry -> true)
+                .filter(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty() ?
+                        entry -> true : entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()))
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
         }
@@ -165,8 +165,8 @@ public class DlsFlsEvaluator {
             }
 
             presponse.allowedFlsFields = flsFields.entrySet().stream()
-                .filter(!(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty()) ?
-                        entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()) : entry -> true)
+                .filter(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty() ?
+                        entry -> true : entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()))
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
         }
