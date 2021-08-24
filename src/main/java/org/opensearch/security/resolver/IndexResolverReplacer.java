@@ -135,10 +135,11 @@ public class IndexResolverReplacer {
         return false;
     }
 
-    private static final boolean isLocalAll(final String... requestedPatterns) {
+    private static final boolean isLocalAll(String... requestedPatterns) {
+        return isLocalAll(requestedPatterns == null ? null : Arrays.asList(requestedPatterns));
+    }
 
-        final List<String> patterns = requestedPatterns==null?null:Arrays.asList(requestedPatterns);
-
+    private static final boolean isLocalAll(Collection<String> patterns) {
         if(IndexNameExpressionResolver.isAllIndices(patterns)) {
             return true;
         }

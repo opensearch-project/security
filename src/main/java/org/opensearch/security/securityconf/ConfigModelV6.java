@@ -979,11 +979,20 @@ public class ConfigModelV6 extends ConfigModel {
 
     private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] requestedActions,
                                            IndexNameExpressionResolver resolver, ClusterService cs) {
-
-        IndexMatcherAndTypePermissions[] indexMatcherAndTypePermissions = ipatterns
-                .stream()
-                .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
-                .toArray(IndexMatcherAndTypePermissions[]::new);
+        IndexMatcherAndTypePermissions[] indexMatcherAndTypePermissions;
+        if (resolved.isLocalAll()) {
+            // Only let localAll pass if there is an explicit privilege for a * index pattern
+            indexMatcherAndTypePermissions = ipatterns
+                    .stream()
+                    .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
+                    .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
+                    .toArray(IndexMatcherAndTypePermissions[]::new);
+        } else {
+            indexMatcherAndTypePermissions = ipatterns
+                    .stream()
+                    .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
+                    .toArray(IndexMatcherAndTypePermissions[]::new);
+        }
 
         return resolved.getAllIndices()
                 .stream().allMatch(index ->

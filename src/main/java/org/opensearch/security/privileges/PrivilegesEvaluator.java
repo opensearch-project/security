@@ -455,7 +455,7 @@ public class PrivilegesEvaluator {
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {
 
-            if(checkFilteredAliases(requestedResolved.getAllIndices(), action0, isDebugEnabled)) {
+            if(checkFilteredAliases(requestedResolved, action0, isDebugEnabled)) {
                 presponse.allowed=false;
                 return presponse;
             }
@@ -589,26 +589,53 @@ public class PrivilegesEvaluator {
             ) ;
     }
 
-    private boolean checkFilteredAliases(Set<String> requestedResolvedIndices, String action, boolean isDebugEnabled) {
-        //check filtered aliases
-        for (String requestAliasOrIndex: requestedResolvedIndices) {
+    private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {
+        final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
 
-            final List<AliasMetadata> filteredAliases = new ArrayList<>();
+        if (!"disallow".equals(faMode)) {
+            return false;
+        }
 
-            final IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().get(requestAliasOrIndex);
+        if (!ACTION_MATCHER.test(action)) {
+            return false;
+        }
 
-            if (indexMetadata == null) {
-                if (isDebugEnabled) {
-                    log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+        Iterable<IndexMetadata> indexMetaDataCollection;
+
+        if (requestedResolved.isLocalAll()) {
+            indexMetaDataCollection = new Iterable<IndexMetadata>() {
+                @Override
+                public Iterator<IndexMetadata> iterator() {
+                    return clusterService.state().getMetadata().getIndices().valuesIt();
                 }
-                continue;
+            };
+        } else {
+            Set<IndexMetadata> indexMetaDataSet = new HashSet<>(requestedResolved.getAllIndices().size());
+
+            for (String requestAliasOrIndex : requestedResolved.getAllIndices()) {
+                IndexMetadata indexMetaData = clusterService.state().getMetadata().getIndices().get(requestAliasOrIndex);
+                if (indexMetaData == null) {
+                    if (isDebugEnabled) {
+                        log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+                    }
+                    continue;
+                }
+
+                indexMetaDataSet.add(indexMetaData);
             }
 
-            final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetadata.getAliases();
+            indexMetaDataCollection = indexMetaDataSet;
+        }
+        //check filtered aliases
+        for (IndexMetadata indexMetaData : indexMetaDataCollection) {
+
+            final List<AliasMetadata> filteredAliases = new ArrayList<AliasMetadata>();
+
+            final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetaData.getAliases();
 
             if(aliases != null && aliases.size() > 0) {
                 if (isDebugEnabled) {
-                    log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
+                    log.debug("Aliases for {}: {}", indexMetaData.getIndex().getName(), aliases);
                 }
 
                 final Iterator<String> it = aliases.keysIt();
@@ -631,17 +658,9 @@ public class PrivilegesEvaluator {
 
             if(filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
-                final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
-                if(faMode.equals("warn")) {
-                    log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                } else if (faMode.equals("disallow")) {
-                    log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                    return true;
-                } else {
-                    if (isDebugEnabled) {
-                        log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                    }
-                }
+                log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}",
+                        filteredAliases.size(), indexMetaData.getIndex().getName(), toString(filteredAliases));
+                return true;
             }
         } //end-for
 

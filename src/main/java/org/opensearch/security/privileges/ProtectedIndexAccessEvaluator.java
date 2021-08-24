@@ -66,7 +66,8 @@ public class ProtectedIndexAccessEvaluator {
         if (!protectedIndexEnabled) {
             return presponse;
         }
-        if (indexMatcher.matchAny(requestedResolved.getAllIndices())
+        if (!requestedResolved.isLocalAll()
+                && indexMatcher.matchAny(requestedResolved.getAllIndices())
                 && deniedActionMatcher.test(action)
                 && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
             auditLog.logMissingPrivileges(action, request, task);
@@ -83,8 +84,8 @@ public class ProtectedIndexAccessEvaluator {
             presponse.allowed = false;
             return presponse.markComplete();
         }
-        if((indexMatcher.matchAny(requestedResolved.getAllIndices())
-                || requestedResolved.isLocalAll())
+        if((requestedResolved.isLocalAll()
+                || indexMatcher.matchAny(requestedResolved.getAllIndices()))
                 && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
 
             final boolean isDebugEnabled = log.isDebugEnabled();
