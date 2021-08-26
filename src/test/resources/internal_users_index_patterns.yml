@@ -1,0 +1,19 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+negative_lookahead_user:
+  hash: "$2y$12$eaSv29maDe1Y0FQXMHi1legXq8Ec/YbWujMq5Mg2RhYZEc9Pzw19y"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "user with negative lookahead index pattern"
+
+negated_regex_user:
+  hash: "$2y$12$15ZXoaH/sB.0nESo6VABt.V02HkpA2lQ5QvIFcVqNelUoAdXv1g3O"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "user with negated regex index pattern"

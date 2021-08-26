@@ -41,7 +41,6 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -49,6 +48,8 @@ import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class AuditApiActionTest extends AbstractRestApiUnitTest {
@@ -61,17 +62,17 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     // non-admin
     final Header nonAdminCredsHeader = encodeBasicHeader("random", "random");
 
-    public AuditApiActionTest(String configEndpoint, String endpoint){
-        CONFIG_ENDPOINT = configEndpoint;
+    public AuditApiActionTest(String endpoint){
         ENDPOINT = endpoint;
+        CONFIG_ENDPOINT = ENDPOINT + "/config";
     }
 
     @Parameterized.Parameters
-    public static Iterable<String[]> endpoints() {
-        return Arrays.asList(new String[][] {
-                {"/_opendistro/_security/api/audit/config", "/_opendistro/_security/api/audit"},
-                {"/_plugins/_security/api/audit/config", "/_plugins/_security/api/audit"}
-        });
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                LEGACY_OPENDISTRO_PREFIX + "/api/audit",
+                PLUGINS_PREFIX + "/api/audit"
+        );
     }
 
     @Rule
@@ -581,16 +582,15 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         return "{" +
                 "\"enabled\":true," +
                 "\"audit\":{" +
-                "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
-                "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
-                "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]}," +
+                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
+                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
+                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
+                    "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]}," +
                 "\"compliance\":{" +
-                "\"enabled\":true," +
-                "\"internal_config\":true,\"external_config\":true," +
-                "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field\":[]},\"read_ignore_users\":[\"test-user-2\"]," +
-                "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +
+                    "\"enabled\":true," +
+                    "\"internal_config\":true,\"external_config\":true," +
+                    "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field\":[]},\"read_ignore_users\":[\"test-user-2\"]," +
+                    "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +
                 "}";
     }
 }
-

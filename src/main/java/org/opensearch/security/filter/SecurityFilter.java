@@ -420,8 +420,10 @@ public class SecurityFilter implements ActionFilter {
 
     private boolean isRequestIndexImmutable(Object request) {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
+        if (resolved.isLocalAll()) {
+            return true;
+        }
         final Set<String> allIndices = resolved.getAllIndices();
-
         return immutableIndicesMatcher.matchAny(allIndices);
     }
 }

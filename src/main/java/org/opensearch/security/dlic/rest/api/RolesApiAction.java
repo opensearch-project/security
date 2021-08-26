@@ -38,6 +38,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.security.securityconf.impl.CType;
 
 import com.google.common.collect.ImmutableList;
+
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesApiAction extends PatchableResourceApiAction {

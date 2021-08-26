@@ -48,12 +48,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opensearch.security.DefaultObjectMapper;
 
 import com.google.common.collect.ImmutableList;
+
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
-
-import com.google.common.collect.ImmutableList;
-import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
-
-
 
 public class Utils {
 

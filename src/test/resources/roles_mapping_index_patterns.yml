@@ -1,0 +1,22 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+negative_lookahead_role:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "negative_lookahead_user"
+  description: "Role with negative lookahead index pattern"
+
+negated_regex_role:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+    - "negated_regex_user"
+  description: "Role with negated regex index pattern"

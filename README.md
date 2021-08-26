@@ -1,7 +1,7 @@
 [![CI](https://github.com/opensearch-project/security/workflows/CI/badge.svg?branch=main)](https://github.com/opensearch-project/security/actions)
 [![codecov](https://codecov.io/gh/opensearch-project/security/branch/main/graph/badge.svg)](https://codecov.io/gh/opensearch-project/security)
 
-<img src="https://opensearch.org/assets/brand/SVG/Logo/opensearch_logo_default.svg" height="64px"/>
+<img src="https://opensearch.org/assets/img/opensearch-logo-themed.svg" height="64px">
 
 - [OpenSearch Security](#opensearch-security)
 - [Features provided by Security](#features-provided-by-security)

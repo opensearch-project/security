@@ -17,7 +17,6 @@ package org.opensearch.security.dlic.rest.api;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
@@ -25,6 +24,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import com.google.common.collect.ImmutableList;
+
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class SecurityHealthActionTest extends AbstractRestApiUnitTest {
@@ -37,8 +39,8 @@ public class SecurityHealthActionTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                "_opendistro/_security",
-                "_plugins/_security"
+                LEGACY_OPENDISTRO_PREFIX + "",
+                PLUGINS_PREFIX + ""
         );
     }
 
@@ -52,8 +54,5 @@ public class SecurityHealthActionTest extends AbstractRestApiUnitTest {
 
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/health");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executePostRequest(ENDPOINT + "/api/securityconfig", "{\"xxx\": 1}", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
     }
 }

@@ -66,6 +66,9 @@ import org.greenrobot.eventbus.Subscribe;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 public class SecurityRestFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -79,11 +82,8 @@ public class SecurityRestFilter {
 
     private WhitelistingSettings whitelistingSettings;
 
-    private static final String LEGACY_OPENDISTRO_PREFIX = "/_opendistro/_security/";
-    private static final String PLUGINS_PREFIX = "/_plugins/_security/";
     private static final String HEALTH_SUFFIX = "health";
-
-    private static final String REGEX_PATH_PREFIX = "("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")" +"(.*)";
+    private static final String REGEX_PATH_PREFIX = "/("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
 

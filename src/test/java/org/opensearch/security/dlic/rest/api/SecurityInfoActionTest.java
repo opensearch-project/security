@@ -15,33 +15,33 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import com.google.common.collect.ImmutableList;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import java.util.Arrays;
+
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
-    private final String ENDPOINT_API;
     private final String ENDPOINT;
 
-    public SecurityInfoActionTest(String endpointApi, String endpoint){
-        ENDPOINT_API = endpointApi;
+    public SecurityInfoActionTest(String endpoint){
         ENDPOINT = endpoint;
     }
 
     @Parameterized.Parameters
-    public static Iterable<String[]> endpoints() {
-        return Arrays.asList(new String[][]{
-                {"_opendistro/_security/api", "_opendistro/_security"},
-                {"_plugins/_security/api", "_plugins/_security"}
-        });
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                LEGACY_OPENDISTRO_PREFIX +  "/authinfo",
+                PLUGINS_PREFIX +  "/authinfo"
+        );
     }
 
     @Test
@@ -51,14 +51,11 @@ public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/authinfo");
+        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT_API + "/securityconfig", "{\"xxx\": 1}", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
-
         rh.sendAdminCertificate = false;
-        response = rh.executeGetRequest(ENDPOINT + "/authinfo");
+        response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, response.getStatusCode());
     }
 }

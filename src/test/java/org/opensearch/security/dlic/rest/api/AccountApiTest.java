@@ -14,6 +14,7 @@
  */
 package org.opensearch.security.dlic.rest.api;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.opensearch.security.securityconf.impl.CType;
@@ -24,13 +25,15 @@ import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
-import java.util.Arrays;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.dlic.rest.api.AccountApiAction;
+import java.util.Arrays;
 
 import static org.junit.Assert.*;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class AccountApiTest extends AbstractRestApiUnitTest {
@@ -42,17 +45,18 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
     // each user should always have access to their own tenant
     private final String PRIVATE_TENANT = AccountApiAction.PRIVATE_TENANT;
 
-    public AccountApiTest(String baseEndpoint, String endpoint){
-        BASE_ENDPOINT = baseEndpoint;
-        ENDPOINT = endpoint;
+
+    public AccountApiTest(String endpoint){
+        BASE_ENDPOINT = endpoint;
+        ENDPOINT = BASE_ENDPOINT + "account";
     }
 
     @Parameterized.Parameters
-    public static Iterable<String[]> endpoints() {
-        return Arrays.asList(new String[][] {
-                {"/_opendistro/_security/api/", "/_opendistro/_security/api/account"},
-                {"/_plugins/_security/api/", "/_plugins/_security/api/account"}
-        });
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                LEGACY_OPENDISTRO_PREFIX + "/api/",
+                PLUGINS_PREFIX + "/api/"
+        );
     }
 
     @Test
@@ -418,7 +422,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
                 "  }\n" +
                 "}";
         final String changePasswordPayload = "{\"password\":\"" + newPassword + "\", \"current_password\":\"" + testPassword + "\"}";
-        final String internalUserEndpoint = BASE_ENDPOINT+"internalusers/" + testUsername;
+        final String internalUserEndpoint = BASE_ENDPOINT + "internalusers/" + testUsername;
 
         // create user
         rh.sendAdminCertificate = true;
@@ -435,9 +439,9 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(internalUserEndpoint);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings responseBody = Settings.builder()
-                 .loadFromSource(response.getBody(), XContentType.JSON)
-                 .build()
-                 .getAsSettings(testUsername);
+                .loadFromSource(response.getBody(), XContentType.JSON)
+                .build()
+                .getAsSettings(testUsername);
         assertTrue(responseBody.getAsList("backend_roles").contains("test-backend-role-1"));
         assertTrue(responseBody.getAsList("opendistro_security_roles").contains("opendistro_security_all_access"));
         assertEquals(responseBody.getAsSettings("attributes").get("attribute1"), "value1");

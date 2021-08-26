@@ -38,11 +38,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesAction;
@@ -103,6 +105,13 @@ import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURIT
 public class PrivilegesEvaluator {
 
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
+
+    private static final Pattern DNFOF_PATTERNS = Pattern.compile(
+            "indices:(data/read/.*|(admin/(mappings/fields/get.*|shards/search_shards|resolve/index)))"
+    );
+
+    private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
+
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ClusterService clusterService;
 
@@ -386,10 +395,7 @@ public class PrivilegesEvaluator {
             }
         }
 
-        if (dnfofEnabled
-                && (action0.startsWith("indices:data/read/")
-                || action0.startsWith("indices:admin/mappings/fields/get")
-                || action0.equals("indices:admin/shards/search_shards"))) {
+        if (dnfofEnabled && DNFOF_PATTERNS.matcher(action0).matches()) {
 
             if(requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
@@ -397,34 +403,24 @@ public class PrivilegesEvaluator {
                 return presponse;
             }
 
-
             Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
             if(reduced.isEmpty()) {
-                if(dcm.isDnfofForEmptyResultsEnabled()) {
+                if(dcm.isDnfofForEmptyResultsEnabled() && request instanceof IndicesRequest.Replaceable) {
+
+                    ((IndicesRequest.Replaceable) request).indices(new String[0]);
+                    presponse.missingPrivileges.clear();
+                    presponse.allowed = true;
+
                     if(request instanceof SearchRequest) {
-                        ((SearchRequest) request).indices(new String[0]);
-                        ((SearchRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
+                        ((SearchRequest) request).indicesOptions(ALLOW_EMPTY);
+                    } else if(request instanceof ClusterSearchShardsRequest) {
+                        ((ClusterSearchShardsRequest) request).indicesOptions(ALLOW_EMPTY);
+                    } else if(request instanceof GetFieldMappingsRequest) {
+                        ((GetFieldMappingsRequest) request).indicesOptions(ALLOW_EMPTY);
                     }
 
-                    if(request instanceof ClusterSearchShardsRequest) {
-                        ((ClusterSearchShardsRequest) request).indices(new String[0]);
-                        ((ClusterSearchShardsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
-                    }
-
-                    if(request instanceof GetFieldMappingsRequest) {
-                        ((GetFieldMappingsRequest) request).indices(new String[0]);
-                        ((GetFieldMappingsRequest) request).indicesOptions(IndicesOptions.fromOptions(true, true, false, false));
-                        presponse.missingPrivileges.clear();
-                        presponse.allowed = true;
-                        return presponse;
-                    }
+                    return presponse;
                 }
                 presponse.allowed = false;
                 return presponse;
@@ -459,7 +455,7 @@ public class PrivilegesEvaluator {
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {
 
-            if(checkFilteredAliases(requestedResolved.getAllIndices(), action0, isDebugEnabled)) {
+            if(checkFilteredAliases(requestedResolved, action0, isDebugEnabled)) {
                 presponse.allowed=false;
                 return presponse;
             }
@@ -593,26 +589,53 @@ public class PrivilegesEvaluator {
             ) ;
     }
 
-    private boolean checkFilteredAliases(Set<String> requestedResolvedIndices, String action, boolean isDebugEnabled) {
-        //check filtered aliases
-        for (String requestAliasOrIndex: requestedResolvedIndices) {
+    private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {
+        final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
 
-            final List<AliasMetadata> filteredAliases = new ArrayList<>();
+        if (!"disallow".equals(faMode)) {
+            return false;
+        }
 
-            final IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().get(requestAliasOrIndex);
+        if (!ACTION_MATCHER.test(action)) {
+            return false;
+        }
 
-            if (indexMetadata == null) {
-                if (isDebugEnabled) {
-                    log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+        Iterable<IndexMetadata> indexMetaDataCollection;
+
+        if (requestedResolved.isLocalAll()) {
+            indexMetaDataCollection = new Iterable<IndexMetadata>() {
+                @Override
+                public Iterator<IndexMetadata> iterator() {
+                    return clusterService.state().getMetadata().getIndices().valuesIt();
                 }
-                continue;
+            };
+        } else {
+            Set<IndexMetadata> indexMetaDataSet = new HashSet<>(requestedResolved.getAllIndices().size());
+
+            for (String requestAliasOrIndex : requestedResolved.getAllIndices()) {
+                IndexMetadata indexMetaData = clusterService.state().getMetadata().getIndices().get(requestAliasOrIndex);
+                if (indexMetaData == null) {
+                    if (isDebugEnabled) {
+                        log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+                    }
+                    continue;
+                }
+
+                indexMetaDataSet.add(indexMetaData);
             }
 
-            final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetadata.getAliases();
+            indexMetaDataCollection = indexMetaDataSet;
+        }
+        //check filtered aliases
+        for (IndexMetadata indexMetaData : indexMetaDataCollection) {
+
+            final List<AliasMetadata> filteredAliases = new ArrayList<AliasMetadata>();
+
+            final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetaData.getAliases();
 
             if(aliases != null && aliases.size() > 0) {
                 if (isDebugEnabled) {
-                    log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
+                    log.debug("Aliases for {}: {}", indexMetaData.getIndex().getName(), aliases);
                 }
 
                 final Iterator<String> it = aliases.keysIt();
@@ -635,17 +658,9 @@ public class PrivilegesEvaluator {
 
             if(filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
-                final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
-                if(faMode.equals("warn")) {
-                    log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                } else if (faMode.equals("disallow")) {
-                    log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                    return true;
-                } else {
-                    if (isDebugEnabled) {
-                        log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                    }
-                }
+                log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}",
+                        filteredAliases.size(), indexMetaData.getIndex().getName(), toString(filteredAliases));
+                return true;
             }
         } //end-for
 

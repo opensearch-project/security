@@ -34,7 +34,7 @@
     <groupId>org.opensearch</groupId>
     <artifactId>opensearch-security</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0.0</version>
+    <version>1.0.1.0</version>
     <name>OpenSearch Security</name>
     <description>OpenSearch Security</description>
     <url>https://github.com/opensearch-project/security</url>
@@ -68,7 +68,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.release>8</maven.compiler.release>
 
-        <opensearch.version>1.0.0</opensearch.version>
+        <opensearch.version>1.1.0</opensearch.version>
 
         <!-- deps -->
         <netty-native.version>2.0.25.Final</netty-native.version>
@@ -80,7 +80,7 @@
         <jjwt.version>0.10.5</jjwt.version>
         <ldaptive.version>1.2.3</ldaptive.version>
         <http.commons.version>4.5.13</http.commons.version>
-        <cxf.version>3.4.3</cxf.version>
+        <cxf.version>3.4.4</cxf.version>
         <kafka.version>2.5.0</kafka.version>
         <java-saml.version>2.5.0</java-saml.version>
         <opensaml.version>3.4.5</opensaml.version>
@@ -103,7 +103,7 @@
         <url>https://github.com/opensearch-project/security</url>
         <connection>scm:git:git@github.com:opensearch-project/security.git</connection>
         <developerConnection>scm:git:git@github.com:opensearch-project/security.git</developerConnection>
-        <tag>1.0.0.0</tag>
+        <tag>1.0.1.0</tag>
     </scm>
 
     <issueManagement>
@@ -849,7 +849,7 @@
                                     <descriptors>
                                         <descriptor>${elasticsearch.assembly.descriptor}</descriptor>
                                     </descriptors>
-                                    <finalName>opensearch-security-${version}</finalName>
+                                    <finalName>opensearch-security-${project.version}</finalName>
                                 </configuration>
                                 <goals>
                                     <goal>single</goal>
@@ -865,7 +865,7 @@
                                     <descriptors>
                                         <descriptor>${securitystandalone.descriptor}</descriptor>
                                     </descriptors>
-                                    <finalName>opensearch-security-${version}</finalName>
+                                    <finalName>opensearch-security-${project.version}</finalName>
                                 </configuration>
                                 <goals>
                                     <goal>single</goal>
@@ -890,7 +890,7 @@
                                 <fileSet>
                                     <directory>${project.build.directory}/releases/</directory>
                                     <includes>
-                                        <include>opensearch-security-${version}.zip</include>
+                                        <include>opensearch-security-${project.version}.zip</include>
                                     </includes>
                                 </fileSet>
                             </fileSets>

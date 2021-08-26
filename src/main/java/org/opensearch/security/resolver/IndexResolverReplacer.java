@@ -44,6 +44,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
+import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.logging.log4j.LogManager;
@@ -134,10 +135,11 @@ public class IndexResolverReplacer {
         return false;
     }
 
-    private static final boolean isLocalAll(final String... requestedPatterns) {
+    private static final boolean isLocalAll(String... requestedPatterns) {
+        return isLocalAll(requestedPatterns == null ? null : Arrays.asList(requestedPatterns));
+    }
 
-        final List<String> patterns = requestedPatterns==null?null:Arrays.asList(requestedPatterns);
-
+    private static final boolean isLocalAll(Collection<String> patterns) {
         if(IndexNameExpressionResolver.isAllIndices(patterns)) {
             return true;
         }
@@ -294,7 +296,9 @@ public class IndexResolverReplacer {
         @Override
         public String[] provide(String[] original, Object localRequest, boolean supportsReplace) {
             final IndicesOptions indicesOptions = indicesOptionsFrom(localRequest);
-            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest || localRequest instanceof SearchRequest;
+            final boolean enableCrossClusterResolution = localRequest instanceof FieldCapabilitiesRequest
+                    || localRequest instanceof SearchRequest
+                    || localRequest instanceof ResolveIndexAction.Request;
             // skip the whole thing if we have seen this exact resolveIndexPatterns request
             if (alreadyResolved.add(new MultiKey(indicesOptions, enableCrossClusterResolution,
                     (original != null) ? new MultiKey(original, false) : null))) {
