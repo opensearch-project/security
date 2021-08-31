@@ -45,7 +45,7 @@ jobs:
 
     - name: Build OpenSearch
       working-directory: ./OpenSearch
-      run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
+      run: ./gradlew publishToMavenLocal
 
     - name: Checkstyle
       run: mvn -B checkstyle:checkstyle
