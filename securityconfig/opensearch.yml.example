@@ -223,7 +223,7 @@ plugins.security.audit.type: internal_opensearch
 # Specify a list of roles a user must be member of to touch any protected index.
 # plugins.security.protected_indices.roles: ['all_access']
 # Specify a list of indices to mark as protected. These indices will only be visible / mutable by members of the above setting, in addition to needing permission to the index via a normal role.
-# plugins.security.protected_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*']
+# plugins.security.protected_indices.indices: []
 
 # System indices are similar to security index, except the contents are not encrypted.
 # Indices configured as system indices can be accessed by only super-admin and no role will provide access to these indices.
