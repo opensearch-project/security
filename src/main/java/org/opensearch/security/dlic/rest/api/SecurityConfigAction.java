@@ -45,9 +45,11 @@ import org.opensearch.threadpool.ThreadPool;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import static org.opensearch.security.dlic.rest.support.Utils.replaceRoutes;
+
 public class SecurityConfigAction extends PatchableResourceApiAction {
 
-    private static final List<ReplacedRoute> getRoutes = Utils.replaceRoutes(Collections.singletonList(
+    private static final List<ReplacedRoute> getRoutes = replaceRoutes(Collections.singletonList(
             new Route(Method.GET, "/securityconfig/")
     ));
 

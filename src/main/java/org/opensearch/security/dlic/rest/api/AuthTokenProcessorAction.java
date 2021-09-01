@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.NoOpValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -43,8 +42,10 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
+import static org.opensearch.security.dlic.rest.support.Utils.replaceRoutes;
+
 public class AuthTokenProcessorAction extends AbstractApiAction {
-	private static final List<ReplacedRoute> replacedRoutes = Utils.replaceRoutes(Collections.singletonList(
+	private static final List<ReplacedRoute> replacedRoutes = replaceRoutes(Collections.singletonList(
 			new Route(Method.POST, "/authtoken")
 	));
 

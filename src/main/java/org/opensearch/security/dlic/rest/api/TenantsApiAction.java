@@ -46,7 +46,6 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.TenantValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -55,8 +54,10 @@ import org.opensearch.threadpool.ThreadPool;
 
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.dlic.rest.support.Utils.replaceRoutes;
+
 public class TenantsApiAction extends PatchableResourceApiAction {
-    private static final List<ReplacedRoute> replacedRoutes = Utils.replaceRoutes(ImmutableList.of(
+    private static final List<ReplacedRoute> replacedRoutes = replaceRoutes(ImmutableList.of(
             new Route(Method.GET, "/tenants/{name}"),
             new Route(Method.GET, "/tenants/"),
             new Route(Method.DELETE, "/tenants/{name}"),

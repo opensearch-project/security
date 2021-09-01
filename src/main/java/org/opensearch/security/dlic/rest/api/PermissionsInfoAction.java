@@ -40,18 +40,19 @@ import org.opensearch.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.support.Utils.replaceRoutes;
+
 /**
  * Provides the evaluated REST API permissions for the currently logged in user
  */
 public class PermissionsInfoAction extends BaseRestHandler {
-	private static final List<ReplacedRoute> replacedRoutes = Utils.replaceRoutes(Collections.singletonList(
+	private static final List<ReplacedRoute> replacedRoutes = replaceRoutes(Collections.singletonList(
 			new Route(Method.GET, "/permissionsinfo")
 	));
 

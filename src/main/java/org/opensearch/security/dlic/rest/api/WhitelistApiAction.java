@@ -20,7 +20,6 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.WhitelistValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -45,6 +44,8 @@ import org.opensearch.threadpool.ThreadPool;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+
+import static org.opensearch.security.dlic.rest.support.Utils.replaceRoutes;
 
 /**
  * This class implements GET and PUT operations to manage dynamic WhitelistingSettings.
@@ -87,7 +88,7 @@ import java.util.List;
  * <p>
  */
 public class WhitelistApiAction extends PatchableResourceApiAction {
-    private static final List<ReplacedRoute> replacedRoutes = Utils.replaceRoutes(ImmutableList.of(
+    private static final List<ReplacedRoute> replacedRoutes = replaceRoutes(ImmutableList.of(
             new Route(RestRequest.Method.GET, "/whitelist"),
             new Route(RestRequest.Method.PUT, "/whitelist"),
             new Route(RestRequest.Method.PATCH, "/whitelist")

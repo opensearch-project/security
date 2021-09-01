@@ -29,7 +29,6 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.RolesValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -37,11 +36,12 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.opensearch.security.securityconf.impl.CType;
-
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.dlic.rest.support.Utils.replaceRoutes;
+
 public class RolesApiAction extends PatchableResourceApiAction {
-	private static final List<ReplacedRoute> replacedRoutes = Utils.replaceRoutes(ImmutableList.of(
+	private static final List<ReplacedRoute> replacedRoutes = replaceRoutes(ImmutableList.of(
 			new Route(Method.GET, "/roles/"),
 			new Route(Method.GET, "/roles/{name}"),
 			new Route(Method.DELETE, "/roles/{name}"),
