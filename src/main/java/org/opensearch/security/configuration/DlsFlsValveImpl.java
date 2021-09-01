@@ -15,6 +15,7 @@
 
 package org.opensearch.security.configuration;
 
+import org.opensearch.rest.RestStatus;
 import org.opensearch.security.support.SecurityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -71,7 +72,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      * @param listener
      * @return false on error
      */
-    public boolean invoke(final ActionRequest request, final ActionListener<?> listener,
+    public boolean invoke(final String action, final ActionRequest request, final ActionListener<?> listener,
             final Map<String,Set<String>> allowedFlsFields,
             final Map<String,Set<String>> maskedFields,
             final Map<String,Set<String>> queries) {
@@ -115,6 +116,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             if(request instanceof ResizeRequest) {
                 listener.onFailure(new OpenSearchSecurityException("Resize is not supported when FLS or DLS or Fieldmasking is activated"));
+                return false;
+            }
+
+            if(action.contains("plugins/replication")) {
+                listener.onFailure(new OpenSearchSecurityException("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated", RestStatus.FORBIDDEN));
                 return false;
             }
         }

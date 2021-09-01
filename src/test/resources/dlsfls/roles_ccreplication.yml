@@ -1,0 +1,36 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+opendistro_security_human_resources_trainee:
+  reserved: false
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+      - "hr-dls"
+      dls: "{ \"bool\": { \"must_not\": { \"match\": { \"Designation\": \"CEO\"  }}}}"
+      masked_fields: null
+      allowed_actions:
+      - "ALL"
+    - index_patterns:
+      - "hr-fls"
+      fls:
+      - "Designation"
+      masked_fields: null
+      allowed_actions:
+      - "ALL"
+    - index_patterns:
+      - "hr-masking"
+      fls: null
+      masked_fields:
+      - "User"
+      allowed_actions:
+      - "ALL"
+    - index_patterns:
+      - "hr-normal"
+      masked_fields: null
+      allowed_actions:
+      - "ALL"
