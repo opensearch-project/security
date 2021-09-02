@@ -115,8 +115,7 @@ public class SecurityRestFilter {
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
-        return new RestHandler() {
-            
+        return new RestHandler.Wrapper(original) {
             @Override
             public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
                 org.apache.logging.log4j.ThreadContext.clearAll();
@@ -126,6 +125,14 @@ public class SecurityRestFilter {
                         original.handleRequest(request, channel, client);
                     }
                 }
+            }
+
+            @Override
+            public boolean allowsUnsafeBuffers() {
+                // this RestHandler does not allow unsafe buffers in RestRequest as it access RestRequest content after
+                // sending response during audit logging
+                // TODO: see if unsafe buffers can be supported by chaning how audit logging is done
+                return false;
             }
         };
     }
