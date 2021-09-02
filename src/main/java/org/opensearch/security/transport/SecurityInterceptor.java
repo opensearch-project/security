@@ -127,6 +127,7 @@ public class SecurityInterceptor {
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
         final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String injectedUserString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
+        final String injectedRolesString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
         final String origin0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
         final Object remoteAddress0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final String origCCSTransientDls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS);
@@ -188,7 +189,7 @@ public class SecurityInterceptor {
 
             getThreadContext().putHeader(headerMap);
 
-            ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString);
+            ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString);
 
             if (isActionTraceEnabled()) {
                 getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
@@ -198,7 +199,8 @@ public class SecurityInterceptor {
         }
     }
 
-    private void ensureCorrectHeaders(final Object remoteAdr, final User origUser, final String origin, final String injectedUserString) {
+    private void ensureCorrectHeaders(final Object remoteAdr, final User origUser, final String origin,
+                                      final String injectedUserString, final String injectedRolesString) {
         // keep original address
 
         if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
@@ -224,6 +226,9 @@ public class SecurityInterceptor {
         if(userHeader == null) {
             if(origUser != null) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+            }
+            else if(StringUtils.isNotEmpty(injectedRolesString)) {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
             }
             else if(StringUtils.isNotEmpty(injectedUserString)) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);

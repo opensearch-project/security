@@ -15,27 +15,43 @@
 
 package org.opensearch.security.auth;
 
+import org.junit.Before;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.junit.Test;
+import org.opensearch.tasks.Task;
+import org.opensearch.transport.TransportRequest;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static org.mockito.Mockito.mock;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
 import static org.junit.Assert.assertEquals;
 
 
 public class RolesInjectorTest {
 
+    private TransportRequest transportRequest;
+    private Task task;
+    private AuditLog auditLog;
+
+    @Before
+    public void setup() {
+        transportRequest = mock(TransportRequest.class);
+        task = mock(Task.class);
+        auditLog = mock(AuditLog.class);
+    }
+
     @Test
     public void testNotInjected() {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
-        RolesInjector rolesInjector = new RolesInjector();
-        Set<String> roles = rolesInjector.injectUserAndRoles(threadContext);
+        RolesInjector rolesInjector = new RolesInjector(auditLog);
+        Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
         assertEquals(null, roles);
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertEquals(null, user);
@@ -46,8 +62,8 @@ public class RolesInjectorTest {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(OPENDISTRO_SECURITY_INJECTED_ROLES, "user1|role_1,role_2");
 
-        RolesInjector rolesInjector = new RolesInjector();
-        Set<String> roles = rolesInjector.injectUserAndRoles(threadContext);
+        RolesInjector rolesInjector = new RolesInjector(auditLog);
+        Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
 
         User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         assertEquals("user1", user.getName());
@@ -71,8 +87,8 @@ public class RolesInjectorTest {
             ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
             threadContext.putTransient(OPENDISTRO_SECURITY_INJECTED_ROLES, name);
 
-            RolesInjector rolesInjector = new RolesInjector();
-            Set<String> roles = rolesInjector.injectUserAndRoles(threadContext);
+            RolesInjector rolesInjector = new RolesInjector(auditLog);
+            Set<String> roles = rolesInjector.injectUserAndRoles(transportRequest, "action0", task, threadContext);
 
             assertEquals(null, roles);
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);

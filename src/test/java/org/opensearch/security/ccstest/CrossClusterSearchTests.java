@@ -30,6 +30,16 @@
 
 package org.opensearch.security.ccstest;
 
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.node.Node;
+import org.opensearch.node.PluginAwareNode;
+import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.RolesInjectorIntegTest;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.NodeSettingsSupplier;
@@ -58,6 +68,7 @@ import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.transport.Netty4Plugin;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -987,5 +998,98 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         assertThat(ccs.getBody(), not(containsString("crl1")));
         assertThat(ccs.getBody(), containsString("crl2"));
         assertThat(ccs.getBody(), containsString("cross_cluster_two:twitter"));
+    }
+
+    //Wait for the security plugin to load roles.
+    private void waitOrThrow(Client client) throws Exception {
+        int failures = 0;
+        while(failures < 5) {
+            try {
+                client.admin().cluster().health(new ClusterHealthRequest()).actionGet();
+                break;
+            } catch (OpenSearchSecurityException ex) {
+                if (ex.getMessage().contains("OpenSearch Security not initialized")) {
+                    Thread.sleep(500);
+                    failures++;
+                } else {
+                    throw ex;
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCcsWithRoleInjection() throws Exception {
+        setupCcs(new DynamicSecurityConfig().setSecurityRoles("roles.yml"));
+
+        Assert.assertEquals(cl1Info.numNodes, cl1.nodeClient().admin().cluster().health(
+                new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
+        Assert.assertEquals(ClusterHealthStatus.GREEN, cl1.nodeClient().admin().cluster().
+                health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+
+        Assert.assertEquals(cl2Info.numNodes, cl2.nodeClient().admin().cluster().health(
+                new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
+        Assert.assertEquals(ClusterHealthStatus.GREEN, cl2.nodeClient().admin().cluster().
+                health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+
+        try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
+            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+        }
+
+        final Settings tcSettings = Settings.builder()
+                .put(minimumSecuritySettings(Settings.EMPTY).get(0))
+                .put("cluster.name", cl1Info.clustername)
+                .put("node.data", false)
+                .put("node.master", false)
+                .put("node.ingest", false)
+                .put("path.data", "./target/data/" + cl1Info.clustername + "/cert/data")
+                .put("path.logs", "./target/data/" + cl1Info.clustername + "/cert/logs")
+                .put("path.home", "./target")
+                .put("node.name", "testclient")
+                .put("discovery.initial_state_timeout", "8s")
+                .put("plugins.security.allow_default_init_securityindex", "true")
+                .putList("discovery.zen.ping.unicast.hosts", cl1Info.nodeHost + ":" + cl1Info.nodePort)
+                .build();
+
+        OpenSearchSecurityException exception = null;
+
+        System.out.println("###################### with invalid role injection");
+        //1. With invalid roles injection
+        RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "invalid_user|invalid_role";
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+                OpenSearchSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
+            waitOrThrow(node.client());
+            Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
+            GetRequest getReq = new GetRequest("twitter", "0");
+            getReq.realtime(true);
+            getReq.refresh(true);
+
+            GetResponse getRes = remoteClient.get(getReq).actionGet();
+            Assert.assertEquals(getRes.getId(), "0");
+        } catch (OpenSearchSecurityException ex) {
+            exception = ex;
+            log.warn(ex);
+        }
+        Assert.assertNotNull(exception);
+        Assert.assertTrue(exception.getMessage().contains("no permissions for"));
+
+        System.out.println("###################### with valid role injection");
+        //2. With valid roles injection
+        RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "valid_user|opendistro_security_all_access";
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+                OpenSearchSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
+            waitOrThrow(node.client());
+            Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
+            GetRequest getReq = new GetRequest("twitter", "0");
+            getReq.realtime(true);
+            getReq.refresh(true);
+
+            GetResponse getRes = remoteClient.get(getReq).actionGet();
+            Assert.assertEquals(getRes.getId(), "0");
+        } catch (OpenSearchSecurityException ex) {
+            Assert.assertNull(ex);
+            log.warn(ex);
+        }
     }
 }
