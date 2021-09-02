@@ -15,6 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.security.auth;
 
+import com.amazon.opendistroforelasticsearch.security.auditlog.AuditLog;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.user.User;
 import com.google.common.collect.ImmutableSet;
@@ -23,6 +24,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.tasks.Task;
+import org.elasticsearch.transport.TransportRequest;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -37,12 +40,13 @@ import java.util.Set;
  */
 final public class RolesInjector {
     protected final Logger log = LogManager.getLogger(RolesInjector.class);
+    private final AuditLog auditLog;
 
-    public RolesInjector() {
-        //empty
+    public RolesInjector(AuditLog auditLog) {
+        this.auditLog = auditLog;
     }
 
-    public Set<String> injectUserAndRoles(final ThreadContext ctx) {
+    public Set<String> injectUserAndRoles(TransportRequest transportRequest, String action, Task task, final ThreadContext ctx) {
         final String injectedUserAndRoles = ctx.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
         if (injectedUserAndRoles == null) {
             return null;
@@ -69,15 +73,17 @@ final public class RolesInjector {
         Set<String> roles = ImmutableSet.copyOf(strs[1].split(","));
 
         if(user != null && roles != null) {
-            addUser(user, ctx);
+            addUser(user, transportRequest, action, task, ctx);
         }
         return roles;
     }
 
-    private void addUser(final User user, final ThreadContext threadContext) {
+    private void addUser(final User user, final TransportRequest transportRequest,
+                         final String action, final Task task, final ThreadContext threadContext) {
         if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null)
             return;
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+        auditLog.logSucceededLogin(user.getName(), false, null, transportRequest, action, task);
     }
 }

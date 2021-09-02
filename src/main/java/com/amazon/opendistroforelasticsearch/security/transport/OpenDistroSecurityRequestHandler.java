@@ -151,10 +151,16 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
             //bypass non-netty requests
             if(channelType.equals("direct")) {
                 final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                 final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
                 if(Strings.isNullOrEmpty(userHeader)) {
-                    if(!Strings.isNullOrEmpty(injectedUserHeader)) {
+                    // Keeping role injection with higher priority as plugins under OpenSearch will be using this
+                    // on transport layer
+                    if(!Strings.isNullOrEmpty(injectedRolesHeader)) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
+                    }
+                    else if(!Strings.isNullOrEmpty(injectedUserHeader)) {
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
@@ -232,10 +238,16 @@ public class OpenDistroSecurityRequestHandler<T extends TransportRequest> extend
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())) {
 
                     final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                    final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                     final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
                     if(Strings.isNullOrEmpty(userHeader)) {
-                        if(!Strings.isNullOrEmpty(injectedUserHeader)) {
+                        // Keeping role injection with higher priority as plugins under OpenSearch will be using this
+                        // on transport layer
+                        if(!Strings.isNullOrEmpty(injectedRolesHeader)) {
+                            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
+                        }
+                        else if(!Strings.isNullOrEmpty(injectedUserHeader)) {
                             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                         }
                     } else {

@@ -30,19 +30,30 @@
 
 package com.amazon.opendistroforelasticsearch.security.ccstest;
 
+import com.amazon.opendistroforelasticsearch.security.OpenDistroSecurityPlugin;
+import com.amazon.opendistroforelasticsearch.security.RolesInjectorIntegTest;
 import com.amazon.opendistroforelasticsearch.security.ssl.util.SSLConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.support.ConfigConstants;
 import com.amazon.opendistroforelasticsearch.security.test.NodeSettingsSupplier;
 import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 import org.apache.http.HttpStatus;
+import org.elasticsearch.ElasticsearchSecurityException;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.node.PluginAwareNode;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -987,5 +998,98 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         assertThat(ccs.getBody(), not(containsString("crl1")));
         assertThat(ccs.getBody(), containsString("crl2"));
         assertThat(ccs.getBody(), containsString("cross_cluster_two:twitter"));
+    }
+
+    //Wait for the security plugin to load roles.
+    private void waitOrThrow(Client client) throws Exception {
+        int failures = 0;
+        while(failures < 5) {
+            try {
+                client.admin().cluster().health(new ClusterHealthRequest()).actionGet();
+                break;
+            } catch (ElasticsearchSecurityException ex) {
+                if (ex.getMessage().contains("Open Distro Security not initialized")) {
+                    Thread.sleep(500);
+                    failures++;
+                } else {
+                    throw ex;
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCcsWithRoleInjection() throws Exception {
+        setupCcs(new DynamicSecurityConfig().setSecurityRoles("roles.yml"));
+
+        Assert.assertEquals(cl1Info.numNodes, cl1.nodeClient().admin().cluster().health(
+                new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
+        Assert.assertEquals(ClusterHealthStatus.GREEN, cl1.nodeClient().admin().cluster().
+                health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+
+        Assert.assertEquals(cl2Info.numNodes, cl2.nodeClient().admin().cluster().health(
+                new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
+        Assert.assertEquals(ClusterHealthStatus.GREEN, cl2.nodeClient().admin().cluster().
+                health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+
+        try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
+            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+        }
+
+        final Settings tcSettings = Settings.builder()
+                .put(minimumSecuritySettings(Settings.EMPTY).get(0))
+                .put("cluster.name", cl1Info.clustername)
+                .put("node.data", false)
+                .put("node.master", false)
+                .put("node.ingest", false)
+                .put("path.data", "./target/data/" + cl1Info.clustername + "/cert/data")
+                .put("path.logs", "./target/data/" + cl1Info.clustername + "/cert/logs")
+                .put("path.home", "./target")
+                .put("node.name", "testclient")
+                .put("discovery.initial_state_timeout", "8s")
+                .put("opendistro_security.allow_default_init_securityindex", "true")
+                .putList("discovery.zen.ping.unicast.hosts", cl1Info.nodeHost + ":" + cl1Info.nodePort)
+                .build();
+
+        ElasticsearchSecurityException exception = null;
+
+        System.out.println("###################### with invalid role injection");
+        //1. With invalid roles injection
+        RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "invalid_user|invalid_role";
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+                OpenDistroSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
+            waitOrThrow(node.client());
+            Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
+            GetRequest getReq = new GetRequest("twitter", "0");
+            getReq.realtime(true);
+            getReq.refresh(true);
+
+            GetResponse getRes = remoteClient.get(getReq).actionGet();
+            Assert.assertEquals(getRes.getId(), "0");
+        } catch (ElasticsearchSecurityException ex) {
+            exception = ex;
+            log.warn(ex);
+        }
+        Assert.assertNotNull(exception);
+        Assert.assertTrue(exception.getMessage().contains("no permissions for"));
+
+        System.out.println("###################### with valid role injection");
+        //2. With valid roles injection
+        RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "valid_user|opendistro_security_all_access";
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+                OpenDistroSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
+            waitOrThrow(node.client());
+            Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
+            GetRequest getReq = new GetRequest("twitter", "0");
+            getReq.realtime(true);
+            getReq.refresh(true);
+
+            GetResponse getRes = remoteClient.get(getReq).actionGet();
+            Assert.assertEquals(getRes.getId(), "0");
+        } catch (ElasticsearchSecurityException ex) {
+            Assert.assertNull(ex);
+            log.warn(ex);
+        }
     }
 }

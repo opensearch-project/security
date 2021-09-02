@@ -112,6 +112,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
         //1. Without roles injection.
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
                 OpenDistroSecurityPlugin.class, RolesInjectorPlugin.class).start()) {
+            waitForInit(node.client());
 
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-1")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());
