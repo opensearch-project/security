@@ -31,6 +31,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -40,6 +41,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
@@ -215,13 +217,25 @@ public class PrivilegesEvaluator {
             action0 = PutMappingAction.NAME;
         }
 
+        final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
+
         final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
+        Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
+        final String injectedRolesValidationString = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION);
+        if(injectedRolesValidationString != null) {
+            HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
+            if(!mappedRoles.containsAll(injectedRolesValidationSet)) {
+                presponse.allowed = false;
+                presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
+                log.info("Roles {} are not mapped to the user {}", injectedRolesValidationSet, user);
+                return presponse;
+            }
+            mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
+        }
+        presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
         setUserInfoInThreadContext(user, mappedRoles);
-
-        final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
