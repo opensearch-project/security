@@ -128,7 +128,7 @@ public class SecurityInterceptor {
         final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String injectedUserString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
         final String injectedRolesString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
-        final String rolesValidationString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION);
+        final String injectedRolesValidationString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION);
         final String origin0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
         final Object remoteAddress0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final String origCCSTransientDls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS);
@@ -188,12 +188,12 @@ public class SecurityInterceptor {
                 }
             }
 
-            if(StringUtils.isNotEmpty(rolesValidationString)
+            if(StringUtils.isNotEmpty(injectedRolesValidationString)
                     && OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
                     && !clusterInfoHolder.hasNode(connection.getNode())
-                    && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION_HEADER) == null) {
+                    && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER) == null) {
                 // Sending roles validation for only cross cluster requests
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION_HEADER, rolesValidationString);
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER, injectedRolesValidationString);
             }
 
             getThreadContext().putHeader(headerMap);

@@ -353,12 +353,13 @@ public class SecurityFilter implements ActionFilter {
                 }
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
-                String err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
+                String err;
                 if(!pres.getMissingSecurityRoles().isEmpty()) {
                     err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
                 } else {
-                    err = (injectedRoles != null) ? String.format("no permissions for %s and associated roles %s",
-                        pres.getMissingPrivileges(), pres.getResolvedSecurityRoles()) : err;
+                    err = (injectedRoles != null) ?
+                            String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), pres.getResolvedSecurityRoles()) :
+                            String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));

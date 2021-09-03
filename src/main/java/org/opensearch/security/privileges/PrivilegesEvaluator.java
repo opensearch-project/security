@@ -221,16 +221,16 @@ public class PrivilegesEvaluator {
 
         final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
-        final String rolesValidationString = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION);
-        if(rolesValidationString != null) {
-            HashSet<String> rolesValidationSet = new HashSet<>(Arrays.asList(rolesValidationString.split(",")));
-            if(!mappedRoles.containsAll(rolesValidationSet)) {
+        final String injectedRolesValidationString = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION);
+        if(injectedRolesValidationString != null) {
+            HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
+            if(!mappedRoles.containsAll(injectedRolesValidationSet)) {
                 presponse.allowed = false;
-                presponse.missingSecurityRoles.addAll(rolesValidationSet);
-                log.info("Roles {} are not mapped to the user {}", rolesValidationSet, user);
+                presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
+                log.info("Roles {} are not mapped to the user {}", injectedRolesValidationSet, user);
                 return presponse;
             }
-            mappedRoles = ImmutableSet.copyOf(rolesValidationSet);
+            mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
         }
         presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);

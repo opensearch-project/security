@@ -170,9 +170,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                 }
 
-                final String rolesValidation = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION_HEADER);
+                final String rolesValidation = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER);
                 if(!Strings.isNullOrEmpty(rolesValidation)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION, rolesValidation);
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
                 }
 
                 if (isActionTraceEnabled()) {
@@ -264,9 +264,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
                     }
 
-                    final String rolesValidation = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION_HEADER);
+                    final String rolesValidation = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER);
                     if(!Strings.isNullOrEmpty(rolesValidation)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION, rolesValidation);
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
                     }
 
                 } else {

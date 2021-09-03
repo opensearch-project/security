@@ -53,7 +53,7 @@ public class RolesValidationIntegTest extends SingleClusterTest {
                                                    Supplier<RepositoriesService> repositoriesServiceSupplier) {
             if(rolesValidation != null) {
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, "test|opendistro_security_all_access");
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ROLES_VALIDATION, rolesValidation);
+                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
             }
             return new ArrayList<>();
         }
