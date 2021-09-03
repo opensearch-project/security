@@ -129,6 +129,19 @@ asynchronous_search_read_access:
   cluster_permissions:
     - 'cluster:admin/opendistro/asynchronous_search/get'
 
+# Allows user to use all index_management actions - ism policies, rollups, transforms
+index_management_full_access:
+  reserved: true
+  cluster_permissions:
+    - "cluster:admin/opendistro/ism/*"
+    - "cluster:admin/opendistro/rollup/*"
+    - "cluster:admin/opendistro/transform/*"
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/opensearch/ism/*'
+
 # Allows users to use all cross cluster replication functionality at leader cluster
 cross_cluster_replication_leader_full_access:
   reserved: true
