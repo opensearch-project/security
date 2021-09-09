@@ -25,6 +25,8 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -39,6 +41,7 @@ import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -65,6 +68,13 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.ASN1String;
+import org.bouncycastle.asn1.ASN1TaggedObject;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
@@ -572,12 +582,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         final Function<? super X509Certificate, String> formatDNString = cert -> {
             final String issuerDn = cert !=null && cert.getIssuerX500Principal() != null ? cert.getIssuerX500Principal().getName() : "";
             final String subjectDn = cert !=null && cert.getSubjectX500Principal() != null ? cert.getSubjectX500Principal().getName() : "";
-            String san = "";
-            try {
-                san = cert !=null && cert.getSubjectAlternativeNames() != null ? cert.getSubjectAlternativeNames().toString() : "";
-            } catch (CertificateParsingException e) {
-                log.error("Issue parsing SubjectAlternativeName:", e);
-            }
+            final String san = getSubjectAlternativeNames(cert);
             return String.format("%s/%s/%s", issuerDn, subjectDn, san);
         };
 
@@ -948,5 +953,65 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                 + "). Please make sure this files exists and is readable regarding to permissions. Property: "
                 + fileNameLogOnly);
         }
+    }
+
+    @Override
+    public String getSubjectAlternativeNames(X509Certificate cert) {
+        String san = "";
+        try {
+            Collection<List<?>> altNames = cert !=null && cert.getSubjectAlternativeNames() != null ? cert.getSubjectAlternativeNames() : null;
+            if (altNames != null) {
+                Collection<List<?>> sans = new ArrayList<>();
+                for (List<?> altName : altNames) {
+                    Integer type = (Integer) altName.get(0);
+                    // otherName requires parsing to string
+                    if (type == 0) {
+                        List<?> otherName = getOtherName(altName);
+                        if (otherName != null) {
+                            sans.add(Arrays.asList(type, otherName));
+                        }
+                    } else {
+                        sans.add(altName);
+                    }
+                }
+                san = sans.toString();
+            }
+        } catch (CertificateParsingException e) {
+            log.error("Issue parsing SubjectAlternativeName:", e);
+        }
+
+        return san;
+    }
+
+    private List<String> getOtherName(List<?> altName) {
+        ASN1Primitive oct =  null;
+        try {
+            byte[] altNameBytes = (byte[]) altName.get(1);
+            oct = (new ASN1InputStream(new ByteArrayInputStream(altNameBytes)).readObject());
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read ASN1InputStream", e);
+        }
+        if (oct instanceof ASN1TaggedObject) {
+            oct = ((ASN1TaggedObject) oct).getObject();
+        }
+        ASN1Sequence seq = ASN1Sequence.getInstance(oct);
+
+        // Get object identifier from first in sequence
+        ASN1ObjectIdentifier asnOID = (ASN1ObjectIdentifier) seq.getObjectAt(0);
+        String oid = asnOID.getId();
+
+        // Get value of object from second element
+        final ASN1TaggedObject obj = (ASN1TaggedObject) seq.getObjectAt(1);
+        // Could be tagged twice due to bug in java cert.getSubjectAltName
+        ASN1Primitive prim = obj.getObject();
+        if (prim instanceof ASN1TaggedObject) {
+            prim = ASN1TaggedObject.getInstance(((ASN1TaggedObject) prim)).getObject();
+        }
+
+        if (prim instanceof ASN1String) {
+            return Collections.unmodifiableList(Arrays.asList(oid, ((ASN1String) prim).getString()));
+        }
+
+        return null;
     }
 }
