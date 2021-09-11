@@ -85,7 +85,7 @@ plugins.security.roles_mapping_resolution: MAPPING_ONLY
 #plugins.security.audit.threadpool.max_queue_len: 100000
 
 # Ignore users, e.g. do not log audit requests from that users (default: no ignored users)
-#plugins.security.audit.ignore_users: ['kibanaserver','some*user','/also.*regex possible/']"
+#plugins.security.audit.ignore_users: ['dashboardserver','some*user','/also.*regex possible/']"
 
 # Destination of the auditlog events
 plugins.security.audit.type: internal_opensearch

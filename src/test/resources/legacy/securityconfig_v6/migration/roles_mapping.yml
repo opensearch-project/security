@@ -10,7 +10,7 @@ opendistro_security_logstash:
 opendistro_security_kibana_server:
   readonly: true
   users:
-    - kibanaserver
+    - dashboardserver
 
 opendistro_security_kibana_user:
   backendroles:

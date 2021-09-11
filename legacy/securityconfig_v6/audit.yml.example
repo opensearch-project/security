@@ -22,7 +22,7 @@ config:
     # Users to be excluded from auditing. Wildcard patterns are supported. Eg:
     # ignore_users: ["test-user", "employee-*"]
     ignore_users:
-      - kibanaserver
+      - dashboardserver
 
     # Requests to be excluded from auditing. Wildcard patterns are supported. Eg:
     # ignore_requests: ["indices:data/read/*", "SearchRequest"]
@@ -63,7 +63,7 @@ config:
     # List of users to ignore for read events. Wildcard patterns are supported. Eg:
     # read_ignore_users: ["test-user", "employee-*"]
     read_ignore_users:
-      - kibanaserver
+      - dashboardserver
 
     # Log only metadata of the document for write events
     write_metadata_only: true
@@ -78,4 +78,4 @@ config:
     # List of users to ignore for write events. Wildcard patterns are supported. Eg:
     # write_ignore_users: ["test-user", "employee-*"]
     write_ignore_users:
-      - kibanaserver
+      - dashboardserver

@@ -63,7 +63,7 @@ import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
  *     "resolve_indices" : true,
  *     "exclude_sensitive_headers" : true,
  *     "ignore_users" : [
- *       "kibanaserver"
+ *       "dashboardserver"
  *     ],
  *     "ignore_requests" : [ ]
  *   },
@@ -84,7 +84,7 @@ import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AuditConfig {
 
-    public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("kibanaserver");
+    public static final List<String> DEFAULT_IGNORED_USERS = Collections.singletonList("dashboardserver");
     private static Set<String> FIELDS = DefaultObjectMapper.getFields(AuditConfig.class);
 
     private AuditConfig() {

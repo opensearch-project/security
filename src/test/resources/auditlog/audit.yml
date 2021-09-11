@@ -17,7 +17,7 @@ config:
 
     # ignore
     ignore_users:
-      - kibanaserver
+      - dashboardserver
     ignore_requests: []
 
     # verbose attributes

@@ -10,7 +10,7 @@ config:
     license: null
     kibana:
       multitenancy_enabled: true
-      server_username: "kibanaserver"
+      server_username: "dashboardserver"
       index: ".kibana"
     http:
       anonymous_auth_enabled: false

@@ -264,7 +264,7 @@ opendistro_security_kibana_server:
   backend_roles: []
   hosts: []
   users:
-  - "kibanaserver"
+  - "dashboardserver"
   and_backend_roles: []
   description: "Migrated from v6"
 opendistro_security_all_access:

@@ -35,7 +35,7 @@ public class ComplianceConfigTest {
     @Test
     public void testDefault() {
         // arrange
-        final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("kibanaserver");
+        final WildcardMatcher defaultIgnoredUserMatcher = WildcardMatcher.from("dashboardserver");
         // act
         final ComplianceConfig complianceConfig = ComplianceConfig.from(Settings.EMPTY);
         // assert

@@ -173,7 +173,7 @@ public class MigrationTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        String internalUsersWithEmptyPassword = "{\"logstash\":{\"hash\":\"\",\"roles\":[\"logstash\"]},\"Stephen_123\":{\"hash\":\"\", \"password\":\"\"},\"snapshotrestore\":{\"hash\":\"\",\"roles\":[\"snapshotrestore\"]},\"admin\":{\"attributes\":{\"attribute1\":\"value1\",\"attribute3\":\"value3\",\"attribute2\":\"value2\"},\"readonly\":\"true\",\"hash\":\"\",\"roles\":[\"admin\"]},\"kibanaserver\":{\"readonly\":\"true\",\"hash\":\"\"},\"kibanaro\":{\"hash\":\"\",\"roles\":[\"kibanauser\",\"readall\"]},\"readall\":{\"hash\":\"\",\"roles\":[\"readall\"]}}";
+        String internalUsersWithEmptyPassword = "{\"logstash\":{\"hash\":\"\",\"roles\":[\"logstash\"]},\"Stephen_123\":{\"hash\":\"\", \"password\":\"\"},\"snapshotrestore\":{\"hash\":\"\",\"roles\":[\"snapshotrestore\"]},\"admin\":{\"attributes\":{\"attribute1\":\"value1\",\"attribute3\":\"value3\",\"attribute2\":\"value2\"},\"readonly\":\"true\",\"hash\":\"\",\"roles\":[\"admin\"]},\"dashboardserver\":{\"readonly\":\"true\",\"hash\":\"\"},\"kibanaro\":{\"hash\":\"\",\"roles\":[\"kibanauser\",\"readall\"]},\"readall\":{\"hash\":\"\",\"roles\":[\"readall\"]}}";
         String encodedInternalUsersWithEmptyPassword = BaseEncoding.base64().encode(internalUsersWithEmptyPassword.getBytes());
         String body = "{\"internalusers\":\"" + encodedInternalUsersWithEmptyPassword+ "\"}";
         HttpResponse res = rh.executePutRequest(".opendistro_security/_doc/internalusers", body);

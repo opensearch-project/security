@@ -69,8 +69,8 @@ admin:
   backend_roles: []
   attributes: {}
   description: "Migrated from v6"
-kibanaserver:
-  hash: "$2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H."
+dashboardserver:
+  hash: "$2y$12$MZVGdnhdCIq50EuCDICgz.zAes.dX5JuyR8QpHGf0TwYIoMvRO3jG"
   reserved: false
   hidden: false
   backend_roles: []

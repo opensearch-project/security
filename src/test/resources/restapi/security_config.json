@@ -7,7 +7,7 @@
           "respect_request_indices_options":false,
           "kibana":{
              "multitenancy_enabled":true,
-             "server_username":"kibanaserver",
+             "server_username":"dashboardserver",
              "index":".kibana"
           },
           "http":{

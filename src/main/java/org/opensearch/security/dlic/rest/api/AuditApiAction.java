@@ -71,7 +71,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  *       "resolve_indices" : true,
  *       "exclude_sensitive_headers" : true,
  *       "ignore_users" : [
- *         "kibanaserver"
+ *         "dashboardserver"
  *       ],
  *       "ignore_requests" : [ ]
  *     },
