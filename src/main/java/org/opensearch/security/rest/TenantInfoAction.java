@@ -92,10 +92,6 @@ public class TenantInfoAction extends BaseRestHandler {
         this.configurationRepository = configurationRepository;
     }
 
-    public List<Route> routes() {
-        return ImmutableList.of();
-    }
-
     @Override
     public List<ReplacedRoute> replacedRoutes() {
         return replacedRoutes;

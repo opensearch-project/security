@@ -93,14 +93,10 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 		});
 	}
 
-	public List<Route> routes() {
-		return ImmutableList.of();
-	}
-
-    @Override
-    public List<ReplacedRoute> replacedRoutes() {
-        return replacedRoutes;
-    }
+	@Override
+	public List<ReplacedRoute> replacedRoutes() {
+        	return replacedRoutes;
+    	}
 
 	@Override
 	protected Endpoint getEndpoint() {
@@ -119,7 +115,7 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 
 	@Override
     protected CType getConfigName() {
-        return CType.ROLESMAPPING;
+        	return CType.ROLESMAPPING;
 	}
 
 }

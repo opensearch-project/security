@@ -76,14 +76,10 @@ public class PermissionsInfoAction extends BaseRestHandler {
 		return getClass().getSimpleName();
 	}
 
-	public List<Route> routes() {
-		return ImmutableList.of();
+	@Override
+	public List<ReplacedRoute> replacedRoutes() {
+	    return replacedRoutes;
 	}
-
-    @Override
-    public List<ReplacedRoute> replacedRoutes() {
-        return replacedRoutes;
-    }
 
 	@Override
 	protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {

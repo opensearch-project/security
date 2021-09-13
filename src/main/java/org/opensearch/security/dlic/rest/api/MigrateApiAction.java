@@ -87,10 +87,6 @@ public class MigrateApiAction extends AbstractApiAction {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
     }
 
-    public List<Route> routes() {
-        return ImmutableList.of();
-    }
-
     @Override
     public List<ReplacedRoute> replacedRoutes() {
         return replacedRoutes;

@@ -74,10 +74,6 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
         allowPutOrPatch = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
     }
 
-    public List<Route> routes() {
-        return ImmutableList.of();
-    }
-
     @Override
     public List<ReplacedRoute> replacedRoutes() {
         return allowPutOrPatch ? allRoutes : getRoutes;

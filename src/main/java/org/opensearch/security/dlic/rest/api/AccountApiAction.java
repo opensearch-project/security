@@ -86,10 +86,6 @@ public class AccountApiAction extends AbstractApiAction {
         this.threadContext = threadPool.getThreadContext();
     }
 
-    public List<Route> routes() {
-        return ImmutableList.of();
-    }
-
     @Override
     public List<ReplacedRoute> replacedRoutes() {
         return replacedRoutes;

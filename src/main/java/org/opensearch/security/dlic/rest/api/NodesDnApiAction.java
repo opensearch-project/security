@@ -81,8 +81,6 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
         this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList());
     }
 
-    public List<Route> routes() { return ImmutableList.of(); }
-
     @Override
     public List<ReplacedRoute> replacedRoutes() {
         if (settings.getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {

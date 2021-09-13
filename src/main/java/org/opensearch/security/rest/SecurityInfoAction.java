@@ -78,10 +78,6 @@ public class SecurityInfoAction extends BaseRestHandler {
         this.evaluator = evaluator;
     }
 
-    public List<Route> routes() {
-        return ImmutableList.of();
-    }
-
     @Override
     public List<ReplacedRoute> replacedRoutes() {
         return replacedRoutes;

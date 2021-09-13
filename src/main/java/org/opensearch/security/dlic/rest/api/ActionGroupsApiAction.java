@@ -72,14 +72,10 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
 	}
 
-	public List<Route> routes() {
-		return ImmutableList.of();
+	@Override
+	public List<ReplacedRoute> replacedRoutes() {
+		return replacedRoutes;
 	}
-
-    @Override
-    public List<ReplacedRoute> replacedRoutes() {
-        return replacedRoutes;
-    }
 
 	@Override
 	protected AbstractConfigurationValidator getValidator(final RestRequest request, BytesReference ref, Object... param) {
