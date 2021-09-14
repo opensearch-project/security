@@ -411,8 +411,14 @@ OPENSEARCH_PLUGINS_DIR=`cd "$OPENSEARCH_PLUGINS_DIR" ; pwd`
 echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 #Generate securityadmin_demo.sh
+
+config_dir=securityconfig
+if [ ! -z $ODFE ] ; then
+  config_dir=securityconfig_odfe
+fi
+
 echo "#!/bin/bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null 
-echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
+echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/$config_dir"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x securityadmin_demo.sh
 
 if [ "$initsecurity" == 0 ]; then
@@ -423,7 +429,7 @@ if [ "$initsecurity" == 0 ]; then
 else
     echo "### OpenSearch Security will be automatically initialized."
     echo "### If you like to change the runtime configuration "
-    echo "### change the files in ../securityconfig and execute: "
+    echo "### change the files in ../$config_dir and execute: "
 	$SUDO_CMD cat securityadmin_demo.sh | tail -1
 	echo "### or run ./securityadmin_demo.sh"
 	echo "### To use the Security Plugin ConfigurationGUI"
