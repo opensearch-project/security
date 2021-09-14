@@ -35,6 +35,7 @@
             <outputDirectory>${file.separator}</outputDirectory>
             <includes>
                 <include>securityconfig/**</include>
+                <include>securityconfig_odfe/**</include>
             </includes>
             <fileMode>0640</fileMode>
         </fileSet>
