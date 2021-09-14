@@ -312,7 +312,7 @@ public class OpenDistroSecurityFilter implements ActionFilter {
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
-                if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
+                if(!dlsFlsValve.invoke(action, request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
                     return;
                 }
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
