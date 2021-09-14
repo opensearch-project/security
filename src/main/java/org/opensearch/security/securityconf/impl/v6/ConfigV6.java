@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
@@ -55,6 +56,7 @@ public class ConfigV6 {
         return "Config [dynamic=" + dynamic + "]";
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Dynamic {
 
 
@@ -81,6 +83,7 @@ public class ConfigV6 {
         }
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Kibana {
 
         public boolean multitenancy_enabled = true;
@@ -97,7 +100,8 @@ public class ConfigV6 {
         
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Http {
         public boolean anonymous_auth_enabled = false;
         public Xff xff = new Xff();
@@ -108,7 +112,8 @@ public class ConfigV6 {
         
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthFailureListeners {
         @JsonIgnore
         private final Map<String, AuthFailureListener> listeners = new HashMap<>();
@@ -125,7 +130,8 @@ public class ConfigV6 {
 
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthFailureListener {
         public String type;
         public String authentication_backend;
@@ -148,7 +154,8 @@ public class ConfigV6 {
             }
         }
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Xff {
         public boolean enabled = true;
         public String internalProxies = Pattern.compile(
@@ -170,7 +177,8 @@ public class ConfigV6 {
         
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Authc {
         
         @JsonIgnore
@@ -193,7 +201,8 @@ public class ConfigV6 {
         
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthcDomain {
         public boolean http_enabled= true;
         public boolean transport_enabled= true;
@@ -210,6 +219,7 @@ public class ConfigV6 {
         
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class HttpAuthenticator {
         public boolean challenge = true;
         public String type;
@@ -231,7 +241,8 @@ public class ConfigV6 {
         
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthzBackend {
         public String type = "noop";
         public Map<String, Object> config = Collections.emptyMap();
@@ -252,7 +263,8 @@ public class ConfigV6 {
         
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthcBackend {
         public String type = InternalAuthenticationBackend.class.getName();
         public Map<String, Object> config = Collections.emptyMap();
@@ -273,7 +285,8 @@ public class ConfigV6 {
         
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Authz {
         @JsonIgnore
         private final Map<String, AuthzDomain> domains = new HashMap<>();
@@ -295,7 +308,8 @@ public class ConfigV6 {
         
         
     }
-    
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthzDomain {
         public boolean http_enabled = true;
         public boolean transport_enabled = true;
