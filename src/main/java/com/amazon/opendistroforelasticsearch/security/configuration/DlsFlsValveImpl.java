@@ -14,7 +14,6 @@
  */
 
 package com.amazon.opendistroforelasticsearch.security.configuration;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
@@ -44,6 +43,7 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.query.ParsedQuery;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.BucketOrder;
 import org.elasticsearch.search.aggregations.InternalAggregation;
@@ -71,7 +71,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      * @param listener
      * @return false on error
      */
-    public boolean invoke(final ActionRequest request, final ActionListener<?> listener,
+    public boolean invoke(final String action, final ActionRequest request, final ActionListener<?> listener,
             final Map<String,Set<String>> allowedFlsFields,
             final Map<String,Set<String>> maskedFields,
             final Map<String,Set<String>> queries) {
@@ -115,6 +115,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             if(request instanceof ResizeRequest) {
                 listener.onFailure(new ElasticsearchSecurityException("Resize is not supported when FLS or DLS or Fieldmasking is activated"));
+                return false;
+            }
+
+            if(action.contains("plugins/replication")) {
+                listener.onFailure(new ElasticsearchSecurityException("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated", RestStatus.FORBIDDEN));
                 return false;
             }
         }
