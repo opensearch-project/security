@@ -17,3 +17,4 @@ Compatible with OpenSearch 1.1.0
 * Remove alerting and ism indices from protected indices usage in sample configuration ([#1416](https://github.com/opensearch-project/security/pull/1416))
 * Build against OpenSearch 1.1.0-SNAPSHOT. ([#1430](https://github.com/opensearch-project/security/pull/1430))
 * Create release notes 1.1.0.0 ([#1440](https://github.com/opensearch-project/security/pull/1440))
+* Switch opensearch from 1.x to 1.1 ([#1445](https://github.com/opensearch-project/security/pull/1445))

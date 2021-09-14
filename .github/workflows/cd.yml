@@ -3,7 +3,7 @@ name: CD
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
       with:
         repository: 'opensearch-project/OpenSearch'
         path: OpenSearch
-        ref: '1.x'
+        ref: '1.1'
 
     - name: Build OpenSearch
       working-directory: ./OpenSearch
