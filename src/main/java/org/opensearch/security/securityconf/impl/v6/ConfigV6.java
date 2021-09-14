@@ -83,7 +83,6 @@ public class ConfigV6 {
         }
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Kibana {
 
         public boolean multitenancy_enabled = true;
