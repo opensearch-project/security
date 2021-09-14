@@ -1,0 +1,17 @@
+---
+_meta:
+  type: "tenants"
+  config_version: 2
+
+global_tenant:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Global tenant"
+
+# Define your tenants here
+
+## Demo tenants
+admin_tenant:
+  reserved: false
+  description: "Demo tenant for admin user"

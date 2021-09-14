@@ -1,0 +1,338 @@
+_meta:
+  type: "roles"
+  config_version: 2
+
+# Restrict users so they can only view visualization and dashboard on OpenSearchDashboards
+kibana_read_only:
+  reserved: true
+
+# The security REST API access role is used to assign specific users access to change the security settings through the REST API.
+security_rest_api_access:
+  reserved: true
+ 
+# Allows users to view monitors, destinations and alerts
+alerting_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/alerting/alerts/get'
+    - 'cluster:admin/opendistro/alerting/destination/get'
+    - 'cluster:admin/opendistro/alerting/monitor/get'
+    - 'cluster:admin/opendistro/alerting/monitor/search'
+
+# Allows users to view and acknowledge alerts
+alerting_ack_alerts:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/alerting/alerts/*'
+
+# Allows users to use all alerting functionality
+alerting_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster_monitor'
+    - 'cluster:admin/opendistro/alerting/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices_monitor'
+        - 'indices:admin/aliases/get'
+        - 'indices:admin/mappings/get'
+
+# Allow users to read Anomaly Detection detectors and results
+anomaly_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/ad/detector/info'
+    - 'cluster:admin/opendistro/ad/detector/search'
+    - 'cluster:admin/opendistro/ad/detectors/get'
+    - 'cluster:admin/opendistro/ad/result/search'
+    - 'cluster:admin/opendistro/ad/tasks/search'
+
+# Allows users to use all Anomaly Detection functionality
+anomaly_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster_monitor'
+    - 'cluster:admin/opendistro/ad/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices_monitor'
+        - 'indices:admin/aliases/get'
+        - 'indices:admin/mappings/get'
+
+# Allows users to read Notebooks
+notebooks_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/notebooks/list'
+    - 'cluster:admin/opendistro/notebooks/get'
+
+# Allows users to all Notebooks functionality
+notebooks_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/notebooks/create'
+    - 'cluster:admin/opendistro/notebooks/update'
+    - 'cluster:admin/opendistro/notebooks/delete'
+    - 'cluster:admin/opendistro/notebooks/get'
+    - 'cluster:admin/opendistro/notebooks/list'
+
+# Allows users to read and download Reports
+reports_instances_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/reports/instance/list'
+    - 'cluster:admin/opendistro/reports/instance/get'
+    - 'cluster:admin/opendistro/reports/menu/download'
+
+# Allows users to read and download Reports and Report-definitions
+reports_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/reports/definition/get'
+    - 'cluster:admin/opendistro/reports/definition/list'
+    - 'cluster:admin/opendistro/reports/instance/list'
+    - 'cluster:admin/opendistro/reports/instance/get'
+    - 'cluster:admin/opendistro/reports/menu/download'
+
+# Allows users to all Reports functionality
+reports_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/reports/definition/create'
+    - 'cluster:admin/opendistro/reports/definition/update'
+    - 'cluster:admin/opendistro/reports/definition/on_demand'
+    - 'cluster:admin/opendistro/reports/definition/delete'
+    - 'cluster:admin/opendistro/reports/definition/get'
+    - 'cluster:admin/opendistro/reports/definition/list'
+    - 'cluster:admin/opendistro/reports/instance/list'
+    - 'cluster:admin/opendistro/reports/instance/get'
+    - 'cluster:admin/opendistro/reports/menu/download'
+
+# Allows users to use all asynchronous-search functionality
+asynchronous_search_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/asynchronous_search/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:data/read/search*'
+
+# Allows users to read stored asynchronous-search results
+asynchronous_search_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/asynchronous_search/get'
+
+# Allows user to use all index_management actions - ism policies, rollups, transforms
+index_management_full_access:
+  reserved: true
+  cluster_permissions:
+    - "cluster:admin/opendistro/ism/*"
+    - "cluster:admin/opendistro/rollup/*"
+    - "cluster:admin/opendistro/transform/*"
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/opensearch/ism/*'
+
+# Allows users to use all cross cluster replication functionality at leader cluster
+cross_cluster_replication_leader_full_access:
+  reserved: true
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - "indices:admin/plugins/replication/index/setup/validate"
+        - "indices:data/read/plugins/replication/changes"
+        - "indices:data/read/plugins/replication/file_chunk"
+
+# Allows users to use all cross cluster replication functionality at follower cluster
+cross_cluster_replication_follower_full_access:
+  reserved: true
+  cluster_permissions:
+    - "cluster:admin/plugins/replication/autofollow/update"
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - "indices:admin/plugins/replication/index/setup/validate"
+        - "indices:data/write/plugins/replication/changes"
+        - "indices:admin/plugins/replication/index/start"
+        - "indices:admin/plugins/replication/index/pause"
+        - "indices:admin/plugins/replication/index/resume"
+        - "indices:admin/plugins/replication/index/stop"
+        - "indices:admin/plugins/replication/index/update"
+        - "indices:admin/plugins/replication/index/status_check"
+
+
+all_access:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Allow full access to all indices and all cluster APIs"
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "*"
+  tenant_permissions:
+    - tenant_patterns:
+        - "*"
+      allowed_actions:
+        - "kibana_all_write"
+
+kibana_user:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for a kibana user"
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - ".kibana"
+        - ".kibana-6"
+        - ".kibana_*"
+        - ".opensearch_dashboards"
+        - ".opensearch_dashboards-6"
+        - ".opensearch_dashboards_*"
+      allowed_actions:
+        - "read"
+        - "delete"
+        - "manage"
+        - "index"
+    - index_patterns:
+        - ".tasks"
+        - ".management-beats"
+        - "*:.tasks"
+        - "*:.management-beats"
+      allowed_actions:
+        - "indices_all"
+
+own_index:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Allow all for indices named like the current user"
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - "${user_name}"
+      allowed_actions:
+        - "indices_all"
+
+
+manage_snapshots:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for managing snapshots"
+  cluster_permissions:
+    - "manage_snapshots"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:data/write/index"
+        - "indices:admin/create"
+
+kibana_server:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for the Kibana server"
+  cluster_permissions:
+    - "cluster_monitor"
+    - "cluster_composite_ops"
+    - "indices:admin/template*"
+    - "indices:data/read/scroll*"
+  index_permissions:
+    - index_patterns:
+        - ".kibana"
+        - ".opensearch_dashboards"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".kibana-6"
+        - ".opensearch_dashboards-6"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".kibana_*"
+        - ".opensearch_dashboards_*"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".tasks"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".management-beats*"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/aliases*"
+
+logstash:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for logstash and beats"
+  cluster_permissions:
+    - "cluster_monitor"
+    - "cluster_composite_ops"
+    - "indices:admin/template/get"
+    - "indices:admin/template/put"
+    - "cluster:admin/ingest/pipeline/put"
+    - "cluster:admin/ingest/pipeline/get"
+  index_permissions:
+    - index_patterns:
+        - "logstash-*"
+      allowed_actions:
+        - "crud"
+        - "create_index"
+    - index_patterns:
+        - "*beat*"
+      allowed_actions:
+        - "crud"
+        - "create_index"
+
+readall_and_monitor:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for to readall indices and monitor the cluster"
+  cluster_permissions:
+    - "cluster_monitor"
+    - "cluster_composite_ops_ro"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "read"
+
+readall:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for to readall indices"
+  cluster_permissions:
+    - "cluster_composite_ops_ro"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "read"
+
