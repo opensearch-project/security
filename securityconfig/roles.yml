@@ -3,13 +3,13 @@ _meta:
   config_version: 2
 
 # Restrict users so they can only view visualization and dashboard on OpenSearchDashboards
-kibana_read_only:
+opensearch_dashboards_read_only:
   reserved: true
 
 # The security REST API access role is used to assign specific users access to change the security settings through the REST API.
 security_rest_api_access:
   reserved: true
- 
+
 # Allows users to view monitors, destinations and alerts
 alerting_read_access:
   reserved: true
@@ -128,3 +128,205 @@ asynchronous_search_read_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opendistro/asynchronous_search/get'
+
+# Allows user to use all index_management actions - ism policies, rollups, transforms
+index_management_full_access:
+  reserved: true
+  cluster_permissions:
+    - "cluster:admin/opendistro/ism/*"
+    - "cluster:admin/opendistro/rollup/*"
+    - "cluster:admin/opendistro/transform/*"
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/opensearch/ism/*'
+
+# Allows users to use all cross cluster replication functionality at leader cluster
+cross_cluster_replication_leader_full_access:
+  reserved: true
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - "indices:admin/plugins/replication/index/setup/validate"
+        - "indices:data/read/plugins/replication/changes"
+        - "indices:data/read/plugins/replication/file_chunk"
+
+# Allows users to use all cross cluster replication functionality at follower cluster
+cross_cluster_replication_follower_full_access:
+  reserved: true
+  cluster_permissions:
+    - "cluster:admin/plugins/replication/autofollow/update"
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - "indices:admin/plugins/replication/index/setup/validate"
+        - "indices:data/write/plugins/replication/changes"
+        - "indices:admin/plugins/replication/index/start"
+        - "indices:admin/plugins/replication/index/pause"
+        - "indices:admin/plugins/replication/index/resume"
+        - "indices:admin/plugins/replication/index/stop"
+        - "indices:admin/plugins/replication/index/update"
+        - "indices:admin/plugins/replication/index/status_check"
+
+
+all_access:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Allow full access to all indices and all cluster APIs"
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "*"
+  tenant_permissions:
+    - tenant_patterns:
+        - "*"
+      allowed_actions:
+        - "opensearch_dashboards_all_write"
+
+opensearch_dashboards_user:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for a opensearch_dashboards user"
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - ".opensearch_dashboards"
+        - ".opensearch_dashboards-6"
+        - ".opensearch_dashboards_*"
+      allowed_actions:
+        - "read"
+        - "delete"
+        - "manage"
+        - "index"
+    - index_patterns:
+        - ".tasks"
+        - ".management-beats"
+        - "*:.tasks"
+        - "*:.management-beats"
+      allowed_actions:
+        - "indices_all"
+
+own_index:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Allow all for indices named like the current user"
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - "${user_name}"
+      allowed_actions:
+        - "indices_all"
+
+
+manage_snapshots:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for managing snapshots"
+  cluster_permissions:
+    - "manage_snapshots"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:data/write/index"
+        - "indices:admin/create"
+
+opensearch_dashboards_server:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for the Opensearch Dashboards server"
+  cluster_permissions:
+    - "cluster_monitor"
+    - "cluster_composite_ops"
+    - "indices:admin/template*"
+    - "indices:data/read/scroll*"
+  index_permissions:
+    - index_patterns:
+        - ".opensearch_dashboards"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".opensearch_dashboards-6"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".opensearch_dashboards_*"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".tasks"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".management-beats*"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/aliases*"
+
+logstash:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for logstash and beats"
+  cluster_permissions:
+    - "cluster_monitor"
+    - "cluster_composite_ops"
+    - "indices:admin/template/get"
+    - "indices:admin/template/put"
+    - "cluster:admin/ingest/pipeline/put"
+    - "cluster:admin/ingest/pipeline/get"
+  index_permissions:
+    - index_patterns:
+        - "logstash-*"
+      allowed_actions:
+        - "crud"
+        - "create_index"
+    - index_patterns:
+        - "*beat*"
+      allowed_actions:
+        - "crud"
+        - "create_index"
+
+readall_and_monitor:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for to readall indices and monitor the cluster"
+  cluster_permissions:
+    - "cluster_monitor"
+    - "cluster_composite_ops_ro"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "read"
+
+readall:
+  reserved: true
+  hidden: false
+  static: true
+  description: "Provide the minimum permissions for to readall indices"
+  cluster_permissions:
+    - "cluster_composite_ops_ro"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "read"
+
