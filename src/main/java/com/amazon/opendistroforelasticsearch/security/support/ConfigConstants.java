@@ -265,6 +265,7 @@ public class ConfigConstants {
 
     // Roles injection for plugins
     public static final String OPENDISTRO_SECURITY_INJECTED_ROLES = "opendistro_security_injected_roles";
+    public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER = "opendistro_security_injected_roles_header";
 
     // Roles validation for the plugins
     public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION = "opendistro_security_injected_roles_validation";
