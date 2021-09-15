@@ -410,7 +410,15 @@ OPENSEARCH_PLUGINS_DIR=`cd "$OPENSEARCH_PLUGINS_DIR" ; pwd`
 
 echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
-#Generate securityadmin_demo.sh
+
+
+# Generate securityadmin_demo.sh
+# Run securityadmin_demo.sh only when creating new cluster
+
+if [ ! -z $NEW_CLUSTER ] ; then
+  echo "### This node is setup for upgrading existing cluster, skipping securityadmin.sh"
+  exit 0
+fi
 
 config_dir=securityconfig
 if [ ! -z $ODFE ] ; then
