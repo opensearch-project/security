@@ -221,8 +221,7 @@ public class Utils {
     /**
      * Add prefixes(_opendistro... and _plugins...) to rest API routes
      * @param routes routes
-     * @return new list of API routes prefixed with _opendistro... and _plugins...
-     *Total number of routes is expanded as twice as the number of routes passed in
+     * @return a list of replaced routes
      */
     public static List<ReplacedRoute> replaceRoutes(List<Route> routes){
         return RestHandler.replaceRoutes(routes, "/_plugins/_security/api", "/_opendistro/_security/api");

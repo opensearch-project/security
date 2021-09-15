@@ -48,6 +48,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.rest.RestHandler;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
@@ -57,8 +58,8 @@ import com.google.common.collect.ImmutableList;
 public class DashboardsInfoAction extends BaseRestHandler {
 
     private static final List<ReplacedRoute> replacedRoutes = ImmutableList.of(
-            new ReplacedRoute(GET, "/_plugins/_security/dashboardsinfo", GET,"/_opendistro/_security/kibanainfo"),
-            new ReplacedRoute(POST, "/_plugins/_security/dashboardsinfo", POST, "/_opendistro/_security/kibanainfo")
+            new RestHandler.ReplacedRoute(GET, "/_plugins/_security/dashboardsinfo", GET,"/_opendistro/_security/kibanainfo"),
+            new RestHandler.ReplacedRoute(POST, "/_plugins/_security/dashboardsinfo", POST, "/_opendistro/_security/kibanainfo")
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());

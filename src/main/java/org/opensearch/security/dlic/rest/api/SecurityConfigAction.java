@@ -36,7 +36,6 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -55,7 +54,7 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
 
     private static final List<ReplacedRoute> allRoutes = new ImmutableList.Builder<ReplacedRoute>()
             .addAll(getRoutes)
-            .addAll(Utils.replaceRoutes(
+            .addAll(replaceRoutes(
                 ImmutableList.of(
                     new Route(Method.PUT, "/securityconfig/{name}"),
                     new Route(Method.PATCH, "/securityconfig/")

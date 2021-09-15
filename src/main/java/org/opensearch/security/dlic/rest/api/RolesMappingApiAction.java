@@ -115,7 +115,7 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 
 	@Override
     protected CType getConfigName() {
-        	return CType.ROLESMAPPING;
+	    return CType.ROLESMAPPING;
 	}
 
 }

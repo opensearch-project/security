@@ -15,7 +15,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.google.common.collect.ImmutableList;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
