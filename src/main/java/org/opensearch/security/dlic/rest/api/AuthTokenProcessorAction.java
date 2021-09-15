@@ -59,7 +59,7 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 
 	@Override
 	public List<ReplacedRoute> replacedRoutes() {
-	    return replacedRoutes;
+		return replacedRoutes;
 	}
 
 	@Override

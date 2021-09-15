@@ -78,7 +78,7 @@ public class PermissionsInfoAction extends BaseRestHandler {
 
 	@Override
 	public List<ReplacedRoute> replacedRoutes() {
-	    return replacedRoutes;
+		return replacedRoutes;
 	}
 
 	@Override
