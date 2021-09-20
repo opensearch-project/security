@@ -191,6 +191,11 @@ if $SUDO_CMD grep --quiet -i plugins.security "$OPENSEARCH_CONF_FILE"; then
   exit $skip_updates
 fi
 
+if [ ! -z $UPGRADE ] && [ ! -z $NEW_ODFE ]; then
+  echo "UPGRADE and NEW_ODFE are both set, but only one of them should be set. Quit."
+  exit -1
+fi
+
 set +e
 
 read -r -d '' ADMIN_CERT << EOM
@@ -414,14 +419,13 @@ echo "### Execute this script now on all your nodes and then start all nodes"
 
 # Generate securityadmin_demo.sh
 # Run securityadmin_demo.sh only when creating new cluster
-
 if [ ! -z $UPGRADE ] ; then
   echo "### This node is setup for upgrading existing cluster, skipping securityadmin.sh"
   exit 0
 fi
 
 config_dir=securityconfig
-if [ ! -z $NEW_ODFE ] ; then
+if [ ! -z $NEW_ODFE ]; then
   config_dir=securityconfig_odfe
 fi
 
