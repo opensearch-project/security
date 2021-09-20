@@ -85,7 +85,7 @@
         <java-saml.version>2.5.0</java-saml.version>
         <opensaml.version>3.4.5</opensaml.version>
         <commons-codec.version>1.14</commons-codec.version>
-        <xmlsec.version>2.2.0</xmlsec.version>
+        <xmlsec.version>2.2.3</xmlsec.version>
         <cryptacular.version>1.1.4</cryptacular.version>
 
         <!-- assembly descriptors -->
