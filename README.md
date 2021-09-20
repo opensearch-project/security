@@ -73,6 +73,8 @@ Please refer to the [technical documentation](https://docs-beta.opensearch.org/d
 
 * ``cd`` into ``<OpenSearch directory>/plugins/opensearch-security/tools``
 
+* If an existing cluster is being upgraded, set variable `UPGRADE`. For example, execute `export UPGRADE=true`
+
 * Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configuration to your ``opensearch.yml`` file. 
 
 * Start OpenSearch
