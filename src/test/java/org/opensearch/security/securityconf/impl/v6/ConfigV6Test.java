@@ -20,12 +20,7 @@ public class ConfigV6Test {
     }
 
     public void assertEquals(ConfigV6.Kibana expected, JsonNode node) {
-        if (omitDefaults && !expected.multitenancy_enabled) {
-            // false (default) is not persisted
-            Assert.assertNull(node.get("multitenancy_enabled"));
-        } else {
-            Assert.assertEquals(expected.multitenancy_enabled, node.get("multitenancy_enabled").asBoolean());
-        }
+        Assert.assertEquals(expected.multitenancy_enabled, node.get("multitenancy_enabled").asBoolean());
         if (expected.server_username == null) {
             Assert.assertNull(node.get("server_username"));
         } else {
@@ -51,12 +46,7 @@ public class ConfigV6Test {
     }
 
     private void assertEquals(ConfigV6.Kibana expected, ConfigV6.Kibana actual) {
-        if (omitDefaults && !expected.multitenancy_enabled) {
-            // BUG: false is omitted and is restored to default (which is true) instead of false
-            Assert.assertTrue(actual.multitenancy_enabled);
-        } else {
-            Assert.assertEquals(expected.multitenancy_enabled, actual.multitenancy_enabled);
-        }
+        Assert.assertEquals(expected.multitenancy_enabled, actual.multitenancy_enabled);
         if (expected.server_username == null) {
             // null is restored to default instead of null
             Assert.assertEquals(new ConfigV6.Kibana().server_username, actual.server_username);

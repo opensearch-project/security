@@ -107,7 +107,6 @@ public class ConfigV7 {
         return "Config [dynamic=" + dynamic + "]";
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Dynamic {
 
 
@@ -122,6 +121,7 @@ public class ConfigV7 {
         public Authz authz = new Authz();
         public AuthFailureListeners auth_failure_listeners = new AuthFailureListeners();
         public boolean do_not_fail_on_forbidden;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean multi_rolespan_enabled = true;
         public String hosts_resolver_mode = "ip-only";
         public String transport_userrname_attribute;
@@ -136,6 +136,7 @@ public class ConfigV7 {
 
     public static class Kibana {
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean multitenancy_enabled = true;
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
@@ -150,7 +151,6 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Http {
         public boolean anonymous_auth_enabled = false;
         public Xff xff = new Xff();
@@ -162,7 +162,6 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthFailureListeners {
         @JsonIgnore
         private final Map<String, AuthFailureListener> listeners = new HashMap<>();
@@ -180,7 +179,6 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthFailureListener {
         public String type;
         public String authentication_backend;
@@ -217,7 +215,6 @@ public class ConfigV7 {
         }
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Xff {
         public boolean enabled = false;
         public String internalProxies = Pattern.compile(
@@ -237,7 +234,6 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Authc {
         
         @JsonIgnore
@@ -262,10 +258,11 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthcDomain {
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled= true;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean transport_enabled= true;
         //public boolean enabled= true;
         public int order = 0;
@@ -301,8 +298,8 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class HttpAuthenticator {
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean challenge = true;
         public String type;
         public Map<String, Object> config = Collections.emptyMap();
@@ -337,7 +334,6 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthzBackend {
         public String type = "noop";
         public Map<String, Object> config = Collections.emptyMap();
@@ -376,7 +372,6 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthcBackend {
         public String type = InternalAuthenticationBackend.class.getName();
         public Map<String, Object> config = Collections.emptyMap();
@@ -415,7 +410,6 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Authz {
         @JsonIgnore
         private final Map<String, AuthzDomain> domains = new HashMap<>();
@@ -438,9 +432,10 @@ public class ConfigV7 {
         
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthzDomain {
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled = true;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean transport_enabled = true;
         public AuthzBackend authorization_backend = new AuthzBackend();
         public String description;
