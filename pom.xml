@@ -106,6 +106,15 @@
         <tag>1.2.0.0</tag>
     </scm>
 
+    <repositories>
+        <repository>
+            <id>snapshots-repo</id>
+            <url>https://aws.oss.sonatype.org/content/repositories/snapshots</url>
+            <releases><enabled>false</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+
     <issueManagement>
         <system>GitHub</system>
         <url>https://github.com/opensearch-project/security/issues</url>
@@ -924,14 +933,6 @@
                     <version>${opensearch.version}</version>
                 </dependency>
             </dependencies>
-            <repositories>
-                <repository>
-                    <id>snapshots-repo</id>
-                    <url>https://aws.oss.sonatype.org/content/repositories/snapshots</url>
-                    <releases><enabled>false</enabled></releases>
-                    <snapshots><enabled>true</enabled></snapshots>
-                </repository>
-            </repositories>
         </profile>
         <profile>
             <id>with-static-openssl-linux-non-fedora</id>
