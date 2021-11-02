@@ -26,17 +26,6 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
 
-    - name: Checkout OpenSearch
-      uses: actions/checkout@v2
-      with:
-        repository: 'opensearch-project/OpenSearch'
-        path: OpenSearch
-        ref: '1.1'
-
-    - name: Build OpenSearch
-      working-directory: ./OpenSearch
-      run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
-
     - name: Build
       run: |
         mvn -B clean package -Padvanced -DskipTests
