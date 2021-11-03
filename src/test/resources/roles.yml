@@ -1116,3 +1116,12 @@ data_stream_3:
         - "*"
       allowed_actions:
         - "DATASTREAM_ALL"
+
+hidden_test:
+  cluster_permissions:
+  - SGS_CLUSTER_COMPOSITE_OPS
+  index_permissions:
+  - index_patterns:
+    - hidden_test_not_hidden
+    allowed_actions:
+    - "*"
