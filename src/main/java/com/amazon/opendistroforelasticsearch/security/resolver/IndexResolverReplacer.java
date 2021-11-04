@@ -680,7 +680,7 @@ public class IndexResolverReplacer {
     private IndicesOptions indicesOptionsFrom(Object localRequest) {
         
         if(!respectRequestIndicesOptions) {
-            return IndicesOptions.fromOptions(false, true, true, false);
+            return IndicesOptions.fromOptions(false, true, true, false, true);
         }
 
         if (IndicesRequest.class.isInstance(localRequest)) {
@@ -690,7 +690,7 @@ public class IndexResolverReplacer {
             return ((RestoreSnapshotRequest) localRequest).indicesOptions();
         }
         else {
-            return IndicesOptions.fromOptions(false, true, true, false);
+            return IndicesOptions.fromOptions(false, true, true, false, true);
         }
     }
 
