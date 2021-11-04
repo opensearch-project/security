@@ -80,6 +80,21 @@ notebooks_full_access:
     - 'cluster:admin/opendistro/notebooks/get'
     - 'cluster:admin/opendistro/notebooks/list'
 
+# Allows users to read observability objects
+observability_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/observability/get'
+
+# Allows users to all Observability functionality
+observability_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/observability/create'
+    - 'cluster:admin/opensearch/observability/update'
+    - 'cluster:admin/opensearch/observability/delete'
+    - 'cluster:admin/opensearch/observability/get'
+
 # Allows users to read and download Reports
 reports_instances_read_access:
   reserved: true
