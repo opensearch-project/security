@@ -1083,3 +1083,12 @@ xyz_sr_reserved:
       allowed_actions:
         - "*"
   tenant_permissions: []
+
+hidden_test:
+  cluster_permissions:
+    - SGS_CLUSTER_COMPOSITE_OPS
+  index_permissions:
+    - index_patterns:
+        - hidden_test_not_hidden
+      allowed_actions:
+        - "*"
