@@ -48,6 +48,8 @@ anomaly_read_access:
     - 'cluster:admin/opendistro/ad/detectors/get'
     - 'cluster:admin/opendistro/ad/result/search'
     - 'cluster:admin/opendistro/ad/tasks/search'
+    - 'cluster:admin/opendistro/ad/detector/validate'
+    - 'cluster:admin/opendistro/ad/result/topAnomalies'
 
 # Allows users to use all Anomaly Detection functionality
 anomaly_full_access:
