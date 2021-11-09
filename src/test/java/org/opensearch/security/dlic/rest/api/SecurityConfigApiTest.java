@@ -111,7 +111,7 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testSecurityConfigPatch() throws Exception {
+    public void testSecurityConfigForHTTPPatch() throws Exception {
 
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
         setup(settings);
@@ -133,7 +133,6 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
         //get config
         response = rh.executeGetRequest(ENDPOINT + "/securityconfig", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        System.out.print("nidhitest" + response.getBody());
 
         // verify configs are same
         Assert.assertEquals(DefaultObjectMapper.readTree(updatedConfig), DefaultObjectMapper.readTree(response.getBody()).get("config"));
