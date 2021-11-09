@@ -13,6 +13,7 @@ Compatible with OpenSearch 1.2.0
 
 ### Maintenance
 
+* Updated copyright notices ([#1477](https://github.com/opensearch-project/security/pull/1477))
 * Adding DCO check to repo ([#1468](https://github.com/opensearch-project/security/pull/1468))
 * Moved dco.yml to workflows folder ([#1469](https://github.com/opensearch-project/security/pull/1469))
 * Incremented version to 1.2.0.0-SNAPSHOT ([#1464](https://github.com/opensearch-project/security/pull/1464))
