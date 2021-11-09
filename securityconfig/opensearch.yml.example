@@ -230,4 +230,4 @@ plugins.security.audit.type: internal_opensearch
 # Enable system indices
 # plugins.security.system_indices.enabled: true
 # Specify a list of indices to mark as system. These indices will only be visible / mutable by members of the above setting, in addition to needing permission to the index via a normal role.
-# plugins.security.system_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*', '.opendistro-reports-*', '.opendistro-notifications-*', '.opendistro-notebooks', '.opendistro-asynchronous-search-response*', '.replication-metadata-store']
+# plugins.security.system_indices.indices: ['.opendistro-alerting-config', '.opendistro-ism-*', '.opendistro-reports-*', '.opendistro-notifications-*', '.opendistro-notebooks', '.opensearch-observability', '.opendistro-asynchronous-search-response*', '.replication-metadata-store']
