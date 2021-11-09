@@ -20,3 +20,5 @@ Compatible with OpenSearch 1.2.0
 * Update OpenSearch core dependency version to 1.2.0 ([#1482](https://github.com/opensearch-project/security/pull/1482))
 * Bump xmlsec from 2.2.0 to 2.2.3 ([#1450](https://github.com/opensearch-project/security/pull/1450))
 * Create 1.2.0.0 release notes ([#1494](https://github.com/opensearch-project/security/pull/1494))
+* Updated copyright notices ([#1477](https://github.com/opensearch-project/security/pull/1477))
+* Updated release notes for 1.2 with copyright updates ([#1496](https://github.com/opensearch-project/security/pull/1496))
