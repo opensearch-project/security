@@ -21,6 +21,7 @@ assumeyes=0
 initsecurity=0
 cluster_mode=0
 skip_updates=-1
+use_defaults=0
 
 function show_help() {
     echo "install_demo_configuration.sh [-y] [-i] [-c]"
@@ -29,9 +30,10 @@ function show_help() {
     echo "  -i initialize Security plugin with default configuration (default is to ask if -y is not given)"
     echo "  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)"
     echo "  -s skip updates if config is already applied to opensearch.yml"
+    echo "  -d use default options for key generation"
 }
 
-while getopts "h?yics" opt; do
+while getopts "h?yicsd" opt; do
     case "$opt" in
     h|\?)
         show_help
@@ -44,6 +46,8 @@ while getopts "h?yics" opt; do
     c)  cluster_mode=1
         ;;
     s)  skip_updates=0
+        ;;
+    d)  use_defaults=1
     esac
 done
 
@@ -197,20 +201,35 @@ set -e
 #echo "$ROOT_CA" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/root-ca.pem" > /dev/null
 #echo "$NODE_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/esnode-key.pem" > /dev/null
 #echo "$ADMIN_CERT_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/kirk-key.pem" > /dev/null
-echo "Hi"
 cd "$OPENSEARCH_CONF_DIR"
-openssl genrsa -out root-ca-key.pem 2048
-openssl req -new -x509 -sha256 -key root-ca-key.pem -out root-ca.pem -days 730
-# Admin cert
-openssl genrsa -out kirk-key-temp.pem 2048
-openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem
-openssl req -new -key kirk-key.pem -out kirk.csr
-openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem -days 730
-# Node cert
-openssl genrsa -out esnode-key-temp.pem 2048
-openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
-openssl req -new -key esnode-key.pem -out esnode.csr
-openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem -days 730
+if ([ "$use_defaults" == 1 ]); then
+    openssl genrsa -out root-ca-key.pem 2048
+    openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "/C=US/ST=WA/L=SEATTLE/O=/OU=/CN=ROOT" -out root-ca.pem
+    # Admin cert
+    openssl genrsa -out kirk-key-temp.pem 2048
+    openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem
+    openssl req -new -key kirk-key.pem -subj "/C=US/ST=WA/L=SEATTLE/O=/OU=/CN=KIRK" -out kirk.csr
+    openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem
+    # Node cert
+    openssl genrsa -out esnode-key-temp.pem 2048
+    openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
+    openssl req -new -key esnode-key.pem -subj "/C=US/ST=WA/L=SEATTLE/O=/OU=/CN=ESNODE" -out esnode.csr
+    openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem
+else
+    read -r -p "How many days should keys be active for? " response
+    openssl genrsa -out root-ca-key.pem 2048
+    openssl req -new -x509 -sha256 -key root-ca-key.pem -out root-ca.pem -days $response
+    # Admin cert
+    openssl genrsa -out kirk-key-temp.pem 2048
+    openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem    
+    openssl req -new -key kirk-key.pem -out kirk.csr
+    openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem -days $response
+    # Node cert
+    openssl genrsa -out esnode-key-temp.pem 2048
+    openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
+    openssl req -new -key esnode-key.pem -out esnode.csr
+    openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem -days $response
+fi
 # Cleanup
 rm kirk-key-temp.pem
 rm kirk.csr
