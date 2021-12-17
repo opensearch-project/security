@@ -1,4 +1,4 @@
-## 2021-12-14 Version 1.2.3.0
+## 2021-12-17 Version 1.2.3.0
 
 Compatible with OpenSearch 1.2.3
 
