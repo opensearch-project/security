@@ -4,4 +4,4 @@ Compatible with OpenSearch 1.2.3
 
 ### Maintenance
 
-* Version bump to 1.2.3 ([#15XX](https://github.com/opensearch-project/security/pull/15XX))
+* Version bump to 1.2.3 ([#1531](https://github.com/opensearch-project/security/pull/1531))
