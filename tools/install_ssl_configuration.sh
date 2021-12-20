@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+
+default_certs_expiry_days=365
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 if ! [ -x "$(command -v realpath)" ]; then
     if [ -L "$SCRIPT_PATH" ]; then
@@ -21,7 +24,6 @@ assumeyes=0
 initsecurity=0
 cluster_mode=0
 skip_updates=-1
-use_defaults=0
 
 function show_help() {
     echo "install_demo_configuration.sh [-y] [-i] [-c]"
@@ -31,6 +33,48 @@ function show_help() {
     echo "  -c enable cluster mode by binding to all network interfaces (default is to ask if -y is not given)"
     echo "  -s skip updates if config is already applied to opensearch.yml"
     echo "  -d use default options for key generation"
+}
+
+function generate_certs() {
+  notify "Generating self-signed certificates using OpenSSL"
+
+  local validity=$1
+  local root_subj=$2
+  local admin_subj=$3
+  local node_subj=$4
+
+  # Root cert
+  openssl genrsa -out root-ca-key.pem 2048
+  openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "$root_subj" -out root-ca.pem -days $validity
+  echo "\nRoot certificates created at `pwd`/root-ca.pem\n"
+
+  # Admin cert
+  openssl genrsa -out kirk-key-temp.pem 2048
+  openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem
+  openssl req -new -key kirk-key.pem -subj "$admin_subj" -out kirk.csr
+  openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem -days $validity
+  echo "\nAdmin certificates created at `pwd`/kirk.pem\n"
+
+  # Node cert
+  openssl genrsa -out esnode-key-temp.pem 2048
+  openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
+  openssl req -new -key esnode-key.pem -subj "$node_subj" -out esnode.csr
+  openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem -days $validity
+  echo "\nNode certificates created at `pwd`/esnode.pem\n"
+
+  # Cleanup
+  rm kirk-key-temp.pem
+  rm kirk.csr
+  rm esnode-key-temp.pem
+  rm esnode.csr
+}
+
+function notify() {
+  local message=$1
+
+  echo "\n#############################"
+  echo "$message"
+  echo "#############################\n"
 }
 
 while getopts "h?yicsd" opt; do
@@ -46,17 +90,15 @@ while getopts "h?yicsd" opt; do
     c)  cluster_mode=1
         ;;
     s)  skip_updates=0
-        ;;
-    d)  use_defaults=1
     esac
 done
 
-shift $((OPTIND-1))
+shift "$((OPTIND-1))"
 
 [ "$1" = "--" ] && shift
 
 if [ "$assumeyes" == 0 ]; then
-	read -r -p "Install demo certificates? [y/N] " response
+	read -r -p "Generate and install self-signed certificates? [y/N] " response
 	case "$response" in
 	    [yY][eE][sS]|[yY]) 
 	        ;;
@@ -187,56 +229,30 @@ echo "OpenSearch lib dir: $OPENSEARCH_LIB_PATH"
 echo "Detected OpenSearch Version: $OPENSEARCH_VERSION"
 echo "Detected OpenSearch Security Version: $SECURITY_VERSION"
 
-if $SUDO_CMD grep --quiet -i plugins.security "$OPENSEARCH_CONF_FILE"; then
-  echo "$OPENSEARCH_CONF_FILE seems to be already configured for Security. Quit."
-  exit $skip_updates
-fi
+#if $SUDO_CMD grep --quiet -i plugins.security "$OPENSEARCH_CONF_FILE"; then
+#  echo "$OPENSEARCH_CONF_FILE seems to be already configured for Security. Quit."
+#  exit $skip_updates
+#fi
 
 set +e
 
 set -e
 
-#echo "$ADMIN_CERT" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/kirk.pem" > /dev/null
-#echo "$NODE_CERT" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/esnode.pem" > /dev/null
-#echo "$ROOT_CA" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/root-ca.pem" > /dev/null
-#echo "$NODE_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/esnode-key.pem" > /dev/null
-#echo "$ADMIN_CERT_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/kirk-key.pem" > /dev/null
 cd "$OPENSEARCH_CONF_DIR"
-if ([ "$use_defaults" == 1 ]); then
-    openssl genrsa -out root-ca-key.pem 2048
-    openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "/C=US/ST=WA/L=SEATTLE/O=/OU=/CN=ROOT" -out root-ca.pem
-    # Admin cert
-    openssl genrsa -out kirk-key-temp.pem 2048
-    openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem
-    openssl req -new -key kirk-key.pem -subj "/C=US/ST=WA/L=SEATTLE/O=/OU=/CN=KIRK" -out kirk.csr
-    openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem
-    # Node cert
-    openssl genrsa -out esnode-key-temp.pem 2048
-    openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
-    openssl req -new -key esnode-key.pem -subj "/C=US/ST=WA/L=SEATTLE/O=/OU=/CN=ESNODE" -out esnode.csr
-    openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem
+if ([ "$assumeyes" == 1 ]); then
+  generate_certs $default_certs_expiry_days "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=ROOT" "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=KIRK" "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=ESNODE"
 else
-    read -r -p "How many days should keys be active for? " response
-    openssl genrsa -out root-ca-key.pem 2048
-    openssl req -new -x509 -sha256 -key root-ca-key.pem -out root-ca.pem -days $response
-    # Admin cert
-    openssl genrsa -out kirk-key-temp.pem 2048
-    openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem    
-    openssl req -new -key kirk-key.pem -out kirk.csr
-    openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem -days $response
-    # Node cert
-    openssl genrsa -out esnode-key-temp.pem 2048
-    openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
-    openssl req -new -key esnode-key.pem -out esnode.csr
-    openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem -days $response
+  read -r -p "How many days should keys be active for? " validity
+  read -r -p "Provide subject for root certificate?" root_subj
+  read -r -p "Provide subject for admin certificate?" admin_subj
+  read -r -p "Provide subject for node certificate?" node_subj
+
+  generate_certs $validity $root_subj $admin_subj $node_subj
 fi
-# Cleanup
-rm kirk-key-temp.pem
-rm kirk.csr
-rm esnode-key-temp.pem
-rm esnode.csr
 
 cd ..
+
+notify "Step: Installing self-signed certificates"
 echo "" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE"
 echo "######## Start OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
@@ -261,16 +277,18 @@ echo "plugins.security.check_snapshot_restore_write_privileges: true" | $SUDO_CM
 echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "Certificates installed successfully! See updated settings in config/opensearch.yml\n"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
 	: #already present
 else
 	if [ "$cluster_mode" == 1 ]; then
-        echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-        echo "node.name: smoketestnode" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-        echo "cluster.initial_master_nodes: smoketestnode" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-    fi
+    notify "Enabling cluster mode setting"
+    echo "network.host: 0.0.0.0" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+    echo "node.name: smoketestnode" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+    echo "cluster.initial_master_nodes: smoketestnode" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+  fi
 fi
 
 #discovery.zen.minimum_master_nodes
