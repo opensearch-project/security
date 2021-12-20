@@ -22,6 +22,7 @@ import java.security.PrivateKey;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+import com.google.common.annotations.VisibleForTesting;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
@@ -95,7 +96,8 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private Saml2SettingsProvider saml2SettingsProvider;
     private MetadataResolver metadataResolver;
     private AuthTokenProcessorHandler authTokenProcessorHandler;
-    private HTTPJwtAuthenticator httpJwtAuthenticator;
+    @VisibleForTesting
+    protected HTTPJwtAuthenticator httpJwtAuthenticator;
     private Settings jwtSettings;
 
     private static int resolverIdCounter = 0;
