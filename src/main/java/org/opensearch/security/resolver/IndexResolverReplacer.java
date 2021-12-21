@@ -307,9 +307,9 @@ public class IndexResolverReplacer {
             return IndicesProvider.NOOP;
         }
 
-        Resolved resolved() {
+        Resolved resolved(IndicesOptions indicesOptions) {
             final Resolved resolved = alreadyResolved.isEmpty() ? Resolved._LOCAL_ALL :
-                    new Resolved(aliases.build(), allIndices.build(), originalRequested.build(), remoteIndices.build());
+                    new Resolved(aliases.build(), allIndices.build(), originalRequested.build(), remoteIndices.build(), indicesOptions);
 
             if(log.isTraceEnabled()) {
                 log.trace("Finally resolved for {}: {}", name, resolved);
@@ -349,30 +349,33 @@ public class IndexResolverReplacer {
 
         getOrReplaceAllIndices(request, resolvedIndicesProvider, false);
 
-        return resolvedIndicesProvider.resolved();
+        return resolvedIndicesProvider.resolved(indicesOptionsFrom(request));
     }
 
     public final static class Resolved {
         private static final String ANY = "*";
         private static final ImmutableSet<String> All_SET = ImmutableSet.of(ANY);
         private static final Set<String> types = All_SET;
-        public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, ImmutableSet.of());
+        public static final Resolved _LOCAL_ALL = new Resolved(All_SET, All_SET, All_SET, ImmutableSet.of(), SearchRequest.DEFAULT_INDICES_OPTIONS);
 
         private final Set<String> aliases;
         private final Set<String> allIndices;
         private final Set<String> originalRequested;
         private final Set<String> remoteIndices;
         private final boolean isLocalAll;
-
+        private final IndicesOptions indicesOptions;
+        
         private Resolved(final ImmutableSet<String> aliases,
                          final ImmutableSet<String> allIndices,
                          final ImmutableSet<String> originalRequested,
-                         final ImmutableSet<String> remoteIndices) {
+                         final ImmutableSet<String> remoteIndices,
+                         IndicesOptions indicesOptions) {
             this.aliases = aliases;
             this.allIndices = allIndices;
             this.originalRequested = originalRequested;
             this.remoteIndices = remoteIndices;
             this.isLocalAll = IndexResolverReplacer.isLocalAll(originalRequested.toArray(new String[0])) || (aliases.contains("*") && allIndices.contains("*"));
+            this.indicesOptions = indicesOptions;
         }
 
         public boolean isLocalAll() {
@@ -385,6 +388,18 @@ public class IndexResolverReplacer {
 
         public Set<String> getAllIndices() {
             return allIndices;
+        }
+        
+        public Set<String> getAllIndicesResolved(ClusterService clusterService, IndexNameExpressionResolver resolver) {
+            if (isLocalAll) {                        
+                return new HashSet<>(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), indicesOptions, "*")));
+            } else {            
+                return allIndices;
+            }
+        }
+        
+        public boolean isAllIndicesEmpty() {
+            return allIndices.isEmpty();
         }
 
         public Set<String> getTypes() {

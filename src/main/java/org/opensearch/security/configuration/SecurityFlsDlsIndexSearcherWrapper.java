@@ -24,11 +24,13 @@ import java.util.function.LongSupplier;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.SecurityUtils;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.mapper.IgnoredFieldMapper;
+import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.shard.ShardId;
 import org.opensearch.index.shard.ShardUtils;
 
@@ -51,6 +53,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
     private final IndexService indexService;
     private final AuditLog auditlog;
     private final LongSupplier nowInMillis;
+    private final DlsQueryParser dlsQueryParser;
     private final Salt salt;
 
     public SecurityFlsDlsIndexSearcherWrapper(final IndexService indexService, final Settings settings,
@@ -61,6 +64,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         this.clusterService = clusterService;
         this.indexService = indexService;
         this.auditlog = auditlog;
+        this.dlsQueryParser = new DlsQueryParser(indexService.xContentRegistry());
         final boolean allowNowinDlsQueries = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, false);
         if (allowNowinDlsQueries) {
             nowInMillis = () -> System.currentTimeMillis();
@@ -98,14 +102,14 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
                 flsFields = Sets.union(metaFields, allowedFlsFields.get(flsEval));
             }
 
-
-
             if (dlsEval != null) {
-                final Set<String> unparsedDlsQueries = queries.get(dlsEval);
-                if(unparsedDlsQueries != null && !unparsedDlsQueries.isEmpty()) {
-                    //disable reader optimizations
-                    dlsQuery = DlsQueryParser.parse(unparsedDlsQueries, this.indexService.newQueryShardContext(shardId.getId(), null, nowInMillis, null)
-                            , this.indexService.xContentRegistry());
+                Set<String> unparsedDlsQueries = queries.get(dlsEval);
+
+                if (unparsedDlsQueries != null && !unparsedDlsQueries.isEmpty()) {
+                    QueryShardContext queryShardContext = this.indexService.newQueryShardContext(shardId.getId(), null, nowInMillis, null);
+                    // no need for scoring here, so its possible to wrap this in a
+                    // ConstantScoreQuery
+                    dlsQuery = new ConstantScoreQuery(dlsQueryParser.parse(unparsedDlsQueries, queryShardContext).build());
                 }
             }
 

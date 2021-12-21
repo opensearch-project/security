@@ -59,7 +59,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.threadpool.ThreadPool;
 
-import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;;
+import org.opensearch.security.ssl.util.SSLRequestHelper.SSLInfo;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.user.User;
 import org.greenrobot.eventbus.Subscribe;

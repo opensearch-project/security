@@ -31,13 +31,11 @@
 
 package org.opensearch.security.securityconf;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.collect.Tuple;
-
+import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.user.User;
 
@@ -53,9 +51,7 @@ public interface SecurityRoles {
 
     boolean get(Resolved requestedResolved, User user, String[] allIndexPermsRequiredA, IndexNameExpressionResolver resolver, ClusterService clusterService);
 
-    Map<String, Set<String>> getMaskedFields(User user, IndexNameExpressionResolver resolver, ClusterService clusterService);
-
-    Tuple<Map<String, Set<String>>, Map<String, Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver, ClusterService clusterService);
+    EvaluatedDlsFlsConfig getDlsFls(User user, IndexNameExpressionResolver resolver, ClusterService clusterService, NamedXContentRegistry namedXContentRegistry);
 
     Set<String> getAllPermittedIndicesForDashboards(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs);
 

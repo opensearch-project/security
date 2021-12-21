@@ -109,7 +109,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         }
 
         if(request instanceof ConcreteShardRequest) {
-            resolvedActionClass = ((ConcreteShardRequest) request).getRequest().getClass().getSimpleName();
+            resolvedActionClass = ((ConcreteShardRequest<?>) request).getRequest().getClass().getSimpleName();
         }
 
         String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
