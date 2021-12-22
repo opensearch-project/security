@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.http.HttpHeaders;
@@ -163,7 +164,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         return jwtToken;
     }
 
-    protected String extractSubject(JwtClaims claims) {
+    @VisibleForTesting
+    public String extractSubject(JwtClaims claims) {
         String subject = claims.getSubject();
 
         if (subjectKey != null) {
@@ -189,7 +191,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(JwtClaims claims) {
+    @VisibleForTesting
+    public String[] extractRoles(JwtClaims claims) {
         if (rolesKey == null) {
             return new String[0];
         }
