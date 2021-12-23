@@ -16,14 +16,14 @@ else
     DIR="$( cd "$( dirname "$(realpath "$SCRIPT_PATH")" )" && pwd -P)"
 fi
 
-echo "OpenSearch Security Demo Installer"
-echo " ** Warning: Do not use on production or public reachable systems **"
+echo "=========== OpenSearch Security Dev Configurations Installer ============"
 
 OPTIND=1
 assumeyes=0
 initsecurity=0
 cluster_mode=0
 skip_updates=-1
+step=0
 
 function show_help() {
     echo "install_demo_configuration.sh [-y] [-i] [-c]"
@@ -36,7 +36,7 @@ function show_help() {
 }
 
 function generate_certs() {
-  notify "Generating self-signed certificates using OpenSSL"
+  notify "Step $((++step)): Generating self-signed certificates using OpenSSL"
 
   local validity=$1
   local root_subj=$2
@@ -44,23 +44,23 @@ function generate_certs() {
   local node_subj=$4
 
   # Root cert
-  openssl genrsa -out root-ca-key.pem 2048
-  openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "$root_subj" -out root-ca.pem -days $validity
-  echo "\nRoot certificates created at `pwd`/root-ca.pem\n"
+  openssl genrsa -out root-ca-key.pem 2048 &> /dev/null
+  openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "$root_subj" -out root-ca.pem -days $validity &> /dev/null
+  echo -e "Root certificates created at `pwd`/root-ca.pem"
 
   # Admin cert
-  openssl genrsa -out kirk-key-temp.pem 2048
-  openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem
-  openssl req -new -key kirk-key.pem -subj "$admin_subj" -out kirk.csr
-  openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem -days $validity
-  echo "\nAdmin certificates created at `pwd`/kirk.pem\n"
+  openssl genrsa -out kirk-key-temp.pem 2048 &> /dev/null
+  openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem &> /dev/null
+  openssl req -new -key kirk-key.pem -subj "$admin_subj" -out kirk.csr &> /dev/null
+  openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem -days $validity &> /dev/null
+  echo -e "Admin certificates created at `pwd`/kirk.pem"
 
   # Node cert
-  openssl genrsa -out esnode-key-temp.pem 2048
-  openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem
-  openssl req -new -key esnode-key.pem -subj "$node_subj" -out esnode.csr
-  openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem -days $validity
-  echo "\nNode certificates created at `pwd`/esnode.pem\n"
+  openssl genrsa -out esnode-key-temp.pem 2048 &> /dev/null
+  openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem &> /dev/null
+  openssl req -new -key esnode-key.pem -subj "$node_subj" -out esnode.csr &> /dev/null
+  openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem -days $validity &> /dev/null
+  echo -e "Node certificates created at `pwd`/esnode.pem"
 
   # Cleanup
   rm kirk-key-temp.pem
@@ -71,10 +71,7 @@ function generate_certs() {
 
 function notify() {
   local message=$1
-
-  echo "\n#############################"
-  echo "$message"
-  echo "#############################\n"
+  echo -e "\n#############################\n$message\n#############################\n"
 }
 
 while getopts "h?yicsd" opt; do
@@ -108,18 +105,6 @@ if [ "$assumeyes" == 0 ]; then
 	esac
 fi
 
-if [ "$initsecurity" == 0 ] && [ "$assumeyes" == 0 ]; then
-	read -r -p "Initialize Security Modules? [y/N] " response
-	case "$response" in
-	    [yY][eE][sS]|[yY]) 
-	        initsecurity=1
-	        ;;
-	    *)
-	        initsecurity=0
-	        ;;
-	esac
-fi
-
 if [ "$cluster_mode" == 0 ] && [ "$assumeyes" == 0 ]; then
     echo "Cluster mode requires maybe additional setup of:"
     echo "  - Virtual memory (vm.max_map_count)"
@@ -143,7 +128,6 @@ if [ -d "$BASE_DIR" ]; then
 	cd "$BASE_DIR"
 	BASE_DIR="$(pwd)"
 	cd "$CUR"
-	echo "Basedir: $BASE_DIR"
 else
     echo "DEBUG: basedir does not exist"
 fi
@@ -220,14 +204,6 @@ SECURITY_VERSION=("$OPENSEARCH_PLUGINS_DIR/opensearch-security/opensearch-securi
 SECURITY_VERSION=$(echo $SECURITY_VERSION | sed 's/.*opensearch-security-\(.*\)\.jar/\1/')
 
 OS=$(sb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname -om)
-echo "OpenSearch install type: $OPENSEARCH_INSTALL_TYPE on $OS"
-echo "OpenSearch config dir: $OPENSEARCH_CONF_DIR"
-echo "OpenSearch config file: $OPENSEARCH_CONF_FILE"
-echo "OpenSearch bin dir: $OPENSEARCH_BIN_DIR"
-echo "OpenSearch plugins dir: $OPENSEARCH_PLUGINS_DIR"
-echo "OpenSearch lib dir: $OPENSEARCH_LIB_PATH"
-echo "Detected OpenSearch Version: $OPENSEARCH_VERSION"
-echo "Detected OpenSearch Security Version: $SECURITY_VERSION"
 
 #if $SUDO_CMD grep --quiet -i plugins.security "$OPENSEARCH_CONF_FILE"; then
 #  echo "$OPENSEARCH_CONF_FILE seems to be already configured for Security. Quit."
@@ -252,7 +228,7 @@ fi
 
 cd ..
 
-notify "Step: Installing self-signed certificates"
+notify "Step $((++step)): Installing self-signed certificates"
 echo "" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE"
 echo "######## Start OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
@@ -265,9 +241,6 @@ echo "plugins.security.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a
 echo "plugins.security.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-if [ "$initsecurity" == 1 ]; then
-    echo "plugins.security.allow_default_init_securityindex: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-fi
 echo "plugins.security.authcz.admin_dn:" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
@@ -277,7 +250,7 @@ echo "plugins.security.check_snapshot_restore_write_privileges: true" | $SUDO_CM
 echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "Certificates installed successfully! See updated settings in config/opensearch.yml\n"
+echo -e "Certificates installed successfully! See updated settings in config/opensearch.yml"
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
@@ -313,26 +286,56 @@ $SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityad
 
 OPENSEARCH_PLUGINS_DIR=`cd "$OPENSEARCH_PLUGINS_DIR" ; pwd`
 
-echo "### Success"
-echo "### Execute this script now on all your nodes and then start all nodes"
-#Generate securityadmin_demo.sh
-echo "#!/bin/bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null 
+notify "Step $((++step)): Initialize security"
+
+if [ "$initsecurity" == 0 ] && [ "$assumeyes" == 0 ]; then
+	read -r -p "Initialize Security Modules? [y/N] " response
+	case "$response" in
+	    [yY][eE][sS]|[yY])
+	        initsecurity=1
+	        ;;
+	    *)
+	        initsecurity=0
+	        ;;
+	esac
+fi
+
+if [ "$initsecurity" == 0 ]; then
+  echo "Skipping initializing OpenSearch Security based on the provided input."
+	echo "After the whole cluster is up execute: "
+	$SUDO_CMD cat securityadmin_demo.sh | tail -1
+	echo "Or"
+	echo "run ./securityadmin_demo.sh"
+  echo "After that you can also use the Security Plugin ConfigurationGUI"
+else
+  echo "plugins.security.allow_default_init_securityindex: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+  echo "OpenSearch Security will be automatically initialized."
+  echo "If you like to change the runtime configuration "
+  echo "change the files in ../securityconfig and execute: "
+	$SUDO_CMD cat securityadmin_demo.sh | tail -1
+	echo "or run ./securityadmin_demo.sh"
+	echo "To use the Security Plugin ConfigurationGUI"
+fi
+
+# Generate securityadmin_demo.sh
+echo "#!/usr/bin/env bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null
 echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x securityadmin_demo.sh
 
-if [ "$initsecurity" == 0 ]; then
-	echo "### After the whole cluster is up execute: "
-	$SUDO_CMD cat securityadmin_demo.sh | tail -1
-	echo "### or run ./securityadmin_demo.sh"
-    echo "### After that you can also use the Security Plugin ConfigurationGUI"
-else
-    echo "### OpenSearch Security will be automatically initialized."
-    echo "### If you like to change the runtime configuration "
-    echo "### change the files in ../securityconfig and execute: "
-	$SUDO_CMD cat securityadmin_demo.sh | tail -1
-	echo "### or run ./securityadmin_demo.sh"
-	echo "### To use the Security Plugin ConfigurationGUI"
-fi
+notify "Setup complete!"
+echo -e "Single node setup successful! You can now start the cluster with bin/opensearch\n"
+echo -e "To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin. Example"
+echo -e "curl -k https://localhost:9200 -u admin:admin"
+echo -e "(Ignore the SSL certificate warning because we installed self-signed certificates)"
 
-echo "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin."
-echo "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
+echo -e "\nFollow the steps below to setup multi-node cluster"
+echo -e "1. Execute this script now on all your nodes"
+echo -e "2. Start all nodes with bin/opensearch"
+
+echo -e "\nFor configuring language clients like Java, Python, Go, and tools like Logstash, Grafana, etc.,
+please refer to the "CLIENTS AND TOOLS" documentation on https://opensearch.org/docs/latest"
+
+notify "Disclaimer!"
+echo -e " ** Warning: Do not use on production or public reachable systems **"
+echo -e "Self signed certificates installed via this tool are good for development or use within a trusted private network.
+For any production use, we recommend using trusted CA provided certificates."
