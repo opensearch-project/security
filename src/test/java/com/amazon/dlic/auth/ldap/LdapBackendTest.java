@@ -832,7 +832,7 @@ public class LdapBackendTest {
         settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
                 .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
-                .putList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST, "*objectclass*","entryParentId")
+                .putList(ConfigConstants.LDAP_CUSTOM_ATTR_ALLOWLIST, "*objectclass*","entryParentId")
                 .build();
 
         user = (LdapUser) new LDAPAuthenticationBackend(settings, null).authenticate(new AuthCredentials("jacksonm", "secret"

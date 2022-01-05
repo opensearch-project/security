@@ -60,7 +60,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     private ConnectionFactory authConnectionFactory;
     private LDAPUserSearcher userSearcher;
     private final int customAttrMaxValueLen;
-    private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
+    private final WildcardMatcher allowlistedCustomLdapAttrMatcher;
 
     public LDAPAuthenticationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
@@ -79,7 +79,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
         this.userSearcher = new LDAPUserSearcher(settings);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+        allowlistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_ALLOWLIST,
                 Collections.singletonList("*")));
     }
 
@@ -161,9 +161,9 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
             // by default all ldap attributes which are not binary and with a max value
             // length of 36 are included in the user object
-            // if the whitelist contains at least one value then all attributes will be
-            // additional check if whitelisted (whitelist can contain wildcard and regex)
-            return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher);
+            // if the allowlist contains at least one value then all attributes will be
+            // additional check if allowlisted (allowlist can contain wildcard and regex)
+            return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher);
 
         } catch (final Exception e) {
             if (log.isDebugEnabled()) {
@@ -217,7 +217,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             boolean exists = userEntry != null;
             
             if(exists) {
-                user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher));
+                user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
             }
             
             return exists;

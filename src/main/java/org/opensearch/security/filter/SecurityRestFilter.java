@@ -35,8 +35,8 @@ import java.nio.file.Path;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.dlic.rest.api.WhitelistApiAction;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -80,7 +80,7 @@ public class SecurityRestFilter {
     private final Path configPath;
     private final CompatConfig compatConfig;
 
-    private WhitelistingSettings whitelistingSettings;
+    private AllowlistingSettings allowlistingSettings;
 
     private static final String HEALTH_SUFFIX = "health";
     private static final String REGEX_PATH_PREFIX = "/("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
@@ -98,20 +98,20 @@ public class SecurityRestFilter {
         this.settings = settings;
         this.configPath = configPath;
         this.compatConfig = compatConfig;
-        this.whitelistingSettings = new WhitelistingSettings();
+        this.allowlistingSettings = new AllowlistingSettings();
     }
 
     /**
      * This function wraps around all rest requests
-     * If the request is authenticated, then it goes through a whitelisting check.
-     * The whitelisting check works as follows:
-     * If whitelisting is not enabled, then requests are handled normally.
-     * If whitelisting is enabled, then SuperAdmin is allowed access to all APIs, regardless of what is currently whitelisted.
-     * If whitelisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are whitelisted in {@link #requests}
-     * For example: if whitelisting is enabled and requests = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
+     * If the request is authenticated, then it goes through a allowlisting check.
+     * The allowlisting check works as follows:
+     * If allowlisting is not enabled, then requests are handled normally.
+     * If allowlisting is enabled, then SuperAdmin is allowed access to all APIs, regardless of what is currently allowlisted.
+     * If allowlisting is enabled, then Non-SuperAdmin is allowed to access only those APIs that are allowlisted in {@link #requests}
+     * For example: if allowlisting is enabled and requests = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
      * can only access "/_cat/nodes"
-     * Further note: Some APIs are only accessible by SuperAdmin, regardless of whitelisting. For example: /_opendistro/_security/api/whitelist is only accessible by SuperAdmin.
-     * See {@link WhitelistApiAction} for the implementation of this API.
+     * Further note: Some APIs are only accessible by SuperAdmin, regardless of allowlisting. For example: /_opendistro/_security/api/allowlist is only accessible by SuperAdmin.
+     * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
@@ -122,7 +122,7 @@ public class SecurityRestFilter {
                 org.apache.logging.log4j.ThreadContext.clearAll();
                 if (!checkAndAuthenticateRequest(request, channel, client)) {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    if (userIsSuperAdmin(user, adminDNs) || whitelistingSettings.checkRequestIsAllowed(request, channel, client)) {
+                    if (userIsSuperAdmin(user, adminDNs) || allowlistingSettings.checkRequestIsAllowed(request, channel, client)) {
                         original.handleRequest(request, channel, client);
                     }
                 }
@@ -199,7 +199,7 @@ public class SecurityRestFilter {
     }
 
     @Subscribe
-    public void onWhitelistingSettingChanged(WhitelistingSettings whitelistingSettings) {
-        this.whitelistingSettings = whitelistingSettings;
+    public void onAllowlistingSettingChanged(AllowlistingSettings allowlistingSettings) {
+        this.allowlistingSettings = allowlistingSettings;
     }
 }

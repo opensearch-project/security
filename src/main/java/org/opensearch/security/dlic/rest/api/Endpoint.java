@@ -30,6 +30,6 @@ public enum Endpoint {
     TENANTS,
     MIGRATE,
     VALIDATE,
-    WHITELIST,
+    ALLOWLIST,
     NODESDN;
 }

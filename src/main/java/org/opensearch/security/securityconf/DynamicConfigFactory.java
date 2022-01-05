@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.NodesDn;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -82,7 +82,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
-    private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
+    private static final AllowlistingSettings defaultAllowlistingSettings = new AllowlistingSettings();
 
     static void resetStatics() {
         staticRoles = SecurityDynamicConfiguration.empty();
@@ -171,7 +171,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<?> rolesmapping = cr.getConfiguration(CType.ROLESMAPPING);
         SecurityDynamicConfiguration<?> tenants = cr.getConfiguration(CType.TENANTS);
         SecurityDynamicConfiguration<?> nodesDn = cr.getConfiguration(CType.NODESDN);
-        SecurityDynamicConfiguration<?> whitelistingSetting = cr.getConfiguration(CType.WHITELIST);
+        SecurityDynamicConfiguration<?> allowlistingSetting = cr.getConfiguration(CType.ALLOWLIST);
 
 
         if (log.isDebugEnabled()) {
@@ -183,7 +183,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                     " rolesmapping: " + rolesmapping.getImplementingClass() + " with " + rolesmapping.getCEntries().size() + " entries\n" +
                     " tenants: " + tenants.getImplementingClass() + " with " + tenants.getCEntries().size() + " entries\n" +
                     " nodesdn: " + nodesDn.getImplementingClass() + " with " + nodesDn.getCEntries().size() + " entries\n" +
-                    " whitelist " + whitelistingSetting.getImplementingClass() + " with " + whitelistingSetting.getCEntries().size() + " entries\n";
+                    " allowlist " + allowlistingSetting.getImplementingClass() + " with " + allowlistingSetting.getCEntries().size() + " entries\n";
             log.debug(logmsg);
             
         }
@@ -192,7 +192,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final InternalUsersModel ium;
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
-        final WhitelistingSettings whitelist = (WhitelistingSettings) cr.getConfiguration(CType.WHITELIST).getCEntry("config");
+        final AllowlistingSettings allowlist = (AllowlistingSettings) cr.getConfiguration(CType.ALLOWLIST).getCEntry("config");
         final AuditConfig audit = (AuditConfig)cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
         if(config.getImplementingClass() == ConfigV7.class) {
@@ -255,7 +255,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
-        eventBus.post(whitelist==null? defaultWhitelistingSettings: whitelist);
+        eventBus.post(allowlist==null? defaultAllowlistingSettings: allowlist);
         if (cr.isAuditHotReloadingEnabled()) {
             eventBus.post(audit);
         }

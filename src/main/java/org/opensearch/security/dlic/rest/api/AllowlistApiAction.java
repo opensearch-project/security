@@ -21,7 +21,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.WhitelistValidator;
+import org.opensearch.security.dlic.rest.validation.AllowlistValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -48,34 +48,34 @@ import java.util.List;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
- * This class implements GET and PUT operations to manage dynamic WhitelistingSettings.
+ * This class implements GET and PUT operations to manage dynamic AllowlistingSettings.
  * <p>
  * These APIs are only accessible to SuperAdmin since the configuration controls what APIs are accessible by normal users.
- * Eg: If whitelisting is enabled, and a specific API like "/_cat/nodes" is not whitelisted, then only the SuperAdmin can use "/_cat/nodes"
- * These APIs allow the SuperAdmin to enable/disable whitelisting, and also change the list of whitelisted APIs.
+ * Eg: If allowlisting is enabled, and a specific API like "/_cat/nodes" is not allowlisted, then only the SuperAdmin can use "/_cat/nodes"
+ * These APIs allow the SuperAdmin to enable/disable allowlisting, and also change the list of allowlisted APIs.
  * <p>
  * A SuperAdmin is identified by a certificate which represents a distinguished name(DN).
  * SuperAdmin DN's can be set in {@link ConfigConstants#SECURITY_AUTHCZ_ADMIN_DN}
  * SuperAdmin certificate for the default superuser is stored as a kirk.pem file in config folder of OpenSearch
  * <p>
  * Example calling the PUT API as SuperAdmin using curl (if http basic auth is on):
- * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
+ * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_opendistro/_security/api/allowlist -H "Content-Type: application/json" -d’
  * {
  *      "enabled" : false,
- *      "requests" : {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/whitelist": ["GET"]}
+ *      "requests" : {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/allowlist": ["GET"]}
  * }
  *
  * Example using the PATCH API to change the requests as SuperAdmin:
- * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
+ * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_opendistro/_security/api/allowlist -H "Content-Type: application/json" -d’
  * {
  *      "op":"replace",
  *      "path":"/config/requests",
- *      "value": {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/whitelist": ["GET"]}
+ *      "value": {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/allowlist": ["GET"]}
  * }
  *
  * To update enabled, use the "add" operation instead of the "replace" operation, since boolean variables are not recognized as valid paths when they are false.
  * eg:
- * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_opendistro/_security/api/whitelist -H "Content-Type: application/json" -d’
+ * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_opendistro/_security/api/allowlist -H "Content-Type: application/json" -d’
  * {
  *      "op":"add",
  *      "path":"/config/enabled",
@@ -87,17 +87,17 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * be used to populate the index.
  * <p>
  */
-public class WhitelistApiAction extends PatchableResourceApiAction {
+public class AllowlistApiAction extends PatchableResourceApiAction {
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
-            new Route(RestRequest.Method.GET, "/whitelist"),
-            new Route(RestRequest.Method.PUT, "/whitelist"),
-            new Route(RestRequest.Method.PATCH, "/whitelist")
+            new Route(RestRequest.Method.GET, "/allowlist"),
+            new Route(RestRequest.Method.PUT, "/allowlist"),
+            new Route(RestRequest.Method.PATCH, "/allowlist")
     ));
 
     private static final String name = "config";
 
     @Inject
-    public WhitelistApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
+    public AllowlistApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
                               final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
                               final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
@@ -160,12 +160,12 @@ public class WhitelistApiAction extends PatchableResourceApiAction {
 
     @Override
     protected Endpoint getEndpoint() {
-        return Endpoint.WHITELIST;
+        return Endpoint.ALLOWLIST;
     }
 
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... param) {
-        return new WhitelistValidator(request, ref, this.settings, param);
+        return new AllowlistValidator(request, ref, this.settings, param);
     }
 
     @Override
@@ -175,7 +175,7 @@ public class WhitelistApiAction extends PatchableResourceApiAction {
 
     @Override
     protected CType getConfigName() {
-        return CType.WHITELIST;
+        return CType.ALLOWLIST;
     }
 
 }

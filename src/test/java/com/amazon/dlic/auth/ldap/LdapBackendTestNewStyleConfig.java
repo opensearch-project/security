@@ -692,7 +692,7 @@ public class LdapBackendTestNewStyleConfig {
         settings = Settings.builder()
                 .putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
                 .put("users.u1.search", "(uid={0})")
-                .putList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST, "*objectclass*", "entryParentId").build();
+                .putList(ConfigConstants.LDAP_CUSTOM_ATTR_ALLOWLIST, "*objectclass*", "entryParentId").build();
 
         user = (LdapUser) new LDAPAuthenticationBackend(settings, null)
                 .authenticate(new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8)));

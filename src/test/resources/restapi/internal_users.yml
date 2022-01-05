@@ -60,4 +60,4 @@ admin_all_access:
   backend_roles:
     - "vulcan"
   attributes: {}
-  description: "sample user with all_access, used to test whitelisting"
+  description: "sample user with all_access, used to test allowlisting"

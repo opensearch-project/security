@@ -52,7 +52,7 @@ import java.util.Map;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.NodesDn;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -762,7 +762,7 @@ public class SecurityAdmin {
 
                 final boolean populateFileIfEmpty = true;
                 success = retrieveFile(tc, cd+"nodes_dn_"+date+".yml", index, "nodesdn", legacy, populateFileIfEmpty) && success;
-                success = retrieveFile(tc, cd+"whitelist_"+date+".yml", index, "whitelist", legacy, populateFileIfEmpty) && success;
+                success = retrieveFile(tc, cd+"allowlist_"+date+".yml", index, "allowlist", legacy, populateFileIfEmpty) && success;
                 return (success?0:-1);
             }
 
@@ -1216,7 +1216,7 @@ public class SecurityAdmin {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/whitelist.yml", index, "whitelist", legacy, true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/allowlist.yml", index, "allowlist", legacy, true) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit", legacy) && success;
 
         return success?0:-1;
@@ -1236,7 +1236,7 @@ public class SecurityAdmin {
         }
 
         success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
-        success = uploadFile(tc, cd+"whitelist.yml", index, "whitelist", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"allowlist.yml", index, "allowlist", legacy, resolveEnvVars) && success;
         if (new File(cd+"audit.yml").exists()) {
             success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
         }
@@ -1283,10 +1283,10 @@ public class SecurityAdmin {
                 Migration.migrateNodesDn(SecurityDynamicConfiguration.fromNode(
                     DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir,"nodes_dn.yml").getAbsolutePath(), true)),
                     CType.NODESDN, 1, 0, 0));
-            SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettings =
-                    Migration.migrateWhitelistingSetting(SecurityDynamicConfiguration.fromNode(
-                            DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.WHITELIST, 1, new File(backupDir,"whitelist.yml").getAbsolutePath(), true)),
-                            CType.WHITELIST, 1, 0, 0));
+            SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSettings =
+                    Migration.migrateAllowlistingSetting(SecurityDynamicConfiguration.fromNode(
+                            DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.ALLOWLIST, 1, new File(backupDir,"allowlist.yml").getAbsolutePath(), true)),
+                            CType.ALLOWLIST, 1, 0, 0));
             SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"audit.yml")), CType.AUDIT, 1, 0, 0));
 
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
@@ -1296,7 +1296,7 @@ public class SecurityAdmin {
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/whitelist.yml"), whitelistingSettings);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/allowlist.yml"), allowlistingSettings);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/audit.yml"), audit);
 
         } catch (Exception e) {
