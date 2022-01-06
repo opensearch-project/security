@@ -48,7 +48,7 @@ import com.unboundid.util.ssl.SSLUtil;
 import com.unboundid.util.ssl.TrustStoreTrustManager;
 
 final class LdapServer {
-    private final static Logger LOG =  LogManager.getLogger(LdapServer.class);
+    private final static Logger LOG = LogManager.getLogger(LdapServer.class);
 
     private static final int LOCK_TIMEOUT = 60;
     private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
