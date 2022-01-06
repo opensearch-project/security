@@ -28,7 +28,7 @@ cd $OPENSEARCH_HOME
 
 The `curl localhost:9200` call from before should also succeed now. Kill the server again with `Ctrl+c`. We are ready to install the security plugin.
 
->Worth noting is that there is that the version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of this writing the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT`, compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
+>Worth noting is that the version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of this writing the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT`, compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
 
 ## Building
 
