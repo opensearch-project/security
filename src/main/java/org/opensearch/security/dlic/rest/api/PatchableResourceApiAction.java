@@ -21,8 +21,8 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 import org.opensearch.security.DefaultObjectMapper;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
@@ -53,7 +53,7 @@ import com.flipkart.zjsonpatch.JsonPatchApplicationException;
 
 public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
     public PatchableResourceApiAction(Settings settings, Path configPath, RestController controller, Client client,
                                       AdminDNs adminDNs, ConfigurationRepository cl, ClusterService cs,

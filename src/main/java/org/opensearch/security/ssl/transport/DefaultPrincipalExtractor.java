@@ -30,13 +30,13 @@ import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import javax.security.auth.x500.X500Principal;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.SpecialPermission;
 
 public class DefaultPrincipalExtractor implements PrincipalExtractor {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     
     @Override
     public String extractPrincipal(final X509Certificate x509Certificate, final Type type) {

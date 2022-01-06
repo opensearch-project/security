@@ -147,7 +147,7 @@ public class AccountApiAction extends AbstractApiAction {
 
             response = new BytesRestResponse(RestStatus.OK, builder);
         } catch (final Exception exception) {
-            log.error(exception.toString(), exception);
+            log.error(exception.toString());
 
             builder.startObject()
                     .field("error", exception.toString())

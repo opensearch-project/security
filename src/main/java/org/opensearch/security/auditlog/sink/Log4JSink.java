@@ -16,8 +16,8 @@
 package org.opensearch.security.auditlog.sink;
 
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.Settings;
 
 import org.opensearch.security.auditlog.impl.AuditMessage;
@@ -32,9 +32,9 @@ public final class Log4JSink extends AuditLogSink {
     public Log4JSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
         super(name, settings, settingsPrefix, fallbackSink);
         loggerName = settings.get( settingsPrefix + ".log4j.logger_name","sgaudit");
-        auditLogger = LogManager.getLogger(loggerName);
+        auditLogger = LoggerFactory.getLogger(loggerName);
         logLevel = Level.toLevel(settings.get(settingsPrefix + ".log4j.level","INFO").toUpperCase());
-        enabled = auditLogger.isEnabled(logLevel);
+        enabled = isLogLevelEnabled(auditLogger, logLevel);
     }
 
     public boolean isHandlingBackpressure() {
@@ -44,9 +44,30 @@ public final class Log4JSink extends AuditLogSink {
 
     public boolean doStore(final AuditMessage msg) {
         if(enabled) {
-            auditLogger.log(logLevel, msg.toJson());
+            logAtLevel(auditLogger, logLevel, msg.toJson());
         }
         return true;
     }
 
+    private boolean isLogLevelEnabled(Logger logger, Level level) {
+        boolean isEnabled = false;
+        switch(level.toString()) {
+            case "TRACE": isEnabled = logger.isTraceEnabled();
+            case "DEBUG": isEnabled = logger.isDebugEnabled();
+            case "INFO": isEnabled = logger.isInfoEnabled();
+            case "WARN": isEnabled = logger.isWarnEnabled();
+            case "ERROR": isEnabled = logger.isErrorEnabled();
+        }
+        return isEnabled;
+    }
+
+    private void logAtLevel(Logger logger, Level level, String msg) {
+        switch(level.toString()) {
+            case "TRACE": logger.trace(msg);
+            case "DEBUG": logger.debug(msg);
+            case "INFO": logger.info(msg);
+            case "WARN": logger.warn(msg);
+            case "ERROR": logger.error(msg);
+        }
+    }
 }

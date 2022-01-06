@@ -67,8 +67,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.bouncycastle.util.encoders.Base64;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
@@ -77,7 +77,7 @@ import org.opensearch.env.Environment;
 public final class PemKeyReader {
     
     //private static final String[] EMPTY_STRING_ARRAY = new String[0];
-    protected static final Logger log = LogManager.getLogger(PemKeyReader.class);
+    protected static final Logger log = LoggerFactory.getLogger(PemKeyReader.class);
     static final String JKS = "JKS";
     static final String PKCS12 = "PKCS12";
     

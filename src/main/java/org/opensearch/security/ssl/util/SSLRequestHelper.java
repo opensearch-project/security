@@ -38,8 +38,8 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -53,7 +53,7 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
 
 public class SSLRequestHelper {
 
-    private static final Logger log = LogManager.getLogger(SSLRequestHelper.class);
+    private static final Logger log = LoggerFactory.getLogger(SSLRequestHelper.class);
     
     public static class SSLInfo {
         private final X509Certificate[] x509Certs;

@@ -37,8 +37,8 @@ import java.io.Reader;
 import java.io.StringReader;
 
 import org.opensearch.security.securityconf.impl.Meta;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.DocWriteRequest.OpType;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -59,7 +59,7 @@ import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTE
 
 public class ConfigHelper {
     
-    private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigHelper.class);
 
     public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion) throws Exception {
         uploadFile(tc, filepath, index, cType, configVersion, false);

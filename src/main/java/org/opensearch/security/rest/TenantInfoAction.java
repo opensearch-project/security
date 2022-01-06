@@ -44,8 +44,8 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.RoleMappings;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.service.ClusterService;
@@ -75,7 +75,7 @@ public class TenantInfoAction extends BaseRestHandler {
             ),
             "/_opendistro/_security", "/_plugins/_security");
 
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
     private final ClusterService clusterService;
@@ -131,7 +131,7 @@ public class TenantInfoAction extends BaseRestHandler {
 	                    response = new BytesRestResponse(RestStatus.OK, builder);
                     }
                 } catch (final Exception e1) {
-                    log.error(e1);
+                    log.error(e1.toString());
                     builder = channel.newBuilder(); //NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());

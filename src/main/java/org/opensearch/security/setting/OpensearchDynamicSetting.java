@@ -15,8 +15,8 @@
 
 package org.opensearch.security.setting;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 
@@ -30,7 +30,7 @@ public abstract class OpensearchDynamicSetting<T> {
     private final Setting<T> dynamicSetting;
     private volatile T dynamicSettingValue;
 
-    private final Logger logger = LogManager.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public OpensearchDynamicSetting(Setting<T> dynamicSetting, T dynamicSettingValue) {
         this.dynamicSetting = dynamicSetting;

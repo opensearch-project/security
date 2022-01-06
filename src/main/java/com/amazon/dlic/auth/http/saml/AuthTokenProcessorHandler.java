@@ -40,8 +40,8 @@ import org.apache.cxf.rs.security.jose.jwt.JoseJwtProducer;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.bytes.BytesReference;
@@ -68,8 +68,8 @@ import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.util.Util;
 
 class AuthTokenProcessorHandler {
-    private static final Logger log = LogManager.getLogger(AuthTokenProcessorHandler.class);
-    private static final Logger token_log = LogManager.getLogger("com.amazon.dlic.auth.http.saml.Token");
+    private static final Logger log = LoggerFactory.getLogger(AuthTokenProcessorHandler.class);
+    private static final Logger token_log = LoggerFactory.getLogger("com.amazon.dlic.auth.http.saml.Token");
     private static final Pattern EXPIRY_SETTINGS_PATTERN = Pattern.compile("\\s*(\\w+)\\s*(?:\\+\\s*(\\w+))?\\s*");
 
     private Saml2SettingsProvider saml2SettingsProvider;

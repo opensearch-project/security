@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.ldaptive.Connection;
 import org.ldaptive.LdapEntry;
@@ -36,7 +36,7 @@ import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import com.amazon.dlic.auth.ldap.util.Utils;
 
 public class LDAPUserSearcher {
-    protected static final Logger log = LogManager.getLogger(LDAPUserSearcher.class);
+    protected static final Logger log = LoggerFactory.getLogger(LDAPUserSearcher.class);
 
     private static final int ZERO_PLACEHOLDER = 0;
     private static final String DEFAULT_USERBASE = "";

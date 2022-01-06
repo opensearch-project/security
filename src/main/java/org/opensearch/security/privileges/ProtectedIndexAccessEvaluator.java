@@ -23,8 +23,8 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -33,7 +33,7 @@ import org.opensearch.tasks.Task;
 
 public class ProtectedIndexAccessEvaluator {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final AuditLog auditLog;
     private final WildcardMatcher indexMatcher;

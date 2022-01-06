@@ -20,8 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.threadpool.ThreadPool;
@@ -31,7 +31,7 @@ import org.opensearch.security.support.ConfigConstants;
 
 public class SinkProvider {
 
-	protected final Logger log = LogManager.getLogger(this.getClass());
+	protected final Logger log = LoggerFactory.getLogger(this.getClass());
 	private static final String FALLBACKSINK_NAME = "fallback";
 	private static final String DEFAULTSINK_NAME = "default";
 	private final Client clientProvider;

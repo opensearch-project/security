@@ -25,8 +25,8 @@ import java.util.Set;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.DefaultObjectMapper;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentBuilder;
@@ -57,7 +57,7 @@ public abstract class AbstractConfigurationValidator {
     /* public for testing */
     public final static String MISSING_MANDATORY_OR_KEYS_KEY = "specify_one_of";
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
     /** Define the various keys for this validator */
     protected final Map<String, DataType> allowedKeys = new HashMap<>();
@@ -135,7 +135,7 @@ public abstract class AbstractConfigurationValidator {
                 }
 
             } catch (IOException e) {
-                log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
+                log.error(errorType.BODY_NOT_PARSEABLE.toString(), e);
                 this.errorType = ErrorType.BODY_NOT_PARSEABLE;
                 return false;
             }
@@ -152,7 +152,7 @@ public abstract class AbstractConfigurationValidator {
             contentAsNode = DefaultObjectMapper.readTree(content.utf8ToString());
             requested.addAll(ImmutableList.copyOf(contentAsNode.fieldNames()));
         } catch (Exception e) {
-            log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
+            log.error(errorType.BODY_NOT_PARSEABLE.toString(), e);
             this.errorType = ErrorType.BODY_NOT_PARSEABLE;
             return false;
         }
@@ -183,7 +183,7 @@ public abstract class AbstractConfigurationValidator {
                 return false;
             }
         } catch (Exception e) {
-            log.error(ErrorType.BODY_NOT_PARSEABLE.toString(), e);
+            log.error(errorType.BODY_NOT_PARSEABLE.toString(), e);
             this.errorType = ErrorType.BODY_NOT_PARSEABLE;
             return false;
         }

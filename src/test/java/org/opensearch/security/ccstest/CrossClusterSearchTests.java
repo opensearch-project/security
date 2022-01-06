@@ -1069,7 +1069,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             Assert.assertEquals(getRes.getId(), "0");
         } catch (OpenSearchSecurityException ex) {
             exception = ex;
-            log.warn(ex);
+            log.warn(ex.toString());
         }
         Assert.assertNotNull(exception);
         Assert.assertTrue(exception.getMessage().contains("no permissions for"));
@@ -1089,7 +1089,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
             Assert.assertEquals(getRes.getId(), "0");
         } catch (OpenSearchSecurityException ex) {
             Assert.assertNull(ex);
-            log.warn(ex);
+            log.warn(ex.toString());
         }
     }
 }

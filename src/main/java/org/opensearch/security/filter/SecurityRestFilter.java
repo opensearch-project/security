@@ -37,8 +37,8 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.dlic.rest.api.WhitelistApiAction;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
@@ -71,7 +71,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class SecurityRestFilter {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private final BackendRegistry registry;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
@@ -144,7 +144,7 @@ public class SecurityRestFilter {
         
         if(HTTPHelper.containsBadHeader(request)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-            log.error(exception);
+            log.error(exception.toString());
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;
@@ -152,7 +152,7 @@ public class SecurityRestFilter {
         
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-            log.error(exception);
+            log.error(exception.toString());
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;

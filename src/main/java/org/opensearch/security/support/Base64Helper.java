@@ -32,8 +32,8 @@ package org.opensearch.security.support;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import org.apache.commons.lang3.SerializationUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -76,7 +76,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 
 public class Base64Helper {
-    private static final Logger logger = LogManager.getLogger(Base64Helper.class);
+    private static final Logger logger = LoggerFactory.getLogger(Base64Helper.class);
 
     private static final String ODFE_PACKAGE = "com.amazon.opendistroforelasticsearch";
     private static final String OS_PACKAGE = "org.opensearch";
