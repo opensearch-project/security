@@ -1,9 +1,7 @@
 # Developer Guide
 So you want to contribute code to this project? Excellent! We're glad you're here. Here's what you need to do.
 
-## Table of Contents
 - [Prerequisites](#prerequisites)
-- [Forking and Cloning](#forking-and-cloning)
 - [Building](#building)
 - [Using IntelliJ IDEA](#using-intellij-idea)
 - [Submitting Changes](#submitting-changes)
@@ -32,7 +30,7 @@ The `curl localhost:9200` call from before should also succeed now. Kill the ser
 
 >Worth noting is that there is that the version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of this writing the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT`, compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
 
-### Forking and Cloning
+## Building
 
 First create a for of this repo and clone it locally. Changing into the directory of the newly cloned repository, run the following to build the project:
 
@@ -114,10 +112,10 @@ curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' -
 }
 ```
 
-### Using IntelliJ IDEA
+## Using IntelliJ IDEA
 
 Launch IntelliJ IDEA, choose **Import Project**, and select the `pom.xml` file in the root of this package.
 
-### Submitting Changes
+## Submitting Changes
 
 See [CONTRIBUTING](CONTRIBUTING.md).

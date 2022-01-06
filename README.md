@@ -7,7 +7,6 @@
 OpenSearch Security is a plugin for OpenSearch that offers encryption, authentication and authorization. When combined with OpenSearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in OpenSearch Dashboards.
 
 - [Features](#features)
-- [Documentation](#documentation)
 - [Installation](#installation)
 - [Test and Build](#test-and-build)
 - [Config hot reloading](#config-hot-reloading)
