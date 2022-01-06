@@ -9,7 +9,7 @@ So you want to contribute code to this project? Excellent! We're glad you're her
 ## Prerequisites
 This project runs as a plugin of OpenSearch. You could [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install the plugin there, but at this time there are no MacOS distributions (although you can run it as a docker container, but those images come with the security plugin already preinstalled). In addition, it might come in handy to be able to always run against the latest commit of the version under development, so we'll be compiling it from source instead.
 
-To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get you up and running with OpenSearch built from source code. Get to the point where you can run a successful `curl localhost:9200` call (you can skip the `./gradlew check` step to save some time. Great! now kill the server with `Cmd+c`/`Ctrl+c` and copy the built code to a new folder somewhere else where you'll be running your service (run this from the base directory of the OpenSearch fork you cloned above):
+To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get you up and running with OpenSearch built from source code. Get to the point where you can run a successful `curl localhost:9200` call (you can skip the `./gradlew check` step to save some time. Great! now kill the server with `Ctrl+c` and copy the built code to a new folder somewhere else where you'll be running your service (run this from the base directory of the OpenSearch fork you cloned above):
 
 ```bash
 export OPENSEARCH_HOME=~/Test/opensearch-1.3.0-SNAPSHOT
@@ -26,7 +26,7 @@ cd $OPENSEARCH_HOME
 ./bin/opensearch
 ```
 
-The `curl localhost:9200` call from before should also succeed now. Kill the server again with `Cmd+c`/`Ctrl+c`. We are ready to install the security plugin.
+The `curl localhost:9200` call from before should also succeed now. Kill the server again with `Ctrl+c`. We are ready to install the security plugin.
 
 >Worth noting is that there is that the version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of this writing the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT`, compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
 
