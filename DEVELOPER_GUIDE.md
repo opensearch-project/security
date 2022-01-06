@@ -32,7 +32,7 @@ The `curl localhost:9200` call from before should also succeed now. Kill the ser
 
 ## Building
 
-First create a for of this repo and clone it locally. Changing into the directory of the newly cloned repository, run the following to build the project:
+First create a fork of this repo and clone it locally. Changing into the directory of the newly cloned repository, run the following to build the project:
 
 ```bash
 mvn -B package -Padvanced -DskipTests
