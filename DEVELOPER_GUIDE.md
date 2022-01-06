@@ -48,6 +48,7 @@ unzip opensearch-security-1.3.0.0-SNAPSHOT.zip
 rm opensearch-security-1.3.0.0-SNAPSHOT.zip
 ```
 
+You will have to adjust it to your specific version. In this example I'm using `1.3.0.0-SNAPSHOT`.
 
 Install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one:
 
