@@ -73,6 +73,7 @@
         <!-- deps -->
         <netty-native.version>2.0.25.Final</netty-native.version>
         <bc.version>1.67</bc.version>
+        <log4j.version>2.17.1</log4j.version>
         <slf4j.version>1.7.32</slf4j.version>
         <guava.version>25.1-jre</guava.version>
         <commons.cli.version>1.3.1</commons.cli.version>
@@ -219,6 +220,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
