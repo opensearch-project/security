@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
@@ -83,6 +84,7 @@ public class ConfigV6 {
 
     public static class Kibana {
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean multitenancy_enabled = true;
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
@@ -97,7 +99,7 @@ public class ConfigV6 {
         
         
     }
-    
+
     public static class Http {
         public boolean anonymous_auth_enabled = false;
         public Xff xff = new Xff();
@@ -108,7 +110,7 @@ public class ConfigV6 {
         
         
     }
-    
+
     public static class AuthFailureListeners {
         @JsonIgnore
         private final Map<String, AuthFailureListener> listeners = new HashMap<>();
@@ -125,7 +127,7 @@ public class ConfigV6 {
 
         
     }
-    
+
     public static class AuthFailureListener {
         public String type;
         public String authentication_backend;
@@ -148,8 +150,9 @@ public class ConfigV6 {
             }
         }
     }
-    
+
     public static class Xff {
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public String internalProxies = Pattern.compile(
                 "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|" +
@@ -170,7 +173,7 @@ public class ConfigV6 {
         
         
     }
-    
+
     public static class Authc {
         
         @JsonIgnore
@@ -193,10 +196,13 @@ public class ConfigV6 {
         
         
     }
-    
+
     public static class AuthcDomain {
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled= true;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean transport_enabled= true;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled= true;
         public int order = 0;
         public HttpAuthenticator http_authenticator = new HttpAuthenticator();
@@ -211,6 +217,7 @@ public class ConfigV6 {
     }
 
     public static class HttpAuthenticator {
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean challenge = true;
         public String type;
         public Map<String, Object> config = Collections.emptyMap();
@@ -231,7 +238,7 @@ public class ConfigV6 {
         
         
     }
-    
+
     public static class AuthzBackend {
         public String type = "noop";
         public Map<String, Object> config = Collections.emptyMap();
@@ -252,7 +259,7 @@ public class ConfigV6 {
         
         
     }
-    
+
     public static class AuthcBackend {
         public String type = InternalAuthenticationBackend.class.getName();
         public Map<String, Object> config = Collections.emptyMap();
@@ -273,7 +280,7 @@ public class ConfigV6 {
         
         
     }
-    
+
     public static class Authz {
         @JsonIgnore
         private final Map<String, AuthzDomain> domains = new HashMap<>();
@@ -295,10 +302,13 @@ public class ConfigV6 {
         
         
     }
-    
+
     public static class AuthzDomain {
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean http_enabled = true;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean transport_enabled = true;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public AuthzBackend authorization_backend = new AuthzBackend();
         @Override

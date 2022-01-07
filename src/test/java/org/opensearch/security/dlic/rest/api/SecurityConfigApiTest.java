@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
@@ -108,4 +109,36 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
     }
+
+    @Test
+    public void testSecurityConfigForHTTPPatch() throws Exception {
+
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        setup(settings);
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        //non-default config
+        String updatedConfig = FileHelper.loadFile("restapi/securityconfig_nondefault.json");
+
+        //update config
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/securityconfig/config", updatedConfig, new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        //make patch request
+        response = rh.executePatchRequest(ENDPOINT + "/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/do_not_fail_on_forbidden\",\"value\": \"false\"}]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        //get config
+        response = rh.executeGetRequest(ENDPOINT + "/securityconfig", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // verify configs are same
+        Assert.assertEquals(DefaultObjectMapper.readTree(updatedConfig), DefaultObjectMapper.readTree(response.getBody()).get("config"));
+
+
+    }
 }
+
+
