@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.ldaptive.Connection;
@@ -34,7 +34,7 @@ import org.ldaptive.LdapAttribute;
 
 public final class Utils {
 
-    private static final Logger log = LogManager.getLogger(Utils.class);
+    private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
     private Utils() {
 

@@ -27,14 +27,14 @@ import org.apache.cxf.rs.security.jose.jwt.JwtException;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.google.common.base.Strings;
 
 public class JwtVerifier {
 
-	private final static Logger log = LogManager.getLogger(JwtVerifier.class);
+	private final static Logger log = LoggerFactory.getLogger(JwtVerifier.class);
 
 	private final KeyProvider keyProvider;
 

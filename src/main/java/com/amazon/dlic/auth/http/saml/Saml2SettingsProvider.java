@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -52,7 +52,7 @@ import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 
 public class Saml2SettingsProvider {
-    protected final static Logger log = LogManager.getLogger(Saml2SettingsProvider.class);
+    protected final static Logger log = LoggerFactory.getLogger(Saml2SettingsProvider.class);
 
     private final Settings opensearchSettings;
     private final MetadataResolver metadataResolver;

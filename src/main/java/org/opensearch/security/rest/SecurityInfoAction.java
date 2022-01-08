@@ -40,8 +40,8 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
@@ -69,7 +69,7 @@ public class SecurityInfoAction extends BaseRestHandler {
             new Route(POST, "/authinfo")
     ),"/_opendistro/_security", "/_plugins/_security");
 
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 

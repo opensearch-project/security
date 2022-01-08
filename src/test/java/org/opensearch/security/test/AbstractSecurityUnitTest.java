@@ -44,8 +44,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.get.GetRequest;
@@ -96,7 +96,7 @@ public abstract class AbstractSecurityUnitTest {
         //System.setProperty("security.display_lic_none","true");
     }
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name",  "mock").build());
 
     //TODO Test Matrix

@@ -130,7 +130,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             Assert.assertTrue(cir.isAcknowledged());
         } catch (OpenSearchSecurityException ex) {
             exception = ex;
-            log.warn(ex);
+            log.warn(ex.toString());
         }
         Assert.assertNotNull(exception);
         Assert.assertTrue(exception.getMessage().contains("indices:admin/create"));

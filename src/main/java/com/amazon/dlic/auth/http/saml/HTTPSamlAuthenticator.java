@@ -26,8 +26,8 @@ import com.google.common.annotations.VisibleForTesting;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -73,7 +73,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
-    protected final static Logger log = LogManager.getLogger(HTTPSamlAuthenticator.class);
+    protected final static Logger log = LoggerFactory.getLogger(HTTPSamlAuthenticator.class);
 
     public static final String IDP_METADATA_URL = "idp.metadata_url";
     public static final String IDP_METADATA_FILE = "idp.metadata_file";

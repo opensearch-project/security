@@ -46,8 +46,8 @@ import org.apache.http.ssl.PrivateKeyDetails;
 import org.apache.http.ssl.PrivateKeyStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -129,7 +129,7 @@ public class HttpClient implements Closeable {
     }
 
     private final KeyStore trustStore;
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private RestHighLevelClient rclient;
     private String basicCredentials;
     private KeyStore keystore;

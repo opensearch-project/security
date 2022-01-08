@@ -33,8 +33,8 @@ package org.opensearch.security.http;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
@@ -49,7 +49,7 @@ import com.google.common.base.Predicates;
 
 public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private volatile Settings settings;
     private final Pattern rolesSeparator;
 

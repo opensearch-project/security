@@ -24,7 +24,7 @@ import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 
 public class HTTPJwtKeyByOpenIdConnectAuthenticator extends AbstractHTTPJwtAuthenticator {
 
-	//private final static Logger log = LogManager.getLogger(HTTPJwtKeyByOpenIdConnectAuthenticator.class);
+	//private final static Logger log = LoggerFactory.getLogger(HTTPJwtKeyByOpenIdConnectAuthenticator.class);
 
 	public HTTPJwtKeyByOpenIdConnectAuthenticator(Settings settings, Path configPath) {
 		super(settings, configPath);

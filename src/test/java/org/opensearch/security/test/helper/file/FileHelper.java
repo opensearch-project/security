@@ -47,8 +47,8 @@ import java.nio.file.Paths;
 import java.security.KeyStore;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentBuilder;
@@ -60,7 +60,7 @@ import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTE
 
 public class FileHelper {
 
-	protected final static Logger log = LogManager.getLogger(FileHelper.class);
+	protected final static Logger log = LoggerFactory.getLogger(FileHelper.class);
 
 	public static KeyStore getKeystoreFromClassPath(final String fileNameFromClasspath, String password) throws Exception {
 	    Path path = getAbsoluteFilePathFromClassPath(fileNameFromClasspath);

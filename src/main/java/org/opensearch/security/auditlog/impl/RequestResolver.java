@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -65,7 +65,7 @@ import org.opensearch.security.support.WildcardMatcher;
 
 public final class RequestResolver {
 
-    private static final Logger log = LogManager.getLogger(RequestResolver.class);
+    private static final Logger log = LoggerFactory.getLogger(RequestResolver.class);
 
     public static List<AuditMessage> resolve(
             final AuditCategory category,
@@ -289,7 +289,7 @@ public final class RequestResolver {
                     builder.endObject();
                     msg.addUnescapedJsonToRequestBody(builder == null?null:Strings.toString(builder));
                 } catch (IOException e) {
-                    log.error(e);
+                    log.error(e.toString());
                 } finally {
                     if(builder != null) {
                         builder.close();

@@ -47,8 +47,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.joda.time.DateTime;
@@ -76,7 +76,7 @@ import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ComplianceConfig {
 
-    private static final Logger log = LogManager.getLogger(ComplianceConfig.class);
+    private static final Logger log = LoggerFactory.getLogger(ComplianceConfig.class);
     public static final ComplianceConfig DEFAULT = ComplianceConfig.from(Settings.EMPTY);
     private static final int CACHE_SIZE = 1000;
     private static final String INTERNAL_OPENSEARCH = "internal_opensearch";

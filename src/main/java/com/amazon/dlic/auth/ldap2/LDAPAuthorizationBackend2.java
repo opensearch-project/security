@@ -31,8 +31,8 @@ import java.util.Set;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.Strings;
@@ -68,7 +68,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
     static final String DEFAULT_ROLENAME = "name";
     static final String DEFAULT_USERROLENAME = "memberOf";
 
-    protected static final Logger log = LogManager.getLogger(LDAPAuthorizationBackend2.class);
+    protected static final Logger log = LoggerFactory.getLogger(LDAPAuthorizationBackend2.class);
     private final Settings settings;
     private final WildcardMatcher skipUsersMatcher;
     private final WildcardMatcher nestedRoleMatcher;

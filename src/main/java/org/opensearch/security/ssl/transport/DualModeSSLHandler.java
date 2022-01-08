@@ -27,8 +27,8 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslHandler;
 import java.nio.charset.StandardCharsets;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import javax.net.ssl.SSLException;
 import java.util.List;
@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class DualModeSSLHandler extends ByteToMessageDecoder {
 
-    private static final Logger logger = LogManager.getLogger(DualModeSSLHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(DualModeSSLHandler.class);
     private final SecurityKeyStore securityKeyStore;
 
     private final SslHandler providedSSLHandler;

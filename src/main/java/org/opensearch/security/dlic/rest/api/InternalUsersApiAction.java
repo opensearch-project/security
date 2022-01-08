@@ -194,7 +194,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                 builder.endObject();
                 retVal = getValidator(request, BytesReference.bytes(builder), resourceName);
             } catch (IOException e) {
-                log.error(e);
+                log.error(e.toString());
             }
 
             ((ObjectNode) updatedResourceAsJsonNode).remove("password");

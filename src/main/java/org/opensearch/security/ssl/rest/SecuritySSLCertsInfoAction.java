@@ -20,8 +20,8 @@ import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import com.google.common.collect.ImmutableMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -55,7 +55,7 @@ public class SecuritySSLCertsInfoAction extends BaseRestHandler {
             new Route(Method.GET, "/_opendistro/_security/api/ssl/certs")
     );
 
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private Settings settings;
     private SecurityKeyStore odsks;
     private AdminDNs adminDns;

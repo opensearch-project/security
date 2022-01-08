@@ -17,8 +17,8 @@ package org.opensearch.security.compliance;
 
 import java.util.Objects;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.engine.Engine.Delete;
@@ -33,7 +33,7 @@ import org.opensearch.security.auditlog.AuditLog;
 
 public final class ComplianceIndexingOperationListenerImpl extends ComplianceIndexingOperationListener {
 
-    private static final Logger log = LogManager.getLogger(ComplianceIndexingOperationListenerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(ComplianceIndexingOperationListenerImpl.class);
     private final AuditLog auditlog;
     private volatile IndexService is;
 

@@ -45,8 +45,8 @@ import org.apache.http.ssl.PrivateKeyDetails;
 import org.apache.http.ssl.PrivateKeyStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.Settings;
 
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -54,7 +54,7 @@ import org.opensearch.security.support.PemKeyReader;
 import com.google.common.collect.ImmutableList;
 
 public class SettingsBasedSSLConfigurator {
-    private static final Logger log = LogManager.getLogger(SettingsBasedSSLConfigurator.class);
+    private static final Logger log = LoggerFactory.getLogger(SettingsBasedSSLConfigurator.class);
 
     public static final String CERT_ALIAS = "cert_alias";
     public static final String CA_ALIAS = "ca_alias";

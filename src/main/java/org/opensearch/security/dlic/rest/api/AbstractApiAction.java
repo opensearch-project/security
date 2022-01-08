@@ -22,8 +22,8 @@ import java.util.Collections;
 import java.util.Objects;
 
 import org.opensearch.security.DefaultObjectMapper;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.index.IndexRequest;
@@ -72,7 +72,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 public abstract class AbstractApiAction extends BaseRestHandler {
 
-	protected final Logger log = LogManager.getLogger(this.getClass());
+	protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
 	protected final ConfigurationRepository cl;
 	protected final ClusterService cs;

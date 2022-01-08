@@ -41,8 +41,8 @@ import java.util.Map;
 
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.NodesDnModel;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.transport.TransportRequest;
@@ -53,7 +53,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
 
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final String certOid;
     private final WildcardMatcher staticNodesDnFromEsYml;
     private boolean dynamicNodesDnConfigEnabled;

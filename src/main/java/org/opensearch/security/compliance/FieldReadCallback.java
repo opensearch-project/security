@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.apache.lucene.index.FieldInfo;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -49,7 +49,7 @@ import com.github.wnameless.json.flattener.JsonFlattener;
 
 public final class FieldReadCallback {
 
-    private static final Logger log = LogManager.getLogger(FieldReadCallback.class);
+    private static final Logger log = LoggerFactory.getLogger(FieldReadCallback.class);
     //private final ThreadContext threadContext;
     //private final ClusterService clusterService;
     private final Index index;
