@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@ package org.opensearch.security.action.configupdate;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.nodes.BaseNodeRequest;
@@ -57,7 +57,7 @@ public class TransportConfigUpdateAction
 extends
 TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigUpdateAction.NodeConfigUpdateRequest, ConfigUpdateNodeResponse> {
 
-    protected Logger logger = LogManager.getLogger(getClass());
+    protected Logger logger = LoggerFactory.getLogger(getClass());
     private final Provider<BackendRegistry> backendRegistry;
     private final ConfigurationRepository configurationRepository;
     private DynamicConfigFactory dynamicConfigFactory;

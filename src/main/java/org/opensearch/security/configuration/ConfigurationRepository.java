@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -49,8 +49,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.support.SecurityUtils;
 import com.google.common.collect.ImmutableMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
@@ -80,7 +80,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 public class ConfigurationRepository {
-    private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurationRepository.class);
 
     private final String securityIndex;
     private final Client client;

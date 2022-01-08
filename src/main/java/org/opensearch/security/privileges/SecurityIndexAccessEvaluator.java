@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -51,7 +51,7 @@ import org.opensearch.security.support.WildcardMatcher;
 
 public class SecurityIndexAccessEvaluator {
     
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     
     private final String securityIndex;
     private final AuditLog auditLog;
@@ -93,48 +93,46 @@ public class SecurityIndexAccessEvaluator {
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
             final PrivilegesEvaluatorResponse presponse)  {
         final boolean isDebugEnabled = log.isDebugEnabled();
-        if ((requestedResolved.getAllIndices().contains(securityIndex) || matchAnySystemIndices(requestedResolved))
-                && securityDeniedActionMatcher.test(action)) {
-            if(filterSecurityIndex) {
-                Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
-                allWithoutSecurity.remove(securityIndex);
-                if(allWithoutSecurity.isEmpty()) {
+        if (securityDeniedActionMatcher.test(action)) {
+            if(requestedResolved.isLocalAll()) {
+                if(filterSecurityIndex) {
+                    irr.replace(request, false, "*","-"+ securityIndex);
                     if (isDebugEnabled) {
-                        log.debug("Filtered '{}' but resulting list is empty", securityIndex);
+                        log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex, irr.resolveRequest(request));
                     }
+                    return presponse;
+                } else {
+                    auditLog.logSecurityIndexAttempt(request, action, task);
+                    log.warn( "{} for '_all' indices is not allowed for a regular user", action);
                     presponse.allowed = false;
                     return presponse.markComplete();
                 }
-                irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
-                if (isDebugEnabled) {
-                    log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
+            } else if (requestedResolved.getAllIndices().contains(securityIndex) || matchAnySystemIndices(requestedResolved)) {
+                if(filterSecurityIndex) {
+                    Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
+                    allWithoutSecurity.remove(securityIndex);
+                    if(allWithoutSecurity.isEmpty()) {
+                        if (isDebugEnabled) {
+                            log.debug("Filtered '{}' but resulting list is empty", securityIndex);
+                        }
+                        presponse.allowed = false;
+                        return presponse.markComplete();
+                    }
+                    irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
+                    if (isDebugEnabled) {
+                        log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
+                    }
+                    return presponse;
+                } else {
+                    auditLog.logSecurityIndexAttempt(request, action, task);
+                    log.warn("{} for '{}' index is not allowed for a regular user", action, securityIndex);
+                    presponse.allowed = false;
+                    return presponse.markComplete();
                 }
-                return presponse;
-            } else {
-                auditLog.logSecurityIndexAttempt(request, action, task);
-                log.warn("{} for '{}' index is not allowed for a regular user", action, securityIndex);
-                presponse.allowed = false;
-                return presponse.markComplete();
             }
         }
 
-        if (requestedResolved.isLocalAll()
-                && securityDeniedActionMatcher.test(action)) {
-            if(filterSecurityIndex) {
-                irr.replace(request, false, "*","-"+ securityIndex);
-                if (isDebugEnabled) {
-                    log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex, irr.resolveRequest(request));
-                }
-                return presponse;
-            } else {
-                auditLog.logSecurityIndexAttempt(request, action, task);
-                log.warn( "{} for '_all' indices is not allowed for a regular user", action);
-                presponse.allowed = false;
-                return presponse.markComplete();
-            }
-        }
-
-        if(requestedResolved.getAllIndices().contains(securityIndex) || requestedResolved.isLocalAll()
+        if(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().contains(securityIndex)
                 || matchAnySystemIndices(requestedResolved)) {
 
             if(request instanceof SearchRequest) {

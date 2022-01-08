@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -148,10 +148,16 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             //bypass non-netty requests
             if(channelType.equals("direct")) {
                 final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                 final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
                 if(Strings.isNullOrEmpty(userHeader)) {
-                    if(!Strings.isNullOrEmpty(injectedUserHeader)) {
+                    // Keeping role injection with higher priority as plugins under OpenSearch will be using this
+                    // on transport layer
+                    if(!Strings.isNullOrEmpty(injectedRolesHeader)) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
+                    }
+                    else if(!Strings.isNullOrEmpty(injectedUserHeader)) {
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
                 } else {
@@ -162,6 +168,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
                 if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
+                }
+
+                final String rolesValidation = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER);
+                if(!Strings.isNullOrEmpty(rolesValidation)) {
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
                 }
 
                 if (isActionTraceEnabled()) {
@@ -229,10 +240,16 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())) {
 
                     final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                    final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                     final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
                     if(Strings.isNullOrEmpty(userHeader)) {
-                        if(!Strings.isNullOrEmpty(injectedUserHeader)) {
+                        // Keeping role injection with higher priority as plugins under OpenSearch will be using this
+                        // on transport layer
+                        if(!Strings.isNullOrEmpty(injectedRolesHeader)) {
+                            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
+                        }
+                        else if(!Strings.isNullOrEmpty(injectedUserHeader)) {
                             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                         }
                     } else {
@@ -247,6 +264,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
                     }
 
+                    final String rolesValidation = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER);
+                    if(!Strings.isNullOrEmpty(rolesValidation)) {
+                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
+                    }
+
                 } else {
 
                     //this is a netty request from a non-server node (maybe also be internal: or a shard request)
@@ -255,7 +277,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
                         final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
                         auditLog.logBadHeaders(request, task.getAction(), task);
-                        log.error(exception);
+                        log.error(exception.toString());
                         transportChannel.sendResponse(exception);
                         return;
                     }

@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -47,8 +47,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 
 import org.opensearch.security.auth.BackendRegistry;
-
 import com.google.common.collect.ImmutableList;
+
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityHealthAction extends BaseRestHandler {
@@ -58,7 +58,7 @@ public class SecurityHealthAction extends BaseRestHandler {
     ), "/_opendistro/_security", "/_plugins/_security");
 
     private final BackendRegistry registry;
-    
+
     public SecurityHealthAction(final Settings settings, final RestController controller, final BackendRegistry registry) {
         super();
         this.registry = registry;

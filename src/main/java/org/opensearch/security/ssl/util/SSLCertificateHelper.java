@@ -31,13 +31,13 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.Strings;
 
 public class SSLCertificateHelper {
 
-    private static final Logger log = LogManager.getLogger(SSLCertificateHelper.class);
+    private static final Logger log = LoggerFactory.getLogger(SSLCertificateHelper.class);
     private static boolean stripRootFromChain = true; //TODO check
     
     public static X509Certificate[] exportRootCertificates(final KeyStore ks, final String alias) throws KeyStoreException {

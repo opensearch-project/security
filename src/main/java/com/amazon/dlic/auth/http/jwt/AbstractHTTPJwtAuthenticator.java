@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -22,11 +22,12 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.http.HttpHeaders;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.Strings;
@@ -45,7 +46,7 @@ import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
 
 public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator {
-    private final static Logger log = LogManager.getLogger(AbstractHTTPJwtAuthenticator.class);
+    private final static Logger log = LoggerFactory.getLogger(AbstractHTTPJwtAuthenticator.class);
 
     private static final String BEARER = "bearer ";
     private static final Pattern BASIC = Pattern.compile("^\\s*Basic\\s.*", Pattern.CASE_INSENSITIVE);
@@ -107,7 +108,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         try {
             jwt = jwtVerifier.getVerifiedJwtToken(jwtString);
         } catch (AuthenticatorUnavailableException e) {
-            log.info(e);
+            log.info(e.toString());
             throw new OpenSearchSecurityException(e.getMessage(), RestStatus.SERVICE_UNAVAILABLE);
         } catch (BadCredentialsException e) {
             log.info("Extracting JWT token from {} failed", jwtString, e);
@@ -163,7 +164,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         return jwtToken;
     }
 
-    protected String extractSubject(JwtClaims claims) {
+    @VisibleForTesting
+    public String extractSubject(JwtClaims claims) {
         String subject = claims.getSubject();
 
         if (subjectKey != null) {
@@ -189,7 +191,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     }
 
     @SuppressWarnings("unchecked")
-    protected String[] extractRoles(JwtClaims claims) {
+    @VisibleForTesting
+    public String[] extractRoles(JwtClaims claims) {
         if (rolesKey == null) {
             return new String[0];
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 package org.opensearch.security.ssl.transport;
 
 import org.opensearch.security.support.ConfigConstants;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
@@ -25,7 +25,7 @@ import org.opensearch.security.support.SecuritySettings;
 
 public class SSLConfig {
 
-    private static final Logger logger = LogManager.getLogger(SSLConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(SSLConfig.class);
 
     private final boolean sslOnly;
     private volatile boolean dualModeEnabled;

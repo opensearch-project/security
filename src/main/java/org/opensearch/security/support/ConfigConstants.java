@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -266,6 +266,11 @@ public class ConfigConstants {
 
     // Roles injection for plugins
     public static final String OPENDISTRO_SECURITY_INJECTED_ROLES = "opendistro_security_injected_roles";
+    public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER = "opendistro_security_injected_roles_header";
+
+    // Roles validation for the plugins
+    public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION = "opendistro_security_injected_roles_validation";
+    public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER = "opendistro_security_injected_roles_validation_header";
 
     // System indices settings
     public static final String SECURITY_SYSTEM_INDICES_ENABLED_KEY = "plugins.security.system_indices.enabled";

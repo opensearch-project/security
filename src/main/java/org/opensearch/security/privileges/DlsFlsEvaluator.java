@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -34,8 +34,8 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class DlsFlsEvaluator {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final ThreadPool threadPool;
 
@@ -100,8 +100,8 @@ public class DlsFlsEvaluator {
             }
 
             presponse.maskedFields = maskedFieldsMap.entrySet().stream()
-                .filter(requestedResolved.getAllIndices().isEmpty() ?
-                    entry -> true : entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()))
+                .filter(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty() ?
+                        entry -> true : entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()))
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
         }
@@ -134,7 +134,7 @@ public class DlsFlsEvaluator {
             }
 
             presponse.queries = dlsQueries.entrySet().stream()
-                .filter(requestedResolved.getAllIndices().isEmpty() ?
+                .filter(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty() ?
                         entry -> true : entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()))
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
@@ -165,7 +165,7 @@ public class DlsFlsEvaluator {
             }
 
             presponse.allowedFlsFields = flsFields.entrySet().stream()
-                .filter(requestedResolved.getAllIndices().isEmpty() ?
+                .filter(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().isEmpty() ?
                         entry -> true : entry -> WildcardMatcher.from(entry.getKey()).matchAny(requestedResolved.getAllIndices()))
                 .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 

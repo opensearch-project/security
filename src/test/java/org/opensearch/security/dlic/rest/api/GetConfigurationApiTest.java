@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -28,6 +28,9 @@ import com.google.common.collect.ImmutableList;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 @RunWith(Parameterized.class)
 public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 	private final String ENDPOINT;
@@ -39,8 +42,8 @@ public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
 	@Parameterized.Parameters
 	public static Iterable<String> endpoints() {
 		return ImmutableList.of(
-				"/_opendistro/_security/api",
-				"/_plugins/_security/api"
+				LEGACY_OPENDISTRO_PREFIX + "/api",
+				PLUGINS_PREFIX + "/api"
 		);
 	}
 

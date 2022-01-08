@@ -1,5 +1,5 @@
 /*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *   Copyright OpenSearch Contributors
  *
  *   Licensed under the Apache License, Version 2.0 (the "License").
  *   You may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 package org.opensearch.security;
 
 import org.apache.http.HttpStatus;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -34,7 +34,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 public class ResolveAPITests extends SingleClusterTest {
     
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Test
     public void testResolveDnfofFalse() throws Exception {

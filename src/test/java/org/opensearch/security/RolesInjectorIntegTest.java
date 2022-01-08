@@ -1,5 +1,5 @@
 /*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *   Copyright OpenSearch Contributors
  *
  *   Licensed under the Apache License, Version 2.0 (the "License").
  *   You may not use this file except in compliance with the License.
@@ -112,6 +112,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
         //1. Without roles injection.
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
                 OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class).start()) {
+            waitForInit(node.client());
 
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-1")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());
@@ -129,7 +130,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
             Assert.assertTrue(cir.isAcknowledged());
         } catch (OpenSearchSecurityException ex) {
             exception = ex;
-            log.warn(ex);
+            log.warn(ex.toString());
         }
         Assert.assertNotNull(exception);
         Assert.assertTrue(exception.getMessage().contains("indices:admin/create"));

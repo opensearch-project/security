@@ -17,8 +17,8 @@
 
 package org.opensearch.security.ssl.http.netty;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -39,7 +39,7 @@ import io.netty.handler.ssl.SslHandler;
 
 public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTransport {
 
-    private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
+    private static final Logger logger = LoggerFactory.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
     

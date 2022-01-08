@@ -1,5 +1,5 @@
 /*
- * Portions Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
@@ -30,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +42,9 @@ import com.google.common.collect.ImmutableList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 
 @RunWith(Parameterized.class)
 public class NodesDnApiTest extends AbstractRestApiUnitTest {
@@ -55,8 +60,8 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                "/_opendistro/_security/api",
-                "/_plugins/_security/api"
+                LEGACY_OPENDISTRO_PREFIX + "/api",
+                PLUGINS_PREFIX + "/api"
         );
     }
 
@@ -74,7 +79,7 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         if (expectedStatus == HttpStatus.SC_OK) {
             JsonNode expected = asJsonNode(ImmutableMap.of(
                 "cluster1", nodesDnEntry("cn=popeye"),
-                 NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nodesDnEntry("CN=example.com")));
+                NodesDnApiAction.STATIC_OPENSEARCH_YML_NODES_DN, nodesDnEntry("CN=example.com")));
 
             JsonNode node = OBJECT_MAPPER.readTree(response.getBody());
             assertThat(node, equalTo(asJsonNode(expected)));
@@ -117,6 +122,15 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
     }
 
+    private void checkNullElementsInArray(final Header headers) throws Exception{
+
+        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/nodesdn/cluster1", body, headers);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
+    }
+
     @Test
     public void testNodesDnApiWithDynamicConfigDisabled() throws Exception {
         setup();
@@ -128,7 +142,6 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testNodesDnApi() throws Exception {
-
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .putList(ConfigConstants.SECURITY_NODES_DN, "CN=example.com")
             .build();
@@ -159,6 +172,12 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         }
 
         {
+            rh.keystore = "restapi/kirk-keystore.jks";
+            rh.sendAdminCertificate = true;
+            checkNullElementsInArray(nonAdminCredsHeader);
+        }
+
+        {
             // any creds, admin certificate, disallowed key - FORBIDDEN
             rh.keystore = "restapi/kirk-keystore.jks";
             rh.sendAdminCertificate = true;
@@ -179,7 +198,6 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testNodesDnApiAuditComplianceLogging() throws Exception {
-
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .putList(ConfigConstants.SECURITY_NODES_DN, "CN=example.com")
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
@@ -214,14 +232,4 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         assertThat(actualCategoryCounts, equalTo(expectedCategoryCounts));
     }
 
-    @Test
-    public void checkNullElementsInArray() throws Exception{
-        setup();
-        rh.keystore = "restapi/kirk-keystore.jks";
-        rh.sendAdminCertificate = true;
-
-        String body = FileHelper.loadFile("restapi/nodesdn_null_array_element.json");
-        HttpResponse response = rh.executePutRequest(ENDPOINT+ "/nodesdn", body, new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-    }
 }

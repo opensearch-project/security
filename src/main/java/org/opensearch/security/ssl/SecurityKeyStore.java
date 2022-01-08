@@ -32,6 +32,7 @@ public interface SecurityKeyStore {
     public String getHTTPProviderName();
     public String getTransportServerProviderName();
     public String getTransportClientProviderName();
+    public String getSubjectAlternativeNames(X509Certificate cert); 
 
     public void initHttpSSLConfig();
     public void initTransportSSLConfig();

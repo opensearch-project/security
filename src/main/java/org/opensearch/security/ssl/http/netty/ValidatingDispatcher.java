@@ -21,8 +21,8 @@ import java.nio.file.Path;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.ExceptionsHelper;
@@ -39,7 +39,7 @@ import org.opensearch.security.ssl.util.SSLRequestHelper;
 
 public class ValidatingDispatcher implements Dispatcher {
 
-    private static final Logger logger = LogManager.getLogger(ValidatingDispatcher.class);
+    private static final Logger logger = LoggerFactory.getLogger(ValidatingDispatcher.class);
 
     private final ThreadContext threadContext;
     private final Dispatcher originalDispatcher;

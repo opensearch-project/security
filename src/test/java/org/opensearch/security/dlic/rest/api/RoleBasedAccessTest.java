@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -29,6 +29,9 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 @RunWith(Parameterized.class)
 public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 
@@ -41,8 +44,8 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 	@Parameterized.Parameters
 	public static Iterable<String> endpoints() {
 		return ImmutableList.of(
-				"/_opendistro/_security/api",
-				"/_plugins/_security/api"
+				LEGACY_OPENDISTRO_PREFIX + "/api",
+				PLUGINS_PREFIX + "/api"
 		);
 	}
 
@@ -209,12 +212,12 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 
 		// admin, no access
 		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/roles_captains_tenants.json"), encodeBasicHeader("admin", "admin"));
+						FileHelper.loadFile("restapi/roles_captains_tenants.json"), encodeBasicHeader("admin", "admin"));
 		Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
 		// worf, restore role starfleet captains
 		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("worf", "worf"));
+						FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("worf", "worf"));
 		Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 		settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 
@@ -258,7 +261,7 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
 
 		// PUT roles
 		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-										FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("test", "test"));
+						FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("test", "test"));
 		Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
 		// GET captions role

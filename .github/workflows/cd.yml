@@ -3,7 +3,10 @@ name: CD
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
+
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.class=standard -Dmaven.wagon.http.retryHandler.count=3
 
 jobs:
   build:
@@ -16,13 +19,6 @@ jobs:
       with:
         java-version: 14.0.x
 
-    - name: Checkout OpenSearch
-      uses: actions/checkout@v2
-      with:
-        repository: 'opensearch-project/OpenSearch'
-        path: OpenSearch
-        ref: '1.0'
-
     - name: Checkout security
       uses: actions/checkout@v2
 
@@ -32,10 +28,6 @@ jobs:
         path: ~/.m2/repository
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-
-    - name: Build OpenSearch
-      working-directory: ./OpenSearch
-      run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
 
     - name: Build
       run: |

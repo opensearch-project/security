@@ -9,6 +9,9 @@ on:
       - main
       - opendistro-*
 
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.class=standard -Dmaven.wagon.http.retryHandler.count=3
+
 jobs:
   build:
     name: build
@@ -35,17 +38,6 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-
-    - name: Checkout OpenSearch
-      uses: actions/checkout@v2
-      with:
-        repository: 'opensearch-project/OpenSearch'
-        path: OpenSearch
-        ref: '1.0'
-
-    - name: Build OpenSearch
-      working-directory: ./OpenSearch
-      run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
 
     - name: Checkstyle
       run: mvn -B checkstyle:checkstyle

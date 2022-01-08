@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -40,8 +41,9 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.google.common.collect.ImmutableSet;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
@@ -112,7 +114,7 @@ public class PrivilegesEvaluator {
 
     private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private final ClusterService clusterService;
 
     private final IndexNameExpressionResolver resolver;
@@ -215,13 +217,25 @@ public class PrivilegesEvaluator {
             action0 = PutMappingAction.NAME;
         }
 
+        final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
+
         final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        final Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
+        Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
+        final String injectedRolesValidationString = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION);
+        if(injectedRolesValidationString != null) {
+            HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
+            if(!mappedRoles.containsAll(injectedRolesValidationSet)) {
+                presponse.allowed = false;
+                presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
+                log.info("Roles {} are not mapped to the user {}", injectedRolesValidationSet, user);
+                return presponse;
+            }
+            mappedRoles = ImmutableSet.copyOf(injectedRolesValidationSet);
+        }
+        presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
         setUserInfoInThreadContext(user, mappedRoles);
-
-        final PrivilegesEvaluatorResponse presponse = new PrivilegesEvaluatorResponse();
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
@@ -455,7 +469,7 @@ public class PrivilegesEvaluator {
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {
 
-            if(checkFilteredAliases(requestedResolved.getAllIndices(), action0, isDebugEnabled)) {
+            if(checkFilteredAliases(requestedResolved, action0, isDebugEnabled)) {
                 presponse.allowed=false;
                 return presponse;
             }
@@ -589,26 +603,53 @@ public class PrivilegesEvaluator {
             ) ;
     }
 
-    private boolean checkFilteredAliases(Set<String> requestedResolvedIndices, String action, boolean isDebugEnabled) {
-        //check filtered aliases
-        for (String requestAliasOrIndex: requestedResolvedIndices) {
+    private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {
+        final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
 
-            final List<AliasMetadata> filteredAliases = new ArrayList<>();
+        if (!"disallow".equals(faMode)) {
+            return false;
+        }
 
-            final IndexMetadata indexMetadata = clusterService.state().metadata().getIndices().get(requestAliasOrIndex);
+        if (!ACTION_MATCHER.test(action)) {
+            return false;
+        }
 
-            if (indexMetadata == null) {
-                if (isDebugEnabled) {
-                    log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+        Iterable<IndexMetadata> indexMetaDataCollection;
+
+        if (requestedResolved.isLocalAll()) {
+            indexMetaDataCollection = new Iterable<IndexMetadata>() {
+                @Override
+                public Iterator<IndexMetadata> iterator() {
+                    return clusterService.state().getMetadata().getIndices().valuesIt();
                 }
-                continue;
+            };
+        } else {
+            Set<IndexMetadata> indexMetaDataSet = new HashSet<>(requestedResolved.getAllIndices().size());
+
+            for (String requestAliasOrIndex : requestedResolved.getAllIndices()) {
+                IndexMetadata indexMetaData = clusterService.state().getMetadata().getIndices().get(requestAliasOrIndex);
+                if (indexMetaData == null) {
+                    if (isDebugEnabled) {
+                        log.debug("{} does not exist in cluster metadata", requestAliasOrIndex);
+                    }
+                    continue;
+                }
+
+                indexMetaDataSet.add(indexMetaData);
             }
 
-            final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetadata.getAliases();
+            indexMetaDataCollection = indexMetaDataSet;
+        }
+        //check filtered aliases
+        for (IndexMetadata indexMetaData : indexMetaDataCollection) {
+
+            final List<AliasMetadata> filteredAliases = new ArrayList<AliasMetadata>();
+
+            final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetaData.getAliases();
 
             if(aliases != null && aliases.size() > 0) {
                 if (isDebugEnabled) {
-                    log.debug("Aliases for {}: {}", requestAliasOrIndex, aliases);
+                    log.debug("Aliases for {}: {}", indexMetaData.getIndex().getName(), aliases);
                 }
 
                 final Iterator<String> it = aliases.keysIt();
@@ -631,17 +672,9 @@ public class PrivilegesEvaluator {
 
             if(filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
                 //TODO add queries as dls queries (works only if dls module is installed)
-                final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
-                if(faMode.equals("warn")) {
-                    log.warn("More than one ({}) filtered alias found for same index ({}). This is currently not recommended. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                } else if (faMode.equals("disallow")) {
-                    log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                    return true;
-                } else {
-                    if (isDebugEnabled) {
-                        log.debug("More than one ({}) filtered alias found for same index ({}). Aliases: {}", filteredAliases.size(), requestAliasOrIndex, toString(filteredAliases));
-                    }
-                }
+                log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}",
+                        filteredAliases.size(), indexMetaData.getIndex().getName(), toString(filteredAliases));
+                return true;
             }
         } //end-for
 

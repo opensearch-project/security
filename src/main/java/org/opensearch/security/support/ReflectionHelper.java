@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -39,8 +39,8 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 
@@ -51,7 +51,7 @@ import org.opensearch.security.transport.InterClusterRequestEvaluator;
 
 public class ReflectionHelper {
 
-    protected static final Logger log = LogManager.getLogger(ReflectionHelper.class);
+    protected static final Logger log = LoggerFactory.getLogger(ReflectionHelper.class);
 
     private static Set<ModuleInfo> modulesLoaded = new HashSet<>();
 

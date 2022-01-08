@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -44,8 +44,8 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.RoleMappings;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.service.ClusterService;
@@ -63,8 +63,8 @@ import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-
 import com.google.common.collect.ImmutableList;
+
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantInfoAction extends BaseRestHandler {
@@ -75,7 +75,7 @@ public class TenantInfoAction extends BaseRestHandler {
             ),
             "/_opendistro/_security", "/_plugins/_security");
 
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
     private final ClusterService clusterService;
@@ -131,7 +131,7 @@ public class TenantInfoAction extends BaseRestHandler {
 	                    response = new BytesRestResponse(RestStatus.OK, builder);
                     }
                 } catch (final Exception e1) {
-                    log.error(e1);
+                    log.error(e1.toString());
                     builder = channel.newBuilder(); //NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());

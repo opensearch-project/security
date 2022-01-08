@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -47,8 +47,8 @@ import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.collections.keyvalue.MultiKey;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
@@ -104,7 +104,7 @@ import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 public class IndexResolverReplacer {
 
     private static final Set<String> NULL_SET = new HashSet<>(Collections.singleton(null));
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
     private final ClusterInfoHolder clusterInfoHolder;
@@ -135,10 +135,11 @@ public class IndexResolverReplacer {
         return false;
     }
 
-    private static final boolean isLocalAll(final String... requestedPatterns) {
+    private static final boolean isLocalAll(String... requestedPatterns) {
+        return isLocalAll(requestedPatterns == null ? null : Arrays.asList(requestedPatterns));
+    }
 
-        final List<String> patterns = requestedPatterns==null?null:Arrays.asList(requestedPatterns);
-
+    private static final boolean isLocalAll(Collection<String> patterns) {
         if(IndexNameExpressionResolver.isAllIndices(patterns)) {
             return true;
         }
@@ -690,7 +691,7 @@ public class IndexResolverReplacer {
     private IndicesOptions indicesOptionsFrom(Object localRequest) {
         
         if(!respectRequestIndicesOptions) {
-            return IndicesOptions.fromOptions(false, true, true, false);
+            return IndicesOptions.fromOptions(false, true, true, false, true);
         }
 
         if (IndicesRequest.class.isInstance(localRequest)) {
@@ -700,7 +701,7 @@ public class IndexResolverReplacer {
             return ((RestoreSnapshotRequest) localRequest).indicesOptions();
         }
         else {
-            return IndicesOptions.fromOptions(false, true, true, false);
+            return IndicesOptions.fromOptions(false, true, true, false, true);
         }
     }
 

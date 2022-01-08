@@ -15,7 +15,7 @@
  *
  */
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
@@ -58,7 +58,7 @@ import com.google.common.collect.Multimap;
 
 public abstract class DynamicConfigModel {
     
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     public abstract SortedSet<AuthDomain> getRestAuthDomains();
     public abstract Set<AuthorizationBackend> getRestAuthorizers();
     public abstract SortedSet<AuthDomain> getTransportAuthDomains();

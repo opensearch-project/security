@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ package org.opensearch.security.configuration;
 
 import org.opensearch.security.support.ConfigConstants;
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 
@@ -31,7 +31,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class Salt {
 
-    private static final Logger log = LogManager.getLogger(Salt.class);
+    private static final Logger log = LoggerFactory.getLogger(Salt.class);
 
     @VisibleForTesting
     static final int SALT_SIZE = 16;

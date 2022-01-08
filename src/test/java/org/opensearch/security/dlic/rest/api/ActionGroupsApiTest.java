@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -30,6 +30,9 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 @RunWith(Parameterized.class)
 public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
@@ -42,8 +45,8 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                "/_opendistro/_security/api/actiongroups",
-                "/_plugins/_security/api/actiongroups"
+                LEGACY_OPENDISTRO_PREFIX + "/api/actiongroups",
+                PLUGINS_PREFIX + "/api/actiongroups"
         );
     }
 
@@ -384,6 +387,9 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         String body = FileHelper.loadFile("restapi/actiongroup_null_array_element.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", body, new Header[0]);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
     }
+
 }

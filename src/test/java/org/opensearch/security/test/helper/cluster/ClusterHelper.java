@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -43,8 +43,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.cluster.node.info.NodeInfo;
@@ -75,7 +75,7 @@ public final class ClusterHelper {
         System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
     }
 
-    protected final Logger log = LogManager.getLogger(ClusterHelper.class);
+    protected final Logger log = LoggerFactory.getLogger(ClusterHelper.class);
 
     protected final List<PluginAwareNode> opensearchNodes = new LinkedList<>();
 

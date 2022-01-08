@@ -16,7 +16,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -42,8 +42,8 @@ import java.security.PrivilegedAction;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.Version;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -71,7 +71,7 @@ import io.netty.handler.ssl.SslHandler;
 
 public class SecuritySSLNettyTransport extends Netty4Transport {
 
-    private static final Logger logger = LogManager.getLogger(SecuritySSLNettyTransport.class);
+    private static final Logger logger = LoggerFactory.getLogger(SecuritySSLNettyTransport.class);
     private final SecurityKeyStore ossks;
     private final SslExceptionHandler errorHandler;
     private final SSLConfig SSLConfig;
@@ -147,7 +147,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
     }
 
     protected static class ClientSSLHandler extends ChannelOutboundHandlerAdapter {
-        private final Logger log = LogManager.getLogger(this.getClass());
+        private final Logger log = LoggerFactory.getLogger(this.getClass());
         private final SecurityKeyStore sks;
         private final boolean hostnameVerificationEnabled;
         private final boolean hostnameVerificationResovleHostName;

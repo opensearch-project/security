@@ -39,8 +39,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
@@ -92,7 +92,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
     private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(System.getProperty("opensearch.unsafe.use_netty_default_allocator"), false);
     public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     protected static final String CLIENT_TYPE = "client.type";
     protected final boolean client;
     protected final boolean httpSSLEnabled;

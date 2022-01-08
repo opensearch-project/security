@@ -27,8 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentBuilder;
@@ -50,7 +50,7 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
             new Route(Method.GET, "/_opendistro/_security/sslinfo")
     );
 
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final SecurityKeyStore sks;
     final PrincipalExtractor principalExtractor;
     private final Path configPath;
