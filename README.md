@@ -1,12 +1,13 @@
-[![CI](https://github.com/opensearch-project/security/workflows/CI/badge.svg?branch=main)](https://github.com/opensearch-project/security/actions)
-[![codecov](https://codecov.io/gh/opensearch-project/security/branch/main/graph/badge.svg)](https://codecov.io/gh/opensearch-project/security)
+[![CI](https://github.com/opensearch-project/security/workflows/CI/badge.svg?branch=main)](https://github.com/opensearch-project/security/actions)[![codecov](https://codecov.io/gh/opensearch-project/security/branch/main/graph/badge.svg)](https://codecov.io/gh/opensearch-project/security)
 
 <img src="https://opensearch.org/assets/img/opensearch-logo-themed.svg" height="64px">
 
-- [OpenSearch Security](#opensearch-security)
-- [Features provided by Security](#features-provided-by-security)
-- [Documentation](#documentation)
-- [Quick Start](#quick-start)
+# OpenSearch Security Plugin
+
+OpenSearch Security is a plugin for OpenSearch that offers encryption, authentication and authorization. When combined with OpenSearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in OpenSearch Dashboards.
+
+- [Features](#features)
+- [Installation](#installation)
 - [Test and Build](#test-and-build)
 - [Config hot reloading](#config-hot-reloading)
 - [Contributing](#contributing)
@@ -16,20 +17,15 @@
 - [License](#license)
 - [Copyright](#copyright)
 
-## OpenSearch Security
+## Features
 
-OpenSearch Security is an OpenSearch plugin that offers encryption, authentication, and authorization. When combined with OpenSearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in OpenSearch Dashboards.
-
-## Features provided by Security
-
-### Encryption:
-
+### Encryption
 * Full data in transit encryption
 * Node-to-node encryption
 * Certificate revocation lists
 * Hot Certificate renewal 
 
-### Authentication: 
+### Authentication
 * Internal user database
 * HTTP basic authentication
 * PKI authentication
@@ -41,7 +37,7 @@ OpenSearch Security is an OpenSearch plugin that offers encryption, authenticati
 * OpenID Connect (OIDC)
 * SAML
 
-### Access control:
+### Access control
 * Role-based cluster level access control
 * Role-based index level access control
 * User-, role- and permission management
@@ -49,57 +45,44 @@ OpenSearch Security is an OpenSearch plugin that offers encryption, authenticati
 * Field-level security
 * REST management API
 
-### Audit/Compliance logging:
+### Audit/Compliance logging
 * Audit logging 
 * Compliance logging for GDPR, HIPAA, PCI, SOX and ISO compliance
 
 ### OpenSearch Dashboards multi-tenancy
 * True OpenSearch Dashboards multi-tenancy
 
-## Documentation
+## Installation
 
-Please refer to the [technical documentation](https://docs-beta.opensearch.org/docs/security/configuration/) for detailed information on installing and configuring opensearch-security plugin.
+OpenSearch Security Plugin comes bundled by default as part of the OpenSearch distribution. Please refer to the [installation guide](https://opensearch.org/docs/latest/opensearch/install/index/) and  [technical documentation](https://opensearch.org/docs/latest/security-plugin/index/) for detailed information on installing and configuring the OpenSearch Security Plugin.
 
-## Quick Start
-
-* Install OpenSearch
-
-* Install the opensearch-security plugin for your OpenSearch version 1.0.0-beta1, e.g.:
-
-```
-<OpenSearch directory>/bin/opensearch-plugin install \
-  -b org.opensearch:opensearch-security:1.0.0.0-beta1
-```
-
-* ``cd`` into ``<OpenSearch directory>/plugins/opensearch-security/tools``
-
-* Execute ``./install_demo_configuration.sh``, ``chmod`` the script first if necessary. This will generate all required TLS certificates and add the Security Plugin Configuration to your ``opensearch.yml`` file. 
-
-* Start OpenSearch
-
-* Test the installation by visiting ``https://localhost:9200``. When prompted, use admin/admin as username and password. This user has full access to the cluster.
-
-* Display information about the currently logged in user by visiting ``https://localhost:9200/_plugins/_security/authinfo``.
+You can also see the [developer guide](https://github.com/opensearch-project/security/blob/main/DEVELOPER_GUIDE.md) which walks through the installation of the plugin for an OpenSearch server that doesn't initially have it.
 
 ## Test and Build
 
-* Run all tests
-
-```
+Run all tests:
+```bash
 mvn clean test
 ```
 
-* Build artifacts (zip, deb, rpm)
-
-```
+Build artifacts (zip, deb, rpm):
+```bash
 mvn clean package -Padvanced -DskipTests
 artifact_zip=`ls $(pwd)/target/releases/opensearch-security-*.zip | grep -v admin-standalone`
 ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
 ```
 
+This produces:
+
+```
+target/releases/opensearch-security-<VERSION>.zip
+gradle-build/distributions/opensearch-security-<VERSION>.deb
+gradle-build/distributions/opensearch-security-<VERSION>.rpm
+```
+
 ## Config hot reloading
 
-The Security Plugin Configuration is stored in a dedicated index in OpenSearch itself. Changes to the configuration are pushed to this index via the command line tool. This will trigger a reload of the configuration on all nodes automatically. This has several advantages over configuration via opensearch.yml:
+The Security Plugin configuration is stored in a dedicated index in OpenSearch itself. Changes to the configuration are pushed to this index via the command line tool. This triggers a reload of the configuration on all nodes automatically. This has several advantages over configuration via `opensearch.yml`:
 
 * Configuration is stored in a central place
 * No configuration files on the nodes necessary
@@ -114,7 +97,7 @@ See [developer guide](DEVELOPER_GUIDE.md) and [how to contribute to this project
 
 If you find a bug, or have a feature request, please don't hesitate to open an issue in this repository.
 
-For more information, see [project website](https://opensearch.org/) and [documentation](https://docs-beta.opensearch.org/). If you need help and are unsure where to open an issue, try [forums](https://discuss.opendistrocommunity.dev/).
+For more information, see [project website](https://opensearch.org/) and [documentation](https://opensearch.org/docs/latest). If you need help and are unsure where to open an issue, try [forums](https://discuss.opendistrocommunity.dev/).
 
 ## Code of Conduct
 
@@ -131,4 +114,3 @@ This code is licensed under the Apache 2.0 License.
 ## Copyright
 
 Copyright OpenSearch Contributors. See [NOTICE](NOTICE.txt) for details.
-
