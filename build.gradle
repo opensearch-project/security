@@ -99,4 +99,27 @@ jar {
     into '', {
         from 'NOTICE.txt', "THIRD-PARTY.txt", "LICENSE"
     }
+    processResources {
+        exclude("KEYS")
+    }
+}
+
+
+gitProperties {
+    keys = [
+            'git.branch',
+            'git.build.version',
+            'git.closest.tag.commit.count',
+            'git.closest.tag.name',
+            'git.commit.id',
+            'git.commit.id.abbrev',
+            'git.commit.id.describe',
+            'git.commit.message.full',
+            'git.commit.message.short',
+            'git.commit.time',
+            'git.dirty',
+            'git.remote.origin.url',
+            'git.tags',
+            'git.total.commit.count'
+    ]
 }
