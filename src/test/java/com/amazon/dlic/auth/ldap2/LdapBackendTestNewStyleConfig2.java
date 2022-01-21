@@ -291,7 +291,7 @@ public class LdapBackendTestNewStyleConfig2 {
                 .put("users.u1.search", "(uid={0})").put(ConfigConstants.LDAPS_ENABLE_SSL, true)
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                         FileHelper.getAbsoluteFilePathFromClassPath("ldap/truststore.jks"))
-                .put("verify_hostnames", false).putList("enabled_ssl_protocols", "TLSv1")
+                .put("verify_hostnames", false).putList("enabled_ssl_protocols", "TLSv1.2")
                 .putList("enabled_ssl_ciphers", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA").put("path.home", ".").build();
 
         final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null)
