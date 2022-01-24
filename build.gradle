@@ -125,6 +125,11 @@ testsJar {
     libsDirName = '.'
 }
 
+test {
+    maxParallelForks = 3
+    jvmArgs "-Xmx3072m"
+}
+
 gitProperties {
     keys = [
             'git.branch',
@@ -169,6 +174,7 @@ task bundle(dependsOn: jar, type: Zip) {
         into 'tools/'
     }
 }
+
 task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
     archiveClassifier = 'securityadmin-standalone'
     from(configurations.runtimeClasspath - project.configurations.getByName('resolveableCompileOnly')) {
