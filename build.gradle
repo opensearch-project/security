@@ -9,7 +9,9 @@ plugins {
     id 'maven-publish'
     id 'jacoco'
     id "com.gorylenko.gradle-git-properties" version "2.3.2"
+    id 'org.gradle.crypto.checksum' version '1.1.0'
 }
+import org.gradle.crypto.checksum.Checksum
 
 repositories {
     mavenLocal()
@@ -88,7 +90,9 @@ ext {
 group = 'org.opensearch'
 version = "${securityPluginVersion}" + (isSnapshot ? "-SNAPSHOT" : "")
 description = 'OpenSearch Security'
-java.sourceCompatibility = JavaVersion.VERSION_1_8
+
+
+java.sourceCompatibility = JavaVersion.VERSION_11
 
 tasks.register('testsJar', Jar) {
     archiveClassifier = 'tests'
@@ -109,6 +113,7 @@ tasks.withType(JavaCompile) {
 }
 
 jar {
+    libsDirName = '.'
     into '', {
         from 'NOTICE.txt', "THIRD-PARTY.txt", "LICENSE"
     }
@@ -116,7 +121,9 @@ jar {
         exclude("KEYS")
     }
 }
-
+testsJar {
+    libsDirName = '.'
+}
 
 gitProperties {
     keys = [
@@ -198,4 +205,24 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
 tasks.assemble.dependsOn(bundle)
 tasks.assemble.dependsOn(bundleSecurityAdminStandalone)
 tasks.assemble.dependsOn(bundleSecurityAdminStandaloneTarGz)
+
+clean {
+    delete 'data/'
+}
+
+
+
+task createChecksums(type: Checksum) {
+    files = bundle.outputs.files
+    outputDir = new File(project.buildDir , "distributions")
+    algorithm = Checksum.Algorithm.SHA512
+}
+tasks.assemble.finalizedBy(createChecksums)
+
+
+jacoco {
+    reportsDirectory = file("$buildDir/jacoco")
+}
+tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
+tasks.jacocoTestReport.dependsOn(test) // tests are required to run before generating the report
 
