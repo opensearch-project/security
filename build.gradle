@@ -23,6 +23,19 @@ repositories {
 }
 
 dependencies {
+
+    configurations.all {
+        resolutionStrategy {
+            force 'commons-codec:commons-codec:1.14'
+            force 'org.apache.santuario:xmlsec:2.2.3'
+            force 'org.cryptacular:cryptacular:1.1.4'
+            force 'net.minidev:json-smart:2.4.7'
+            force 'commons-cli:commons-cli:1.3.1'
+            force 'org.apache.httpcomponents:httpcore:4.4.12'
+            force "org.apache.commons:commons-lang3:3.4"
+        }
+    }
+
     implementation 'org.opensearch.plugin:transport-netty4-client:1.3.0-SNAPSHOT'
     implementation 'com.google.guava:guava:25.1-jre'
     implementation 'org.greenrobot:eventbus:3.2.0'
@@ -123,3 +136,66 @@ gitProperties {
             'git.total.commit.count'
     ]
 }
+
+// copied from: org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
+project.getConfigurations().all(configuration -> {
+    if (configuration.getName().equals(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)) {
+        NamedDomainObjectProvider<Configuration> resolvableCompileOnly = project.getConfigurations().register('resolveableCompileOnly');
+        resolvableCompileOnly.configure((c) -> {
+            c.setCanBeResolved(true);
+            c.setCanBeConsumed(false);
+            c.extendsFrom(configuration);
+        });
+    }
+});
+
+
+task bundle(dependsOn: jar, type: Zip) {
+    from configurations.runtimeClasspath - project.configurations.getByName('resolveableCompileOnly')
+    from project.jar
+    from 'plugin-security.policy'
+    from 'plugin-descriptor.properties'
+    from('securityconfig') {
+        into 'securityconfig/'
+    }
+    from('tools') {
+        into 'tools/'
+    }
+}
+task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
+    archiveClassifier = 'securityadmin-standalone'
+    from(configurations.runtimeClasspath - project.configurations.getByName('resolveableCompileOnly')) {
+        into 'deps/'
+    }
+    from(project.jar) {
+        into 'deps/'
+    }
+    from('tools') {
+        into 'tools/'
+    }
+    from('securityconfig') {
+        into 'deps/securityconfig'
+    }
+}
+task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
+    archiveClassifier = 'securityadmin-standalone'
+    archiveExtension = 'tar.gz'
+    compression = Compression.GZIP
+    from(configurations.runtimeClasspath - project.configurations.getByName('resolveableCompileOnly')) {
+        into 'deps/'
+    }
+    from(project.jar) {
+        into 'deps/'
+    }
+    from('tools') {
+        into 'tools/'
+    }
+    from('securityconfig') {
+        into 'deps/securityconfig'
+    }
+}
+
+tasks.assemble.dependsOn(bundle)
+tasks.assemble.dependsOn(bundleSecurityAdminStandalone)
+tasks.assemble.dependsOn(bundleSecurityAdminStandaloneTarGz)
+
