@@ -1385,6 +1385,13 @@ opendistro_security_prop_replace:
     masked_fields: null
     allowed_actions:
     - "OPENDISTRO_SECURITY_READ"
+  - index_patterns:
+    - "prop-mapped"
+    dls: "{\"terms\" : { \"securityRole\" : [${user.securityRoles}]}}"
+    fls: null
+    masked_fields: null
+    allowed_actions:
+    - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
 opendistro_security_logstash:
   reserved: false
