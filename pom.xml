@@ -81,7 +81,7 @@
         <ldaptive.version>1.2.3</ldaptive.version>
         <http.commons.version>4.5.13</http.commons.version>
         <cxf.version>3.4.5</cxf.version>
-        <kafka.version>2.5.0</kafka.version>
+        <kafka.version>2.8.1</kafka.version>
         <java-saml.version>2.5.0</java-saml.version>
         <opensaml.version>3.4.5</opensaml.version>
         <commons-codec.version>1.14</commons-codec.version>
