@@ -246,9 +246,9 @@ public class OpenSSLTest extends SSLTest {
     }
 
     @Test
-    public void testTLSv1() throws Exception {
+    public void testTLSv12() throws Exception {
         Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
-        super.testTLSv1();
+        super.testTLSv12();
     }
 
     @Test
