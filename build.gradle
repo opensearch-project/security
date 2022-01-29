@@ -284,6 +284,10 @@ jacoco {
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
 tasks.jacocoTestReport.dependsOn(test) // tests are required to run before generating the report
 
+checkstyle {
+    configFile file("config/checkstyle/sun_checks.xml")
+}
+
 tasks.withType(Checkstyle) {
     reports {
         showViolations false
