@@ -14,6 +14,8 @@ plugins {
 
     // Plugin prints gradle task graph, use following command: ./gradlew tiTree build
     id 'org.barfuin.gradle.taskinfo' version '1.0.5'
+
+    id "nebula.ospackage" version "9.0.0"
 }
 import org.gradle.crypto.checksum.Checksum
 
@@ -291,3 +293,12 @@ tasks.withType(Checkstyle) {
     }
 }
 
+buildRpm {
+    arch = 'NOARCH'
+    addParentDirs = false
+    archiveName "${packageName}-${archiveVersion}.rpm"
+}
+buildDeb {
+    arch = 'all'
+    archiveName "${packageName}-${archiveVersion}.deb"
+}
