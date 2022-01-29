@@ -8,6 +8,7 @@ plugins {
     id 'java'
     id 'maven-publish'
     id 'jacoco'
+    id 'checkstyle'
     id "com.gorylenko.gradle-git-properties" version "2.3.2"
     id 'org.gradle.crypto.checksum' version '1.1.0'
 }
@@ -277,4 +278,13 @@ jacoco {
 }
 tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
 tasks.jacocoTestReport.dependsOn(test) // tests are required to run before generating the report
+
+tasks.withType(Checkstyle) {
+    reports {
+        showViolations false
+        ignoreFailures = true
+        xml.required = true
+        html.required = true
+    }
+}
 
