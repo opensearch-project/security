@@ -296,9 +296,9 @@ tasks.withType(Checkstyle) {
 buildRpm {
     arch = 'NOARCH'
     addParentDirs = false
-    archiveName "${packageName}-${archiveVersion}.rpm"
+    archiveName "${packageName}-${version}.rpm"
 }
 buildDeb {
     arch = 'all'
-    archiveName "${packageName}-${archiveVersion}.deb"
+    archiveName "${packageName}-${version}.deb"
 }
