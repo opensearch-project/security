@@ -68,22 +68,22 @@ dependencies {
             force 'org.apache.httpcomponents:httpcore:4.4.12'
             force "org.apache.commons:commons-lang3:3.4"
         }
+
     }
 
+    implementation 'jakarta.annotation:jakarta.annotation-api:1.3.5'
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation 'com.google.guava:guava:25.1-jre'
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'commons-cli:commons-cli:1.3.1'
     implementation 'org.bouncycastle:bcprov-jdk15on:1.67'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.6'
     implementation 'org.slf4j:slf4j-api:1.7.32'
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'org.apache.httpcomponents:httpclient-cache:4.5.13'
-    implementation 'io.jsonwebtoken:jjwt-api:0.10.5'
-    implementation("org.apache.cxf:cxf-rt-rs-security-jose:3.4.5") {
-        exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
-    }
+    implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
+    implementation "org.apache.cxf:cxf-rt-rs-security-jose:3.4.5"
     implementation 'com.github.wnameless:json-flattener:0.5.0'
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.4'
     implementation 'org.apache.kafka:kafka-clients:2.5.0'
@@ -92,8 +92,8 @@ dependencies {
     implementation 'commons-collections:commons-collections:3.2.2'
     implementation 'com.jayway.jsonpath:json-path:2.4.0'
     implementation 'org.apache.httpcomponents:httpclient:4.5.13'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
     testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
@@ -111,8 +111,8 @@ dependencies {
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
-    compileOnly "org.opensearch:opensearch:${opensearch_version}"
     compileOnly 'io.netty:netty-tcnative:2.0.25.Final'
+    compileOnly "org.opensearch:opensearch:${opensearch_version}"
 }
 
 
@@ -182,7 +182,9 @@ jar {
     processResources {
         exclude("KEYS")
     }
+
 }
+
 testsJar {
     manifest {
         attributes(
