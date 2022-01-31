@@ -35,7 +35,7 @@ The `curl localhost:9200` call from before should also succeed now. Kill the ser
 First create a fork of this repo and clone it locally. Changing into the directory of the newly cloned repository, run the following to build the project:
 
 ```bash
-./gradlew clean assemble --no-daemon
+./gradlew clean assemble
 ```
 
 Install the built plugin into the OpenSearch server:

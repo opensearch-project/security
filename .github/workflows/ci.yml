@@ -44,16 +44,16 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
 
     - name: Checkstyle
-      run: ./gradlew clean checkstyleMain checkstyleTest --no-daemon
+      run: ./gradlew clean checkstyleMain checkstyleTest
 
     - name: Package
-      run: ./gradlew clean build --no-daemon -Dbuild.snapshot=false -x test
+      run: ./gradlew clean build -Dbuild.snapshot=false -x test
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
 
     - name: Test
-      run: ./gradlew test --no-daemon
+      run: ./gradlew test
 
     - name: Coverage
       uses: codecov/codecov-action@v1
