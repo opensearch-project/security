@@ -62,14 +62,14 @@ You can also see the [developer guide](https://github.com/opensearch-project/sec
 
 Run all tests:
 ```bash
-./gradlew clean test --no-daemon
+./gradlew clean test
 ```
 
 Build artifacts (zip, deb, rpm):
 ```bash
-./gradlew clean assemble --no-daemon
+./gradlew clean assemble
 artifact_zip=`ls $(pwd)/build/distributions/opensearch-security-*.zip | grep -v admin-standalone`
-./gradlew buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip
+./gradlew buildDeb buildRpm -ParchivePath=$artifact_zip
 ```
 
 This produces:
