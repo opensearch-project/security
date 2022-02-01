@@ -40,7 +40,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/build.gradle') }}
         restore-keys: ${{ runner.os }}-m2
 
     - name: Checkstyle

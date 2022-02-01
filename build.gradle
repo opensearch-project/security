@@ -46,10 +46,11 @@ import org.gradle.crypto.checksum.Checksum
 import java.text.SimpleDateFormat
 
 repositories {
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenLocal()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
+    jcenter()
 }
 
 ext {
@@ -59,7 +60,7 @@ ext {
 configurations.testImplementation {
     if (it.state != Configuration.State.UNRESOLVED) return
     resolutionStrategy {
-        force 'org.apache.kafka:kafka-clients:2.5.0:test'
+        force 'org.apache.kafka:kafka-clients:2.0.1:test'
     }
 }
 
