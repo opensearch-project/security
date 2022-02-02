@@ -204,10 +204,10 @@ SECURITY_VERSION=$(echo $SECURITY_VERSION | sed 's/.*opensearch-security-\(.*\)\
 
 OS=$(sb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname -om)
 
-#if $SUDO_CMD grep --quiet -i plugins.security "$OPENSEARCH_CONF_FILE"; then
-#  echo "$OPENSEARCH_CONF_FILE seems to be already configured for Security. Quit."
-#  exit $skip_updates
-#fi
+if $SUDO_CMD grep --quiet -i plugins.security "$OPENSEARCH_CONF_FILE"; then
+  echo "$OPENSEARCH_CONF_FILE seems to be already configured for Security. Quit."
+  exit $skip_updates
+fi
 
 set +e
 
