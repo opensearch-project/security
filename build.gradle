@@ -40,6 +40,7 @@ plugins {
     id 'org.barfuin.gradle.taskinfo' version '1.0.5'
 
     id "nebula.ospackage" version "9.0.0"
+    id "com.google.osdetector" version "1.7.0"
 }
 import org.gradle.crypto.checksum.Checksum
 
@@ -56,14 +57,6 @@ repositories {
 ext {
     opensearch_version = System.getProperty("opensearch_version", "1.3.0-SNAPSHOT")
 }
-
-configurations.testImplementation {
-    if (it.state != Configuration.State.UNRESOLVED) return
-    resolutionStrategy {
-        force 'org.apache.kafka:kafka-clients:2.0.1:test'
-    }
-}
-
 
 configurations.all {
     resolutionStrategy {
@@ -120,7 +113,9 @@ dependencies {
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
-    compileOnly 'io.netty:netty-tcnative:2.0.25.Final'
+    testImplementation 'org.apache.kafka:kafka-clients:2.0.1:test'
+    compileOnly "io.netty:netty-tcnative:${osdetector.classifier}"
+    testImplementation "io.netty:netty-tcnative:${osdetector.classifier}"
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 }
 
