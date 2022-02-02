@@ -42,8 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.LegacyESVersion;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.get.GetResponse;
@@ -71,7 +71,7 @@ import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTE
 
 public class ConfigurationLoaderSecurity7 {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private final Client client;
     private final String securityIndex;
     private final ClusterService cs;
@@ -226,7 +226,7 @@ public class ConfigurationLoaderSecurity7 {
                                     callback.failure(new Exception("Cannot parse settings for "+singleGetResponse.getId()));
                                 }
                             } catch (Exception e) {
-                                log.error(e.toString(),e);
+                                log.error(e.toString());
                                 callback.failure(e);
                             }
                         } else {

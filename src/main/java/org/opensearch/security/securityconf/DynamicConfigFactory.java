@@ -44,8 +44,8 @@ import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
@@ -120,7 +120,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         return original;
     }
     
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
     private final EventBus eventBus = EVENT_BUS_BUILDER.build();

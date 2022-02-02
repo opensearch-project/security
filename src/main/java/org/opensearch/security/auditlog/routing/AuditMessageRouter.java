@@ -24,8 +24,8 @@ import java.util.Map;
 import org.opensearch.security.auditlog.config.ThreadPoolConfig;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.threadpool.ThreadPool;
@@ -41,7 +41,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class AuditMessageRouter {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     final AuditLogSink defaultSink;
     volatile Map<AuditCategory, List<AuditLogSink>> categorySinks;
     final SinkProvider sinkProvider;

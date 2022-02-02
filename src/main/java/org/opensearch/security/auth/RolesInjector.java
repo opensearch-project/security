@@ -20,8 +20,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
@@ -37,7 +37,7 @@ import java.util.Set;
  * User name is ignored. And roles are opendistro-roles.
  */
 final public class RolesInjector {
-    protected final Logger log = LogManager.getLogger(RolesInjector.class);
+    protected final Logger log = LoggerFactory.getLogger(RolesInjector.class);
     private final AuditLog auditLog;
 
     public RolesInjector(AuditLog auditLog) {

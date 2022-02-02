@@ -21,8 +21,8 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -31,7 +31,7 @@ import com.google.common.cache.RemovalNotification;
 
 public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdType> {
 
-    private final Logger log = LogManager.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final Cache<ClientIdType, ClientRecord> cache;
     private final long timeWindowMs;

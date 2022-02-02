@@ -277,7 +277,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
                         final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
                         auditLog.logBadHeaders(request, task.getAction(), task);
-                        log.error(exception);
+                        log.error(exception.toString());
                         transportChannel.sendResponse(exception);
                         return;
                     }

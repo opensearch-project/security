@@ -47,7 +47,7 @@ import org.opensearch.security.user.User;
  * The constructor should not throw any exception in case of an initialization problem.
  * Instead catch all exceptions and log a appropriate error message. A logger can be instantiated like:
  * <p/>
- * {@code private final Logger log = LogManager.getLogger(this.getClass());}
+ * {@code private final Logger log = LoggerFactory.getLogger(this.getClass());}
  * 
  * <p/>
  */

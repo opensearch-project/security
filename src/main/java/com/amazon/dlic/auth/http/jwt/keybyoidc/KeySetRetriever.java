@@ -33,15 +33,15 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.cache.BasicHttpCacheStorage;
 import org.apache.http.impl.client.cache.CacheConfig;
 import org.apache.http.impl.client.cache.CachingHttpClients;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.amazon.dlic.auth.http.jwt.oidc.json.OpenIdProviderConfiguration;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfig;
 
 
 public class KeySetRetriever implements KeySetProvider {
-	private final static Logger log = LogManager.getLogger(KeySetRetriever.class);
+	private final static Logger log = LoggerFactory.getLogger(KeySetRetriever.class);
 	private static final long CACHE_STATUS_LOG_INTERVAL_MS = 60L * 60L * 1000L;
 
 	private String openIdConnectEndpoint;

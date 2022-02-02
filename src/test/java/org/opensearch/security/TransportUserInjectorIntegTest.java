@@ -109,7 +109,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             exception = ex;
-            log.warn(ex);
+            log.warn(ex.toString());
             Assert.assertNotNull(exception);
             Assert.assertTrue(exception.getMessage().contains("indices:admin/create"));
         }

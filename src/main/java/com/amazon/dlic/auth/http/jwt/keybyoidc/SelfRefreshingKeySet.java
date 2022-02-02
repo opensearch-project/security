@@ -24,13 +24,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import com.google.common.base.Strings;
 
 public class SelfRefreshingKeySet implements KeyProvider {
-	private static final Logger log = LogManager.getLogger(SelfRefreshingKeySet.class);
+	private static final Logger log = LoggerFactory.getLogger(SelfRefreshingKeySet.class);
 
 	private final KeySetProvider keySetProvider;
 	private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 10, 1000, TimeUnit.MILLISECONDS,
@@ -157,7 +157,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
 			wait(queuedThreadTimeoutMs);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			log.debug(e);
+			log.debug(e.toString());
 		}
 
 		// Just be optimistic and re-check the key
@@ -246,7 +246,7 @@ public class SelfRefreshingKeySet implements KeyProvider {
 				wait(requestTimeoutMs);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
-				log.debug(e);
+				log.debug(e.toString());
 			}
 
 			JsonWebKey result = getKeySimple(kid);

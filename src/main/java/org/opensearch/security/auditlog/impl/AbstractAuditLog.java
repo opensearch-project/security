@@ -34,8 +34,8 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.SpecialPermission;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
@@ -80,7 +80,7 @@ import com.google.common.io.BaseEncoding;
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public abstract class AbstractAuditLog implements AuditLog {
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final ThreadPool threadPool;
     private final IndexNameExpressionResolver resolver;
@@ -395,7 +395,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                         builder.close();
                         msg.addUnescapedJsonToRequestBody(Strings.toString(builder));
                     } catch (IOException e) {
-                        log.error(e.toString(), e);
+                        log.error(e.toString());
                     }
                 } else {
                     if(securityIndex.equals(index) && !"tattr".equals(id)) {
@@ -459,7 +459,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                             originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                         }
                     } catch (Exception e) {
-                        log.error(e);
+                        log.error(e.toString());
                     }
 
                     try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, currentIndex.source(), XContentType.JSON)) {
@@ -470,7 +470,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                             currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
                         }
                     } catch (Exception e) {
-                        log.error(e);
+                        log.error(e.toString());
                     }
                     final JsonNode diffnode = JsonDiff.asJson(DefaultObjectMapper.objectMapper.readTree(originalSource), DefaultObjectMapper.objectMapper.readTree(currentSource));
                     msg.addSecurityConfigWriteDiffSource(diffnode.size() == 0 ? "" : diffnode.toString(), id);
@@ -497,7 +497,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                        msg.addSecurityConfigTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()), id);
                    }
                 } catch (Exception e) {
-                    log.error(e);
+                    log.error(e.toString());
                 }
 
                 //if we want to have msg.ComplianceWritePreviousSource we need to do the same as above

@@ -25,8 +25,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -51,7 +51,7 @@ import org.opensearch.security.support.WildcardMatcher;
 
 public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destroyable {
 
-    protected static final Logger log = LogManager.getLogger(LDAPAuthenticationBackend2.class);
+    protected static final Logger log = LoggerFactory.getLogger(LDAPAuthenticationBackend2.class);
 
     private final Settings settings;
 

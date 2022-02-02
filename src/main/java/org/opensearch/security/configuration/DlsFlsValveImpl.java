@@ -17,8 +17,8 @@ package org.opensearch.security.configuration;
 
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.support.SecurityUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.apache.lucene.util.BytesRef;
 
 import java.lang.reflect.Field;
@@ -64,7 +64,7 @@ import org.opensearch.security.support.HeaderHelper;
 import com.google.common.collect.ImmutableList;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
-    private static final Logger log = LogManager.getLogger(DlsFlsValveImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(DlsFlsValveImpl.class);
 
     /**
      *

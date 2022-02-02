@@ -30,9 +30,6 @@ import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -54,11 +51,6 @@ public class TracingTests extends SingleClusterTest {
 
     @Test
     public void testHTTPTrace() throws Exception {
-
-        Logger logger = (Logger) LogManager.getLogger("opendistro_security_action_trace");
-        final Level level = logger.getLevel();
-        logger.setLevel(Level.TRACE);
-
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, "debug")
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, "true")
@@ -228,7 +220,6 @@ public class TracingTests extends SingleClusterTest {
         "}";
 
         System.out.println(rh.executePostRequest("a/b/_delete_by_query", dbqBody, encodeBasicHeader("admin", "admin")));
-        logger.setLevel(level);
         Thread.sleep(5000);
     }
 

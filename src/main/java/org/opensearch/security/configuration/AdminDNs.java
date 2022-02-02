@@ -41,8 +41,8 @@ import java.util.function.Function;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.Settings;
 
 import org.opensearch.security.support.ConfigConstants;
@@ -53,7 +53,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class AdminDNs {
 
-    protected final Logger log = LogManager.getLogger(AdminDNs.class);
+    protected final Logger log = LoggerFactory.getLogger(AdminDNs.class);
     private final Set<LdapName> adminDn = new HashSet<LdapName>();
     private final Set<String> adminUsernames = new HashSet<String>();
     private final Map<LdapName, WildcardMatcher> allowedDnsImpersonations;

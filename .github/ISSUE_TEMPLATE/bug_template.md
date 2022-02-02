@@ -6,6 +6,8 @@ labels: 'bug, untriaged, Beta'
 assignees: ''
 ---
 
+**Please note!**   This is a template to file a bug for the OpenSearch security plug-in.  If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/) or directly via email to aws-security@amazon.com. Please do **not** create a public GitHub issue.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 

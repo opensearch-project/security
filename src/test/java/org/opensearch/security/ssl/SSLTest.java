@@ -854,7 +854,7 @@ public class SSLTest extends SingleClusterTest {
     }
     
     @Test
-    public void testTLSv1() throws Exception {
+    public void testTLSv12() throws Exception {
 
         final Settings settings = Settings.builder().put("plugins.security.ssl.transport.enabled", true)
                 .put(ConfigConstants.SECURITY_SSL_ONLY, true)
@@ -867,7 +867,7 @@ public class SSLTest extends SingleClusterTest {
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1")
+                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.2")
                 .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
                 .build();
 

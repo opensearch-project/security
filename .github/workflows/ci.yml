@@ -9,17 +9,24 @@ on:
       - main
       - opendistro-*
 
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.class=standard -Dmaven.wagon.http.retryHandler.count=3
+
 jobs:
   build:
     name: build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        jdk: [8, 11, 14]
 
     steps:
 
-    - name: Set up JDK 14
+    - name: Set up JDK
       uses: actions/setup-java@v1
       with:
-        java-version: 14.0.x
+        java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
       uses: actions/checkout@v2

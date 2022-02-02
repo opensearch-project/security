@@ -23,8 +23,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 /**
  * Utility class to test if the server supports SSL connections.
@@ -34,7 +34,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class SSLConnectionTestUtil {
 
-    private static final Logger logger = LogManager.getLogger(SSLConnectionTestUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(SSLConnectionTestUtil.class);
     public static final byte[] OPENSEARCH_PING_MSG = new byte[]{(byte) 'E', (byte) 'S', (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
     public static final String DUAL_MODE_CLIENT_HELLO_MSG = "DUALCM";
     public static final String DUAL_MODE_SERVER_HELLO_MSG = "DUALSM";
