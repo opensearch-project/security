@@ -241,7 +241,10 @@ echo "plugins.security.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee
 echo "plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.authcz.admin_dn:" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "  - CN=kirk,OU=client,O=client,L=test, C=de" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "  - CN=KIRK,OU=demo,O=demo,L=SEATTLE,ST=WA,C=US" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.nodes_dn:" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo " - CN=ESNODE,OU=demo,O=demo,L=SEATTLE,ST=WA,C=US" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.audit.type: internal_opensearch" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.enable_snapshot_restore_privilege: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
