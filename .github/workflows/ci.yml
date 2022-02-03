@@ -10,7 +10,7 @@ on:
       - opendistro-*
 
 env:
-  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.class=standard -Dmaven.wagon.http.retryHandler.count=3
+  GRADLE_OPTS: -Dhttp.keepAlive=false -DCI=true
 
 jobs:
   build:
