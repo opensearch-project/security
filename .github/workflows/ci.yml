@@ -36,12 +36,16 @@ jobs:
       with:
         languages: java
 
-    - name: Cache Maven packages
-      uses: actions/cache@v1
+    - name: Cache Gradle packages
+      uses: actions/cache@v2
       with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/build.gradle') }}
-        restore-keys: ${{ runner.os }}-m2
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
 
     - name: Checkstyle
       run: ./gradlew clean checkstyleMain checkstyleTest
