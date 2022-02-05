@@ -6,7 +6,7 @@ on:
       - '*'
 
 env:
-  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.class=standard -Dmaven.wagon.http.retryHandler.count=3
+  GRADLE_OPTS: -Dhttp.keepAlive=false
 
 jobs:
   build:
@@ -22,12 +22,15 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v2
 
-    - name: Cache Maven packages
-      uses: actions/cache@v1
+    - name: Cache Gradle packages
+      uses: actions/cache@v2
       with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/build.gradle') }}
-        restore-keys: ${{ runner.os }}-m2
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
 
     - name: Build
       run: |
