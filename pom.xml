@@ -633,7 +633,7 @@
                 <configuration>
                     <argLine>-Xmx3072m</argLine>
                     <rerunFailingTestsCount>5</rerunFailingTestsCount>
-                    <forkCount>5</forkCount>
+                    <forkCount>3</forkCount>
                     <reuseForks>true</reuseForks>
                     <!--
                     <parallel>methods</parallel>
