@@ -34,8 +34,25 @@ function show_help() {
     echo "  -s skip updates if config is already applied to opensearch.yml"
 }
 
+function do_certificates_exist() {
+  echo ""
+  echo -e "Checking if certificates exist in $OPENSEARCH_CONF_DIR/certs/"
+  ls $OPENSEARCH_CONF_DIR/certs
+  if ls $OPENSEARCH_CONF_DIR/certs/*.pem > /dev/null 2>&1; then
+    true; return
+  else
+    false; return
+  fi
+}
+
 function generate_certs() {
   notify "Step $((++step)): Generating self-signed certificates using OpenSSL"
+
+  if [ ! -d "certs/" ]; then
+      echo -e "Creating certs/ directory..."
+      mkdir -p certs
+  fi
+  cd $OPENSEARCH_CONF_DIR/certs/
 
   local validity=$1
   local root_subj=$2
@@ -45,27 +62,28 @@ function generate_certs() {
   # Root cert
   openssl genrsa -out root-ca-key.pem 2048 &> /dev/null
   openssl req -new -x509 -sha256 -key root-ca-key.pem -subj "$root_subj" -out root-ca.pem -days $validity &> /dev/null
-  echo -e "Root certificates created at `pwd`/root-ca.pem"
+  echo -e "Root certificates created at `pwd`/certs/root-ca.pem"
 
   # Admin cert
   openssl genrsa -out kirk-key-temp.pem 2048 &> /dev/null
   openssl pkcs8 -inform PEM -outform PEM -in kirk-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out kirk-key.pem &> /dev/null
   openssl req -new -key kirk-key.pem -subj "$admin_subj" -out kirk.csr &> /dev/null
   openssl x509 -req -in kirk.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out kirk.pem -days $validity &> /dev/null
-  echo -e "Admin certificates created at `pwd`/kirk.pem"
+  echo -e "Admin certificates created at `pwd`/certs/kirk.pem"
 
   # Node cert
   openssl genrsa -out esnode-key-temp.pem 2048 &> /dev/null
   openssl pkcs8 -inform PEM -outform PEM -in esnode-key-temp.pem -topk8 -nocrypt -v1 PBE-SHA1-3DES -out esnode-key.pem &> /dev/null
   openssl req -new -key esnode-key.pem -subj "$node_subj" -out esnode.csr &> /dev/null
   openssl x509 -req -in esnode.csr -CA root-ca.pem -CAkey root-ca-key.pem -CAcreateserial -sha256 -out esnode.pem -days $validity &> /dev/null
-  echo -e "Node certificates created at `pwd`/esnode.pem"
+  echo -e "Node certificates created at `pwd`/certs/esnode.pem"
 
   # Cleanup
   rm kirk-key-temp.pem
   rm kirk.csr
   rm esnode-key-temp.pem
   rm esnode.csr
+  cd $OPENSEARCH_CONF_DIR
 }
 
 function notify() {
@@ -86,6 +104,7 @@ while getopts "h?yics" opt; do
     c)  cluster_mode=1
         ;;
     s)  skip_updates=0
+        ;;
     esac
 done
 
@@ -214,15 +233,19 @@ set +e
 set -e
 
 cd "$OPENSEARCH_CONF_DIR"
-if ([ "$assumeyes" == 1 ]); then
-  generate_certs $default_certs_expiry_days "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=ROOT" "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=KIRK" "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=ESNODE"
-else
-  read -r -p "How many days should keys be active for? " validity
-  read -r -p "Provide subject for root certificate?" root_subj
-  read -r -p "Provide subject for admin certificate?" admin_subj
-  read -r -p "Provide subject for node certificate?" node_subj
+if ( ! do_certificates_exist ); then
+  if ([ "$assumeyes" == 1 ]); then
+    generate_certs $default_certs_expiry_days "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=ROOT" "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=KIRK" "/C=US/ST=WA/L=SEATTLE/O=demo/OU=demo/CN=ESNODE"
+  else
+    read -r -p "How many days should keys be active for? " validity
+    read -r -p "Provide subject for root certificate?" root_subj
+    read -r -p "Provide subject for admin certificate?" admin_subj
+    read -r -p "Provide subject for node certificate?" node_subj
 
-  generate_certs $validity $root_subj $admin_subj $node_subj
+    generate_certs $validity $root_subj $admin_subj $node_subj
+  fi
+else
+  echo "Certificates already present in certs/ directory. Skipping new certificate creation..."
 fi
 
 cd ..
@@ -231,14 +254,14 @@ notify "Step $((++step)): Installing self-signed certificates"
 echo "" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE"
 echo "######## Start OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "plugins.security.ssl.transport.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "plugins.security.ssl.transport.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "plugins.security.ssl.transport.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.transport.pemcert_filepath: certs/esnode.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.transport.pemkey_filepath: certs/esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.transport.pemtrustedcas_filepath: certs/root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.ssl.transport.enforce_hostname_verification: false" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.ssl.http.enabled: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "plugins.security.ssl.http.pemcert_filepath: esnode.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "plugins.security.ssl.http.pemkey_filepath: esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
-echo "plugins.security.ssl.http.pemtrustedcas_filepath: root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.http.pemcert_filepath: certs/esnode.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.http.pemkey_filepath: certs/esnode-key.pem" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE" > /dev/null
+echo "plugins.security.ssl.http.pemtrustedcas_filepath: certs/root-ca.pem" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.allow_unsafe_democertificates: true" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "plugins.security.authcz.admin_dn:" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "  - CN=KIRK,OU=demo,O=demo,L=SEATTLE,ST=WA,C=US" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
@@ -253,7 +276,6 @@ echo 'plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_
 echo 'plugins.security.system_indices.enabled: true' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo 'plugins.security.system_indices.indices: [".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opendistro-notifications-*", ".opendistro-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]' | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo -e "Certificates installed successfully! See updated settings in config/opensearch.yml"
-
 
 #network.host
 if $SUDO_CMD grep --quiet -i "^network.host" "$OPENSEARCH_CONF_FILE"; then
@@ -322,7 +344,7 @@ fi
 
 # Generate securityadmin_demo.sh
 echo "#!/usr/bin/env bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null
-echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
+echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/certs/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/certs/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/certs/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x securityadmin_demo.sh
 
 notify "Setup complete!"
