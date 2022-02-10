@@ -37,7 +37,6 @@ function show_help() {
 function do_certificates_exist() {
   echo ""
   echo -e "Checking if certificates exist in $OPENSEARCH_CONF_DIR/certs/"
-  ls $OPENSEARCH_CONF_DIR/certs
   if ls $OPENSEARCH_CONF_DIR/certs/*.pem > /dev/null 2>&1; then
     true; return
   else
