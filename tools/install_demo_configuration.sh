@@ -354,7 +354,8 @@ echo -e "(Ignore the SSL certificate warning because we installed self-signed ce
 
 echo -e "\nFollow the steps below to setup multi-node cluster"
 echo -e "1. Execute this script now on all your nodes"
-echo -e "2. Start all nodes with bin/opensearch"
+echo -e "2. Replace certificates on all other nodes with generated certificates on this node. The certificates can be found on path - $OPENSEARCH_CONF_DIR/certs/"
+echo -e "3. Start all nodes with bin/opensearch"
 
 echo -e "\nFor configuring language clients like Java, Python, Go, and tools like Logstash, Grafana, etc.,
 please refer to the "CLIENTS AND TOOLS" documentation on https://opensearch.org/docs/latest"
