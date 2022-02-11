@@ -123,11 +123,7 @@ dependencies {
     compileOnly "io.netty:netty-tcnative:2.0.25.Final:${osdetector.classifier}"
     testImplementation "io.netty:netty-tcnative:2.0.25.Final:${osdetector.classifier}"
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
-    testImplementation ('org.scala-lang:scala-library:2.12.10') {
-        force true
-    }
 }
-
 
 ext {
     securityPluginVersion = '1.3.0.0'
