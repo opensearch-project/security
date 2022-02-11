@@ -10,7 +10,7 @@ on:
       - opendistro-*
 
 env:
-  GRADLE_OPTS: -Dhttp.keepAlive=false -DCI=true
+  GRADLE_OPTS: -Dhttp.keepAlive=false
 
 jobs:
   build:
