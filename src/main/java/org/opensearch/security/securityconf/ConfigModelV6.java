@@ -35,8 +35,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -67,7 +67,7 @@ import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 
 public class ConfigModelV6 extends ConfigModel {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private ConfigConstants.RolesMappingResolution rolesMappingResolution;
     private ActionGroupResolver agr = null;
     private SecurityRoles securityRoles = null;
@@ -299,7 +299,7 @@ public class ConfigModelV6 extends ConfigModel {
 
     public static class SecurityRoles implements org.opensearch.security.securityconf.SecurityRoles {
 
-        protected final Logger log = LogManager.getLogger(this.getClass());
+        protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
         final Set<SecurityRole> roles;
 
@@ -937,7 +937,7 @@ public class ConfigModelV6 extends ConfigModel {
     }
 
     private static final class IndexMatcherAndTypePermissions {
-        private static final Logger log = LogManager.getLogger(IndexMatcherAndTypePermissions.class);
+        private static final Logger log = LoggerFactory.getLogger(IndexMatcherAndTypePermissions.class);
 
         private final WildcardMatcher matcher;
         private final Set<TypePerm> typePerms;
@@ -979,11 +979,20 @@ public class ConfigModelV6 extends ConfigModel {
 
     private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] requestedActions,
                                            IndexNameExpressionResolver resolver, ClusterService cs) {
-
-        IndexMatcherAndTypePermissions[] indexMatcherAndTypePermissions = ipatterns
-                .stream()
-                .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
-                .toArray(IndexMatcherAndTypePermissions[]::new);
+        IndexMatcherAndTypePermissions[] indexMatcherAndTypePermissions;
+        if (resolved.isLocalAll()) {
+            // Only let localAll pass if there is an explicit privilege for a * index pattern
+            indexMatcherAndTypePermissions = ipatterns
+                    .stream()
+                    .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
+                    .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
+                    .toArray(IndexMatcherAndTypePermissions[]::new);
+        } else {
+            indexMatcherAndTypePermissions = ipatterns
+                    .stream()
+                    .map(p -> new IndexMatcherAndTypePermissions(p.getResolvedIndexPattern(user, resolver, cs), p.getTypePerms()))
+                    .toArray(IndexMatcherAndTypePermissions[]::new);
+        }
 
         return resolved.getAllIndices()
                 .stream().allMatch(index ->

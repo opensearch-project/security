@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@
 package org.opensearch.security.configuration;
 
 import org.opensearch.security.setting.OpensearchDynamicSetting;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.greenrobot.eventbus.Subscribe;
@@ -44,7 +44,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_UNSUPPORT
 
 public class CompatConfig {
 
-    private final Logger log = LogManager.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final Settings staticSettings;
     private DynamicConfigModel dcm;
     private final OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;

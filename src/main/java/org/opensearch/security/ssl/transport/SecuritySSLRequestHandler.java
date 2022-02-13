@@ -25,8 +25,8 @@ import java.util.Arrays;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import org.opensearch.security.support.ConfigConstants;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -52,7 +52,7 @@ implements TransportRequestHandler<T> {
     private final String action;
     private final TransportRequestHandler<T> actualHandler;
     private final ThreadPool threadPool;
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private final PrincipalExtractor principalExtractor;
     private final SslExceptionHandler errorHandler;
     private final SSLConfig SSLConfig;

@@ -16,10 +16,13 @@ fi
 
 BIN_PATH="java"
 
-if [ -z "$JAVA_HOME" ]; then
-    echo "WARNING: JAVA_HOME not set, will use $(which $BIN_PATH)"
-else
+# now set the path to java: first OPENSEARCH_JAVA_HOME, then JAVA_HOME
+if [ ! -z "$OPENSEARCH_JAVA_HOME" ]; then
+    BIN_PATH="$OPENSEARCH_JAVA_HOME/bin/java"
+elif [ ! -z "$JAVA_HOME" ]; then
     BIN_PATH="$JAVA_HOME/bin/java"
+else
+    echo "WARNING: nor OPENSEARCH_JAVA_HOME nor JAVA_HOME is set, will use $(which $BIN_PATH)"
 fi
 
 "$BIN_PATH" $JAVA_OPTS -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$DIR/../*:$DIR/../../../lib/*:$DIR/../deps/*" org.opensearch.security.tools.SecurityAdmin "$@" 2>/dev/null

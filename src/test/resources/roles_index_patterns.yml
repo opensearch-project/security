@@ -1,0 +1,24 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+
+negative_lookahead_role:
+  description: "Role with negative lookahead index pattern"
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - "/^(?!t.*).*/"
+      allowed_actions:
+        - "read"
+
+negated_regex_role:
+  description: "Role with negated regex index pattern"
+  cluster_permissions:
+    - "cluster_composite_ops"
+  index_permissions:
+    - index_patterns:
+        - "/^[a-z].*/"
+      allowed_actions:
+        - "read"

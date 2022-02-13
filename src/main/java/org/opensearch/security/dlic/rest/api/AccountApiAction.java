@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ public class AccountApiAction extends AbstractApiAction {
 
             response = new BytesRestResponse(RestStatus.OK, builder);
         } catch (final Exception exception) {
-            log.error(exception.toString(), exception);
+            log.error(exception.toString());
 
             builder.startObject()
                     .field("error", exception.toString())

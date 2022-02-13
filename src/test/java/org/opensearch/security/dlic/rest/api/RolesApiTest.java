@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import java.util.List;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
@@ -27,11 +29,13 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator.ErrorType;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import com.google.common.collect.ImmutableList;
+
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class RolesApiTest extends AbstractRestApiUnitTest {
@@ -45,8 +49,8 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
     @Parameterized.Parameters
     public static Iterable<String> endpoints() {
         return ImmutableList.of(
-                "/_opendistro/_security/api",
-                "/_plugins/_security/api"
+                LEGACY_OPENDISTRO_PREFIX + "/api",
+                PLUGINS_PREFIX + "/api"
         );
     }
 
@@ -225,14 +229,14 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // put new configuration with invalid payload, must fail
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                                        FileHelper.loadFile("restapi/roles_not_parseable.json"), new Header[0]);
+                FileHelper.loadFile("restapi/roles_not_parseable.json"), new Header[0]);
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertEquals(AbstractConfigurationValidator.ErrorType.BODY_NOT_PARSEABLE.getMessage(), settings.get("reason").asText());
 
         // put new configuration with invalid keys, must fail
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                                        FileHelper.loadFile("restapi/roles_invalid_keys.json"), new Header[0]);
+                FileHelper.loadFile("restapi/roles_invalid_keys.json"), new Header[0]);
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertEquals(AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage(), settings.get("reason").asText());
@@ -242,7 +246,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // put new configuration with wrong datatypes, must fail
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                                        FileHelper.loadFile("restapi/roles_wrong_datatype.json"), new Header[0]);
+                FileHelper.loadFile("restapi/roles_wrong_datatype.json"), new Header[0]);
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason").asText());
@@ -251,17 +255,17 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         // put read only role, must be forbidden
         // But SuperAdmin can still create it
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_transport_client",
-                                        FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
+                FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // put hidden role, must be forbidden, but allowed for super admin
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_internal",
-                                        FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
+                FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // restore starfleet role
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                                        FileHelper.loadFile("restapi/roles_starfleet.json"), new Header[0]);
+                FileHelper.loadFile("restapi/roles_starfleet.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         rh.sendAdminCertificate = false;
         checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "ships", 0);
@@ -365,7 +369,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(settings.get("status").asText(), "error");
-        Assert.assertEquals(settings.get("reason").asText(), ErrorType.INVALID_CONFIGURATION.getMessage());
+        Assert.assertEquals(settings.get("reason").asText(), AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage());
 
         // -- PATCH
         // PATCH on non-existing resource
@@ -462,7 +466,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // put valid field masks
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_field_mask_valid",
-                                        FileHelper.loadFile("restapi/roles_field_masks_valid.json"), new Header[0]);
+                FileHelper.loadFile("restapi/roles_field_masks_valid.json"), new Header[0]);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
 
         // put invalid field masks
@@ -531,27 +535,39 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         String body = FileHelper.loadFile("restapi/roles_null_array_element_cluster_permissions.json");
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_index_permissions.json");
         response = rh.executePutRequest(ENDPOINT+ "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_tenant_permissions.json");
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_index_patterns.json");
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_masked_fields.json");
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
 
         body = FileHelper.loadFile("restapi/roles_null_array_element_allowed_actions.json");
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", body, new Header[0]);
+        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
     }
 
 }

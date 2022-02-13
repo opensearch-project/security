@@ -17,8 +17,8 @@
 
 package org.opensearch.security.ssl.transport;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportInterceptor;
@@ -29,7 +29,7 @@ import org.opensearch.security.ssl.SslExceptionHandler;
 
 public final class SecuritySSLTransportInterceptor implements TransportInterceptor {
     
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     protected final ThreadPool threadPool;
     protected final PrincipalExtractor principalExtractor;
     protected final SslExceptionHandler errorHandler;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 
 public class HTTPJwtKeyByOpenIdConnectAuthenticator extends AbstractHTTPJwtAuthenticator {
 
-	//private final static Logger log = LogManager.getLogger(HTTPJwtKeyByOpenIdConnectAuthenticator.class);
+	//private final static Logger log = LoggerFactory.getLogger(HTTPJwtKeyByOpenIdConnectAuthenticator.class);
 
 	public HTTPJwtKeyByOpenIdConnectAuthenticator(Settings settings, Path configPath) {
 		super(settings, configPath);

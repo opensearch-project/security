@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -33,7 +33,7 @@ import org.opensearch.tasks.Task;
 
 public class ProtectedIndexAccessEvaluator {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final AuditLog auditLog;
     private final WildcardMatcher indexMatcher;
@@ -66,7 +66,8 @@ public class ProtectedIndexAccessEvaluator {
         if (!protectedIndexEnabled) {
             return presponse;
         }
-        if (indexMatcher.matchAny(requestedResolved.getAllIndices())
+        if (!requestedResolved.isLocalAll()
+                && indexMatcher.matchAny(requestedResolved.getAllIndices())
                 && deniedActionMatcher.test(action)
                 && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
             auditLog.logMissingPrivileges(action, request, task);
@@ -83,8 +84,8 @@ public class ProtectedIndexAccessEvaluator {
             presponse.allowed = false;
             return presponse.markComplete();
         }
-        if((indexMatcher.matchAny(requestedResolved.getAllIndices())
-                || requestedResolved.isLocalAll())
+        if((requestedResolved.isLocalAll()
+                || indexMatcher.matchAny(requestedResolved.getAllIndices()))
                 && !allowedRolesMatcher.matchAny(securityRoles.getRoleNames())) {
 
             final boolean isDebugEnabled = log.isDebugEnabled();

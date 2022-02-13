@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -37,8 +37,8 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.dlic.rest.api.WhitelistApiAction;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
@@ -66,9 +66,12 @@ import org.greenrobot.eventbus.Subscribe;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 public class SecurityRestFilter {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private final BackendRegistry registry;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
@@ -79,11 +82,8 @@ public class SecurityRestFilter {
 
     private WhitelistingSettings whitelistingSettings;
 
-    private static final String LEGACY_OPENDISTRO_PREFIX = "/_opendistro/_security/";
-    private static final String PLUGINS_PREFIX = "/_plugins/_security/";
     private static final String HEALTH_SUFFIX = "health";
-
-    private static final String REGEX_PATH_PREFIX = "("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")" +"(.*)";
+    private static final String REGEX_PATH_PREFIX = "/("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
 
@@ -144,7 +144,7 @@ public class SecurityRestFilter {
         
         if(HTTPHelper.containsBadHeader(request)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-            log.error(exception);
+            log.error(exception.toString());
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;
@@ -152,7 +152,7 @@ public class SecurityRestFilter {
         
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-            log.error(exception);
+            log.error(exception.toString());
             auditLog.logBadHeaders(request);
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -21,14 +21,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.opensearch.security.auditlog.config.ThreadPoolConfig;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.sink.AuditLogSink;
 
 public class AsyncStoragePool {
-	private static final Logger log = LogManager.getLogger(AsyncStoragePool.class);
+	private static final Logger log = LoggerFactory.getLogger(AsyncStoragePool.class);
 	private final ExecutorService pool;
 	private final ThreadPoolConfig threadPoolConfig;
 

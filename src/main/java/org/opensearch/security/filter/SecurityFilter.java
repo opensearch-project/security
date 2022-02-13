@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -41,8 +41,8 @@ import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.opensearch.security.auth.BackendRegistry;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
@@ -104,7 +104,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 
 public class SecurityFilter implements ActionFilter {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;
@@ -131,7 +131,7 @@ public class SecurityFilter implements ActionFilter {
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
-        this.rolesInjector = new RolesInjector();
+        this.rolesInjector = new RolesInjector(auditLog);
         this.backendRegistry = backendRegistry;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
@@ -171,7 +171,7 @@ public class SecurityFilter implements ActionFilter {
             if (complianceConfig != null && complianceConfig.isEnabled()) {
                 attachSourceFieldContext(request);
             }
-            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(threadContext);
+            final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
             boolean enforcePrivilegesEvaluation = false;
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
             if(user == null && (user = backendRegistry.authenticate(request, null, task, action)) != null) {
@@ -305,13 +305,13 @@ public class SecurityFilter implements ActionFilter {
             final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, injectedRoles);
             
             if (log.isDebugEnabled()) {
-                log.debug(pres);
+                log.debug(pres.toString());
             }
 
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
-                if(!dlsFlsValve.invoke(request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
+                if(!dlsFlsValve.invoke(action, request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
                     return;
                 }
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
@@ -353,9 +353,14 @@ public class SecurityFilter implements ActionFilter {
                 }
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
-                String err = (injectedRoles == null) ?
-                        String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user) :
-                        String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), injectedRoles);
+                String err;
+                if(!pres.getMissingSecurityRoles().isEmpty()) {
+                    err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
+                } else {
+                    err = (injectedRoles != null) ?
+                            String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), pres.getResolvedSecurityRoles()) :
+                            String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
+                }
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
             }
@@ -420,8 +425,10 @@ public class SecurityFilter implements ActionFilter {
 
     private boolean isRequestIndexImmutable(Object request) {
         final IndexResolverReplacer.Resolved resolved = indexResolverReplacer.resolveRequest(request);
+        if (resolved.isLocalAll()) {
+            return true;
+        }
         final Set<String> allIndices = resolved.getAllIndices();
-
         return immutableIndicesMatcher.matchAny(allIndices);
     }
 }

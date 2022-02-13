@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -22,11 +22,12 @@ import java.security.PrivateKey;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+import com.google.common.annotations.VisibleForTesting;
 import net.shibboleth.utilities.java.support.xml.BasicParserPool;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -67,20 +68,20 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 
 public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
-    protected final static Logger log = LogManager.getLogger(HTTPSamlAuthenticator.class);
+    protected final static Logger log = LoggerFactory.getLogger(HTTPSamlAuthenticator.class);
 
     public static final String IDP_METADATA_URL = "idp.metadata_url";
     public static final String IDP_METADATA_FILE = "idp.metadata_file";
     public static final String IDP_METADATA_CONTENT = "idp.metadata_content";
 
-    private static final String LEGACY_OPENDISTRO_PREFIX = "/_opendistro/_security/";
-    private static final String PLUGINS_PREFIX = "/_plugins/_security/";
     private static final String API_AUTHTOKEN_SUFFIX = "api/authtoken";
     private static final String AUTHINFO_SUFFIX = "authinfo";
-
-    private static final String REGEX_PATH_PREFIX = "(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")" +"(.*)";
+    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
     private static final  Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
 
@@ -95,7 +96,8 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
     private Saml2SettingsProvider saml2SettingsProvider;
     private MetadataResolver metadataResolver;
     private AuthTokenProcessorHandler authTokenProcessorHandler;
-    private HTTPJwtAuthenticator httpJwtAuthenticator;
+    @VisibleForTesting
+    protected HTTPJwtAuthenticator httpJwtAuthenticator;
     private Settings jwtSettings;
 
     private static int resolverIdCounter = 0;

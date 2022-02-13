@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -191,6 +191,132 @@ public class HTTPSamlAuthenticatorTest {
         JwtToken jwt = jwtConsumer.getJwtToken();
 
         Assert.assertEquals("horst", jwt.getClaim("sub"));
+    }
+
+    @Test
+    public void shouldUnescapeSamlEntitiesTest() throws Exception {
+        mockSamlIdpServer.setAuthenticateUser("ABC\\User1");
+        mockSamlIdpServer.setEndpointQueryString(null);
+        mockSamlIdpServer.setSpSignatureCertificate(spSigningCertificate);
+        mockSamlIdpServer.setEncryptAssertion(true);
+        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("ABC\\Admin"));
+
+        Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
+                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
+
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+
+        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
+
+        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(responseJson,
+                new TypeReference<HashMap<String, Object>>() {
+                });
+        String authorization = (String) response.get("authorization");
+
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
+        JwtToken jwt = jwtConsumer.getJwtToken();
+
+        Assert.assertEquals("ABC\\User1", jwt.getClaim("sub"));
+        Assert.assertEquals("ABC\\User1",  samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()));
+        Assert.assertEquals("[ABC\\Admin]", String.valueOf(jwt.getClaim("roles")));
+        Assert.assertEquals("ABC\\Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0]);
+    }
+
+    @Test
+    public void shouldUnescapeSamlEntitiesTest2() throws Exception {
+        mockSamlIdpServer.setAuthenticateUser("ABC\"User1");
+        mockSamlIdpServer.setEndpointQueryString(null);
+        mockSamlIdpServer.setSpSignatureCertificate(spSigningCertificate);
+        mockSamlIdpServer.setEncryptAssertion(true);
+        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("ABC\"Admin"));
+
+        Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
+                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
+
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+
+        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
+
+        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(responseJson,
+                new TypeReference<HashMap<String, Object>>() {
+                });
+        String authorization = (String) response.get("authorization");
+
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
+        JwtToken jwt = jwtConsumer.getJwtToken();
+
+        Assert.assertEquals("ABC\"User1", jwt.getClaim("sub"));
+        Assert.assertEquals("ABC\"User1",  samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()));
+        Assert.assertEquals("[ABC\"Admin]", String.valueOf(jwt.getClaim("roles")));
+        Assert.assertEquals("ABC\"Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0]);
+    }
+
+    @Test
+    public void shouldNotEscapeSamlEntities() throws Exception {
+        mockSamlIdpServer.setAuthenticateUser("ABC/User1");
+        mockSamlIdpServer.setEndpointQueryString(null);
+        mockSamlIdpServer.setSpSignatureCertificate(spSigningCertificate);
+        mockSamlIdpServer.setEncryptAssertion(true);
+        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("ABC/Admin"));
+
+        Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+                .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
+                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
+                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
+
+        HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
+
+        AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
+
+        String encodedSamlResponse = mockSamlIdpServer.handleSsoGetRequestURI(authenticateHeaders.location);
+
+        RestRequest tokenRestRequest = buildTokenExchangeRestRequest(encodedSamlResponse, authenticateHeaders);
+        TestRestChannel tokenRestChannel = new TestRestChannel(tokenRestRequest);
+
+        samlAuthenticator.reRequestAuthentication(tokenRestChannel, null);
+
+        String responseJson = new String(BytesReference.toBytes(tokenRestChannel.response.content()));
+        HashMap<String, Object> response = DefaultObjectMapper.objectMapper.readValue(responseJson,
+                new TypeReference<HashMap<String, Object>>() {
+                });
+        String authorization = (String) response.get("authorization");
+
+        Assert.assertNotNull("Expected authorization attribute in JSON: " + responseJson, authorization);
+
+        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(authorization.replaceAll("\\s*bearer\\s*", ""));
+        JwtToken jwt = jwtConsumer.getJwtToken();
+
+        Assert.assertEquals("ABC/User1", jwt.getClaim("sub"));
+        Assert.assertEquals("ABC/User1",  samlAuthenticator.httpJwtAuthenticator.extractSubject(jwt.getClaims()));
+        Assert.assertEquals("[ABC/Admin]", String.valueOf(jwt.getClaim("roles")));
+        Assert.assertEquals("ABC/Admin", samlAuthenticator.httpJwtAuthenticator.extractRoles(jwt.getClaims())[0]);
     }
 
     @Test

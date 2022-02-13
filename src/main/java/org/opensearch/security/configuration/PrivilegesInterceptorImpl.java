@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ package org.opensearch.security.configuration;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
@@ -65,7 +65,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "0-1"
     );
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
 
     public PrivilegesInterceptorImpl(IndexNameExpressionResolver resolver, ClusterService clusterService, Client client, ThreadPool threadPool) {
         super(resolver, clusterService, client, threadPool);
@@ -143,7 +143,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         //request not made by the kibana server and user index is the only index/alias involved
-        if (!user.getName().equals(dashboardsServerUsername)) {
+        if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.isLocalAll()) {
             final Set<String> indices = requestedResolved.getAllIndices();
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
             if (indices.size() == 1 && indices.iterator().next().startsWith(tenantIndexName) &&
@@ -341,6 +341,9 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     }
 
     private static boolean resolveToDashboardsIndexOrAlias(final Resolved requestedResolved, final String dashboardsIndexName) {
+        if (requestedResolved.isLocalAll()) {
+            return false;
+        }
         final Set<String> allIndices = requestedResolved.getAllIndices();
         if (allIndices.size() == 1 && allIndices.iterator().next().equals(dashboardsIndexName)) {
             return true;

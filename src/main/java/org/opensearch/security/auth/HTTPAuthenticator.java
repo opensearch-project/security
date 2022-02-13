@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ import org.opensearch.security.user.AuthCredentials;
  * The constructor should not throw any exception in case of an initialization problem.
  * Instead catch all exceptions and log a appropriate error message. A logger can be instantiated like:
  * <p/>
- * {@code private final Logger log = LogManager.getLogger(this.getClass());}
+ * {@code private final Logger log = LoggerFactory.getLogger(this.getClass());}
  * <p/>
  */
 public interface HTTPAuthenticator {

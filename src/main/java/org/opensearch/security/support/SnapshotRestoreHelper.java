@@ -14,7 +14,7 @@
  */
 
 /*
- * Portions Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -36,8 +36,8 @@ import java.util.List;
 import java.util.Objects;
 
 import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.SpecialPermission;
 import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.opensearch.action.support.PlainActionFuture;
@@ -50,7 +50,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 public class SnapshotRestoreHelper {
 
-    protected static final Logger log = LogManager.getLogger(SnapshotRestoreHelper.class);
+    protected static final Logger log = LoggerFactory.getLogger(SnapshotRestoreHelper.class);
     
     public static List<String> resolveOriginalIndices(RestoreSnapshotRequest restoreRequest) {
         final SnapshotInfo snapshotInfo = getSnapshotInfo(restoreRequest);

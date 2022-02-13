@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 
 package org.opensearch.security.setting;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 
@@ -30,7 +30,7 @@ public abstract class OpensearchDynamicSetting<T> {
     private final Setting<T> dynamicSetting;
     private volatile T dynamicSettingValue;
 
-    private final Logger logger = LogManager.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public OpensearchDynamicSetting(Setting<T> dynamicSetting, T dynamicSettingValue) {
         this.dynamicSetting = dynamicSetting;

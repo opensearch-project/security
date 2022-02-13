@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright OpenSearch Contributors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License").
  *  You may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import com.google.common.collect.ImmutableList;
-
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 @RunWith(Parameterized.class)
 public class FlushCacheApiTest extends AbstractRestApiUnitTest {
@@ -39,8 +41,8 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
 	@Parameterized.Parameters
 	public static Iterable<String> endpoints() {
 		return ImmutableList.of(
-				"/_opendistro/_security/api/cache",
-				"/_plugins/_security/api/cache"
+				LEGACY_OPENDISTRO_PREFIX + "/api/cache",
+				PLUGINS_PREFIX + "/api/cache"
 		);
 	}
 
@@ -78,5 +80,4 @@ public class FlushCacheApiTest extends AbstractRestApiUnitTest {
 		Assert.assertEquals(settings.get("message"), "Cache flushed successfully.");
 
 	}
-
 }

@@ -17,10 +17,14 @@ fi
 
 BIN_PATH="java"
 
-if [ -z "$JAVA_HOME" ]; then
-    echo "WARNING: JAVA_HOME not set, will use $(which $BIN_PATH)"
-else
+# now set the path to java: first OPENSEARCH_JAVA_HOME, then JAVA_HOME
+if [ ! -z "$OPENSEARCH_JAVA_HOME" ]; then
+    BIN_PATH="$OPENSEARCH_JAVA_HOME/bin/java"
+elif [ ! -z "$JAVA_HOME" ]; then
     BIN_PATH="$JAVA_HOME/bin/java"
+else
+    echo "WARNING: nor OPENSEARCH_JAVA_HOME nor JAVA_HOME is set, will use $(which $BIN_PATH)"
 fi
+
 
 "$BIN_PATH" $JAVA_OPTS -cp "$DIR/../../opendistro_security_ssl/*:$DIR/../*:$DIR/../deps/*:$DIR/../../../lib/*" org.opensearch.security.tools.Hasher "$@"

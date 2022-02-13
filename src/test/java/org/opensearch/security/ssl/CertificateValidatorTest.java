@@ -30,8 +30,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.junit.Assert;
 import org.junit.Test;
@@ -43,7 +43,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 public class CertificateValidatorTest {
     
     public static final Date CRL_DATE = new Date(1525546426000L);
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
     
     @Test
     public void testStaticCRL() throws Exception {
