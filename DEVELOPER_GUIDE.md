@@ -35,14 +35,14 @@ The `curl localhost:9200` call from before should also succeed now. Kill the ser
 First create a fork of this repo and clone it locally. Changing into the directory of the newly cloned repository, run the following to build the project:
 
 ```bash
-mvn -B package -Padvanced -DskipTests
+./gradlew clean assemble
 ```
 
 Install the built plugin into the OpenSearch server:
 
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
-cp target/releases/opensearch-security-1.3.0.0-SNAPSHOT.zip $OPENSEARCH_SECURITY_HOME
+cp build/distributions/opensearch-security-1.3.0.0-SNAPSHOT.zip $OPENSEARCH_SECURITY_HOME
 cd $OPENSEARCH_SECURITY_HOME
 unzip opensearch-security-1.3.0.0-SNAPSHOT.zip
 rm opensearch-security-1.3.0.0-SNAPSHOT.zip
@@ -115,7 +115,7 @@ curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' -
 
 ## Using IntelliJ IDEA
 
-Launch IntelliJ IDEA, choose **Import Project**, and select the `pom.xml` file in the root of this package.
+Launch IntelliJ IDEA, choose **Project from Existing Sources**, and select directory with Gradle build script (`build.gradle`).
 
 ## Submitting Changes
 

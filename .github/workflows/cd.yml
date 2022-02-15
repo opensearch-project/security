@@ -6,7 +6,7 @@ on:
       - '*'
 
 env:
-  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.class=standard -Dmaven.wagon.http.retryHandler.count=3
+  GRADLE_OPTS: -Dhttp.keepAlive=false
 
 jobs:
   build:
@@ -22,22 +22,25 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v2
 
-    - name: Cache Maven packages
-      uses: actions/cache@v1
+    - name: Cache Gradle packages
+      uses: actions/cache@v2
       with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
 
     - name: Build
       run: |
-        mvn -B clean package -Padvanced -DskipTests
-        artifact_zip=`ls $(pwd)/target/releases/opensearch-security-*.zip | grep -v admin-standalone`
-        ./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
+        ./gradlew clean build -Dbuild.snapshot=false -x test
+        artifact_zip=`ls $(pwd)/build/distributions/opensearch-security-*.zip | grep -v admin-standalone`
+        ./gradlew build buildDeb buildRpm -ParchivePath=$artifact_zip -Dbuild.snapshot=false -x test
         mkdir artifacts
         cp $artifact_zip artifacts/
-        cp gradle-build/distributions/*.deb artifacts/
-        cp gradle-build/distributions/*.rpm artifacts/
+        cp build/distributions/*.deb artifacts/
+        cp build/distributions/*.rpm artifacts/
         zip -r artifacts.zip artifacts
         echo "TAG_VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
 

@@ -10,7 +10,7 @@ on:
       - opendistro-*
 
 env:
-  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryHandler.class=standard -Dmaven.wagon.http.retryHandler.count=3
+  GRADLE_OPTS: -Dhttp.keepAlive=false
 
 jobs:
   build:
@@ -36,24 +36,28 @@ jobs:
       with:
         languages: java
 
-    - name: Cache Maven packages
-      uses: actions/cache@v1
+    - name: Cache Gradle packages
+      uses: actions/cache@v2
       with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
 
     - name: Checkstyle
-      run: mvn -B checkstyle:checkstyle
+      run: ./gradlew clean checkstyleMain checkstyleTest
 
     - name: Package
-      run: mvn -B clean package -Padvanced -DskipTests
+      run: ./gradlew clean build -Dbuild.snapshot=false -x test
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
 
     - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true mvn -B test
+      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -64,4 +68,4 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: artifacts
-        path: target/releases/
+        path: build/distributions/

@@ -28,61 +28,316 @@
  * under the License.
  */
 
-// Uses Gradle to build RPMs since that's what we use for the other plugins. When all you have is a hammer...
 plugins {
-   id "nebula.ospackage" version "5.3.0"
+    id 'java'
+    id 'maven-publish'
+    id 'jacoco'
+    id 'checkstyle'
+    id "com.gorylenko.gradle-git-properties" version "2.3.2"
+    id 'org.gradle.crypto.checksum' version '1.1.0'
+
+    // Plugin prints gradle task graph, use following command: ./gradlew tiTree build
+    id 'org.barfuin.gradle.taskinfo' version '1.0.5'
+
+    id "nebula.ospackage" version "9.0.0"
+    id "com.google.osdetector" version "1.7.0"
+    id "org.gradle.test-retry" version "1.3.1"
+}
+import org.gradle.crypto.checksum.Checksum
+
+import java.text.SimpleDateFormat
+
+
+repositories {
+    mavenLocal()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+    jcenter()
 }
 
-// To prevent conflicts with maven build under build/
-buildDir = 'gradle-build'
+ext {
+    opensearch_version = System.getProperty("opensearch_version", "1.3.0-SNAPSHOT")
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'commons-codec:commons-codec:1.14'
+        force 'org.apache.santuario:xmlsec:2.2.3'
+        force 'org.cryptacular:cryptacular:1.1.4'
+        force 'net.minidev:json-smart:2.4.7'
+        force 'commons-cli:commons-cli:1.3.1'
+        force 'org.apache.httpcomponents:httpcore:4.4.12'
+        force "org.apache.commons:commons-lang3:3.4"
+        force "org.springframework:spring-core:5.3.14"
+        force "com.google.guava:guava:30.0-jre"
+    }
+}
+
+dependencies {
+    implementation 'jakarta.annotation:jakarta.annotation-api:1.3.5'
+    implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
+    implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    implementation 'com.google.guava:guava:30.0-jre'
+    implementation 'org.greenrobot:eventbus:3.2.0'
+    implementation 'commons-cli:commons-cli:1.3.1'
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.67'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.6'
+    implementation 'org.slf4j:slf4j-api:1.7.32'
+    implementation 'org.ldaptive:ldaptive:1.2.3'
+    implementation 'org.apache.httpcomponents:httpclient-cache:4.5.13'
+    implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
+    implementation("org.apache.cxf:cxf-rt-rs-security-jose:3.4.5") {
+        exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
+    }
+    implementation 'com.github.wnameless:json-flattener:0.5.0'
+    implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.4'
+    implementation 'org.apache.kafka:kafka-clients:2.8.1'
+    implementation 'com.onelogin:java-saml:2.5.0'
+    implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
+        exclude(group: 'org.apache.velocity', module: 'velocity')
+    }
+    implementation 'commons-lang:commons-lang:2.4'
+    implementation 'commons-collections:commons-collections:3.2.2'
+    implementation 'com.jayway.jsonpath:json-path:2.4.0'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
+    testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
+    testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
+    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    testImplementation 'commons-io:commons-io:2.7'
+    testImplementation 'org.hamcrest:hamcrest-all:1.3'
+    testImplementation 'junit:junit:4.13.1'
+    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
+    testImplementation 'org.mockito:mockito-core:2.23.0'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:2.7.9'
+    testImplementation 'javax.servlet:servlet-api:2.5'
+    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
+    testImplementation 'org.apache.kafka:kafka_2.13:2.8.1'
+    testImplementation 'org.apache.kafka:kafka_2.13:2.8.1:test'
+    testImplementation 'org.apache.kafka:kafka-clients:2.8.1:test'
+    compileOnly "io.netty:netty-tcnative:2.0.25.Final:${osdetector.classifier}"
+    testImplementation "io.netty:netty-tcnative:2.0.25.Final:${osdetector.classifier}"
+    compileOnly "org.opensearch:opensearch:${opensearch_version}"
+}
 
 ext {
     securityPluginVersion = '1.3.0.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
-group = "org.opensearch"
-// Increment the final digit when there's a new plugin versions for the same opensearch version
-// Reset the final digit to 0 when upgrading to a new opensearch version
+group = 'org.opensearch'
 version = "${securityPluginVersion}" + (isSnapshot ? "-SNAPSHOT" : "")
+description = 'OpenSearch Security'
 
-if (!project.hasProperty("archivePath")) {
-    throw new GradleException("Missing -ParchivePath command line switch pointing to built plugin ZIP")
+
+java.sourceCompatibility = JavaVersion.VERSION_1_8
+java.targetCompatibility = JavaVersion.VERSION_1_8
+
+tasks.register('testsJar', Jar) {
+    archiveClassifier = 'tests'
+    from(sourceSets.test.output)
 }
-if (!project.file(archivePath).exists()) {
-    throw new GradleException("Missing plugin zip file: $archivePath")
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from(components.java)
+            artifact(testsJar)
+        }
+    }
 }
 
-ospackage {
-    packageName = "opensearch-security"
-    release = isSnapshot ? "0.1" : '1'
-    version = "${project.version}"
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
 
-    into '/usr/share/opensearch/plugins'
-    from(zipTree(project.file(archivePath).absolutePath)) {
-        into "opensearch-security"
-        permissionGroup 'opensearch'
+static def getTimestamp() {
+    def df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    df.setTimeZone(TimeZone.getTimeZone("UTC"))
+    return df.format(new Date())
+}
+
+static def gitCommitId() {
+    def cmd = "git rev-parse HEAD"
+    def proc = cmd.execute()
+    return proc.text.trim()
+}
+
+jar {
+    manifest {
+        attributes(
+                "Manifest-Version": "1.0",
+                "Created-By": "Gradle ${gradle.gradleVersion}",
+                "Build-Jdk": "${System.properties['java.version']}",
+                "Implementation-Title": "OpenSearch Security",
+                "Implementation-Version": archiveVersion,
+                "Implementation-Vendor-Id": "org.opensearch",
+                "Implementation-URL": "https://github.com/opensearch-project/security",
+                "Build-Time": getTimestamp(),
+                "Built-By": "OpenSearch Security Plugin",
+                "git-sha1": gitCommitId()
+        )
     }
 
-    user 'root'
-    permissionGroup 'root'
+    libsDirName = '.'
+    into '', {
+        from 'NOTICE.txt', "THIRD-PARTY.txt", "LICENSE"
+    }
+    processResources {
+        exclude("KEYS")
+    }
 
-    requires('opensearch-oss', "1.3.0", EQUAL)
-    packager = 'Amazon'
-    vendor = 'Amazon'
-    os = 'LINUX'
-    prefix '/usr'
+}
 
-    license 'ASL-2.0'
-    maintainer 'OpenDistro for Elasticsearch Team <opendistro@amazon.com>'
-    url 'https://opendistro.github.io/for-elasticsearch/downloads.html'
-    summary '''
-     OpenSearch Security plugin. 
-     Reference documentation can be found at https://opendistro.github.io/for-elasticsearch-docs/.
-     '''.stripIndent().replace('\n', ' ').trim()
+testsJar {
+    manifest {
+        attributes(
+                "Manifest-Version": "1.0",
+                "Created-By": "Gradle ${gradle.gradleVersion}",
+                "Build-Jdk": "${System.properties['java.version']}",
+                "Implementation-Title": "OpenSearch Security",
+                "Implementation-Version": archiveVersion,
+                "Implementation-Vendor-Id": "org.opensearch",
+                "Implementation-URL": "https://github.com/opensearch-project/security",
+                "Build-Time": getTimestamp(),
+                "Built-By": "OpenSearch Security Plugin",
+                "git-sha1": gitCommitId()
+        )
+    }
 
-    //TODO: Would be better if the install_demo_configuration.sh script is marked executable in the upstream plugin instead of running bash manually here
-    postInstall "exec /bin/bash /usr/share/opensearch/plugins/opensearch-security/tools/install_demo_configuration.sh -y -i -s"
+    libsDirName = '.'
+}
+
+
+test {
+    maxParallelForks = 3
+    jvmArgs "-Xmx3072m"
+    retry {
+        failOnPassedAfterRetry = false
+        maxFailures = 30
+        maxRetries = 5
+    }
+}
+
+gitProperties {
+    keys = [
+            'git.branch',
+            'git.build.version',
+            'git.closest.tag.commit.count',
+            'git.closest.tag.name',
+            'git.commit.id',
+            'git.commit.id.abbrev',
+            'git.commit.id.describe',
+            'git.commit.message.full',
+            'git.commit.message.short',
+            'git.commit.time',
+            'git.dirty',
+            'git.remote.origin.url',
+            'git.tags',
+            'git.total.commit.count'
+    ]
+}
+
+// copied from: org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
+project.getConfigurations().all(configuration -> {
+    if (configuration.getName().equals(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)) {
+        NamedDomainObjectProvider<Configuration> resolvableCompileOnly = project.getConfigurations().register('resolveableCompileOnly');
+        resolvableCompileOnly.configure((c) -> {
+            c.setCanBeResolved(true);
+            c.setCanBeConsumed(false);
+            c.extendsFrom(configuration);
+        });
+    }
+});
+
+
+task bundle(dependsOn: jar, type: Zip) {
+    from configurations.runtimeClasspath - project.configurations.getByName('resolveableCompileOnly')
+    from project.jar
+    from 'plugin-security.policy'
+    from 'plugin-descriptor.properties'
+    from('securityconfig') {
+        into 'securityconfig/'
+    }
+    from('tools') {
+        into 'tools/'
+    }
+}
+
+task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
+    archiveClassifier = 'securityadmin-standalone'
+    from(configurations.runtimeClasspath) {
+        into 'deps/'
+    }
+    from(project.jar) {
+        into 'deps/'
+    }
+    from('tools') {
+        into 'tools/'
+    }
+    from('securityconfig') {
+        into 'deps/securityconfig'
+    }
+}
+task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
+    archiveClassifier = 'securityadmin-standalone'
+    archiveExtension = 'tar.gz'
+    compression = Compression.GZIP
+    from(configurations.runtimeClasspath) {
+        into 'deps/'
+    }
+    from(project.jar) {
+        into 'deps/'
+    }
+    from('tools') {
+        into 'tools/'
+    }
+    from('securityconfig') {
+        into 'deps/securityconfig'
+    }
+}
+
+tasks.assemble.dependsOn(bundle)
+tasks.assemble.dependsOn(bundleSecurityAdminStandalone)
+tasks.assemble.dependsOn(bundleSecurityAdminStandaloneTarGz)
+
+clean {
+    delete 'data/'
+}
+
+
+task createChecksums(type: Checksum) {
+    files = bundle.outputs.files
+    outputDir = new File(project.buildDir, "distributions")
+    algorithm = Checksum.Algorithm.SHA512
+}
+tasks.assemble.finalizedBy(createChecksums)
+
+
+jacoco {
+    reportsDirectory = file("$buildDir/jacoco")
+}
+tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
+tasks.jacocoTestReport.dependsOn(test) // tests are required to run before generating the report
+
+checkstyle {
+    configFile file("config/checkstyle/sun_checks.xml")
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        showViolations false
+        ignoreFailures = true
+        xml.required = true
+        html.required = true
+    }
 }
 
 buildRpm {
@@ -90,7 +345,6 @@ buildRpm {
     addParentDirs = false
     archiveName "${packageName}-${version}.rpm"
 }
-
 buildDeb {
     arch = 'all'
     archiveName "${packageName}-${version}.deb"
