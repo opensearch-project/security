@@ -218,7 +218,10 @@ testsJar {
 
 test {
     maxParallelForks = 3
-    jvmArgs "-Xmx3072m"
+    jvmArgs += "-Xmx3072m"
+    if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
+        jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+    }
     retry {
         failOnPassedAfterRetry = false
         maxFailures = 30
