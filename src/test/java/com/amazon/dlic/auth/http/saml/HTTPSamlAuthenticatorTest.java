@@ -580,7 +580,7 @@ public class HTTPSamlAuthenticatorTest {
     }
 
     @SuppressWarnings("unchecked")
-    public void commaSeparatedRoles(final String rolesAsString, final Settings.Builder settingsBuilder) throws Exception {
+    private void commaSeparatedRoles(final String rolesAsString, final Settings.Builder settingsBuilder) throws Exception {
         mockSamlIdpServer.setAuthenticateUser("horst");
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
