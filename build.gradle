@@ -47,6 +47,7 @@ import org.gradle.crypto.checksum.Checksum
 
 import java.text.SimpleDateFormat
 
+
 repositories {
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
@@ -69,6 +70,7 @@ configurations.all {
         force 'org.apache.httpcomponents:httpcore:4.4.12'
         force "org.apache.commons:commons-lang3:3.4"
         force "org.springframework:spring-core:5.3.14"
+        force "com.google.guava:guava:30.0-jre"
     }
 }
 
