@@ -30,6 +30,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 import org.opensearch.common.settings.Settings;
 
 import org.apache.http.HttpHeaders;
@@ -42,6 +44,11 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 import com.google.common.io.BaseEncoding;
 
+/*
+    This test fails during Java 17 build due to a known bug: https://bugs.openjdk.java.net/browse/JDK-8251547
+    TODO: Annotation should be removed once a fix is implemented
+*/
+@DisabledOnJre(JRE.JAVA_17)
 public class HTTPJwtAuthenticatorTest {
 
     final static byte[] secretKey = new byte[1024];
