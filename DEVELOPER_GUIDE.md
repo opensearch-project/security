@@ -52,7 +52,7 @@ Install the built plugin into the OpenSearch server:
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
 mkdir $OPENSEARCH_SECURITY_HOME
-cp target/releases/opensearch-security-1.3.0.0-SNAPSHOT.zip $OPENSEARCH_SECURITY_HOME
+cp build/distributions/opensearch-security-1.3.0.0-SNAPSHOT.zip $OPENSEARCH_SECURITY_HOME
 cd $OPENSEARCH_SECURITY_HOME
 unzip opensearch-security-1.3.0.0-SNAPSHOT.zip
 rm opensearch-security-1.3.0.0-SNAPSHOT.zip
