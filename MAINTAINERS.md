@@ -1,14 +1,16 @@
+- [OpenSearch Security Maintainers](#opensearch-security-maintainers)
+  - [Maintainers](#maintainers)
+    - [Updating Practices](#updating-practices)
+
 # OpenSearch Security Maintainers
 
 ## Maintainers
-| Maintainer | GitHub ID | Affiliation |
-| --------------- | --------- | ----------- |
-| afazel | [afazel](https://github.com/afazel) | Amazon |
-| Andy | [andy840314](https://github.com/andy840314) | Amazon |
-| Chang Liu | [cliu123](https://github.com/cliu123) | Amazon |
-| hardik-k-shah | [hardik-k-shah](https://github.com/hardik-k-shah) | Amazon |
-| hsiang9431-amzn | [hsiang9431-amzn](https://github.com/hsiang9431-amzn) | Amazon | 
-| lukkoor | [lukkoor](https://github.com/lukkoor) | Amazon |
-| Palash Hedau | [palashhedau](https://github.com/palashhedau) | Amazon |
-| Vlad Rozov | [vrozov](https://github.com/vrozov) | Amazon |
-| vengadanathan-s | [vengadanathan-s](https://github.com/vengadanathan-s) | Amazon |
+| Maintainer       | GitHub ID                                             | Affiliation |
+| ---------------- | ----------------------------------------------------- | ----------- |
+| Chang Liu        | [cliu123](https://github.com/cliu123)                 | Amazon      |
+| Darshit Chanpura | [DarshitChanpura](https://github.com/DarshitChanpura) | Amazon      |
+| Dave Lago        | [davidlago](https://github.com/davidlago)             | Amazon      |
+| Peter Nied       | [peternied](https://github.com/peternied)             | Amazon      |
+
+### Updating Practices
+To ensure common practices as maintainers, all practices are expected to be documented here or enforced through github actions.  There should be no expectations beyond what is documented in the repo [CONTRIBUTING.md](./CONTRIBUTING.md) and OpenSearch-Project [CONTRIBUTING.md](https://github.com/opensearch-project/.github/blob/main/CONTRIBUTING.md).  To modify an existing processes or create a new one, make a pull request on this MAINTAINERS.md for review and merge it after all maintainers approve of it.

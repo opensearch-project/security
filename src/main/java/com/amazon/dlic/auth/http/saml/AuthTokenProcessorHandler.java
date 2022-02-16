@@ -95,7 +95,8 @@ class AuthTokenProcessorHandler {
 
         this.samlRolesKey = settings.get("roles_key");
         this.samlSubjectKey = settings.get("subject_key");
-        String samlRolesSeparator = settings.get("roles_seperator");
+        // Originally release with a typo, prioritize correct spelling over typo'ed version
+        String samlRolesSeparator = settings.get("roles_separator", settings.get("roles_seperator"));
         this.kibanaRootUrl = settings.get("kibana_url");
         if (samlRolesSeparator != null) {
             this.samlRolesSeparatorPattern = Pattern.compile(samlRolesSeparator);

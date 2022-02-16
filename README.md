@@ -62,22 +62,22 @@ You can also see the [developer guide](https://github.com/opensearch-project/sec
 
 Run all tests:
 ```bash
-mvn clean test
+./gradlew clean test
 ```
 
 Build artifacts (zip, deb, rpm):
 ```bash
-mvn clean package -Padvanced -DskipTests
-artifact_zip=`ls $(pwd)/target/releases/opensearch-security-*.zip | grep -v admin-standalone`
-./gradlew build buildDeb buildRpm --no-daemon -ParchivePath=$artifact_zip -Dbuild.snapshot=false
+./gradlew clean assemble
+artifact_zip=`ls $(pwd)/build/distributions/opensearch-security-*.zip | grep -v admin-standalone`
+./gradlew buildDeb buildRpm -ParchivePath=$artifact_zip
 ```
 
 This produces:
 
 ```
-target/releases/opensearch-security-<VERSION>.zip
-gradle-build/distributions/opensearch-security-<VERSION>.deb
-gradle-build/distributions/opensearch-security-<VERSION>.rpm
+build/releases/opensearch-security-<VERSION>.zip
+build/distributions/opensearch-security-<VERSION>.deb
+build/distributions/opensearch-security-<VERSION>.rpm
 ```
 
 ## Config hot reloading

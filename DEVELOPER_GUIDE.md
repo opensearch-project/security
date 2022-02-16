@@ -44,7 +44,7 @@ The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+
 First create a fork of this repo and clone it locally. Changing to directory containing this clone and run this to build the project:
 
 ```bash
-mvn -B package -Padvanced -DskipTests
+./gradlew clean assemble
 ```
 
 Install the built plugin into the OpenSearch server:
@@ -128,7 +128,7 @@ curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' -
 
 ## Using IntelliJ IDEA
 
-Launch IntelliJ IDEA, choose **Import Project**, and select the `pom.xml` file in the root of this package.
+Launch IntelliJ IDEA, choose **Project from Existing Sources**, and select directory with Gradle build script (`build.gradle`).
 
 ## Submitting Changes
 
