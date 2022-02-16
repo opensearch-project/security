@@ -567,20 +567,30 @@ public class HTTPSamlAuthenticatorTest {
         Assert.assertEquals("horst", jwt.getClaim("sub"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void commaSeparatedRolesTest() throws Exception {
+        final Settings.Builder settingsBuilder = Settings.builder().put("roles_seperator", ";").put("roles_separator", ",");
+        commaSeparatedRoles("a,b", settingsBuilder);
+    }
+
+    @Test
+    public void legacyCommaSeparatedRolesTest() throws Exception {
+        final Settings.Builder settingsBuilder = Settings.builder().put("roles_seperator", ";");
+        commaSeparatedRoles("a;b", settingsBuilder);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void commaSeparatedRoles(final String rolesAsString, final Settings.Builder settingsBuilder) throws Exception {
         mockSamlIdpServer.setAuthenticateUser("horst");
         mockSamlIdpServer.setSignResponses(true);
         mockSamlIdpServer.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
-        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList("a,b"));
+        mockSamlIdpServer.setAuthenticateUserRoles(Arrays.asList(rolesAsString));
         mockSamlIdpServer.setEndpointQueryString(null);
 
-        Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
+        Settings settings = settingsBuilder.put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("exchange_key", "abc").put("roles_key", "roles").put("roles_seperator", ",").put("path.home", ".")
+                .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".")
                 .build();
-
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
 
         AuthenticateHeaders authenticateHeaders = getAutenticateHeaders(samlAuthenticator);
