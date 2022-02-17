@@ -313,7 +313,7 @@ task createPluginDescriptor() {
         "version=${version}",
         "name=opensearch-security",
         "classname=org.opensearch.security.OpenSearchSecurityPlugin",
-        "java.version=1.8",
+        "java.version=${java.targetCompatibility}",
         "opensearch.version=${opensearch_version}",
     ]
 
