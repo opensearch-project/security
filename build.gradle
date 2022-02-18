@@ -273,39 +273,6 @@ task bundle(dependsOn: jar, type: Zip) {
     }
 }
 
-task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
-    archiveClassifier = 'securityadmin-standalone'
-    from(configurations.runtimeClasspath) {
-        into 'deps/'
-    }
-    from(project.jar) {
-        into 'deps/'
-    }
-    from('tools') {
-        into 'tools/'
-    }
-    from('securityconfig') {
-        into 'deps/securityconfig'
-    }
-}
-task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
-    archiveClassifier = 'securityadmin-standalone'
-    archiveExtension = 'tar.gz'
-    compression = Compression.GZIP
-    from(configurations.runtimeClasspath) {
-        into 'deps/'
-    }
-    from(project.jar) {
-        into 'deps/'
-    }
-    from('tools') {
-        into 'tools/'
-    }
-    from('securityconfig') {
-        into 'deps/securityconfig'
-    }
-}
-
 task createPluginDescriptor() {
     List<String> descriptorProperties = [
         "description=Provide access control related features for OpenSearch",
@@ -324,8 +291,6 @@ bundle.doLast() {
 
 tasks.assemble.dependsOn(bundle)
 tasks.bundle.dependsOn(createPluginDescriptor)
-tasks.assemble.dependsOn(bundleSecurityAdminStandalone)
-tasks.assemble.dependsOn(bundleSecurityAdminStandaloneTarGz)
 
 clean {
     delete 'data/'
