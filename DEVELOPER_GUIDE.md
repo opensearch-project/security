@@ -8,10 +8,6 @@ So you want to contribute code to this project? Excellent! We're glad you're her
 
 ## Prerequisites
 
->Please note:\
-> OpenSearch builds on `gradle`, and this plugin is packaged using `maven`.
-> Please install Maven and JDK (We currently support versions 8, 11 and 14), if you haven't done so already.
-
 This project runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install this plugin there. However, we will compile it using source code so that we are pulling in changes from the latest commit.
 >**MacOS users please note:**\
 >At this moment there are no MacOS distributions available for OpenSearch. Having said that, you have an option to run it as a Docker Container, but that will come with security plugin pre-installed which defeats the purpose of this setup.
