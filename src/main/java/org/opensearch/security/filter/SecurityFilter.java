@@ -373,7 +373,7 @@ public class SecurityFilter implements ActionFilter {
             listener.onFailure(e);
         } catch (Throwable e) {
             log.error("Unexpected exception "+e, e);
-            listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
+            listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR, e));
         }
     }
 
