@@ -8,6 +8,8 @@ So you want to contribute code to this project? Excellent! We're glad you're her
 
 ## Prerequisites
 
+> Note: We currently support four JDKs: 8, 11, 14, 17. Please make sure that you have installed one of these java versions before proceeding to the next steps.
+
 This project runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install this plugin there. However, we will compile it using source code so that we are pulling in changes from the latest commit.
 >**MacOS users please note:**\
 >At this moment there are no MacOS distributions available for OpenSearch. Having said that, you have an option to run it as a Docker Container, but that will come with security plugin pre-installed which defeats the purpose of this setup.
