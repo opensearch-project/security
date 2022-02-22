@@ -307,6 +307,9 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
 }
 
 task createPluginDescriptor() {
+    if (opensearch_version.contains("-SNAPSHOT")) {
+        opensearch_version=opensearch_version.substring(0, opensearch_version.length() - 9)
+    }
     List<String> descriptorProperties = [
         "description=Provide access control related features for OpenSearch",
         "version=${version}",
