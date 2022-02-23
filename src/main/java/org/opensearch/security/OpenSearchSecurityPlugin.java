@@ -57,6 +57,8 @@ import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.SecurityHttpServerTransport;
+import org.opensearch.security.rest.SecurityConfigUpdateAction;
+import org.opensearch.security.rest.SecurityWhoAmIAction;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.rest.SecuritySSLReloadCertsAction;
 import org.opensearch.security.ssl.rest.SecuritySSLCertsInfoAction;
@@ -459,7 +461,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 handlers.add(new DashboardsInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
 				Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
-
+                handlers.add(new SecurityConfigUpdateAction(settings, restController,Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.add(new SecurityWhoAmIAction(settings ,restController,Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 if (sslCertReloadEnabled) {
                     handlers.add(new SecuritySSLReloadCertsAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 }

@@ -38,13 +38,15 @@ import org.opensearch.action.support.nodes.BaseNodesResponse;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.StreamOutput;
+import org.opensearch.common.xcontent.ToXContentObject;
+import org.opensearch.common.xcontent.XContentBuilder;
 
-public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateNodeResponse> {
+public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateNodeResponse> implements ToXContentObject {
 
     public ConfigUpdateResponse(StreamInput in) throws IOException {
         super(in);
     }
-    
+
     public ConfigUpdateResponse(final ClusterName clusterName, List<ConfigUpdateNodeResponse> nodes, List<FailedNodeException> failures) {
         super(clusterName, nodes, failures);
     }
@@ -58,4 +60,16 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateNodeResp
     public void writeNodesTo(final StreamOutput out, List<ConfigUpdateNodeResponse> nodes) throws IOException {
         out.writeList(nodes);
     }
+
+	@Override
+	public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+		builder.startObject("configupdate_response");
+		builder.field("nodes", getNodesMap());
+		builder.field("node_size", getNodes().size());
+		builder.field("has_failures", hasFailures());
+		builder.field("failures_size", failures().size());
+		builder.endObject();
+
+		return builder;
+	}
 }

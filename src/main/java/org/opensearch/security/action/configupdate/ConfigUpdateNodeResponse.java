@@ -37,8 +37,10 @@ import org.opensearch.action.support.nodes.BaseNodeResponse;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.StreamOutput;
+import org.opensearch.common.xcontent.ToXContentObject;
+import org.opensearch.common.xcontent.XContentBuilder;
 
-public class ConfigUpdateNodeResponse extends BaseNodeResponse {
+public class ConfigUpdateNodeResponse extends BaseNodeResponse implements ToXContentObject {
     
     private String[] updatedConfigTypes;
     private String message;
@@ -77,5 +79,15 @@ public class ConfigUpdateNodeResponse extends BaseNodeResponse {
     @Override
     public String toString() {
         return "ConfigUpdateNodeResponse [updatedConfigTypes=" + Arrays.toString(updatedConfigTypes) + ", message=" + message + "]";
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject();
+        builder.field("updated_config_types", updatedConfigTypes);
+        builder.field("updated_config_size", updatedConfigTypes == null ? 0: updatedConfigTypes.length);
+        builder.field("message", message);
+        builder.endObject();
+        return builder;
     }
 }
