@@ -201,7 +201,6 @@ public class SecurityAdmin {
         final HelpFormatter formatter = new HelpFormatter();
         Options options = new Options();
         options.addOption( "nhnv", "disable-host-name-verification", false, "Disable hostname verification" );
-        options.addOption( "nrhn", "disable-resolve-hostname", false, "Disable DNS lookup of hostnames" );
         options.addOption(Option.builder("ts").longOpt("truststore").hasArg().argName("file").desc("Path to truststore (JKS/PKCS12 format)").build());
         options.addOption(Option.builder("ks").longOpt("keystore").hasArg().argName("file").desc("Path to keystore (JKS/PKCS12 format").build());
         options.addOption(Option.builder("tst").longOpt("truststore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given we use the file extension to dectect the type").build());
@@ -237,8 +236,6 @@ public class SecurityAdmin {
         options.addOption(Option.builder("key").hasArg().argName("file").desc("Path to the key of admin certificate").build());
         options.addOption(Option.builder("keypass").hasArg().argName("password").desc("Password of the key of admin certificate (optional)").build());
 
-        options.addOption(Option.builder("noopenssl").longOpt("no-openssl").desc("Do not use OpenSSL even if available (default: use it if available)").build());
-
         options.addOption(Option.builder("si").longOpt("show-info").desc("Show system and license info").build());
 
         options.addOption(Option.builder("w").longOpt("whoami").desc("Show information about the used admin certificate").build());
@@ -270,9 +267,7 @@ public class SecurityAdmin {
         String kst = null;
         String tst = null;
         boolean nhnv = false;
-        boolean nrhn = false;
-        boolean sniff = false;
-        boolean icl = false;
+
         String clustername = "opensearch";
         String file = null;
         String type = null;
@@ -291,8 +286,6 @@ public class SecurityAdmin {
         boolean acceptRedCluster = false;
         
         String keypass = System.getenv(OPENDISTRO_SECURITY_KEYPASS);
-        boolean useOpenSSLIfAvailable = true;
-        //boolean simpleAuth = false;
         String cacert = null;
         String cert = null;
         String key = null;
@@ -341,10 +334,7 @@ public class SecurityAdmin {
             kst = line.getOptionValue("kst", kst);
             tst = line.getOptionValue("tst", tst);
             nhnv = line.hasOption("nhnv");
-            nrhn = line.hasOption("nrhn");
             clustername = line.getOptionValue("cn", clustername);
-            sniff = line.hasOption("sniff");
-            icl = line.hasOption("icl");
             file = line.getOptionValue("f", file);
             type = line.getOptionValue("t", type);
             retrieve = line.hasOption("r");
@@ -384,9 +374,7 @@ public class SecurityAdmin {
             cert = line.getOptionValue("cert");
             key = line.getOptionValue("key");
             keypass = line.getOptionValue("keypass", keypass);
-            
-            useOpenSSLIfAvailable = !line.hasOption("noopenssl");
-            
+
             si = line.hasOption("si");
             
             whoami = line.hasOption("w");
@@ -453,12 +441,14 @@ public class SecurityAdmin {
         System.out.println(" ... done");
 
                 if(ks != null) {
+                    kst = kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst;
                     if(kspass == null && promptForPassword) {
                         kspass = promptForPassword("Keystore", "kspass", OPENDISTRO_SECURITY_KS_PASS);
                     }
                 }
                 
                 if(ts != null) {
+                    tst = tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst;
                     if(tspass == null && promptForPassword) {
                         tspass = promptForPassword("Truststore", "tspass", OPENDISTRO_SECURITY_TS_PASS);
                     }
@@ -472,7 +462,7 @@ public class SecurityAdmin {
 
                 }
 
-        final SSLContext sslContext = sslContext(ks, kspass, ts, tspass, cacert, cert, key, keypass, ksAlias);
+        final SSLContext sslContext = sslContext(ts, tspass, tst, ks, kspass, kst, ksAlias, cacert, cert, key, keypass);
 
 		try (RestHighLevelClient restHighLevelClient = getRestHighLevelClient(sslContext, nhnv, enabledProtocols, enabledCiphers, hostname, port)) {
 
@@ -1421,53 +1411,61 @@ public class SecurityAdmin {
 
 
 	private static SSLContext sslContext(
-			String ks,
-			String kspass,
+	        //keystore & trusstore related properties
 			String ts,
 			String tspass,
+            String trustStoreType,
+            String ks,
+            String kspass,
+            String keyStoreType,
+            String ksAlias,
 
+			//certs related properties
 			String cacert,
 			String cert,
 			String key,
-			String keypass,
-			String ksAlias) throws Exception {
+			String keypass) throws Exception {
 
-		KeyStore trustStore = null;
-		KeyStore keyStore = null;
+        final SSLContextBuilder sslContextBuilder = SSLContexts.custom();
 
 		if (ks != null) {
 			File keyStoreFile = Paths.get(ks).toFile();
-			String keyStoreFileName = keyStoreFile.getName();
 
-			String type = getType(keyStoreFileName);
+            KeyStore keyStore = KeyStore.getInstance(keyStoreType.toUpperCase());
+			keyStore.load(new FileInputStream(keyStoreFile), kspass.toCharArray());
+            sslContextBuilder.loadKeyMaterial(keyStore, kspass.toCharArray(), (aliases, socket) -> {
+                if (aliases == null || aliases.isEmpty()) {
+                    return ksAlias;
+                }
 
-			keyStore = KeyStore.getInstance(type.toUpperCase());
-			keyStore.load(new FileInputStream(keyStoreFile), kspass == null ? null : kspass.toCharArray());
+                if (ksAlias == null || ksAlias.isEmpty()) {
+                    return aliases.keySet().iterator().next();
+                }
+
+                return ksAlias;
+            });
 		}
 
 		if (ts != null) {
 			File trustStoreFile = Paths.get(ts).toFile();
-			String trustStoreFileName = trustStoreFile.getName();
 
-			String type = getType(trustStoreFileName);
-
-			trustStore = KeyStore.getInstance(type.toUpperCase());
+			KeyStore trustStore = KeyStore.getInstance(trustStoreType.toUpperCase());
 			trustStore.load(new FileInputStream(trustStoreFile), tspass == null ? null : tspass.toCharArray());
+            sslContextBuilder.loadTrustMaterial(trustStore, null);
 		}
 
 		if (cacert != null) {
 			File caCertFile = Paths.get(cacert).toFile();
 			try (FileInputStream in = new FileInputStream(caCertFile)) {
 				X509Certificate[] certificates = PemKeyReader.loadCertificatesFromStream(in);
-				trustStore = PemKeyReader.toTruststore("al", certificates);
+				KeyStore trustStore = PemKeyReader.toTruststore("al", certificates);
+                sslContextBuilder.loadTrustMaterial(trustStore, null);
 			} catch (FileNotFoundException e) {
 				throw new IllegalArgumentException("Could not find certificate file " + caCertFile, e);
 			} catch (IOException | CertificateException e) {
 				throw new IllegalArgumentException("Error while reading certificate file " + caCertFile, e);
 			}
 		}
-
-        String pass = cert != null ? keypass : kspass;
 
         if (cert != null && key != null) {
 			File certFile = Paths.get(cert).toFile();
@@ -1490,44 +1488,12 @@ public class SecurityAdmin {
 				throw new IllegalArgumentException("Error while reading certificate key file " + keyFile, e);
 			}
 
-			if(pass == null){
-			    pass = "hardcoded";
-            }
-			keyStore = PemKeyReader.toKeystore("al",pass.toCharArray(), certificates, privateKey);
+			String alias = "al";
+			KeyStore keyStore = PemKeyReader.toKeystore(alias, "changeit".toCharArray(), certificates, privateKey);
+            sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray(), (aliases, socket) -> alias);
 		}
 
-
-		final SSLContextBuilder sslContextBuilder = SSLContexts.custom();
-
-
-		if (trustStore != null) {
-			sslContextBuilder.loadTrustMaterial(trustStore, null);
-		}
-
-		if (keyStore != null) {
-			sslContextBuilder.loadKeyMaterial(keyStore, pass.toCharArray(), (aliases, socket) -> {
-				if (aliases == null || aliases.isEmpty()) {
-					return ksAlias;
-				}
-
-				if (ksAlias == null || ksAlias.isEmpty()) {
-					return aliases.keySet().iterator().next();
-				}
-
-				return ksAlias;
-			});
-		}
 		return sslContextBuilder.build();
-	}
-
-	private static String getType(String trustStoreFileName) {
-		if (trustStoreFileName.endsWith(".jks")) {
-			return "JKS";
-		} else if (trustStoreFileName.endsWith(".pfx") || trustStoreFileName.endsWith(".p12")) {
-			return "PKCS12";
-		} else {
-			throw new IllegalArgumentException("Unknwon file type: " + trustStoreFileName);
-		}
 	}
 
 	private static String responseToString(Response response, boolean prettyJson) {
