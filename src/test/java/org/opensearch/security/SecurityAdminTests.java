@@ -70,7 +70,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     }
 
     @Test
-    public void testSgAdminInvalidCert() throws Exception {
+    public void testSecurityAdminInvalidCert() throws Exception {
         final Settings settings = Settings.builder()
                 .put("plugins.security.ssl.http.enabled",true)
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
