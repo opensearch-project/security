@@ -25,7 +25,6 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.Plugin;
 import org.junit.Assert;
@@ -260,17 +259,6 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	protected Map<String, String> jsonStringToMap(String json) throws JsonParseException, JsonMappingException, IOException {
 		TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() {};
 		return DefaultObjectMapper.objectMapper.readValue(json, typeRef);
-	}
-
-	protected static class TransportClientImpl extends TransportClient {
-
-		public TransportClientImpl(Settings settings, Collection<Class<? extends Plugin>> plugins) {
-			super(settings, plugins);
-		}
-
-		public TransportClientImpl(Settings settings, Settings defaultSettings, Collection<Class<? extends Plugin>> plugins) {
-			super(settings, defaultSettings, plugins, null);
-		}
 	}
 
 	protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {

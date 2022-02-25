@@ -15,6 +15,7 @@
 
 package org.opensearch.security.auditlog.integration;
 
+import org.opensearch.client.Client;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
@@ -580,7 +581,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -624,7 +625,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for(int i=0; i<3; i++)
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
@@ -666,7 +667,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
 
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for(int i=0; i<3; i++)
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().alias("thealias").index("vulcangov"))).actionGet();
@@ -723,7 +724,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("index1")).actionGet();
             tc.admin().indices().create(new CreateIndexRequest("index2")).actionGet();
         }
@@ -754,7 +755,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
         setup(settings);
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for(int i=0; i<3; i++)
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }

@@ -19,7 +19,7 @@ import org.apache.http.HttpStatus;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.Strings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
@@ -31,7 +31,7 @@ public class DlsTest extends AbstractDlsFlsTest{
 
 
     @Override
-    protected void populateData(TransportClient tc) {
+    protected void populateData(Client tc) {
 
         tc.index(new IndexRequest("deals").type("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"amount\": 10}", XContentType.JSON)).actionGet();

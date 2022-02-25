@@ -30,6 +30,7 @@
 
 package org.opensearch.security.test;
 
+import org.opensearch.client.Client;
 import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.junit.After;
@@ -140,6 +141,10 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
     protected RestHelper nonSslRestHelper() {
         return new RestHelper(clusterInfo, false, false, getResourceFolder());
+    }
+
+    protected Client getClient() {
+        return clusterHelper.nodeClient();
     }
 
     protected TransportClient getInternalTransportClient() {

@@ -15,6 +15,7 @@
 
 package org.opensearch.security.system_indices;
 
+import org.opensearch.client.Client;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -29,7 +30,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
@@ -104,7 +104,7 @@ public class SystemIndicesTests extends SingleClusterTest {
      * @throws Exception
      */
     private void createTestIndicesAndDocs() {
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
                 tc.index(new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).id("document1").source("{ \"foo\": \"bar\" }", XContentType.JSON)).actionGet();
@@ -113,7 +113,7 @@ public class SystemIndicesTests extends SingleClusterTest {
     }
 
     private void createSnapshots() {
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().cluster().putRepository(new PutRepositoryRequest(index).type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/" + index))).actionGet();
                 tc.admin().cluster().createSnapshot(new CreateSnapshotRequest(index, index + "_1").indices(index).includeGlobalState(true).waitForCompletion(true)).actionGet();
@@ -530,7 +530,7 @@ public class SystemIndicesTests extends SingleClusterTest {
         createTestIndicesAndDocs();
         createSnapshots();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
             }

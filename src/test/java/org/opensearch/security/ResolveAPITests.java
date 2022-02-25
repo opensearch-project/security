@@ -16,6 +16,7 @@
 package org.opensearch.security;
 
 import org.apache.http.HttpStatus;
+import org.opensearch.client.Client;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.junit.Assert;
@@ -24,7 +25,6 @@ import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -144,7 +144,7 @@ public class ResolveAPITests extends SingleClusterTest {
     }
 
     private void setupIndices() {
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();

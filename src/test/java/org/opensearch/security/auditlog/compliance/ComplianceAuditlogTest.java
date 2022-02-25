@@ -15,6 +15,7 @@
 
 package org.opensearch.security.auditlog.compliance;
 
+import org.opensearch.client.Client;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
@@ -263,7 +264,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
 
             for(IndexRequest ir: new DynamicSecurityConfig().setSecurityRoles("roles_2.yml").getDynamicConfig(getResourceFolder())) {
                 tc.index(ir).actionGet();
@@ -299,7 +300,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
 
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.prepareIndex("humanresources", "employees", "100")
             .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .setSource("Age", 456)
@@ -384,7 +385,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         setup(additionalSettings);
 
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.prepareIndex("humanresources", "employees", "100")
             .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .setSource("Age", 456)

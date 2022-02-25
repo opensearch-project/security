@@ -34,6 +34,7 @@ package org.opensearch.security.protected_indices;
 import java.util.Arrays;
 import java.util.List;
 
+import org.opensearch.client.Client;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
@@ -162,7 +163,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
      * @throws Exception
      */
     public void createTestIndicesAndDocs() {
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
                 tc.index(new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).id("document1").source("{ \"foo\": \"bar\" }", XContentType.JSON)).actionGet();
@@ -171,7 +172,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     }
 
     public void createSnapshots() {
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().cluster().putRepository(new PutRepositoryRequest(index).type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/" + index))).actionGet();
                 tc.admin().cluster().createSnapshot(new CreateSnapshotRequest(index, index + "_1").indices(index).includeGlobalState(true).waitForCompletion(true)).actionGet();
@@ -268,7 +269,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         createTestIndicesAndDocs();
 
         int i = 0;
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 IndicesAliasesRequest request = new IndicesAliasesRequest();
                 IndicesAliasesRequest.AliasActions aliasAction =
@@ -342,7 +343,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     public void testNonAccessCreateDocumentPatternSetting() throws Exception {
         setupSettingsIndexPatterns();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String pattern : listOfIndexPatternsToTest) {
                 String index = pattern.replace("*", "1");
                 tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
@@ -612,7 +613,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         createTestIndicesAndDocs();
 
         int i = 0;
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 IndicesAliasesRequest request = new IndicesAliasesRequest();
                 IndicesAliasesRequest.AliasActions aliasAction =
@@ -830,7 +831,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         createTestIndicesAndDocs();
         createSnapshots();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().indices().close(new CloseIndexRequest(index)).actionGet();
             }

@@ -39,7 +39,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
@@ -61,7 +61,7 @@ public class TracingTests extends SingleClusterTest {
     public void testAdvancedMapping() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
 
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("myindex1")
             .mapping("mytype1", FileHelper.loadFile("mapping1.json"), XContentType.JSON)).actionGet();
             tc.admin().indices().create(new CreateIndexRequest("myindex2")
@@ -98,7 +98,7 @@ public class TracingTests extends SingleClusterTest {
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
 
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("a")).actionGet();
             tc.admin().indices().create(new CreateIndexRequest("c")).actionGet();
             tc.admin().indices().create(new CreateIndexRequest("test")).actionGet();
@@ -267,7 +267,7 @@ public class TracingTests extends SingleClusterTest {
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -333,7 +333,7 @@ public class TracingTests extends SingleClusterTest {
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for(int i=0; i<3; i++)
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
@@ -361,7 +361,7 @@ public class TracingTests extends SingleClusterTest {
 
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true, ClusterConfiguration.DEFAULT);
 
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
 
             for(int i=0; i<50;i++) {
                 tc.index(new IndexRequest("a").type("b").id(i+"").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":"+i+"}", XContentType.JSON)).actionGet();

@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.opensearch.client.Client;
 import org.opensearch.security.support.SecurityUtils;
 import org.apache.http.HttpStatus;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -42,7 +43,6 @@ import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActi
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -68,7 +68,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("composite_config.yml").setSecurityRoles("roles_composite.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
     
-        try (TransportClient tc = getInternalTransportClient()) {                
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();           
             tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();      
             tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();            
@@ -97,7 +97,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_bs.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
         
-        try (TransportClient tc = getInternalTransportClient()) {               
+        try (Client tc = getClient()) {
             //create indices and mapping upfront
             tc.index(new IndexRequest("test").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();           
             tc.index(new IndexRequest("lorem").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();      
@@ -170,7 +170,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     
         setup();
         
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
 
             tc.index(new IndexRequest("theindex").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("otherindex").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -204,7 +204,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     
         setup();
     
-        try (TransportClient tc = getInternalTransportClient()) {          
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("foo1").type("bar").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("foo2").type("bar").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("foo").type("baz").id("3").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
@@ -275,7 +275,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     
         setup();
     
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("nopermindex").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
     
             tc.index(new IndexRequest("logstash-1").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -360,7 +360,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         setup(settings);
     
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("nopermindex").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
     
             tc.index(new IndexRequest("logstash-1").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -449,7 +449,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup();
         final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {                                       
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest(".abc-6").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
 
@@ -469,7 +469,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup();
         final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {                                       
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest(".abc").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("xyz").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("noperm").type("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
@@ -531,7 +531,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_respect_indices_options.yml").setSecurityRoles("roles_bs.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             //create indices and mapping upfront
             tc.index(new IndexRequest("test").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("lorem").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
@@ -552,7 +552,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             //create indices and mapping upfront
             tc.index(new IndexRequest("foo-index").type("_doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("foo-index").alias("foo-alias"))).actionGet();
@@ -579,7 +579,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             //create indices and mapping upfront
             tc.index(new IndexRequest("foo-abc").type("_doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
         }

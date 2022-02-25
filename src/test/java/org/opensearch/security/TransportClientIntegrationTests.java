@@ -42,6 +42,7 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.Client;
 import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -71,7 +72,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.build();
 		setup(settings);
 
-		try (TransportClient tc = getInternalTransportClient()) {                    
+		try (Client tc = getClient()) {
 			tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 		}
 
@@ -370,7 +371,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 
 		setup(settings);
 
-		try (TransportClient tc = getInternalTransportClient()) {
+		try (Client tc = getClient()) {
 			tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
 			ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
@@ -429,7 +430,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.setSecurityInternalUsers("internal_users_transport_username.yml")
 				, settings);
 		
-		try (TransportClient tc = getInternalTransportClient()) {                    
+		try (Client tc = getClient()) {
 			tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 		}
 
@@ -731,7 +732,7 @@ public class TransportClientIntegrationTests extends SingleClusterTest {
 				.setSecurityInternalUsers("internal_users_transport_username.yml")
 				, settings);
 
-		try (TransportClient tc = getInternalTransportClient()) {
+		try (Client tc = getClient()) {
 			tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
 			ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
