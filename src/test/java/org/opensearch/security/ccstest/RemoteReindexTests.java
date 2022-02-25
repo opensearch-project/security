@@ -30,12 +30,12 @@
 
 package org.opensearch.security.ccstest;
 
+import org.opensearch.client.Client;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.apache.http.HttpStatus;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.After;
@@ -88,14 +88,14 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
         final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
         
-        try (TransportClient tc = getInternalTransportClient(cl1Info, Settings.EMPTY)) {
+        try (Client tc = cl1.nodeClient()) {
             tc.admin().indices().create(new CreateIndexRequest("twutter")).actionGet();
         }
         
         final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
         
-        try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
+        try (Client tc = cl2.nodeClient()) {
             tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
