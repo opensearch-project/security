@@ -16,6 +16,8 @@
 package org.opensearch.security.auditlog.integration;
 
 import org.opensearch.client.Client;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
@@ -45,7 +47,10 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.Objects;
 
 public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
@@ -138,48 +143,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     }
 
     @Test
-    public void testSimpleTransportAuthenticated() throws Exception {
-
-        Settings additionalSettings = Settings.builder()
-                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, false)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "NONE")
-                .build();
-
-        setup(additionalSettings);
-        setupStarfleetIndex();
-        TestAuditlogImpl.clear();
-
-        System.out.println("#### testSimpleAuthenticated");
-        try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {
-            StoredContext ctx = tc.threadPool().getThreadContext().stashContext();
-            try {
-                Header header = encodeBasicHeader("admin", "admin");
-                tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
-                SearchResponse res = tc.search(new SearchRequest()).actionGet();
-                System.out.println(res);
-            } finally {
-                ctx.close();
-            }
-        }
-
-        Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue("Was "+TestAuditlogImpl.messages.size(), TestAuditlogImpl.messages.size() >= 2);
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("GRANTED_PRIVILEGES"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/read/search"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("TRANSPORT"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_request_effective_user\" : \"admin\""));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("REST"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
-    }
-
-    @Test
     public void testTaskId() throws Exception {
 
         Settings additionalSettings = Settings.builder()
@@ -192,17 +155,8 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         setupStarfleetIndex();
         TestAuditlogImpl.clear();
 
-        try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {
-            StoredContext ctx = tc.threadPool().getThreadContext().stashContext();
-            try {
-                Header header = encodeBasicHeader("admin", "admin");
-                tc.threadPool().getThreadContext().putHeader(header.getName(), header.getValue());
-                SearchResponse res = tc.search(new SearchRequest()).actionGet();
-                System.out.println(res);
-            } finally {
-                ctx.close();
-            }
-        }
+        HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
@@ -212,7 +166,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/read/search"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("TRANSPORT"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_request_effective_user\" : \"admin\""));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("REST"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("REST"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
         Assert.assertEquals(TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID),
         TestAuditlogImpl.messages.get(1).getAsMap().get(AuditMessage.TASK_ID));

@@ -33,6 +33,7 @@ package org.opensearch.security;
 import java.io.File;
 import java.util.Iterator;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpGet;
@@ -41,7 +42,9 @@ import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
@@ -52,9 +55,6 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.action.whoami.WhoAmIAction;
-import org.opensearch.security.action.whoami.WhoAmIRequest;
-import org.opensearch.security.action.whoami.WhoAmIResponse;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -112,27 +112,22 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testWhoAmI() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml")
-                .setSecurityRoles("roles_deny.yml"), Settings.EMPTY, true);
-        
-        try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {  
-            WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
-            System.out.println(wres);
-            Assert.assertEquals(wres.toString(), "CN=spock,OU=client,O=client,L=Test,C=DE", wres.getDn());
-            Assert.assertFalse(wres.toString(), wres.isAdmin());
-            Assert.assertFalse(wres.toString(), wres.isAuthenticated());
-            Assert.assertFalse(wres.toString(), wres.isNodeCertificateRequest());
+                .setSecurityRoles("roles_deny.yml"), settings, true);
 
-        }
-        
-        try (TransportClient tc = getUserTransportClient(clusterInfo, "node-0-keystore.jks", Settings.EMPTY)) {  
-            WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();    
-            System.out.println(wres);
-            Assert.assertEquals(wres.toString(), "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE", wres.getDn());
-            Assert.assertFalse(wres.toString(), wres.isAdmin());
-            Assert.assertFalse(wres.toString(), wres.isAuthenticated());
-            Assert.assertTrue(wres.toString(), wres.isNodeCertificateRequest());
-
+        try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "spock-keystore.jks", "truststore.jks")) {
+            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
+            Assert.assertEquals(whoAmIRes.getStatusLine().getStatusCode(), 200);
+            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+            String whoAmIResponsePayload = whoAmIResNode.toPrettyString();
+            Assert.assertEquals(whoAmIResponsePayload, "CN=spock,OU=client,O=client,L=Test,C=DE", whoAmIResNode.get("dn").asText());
+            Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_admin").asBoolean());
+            Assert.assertFalse(whoAmIResponsePayload, whoAmIResNode.get("is_node_certificate_request").asBoolean());
         }
     }
     

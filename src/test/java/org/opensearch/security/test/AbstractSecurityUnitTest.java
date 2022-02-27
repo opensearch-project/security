@@ -30,11 +30,23 @@
 
 package org.opensearch.security.test;
 
+import org.apache.http.HttpHost;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
+import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import io.netty.handler.ssl.OpenSsl;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -75,6 +87,8 @@ import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 
 import org.opensearch.security.securityconf.impl.CType;
+
+import javax.net.ssl.SSLContext;
 
 public abstract class AbstractSecurityUnitTest {
 
@@ -171,6 +185,40 @@ public abstract class AbstractSecurityUnitTest {
         TransportClient tc = new TransportClientImpl(tcSettings, asCollection(Netty4Plugin.class, OpenSearchSecurityPlugin.class));
         tc.addTransportAddress(new TransportAddress(new InetSocketAddress(info.nodeHost, info.nodePort)));
         return tc;
+    }
+
+    protected RestHighLevelClient getRestClient(ClusterInfo info, String keyStoreName, String trustStoreName) {
+        final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+
+        try {
+            SSLContextBuilder sslContextBuilder = SSLContexts.custom();
+            File keyStoreFile = FileHelper.getAbsoluteFilePathFromClassPath(prefix + keyStoreName).toFile();
+            KeyStore keyStore = KeyStore.getInstance(keyStoreName.endsWith(".jks")?"JKS":"PKCS12");
+            keyStore.load(new FileInputStream(keyStoreFile), null);
+            sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
+
+            KeyStore trustStore = KeyStore.getInstance(trustStoreName.endsWith(".jks")?"JKS":"PKCS12");
+            File trustStoreFile = FileHelper.getAbsoluteFilePathFromClassPath(prefix + trustStoreName).toFile();
+            trustStore.load(new FileInputStream(trustStoreFile),
+                    "changeit".toCharArray());
+
+            sslContextBuilder.loadTrustMaterial(trustStore, null);
+            SSLContext sslContext = sslContextBuilder.build();
+
+            HttpHost httpHost = new HttpHost(info.httpHost, info.httpPort, "https");
+
+            RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
+                    .setHttpClientConfigCallback(
+                            builder -> builder.setSSLStrategy(
+                                    new SSLIOSessionStrategy(sslContext,
+                                            new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3"},
+                                            null,
+                                            NoopHostnameVerifier.INSTANCE)));
+            return new RestHighLevelClient(restClientBuilder);
+        } catch (Exception e) {
+            log.error("Cannot create client", e);
+            throw new RuntimeException("Cannot create client", e);
+        }
     }
 
     protected void initialize(ClusterInfo info, Settings initTransportClientSettings, DynamicSecurityConfig securityConfig) {
