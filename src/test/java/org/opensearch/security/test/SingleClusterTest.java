@@ -147,9 +147,6 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         return clusterHelper.nodeClient();
     }
 
-    protected TransportClient getInternalTransportClient() {
-        return getInternalTransportClient(clusterInfo, Settings.EMPTY);
-    }
 
     @After
     public void tearDown() {

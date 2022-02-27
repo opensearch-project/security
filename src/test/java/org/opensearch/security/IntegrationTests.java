@@ -115,7 +115,7 @@ public class IntegrationTests extends SingleClusterTest {
         
         
     }
-    
+
     @Test
     public void testNotInsecure() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_deny.yml"), Settings.EMPTY, true);

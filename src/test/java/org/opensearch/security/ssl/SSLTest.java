@@ -34,7 +34,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManagerFactory;
 
-
+import org.opensearch.client.Client;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
@@ -45,9 +45,7 @@ import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.node.Node;
@@ -483,111 +481,6 @@ public class SSLTest extends SingleClusterTest {
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
     }
 
-    // transport
-    @Test
-    public void testTransportClientSSL() throws Exception {
-
-        final Settings settings = Settings.builder().put("plugins.security.ssl.transport.enabled", true)
-                .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
-                .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-                .put("plugins.security.ssl.transport.resolve_hostname", false).build();
-
-        setupSslOnlyMode(settings);
-        
-        log.debug("OpenSearch started");
-
-        final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put(settings).build();
-
-        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
-            
-            log.debug("TransportClient built, connect now to {}:{}", clusterInfo.nodeHost, clusterInfo.nodePort);
-            
-            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(clusterInfo.nodeHost, clusterInfo.nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());            
-            log.debug("TransportClient connected");           
-            Assert.assertEquals("test", tc.index(new IndexRequest("test","test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON)).actionGet().getIndex());            
-            log.debug("Index created");           
-            Assert.assertEquals(1L, tc.search(new SearchRequest("test")).actionGet().getHits().getTotalHits().value);
-            log.debug("Search done");
-            Assert.assertEquals(3, tc.admin().cluster().health(new ClusterHealthRequest("test")).actionGet().getNumberOfNodes());
-            log.debug("ClusterHealth done");            
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());           
-            log.debug("NodesInfoRequest asserted");
-        }
-    }
-
-    @Test
-    public void testTransportClientSSLExternalContext() throws Exception {
-
-        final Settings settings = Settings.builder().put("plugins.security.ssl.transport.enabled", true)
-                .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
-                .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-                .put("plugins.security.ssl.transport.resolve_hostname", false).build();
-
-        setupSslOnlyMode(settings);
-        
-        log.debug("OpenSearch started");
-
-        final Settings tcSettings = Settings.builder()
-                .put("cluster.name", clusterInfo.clustername)
-                .put("path.home", ".")
-                .put("plugins.security.ssl.client.external_context_id", "abcx")
-                .build();
-
-        final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory
-                .getDefaultAlgorithm());
-        final KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(this.getClass().getResourceAsStream("/truststore.jks"), "changeit".toCharArray());
-        tmf.init(trustStore);
-
-        final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory
-                .getDefaultAlgorithm());
-        final KeyStore keyStore = KeyStore.getInstance("JKS");
-        keyStore.load(this.getClass().getResourceAsStream("/node-0-keystore.jks"), "changeit".toCharArray());        
-        kmf.init(keyStore, "changeit".toCharArray());
-        
-        
-        SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-        ExternalSecurityKeyStore.registerExternalSslContext("abcx", sslContext);
-        
-        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
-            
-            log.debug("TransportClient built, connect now to {}:{}", clusterInfo.nodeHost, clusterInfo.nodePort);
-            
-            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(clusterInfo.nodeHost, clusterInfo.nodePort)));
-            
-            log.debug("TransportClient connected");
-            
-            Assert.assertEquals("test", tc.index(new IndexRequest("test","test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON)).actionGet().getIndex());
-            
-            log.debug("Index created");
-            
-            Assert.assertEquals(1L, tc.search(new SearchRequest("test")).actionGet().getHits().getTotalHits().value);
-
-            log.debug("Search done");
-            
-            Assert.assertEquals(3, tc.admin().cluster().health(new ClusterHealthRequest("test")).actionGet().getNumberOfNodes());
-
-            log.debug("ClusterHealth done");
-            
-            //Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().length);
-            
-            //log.debug("NodesInfoRequest asserted");
-            
-        }
-    }
-
     @Test
     public void testNodeClientSSL() throws Exception {
 
@@ -630,35 +523,6 @@ public class SSLTest extends SingleClusterTest {
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"rx_count\" : 0"));
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"rx_size_in_bytes\" : 0"));
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"tx_count\" : 0"));
-    }
-
-    @Test
-    public void testTransportClientSSLFail() throws Exception {
-        thrown.expect(IllegalStateException.class);
-
-        final Settings settings = Settings.builder().put("plugins.security.ssl.transport.enabled", true)
-                .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
-                .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-                .put("plugins.security.ssl.transport.resolve_hostname", false).build();
-
-        setupSslOnlyMode(settings);
-
-        final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername)
-                .put("path.home", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks").getParent())
-                .put("plugins.security.ssl.transport.keystore_filepath", FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/truststore_fail.jks"))
-                .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-                .put("plugins.security.ssl.transport.resolve_hostname", false).build();
-
-        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
-            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(clusterInfo.nodeHost, clusterInfo.nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-        }
     }
 
     @Test
@@ -720,13 +584,12 @@ public class SSLTest extends SingleClusterTest {
 
         final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", ".").put(settings).build();
 
-        try (TransportClient tc = new TransportClientImpl(tcSettings, asCollection(OpenSearchSecurityPlugin.class))) {
+        try (Client tc = getClient()) {
             
-            log.debug("TransportClient built, connect now to {}:{}", clusterInfo.nodeHost, clusterInfo.nodePort);
+            log.debug("Client built, connect now to {}:{}", clusterInfo.nodeHost, clusterInfo.httpPort);
             
-            tc.addTransportAddress(new TransportAddress(new InetSocketAddress(clusterInfo.nodeHost, clusterInfo.nodePort)));
-            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());            
-            log.debug("TransportClient connected");
+            Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            log.debug("Client connected");
             TestPrincipalExtractor.reset();
             Assert.assertEquals("test", tc.index(new IndexRequest("test","test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON)).actionGet().getIndex());            
             log.debug("Index created");           
