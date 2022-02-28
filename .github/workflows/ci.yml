@@ -50,7 +50,7 @@ jobs:
       uses: github/codeql-action/analyze@v1
 
     - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test
+      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test -i
 
     - name: Coverage
       uses: codecov/codecov-action@v1
