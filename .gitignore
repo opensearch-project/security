@@ -7,6 +7,7 @@ deploy_all.sh
 *.log
 .externalToolBuilders
 maven-eclipse.xml
+plugin-descriptor.properties
 
 ## eclipse ignores (use 'mvn eclipse:eclipse' to build eclipse projects)
 ## The only configuration files which are not ignored are certain files in
