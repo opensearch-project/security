@@ -57,9 +57,3 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./build/jacoco/test/jacocoTestReport.xml
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: artifacts
-        path: build/distributions/
