@@ -204,16 +204,6 @@ public abstract class AbstractSecurityUnitTest {
                 e.printStackTrace();
             }
 
-//            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", "config")).actionGet().isExists());
-//            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","internalusers")).actionGet().isExists());
-//            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","roles")).actionGet().isExists());
-//            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","rolesmapping")).actionGet().isExists());
-//            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","actiongroups")).actionGet().isExists());
-//            Assert.assertFalse(tc.get(new GetRequest(".opendistro_security","rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
-//            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","config")).actionGet().isExists());
-//            if (indexRequests.stream().anyMatch(i -> CType.NODESDN.toLCString().equals(i.id()))) {
-//                Assert.assertTrue(tc.get(new GetRequest(".opendistro_security","nodesdn")).actionGet().isExists());
-//            }
         }
     }
 

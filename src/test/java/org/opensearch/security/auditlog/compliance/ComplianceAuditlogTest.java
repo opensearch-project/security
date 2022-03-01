@@ -15,6 +15,8 @@
 
 package org.opensearch.security.auditlog.compliance;
 
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.client.Client;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
@@ -221,15 +223,16 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "kirk-keystore.jks", "truststore.jks")) {
             for(IndexRequest ir: new DynamicSecurityConfig().setSecurityRoles("roles_2.yml").getDynamicConfig(getResourceFolder())) {
                 restHighLevelClient.index(ir, RequestOptions.DEFAULT);
+                GetResponse getDocumentResponse = restHighLevelClient.get(new GetRequest(ir.index(), ir.id()), RequestOptions.DEFAULT);
+                Assert.assertTrue("Document not found:" + getDocumentResponse, getDocumentResponse.isExists());
             }
         }
-
 
         HttpResponse response = rh.executeGetRequest("_search?pretty", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue(TestAuditlogImpl.messages.size() > 25);
+        Assert.assertTrue(TestAuditlogImpl.messages.size() >= 15);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("anonymous_auth_enabled"));
