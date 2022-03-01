@@ -64,13 +64,13 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         System.setProperty("security.display_lic_none","true");
 
         cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
-        initialize(cl2Info, Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles(remoteRoles));
+        initialize(cl2, cl2Info, new DynamicSecurityConfig().setSecurityRoles(remoteRoles));
         System.out.println("### cl2 complete ###");
 
         //cl1 is coordinating
         cl1Info = cl1.startCluster(minimumSecuritySettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
         System.out.println("### cl1 start ###");
-        initialize(cl1Info, Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_983.yml"));
+        initialize(cl1, cl1Info, new DynamicSecurityConfig().setSecurityRoles("roles_983.yml"));
         System.out.println("### cl1 initialized ###");
     }
 

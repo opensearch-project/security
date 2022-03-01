@@ -38,17 +38,13 @@ import java.util.TreeSet;
 
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
-import org.opensearch.client.RestHighLevelClient;
-import org.opensearch.client.transport.TransportClient;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
@@ -60,9 +56,6 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.action.whoami.WhoAmIAction;
-import org.opensearch.security.action.whoami.WhoAmIRequest;
-import org.opensearch.security.action.whoami.WhoAmIResponse;
 import org.opensearch.security.http.HTTPClientCertAuthenticator;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
@@ -116,48 +109,6 @@ public class IntegrationTests extends SingleClusterTest {
         
     }
 
-    @Test
-    public void testNotInsecure() throws Exception {
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_deny.yml"), Settings.EMPTY, true);
-        final RestHelper rh = nonSslRestHelper();
-        
-        try (Client tc = getClient()) {
-            //create indices and mapping upfront
-            tc.index(new IndexRequest("test").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("lorem").type("type1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
-        }
-        
-        HttpResponse res = rh.executePutRequest("test/_mapping?pretty", "{\"properties\": {\"name\":{\"type\":\"text\"}}}", encodeBasicHeader("writer", "writer"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());  
-        
-        res = rh.executePostRequest("_cluster/reroute", "{}", encodeBasicHeader("writer", "writer"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());  
-        
-        try (TransportClient tc = getUserTransportClient(clusterInfo, "spock-keystore.jks", Settings.EMPTY)) {
-            //create indices and mapping upfront
-            try {
-                tc.admin().indices().putMapping(new PutMappingRequest("test").type("typex").source("fieldx","type=text")).actionGet();
-                Assert.fail();
-            } catch (OpenSearchSecurityException e) {
-                Assert.assertTrue(e.toString(),e.getMessage().contains("no permissions for"));
-            }          
-            
-            try {
-                tc.admin().cluster().reroute(new ClusterRerouteRequest()).actionGet();
-                Assert.fail();
-            } catch (OpenSearchSecurityException e) {
-                Assert.assertTrue(e.toString(),e.getMessage().contains("no permissions for [cluster:admin/reroute]"));
-            }
-            
-            WhoAmIResponse wres = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
-            Assert.assertEquals("CN=spock,OU=client,O=client,L=Test,C=DE", wres.getDn());
-            Assert.assertFalse(wres.isAdmin());
-            Assert.assertTrue(wres.toString(), wres.isAuthenticated());
-            Assert.assertFalse(wres.toString(), wres.isNodeCertificateRequest());
-        }
-
-    }
-    
     @Test
     public void testDnParsingCertAuth() throws Exception {
         Settings settings = Settings.builder()

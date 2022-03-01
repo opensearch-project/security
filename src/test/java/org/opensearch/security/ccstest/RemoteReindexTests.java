@@ -60,10 +60,10 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
         System.setProperty("security.display_lic_none","true");
         
         cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
-        initialize(cl2Info);
+        initialize(cl2, cl2Info);
         
         cl1Info = cl1.startCluster(minimumSecuritySettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
-        initialize(cl1Info);
+        initialize(cl1, cl1Info);
     }
     
     @After
