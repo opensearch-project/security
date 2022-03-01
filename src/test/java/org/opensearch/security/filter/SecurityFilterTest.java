@@ -114,7 +114,8 @@ public class SecurityFilterTest {
             mock(ClusterService.class),
             mock(CompatConfig.class),
             mock(IndexResolverReplacer.class),
-            mock(BackendRegistry.class)
+            mock(BackendRegistry.class),
+            mock(NamedXContentRegistry.class)
         );
 
         // Act
