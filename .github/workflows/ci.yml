@@ -16,10 +16,19 @@ jobs:
 
     steps:
 
-    - name: Set up JDK
-      uses: actions/setup-java@v1
+    - name: Set up JDK for build
+      if: ${{ matrix.jdk }} != 17 
+      uses: actions/setup-java@v2
       with:
+        distribution: temurin # Temurin is a distribution of adoptium
         java-version: ${{ matrix.jdk }}
+
+    - name: Set up build for JDK17 to use JKD11
+      if: ${{ matrix.jdk }} == 17 
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: 11
 
     - name: Checkout security
       uses: actions/checkout@v2
@@ -43,7 +52,13 @@ jobs:
     - name: Checkstyle
       run: ./gradlew clean checkstyleMain checkstyleTest
 
-    - name: Package
+    - name: Set up JDK for test
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Run Tests
       run: ./gradlew clean build -Dbuild.snapshot=false -x test
 
     - name: Perform CodeQL Analysis
