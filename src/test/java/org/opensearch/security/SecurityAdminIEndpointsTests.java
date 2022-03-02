@@ -15,7 +15,8 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 public class SecurityAdminIEndpointsTests extends SingleClusterTest {
 
-    @Test public void testNoSSL() throws Exception {
+    @Test
+    public void testNoSSL() throws Exception {
         final Settings settings = Settings.builder().put("plugins.security.ssl.http.enabled", false).build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
@@ -30,7 +31,8 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_plugins/_security/whoami").getStatusCode());
     }
 
-    @Test public void testEndpoints() throws Exception {
+    @Test
+    public void testEndpoints() throws Exception {
         final Settings settings = Settings.builder().put("plugins.security.ssl.http.enabled", true)
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))

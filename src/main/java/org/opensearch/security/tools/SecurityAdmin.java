@@ -209,7 +209,7 @@ public class SecurityAdmin {
         options.addOption(Option.builder("kspass").longOpt("keystore-password").hasArg().argName("password").desc("Keystore password").build());
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
         options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("OpenSearch host (default: localhost)").build());
-        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("OpenSearch transport port (default: 9300)").build());
+        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("OpenSearch transport port (default: 9200)").build());
         options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername (do not use together with -icl)").build());
         options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
         options.addOption( "icl", "ignore-clustername", false, "Ignore clustername (do not use together with -cn)" );
@@ -414,9 +414,9 @@ public class SecurityAdmin {
         }
         
         
-        if(port < 9300) {
+        if(port < 9200) {
             System.out.println("WARNING: Seems you want connect to the OpenSearch HTTP port."+System.lineSeparator()
-                             + "         securityadmin connects on the transport port which is normally 9300.");
+                             + "         securityadmin connects on the transport port which is normally 9200.");
         }
         
         System.out.print("Will connect to "+hostname+":"+port);
