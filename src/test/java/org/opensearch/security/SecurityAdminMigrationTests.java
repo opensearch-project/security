@@ -60,7 +60,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         argsAsList.add("-ks");
         argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
         argsAsList.add("-p");
-        argsAsList.add(String.valueOf(clusterInfo.nodePort));
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-migrate");
@@ -107,7 +107,7 @@ public class SecurityAdminMigrationTests extends SingleClusterTest {
         argsAsList.add("-ks");
         argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
         argsAsList.add("-p");
-        argsAsList.add(String.valueOf(clusterInfo.nodePort));
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-cd");

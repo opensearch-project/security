@@ -30,30 +30,14 @@
 
 package org.opensearch.security.tools;
 
-import java.io.ByteArrayInputStream;
-import java.io.Console;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.securityconf.impl.NodesDn;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
+import com.fasterxml.jackson.databind.InjectableValues;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterators;
+import com.google.common.io.ByteSource;
+import com.google.common.io.CharStreams;
+import com.google.common.io.Files;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -61,41 +45,43 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.opensearch.OpenSearchException;
+import org.apache.http.HttpHost;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.opensearch.action.admin.cluster.node.info.PluginsAndModules;
-import org.opensearch.action.admin.cluster.node.stats.NodesStatsRequest;
-import org.opensearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.opensearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
-import org.opensearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexRequest.Feature;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.opensearch.action.admin.indices.stats.IndicesStatsRequest;
-import org.opensearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.client.Client;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
+import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.transport.NoNodeAvailableException;
-import org.opensearch.client.transport.TransportClient;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.Strings;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentBuilder;
@@ -104,28 +90,15 @@ import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.index.IndexNotFoundException;
-import org.opensearch.plugins.Plugin;
-import org.opensearch.plugins.PluginInfo;
-import org.opensearch.security.action.configupdate.ConfigUpdateAction;
-import org.opensearch.security.action.configupdate.ConfigUpdateNodeResponse;
-import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
-import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.action.whoami.WhoAmIAction;
-import org.opensearch.security.action.whoami.WhoAmIRequest;
-import org.opensearch.security.action.whoami.WhoAmIResponse;
-import org.opensearch.security.securityconf.Migration;
-import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.ConfigHelper;
-import org.opensearch.security.support.SecurityJsonNode;
-import org.opensearch.security.support.SecurityUtils;
-import org.opensearch.transport.Netty4Plugin;
-
-import com.fasterxml.jackson.databind.JsonNode;
+import org.opensearch.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.NonValidatingObjectMapper;
+import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
 import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
@@ -133,10 +106,41 @@ import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
-import com.google.common.io.CharStreams;
-import com.google.common.io.Files;
+import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.ConfigHelper;
+import org.opensearch.security.support.PemKeyReader;
+import org.opensearch.security.support.SecurityJsonNode;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.Console;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.Writer;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
 
 @SuppressWarnings("deprecation")
 public class SecurityAdmin {
@@ -197,7 +201,6 @@ public class SecurityAdmin {
         final HelpFormatter formatter = new HelpFormatter();
         Options options = new Options();
         options.addOption( "nhnv", "disable-host-name-verification", false, "Disable hostname verification" );
-        options.addOption( "nrhn", "disable-resolve-hostname", false, "Disable DNS lookup of hostnames" );
         options.addOption(Option.builder("ts").longOpt("truststore").hasArg().argName("file").desc("Path to truststore (JKS/PKCS12 format)").build());
         options.addOption(Option.builder("ks").longOpt("keystore").hasArg().argName("file").desc("Path to keystore (JKS/PKCS12 format").build());
         options.addOption(Option.builder("tst").longOpt("truststore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given we use the file extension to dectect the type").build());
@@ -206,14 +209,13 @@ public class SecurityAdmin {
         options.addOption(Option.builder("kspass").longOpt("keystore-password").hasArg().argName("password").desc("Keystore password").build());
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
         options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("OpenSearch host (default: localhost)").build());
-        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("OpenSearch transport port (default: 9300)").build());
+        options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("OpenSearch transport port (default: 9200)").build());
         options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername (do not use together with -icl)").build());
         options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
         options.addOption( "icl", "ignore-clustername", false, "Ignore clustername (do not use together with -cn)" );
         options.addOption(Option.builder("r").longOpt("retrieve").desc("retrieve current config").build());
         options.addOption(Option.builder("f").longOpt("file").hasArg().argName("file").desc("file").build());
         options.addOption(Option.builder("t").longOpt("type").hasArg().argName("file-type").desc("file-type").build());
-        options.addOption(Option.builder("tsalias").longOpt("truststore-alias").hasArg().argName("alias").desc("Truststore alias").build());
         options.addOption(Option.builder("ksalias").longOpt("keystore-alias").hasArg().argName("alias").desc("Keystore alias").build());
         options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of enabled TLS ciphers").build());
         options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of enabled TLS protocols").build());
@@ -233,8 +235,6 @@ public class SecurityAdmin {
         options.addOption(Option.builder("cert").hasArg().argName("file").desc("Path to admin certificate in PEM format").build());
         options.addOption(Option.builder("key").hasArg().argName("file").desc("Path to the key of admin certificate").build());
         options.addOption(Option.builder("keypass").hasArg().argName("password").desc("Password of the key of admin certificate (optional)").build());
-
-        options.addOption(Option.builder("noopenssl").longOpt("no-openssl").desc("Do not use OpenSSL even if available (default: use it if available)").build());
 
         options.addOption(Option.builder("si").longOpt("show-info").desc("Show system and license info").build());
 
@@ -258,7 +258,7 @@ public class SecurityAdmin {
         //when adding new options also adjust validate(CommandLine line)
         
         String hostname = "localhost";
-        int port = 9300;
+        int port = 9200;
         String kspass = System.getenv(OPENDISTRO_SECURITY_KS_PASS);
         String tspass = System.getenv(OPENDISTRO_SECURITY_TS_PASS);
         String cd = ".";
@@ -267,15 +267,12 @@ public class SecurityAdmin {
         String kst = null;
         String tst = null;
         boolean nhnv = false;
-        boolean nrhn = false;
-        boolean sniff = false;
-        boolean icl = false;
+
         String clustername = "opensearch";
         String file = null;
         String type = null;
         boolean retrieve = false;
         String ksAlias = null;
-        String tsAlias = null;
         String[] enabledProtocols = new String[0];
         String[] enabledCiphers = new String[0];
         Integer updateSettings = null;
@@ -289,8 +286,6 @@ public class SecurityAdmin {
         boolean acceptRedCluster = false;
         
         String keypass = System.getenv(OPENDISTRO_SECURITY_KEYPASS);
-        boolean useOpenSSLIfAvailable = true;
-        //boolean simpleAuth = false;
         String cacert = null;
         String cert = null;
         String key = null;
@@ -303,7 +298,12 @@ public class SecurityAdmin {
         final boolean resolveEnvVars;
         Integer validateConfig = null;
         String migrateOffline = null;
-        
+
+        InjectableValues.Std injectableValues = new InjectableValues.Std();
+        injectableValues.addValue(Settings.class, Settings.builder().build());
+        DefaultObjectMapper.inject(injectableValues);
+        NonValidatingObjectMapper.inject(injectableValues);
+
         CommandLineParser parser = new DefaultParser();
         try {
             CommandLine line = parser.parse( options, args );
@@ -334,15 +334,11 @@ public class SecurityAdmin {
             kst = line.getOptionValue("kst", kst);
             tst = line.getOptionValue("tst", tst);
             nhnv = line.hasOption("nhnv");
-            nrhn = line.hasOption("nrhn");
             clustername = line.getOptionValue("cn", clustername);
-            sniff = line.hasOption("sniff");
-            icl = line.hasOption("icl");
             file = line.getOptionValue("f", file);
             type = line.getOptionValue("t", type);
             retrieve = line.hasOption("r");
             ksAlias = line.getOptionValue("ksalias", ksAlias);
-            tsAlias = line.getOptionValue("tsalias", tsAlias);
             index = line.getOptionValue("i", index);
             
             String enabledCiphersString = line.getOptionValue("ec", null);
@@ -378,9 +374,7 @@ public class SecurityAdmin {
             cert = line.getOptionValue("cert");
             key = line.getOptionValue("key");
             keypass = line.getOptionValue("keypass", keypass);
-            
-            useOpenSSLIfAvailable = !line.hasOption("noopenssl");
-            
+
             si = line.hasOption("si");
             
             whoami = line.hasOption("w");
@@ -408,7 +402,6 @@ public class SecurityAdmin {
             return -1;
         }
         
-        
         if(validateConfig != null) {
             System.out.println("Validate configuration for Version "+validateConfig.intValue());
             return validateConfig(cd, file, type, validateConfig.intValue());
@@ -419,12 +412,7 @@ public class SecurityAdmin {
             final boolean retVal =  Migrater.migrateDirectory(new File(migrateOffline), true);
             return retVal?0:-1;
         }
-        
-        
-        if(port < 9300) {
-            System.out.println("WARNING: Seems you want connect to the OpenSearch HTTP port."+System.lineSeparator()
-                             + "         securityadmin connects on the transport port which is normally 9300.");
-        }
+
         
         System.out.print("Will connect to "+hostname+":"+port);
         Socket socket = new Socket();
@@ -446,98 +434,56 @@ public class SecurityAdmin {
           }
 
         System.out.println(" ... done");
-        
-        final Settings.Builder settingsBuilder = Settings
-                .builder()
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, !nhnv)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, !nrhn)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && useOpenSSLIfAvailable)
-                .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, enabledCiphers)
-                .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, enabledProtocols)
-                
-                .put("cluster.name", clustername)
-                .put("client.transport.ignore_cluster_name", icl)
-                .put("client.transport.sniff", sniff);
-                
-                if(ksAlias != null) {
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, ksAlias);
-                }
-                
-                if(tsAlias != null) {
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, tsAlias);
-                }
-                
+
                 if(ks != null) {
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, ks);
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst);
-                    
+                    kst = kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst;
                     if(kspass == null && promptForPassword) {
                         kspass = promptForPassword("Keystore", "kspass", OPENDISTRO_SECURITY_KS_PASS);
-                    }
-                    
-                    if(kspass != null) {
-                        settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, kspass);
                     }
                 }
                 
                 if(ts != null) {
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, ts);
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst);
-                    
+                    tst = tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst;
                     if(tspass == null && promptForPassword) {
                         tspass = promptForPassword("Truststore", "tspass", OPENDISTRO_SECURITY_TS_PASS);
                     }
-                    
-                    if(tspass != null) {
-                        settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, tspass);
-                    }
                 }            
-                
-                if(cacert != null) {
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, cacert);
-                }
-                
-                if(cert != null) {
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, cert);
-                }
-                
+
                 if(key != null) {
-                    settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, key);
-                    
+
                     if(keypass == null && promptForPassword) {
                         keypass = promptForPassword("Pemkey", "keypass", OPENDISTRO_SECURITY_KEYPASS);
                     }
-                    
-                    if(keypass != null) {
-                        settingsBuilder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, keypass);
-                    }
+
                 }
 
-                Settings settings = settingsBuilder.build();  
+        final SSLContext sslContext = sslContext(ts, tspass, tst, ks, kspass, kst, ksAlias, cacert, cert, key, keypass);
 
-        try (@SuppressWarnings("resource")
-        TransportClient tc = new TransportClientImpl(settings, asCollection(Netty4Plugin.class, OpenSearchSecurityPlugin.class))
-                .addTransportAddress(new TransportAddress(new InetSocketAddress(hostname, port)))) {
+		try (RestHighLevelClient restHighLevelClient = getRestHighLevelClient(sslContext, nhnv, enabledProtocols, enabledCiphers, hostname, port)) {
 
-            
-            final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
-            System.out.println("Connected as "+whoAmIRes.getDn());
+		    Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
+			if (whoAmIRes.getStatusLine().getStatusCode() != 200) {
+				System.out.println("Unable to check whether cluster is sane because return code was " + whoAmIRes.getStatusLine());
+				return (-1);
+			}
 
-            if(!whoAmIRes.isAdmin()) {
-                
-            	System.out.println("ERR: "+whoAmIRes.getDn()+" is not an admin user");
-                
-                if(!whoAmIRes.isNodeCertificateRequest()) {
-                	System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
-                	System.out.println("Make sure opensearch.yml on all nodes contains:");
+			JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+			System.out.println("Connected as " + whoAmIResNode.get("dn"));
+
+			if (!whoAmIResNode.get("is_admin").asBoolean()) {
+
+				System.out.println("ERR: " + whoAmIResNode.get("dn") + " is not an admin user");
+
+				if (!whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
+                    System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
+                    System.out.println("Make sure opensearch.yml on all nodes contains:");
                     System.out.println("plugins.security.authcz.admin_dn:"+System.lineSeparator()+
-                                       "  - \""+whoAmIRes.getDn()+"\"");
+                            "  - \"" + whoAmIResNode.get("dn") + "\"");
                 } else {
                 	System.out.println("Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in opensearch.yml");
                 }
                 return (-1);
-            } else if(whoAmIRes.isNodeCertificateRequest()) {
+            } else if (whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
                 System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
                 System.out.println("     That may have worked with older OpenSearch Security versions but it indicates");
                 System.out.println("     a configuration error and is therefore forbidden now.");
@@ -548,7 +494,7 @@ public class SecurityAdmin {
             }
 
             try {
-                if(issueWarnings(tc) != 0) {
+                if(issueWarnings(restHighLevelClient) != 0) {
                     return (-1);
                 }
             } catch (Exception e1) {
@@ -556,22 +502,39 @@ public class SecurityAdmin {
                 throw e1;
             }
 
-            if(updateSettings != null) { 
+            if(updateSettings != null) {
                 Settings indexSettings = Settings.builder().put("index.number_of_replicas", updateSettings).build();
-                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(getTypes(true))).actionGet();
-                if(res.hasFailures()) {
-                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+				Response res = restHighLevelClient.getLowLevelClient()
+						.performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(true))));
+
+                if (res.getStatusLine().getStatusCode() != 200) {
+					System.out.println("Unable to reload configuration because return code was " + res.getStatusLine());
+					return (-1);
                 }
-                final AcknowledgedResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
+
+				JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(res.getEntity().getContent());
+
+				if (resNode.get("configupdate_response").get("has_failures").asBoolean()) {
+					System.out.println("ERR: Unable to reload config due to " + responseToString(res, false) + "/" + resNode);
+				}
+				final AcknowledgedResponse response = restHighLevelClient.indices().putSettings((new UpdateSettingsRequest(index).settings(indexSettings)), RequestOptions.DEFAULT);
                 System.out.println("Reload config on all nodes");
                 System.out.println("Update number of replicas to "+(updateSettings) +" with result: "+response.isAcknowledged());
-                return ((response.isAcknowledged() && !res.hasFailures())?0:-1);
+				return ((response.isAcknowledged() && !resNode.get("configupdate_response").get("has_failures").asBoolean()) ? 0 : -1);
             }
-            
-            if(reload) { 
-                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(getTypes(false))).actionGet();                
-                if(res.hasFailures()) {
-                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+
+            if(reload) {
+                Response res = restHighLevelClient.getLowLevelClient()
+                        .performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(false))));
+
+				if (res.getStatusLine().getStatusCode() != 200) {
+					System.out.println("Unable to reload configuration because return code was " + res.getStatusLine());
+					return (-1);
+				}
+
+				JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(res.getEntity().getContent());
+				if (resNode.get("configupdate_response").get("has_failures").asBoolean()) {
+					System.out.println("ERR: Unable to reload config due to " + responseToString(res, false) + "/" + resNode);
                     return -1;
                 }
                 System.out.println("Reload config on all nodes");
@@ -581,9 +544,9 @@ public class SecurityAdmin {
             if(si) {
                 return (0);
             }
-            
-            if(whoami) { 
-                System.out.println(whoAmIRes.toString());
+
+			if (whoami) {
+				System.out.println(whoAmIResNode.toPrettyString());
                 return (0);
             }
             
@@ -591,25 +554,32 @@ public class SecurityAdmin {
             if(replicaAutoExpand != null) { 
                 Settings indexSettings = Settings.builder()
                         .put("index.auto_expand_replicas", replicaAutoExpand?"0-all":"false")
-                        .build();                
-                ConfigUpdateResponse res = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(getTypes(false))).actionGet();                
-                if(res.hasFailures()) {
-                    System.out.println("ERR: Unabe to reload config due to "+res.failures());
+                        .build();
+                Response res = restHighLevelClient.getLowLevelClient().performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes(false))));
+
+				if (res.getStatusLine().getStatusCode() != 200) {
+					System.out.println("Unable to reload configuration because return code was " + whoAmIRes.getStatusLine());
+					return (-1);
                 }
-                final AcknowledgedResponse response = tc.admin().indices().updateSettings((new UpdateSettingsRequest(index).settings(indexSettings))).actionGet();
-                System.out.println("Reload config on all nodes");
-                System.out.println("Auto-expand replicas "+(replicaAutoExpand?"enabled":"disabled"));
-                return ((response.isAcknowledged() && !res.hasFailures())?0:-1);
-            }   
-            
-            if(enableShardAllocation) { 
-                final boolean successful = tc.admin().cluster()
-                        .updateSettings(new ClusterUpdateSettingsRequest()
-                        .transientSettings(ENABLE_ALL_ALLOCATIONS_SETTINGS)
-                        .persistentSettings(ENABLE_ALL_ALLOCATIONS_SETTINGS))
-                        .actionGet()
-                        .isAcknowledged();
-                
+
+				JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(res.getEntity().getContent());
+
+				if (resNode.get("configupdate_response").get("has_failures").asBoolean()) {
+					System.out.println("ERR: Unable to reload config due to " + responseToString(res, false) + "/" + resNode);
+				}
+				final AcknowledgedResponse response = restHighLevelClient.indices().putSettings((new UpdateSettingsRequest(index).settings(indexSettings)), RequestOptions.DEFAULT);
+				System.out.println("Reload config on all nodes");
+				System.out.println("Auto-expand replicas " + (replicaAutoExpand ? "enabled" : "disabled"));
+				return ((response.isAcknowledged() && !resNode.get("configupdate_response").get("has_failures").asBoolean()) ? 0 : -1);
+			}
+
+			if (enableShardAllocation) {
+				final boolean successful = restHighLevelClient.cluster()
+						.putSettings(new ClusterUpdateSettingsRequest()
+								.transientSettings(ENABLE_ALL_ALLOCATIONS_SETTINGS)
+								.persistentSettings(ENABLE_ALL_ALLOCATIONS_SETTINGS), RequestOptions.DEFAULT)
+						.isAcknowledged();
+
                 if(successful) {
                     System.out.println("Persistent and transient shard allocation enabled");
                 } else {
@@ -622,24 +592,24 @@ public class SecurityAdmin {
             if(failFast) {
                 System.out.println("Fail-fast is activated");
             }
-            
-            if(diagnose) {
-                generateDiagnoseTrace(tc);
-            }
-            
+
+            if (diagnose) {
+				generateDiagnoseTrace(restHighLevelClient);
+			}
+
             System.out.println("Contacting opensearch cluster '"+clustername+"'"+(acceptRedCluster?"":" and wait for YELLOW clusterstate")+" ...");
-            
-            ClusterHealthResponse chr = null;
-            
-            while(chr == null) {
+
+			ClusterHealthResponse chResponse = null;
+
+			while (chResponse == null) {
                 try {
-                    final ClusterHealthRequest chrequest = new ClusterHealthRequest().timeout(TimeValue.timeValueMinutes(5));
-                    if(!acceptRedCluster) {
-                        chrequest.waitForYellowStatus();
-                    }
-                    chr = tc.admin().cluster().health(chrequest).actionGet();
-                } catch (Exception e) {
-                    
+					final ClusterHealthRequest chRequest = new ClusterHealthRequest().timeout(TimeValue.timeValueMinutes(5));
+					if (!acceptRedCluster) {
+						chRequest.waitForYellowStatus();
+					}
+					chResponse = restHighLevelClient.cluster().health(chRequest, RequestOptions.DEFAULT);
+				} catch (Exception e) {
+
                     Throwable rootCause = ExceptionUtils.getRootCause(e);
                     
                     if(!failFast) {
@@ -666,8 +636,8 @@ public class SecurityAdmin {
                 }
             }
 
-            final boolean timedOut = chr.isTimedOut();
-            
+			final boolean timedOut = chResponse.isTimedOut();
+
             if (!acceptRedCluster && timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
                 System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
@@ -676,29 +646,35 @@ public class SecurityAdmin {
                 System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
                 return (-1);
             }
-            
-            System.out.println("Clustername: "+chr.getClusterName());
-            System.out.println("Clusterstate: "+chr.getStatus());
-            System.out.println("Number of nodes: "+chr.getNumberOfNodes());
-            System.out.println("Number of data nodes: "+chr.getNumberOfDataNodes());
-            
+
+			System.out.println("Clustername: " + chResponse.getClusterName());
+			System.out.println("Clusterstate: " + chResponse.getStatus());
+			System.out.println("Number of nodes: " + chResponse.getNumberOfNodes());
+			System.out.println("Number of data nodes: " + chResponse.getNumberOfDataNodes());
+
+
             GetIndexResponse securityIndex = null;
             try {
-                securityIndex = tc.admin().indices().getIndex(new GetIndexRequest().indices(index).addFeatures(Feature.MAPPINGS)).actionGet();
-            } catch (IndexNotFoundException e1) {
+				securityIndex = restHighLevelClient.indices().get(new GetIndexRequest().indices(index).addFeatures(Feature.MAPPINGS), RequestOptions.DEFAULT);
+			} catch (OpenSearchStatusException e1) {
+			    if(e1.status() == RestStatus.NOT_FOUND) {
                 //ignore
+                } else {
+                    System.out.println("Unable to get index because return code was " + e1.status().getStatus());
+                    return (-1);
+                }
             }
             final boolean indexExists = securityIndex != null;
-            
-            final NodesInfoResponse nodesInfo = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
+
+			int expectedNodeCount = restHighLevelClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT).getNumberOfNodes();
 
             if(deleteConfigIndex) {
-                return deleteConfigIndex(tc, index, indexExists);
+				return deleteConfigIndex(restHighLevelClient, index, indexExists);
             }
                
             if (!indexExists) {
                 System.out.print(index +" index does not exists, attempt to create it ... ");
-                final int created = createConfigIndex(tc, index, explicitReplicas);
+				final int created = createConfigIndex(restHighLevelClient, index, explicitReplicas);
                 if(created != 0) {
                     return created;
                 }
@@ -707,17 +683,17 @@ public class SecurityAdmin {
                 System.out.println(index+" index already exists, so we do not need to create one.");
                 
                 try {
-                    ClusterHealthResponse chrsg = tc.admin().cluster().health(new ClusterHealthRequest(index)).actionGet();
-                             
-                    if (chrsg.isTimedOut()) {
+					ClusterHealthResponse clusterHealthResponse = restHighLevelClient.cluster().health(new ClusterHealthRequest(index), RequestOptions.DEFAULT);
+
+					if (clusterHealthResponse.isTimedOut()) {
                         System.out.println("ERR: Timed out while waiting for "+index+" index state.");
                     }
-                    
-                    if (chrsg.getStatus() == ClusterHealthStatus.RED) {
+
+					if (clusterHealthResponse.getStatus() == ClusterHealthStatus.RED) {
                         System.out.println("ERR: "+index+" index state is RED.");
                     }
-                    
-                    if (chrsg.getStatus() == ClusterHealthStatus.YELLOW) {
+
+					if (clusterHealthResponse.getStatus() == ClusterHealthStatus.YELLOW) {
                         System.out.println("INFO: "+index+" index state is YELLOW, it seems you miss some replicas");
                     }
                     
@@ -745,29 +721,29 @@ public class SecurityAdmin {
             if(legacy) {
                 System.out.println("Legacy index '"+index+"' (ES 6) detected (or forced). You should migrate the configuration!");
             }
-            
+
             if(retrieve) {
                 String date = DATE_FORMAT.format(new Date());
-                
-                boolean success = retrieveFile(tc, cd+"config_"+date+".yml", index, "config", legacy);
-                success = retrieveFile(tc, cd+"roles_"+date+".yml", index, "roles", legacy) && success;
-                success = retrieveFile(tc, cd+"roles_mapping_"+date+".yml", index, "rolesmapping", legacy) && success;
-                success = retrieveFile(tc, cd+"internal_users_"+date+".yml", index, "internalusers", legacy) && success;
-                success = retrieveFile(tc, cd+"action_groups_"+date+".yml", index, "actiongroups", legacy) && success;
-                success = retrieveFile(tc, cd+"audit_"+date+".yml", index, "audit", legacy) && success;
+
+                boolean success = retrieveFile(restHighLevelClient, cd + "config_" + date + ".yml", index, "config", legacy);
+                success = retrieveFile(restHighLevelClient, cd + "roles_" + date + ".yml", index, "roles", legacy) && success;
+                success = retrieveFile(restHighLevelClient, cd + "roles_mapping_" + date + ".yml", index, "rolesmapping", legacy) && success;
+                success = retrieveFile(restHighLevelClient, cd + "internal_users_" + date + ".yml", index, "internalusers", legacy) && success;
+                success = retrieveFile(restHighLevelClient, cd + "action_groups_" + date + ".yml", index, "actiongroups", legacy) && success;
+                success = retrieveFile(restHighLevelClient, cd + "audit_" + date + ".yml", index, "audit", legacy) && success;
 
                 if(!legacy) {
-                    success = retrieveFile(tc, cd+"security_tenants_"+date+".yml", index, "tenants", legacy) && success;
+					success = retrieveFile(restHighLevelClient, cd + "security_tenants_" + date + ".yml", index, "tenants", legacy) && success;
                 }
 
                 final boolean populateFileIfEmpty = true;
-                success = retrieveFile(tc, cd+"nodes_dn_"+date+".yml", index, "nodesdn", legacy, populateFileIfEmpty) && success;
-                success = retrieveFile(tc, cd+"whitelist_"+date+".yml", index, "whitelist", legacy, populateFileIfEmpty) && success;
+                success = retrieveFile(restHighLevelClient, cd+"nodes_dn_"+date+".yml", index, "nodesdn", legacy, populateFileIfEmpty) && success;
+                success = retrieveFile(restHighLevelClient, cd+"whitelist_"+date+".yml", index, "whitelist", legacy, populateFileIfEmpty) && success;
                 return (success?0:-1);
             }
 
             if(backup != null) {
-                return backup(tc, index, new File(backup), legacy);
+				return backup(restHighLevelClient, index, new File(backup), legacy);
             }
 
             if(migrate != null) {
@@ -775,7 +751,7 @@ public class SecurityAdmin {
                     System.out.println("ERR: Seems cluster is already migrated");
                     return -1;
                 }
-                return migrate(tc, index, new File(migrate), nodesInfo, resolveEnvVars);
+				return migrate(restHighLevelClient, index, new File(migrate), expectedNodeCount, resolveEnvVars);
             }
 
             boolean isCdAbs = new File(cd).isAbsolute();
@@ -798,59 +774,64 @@ public class SecurityAdmin {
                     return (-1);
                 }
 
-                boolean success = uploadFile(tc, file, index, type, legacy, resolveEnvVars);
+				boolean success = uploadFile(restHighLevelClient, file, index, type, legacy, resolveEnvVars);
 
                 if(!success) {
                     System.out.println("ERR: cannot upload configuration, see errors above");
                     return -1;
                 }
 
-                ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{type})).actionGet();
-                
-                success = checkConfigUpdateResponse(cur, nodesInfo, 1) && success;
-                
+				Response cur = restHighLevelClient.getLowLevelClient().performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + type));
+                success = checkConfigUpdateResponse(cur, expectedNodeCount, 1) && success;
+
                 System.out.println("Done with "+(success?"success":"failures"));
                 return (success?0:-1);
             }
 
-            return upload(tc, index, cd, legacy, nodesInfo, resolveEnvVars);
+            return upload(restHighLevelClient, index, cd, legacy, expectedNodeCount, resolveEnvVars);
         }
-        // TODO audit changes to .opendistro_security index
     }
 
-    private static boolean checkConfigUpdateResponse(ConfigUpdateResponse response, NodesInfoResponse nir, int expectedConfigCount) {
+	private static boolean checkConfigUpdateResponse(Response response, int expectedNodeCount, int expectedConfigCount) throws IOException {
 
-        final int expectedNodeCount =  nir.getNodes().size();
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("Unable to check configupdate response because return code was " + response.getStatusLine());
+		}
 
-        if(response.hasFailures()) {
-            System.out.println("FAIL: "+response.failures().size()+" nodes reported failures. First failure is "+response.failures().get(0));
+		JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(response.getEntity().getContent());
+
+		if (resNode.at("/configupdate_response/has_failures").asBoolean()) {
+			System.out.println("FAIL: " + resNode.at("/configupdate_response/failures_size").asInt() + " nodes reported failures. Failure is " + responseToString(response, false) + "/" + resNode);
         }
 
-        boolean success = response.getNodes().size() == expectedNodeCount;
+
+		boolean success = resNode.at("/configupdate_response/node_size").asInt() == expectedNodeCount;
         if(!success) {
-            System.out.println("FAIL: Expected "+expectedNodeCount+" nodes to return response, but got "+response.getNodes().size());
+			System.out.println("FAIL: Expected " + expectedNodeCount + " nodes to return response, but got " + resNode.at("/configupdate_response/node_size").asInt());
         }
-        
-        for(String nodeId: response.getNodesMap().keySet()) {
-            ConfigUpdateNodeResponse node = response.getNodesMap().get(nodeId);
-            boolean successNode = (node.getUpdatedConfigTypes() != null && node.getUpdatedConfigTypes().length == expectedConfigCount);
+
+		for (JsonNode n : resNode.at("/configupdate_response/nodes")) {
+			boolean successNode = (n.get("updated_config_types") != null && n.get("updated_config_size").asInt() == expectedConfigCount);
+
             if(!successNode) {
-                System.out.println("FAIL: Expected "+expectedConfigCount+" config types for node "+nodeId+" but got "+node.getUpdatedConfigTypes().length+" ("+Arrays.toString(node.getUpdatedConfigTypes()) + ") due to: "+(node.getMessage()==null?"unknown reason":node.getMessage()));
+				System.out.println("FAIL: Expected " + expectedConfigCount + " config types for node " + n + " but got " + n.get("updated_config_size").asInt() + " (" + n.get("updated_config_types") + ") due to: " + (n.get("message") == null ? "unknown reason" : n.get("message")));
+			} else {
+				System.out.println("SUCC: Expected " + expectedConfigCount + " config types for node " + n + " is " + n.get("updated_config_size").asInt() + " (" + n.get("updated_config_types") + ") due to: " + (n.get("message") == null ? "unknown reason" : n.get("message")));
             }
             
             success = success && successNode;
         }
 
-        return success && !response.hasFailures();
+		return success && !resNode.at("/configupdate_response/has_failures").asBoolean();
     }
 
-    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars) {
-        return uploadFile(tc, filepath, index, _id, legacy, resolveEnvVars, false);
+	private static boolean uploadFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars) {
+		return uploadFile(restHighLevelClient, filepath, index, _id, legacy, resolveEnvVars, false);
     }
 
-    private static boolean uploadFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars,
+	private static boolean uploadFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars,
         final boolean populateEmptyIfMissing) {
-        
+
         String type = "_doc";
         String id = _id;
                 
@@ -874,13 +855,14 @@ public class SecurityAdmin {
             }
         }
 
-        System.out.println("Will update '"+type+"/" + id + "' with " + filepath+" "+(legacy?"(legacy mode)":""));
-        
-        try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)) {
-            final String content = CharStreams.toString(reader);
-            final String res = tc
-                    .index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                            .source(_id, readXContent(resolveEnvVars? SecurityUtils.replaceEnvVars(content, Settings.EMPTY):content, XContentType.YAML))).actionGet().getId();
+        System.out.println("Will update '" + type + "/" + id + "' with " + filepath + " " + (legacy ? "(legacy mode)" : ""));
+
+		try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)) {
+			final String content = CharStreams.toString(reader);
+			final String res = restHighLevelClient
+					.index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+							.source(_id, readXContent(resolveEnvVars ? replaceEnvVars(content, Settings.EMPTY) : content, XContentType.YAML)), RequestOptions.DEFAULT).getId();
+
 
             if (id.equals(res)) {
                 System.out.println("   SUCC: Configuration for '" + _id + "' created or updated");
@@ -896,12 +878,11 @@ public class SecurityAdmin {
         return false;
     }
 
-    private static boolean retrieveFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy) {
-        return retrieveFile(tc, filepath, index, _id, legacy, false);
-    }
+	private static boolean retrieveFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy) {
+		return retrieveFile(restHighLevelClient, filepath, index, _id, legacy, false);
+	}
 
-    private static boolean retrieveFile(final Client tc, final String filepath, final String index, final String _id, final boolean legacy, final boolean populateFileIfEmpty) {
-        
+	private static boolean retrieveFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy, final boolean populateFileIfEmpty) {
         String type = "_doc";
         String id = _id;
                 
@@ -914,7 +895,7 @@ public class SecurityAdmin {
         System.out.println("Will retrieve '"+type+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
         try (Writer writer = new FileWriter(filepath)) {
 
-            final GetResponse response = tc.get(new GetRequest(index).type(type).id(id).refresh(true).realtime(false)).actionGet();
+			final GetResponse response = restHighLevelClient.get(new GetRequest(index).type(type).id(id).refresh(true).realtime(false), RequestOptions.DEFAULT);
 
             boolean isEmpty = !response.isExists() || response.isSourceEmpty();
             String yaml;
@@ -945,7 +926,7 @@ public class SecurityAdmin {
                     try {
                         ConfigHelper.fromYamlString(yaml, CType.fromString(_id), 2, 0, 0);
                     } catch (Exception e) {
-                        System.out.println("ERR: Seems " + _id + " from cluster is not in SG 7 format: " + e);
+                        System.out.println("ERR: Seems " + _id + " from cluster is not in 7 format: " + e);
                         return false;
                     }
                 }
@@ -1001,24 +982,8 @@ public class SecurityAdmin {
         }
     }
 
-    protected static class TransportClientImpl extends TransportClient {
+	protected static void generateDiagnoseTrace(final RestHighLevelClient restHighLevelClient) {
 
-        public TransportClientImpl(Settings settings, Collection<Class<? extends Plugin>> plugins) {
-            super(settings, plugins);
-        }
-
-        public TransportClientImpl(Settings settings, Settings defaultSettings, Collection<Class<? extends Plugin>> plugins) {
-            super(settings, defaultSettings, plugins, null);
-        }       
-    }
-    
-    @SafeVarargs
-    protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
-        return Arrays.asList(plugins);
-    }
-
-    protected static void generateDiagnoseTrace(final Client tc) {
-        
         final String date = DATE_FORMAT.format(new Date());
         
         final StringBuilder sb = new StringBuilder();
@@ -1027,55 +992,55 @@ public class SecurityAdmin {
         sb.append("Client properties: "+System.getProperties()+System.lineSeparator());
         sb.append(date+System.lineSeparator());
         sb.append(System.lineSeparator());
-        
+
         try {
             sb.append("Who am i:"+System.lineSeparator());
-            final WhoAmIResponse whoAmIRes = tc.execute(WhoAmIAction.INSTANCE, new WhoAmIRequest()).actionGet();
-            sb.append(Strings.toString(whoAmIRes,true, true));
+			final Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
+			sb.append(responseToString(whoAmIRes, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
-        
+
         try {
             sb.append("ClusterHealthRequest:"+System.lineSeparator());
-            ClusterHealthResponse nir = tc.admin().cluster().health(new ClusterHealthRequest()).actionGet();
-            sb.append(Strings.toString(nir,true, true));
+			ClusterHealthResponse nir = restHighLevelClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
+			sb.append(Strings.toString(nir, true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
-        
+
         try {
             sb.append(System.lineSeparator()+"NodesInfoResponse:"+System.lineSeparator());
-            NodesInfoResponse nir = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
-            sb.append(Strings.toString(nir,true, true));
+			Response nir = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_nodes"));
+			sb.append(responseToString(nir, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
-        
+
         try {
             sb.append(System.lineSeparator()+"NodesStatsRequest:"+System.lineSeparator());
-            NodesStatsResponse nir = tc.admin().cluster().nodesStats(new NodesStatsRequest()).actionGet();
-            sb.append(Strings.toString(nir,true, true));
+			Response nir = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_nodes/stats"));
+			sb.append(responseToString(nir, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
-        
+
         try {
             sb.append(System.lineSeparator()+"PendingClusterTasksRequest:"+System.lineSeparator());
-            PendingClusterTasksResponse nir = tc.admin().cluster().pendingClusterTasks(new PendingClusterTasksRequest()).actionGet();
-            sb.append(Strings.toString(nir,true, true));
+			Response nir = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_cluster/pending_tasks"));
+			sb.append(responseToString(nir, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
-        
+
         try {
             sb.append(System.lineSeparator()+"IndicesStatsRequest:"+System.lineSeparator());
-            IndicesStatsResponse nir = tc.admin().indices().stats(new IndicesStatsRequest()).actionGet();
-            sb.append(Strings.toString(nir, true, true));
+			Response nir = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_stats"));
+			sb.append(responseToString(nir, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
-        
+
         try {
             File dfile = new File("securityadmin_diag_trace_"+date+".txt");
             Files.asCharSink(dfile, StandardCharsets.UTF_8).write(sb);
@@ -1084,9 +1049,9 @@ public class SecurityAdmin {
             System.out.println("ERR: cannot write diag trace file due to "+e1);
         }
     }
-    
-    private static void validate(CommandLine line) throws ParseException{
-        
+
+    private static void validate(CommandLine line) throws ParseException {
+
         if(line.hasOption("ts") && line.hasOption("cacert")) {
             System.out.println("WARN: It makes no sense to specify -ts as well as -cacert");
         }
@@ -1134,12 +1099,26 @@ public class SecurityAdmin {
         }
         return new String(console.readPassword("[%s]", passwordName+" password:"));
     }
-    
-    private static int issueWarnings(Client tc) {
-        NodesInfoResponse nir = tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet();
-        Version maxVersion = nir.getNodes().stream().max((n1,n2) -> n1.getVersion().compareTo(n2.getVersion())).get().getVersion();
-        Version minVersion = nir.getNodes().stream().min((n1,n2) -> n1.getVersion().compareTo(n2.getVersion())).get().getVersion();
-        
+
+	private static int issueWarnings(RestHighLevelClient restHighLevelClient) throws IOException {
+		Response res = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_nodes"));
+
+		if (res.getStatusLine().getStatusCode() != 200) {
+			System.out.println("Unable to get nodes " + res.getStatusLine());
+			return -1;
+		}
+
+		JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(res.getEntity().getContent());
+
+		int nodeCount = Iterators.size(resNode.at("/nodes").iterator());
+
+		if (nodeCount > 0) {
+
+			JsonNode[] nodeVersions = Iterators.toArray(resNode.at("/nodes").iterator(), JsonNode.class);
+
+			Version maxVersion = Version.fromString(Arrays.stream(nodeVersions).max((n1, n2) -> Version.fromString(n1.asText()).compareTo(Version.fromString(n2.asText()))).get().asText());
+			Version minVersion = Version.fromString(Arrays.stream(nodeVersions).min((n1, n2) -> Version.fromString(n1.asText()).compareTo(Version.fromString(n2.asText()))).get().asText());
+
         if(!maxVersion.equals(minVersion)) {
             System.out.println("ERR: Your cluster consists of different node versions. It is not allowed to run securityadmin against a mixed cluster.");
             System.out.println("         Minimum node version is "+minVersion.toString());
@@ -1151,21 +1130,27 @@ public class SecurityAdmin {
         } else {
             System.out.println("OpenSearch Version: "+minVersion.toString());
         }
-        
-        if(nir.getNodes().size() > 0) {
-            List<PluginInfo> pluginInfos = nir.getNodes().get(0).getInfo(PluginsAndModules.class).getPluginInfos();
-            String securityVersion = pluginInfos.stream().filter(p->p.getClassname().equals("org.opensearch.security.OpenSearchSecurityPlugin")).map(p->p.getVersion()).findFirst().orElse("<unknown>");
-            System.out.println("OpenSearch Security Version: "+securityVersion);
+
+
+			for (JsonNode n : nodeVersions[0].get("plugins")) {
+				if ("org.opensearch.security.OpenSearchSecurityPlugin".equals(n.get("name").asText())) {
+					System.out.println("OpenSearch Security Version: " + n.get("version"));
+					break;
+                }
+			}
+
+		} else {
+			System.out.println("ERR: Your cluster consists of zero nodes");
         }
-        
+
         return 0;
     }
-    
-    private static int deleteConfigIndex(TransportClient tc, String index, boolean indexExists) {
+
+	private static int deleteConfigIndex(RestHighLevelClient restHighLevelClient, String index, boolean indexExists) throws IOException {
         boolean success = true;
-        
+
         if(indexExists) {
-            success = tc.admin().indices().delete(new DeleteIndexRequest(index)).actionGet().isAcknowledged();
+			success = restHighLevelClient.indices().delete(new DeleteIndexRequest(index), RequestOptions.DEFAULT).isAcknowledged();
             System.out.print("Deleted index '"+index+"'");
         } else {
             System.out.print("No index '"+index+"' exists, so no need to delete it");
@@ -1173,8 +1158,8 @@ public class SecurityAdmin {
         
         return (success?0:-1);
     }
-    
-    private static int createConfigIndex(TransportClient tc, String index, String explicitReplicas) {
+
+	private static int createConfigIndex(RestHighLevelClient restHighLevelClient, String index, String explicitReplicas) throws IOException {
         Map<String, Object> indexSettings = new HashMap<>();
         indexSettings.put("index.number_of_shards", 1);
         
@@ -1188,9 +1173,9 @@ public class SecurityAdmin {
             indexSettings.put("index.auto_expand_replicas", "0-all");
         }
 
-        final boolean indexCreated = tc.admin().indices().create(new CreateIndexRequest(index)
-        .settings(indexSettings))
-                .actionGet().isAcknowledged();
+		final boolean indexCreated = restHighLevelClient.indices().create(new CreateIndexRequest(index)
+						.settings(indexSettings), RequestOptions.DEFAULT)
+				.isAcknowledged();
 
         if (indexCreated) {
             System.out.println("done ("+(explicitReplicas!=null?explicitReplicas:"0-all")+" replicas)");
@@ -1201,17 +1186,17 @@ public class SecurityAdmin {
             return (-1);
         }
     }
-    
-    private static int backup(TransportClient tc, String index, File backupDir, boolean legacy) {
+
+	private static int backup(RestHighLevelClient tc, String index, File backupDir, boolean legacy) {
         backupDir.mkdirs();
-        
+
         boolean success = retrieveFile(tc, backupDir.getAbsolutePath()+"/config.yml", index, "config", legacy);
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/roles.yml", index, "roles", legacy) && success;
-        
+
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/roles_mapping.yml", index, "rolesmapping", legacy) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/internal_users.yml", index, "internalusers", legacy) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/action_groups.yml", index, "actiongroups", legacy) && success;
-        
+
         if(!legacy) {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
@@ -1221,9 +1206,9 @@ public class SecurityAdmin {
 
         return success?0:-1;
     }
-    
-    private static int upload(TransportClient tc, String index, String cd, boolean legacy, NodesInfoResponse nodesInfo, boolean resolveEnvVars) {
-        boolean success = uploadFile(tc, cd+"config.yml", index, "config", legacy, resolveEnvVars);
+
+	private static int upload(RestHighLevelClient tc, String index, String cd, boolean legacy, int expectedNodeCount, boolean resolveEnvVars) throws IOException {
+        boolean success = uploadFile(tc, cd + "config.yml", index, "config", legacy, resolveEnvVars);
         success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy, resolveEnvVars) && success;
         success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
         
@@ -1245,17 +1230,16 @@ public class SecurityAdmin {
             System.out.println("ERR: cannot upload configuration, see errors above");
             return -1;
         }
-        
-        ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(getTypes(legacy))).actionGet();
 
-        success = checkConfigUpdateResponse(cur, nodesInfo, getTypes(legacy).length) && success;
+		Response cur = tc.getLowLevelClient().performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes((legacy)))));
+		success = checkConfigUpdateResponse(cur, expectedNodeCount, getTypes(legacy).length) && success;
 
         System.out.println("Done with "+(success?"success":"failures"));
         return (success?0:-1);
     }
-    
-    private static int migrate(TransportClient tc, String index, File backupDir, NodesInfoResponse nodesInfo, boolean resolveEnvVars) {
-        
+
+	private static int migrate(RestHighLevelClient tc, String index, File backupDir, int expectedNodeCount, boolean resolveEnvVars) throws IOException {
+
         System.out.println("== Migration started ==");
         System.out.println("=======================");
         
@@ -1313,7 +1297,7 @@ public class SecurityAdmin {
         
         System.out.println("-> Upload new configuration into OpenSearch cluster");
 
-        int uploadResult = upload(tc, index, v7Dir.getAbsolutePath()+"/", false, nodesInfo, resolveEnvVars);
+		int uploadResult = upload(tc, index, v7Dir.getAbsolutePath() + "/", false, expectedNodeCount, resolveEnvVars);
 
         if(uploadResult == 0) {
             System.out.println("  done");
@@ -1349,7 +1333,7 @@ public class SecurityAdmin {
                 ConfigHelper.fromYamlFile(file, CType.fromString(type), version==7?2:1, 0, 0);
                 return 0;
             } catch (Exception e) {
-                System.out.println("ERR: Seems "+file+" is not in SG "+version+" format: "+e);
+                System.out.println("ERR: Seems "+file+" is not in "+version+" format: "+e);
                 return -1;
             }
         } else if(cd != null) {
@@ -1379,15 +1363,153 @@ public class SecurityAdmin {
             System.out.println(file+" OK" );
             return true;
         } catch (Exception e) {
-            System.out.println("ERR: Seems "+file+" is not in SG "+version+" format: "+e);
+            System.out.println("ERR: Seems "+file+" is not in "+version+" format: "+e);
             return false;
         }
     }
-    
-    private static String[] getTypes(boolean legacy) {
-        if(legacy) {
-            return new String[]{"config","roles","rolesmapping","internalusers","actiongroups","nodesdn", "audit"};
-        }
-        return CType.lcStringValues().toArray(new String[0]);
-    }
+
+	private static String[] getTypes(boolean legacy) {
+		if (legacy) {
+			return new String[]{"config", "roles", "rolesmapping", "internalusers", "actiongroups", "nodesdn", "audit"};
+		}
+		return CType.lcStringValues().toArray(new String[0]);
+	}
+
+
+	private static RestHighLevelClient getRestHighLevelClient(SSLContext sslContext,
+															  boolean nhnv,
+															  String[] enabledProtocols,
+															  String[] enabledCiphers,
+															  String hostname,
+															  int port) {
+
+		final HostnameVerifier hnv = !nhnv ? new DefaultHostnameVerifier() : NoopHostnameVerifier.INSTANCE;
+
+		String[] supportedProtocols = enabledProtocols.length > 0 ? enabledProtocols : null;
+		String[] supportedCipherSuites = enabledCiphers.length > 0 ? enabledCiphers : null;
+
+		HttpHost httpHost = new HttpHost(hostname, port, "https");
+
+		RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
+				.setHttpClientConfigCallback(
+						builder -> builder.setSSLStrategy(
+								new SSLIOSessionStrategy(
+										sslContext,
+										supportedProtocols,
+										supportedCipherSuites,
+										hnv
+								)
+						)
+				);
+		return new RestHighLevelClient(restClientBuilder);
+	}
+
+
+	private static SSLContext sslContext(
+	        //keystore & trusstore related properties
+			String ts,
+			String tspass,
+            String trustStoreType,
+            String ks,
+            String kspass,
+            String keyStoreType,
+            String ksAlias,
+
+			//certs related properties
+			String cacert,
+			String cert,
+			String key,
+			String keypass) throws Exception {
+
+        final SSLContextBuilder sslContextBuilder = SSLContexts.custom();
+
+		if (ks != null) {
+			File keyStoreFile = Paths.get(ks).toFile();
+
+            KeyStore keyStore = KeyStore.getInstance(keyStoreType.toUpperCase());
+			keyStore.load(new FileInputStream(keyStoreFile), kspass.toCharArray());
+            sslContextBuilder.loadKeyMaterial(keyStore, kspass.toCharArray(), (aliases, socket) -> {
+                if (aliases == null || aliases.isEmpty()) {
+                    return ksAlias;
+                }
+
+                if (ksAlias == null || ksAlias.isEmpty()) {
+                    return aliases.keySet().iterator().next();
+                }
+
+                return ksAlias;
+            });
+		}
+
+		if (ts != null) {
+			File trustStoreFile = Paths.get(ts).toFile();
+
+			KeyStore trustStore = KeyStore.getInstance(trustStoreType.toUpperCase());
+			trustStore.load(new FileInputStream(trustStoreFile), tspass == null ? null : tspass.toCharArray());
+            sslContextBuilder.loadTrustMaterial(trustStore, null);
+		}
+
+		if (cacert != null) {
+			File caCertFile = Paths.get(cacert).toFile();
+			try (FileInputStream in = new FileInputStream(caCertFile)) {
+				X509Certificate[] certificates = PemKeyReader.loadCertificatesFromStream(in);
+				KeyStore trustStore = PemKeyReader.toTruststore("al", certificates);
+                sslContextBuilder.loadTrustMaterial(trustStore, null);
+			} catch (FileNotFoundException e) {
+				throw new IllegalArgumentException("Could not find certificate file " + caCertFile, e);
+			} catch (IOException | CertificateException e) {
+				throw new IllegalArgumentException("Error while reading certificate file " + caCertFile, e);
+			}
+		}
+
+        if (cert != null && key != null) {
+			File certFile = Paths.get(cert).toFile();
+			X509Certificate[] certificates;
+			PrivateKey privateKey;
+			try (FileInputStream in = new FileInputStream(certFile)) {
+				certificates = PemKeyReader.loadCertificatesFromStream(in);
+			} catch (FileNotFoundException e) {
+				throw new IllegalArgumentException("Could not find certificate file " + certFile, e);
+			} catch (IOException | CertificateException e) {
+				throw new IllegalArgumentException("Error while reading certificate file " + certFile, e);
+			}
+
+			File keyFile = Paths.get(key).toFile();
+			try (FileInputStream in = new FileInputStream(keyFile)) {
+				privateKey = PemKeyReader.toPrivateKey(in, keypass);
+			} catch (FileNotFoundException e) {
+				throw new IllegalArgumentException("Could not find certificate key file " + keyFile, e);
+			} catch (IOException e) {
+				throw new IllegalArgumentException("Error while reading certificate key file " + keyFile, e);
+			}
+
+			String alias = "al";
+			KeyStore keyStore = PemKeyReader.toKeystore(alias, "changeit".toCharArray(), certificates, privateKey);
+            sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray(), (aliases, socket) -> alias);
+		}
+
+		return sslContextBuilder.build();
+	}
+
+	private static String responseToString(Response response, boolean prettyJson) {
+		ByteSource byteSource = new ByteSource() {
+			@Override
+			public InputStream openStream() throws IOException {
+				return response.getEntity().getContent();
+			}
+		};
+
+		try {
+			String value = byteSource.asCharSource(Charsets.UTF_8).read();
+
+			if (prettyJson) {
+				return DefaultObjectMapper.objectMapper.readTree(value).toPrettyString();
+			}
+
+			return value;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return "ERR: Unable to handle response due to " + e;
+		}
+	}
 }
