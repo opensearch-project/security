@@ -412,12 +412,7 @@ public class SecurityAdmin {
             final boolean retVal =  Migrater.migrateDirectory(new File(migrateOffline), true);
             return retVal?0:-1;
         }
-        
-        
-        if(port < 9200) {
-            System.out.println("WARNING: Seems you want connect to the OpenSearch HTTP port."+System.lineSeparator()
-                             + "         securityadmin connects on the transport port which is normally 9200.");
-        }
+
         
         System.out.print("Will connect to "+hostname+":"+port);
         Socket socket = new Socket();
