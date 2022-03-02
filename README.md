@@ -6,16 +6,23 @@
 
 OpenSearch Security is a plugin for OpenSearch that offers encryption, authentication and authorization. When combined with OpenSearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in OpenSearch Dashboards.
 
-- [Features](#features)
-- [Installation](#installation)
-- [Test and Build](#test-and-build)
-- [Config hot reloading](#config-hot-reloading)
-- [Contributing](#contributing)
-- [Getting Help](#getting-help)
-- [Code of Conduct](#code-of-conduct)
-- [Security](#security)
-- [License](#license)
-- [Copyright](#copyright)
+- [OpenSearch Security Plugin](#opensearch-security-plugin)
+  - [Features](#features)
+    - [Encryption](#encryption)
+    - [Authentication](#authentication)
+    - [Access control](#access-control)
+    - [Audit/Compliance logging](#auditcompliance-logging)
+    - [OpenSearch Dashboards multi-tenancy](#opensearch-dashboards-multi-tenancy)
+  - [Installation](#installation)
+  - [Test and Build](#test-and-build)
+    - [Backwards Compatiability Tests](#backwards-compatiability-tests)
+  - [Config hot reloading](#config-hot-reloading)
+  - [Contributing](#contributing)
+  - [Getting Help](#getting-help)
+  - [Code of Conduct](#code-of-conduct)
+  - [Security](#security)
+  - [License](#license)
+  - [Copyright](#copyright)
 
 ## Features
 
@@ -79,6 +86,18 @@ build/releases/opensearch-security-<VERSION>.zip
 build/distributions/opensearch-security-<VERSION>.deb
 build/distributions/opensearch-security-<VERSION>.rpm
 ```
+
+### Backwards Compatiability Tests
+Read up on backwards compatiability tests for plugins in [TESTING.md](https://github.com/opensearch-project/opensearch-plugins/blob/main/TESTING.md#backwards-compatibility-testing).
+
+Execute tests with the following gradle tasks:
+```
+./gradlew securityBwcCluster#mixedClusterTask
+./gradlew securityBwcCluster#rollingUpgradeClusterTask
+./gradlew securityBwcCluster#fullRestartClusterTask
+```
+
+For more details on the functionality verfied by BWC tests see [SecurityBackwardsCompatibilityIT.java](./src/test/java/org/opensearch/security/bwc/SecurityBackwardsCompatibilityIT.java).
 
 ## Config hot reloading
 

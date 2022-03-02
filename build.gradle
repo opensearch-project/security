@@ -27,6 +27,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
+import java.util.concurrent.Callable
+
+buildscript {
+    ext {
+        opensearch_version = System.getProperty("opensearch.version", "1.3.0-SNAPSHOT")
+    }
+    repositories {
+        mavenLocal()
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+    }
+}
 
 plugins {
     id 'java'
@@ -47,16 +65,14 @@ import org.gradle.crypto.checksum.Checksum
 
 import java.text.SimpleDateFormat
 
+apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.testclusters' // Dependency for BWC tests
 
-repositories {
-    mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
-}
 
-ext {
-    opensearch_version = System.getProperty("opensearch.version", "1.3.0-SNAPSHOT")
+opensearchplugin {
+    name 'opensearch-security'
+    description 'Provide access control related features for OpenSearch'
+    classname 'org.opensearch.security.OpenSearchSecurityPlugin'
 }
 
 configurations.all {
@@ -127,6 +143,9 @@ dependencies {
 ext {
     securityPluginVersion = '1.3.0.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    projectSubstitutions = [:]
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE.txt')
 }
 
 group = 'org.opensearch'
@@ -260,20 +279,6 @@ gitProperties {
     ]
 }
 
-// copied from: org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
-project.getConfigurations().all { Configuration configuration ->
-    if (configuration.getName().equals(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)) {
-        NamedDomainObjectProvider<Configuration> resolvableCompileOnly = project.getConfigurations().register('resolveableCompileOnly');
-        resolvableCompileOnly.configure { c ->
-            c.setCanBeResolved(true);
-            c.setCanBeConsumed(false);
-            c.extendsFrom(configuration);
-        };
-    }
-};
-
-
-
 task bundle(dependsOn: jar, type: Zip) {
     from configurations.runtimeClasspath - project.configurations.getByName('resolveableCompileOnly')
     from project.jar
@@ -320,27 +325,8 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
     }
 }
 
-task createPluginDescriptor() {
-    if (opensearch_version.contains("-SNAPSHOT")) {
-        opensearch_version=opensearch_version.substring(0, opensearch_version.length() - 9)
-    }
-    List<String> descriptorProperties = [
-        "description=Provide access control related features for OpenSearch",
-        "version=${version}",
-        "name=opensearch-security",
-        "classname=org.opensearch.security.OpenSearchSecurityPlugin",
-        "java.version=${java.targetCompatibility}",
-        "opensearch.version=${opensearch_version}",
-    ]
-
-    new File("plugin-descriptor.properties").text = descriptorProperties.join ("\n")
-}
-bundle.doLast() {
-    new File("plugin-descriptor.properties").delete()
-}
 
 tasks.assemble.dependsOn(bundle)
-tasks.bundle.dependsOn(createPluginDescriptor)
 tasks.assemble.dependsOn(bundleSecurityAdminStandalone)
 tasks.assemble.dependsOn(bundleSecurityAdminStandaloneTarGz)
 
@@ -390,4 +376,143 @@ buildRpm {
 buildDeb {
     arch = 'all'
     archiveName "${packageName}-${version}.deb"
+}
+
+String bwcVersion = "1.13.1.0";
+String baseName = "securityBwcCluster"
+String bwcFilePath = "src/test/resources/bwc"
+
+2.times {i ->
+    testClusters {
+        "${baseName}$i" {
+            testDistribution = "ARCHIVE"
+            versions = ["7.10.2","1.3.0"]
+            numberOfNodes = 3
+            plugin(provider(new Callable<RegularFile>(){
+                @Override
+                RegularFile call() throws Exception {
+                    return new RegularFile() {
+                        @Override
+                        File getAsFile() {
+                            return fileTree(bwcFilePath + "/security/" + bwcVersion).getSingleFile()
+                        }
+                    }
+                }
+            }))
+            setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
+            setting 'http.content_type.required', 'true'
+        }
+    }
+}
+
+List<Provider<RegularFile>> plugins = []
+
+// Ensure the artifact for the current project version is available to be used for the bwc tests
+task prepareBwcTests {
+    dependsOn bundle
+    doLast {
+        plugins = [
+                project.getObjects().fileProperty().value(bundle.getArchiveFile())
+        ]
+    }
+}
+
+// Create two test clusters with 3 nodes of the old version
+2.times {i ->
+    task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
+        dependsOn 'prepareBwcTests'
+        useCluster testClusters."${baseName}$i"
+        filter {
+            includeTestsMatching "org.opensearch.security.bwc.*IT"
+        }
+        systemProperty 'tests.rest.bwcsuite', 'old_cluster'
+        systemProperty 'tests.rest.bwcsuite_round', 'old'
+        systemProperty 'tests.plugin_bwc_version', bwcVersion
+        nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
+        nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
+    }
+}
+
+// Upgrade one node of the old cluster to new OpenSearch version with upgraded plugin version.
+// This results in a mixed cluster with 2 nodes on the old version and 1 upgraded node.
+// This is also used as a one third upgraded cluster for a rolling upgrade.
+task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
+    useCluster testClusters."${baseName}0"
+    dependsOn "${baseName}#oldVersionClusterTask0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.security.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'first'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade the second node to new OpenSearch version with upgraded plugin version after the first node is upgraded.
+// This results in a mixed cluster with 1 node on the old version and 2 upgraded nodes.
+// This is used for rolling upgrade.
+task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#mixedClusterTask"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.security.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'second'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade the third node to new OpenSearch version with upgraded plugin version after the second node is upgraded.
+// This results in a fully upgraded cluster.
+// This is used for rolling upgrade.
+task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.security.bwc.*IT"
+    }
+    mustRunAfter "${baseName}#mixedClusterTask"
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'third'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade all the nodes of the old cluster to new OpenSearch version with upgraded plugin version
+// at the same time resulting in a fully upgraded cluster.
+task "${baseName}#fullRestartClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#oldVersionClusterTask1"
+    useCluster testClusters."${baseName}1"
+    doFirst {
+        testClusters."${baseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.security.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'upgraded_cluster'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}1".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}1".getName()}")
+}
+
+// A bwc test suite which runs all the bwc tasks combined
+task bwcTestSuite(type: StandaloneRestIntegTestTask) {
+    exclude '**/*Test*'
+    exclude '**/*IT*'
+    dependsOn tasks.named("${baseName}#mixedClusterTask")
+    dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
+    dependsOn tasks.named("${baseName}#fullRestartClusterTask")
 }
