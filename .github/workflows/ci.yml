@@ -39,10 +39,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
 
-
-    - name: Checkstyle
-      run: ./gradlew clean checkstyleMain checkstyleTest
-
     - name: Package
       run: ./gradlew clean build -Dbuild.snapshot=false -x test
 
