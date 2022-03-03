@@ -224,6 +224,21 @@ test {
         maxFailures = 30
         maxRetries = 5
     }
+    jacoco {
+        excludes = [
+            "com.sun.jndi.dns.*",
+            "com.sun.security.sasl.gsskerb.*",
+            "java.sql.*",
+            "javax.script.*",
+            "org.jcp.xml.dsig.internal.dom.*",
+            "sun.nio.cs.ext.*",
+            "sun.security.ec.*",
+            "sun.security.jgss.*",
+            "sun.security.pkcs11.*",
+            "sun.security.smartcardio.*",
+            "sun.util.resources.provider.*"
+        ]
+    }
 }
 
 gitProperties {
