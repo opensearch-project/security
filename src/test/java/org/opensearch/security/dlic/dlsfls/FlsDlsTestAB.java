@@ -20,7 +20,7 @@ import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -30,7 +30,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 public class FlsDlsTestAB extends AbstractDlsFlsTest{
 
 
-    protected void populateData(TransportClient tc) {
+    protected void populateData(Client tc) {
 
         //aaa
         tc.index(new IndexRequest("aaa").type("aaa").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)

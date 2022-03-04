@@ -18,7 +18,7 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.http.HttpStatus;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -28,7 +28,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 public class FieldMaskedTest extends AbstractDlsFlsTest {
 
 
-    protected void populateData(TransportClient tc) {
+    protected void populateData(Client tc) {
 
         tc.index(new IndexRequest("deals").type("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust1\"}, \"ip_source\": \"100.100.1.1\",\"ip_dest\": \"123.123.1.1\",\"amount\": 10}", XContentType.JSON)).actionGet();

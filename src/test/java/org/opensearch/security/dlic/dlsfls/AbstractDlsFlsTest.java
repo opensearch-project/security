@@ -15,7 +15,7 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 
 import org.opensearch.security.support.ConfigConstants;
@@ -48,12 +48,12 @@ public abstract class AbstractDlsFlsTest extends SingleClusterTest {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, "debug").put(override).build();
         setup(Settings.EMPTY, dynamicSecurityConfig, settings, true);
 
-        try(TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try(Client tc = getClient()) {
             populateData(tc);
         }
 
         rh = nonSslRestHelper();
     }
 
-    abstract void populateData(TransportClient tc);
+    abstract void populateData(Client tc);
 }

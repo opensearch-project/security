@@ -38,7 +38,7 @@ import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest
 import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
@@ -80,7 +80,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         setup(settings, currentClusterConfig);
     
-        try (TransportClient tc = getInternalTransportClient()) {    
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 
             tc.admin().cluster().putRepository(new PutRepositoryRequest("vulcangov").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/vulcangov"))).actionGet();
@@ -141,7 +141,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         setup(settings, currentClusterConfig);
     
-        try (TransportClient tc = getInternalTransportClient()) {    
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
                 
             tc.admin().cluster().putRepository(new PutRepositoryRequest("vulcangov").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/vulcangov"))).actionGet();
@@ -193,7 +193,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         setup(settings, currentClusterConfig);
     
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             
             tc.admin().cluster().putRepository(new PutRepositoryRequest("vulcangov").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/vulcangov"))).actionGet();
@@ -259,7 +259,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
     
-        try (TransportClient tc = getInternalTransportClient()) {    
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("testsnap1").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("testsnap2").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("testsnap3").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -312,7 +312,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
     
-        try (TransportClient tc = getInternalTransportClient()) {    
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("testsnap1").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("testsnap2").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("testsnap3").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();

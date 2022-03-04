@@ -18,7 +18,7 @@ public class PrivilegesEvaluationTest extends SingleClusterTest {
 
         setup();
 
-        try (Client client = getInternalTransportClient()) {
+        try (Client client = getClient()) {
 
             client.index(new IndexRequest("hidden_test_not_hidden").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(XContentType.JSON, "index",
                     "hidden_test_not_hidden", "b", "y", "date", "1985/01/01")).actionGet();
