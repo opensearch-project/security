@@ -325,8 +325,6 @@ bundle.doLast() {
 
 tasks.assemble.dependsOn(bundle)
 tasks.bundle.dependsOn(createPluginDescriptor)
-tasks.assemble.dependsOn(bundleSecurityAdminStandalone)
-tasks.assemble.dependsOn(bundleSecurityAdminStandaloneTarGz)
 
 clean {
     delete 'data/'
