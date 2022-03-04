@@ -53,7 +53,7 @@ public final class DlsQueryParser {
 
     static {
         //Match all documents but not the nested ones
-        //Nested document types start with __ 
+        //Nested document types start with __
         //https://discuss.elastic.co/t/whats-nested-documents-layout-inside-the-lucene/59944/9
         NON_NESTED_QUERY = new BooleanQuery.Builder().add(new MatchAllDocsQuery(), Occur.FILTER)
                 .add(new PrefixQuery(new Term("_type", "__")), Occur.MUST_NOT).build();
@@ -80,7 +80,7 @@ public final class DlsQueryParser {
         if (unparsedDlsQueries == null || unparsedDlsQueries.isEmpty()) {
             return null;
         }
-        
+
         boolean hasNestedMapping = queryShardContext.getMapperService().hasNested();
 
         BooleanQuery.Builder dlsQueryBuilder = new BooleanQuery.Builder();
@@ -118,8 +118,7 @@ public final class DlsQueryParser {
                 public QueryBuilder call() throws Exception {
                     final XContentParser parser = JsonXContent.jsonXContent.createParser(namedXContentRegistry,
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION, unparsedDlsQuery);
-                    final QueryBuilder qb = AbstractQueryBuilder.parseInnerQueryBuilder(parser);
-                    return qb;
+                    return AbstractQueryBuilder.parseInnerQueryBuilder(parser);
                 }
 
             });

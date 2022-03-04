@@ -21,6 +21,12 @@ import java.util.Set;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.support.ConfigConstants;
 
+/**
+ * Defines which indices and documents are implicitly accessible although a user does not have
+ * explicit permissions for it. This is required for executing TLQ in DLS queries. In this case
+ * the user does not have direct access to the index for the term lookup. However, we need to allow
+ * access for executing the actual TLQ. The document allow list is scoped to individual requests.
+ */
 public class DocumentAllowList {
 
     private final Set<Entry> entries = new HashSet<>();

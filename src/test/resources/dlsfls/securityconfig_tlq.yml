@@ -11,7 +11,6 @@ config:
         transport_enabled: true
         order: 0
         http_authenticator:
-          challenge: false
           type: "basic"
         authentication_backend:
           type: "intern"

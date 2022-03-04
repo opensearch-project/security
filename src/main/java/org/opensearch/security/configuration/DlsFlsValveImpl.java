@@ -99,7 +99,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     /**
-     * 
+     *
      * @param request
      * @param listener
      * @return false on error
@@ -143,9 +143,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
                 if (doFilterLevelDls) {
                     setDlsModeHeader(Mode.FILTER_LEVEL);
-                    log.debug("Doing filter-level DLS because query contains TLQ");
+                    log.debug("Doing filter-level DLS because the query contains a TLQ");
                 } else {
-                    log.debug("Doing lucene-level DLS because query does not contain TLQ");
+                    log.debug("Doing lucene-level DLS because the query does not contain a TLQ");
                 }
             }
         }

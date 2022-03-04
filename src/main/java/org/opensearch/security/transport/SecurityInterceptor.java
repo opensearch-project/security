@@ -285,16 +285,26 @@ public class SecurityInterceptor {
             
             contextToRestore.restore();
 
+            final boolean isDebugEnabled = log.isDebugEnabled();
             if (response instanceof ClusterSearchShardsResponse) {           
                 if (flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
+                    if (isDebugEnabled) {
+                        log.debug("add flsResponseHeader as transient");
+                    }
                     threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
                 }
 
                 if (dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
+                    if (isDebugEnabled) {
+                        log.debug("add dlsResponseHeader as transient");
+                    }
                     threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
                 }
 
                 if (maskedFieldsResponseHeader != null && !maskedFieldsResponseHeader.isEmpty()) {
+                    if (isDebugEnabled) {
+                        log.debug("add maskedFieldsResponseHeader as transient");
+                    }
                     threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));
                 }
             }

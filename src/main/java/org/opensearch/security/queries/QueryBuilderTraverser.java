@@ -99,60 +99,46 @@ public abstract class QueryBuilderTraverser {
 
             if (queryBuilder instanceof BoolQueryBuilder) {
                 BoolQueryBuilder boolQueryBuilder = (BoolQueryBuilder) queryBuilder;
-
                 return check(boolQueryBuilder.must()) || check(boolQueryBuilder.mustNot()) || check(boolQueryBuilder.should())
                         || check(boolQueryBuilder.filter());
             } else if (queryBuilder instanceof BoostingQueryBuilder) {
                 BoostingQueryBuilder boostingQueryBuilder = (BoostingQueryBuilder) queryBuilder;
-
                 return check(boostingQueryBuilder.positiveQuery()) || check(boostingQueryBuilder.negativeQuery());
             } else if (queryBuilder instanceof ConstantScoreQueryBuilder) {
                 ConstantScoreQueryBuilder constantScoreQueryBuilder = (ConstantScoreQueryBuilder) queryBuilder;
-
                 return check(constantScoreQueryBuilder.innerQuery());
             } else if (queryBuilder instanceof DisMaxQueryBuilder) {
                 DisMaxQueryBuilder disMaxQueryBuilder = (DisMaxQueryBuilder) queryBuilder;
-
                 return check(disMaxQueryBuilder.innerQueries());
             } else if (queryBuilder instanceof FieldMaskingSpanQueryBuilder) {
                 FieldMaskingSpanQueryBuilder fieldMaskingSpanQueryBuilder = (FieldMaskingSpanQueryBuilder) queryBuilder;
-
                 return check(fieldMaskingSpanQueryBuilder.innerQuery());
             } else if (queryBuilder instanceof FunctionScoreQueryBuilder) {
                 FunctionScoreQueryBuilder functionScoreQueryBuilder = (FunctionScoreQueryBuilder) queryBuilder;
-
                 return check(functionScoreQueryBuilder.query());
             } else if (queryBuilder instanceof NestedQueryBuilder) {
                 NestedQueryBuilder nestedQueryBuilder = (NestedQueryBuilder) queryBuilder;
-
                 return check(nestedQueryBuilder.query());
             } else if (queryBuilder instanceof SpanContainingQueryBuilder) {
                 SpanContainingQueryBuilder spanContainingQueryBuilder = (SpanContainingQueryBuilder) queryBuilder;
-
                 return check(spanContainingQueryBuilder.bigQuery()) || check(spanContainingQueryBuilder.littleQuery());
             } else if (queryBuilder instanceof SpanFirstQueryBuilder) {
                 SpanFirstQueryBuilder spanFirstQueryBuilder = (SpanFirstQueryBuilder) queryBuilder;
-
                 return check(spanFirstQueryBuilder.innerQuery());
             } else if (queryBuilder instanceof SpanMultiTermQueryBuilder) {
                 SpanMultiTermQueryBuilder spanMultiTermQueryBuilder = (SpanMultiTermQueryBuilder) queryBuilder;
-
                 return check(spanMultiTermQueryBuilder.innerQuery());
             } else if (queryBuilder instanceof SpanNearQueryBuilder) {
                 SpanNearQueryBuilder spanNearQueryBuilder = (SpanNearQueryBuilder) queryBuilder;
-
                 return check(spanNearQueryBuilder.clauses());
             } else if (queryBuilder instanceof SpanNotQueryBuilder) {
                 SpanNotQueryBuilder spanNotQueryBuilder = (SpanNotQueryBuilder) queryBuilder;
-
                 return check(spanNotQueryBuilder.excludeQuery()) || check(spanNotQueryBuilder.includeQuery());
             } else if (queryBuilder instanceof SpanOrQueryBuilder) {
                 SpanOrQueryBuilder spanOrQueryBuilder = (SpanOrQueryBuilder) queryBuilder;
-
                 return check(spanOrQueryBuilder.clauses());
             } else if (queryBuilder instanceof SpanWithinQueryBuilder) {
                 SpanWithinQueryBuilder spanWithinQueryBuilder = (SpanWithinQueryBuilder) queryBuilder;
-
                 return check(spanWithinQueryBuilder.bigQuery()) || check(spanWithinQueryBuilder.littleQuery());
             } else {
                 return false;

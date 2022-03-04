@@ -700,7 +700,7 @@ public class PrivilegesEvaluator {
 
             if (documentAllowList.isAllowed(getRequest.index(), getRequest.id())) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Request " + request + " is whitelisted by " + documentAllowList);
+                    log.debug("Request " + request + " is allowed by " + documentAllowList);
                 }
                 
                 return true;
@@ -709,7 +709,7 @@ public class PrivilegesEvaluator {
             }
 
         } catch (Exception e) {
-            log.error("Error while handling document whitelist: " + docAllowListHeader, e);
+            log.error("Error while handling document allow list: " + docAllowListHeader, e);
             return false;
         }
     }

@@ -241,18 +241,6 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
 	}
 
 	@Test
-	// TODO: Isn't that the same as above???
-	public void testSimpleSearch_AccessCodes_noEntryInUserIndex() throws Exception {
-		setup(new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
-				.setSecurityInternalUsers("internal_users_tlq.yml").setSecurityRoles("roles_tlq.yml")
-				.setSecurityRolesMapping("roles_mapping_tlq.yml"));
-
-		SearchResponse searchResponse = executeSearch("tlqdocuments", "tlq_no_codes", "password");
-
-		Assert.assertEquals(searchResponse.toString(), 0, searchResponse.getHits().getTotalHits().value);
-	}
-
-	@Test
 	public void testSimpleSearch_AllIndices_All_AccessCodes_1337() throws Exception {
 		setup(new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
 				.setSecurityInternalUsers("internal_users_tlq.yml").setSecurityRoles("roles_tlq.yml")
@@ -514,7 +502,6 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
 		HttpResponse response = rh.executeGetRequest("/user_access_codes/_doc/tlq_1337",
 				encodeBasicHeader("tlq_1337", "password"));
 		Assert.assertEquals(403, response.getStatusCode());
-		Assert.assertEquals("Forbidden", response.getStatusReason());
 	}
 
 	@Test

@@ -357,7 +357,7 @@ public class ConfigModelV7 extends ConfigModel {
 
             if (!containsDlsFlsConfig()) {
                 if(log.isDebugEnabled()) {
-                    log.debug("No fls or dls found for {} in {} sg roles", user, roles.size());
+                    log.debug("No fls or dls found for {} in {} security roles", user, roles.size());
                 }
 
                 return EvaluatedDlsFlsConfig.EMPTY;
@@ -367,8 +367,8 @@ public class ConfigModelV7 extends ConfigModel {
             Map<String, Set<String>> flsFields = new HashMap<String, Set<String>>();
             Map<String, Set<String>> maskedFieldsMap = new HashMap<String, Set<String>>();
                         
-            for (SecurityRole sgr : roles) {
-                for (IndexPattern ip : sgr.getIpatterns()) {
+            for (SecurityRole role : roles) {
+                for (IndexPattern ip : role.getIpatterns()) {
 					Set<String> concreteIndices;
 					concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
 					String dls = ip.getDlsQuery(user);
