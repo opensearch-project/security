@@ -71,10 +71,7 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 
-import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 
 import com.google.common.collect.Maps;
 
@@ -148,7 +145,7 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DOC_WHITELST_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)                            
@@ -172,7 +169,7 @@ public class SecurityInterceptor {
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER);
-                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DOC_WHITELST_HEADER);
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
             }
 
             if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()

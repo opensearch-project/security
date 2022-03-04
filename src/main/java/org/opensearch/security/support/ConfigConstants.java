@@ -66,8 +66,8 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_MASKED_FIELD_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"masked_fields";
 
 
-    public static final String OPENDISTRO_SECURITY_DOC_WHITELST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"doc_whitelist";
-    public static final String OPENDISTRO_SECURITY_DOC_WHITELST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"doc_whitelist_t";
+    public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"doc_allowlist";
+    public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"filter_level_dls_done";
     

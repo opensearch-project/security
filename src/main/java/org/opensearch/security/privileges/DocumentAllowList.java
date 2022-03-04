@@ -21,11 +21,11 @@ import java.util.Set;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.support.ConfigConstants;
 
-public class DocumentWhitelist {
+public class DocumentAllowList {
 
     private final Set<Entry> entries = new HashSet<>();
 
-    public DocumentWhitelist() {
+    public DocumentAllowList() {
 
     }
 
@@ -43,11 +43,11 @@ public class DocumentWhitelist {
 
     public void applyTo(ThreadContext threadContext) {
         if (!isEmpty()) {
-            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_WHITELST_HEADER, toString());
+            threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER, toString());
         }
     }
 
-    public boolean isWhitelisted(String index, String id) {
+    public boolean isAllowed(String index, String id) {
         for (Entry entry : entries) {
             if (entry.index.equals(index) && entry.id.equals(id)) {
                 return true;
@@ -74,8 +74,8 @@ public class DocumentWhitelist {
         return stringBuilder.toString();
     }
 
-    public static DocumentWhitelist parse(String string) {
-        DocumentWhitelist result = new DocumentWhitelist();
+    public static DocumentAllowList parse(String string) {
+        DocumentAllowList result = new DocumentAllowList();
 
         int length = string.length();
 
@@ -105,7 +105,7 @@ public class DocumentWhitelist {
                 entryStart = i + 1;
             } else if (c == '|') {
                 if (index == null) {
-                    throw new IllegalArgumentException("Malformed DocumentWhitelist string: " + string);
+                    throw new IllegalArgumentException("Malformed DocumentAllowList string: " + string);
                 }
 
                 String id = unescapeId(string.substring(entryStart, i));
@@ -236,7 +236,7 @@ public class DocumentWhitelist {
 
         @Override
         public String toString() {
-            return "DocumentWhitelist.Entry [index=" + index + ", id=" + id + "]";
+            return "DocumentAllowList.Entry [index=" + index + ", id=" + id + "]";
         }
     }
 
@@ -259,7 +259,7 @@ public class DocumentWhitelist {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        DocumentWhitelist other = (DocumentWhitelist) obj;
+        DocumentAllowList other = (DocumentAllowList) obj;
         if (entries == null) {
             if (other.entries != null) {
                 return false;

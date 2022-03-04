@@ -364,7 +364,7 @@ public class PrivilegesEvaluator {
             }
         }
 
-        if (checkDocWhitelistHeader(user, action0, request)) {
+        if (checkDocAllowListHeader(user, action0, request)) {
             presponse.allowed = true;
             return presponse;
         }
@@ -683,10 +683,10 @@ public class PrivilegesEvaluator {
     }
 
 
-    private boolean checkDocWhitelistHeader(User user, String action, ActionRequest request) {
-        String docWhitelistHeader = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_WHITELST_HEADER);
+    private boolean checkDocAllowListHeader(User user, String action, ActionRequest request) {
+        String docAllowListHeader = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
 
-        if (docWhitelistHeader == null) {
+        if (docAllowListHeader == null) {
             return false;
         }
 
@@ -695,12 +695,12 @@ public class PrivilegesEvaluator {
         }
 
         try {
-            DocumentWhitelist documentWhitelist = DocumentWhitelist.parse(docWhitelistHeader);
+            DocumentAllowList documentAllowList = DocumentAllowList.parse(docAllowListHeader);
             GetRequest getRequest = (GetRequest) request;
 
-            if (documentWhitelist.isWhitelisted(getRequest.index(), getRequest.id())) {               
+            if (documentAllowList.isAllowed(getRequest.index(), getRequest.id())) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Request " + request + " is whitelisted by " + documentWhitelist);
+                    log.debug("Request " + request + " is whitelisted by " + documentAllowList);
                 }
                 
                 return true;
@@ -709,7 +709,7 @@ public class PrivilegesEvaluator {
             }
 
         } catch (Exception e) {
-            log.error("Error while handling document whitelist: " + docWhitelistHeader, e);
+            log.error("Error while handling document whitelist: " + docAllowListHeader, e);
             return false;
         }
     }

@@ -60,7 +60,7 @@ import org.opensearch.script.mustache.MultiSearchTemplateAction;
 import org.opensearch.script.mustache.SearchTemplateAction;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.privileges.DocumentWhitelist;
+import org.opensearch.security.privileges.DocumentAllowList;
 import org.opensearch.security.queries.QueryBuilderTraverser;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
@@ -118,7 +118,7 @@ public class DlsFilterLevelActionHandler {
     private final ThreadContext threadContext;
     private final IndexNameExpressionResolver resolver;
     private BoolQueryBuilder filterLevelQueryBuilder;
-    private DocumentWhitelist documentWhitelist;
+    private DocumentAllowList documentWhitelist;
 
     DlsFilterLevelActionHandler(String action, ActionRequest request, ActionListener<?> listener, EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
                                 Resolved resolved, Client nodeClient, ClusterService clusterService, IndicesService indicesService,
@@ -401,7 +401,7 @@ public class DlsFilterLevelActionHandler {
         Map<String, Set<String>> filterLevelQueries = evaluatedDlsFlsConfig.getDlsQueriesByIndex();
 
         BoolQueryBuilder dlsQueryBuilder = QueryBuilders.boolQuery().minimumShouldMatch(1);
-        DocumentWhitelist documentWhitelist = new DocumentWhitelist();
+        DocumentAllowList documentWhitelist = new DocumentAllowList();
 
         int queryCount = 0;
 
