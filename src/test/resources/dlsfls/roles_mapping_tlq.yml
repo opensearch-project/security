@@ -1,0 +1,7 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+os_dls_tlq_lookup:
+  backend_roles: ["os_dls_tlq_lookup"]

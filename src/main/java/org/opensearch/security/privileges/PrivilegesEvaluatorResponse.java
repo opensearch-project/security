@@ -31,9 +31,10 @@
 package org.opensearch.security.privileges;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
+import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class PrivilegesEvaluatorResponse {
@@ -41,11 +42,14 @@ public class PrivilegesEvaluatorResponse {
     Set<String> missingPrivileges = new HashSet<String>();
     Set<String> missingSecurityRoles = new HashSet<>();
     Set<String> resolvedSecurityRoles = new HashSet<>();
-    Map<String,Set<String>> allowedFlsFields;
-    Map<String,Set<String>> maskedFields;
-    Map<String,Set<String>> queries;
+    EvaluatedDlsFlsConfig evaluatedDlsFlsConfig;
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
+    Resolved resolved;
     CreateIndexRequestBuilder createIndexRequestBuilder;
+    
+    public Resolved getResolved() {
+		return resolved;
+	}
     
     public boolean isAllowed() {
         return allowed;
@@ -58,18 +62,10 @@ public class PrivilegesEvaluatorResponse {
 
     public Set<String> getResolvedSecurityRoles() {return new HashSet<>(resolvedSecurityRoles); }
 
-    public Map<String,Set<String>> getAllowedFlsFields() {
-        return allowedFlsFields;
+    public EvaluatedDlsFlsConfig getEvaluatedDlsFlsConfig() {
+        return evaluatedDlsFlsConfig;
     }
     
-    public Map<String,Set<String>> getMaskedFields() {
-        return maskedFields;
-    }
-
-    public Map<String,Set<String>> getQueries() {
-        return queries;
-    }
-
     public CreateIndexRequestBuilder getCreateIndexRequestBuilder() {
         return createIndexRequestBuilder;
     }
@@ -94,8 +90,8 @@ public class PrivilegesEvaluatorResponse {
 
     @Override
     public String toString() {
-        return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges
-                + ", allowedFlsFields=" + allowedFlsFields + ", maskedFields=" + maskedFields + ", queries=" + queries + "]";
+        return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges + ", evaluatedDlsFlsConfig="
+                + evaluatedDlsFlsConfig + "]";
     }
     
     public static enum PrivilegesEvaluatorResponseState {

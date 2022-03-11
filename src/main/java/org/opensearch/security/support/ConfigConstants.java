@@ -54,11 +54,23 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_ORIGIN_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"origin_header";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_query";
+    
+    public static final String OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_filter_level_query";
+    public static final String OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_filter_level_query_t";
+
+    public static final String OPENDISTRO_SECURITY_DLS_MODE_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_mode";
+    public static final String OPENDISTRO_SECURITY_DLS_MODE_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_mode_t";
 
     public static final String OPENDISTRO_SECURITY_FLS_FIELDS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"fls_fields";
     
     public static final String OPENDISTRO_SECURITY_MASKED_FIELD_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"masked_fields";
 
+
+    public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"doc_allowlist";
+    public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"doc_allowlist_t";
+
+    public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"filter_level_dls_done";
+    
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_query_ccs";
 
     public static final String OPENDISTRO_SECURITY_FLS_FIELDS_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"fls_fields_ccs";
@@ -236,7 +248,7 @@ public class ConfigConstants {
     }
 
     public static final String SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS = "plugins.security.filter_securityindex_from_all_requests";
-
+    public static final String SECURITY_DLS_MODE = "plugins.security.dls.mode";
     // REST API
     public static final String SECURITY_RESTAPI_ROLES_ENABLED = "plugins.security.restapi.roles_enabled";
     public static final String SECURITY_RESTAPI_ENDPOINTS_DISABLED = "plugins.security.restapi.endpoints_disabled";

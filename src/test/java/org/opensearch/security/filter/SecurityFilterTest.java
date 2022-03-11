@@ -32,6 +32,7 @@ import org.opensearch.action.ActionResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.threadpool.ThreadPool;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,7 +89,8 @@ public class SecurityFilterTest {
                 mock(ClusterService.class),
                 mock(CompatConfig.class),
                 mock(IndexResolverReplacer.class),
-                mock(BackendRegistry.class)
+                mock(BackendRegistry.class),
+                mock(NamedXContentRegistry.class)
         );
         assertEquals(expected, filter.getImmutableIndicesMatcher());
     }
@@ -112,7 +114,8 @@ public class SecurityFilterTest {
             mock(ClusterService.class),
             mock(CompatConfig.class),
             mock(IndexResolverReplacer.class),
-            mock(BackendRegistry.class)
+            mock(BackendRegistry.class),
+            mock(NamedXContentRegistry.class)
         );
 
         // Act

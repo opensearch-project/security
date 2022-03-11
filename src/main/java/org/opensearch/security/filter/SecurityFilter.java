@@ -78,6 +78,7 @@ import org.opensearch.common.logging.LoggerMessageFormat;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
 import org.opensearch.rest.RestStatus;
@@ -117,10 +118,12 @@ public class SecurityFilter implements ActionFilter {
     private final RolesInjector rolesInjector;
     private final Client client;
     private final BackendRegistry backendRegistry;
+    private final NamedXContentRegistry namedXContentRegistry;
 
     public SecurityFilter(final Client client, final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
                           DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry) {
+                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry,
+                          NamedXContentRegistry namedXContentRegistry) {
         this.client = client;
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -133,6 +136,7 @@ public class SecurityFilter implements ActionFilter {
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         this.rolesInjector = new RolesInjector(auditLog);
         this.backendRegistry = backendRegistry;
+        this.namedXContentRegistry = namedXContentRegistry;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -311,7 +315,7 @@ public class SecurityFilter implements ActionFilter {
             if (pres.isAllowed()) {
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
-                if(!dlsFlsValve.invoke(action, request, listener, pres.getAllowedFlsFields(), pres.getMaskedFields(), pres.getQueries())) {
+                if (!dlsFlsValve.invoke(action, request, listener, pres.getEvaluatedDlsFlsConfig(), pres.getResolved())) {
                     return;
                 }
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();

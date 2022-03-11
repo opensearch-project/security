@@ -30,35 +30,28 @@
 
 package org.opensearch.security.configuration;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
     
-    /**
-     * SSLConfigConstants.java
-     * @param action
-     * @param request
-     * @param listener
-     * @return false to stop
-     */
-    boolean invoke(String action, ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries);
+    boolean invoke(String action, ActionRequest request, ActionListener<?> listener, EvaluatedDlsFlsConfig evaluatedDlsFlsConfig, Resolved resolved);
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
 
     void onQueryPhase(QuerySearchResult queryResult);
-    
+
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
-        @Override
-        public boolean invoke(String action, ActionRequest request, ActionListener<?> listener, Map<String,Set<String>> allowedFlsFields, final Map<String,Set<String>> maskedFields, Map<String,Set<String>> queries) {
+    	@Override
+        public boolean invoke(String action, ActionRequest request, ActionListener<?> listener, EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
+                Resolved resolved) {
             return true;
         }
 

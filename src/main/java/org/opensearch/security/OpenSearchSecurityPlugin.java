@@ -110,6 +110,7 @@ import org.opensearch.index.Index;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.index.shard.SearchOperationListener;
+import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.plugins.ClusterPlugin;
@@ -779,7 +780,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             auditLog = new NullAuditLog();
             privilegesInterceptor = new PrivilegesInterceptor(resolver, clusterService, localClient, threadPool);
         } else {
-            dlsFlsValve = new DlsFlsValveImpl();
+            dlsFlsValve = new DlsFlsValveImpl(settings, localClient, clusterService, resolver, xContentRegistry, threadPool.getThreadContext());
             auditLog = new AuditLogImpl(settings, configPath, localClient, threadPool, resolver, clusterService, environment);
             privilegesInterceptor = new PrivilegesInterceptorImpl(resolver, clusterService, localClient, threadPool);
         }
@@ -798,10 +799,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         // DLS-FLS is enabled if not client and not disabled and not SSL only.
         final boolean dlsFlsEnabled = !SSLConfig.isSslOnlyMode();
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
-                settings, privilegesInterceptor, cih, irr, dlsFlsEnabled);
+                settings, privilegesInterceptor, cih, irr, dlsFlsEnabled, namedXContentRegistry);
 
-        sf = new SecurityFilter(localClient, settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, backendRegistry);
-
+        sf = new SecurityFilter(localClient, settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, backendRegistry, namedXContentRegistry);
+                
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
@@ -1125,12 +1126,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         private static RepositoriesService repositoriesService;
         private static RemoteClusterService remoteClusterService;
+        private static IndicesService indicesService;
 
         @Inject
         public GuiceHolder(final RepositoriesService repositoriesService,
-                final TransportService remoteClusterService) {
+                final TransportService remoteClusterService, IndicesService indicesService) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
+            GuiceHolder.indicesService = indicesService;
         }
 
         public static RepositoriesService getRepositoriesService() {
@@ -1141,6 +1144,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             return remoteClusterService;
         }
 
+        public static IndicesService getIndicesService() {
+            return indicesService;
+        }
+        
         @Override
         public void close() {
         }
