@@ -16,7 +16,9 @@
 package org.opensearch.security.auditlog.sink;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.ServerSocket;
 import java.security.KeyStore;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -59,7 +61,8 @@ public class SinkProviderTLSTest {
 
 		TestHttpHandler handler = new TestHttpHandler();
 
-		server = ServerBootstrap.bootstrap().setListenerPort(8083).setServerInfo("Test/1.1").setSslContext(createSSLContext()).registerHandler("*", handler).create();
+		int port = findFreePort();
+		server = ServerBootstrap.bootstrap().setListenerPort(port).setServerInfo("Test/1.1").setSslContext(createSSLContext()).registerHandler("*", handler).create();
 
 		server.start();
 
@@ -70,6 +73,11 @@ public class SinkProviderTLSTest {
 		builder.put("plugins.security.audit.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"));
 		builder.put("plugins.security.audit.endpoints.endpoint1.config.webhook.ssl.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/root-ca.pem"));
 		builder.put("plugins.security.audit.endpoints.endpoint2.config.webhook.ssl.pemtrustedcas_content", FileHelper.loadFile("auditlog/root-ca.pem"));
+
+		builder.put("plugins.security.audit.config.webhook.url", "https://localhost:" + port);
+		builder.put("plugins.security.audit.endpoints.endpoint1.config.webhook.url", "https://localhost:" + port);
+		builder.put("plugins.security.audit.endpoints.endpoint2.config.webhook.url", "https://localhost:" + port);
+
 
 		SinkProvider provider = new SinkProvider(builder.build(), null, null, null);
 		WebhookSink defaultSink = (WebhookSink) provider.defaultSink;
@@ -140,5 +148,13 @@ public class SinkProviderTLSTest {
 		Assert.assertTrue(in, in.contains("John Doe"));
 		Assert.assertTrue(in, in.contains("8.8.8.8"));
 		//Assert.assertTrue(in, in.contains("CN=kirk,OU=client,O=client,L=test,C=DE"));
+	}
+
+	private int findFreePort() {
+		try (ServerSocket serverSocket = new ServerSocket(0)) {
+			return serverSocket.getLocalPort();
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to find free port", e);
+		}
 	}
 }

@@ -26,7 +26,7 @@ import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActi
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
@@ -57,7 +57,7 @@ public class MultitenancyTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_nodnfof.yml"), settings);
         final RestHelper rh = nonSslRestHelper();
 
-            try (TransportClient tc = getInternalTransportClient()) {
+            try (Client tc = getClient()) {
                 tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
 
                 tc.index(new IndexRequest("indexa").type("doc").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":\"indexa\"}", XContentType.JSON)).actionGet();
@@ -239,7 +239,7 @@ public class MultitenancyTests extends SingleClusterTest {
         setup(settings);
 
         final String dashboardsIndex = ".kibana_92668751_admin_1";
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             String body = "{"+
                     "\"type\" : \"index-pattern\","+
                     "\"updated_at\" : \"2018-09-29T08:56:59.066Z\","+
@@ -339,7 +339,7 @@ public class MultitenancyTests extends SingleClusterTest {
                 .build();
         setup(settings);
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             String body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
             Map indexSettings = new HashMap();
             indexSettings.put("number_of_shards", 1);
@@ -368,7 +368,7 @@ public class MultitenancyTests extends SingleClusterTest {
                 .build();
         setup(settings);
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             String body = "{\"buildNum\": 15460, \"defaultIndex\": \"humanresources\", \"tenant\": \"human_resources\"}";
             Map indexSettings = new HashMap();
             indexSettings.put("number_of_shards", 1);

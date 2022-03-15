@@ -38,12 +38,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.message.BasicHeader;
+import org.checkerframework.checker.units.qual.C;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
@@ -74,7 +75,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
     
-            try (TransportClient tc = getInternalTransportClient()) {                    
+            try (Client tc = getClient()) {
                 tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();         
                 tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();                
                 tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -155,7 +156,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
     
-            try (TransportClient tc = getInternalTransportClient()) {       
+            try (Client tc = getClient()) {
                 tc.index(new IndexRequest(".opendistro_security").type(getType()).id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles_deny.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
@@ -163,7 +164,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("starfleet/ships/_search?pretty", encodeBasicHeader("worf", "worf")).getStatusCode());
     
-            try (TransportClient tc = getInternalTransportClient()) {
+            try (Client tc = getClient()) {
                 tc.index(new IndexRequest(".opendistro_security").type(getType()).id("roles").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("roles", FileHelper.readYamlContent("roles.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"roles"})).actionGet();
                 Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
@@ -328,7 +329,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             Assert.assertFalse(resc.getBody().contains("opendistro_security_anonymous"));
             Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
             
-            try (TransportClient tc = getInternalTransportClient()) {    
+            try (Client tc = getClient()) {
                 tc.index(new IndexRequest(".opendistro_security").type(getType()).id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config.yml"))).actionGet();
                 tc.index(new IndexRequest(".opendistro_security").type(getType()).setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users.yml"))).actionGet();
                 ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
@@ -358,7 +359,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_clientcert.yml"), settings, true);
     
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
 
             tc.index(new IndexRequest("vulcangov").type("type").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             
@@ -442,7 +443,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             
             setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
     
-            try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+            try (Client tc = getClient()) {
                 
                 tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
                 
@@ -580,7 +581,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig(), settings);
         
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
             
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
             
@@ -611,7 +612,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
                 .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_dnfof.yml").setSecurityRoles("roles_itt1635.yml"), settings);
         
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
                         
             tc.index(new IndexRequest("esb-prod-1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("esb-prod-2").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();            
@@ -659,7 +660,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
          
          */
         
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
                         
             tc.index(new IndexRequest(".kibana-6").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest(".kibana_-1139640511_admin1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
@@ -740,7 +741,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.index(new IndexRequest("abcdef").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON))
                     .actionGet();
         }

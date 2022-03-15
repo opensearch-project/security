@@ -17,6 +17,7 @@ package org.opensearch.security.auditlog.impl;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
+import org.opensearch.client.Client;
 import org.opensearch.security.auditlog.AuditTestUtils;
 
 import net.jcip.annotations.NotThreadSafe;
@@ -63,7 +64,7 @@ public class TracingTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         rh.executePutRequest("_opendistro/_security/api/audit/config", AuditTestUtils.createAuditPayload(settings), encodeBasicHeader("admin", "admin"));
 
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
 
             for(int i=0; i<50;i++) {
                 tc.index(new IndexRequest("a").type("b").id(i+"").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":"+i+"}", XContentType.JSON)).actionGet();
@@ -241,7 +242,7 @@ public class TracingTests extends SingleClusterTest {
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -307,7 +308,7 @@ public class TracingTests extends SingleClusterTest {
     setup(settings);
     final RestHelper rh = nonSslRestHelper();
 
-        try (TransportClient tc = getInternalTransportClient()) {
+        try (Client tc = getClient()) {
             for(int i=0; i<3; i++)
             tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
@@ -341,7 +342,7 @@ public class TracingTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         rh.executePutRequest("_opendistro/_security/api/audit/config", AuditTestUtils.createAuditPayload(settings), encodeBasicHeader("admin", "admin"));
 
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("myindex1")
             .mapping("mytype1", FileHelper.loadFile("mapping1.json"), XContentType.JSON)).actionGet();
             tc.admin().indices().create(new CreateIndexRequest("myindex2")
@@ -394,7 +395,7 @@ public class TracingTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         rh.executePutRequest("_opendistro/_security/api/audit/config", AuditTestUtils.createAuditPayload(Settings.EMPTY), encodeBasicHeader("admin", "admin"));
 
-        try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
+        try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("myindex1")
             .mapping("mytype1", FileHelper.loadFile("mapping1.json"), XContentType.JSON)).actionGet();
             tc.admin().indices().create(new CreateIndexRequest("myindex2")

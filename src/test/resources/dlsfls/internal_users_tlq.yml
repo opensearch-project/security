@@ -1,0 +1,28 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+  
+tlq_1337:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  backend_roles: ["os_dls_tlq_lookup"]
+
+tlq_42:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  backend_roles: ["os_dls_tlq_lookup"]
+
+tlq_1337_42:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  backend_roles: ["os_dls_tlq_lookup"]
+
+tlq_999:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  backend_roles: ["os_dls_tlq_lookup"]
+
+tlq_empty_access_codes:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  backend_roles: ["os_dls_tlq_lookup"]
+
+tlq_no_codes:
+  hash: "$2y$12$SP9z.rBgEHTlueKkiqSK/OxqB2PLJN/eRoNJ8WOPoHWIpirvbFAAy" # "password"
+  backend_roles: ["os_dls_tlq_lookup"]

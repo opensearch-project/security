@@ -1,0 +1,18 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+  
+os_dls_tlq_lookup:
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+      - "tlqdocuments"
+      dls: "{ \"terms\": { \"access_codes\": { \"index\": \"user_access_codes\", \"id\": \"${user.name}\", \"path\": \"access_codes\" } } }"
+      allowed_actions:
+        - "*"
+    - index_patterns:
+      - "tlqdummy"
+      allowed_actions:
+        - "*"

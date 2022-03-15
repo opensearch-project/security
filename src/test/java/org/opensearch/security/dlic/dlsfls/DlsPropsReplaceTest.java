@@ -18,7 +18,7 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.http.HttpStatus;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -28,7 +28,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 public class DlsPropsReplaceTest extends AbstractDlsFlsTest{
 
 
-    protected void populateData(TransportClient tc) {
+    protected void populateData(Client tc) {
 
         tc.index(new IndexRequest("prop1").type("_doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"prop_replace\": \"yes\", \"amount\": 1010}", XContentType.JSON)).actionGet();

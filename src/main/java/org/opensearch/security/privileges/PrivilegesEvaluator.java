@@ -64,6 +64,7 @@ import org.opensearch.action.bulk.BulkItemRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteAction;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.MultiGetAction;
 import org.opensearch.action.index.IndexAction;
 import org.opensearch.action.search.MultiSearchAction;
@@ -82,6 +83,7 @@ import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -133,16 +135,14 @@ public class PrivilegesEvaluator {
     private final SecurityIndexAccessEvaluator securityIndexAccessEvaluator;
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
-
-    private final DlsFlsEvaluator dlsFlsEvaluator;
-
     private final boolean dlsFlsEnabled;
     private DynamicConfigModel dcm;
-
+    private final NamedXContentRegistry namedXContentRegistry;
+    
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
                                AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
-                               final IndexResolverReplacer irr, boolean dlsFlsEnabled) {
+                               final IndexResolverReplacer irr, boolean dlsFlsEnabled, NamedXContentRegistry namedXContentRegistry) {
 
         super();
         this.clusterService = clusterService;
@@ -161,8 +161,8 @@ public class PrivilegesEvaluator {
         snapshotRestoreEvaluator = new SnapshotRestoreEvaluator(settings, auditLog);
         securityIndexAccessEvaluator = new SecurityIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
-        dlsFlsEvaluator = new DlsFlsEvaluator(settings, threadPool);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
+        this.namedXContentRegistry = namedXContentRegistry;
         this.dlsFlsEnabled = dlsFlsEnabled;
     }
 
@@ -261,17 +261,11 @@ public class PrivilegesEvaluator {
         }
 
         final Resolved requestedResolved = irr.resolveRequest(request);
+        presponse.resolved = requestedResolved;
+
 
         if (isDebugEnabled) {
             log.debug("RequestedResolved : {}", requestedResolved);
-        }
-
-
-        // check dlsfls
-        if (dlsFlsEnabled
-                //&& (action0.startsWith("indices:data/read") || action0.equals(ClusterSearchShardsAction.NAME))
-                && dlsFlsEvaluator.evaluate(request, clusterService, resolver, requestedResolved, user, securityRoles, presponse).isComplete()) {
-            return presponse;
         }
 
         // check snapshot/restore requests
@@ -296,6 +290,8 @@ public class PrivilegesEvaluator {
             log.trace("dnfof enabled? {}", dnfofEnabled);
         }
 
+        presponse.evaluatedDlsFlsConfig = getSecurityRoles(mappedRoles).getDlsFls(user, resolver, clusterService, namedXContentRegistry);
+        
 
         if (isClusterPerm(action0)) {
             if(!securityRoles.impliesClusterPermissionPermission(action0)) {
@@ -368,6 +364,11 @@ public class PrivilegesEvaluator {
             }
         }
 
+        if (checkDocAllowListHeader(user, action0, request)) {
+            presponse.allowed = true;
+            return presponse;
+        }
+        
         // term aggregations
         if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse) .isComplete()) {
             return presponse;
@@ -589,7 +590,7 @@ public class PrivilegesEvaluator {
         return Collections.unmodifiableSet(additionalPermissionsRequired);
     }
 
-    private static boolean isClusterPerm(String action0) {
+    public static boolean isClusterPerm(String action0) {
         return  (    action0.startsWith("cluster:")
                 || action0.startsWith("indices:admin/template/")
 
@@ -681,6 +682,38 @@ public class PrivilegesEvaluator {
         return false;
     }
 
+
+    private boolean checkDocAllowListHeader(User user, String action, ActionRequest request) {
+        String docAllowListHeader = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
+
+        if (docAllowListHeader == null) {
+            return false;
+        }
+
+        if (!(request instanceof GetRequest)) {
+            return false;
+        }
+
+        try {
+            DocumentAllowList documentAllowList = DocumentAllowList.parse(docAllowListHeader);
+            GetRequest getRequest = (GetRequest) request;
+
+            if (documentAllowList.isAllowed(getRequest.index(), getRequest.id())) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Request " + request + " is allowed by " + documentAllowList);
+                }
+                
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (Exception e) {
+            log.error("Error while handling document allow list: " + docAllowListHeader, e);
+            return false;
+        }
+    }
+    
     private List<String> toString(List<AliasMetadata> aliases) {
         if(aliases == null || aliases.size() == 0) {
             return Collections.emptyList();

@@ -23,7 +23,7 @@ import org.apache.http.HttpStatus;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.StopWatch;
 import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -37,7 +37,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 public class FlsPerfTest extends AbstractDlsFlsTest{
 
 
-    protected void populateData(TransportClient tc) {
+    protected void populateData(Client tc) {
 
         Map<String, Object> indexSettings = new HashMap<>(3);
         indexSettings.put("index.mapping.total_fields.limit",50000);

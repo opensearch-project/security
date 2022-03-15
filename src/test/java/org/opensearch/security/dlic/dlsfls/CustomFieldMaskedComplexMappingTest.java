@@ -21,7 +21,7 @@ import org.apache.http.HttpStatus;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -33,7 +33,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
 
 
     @Override
-    protected void populateData(TransportClient tc) {
+    protected void populateData(Client tc) {
 
         try {
             tc.admin().indices().create(new CreateIndexRequest("logs").mapping("_doc", FileHelper.loadFile("dlsfls/masked_field_mapping.json"), XContentType.JSON)).actionGet();

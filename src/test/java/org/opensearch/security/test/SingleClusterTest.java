@@ -30,7 +30,7 @@
 
 package org.opensearch.security.test;
 
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Assert;
@@ -76,7 +76,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     protected void restart(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpendistroSecurityIndex) throws Exception {
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), ClusterConfiguration.DEFAULT);
         if(initOpendistroSecurityIndex && dynamicSecuritySettings != null) {
-            initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
+            initialize(clusterHelper, clusterInfo, dynamicSecuritySettings);
         }
     }
 
@@ -98,7 +98,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration);
         if(initSecurityIndex && dynamicSecuritySettings != null) {
-            initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
+            initialize(clusterHelper, clusterInfo, dynamicSecuritySettings);
         }
     }
 
@@ -107,7 +107,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration, timeout, nodes);
         if(initSecurityIndex) {
-            initialize(clusterInfo, initTransportClientSettings, dynamicSecuritySettings);
+            initialize(clusterHelper, clusterInfo, dynamicSecuritySettings);
         }
     }
 
@@ -142,9 +142,10 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         return new RestHelper(clusterInfo, false, false, getResourceFolder());
     }
 
-    protected TransportClient getInternalTransportClient() {
-        return getInternalTransportClient(clusterInfo, Settings.EMPTY);
+    protected Client getClient() {
+        return clusterHelper.nodeClient();
     }
+
 
     @After
     public void tearDown() {

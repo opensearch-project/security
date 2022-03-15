@@ -252,7 +252,7 @@ public abstract class WildcardMatcher implements Predicate<String> {
         return matchAny(candidates.stream());
     }
 
-    public boolean matchAny(String[] candidates) {
+    public boolean matchAny(String... candidates) {
         return matchAny(Arrays.stream(candidates));
     }
 

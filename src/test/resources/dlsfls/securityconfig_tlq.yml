@@ -1,0 +1,16 @@
+---
+_meta:
+  type: "config"
+  config_version: 2
+config:
+  dynamic:
+    do_not_fail_on_forbidden: true
+    authc:
+      authentication_domain_basic_internal:
+        http_enabled: true
+        transport_enabled: true
+        order: 0
+        http_authenticator:
+          type: "basic"
+        authentication_backend:
+          type: "intern"

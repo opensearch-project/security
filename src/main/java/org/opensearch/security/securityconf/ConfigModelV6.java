@@ -44,7 +44,8 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
-
+import org.opensearch.common.util.set.Sets;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
@@ -361,53 +362,25 @@ public class ConfigModelV6 extends ConfigModel {
             return retVal;
         }
 
-        @Override
-        public Map<String, Set<String>> getMaskedFields(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
-            final Map<String, Set<String>> maskedFieldsMap = new HashMap<>();
-
-            for (SecurityRole sr : roles) {
-                for (IndexPattern ip : sr.getIpatterns()) {
-                    final Set<String> maskedFields = ip.getMaskedFields();
-                    if (!maskedFields.isEmpty()) {
-                        final String indexPattern = ip.getUnresolvedIndexPattern(user);
-                        Set<String> concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
-
-                        Set<String> currentMaskedFields = maskedFieldsMap.get(indexPattern);
-                        if (currentMaskedFields != null) {
-                            currentMaskedFields.addAll(maskedFields);
-                        } else {
-                            maskedFieldsMap.put(indexPattern, new HashSet<>(maskedFields));
-                        }
-
-                        for (String concreteIndex : concreteIndices) {
-                            currentMaskedFields = maskedFieldsMap.get(concreteIndex);
-                            if (currentMaskedFields != null) {
-                                currentMaskedFields.addAll(maskedFields);
-                            } else {
-                                maskedFieldsMap.put(concreteIndex, new HashSet<>(maskedFields));
-                            }
-                        }
-                    }
-                }
-            }
-            return maskedFieldsMap;
-        }
 
         @Override
-        public Tuple<Map<String, Set<String>>, Map<String, Set<String>>> getDlsFls(User user, IndexNameExpressionResolver resolver,
-                ClusterService cs) {
+        public EvaluatedDlsFlsConfig getDlsFls(User user, IndexNameExpressionResolver resolver, ClusterService cs,
+                NamedXContentRegistry namedXContentRegistry) {
 
             final Map<String, Set<String>> dlsQueries = new HashMap<String, Set<String>>();
             final Map<String, Set<String>> flsFields = new HashMap<String, Set<String>>();
-
+            final Map<String, Set<String>> maskedFieldsMap = new HashMap<String, Set<String>>();
+            
             for (SecurityRole sr : roles) {
                 for (IndexPattern ip : sr.getIpatterns()) {
                     final Set<String> fls = ip.getFls();
                     final String dls = ip.getDlsQuery(user);
                     final String indexPattern = ip.getUnresolvedIndexPattern(user);
+                    final Set<String> maskedFields = ip.getMaskedFields();
                     Set<String> concreteIndices = new HashSet<>();
 
-                    if ((dls != null && dls.length() > 0) || (fls != null && fls.size() > 0)) {
+
+                    if ((dls != null && dls.length() > 0) || (fls != null && fls.size() > 0) || (maskedFields != null && maskedFields.size() > 0)) {
                         concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
                     }
 
@@ -449,12 +422,32 @@ public class ConfigModelV6 extends ConfigModel {
                             }
                         }
                     }
+            
+                    if (maskedFields != null && maskedFields.size() > 0) {
+
+                        if (maskedFieldsMap.containsKey(indexPattern)) {
+                            maskedFieldsMap.get(indexPattern).addAll(Sets.newHashSet(maskedFields));
+                        } else {
+                            maskedFieldsMap.put(indexPattern, new HashSet<String>());
+                            maskedFieldsMap.get(indexPattern).addAll(Sets.newHashSet(maskedFields));
+                        }
+
+                        for (String concreteIndex : concreteIndices) {
+                            if (maskedFieldsMap.containsKey(concreteIndex)) {
+                                maskedFieldsMap.get(concreteIndex).addAll(Sets.newHashSet(maskedFields));
+                            } else {
+                                maskedFieldsMap.put(concreteIndex, new HashSet<String>());
+                                maskedFieldsMap.get(concreteIndex).addAll(Sets.newHashSet(maskedFields));
+                            }
+                        }
+                    }
                 }
             }
-
-            return new Tuple<>(dlsQueries, flsFields);
-
+            
+            return new EvaluatedDlsFlsConfig(dlsQueries, flsFields, maskedFieldsMap);
         }
+
+
 
         //opensearchDashboards special only, terms eval
         public Set<String> getAllPermittedIndicesForDashboards(Resolved resolved, User user, String[] actions, IndexNameExpressionResolver resolver, ClusterService cs) {

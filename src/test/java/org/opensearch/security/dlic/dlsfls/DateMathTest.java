@@ -22,7 +22,7 @@ import java.util.TimeZone;
 import org.apache.http.HttpStatus;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -33,7 +33,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 public class DateMathTest extends AbstractDlsFlsTest{
 
 
-    protected void populateData(TransportClient tc) {
+    protected void populateData(Client tc) {
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd", SecurityUtils.EN_Locale);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));

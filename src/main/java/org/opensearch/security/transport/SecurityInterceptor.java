@@ -71,10 +71,7 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 
-import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 
 import com.google.common.collect.Maps;
 
@@ -148,6 +145,10 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)                            
                             || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
@@ -163,8 +164,12 @@ public class SecurityInterceptor {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
                 }
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER);
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
                 headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE);
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER);
+                headerMap.remove(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
             }
 
             if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
@@ -270,33 +275,38 @@ public class SecurityInterceptor {
 
         @Override
         public void handleResponse(T response) {
-            final List<String> flsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
-            final List<String> dlsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
-            final List<String> maskedFieldsResponseHeader = getThreadContext().getResponseHeaders().get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+        	
+            ThreadContext threadContext = getThreadContext();
+            Map<String, List<String>> responseHeaders = threadContext.getResponseHeaders();
 
+            List<String> flsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
+            List<String> dlsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+            List<String> maskedFieldsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+            
             contextToRestore.restore();
 
             final boolean isDebugEnabled = log.isDebugEnabled();
-            if (response instanceof ClusterSearchShardsResponse && flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
-                if (isDebugEnabled) {
-                    log.debug("add flsResponseHeader as transient");
+            if (response instanceof ClusterSearchShardsResponse) {           
+                if (flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
+                    if (isDebugEnabled) {
+                        log.debug("add flsResponseHeader as transient");
+                    }
+                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
                 }
-                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_CCS, flsResponseHeader.get(0));
-            }
 
-            if (response instanceof ClusterSearchShardsResponse && dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
-                if (isDebugEnabled) {
-                    log.debug("add dlsResponseHeader as transient");
+                if (dlsResponseHeader != null && !dlsResponseHeader.isEmpty()) {
+                    if (isDebugEnabled) {
+                        log.debug("add dlsResponseHeader as transient");
+                    }
+                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
                 }
-                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS, dlsResponseHeader.get(0));
 
-            }
-
-            if (response instanceof ClusterSearchShardsResponse && maskedFieldsResponseHeader != null && !maskedFieldsResponseHeader.isEmpty()) {
-                if (isDebugEnabled) {
-                    log.debug("add maskedFieldsResponseHeader as transient");
+                if (maskedFieldsResponseHeader != null && !maskedFieldsResponseHeader.isEmpty()) {
+                    if (isDebugEnabled) {
+                        log.debug("add maskedFieldsResponseHeader as transient");
+                    }
+                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));
                 }
-                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS, maskedFieldsResponseHeader.get(0));
             }
 
             innerHandler.handleResponse(response);

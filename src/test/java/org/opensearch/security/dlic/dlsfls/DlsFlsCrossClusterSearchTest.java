@@ -18,7 +18,7 @@ package org.opensearch.security.dlic.dlsfls;
 import org.apache.http.HttpStatus;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.After;
@@ -64,13 +64,13 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         System.setProperty("security.display_lic_none","true");
 
         cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
-        initialize(cl2Info, Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles(remoteRoles));
+        initialize(cl2, cl2Info, new DynamicSecurityConfig().setSecurityRoles(remoteRoles));
         System.out.println("### cl2 complete ###");
 
         //cl1 is coordinating
         cl1Info = cl1.startCluster(minimumSecuritySettings(crossClusterNodeSettings(cl2Info)), ClusterConfiguration.DEFAULT);
         System.out.println("### cl1 start ###");
-        initialize(cl1Info, Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_983.yml"));
+        initialize(cl1, cl1Info, new DynamicSecurityConfig().setSecurityRoles("roles_983.yml"));
         System.out.println("### cl1 initialized ###");
     }
 
@@ -90,12 +90,12 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
     public void testCcs() throws Exception {
         setupCcs("roles_983.yml");
 
-        try (TransportClient tc = getInternalTransportClient(cl1Info, Settings.EMPTY)) {
+        try (Client tc = cl1.nodeClient()) {
             tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
+        try (Client tc = cl2.nodeClient()) {
             tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("humanresources").type("hr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
@@ -147,12 +147,12 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
     public void testCcsDifferentConfig() throws Exception {
         setupCcs("roles_ccs2.yml");
 
-        try (TransportClient tc = getInternalTransportClient(cl1Info, Settings.EMPTY)) {
+        try (Client tc = cl1.nodeClient()) {
             tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
+        try (Client tc = cl2.nodeClient()) {
             tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("humanresources").type("hr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
@@ -205,7 +205,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
     public void testCcsDifferentConfigBoth() throws Exception {
         setupCcs("roles_ccs2.yml");
 
-        try (TransportClient tc = getInternalTransportClient(cl1Info, Settings.EMPTY)) {
+        try (Client tc = cl1.nodeClient()) {
             tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
 
@@ -232,7 +232,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
                             + "}", XContentType.JSON)).actionGet();
         }
 
-        try (TransportClient tc = getInternalTransportClient(cl2Info, Settings.EMPTY)) {
+        try (Client tc = cl2.nodeClient()) {
             tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("humanresources").type("hr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
