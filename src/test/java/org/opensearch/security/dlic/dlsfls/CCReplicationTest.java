@@ -59,6 +59,7 @@ import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestStatus;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.support.ConfigConstants;
@@ -221,6 +222,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             log.warn(ex.getMessage());
             Assert.assertNotNull(ex);
             Assert.assertTrue(ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated"));
+            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
         }
 
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
@@ -230,6 +232,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             log.warn(ex.getMessage());
             Assert.assertNotNull(ex);
             Assert.assertTrue(ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated"));
+            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
         }
 
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
@@ -239,6 +242,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
             log.warn(ex.getMessage());
             Assert.assertNotNull(ex);
             Assert.assertTrue(ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated"));
+            Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
         }
 
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
