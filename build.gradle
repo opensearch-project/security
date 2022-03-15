@@ -224,6 +224,21 @@ test {
         maxFailures = 30
         maxRetries = 5
     }
+    jacoco {
+        excludes = [
+            "com.sun.jndi.dns.*",
+            "com.sun.security.sasl.gsskerb.*",
+            "java.sql.*",
+            "javax.script.*",
+            "org.jcp.xml.dsig.internal.dom.*",
+            "sun.nio.cs.ext.*",
+            "sun.security.ec.*",
+            "sun.security.jgss.*",
+            "sun.security.pkcs11.*",
+            "sun.security.smartcardio.*",
+            "sun.util.resources.provider.*"
+        ]
+    }
 }
 
 gitProperties {
@@ -246,16 +261,17 @@ gitProperties {
 }
 
 // copied from: org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
-project.getConfigurations().all(configuration -> {
+project.getConfigurations().all { Configuration configuration ->
     if (configuration.getName().equals(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)) {
         NamedDomainObjectProvider<Configuration> resolvableCompileOnly = project.getConfigurations().register('resolveableCompileOnly');
-        resolvableCompileOnly.configure((c) -> {
+        resolvableCompileOnly.configure { c ->
             c.setCanBeResolved(true);
             c.setCanBeConsumed(false);
             c.extendsFrom(configuration);
-        });
+        };
     }
-});
+};
+
 
 
 task bundle(dependsOn: jar, type: Zip) {
