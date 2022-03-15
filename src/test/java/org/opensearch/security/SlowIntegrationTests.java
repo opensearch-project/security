@@ -30,8 +30,9 @@
 
 package org.opensearch.security;
 
-import java.io.IOException;
 
+import java.io.IOException;
+import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -46,6 +47,9 @@ import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -169,6 +173,11 @@ public class SlowIntegrationTests extends SingleClusterTest {
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                 .put("cluster.routing.allocation.exclude._ip", "127.0.0.1")
+                .put("plugins.security.ssl.http.enabled", true)
+				.put("plugins.security.ssl.http.keystore_filepath",
+						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
+				.put("plugins.security.ssl.http.truststore_filepath",
+						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"))
                 .build();
         try {
             setup(Settings.EMPTY, null, settings, false);
@@ -181,9 +190,16 @@ public class SlowIntegrationTests extends SingleClusterTest {
                     new ClusterUpdateSettingsRequest().transientSettings(Settings.builder().put("cluster.routing.allocation.exclude._ip", "192.0.2.0").build()));
             this.clusterInfo = clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10),3);
         }
-        RestHelper rh = nonSslRestHelper();
+
+		//setup(Settings.EMPTY, new DynamicSecurityConfig(), builder.build(), true);
+        
+        RestHelper rh = restHelper();
         Thread.sleep(10000);
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+        HttpResponse res = rh.executePatchRequest("/_plugins/_security/api/internalusers/admin", "[{\"op\": \"add\", \"path\": \"/password\", \"value\": \"Admin#1\"}]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "Admin#1")).getStatusCode());
     }
 
 }

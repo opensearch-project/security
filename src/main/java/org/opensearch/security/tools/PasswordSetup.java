@@ -32,12 +32,7 @@ package org.opensearch.security.tools;
 
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
-import com.google.common.io.ByteSource;
-import com.google.common.io.CharStreams;
-import com.google.common.io.Files;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -48,112 +43,53 @@ import org.apache.commons.cli.ParseException;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.opensearch.ExceptionsHelper;
-import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchStatusException;
 import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.action.admin.indices.get.GetIndexRequest;
-import org.opensearch.action.admin.indices.get.GetIndexRequest.Feature;
-import org.opensearch.action.admin.indices.get.GetIndexResponse;
-import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
-import org.opensearch.client.transport.NoNodeAvailableException;
-import org.opensearch.cluster.health.ClusterHealthStatus;
-import org.opensearch.common.Strings;
-import org.opensearch.common.bytes.BytesReference;
-import org.opensearch.common.collect.Tuple;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
-import org.opensearch.common.xcontent.XContentBuilder;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentParser;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.common.xcontent.json.JsonXContent;
-import org.opensearch.index.IndexNotFoundException;
-import org.opensearch.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.securityconf.Migration;
-import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.impl.NodesDn;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
-import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
-import org.opensearch.security.securityconf.impl.v7.ConfigV7;
-import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
-import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
-import org.opensearch.security.securityconf.impl.v7.RoleV7;
-import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.PemKeyReader;
-import org.opensearch.security.support.SecurityJsonNode;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
 import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-
-import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
-import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
+import java.util.Scanner;
 
 public class PasswordSetup {
 
-    private static final boolean CREATE_AS_LEGACY = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_CREATE_AS_LEGACY"));
     private static final boolean ALLOW_MIXED = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_ALLOW_MIXED_CLUSTER"));
     private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
     private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
     private static final String OPENDISTRO_SECURITY_KEYPASS = "OPENDISTRO_SECURITY_KEYPASS";
-    //not used in multithreaded fashion, so it's okay to define it as a constant here
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MMM-dd_HH-mm-ss", Locale.ENGLISH); //NOSONAR
-    private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
-            .put("cluster.routing.allocation.enable", "all")
-            .build();
     public static void main(final String[] args) {
         try{
             final int returnCode = execute(args);
@@ -165,7 +101,6 @@ public class PasswordSetup {
     }
 
     public static int execute(final String[] args) throws Exception {
-        System.out.println("Password Setup");
 
         System.setProperty("security.nowarn.client","true");
         System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation","true");
@@ -240,18 +175,11 @@ public class PasswordSetup {
         String clustername = "opensearch";
         String file = null;
         String type = null;
-        boolean retrieve = false;
         String ksAlias = null;
         String[] enabledProtocols = new String[0];
         String[] enabledCiphers = new String[0];
-        Integer updateSettings = null;
         String index = ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
-        Boolean replicaAutoExpand = null;
-        boolean reload = false;
         boolean failFast = false;
-        boolean diagnose = false;
-        boolean deleteConfigIndex = false;
-        boolean enableShardAllocation = false;
         boolean acceptRedCluster = false;
         
         String keypass = System.getenv(OPENDISTRO_SECURITY_KEYPASS);
@@ -262,9 +190,6 @@ public class PasswordSetup {
         boolean whoami;
         final boolean promptForPassword;
         String explicitReplicas = null;
-        String backup = null;
-        String migrate = null;
-        final boolean resolveEnvVars;
         Integer validateConfig = null;
         String migrateOffline = null;
 
@@ -306,7 +231,6 @@ public class PasswordSetup {
             clustername = line.getOptionValue("cn", clustername);
             file = line.getOptionValue("f", file);
             type = line.getOptionValue("t", type);
-            retrieve = line.hasOption("r");
             ksAlias = line.getOptionValue("ksalias", ksAlias);
             index = line.getOptionValue("i", index);
             
@@ -321,41 +245,17 @@ public class PasswordSetup {
                 enabledProtocols = enabledProtocolsString.split(",");
             }
             
-            updateSettings = line.hasOption("us")?Integer.parseInt(line.getOptionValue("us")):null;
-
-            reload = line.hasOption("rl");
-            
-            if(line.hasOption("era")) {
-                replicaAutoExpand = true;
-            }
-            
-            if(line.hasOption("dra")) {
-                replicaAutoExpand = false;
-            }
-            
             failFast = line.hasOption("ff");
-            diagnose = line.hasOption("dg");
-            deleteConfigIndex = line.hasOption("dci");
-            enableShardAllocation = line.hasOption("esa");
             acceptRedCluster = line.hasOption("arc");
             
             cacert = line.getOptionValue("cacert");
             cert = line.getOptionValue("cert");
             key = line.getOptionValue("key");
             keypass = line.getOptionValue("keypass", keypass);
-
             si = line.hasOption("si");
-            
             whoami = line.hasOption("w");
-            
             explicitReplicas = line.getOptionValue("er", explicitReplicas);
-            
-            backup = line.getOptionValue("backup");
-            
-            migrate = line.getOptionValue("migrate");
-            
-            resolveEnvVars = line.hasOption("rev");
-            
+
             validateConfig = !line.hasOption("vc")?null:Integer.parseInt(line.getOptionValue("vc", "7"));
             
             if(validateConfig != null && validateConfig.intValue() != 6 && validateConfig.intValue() != 7) {
@@ -370,11 +270,6 @@ public class PasswordSetup {
             formatter.printHelp("securityadmin.sh", options, true);
             return -1;
         }
-
-        //if(validateConfig != null) {
-        //    System.out.println("Validate configuration for Version "+validateConfig.intValue());
-        //    return validateConfig(cd, file, type, validateConfig.intValue());
-        //}
         
         if(migrateOffline != null) {
             System.out.println("Migrate "+migrateOffline+" offline");
@@ -427,13 +322,8 @@ public class PasswordSetup {
         final SSLContext sslContext = sslContext(ts, tspass, tst, ks, kspass, kst, ksAlias, cacert, cert, key, keypass);
 
         try (RestHighLevelClient restHighLevelClient = getRestHighLevelClient(sslContext, nhnv, enabledProtocols, enabledCiphers, hostname, port)) {
-            System.out.println("DEBUG: Inside try statement");
             RestClient lowLevelClient = restHighLevelClient.getLowLevelClient();
-            System.out.println("DEBUG: Got low level client");
-            Request req = new Request("GET", "/_plugins/_security/whoami");
-            System.out.println("DEBUG: Request created");
-		    Response whoAmIRes = lowLevelClient.performRequest(req);
-            System.out.println("DEBUG: Performed one request");
+		    Response whoAmIRes = lowLevelClient.performRequest(new Request("GET", "/_plugins/_security/whoami"));
 			if (whoAmIRes.getStatusLine().getStatusCode() != 200) {
 				System.out.println("Unable to check whether cluster is sane because return code was " + whoAmIRes.getStatusLine());
 				return (-1);
@@ -541,18 +431,41 @@ public class PasswordSetup {
 			System.out.println("Clusterstate: " + chResponse.getStatus());
 			System.out.println("Number of nodes: " + chResponse.getNumberOfNodes());
 			System.out.println("Number of data nodes: " + chResponse.getNumberOfDataNodes());
+
+            Scanner sc = new Scanner(System.in);
+            ArrayList<String> users = new ArrayList<String>(Arrays.asList("admin", "kibanaserver", "kibanaro", "logstash", "readall", "snapshotrestore"));
+
+            System.out.println("\n\nBeginning Password Setup");
+
+            for (String user: users) {
+                boolean isWeakPassword = true;
+                while(isWeakPassword) {
+                    try {
+                        System.out.println("\nEnter password for " + user + ": ");
+                        String password = sc.nextLine();
+                        setPasswordSingleUser(user, lowLevelClient, password);
+                        isWeakPassword = false;
+                    } catch(ResponseException e) {
+                        System.out.println("A password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
+                        System.out.print("Would you like to try again? [y/N] ");
+                        if (!sc.nextLine().equals("y")) {
+                            return -1;
+                        }
+                    }
+                }
+            }
         } catch (Throwable e) {
-            System.out.println("Something messed up");
-            return 1;
+            System.out.println(e);
+            return -1;
         }
         return 0;
     }
 
-    private void setPasswordSingleUser(String user, RestClient restClient) throws Exception {
-        String body = "{ \"field\": \"value\" }";
-        //StringEntity entity = new StringEntity(body, ContentType.APPLICATION_JSON);
+    private static void setPasswordSingleUser(String user, RestClient restClient, String password) throws Exception {
+        String body = "[{\"op\": \"add\", \"path\": \"/password\",\"value\": \"" + password + "\"}]";
+        StringEntity entity = new StringEntity(body, ContentType.APPLICATION_JSON);
         Request request = new Request("PATCH", "/_plugins/_security/api/internalusers/" + user);
-        //request.setEntity(entity);
+        request.setEntity(entity);
         restClient.performRequest(request);
     }
 
@@ -580,7 +493,6 @@ public class PasswordSetup {
 			String key,
 			String keypass) throws Exception {
 
-        System.out.println("DEBUG: SSL CONTEXT CALLED");
         final SSLContextBuilder sslContextBuilder = SSLContexts.custom();
 
 		if (ks != null) {
@@ -652,7 +564,6 @@ public class PasswordSetup {
 	}
 
     private static int issueWarnings(RestHighLevelClient restHighLevelClient) throws IOException {
-        System.out.println("DEBUG: ISSUE WARNINGS CALLED");
 		Response res = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_nodes"));
 
 		if (res.getStatusLine().getStatusCode() != 200) {
@@ -704,8 +615,7 @@ public class PasswordSetup {
 															  String[] enabledCiphers,
 															  String hostname,
 															  int port) {
-        
-        System.out.println("DEBUG: getRestHighLevelClient CALLED");
+
 		final HostnameVerifier hnv = !nhnv ? new DefaultHostnameVerifier() : NoopHostnameVerifier.INSTANCE;
 
 		String[] supportedProtocols = enabledProtocols.length > 0 ? enabledProtocols : null;
@@ -724,7 +634,6 @@ public class PasswordSetup {
 								)
 						)
 				);
-        System.out.println("DEBUG: exiting getRestHighLevelClient");
 		return new RestHighLevelClient(restClientBuilder);
 	}
 
@@ -766,7 +675,5 @@ public class PasswordSetup {
                 && !line.hasOption("ts") && !line.hasOption("cacert")) {
             throw new ParseException("Specify at least -ts or -cacert");
         }
-        
-        //TODO add more validation rules
     }
 }
