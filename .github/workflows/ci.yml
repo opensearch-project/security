@@ -47,7 +47,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
 
-    - name: Run Tests
+    - name: Package
       run: ./gradlew clean build -Dbuild.snapshot=false -x test
 
     - name: Perform CodeQL Analysis
