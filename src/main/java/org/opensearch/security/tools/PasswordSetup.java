@@ -454,6 +454,7 @@ public class PasswordSetup {
                     }
                 }
             }
+            sc.close();
         } catch (Throwable e) {
             System.out.println(e);
             return -1;
