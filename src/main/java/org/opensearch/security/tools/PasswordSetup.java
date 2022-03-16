@@ -1,19 +1,4 @@
 /*
- * Copyright 2015-2018 _floragunn_ GmbH
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
  * Portions Copyright OpenSearch Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
@@ -267,7 +252,7 @@ public class PasswordSetup {
         }
         catch( ParseException exp ) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
-            formatter.printHelp("securityadmin.sh", options, true);
+            formatter.printHelp("set_passwords.sh", options, true);
             return -1;
         }
         
@@ -395,18 +380,18 @@ public class PasswordSetup {
                     if(!failFast) {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
-                        System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");   
+                        System.out.println("   * Try running set_passwords.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");   
                         System.out.println("   * Make sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
-                        System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)");
-                        System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
+                        System.out.println("   * If this is not working, try running set_passwords.sh with --diagnose and see diagnose trace log file)");
+                        System.out.println("   * Add --accept-red-cluster to allow set_passwords to operate on a red cluster.");
 
                     } else {
                         System.out.println("ERR: Cannot retrieve cluster state due to: "+e.getMessage()+".");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
-                        System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
+                        System.out.println("   * Try running set_passwords.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
                         System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
-                        System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
-                        System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
+                        System.out.println("   * If this is not working, try running set_passwords.sh with --diagnose and see diagnose trace log file)"); 
+                        System.out.println("   * Add --accept-red-cluster to allow set_passwords to operate on a red cluster.");
 
                         return (-1);
                     }
@@ -420,10 +405,10 @@ public class PasswordSetup {
 
             if (!acceptRedCluster && timedOut) {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
-                System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
+                System.out.println("   * Try running set_passwords.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
                 System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
-                System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
-                System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
+                System.out.println("   * If this is not working, try running set_passwords.sh with --diagnose and see diagnose trace log file)"); 
+                System.out.println("   * Add --accept-red-cluster to allow set_passwords to operate on a red cluster.");
                 return (-1);
             }
 
@@ -579,22 +564,6 @@ public class PasswordSetup {
 		if (nodeCount > 0) {
 
 			JsonNode[] nodeVersions = Iterators.toArray(resNode.at("/nodes").iterator(), JsonNode.class);
-
-			Version maxVersion = Version.fromString(Arrays.stream(nodeVersions).max((n1, n2) -> Version.fromString(n1.asText()).compareTo(Version.fromString(n2.asText()))).get().asText());
-			Version minVersion = Version.fromString(Arrays.stream(nodeVersions).min((n1, n2) -> Version.fromString(n1.asText()).compareTo(Version.fromString(n2.asText()))).get().asText());
-
-        if(!maxVersion.equals(minVersion)) {
-            System.out.println("ERR: Your cluster consists of different node versions. It is not allowed to run securityadmin against a mixed cluster.");
-            System.out.println("         Minimum node version is "+minVersion.toString());
-            System.out.println("         Maximum node version is "+maxVersion.toString());
-            if(!ALLOW_MIXED) {
-                return -1;
-            }
-           
-        } else {
-            System.out.println("OpenSearch Version: "+minVersion.toString());
-        }
-
 
 			for (JsonNode n : nodeVersions[0].get("plugins")) {
 				if ("org.opensearch.security.OpenSearchSecurityPlugin".equals(n.get("name").asText())) {
