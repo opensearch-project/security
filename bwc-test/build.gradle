@@ -1,0 +1,274 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+/*
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
+import java.util.concurrent.Callable
+
+apply plugin: 'opensearch.build'
+apply plugin: 'opensearch.rest-test'
+apply plugin: 'java'
+
+apply plugin: 'opensearch.testclusters'
+
+compileTestJava.enabled = false
+
+ext {
+    projectSubstitutions = [:]
+    licenseFile = rootProject.file('LICENSE.TXT')
+    noticeFile = rootProject.file('NOTICE')
+}
+
+buildscript {
+    ext {
+        opensearch_version = System.getProperty("opensearch.version", "1.3.0-SNAPSHOT")
+        opensearch_group = "org.opensearch"
+    }
+    repositories {
+        mavenLocal()
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "${opensearch_group}.gradle:build-tools:${opensearch_version}"
+    }
+}
+
+repositories {
+    mavenLocal()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+}
+
+dependencies {
+    testImplementation "org.opensearch.test:framework:${opensearch_version}"
+}
+
+String bwcVersion = "1.0.1.0";
+String baseName = "securityBwcCluster"
+String bwcFilePath = "src/test/resources/"
+String projectVersion = "1.3.0.0"
+
+2.times {i ->
+    testClusters {
+        "${baseName}$i" {
+            testDistribution = "ARCHIVE"
+        versions = ["1.0.0","1.3.0-SNAPSHOT"]
+            numberOfNodes = 3
+            plugin(provider(new Callable<RegularFile>() {
+                @Override
+                RegularFile call() throws Exception {
+                    return new RegularFile() {
+                        @Override
+                        File getAsFile() {
+                            return fileTree(bwcFilePath  + bwcVersion).getSingleFile()
+                        }
+                    }
+                }
+            }))
+            nodes.each { node ->
+                def plugins = node.plugins
+                def firstPlugin = plugins.get(0)
+                plugins.remove(0)
+                plugins.add(firstPlugin)
+
+                node.extraConfigFile("kirk.pem", file("src/test/resources/security/kirk.pem"))
+                node.extraConfigFile("kirk-key.pem", file("src/test/resources/security/kirk-key.pem"))
+                node.extraConfigFile("esnode.pem", file("src/test/resources/security/esnode.pem"))
+                node.extraConfigFile("esnode-key.pem", file("src/test/resources/security/esnode-key.pem"))
+                node.extraConfigFile("root-ca.pem", file("src/test/resources/security/root-ca.pem"))
+                node.setting("plugins.security.disabled", "true")
+                node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
+                node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
+                node.setting("plugins.security.ssl.transport.pemtrustedcas_filepath", "root-ca.pem")
+                node.setting("plugins.security.ssl.transport.enforce_hostname_verification", "false")
+                node.setting("plugins.security.ssl.http.enabled", "true")
+                node.setting("plugins.security.ssl.http.pemcert_filepath", "esnode.pem")
+                node.setting("plugins.security.ssl.http.pemkey_filepath", "esnode-key.pem")
+                node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
+                node.setting("plugins.security.allow_unsafe_democertificates", "true")
+                node.setting("plugins.security.allow_default_init_securityindex", "true")
+                node.setting("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,L=test,C=de")
+                node.setting("plugins.security.audit.type", "internal_elasticsearch")
+                node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
+                node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
+                node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")
+                node.setting("plugins.security.system_indices.enabled", "true")
+            }
+
+            setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
+            setting 'http.content_type.required', 'true'
+        }
+    }
+}
+
+List<Provider<RegularFile>> plugins = [
+        provider(new Callable<RegularFile>(){
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree(bwcFilePath  + projectVersion).getSingleFile()
+                    }
+                }
+            }
+        })
+]
+
+// Creates a test cluster with 3 nodes of the old version.
+2.times {i ->
+    task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
+        exclude '**/*Test*'
+        useCluster testClusters."${baseName}$i"
+        exclude '**/*Test*'
+        if (System.getProperty("mixedCluster") != null) {
+            filter {
+                includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAMixedCluster")
+            }
+        }
+        if (System.getProperty("rollingUpgradeCluster") != null) {
+            filter {
+                includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInARollingUpgradedCluster")
+            }
+        }
+        if (System.getProperty("fullRestartCluster") != null) {
+            filter {
+                includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAnUpgradedCluster")
+            }
+        }
+        systemProperty 'tests.rest.bwcsuite', 'old_cluster'
+        systemProperty 'tests.rest.bwcsuite_round', 'old'
+        systemProperty 'tests.plugin_bwc_version', bwcVersion
+        nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
+        nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
+    }
+}
+
+// Upgrades one node of the old cluster to new OpenSearch version with upgraded plugin version
+// This results in a mixed cluster with 2 nodes on the old version and 1 upgraded node.
+// This is also used as a one third upgraded cluster for a rolling upgrade.
+task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
+    exclude '**/*Test*'
+    dependsOn "${baseName}#oldVersionClusterTask0"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    if (System.getProperty("mixedCluster") != null) {
+        filter {
+            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAMixedCluster")
+        }
+    }
+    if (System.getProperty("rollingUpgradeCluster") != null) {
+        filter {
+            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInARollingUpgradedCluster")
+        }
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'first'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrades the second node to new OpenSearch version with upgraded plugin version after the first node is upgraded.
+// This results in a mixed cluster with 1 node on the old version and 2 upgraded nodes.
+// This is used for rolling upgrade.
+task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
+    exclude '**/*Test*'
+    dependsOn "${baseName}#mixedClusterTask"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    if (System.getProperty("rollingUpgradeCluster") != null) {
+        filter {
+            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInARollingUpgradedCluster")
+        }
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'second'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrades the third node to new OpenSearch version with upgraded plugin version after the second node is upgraded.
+// This results in a fully upgraded cluster.
+// This is used for rolling upgrade.
+task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
+    exclude '**/*Test*'
+    dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    if (System.getProperty("rollingUpgradeCluster") != null) {
+        filter {
+            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInARollingUpgradedCluster")
+        }
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'third'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrades all the nodes of the old cluster to new OpenSearch version with upgraded plugin version
+// at the same time resulting in a fully upgraded cluster.
+tasks.register("${baseName}#fullRestartClusterTask", StandaloneRestIntegTestTask) {
+    exclude '**/*Test*'
+    dependsOn "${baseName}#oldVersionClusterTask1"
+    useCluster testClusters."${baseName}1"
+    doFirst {
+        testClusters."${baseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
+    }
+    if (System.getProperty("fullRestartCluster") != null) {
+        filter {
+            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAnUpgradedCluster")
+        }
+    }
+    systemProperty 'tests.rest.bwcsuite', 'upgraded_cluster'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}1".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}1".getName()}")
+}
+
+// A bwc test suite which runs all the bwc tasks combined.
+task bwcTestSuite(type: StandaloneRestIntegTestTask) {
+    exclude '**/*Test*'
+    dependsOn tasks.named("${baseName}#mixedClusterTask")
+    dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
+    dependsOn tasks.named("${baseName}#fullRestartClusterTask")
+}

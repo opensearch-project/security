@@ -272,8 +272,6 @@ project.getConfigurations().all { Configuration configuration ->
     }
 };
 
-
-
 task bundle(dependsOn: jar, type: Zip) {
     from configurations.runtimeClasspath - project.configurations.getByName('resolveableCompileOnly')
     from project.jar
