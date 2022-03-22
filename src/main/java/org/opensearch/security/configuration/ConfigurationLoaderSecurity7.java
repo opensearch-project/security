@@ -126,17 +126,17 @@ public class ConfigurationLoaderSecurity7 {
             }
 
             @Override
-            public void noData(String id, String type) {
+            public void noData(String id) {
                 CType cType = CType.fromString(id);
 
                 //when index was created with ES 6 there are no separate tenants. So we load just empty ones.
                 //when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
-                if(cs.state().metadata().index(securityIndex).getCreationVersion().before(LegacyESVersion.V_7_0_0) || "security".equals(type)) {
+                if(cs.state().metadata().index(securityIndex).getCreationVersion().before(LegacyESVersion.V_7_0_0)) {
                     //created with SG 6
                     //skip tenants
 
                     if (isDebugEnabled) {
-                        log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6 and type is legacy [{}])", type);
+                        log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6)");
                     }
 
                     if(cType == CType.TENANTS) {
@@ -175,7 +175,7 @@ public class ConfigurationLoaderSecurity7 {
                     }
                 }
 
-                log.warn("No data for {} while retrieving configuration for {}  (index={} and type={})", id, Arrays.toString(events), securityIndex, type);
+                log.warn("No data for {} while retrieving configuration for {}  (index={})", id, Arrays.toString(events), securityIndex);
             }
 
             @Override
@@ -231,7 +231,7 @@ public class ConfigurationLoaderSecurity7 {
                             }
                         } else {
                             //does not exist or empty source
-                            callback.noData(singleGetResponse.getId(), singleGetResponse.getType());
+                            callback.noData(singleGetResponse.getId());
                         }
                     } else {
                         //failure

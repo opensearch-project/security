@@ -65,9 +65,9 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
-        rh.executePutRequest("emp/doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}", new Header[0]);
-        rh.executePutRequest("emp/doc/1?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"male\", \"Salary\" : 200}", new Header[0]);
-        rh.executePutRequest("emp/doc/2?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"female\", \"Salary\" : 300}", new Header[0]);
+        rh.executePutRequest("emp/_doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}", new Header[0]);
+        rh.executePutRequest("emp/_doc/1?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"male\", \"Salary\" : 200}", new Header[0]);
+        rh.executePutRequest("emp/_doc/2?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"female\", \"Salary\" : 300}", new Header[0]);
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
 
@@ -118,7 +118,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // make an event happen
         TestAuditlogImpl.clear();
-        rh.executePutRequest("emp/doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
+        rh.executePutRequest("emp/_doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
         assertTrue(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
 
         // disable compliance
@@ -127,7 +127,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // make an event happen
         TestAuditlogImpl.clear();
-        rh.executePutRequest("emp/doc/1?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
+        rh.executePutRequest("emp/_doc/1?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
         assertFalse(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
 
         rh.sendAdminCertificate = sendAdminCertificate;
@@ -153,9 +153,9 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         final String keystore = rh.keystore;
         rh.sendAdminCertificate = true;
         rh.keystore = "auditlog/kirk-keystore.jks";
-        rh.executePutRequest("emp/doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}", new Header[0]);
-        rh.executePutRequest("emp/doc/1?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"male\", \"Salary\" : 200}", new Header[0]);
-        rh.executePutRequest("emp/doc/2?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"female\", \"Salary\" : 300}", new Header[0]);
+        rh.executePutRequest("emp/_doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}", new Header[0]);
+        rh.executePutRequest("emp/_doc/1?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"male\", \"Salary\" : 200}", new Header[0]);
+        rh.executePutRequest("emp/_doc/2?refresh", "{\"Designation\" : \"IT\", \"Gender\" : \"female\", \"Salary\" : 300}", new Header[0]);
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
 
@@ -305,7 +305,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
 
         try (Client tc = getClient()) {
-            tc.prepareIndex("humanresources", "employees", "100")
+            tc.prepareIndex("humanresources")
             .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .setSource("Age", 456)
             .execute()
@@ -316,7 +316,12 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         String body = "{\"doc\": {\"Age\":123}}";
 
-        HttpResponse response = rh.executePostRequest("humanresources/employees/100/_update?pretty", body, encodeBasicHeader("admin", "admin"));
+        HttpResponse response =  rh.executePostRequest("humanresources/_doc/100?pretty", body, encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+
+        body = "{\"doc\": {\"Age\":456}}";
+
+        response = rh.executePostRequest("humanresources/_update/100?pretty", body, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(response.getBody());
         Thread.sleep(1500);
@@ -354,11 +359,11 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
 
         for(int i=0; i<1; i++) {
-            HttpResponse response = rh.executePostRequest("humanresources/employees/"+i+"", "{\"customer\": {\"Age\":"+i+"}}", encodeBasicHeader("admin", "admin"));
+            HttpResponse response = rh.executePostRequest("humanresources/_doc/"+i+"", "{\"customer\": {\"Age\":"+i+"}}", encodeBasicHeader("admin", "admin"));
             Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-            response = rh.executePostRequest("humanresources/employees/"+i+"", "{\"customer\": {\"Age\":"+(i+2)+"}}", encodeBasicHeader("admin", "admin"));
+            response = rh.executePostRequest("humanresources/_doc/"+i+"", "{\"customer\": {\"Age\":"+(i+2)+"}}", encodeBasicHeader("admin", "admin"));
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-            response = rh.executePostRequest("humanresources/employees/"+i+"/_update?pretty", "{\"doc\": {\"doesel\":"+(i+3)+"}}", encodeBasicHeader("admin", "admin"));
+            response = rh.executePostRequest("humanresources/_update/"+i+"?pretty", "{\"doc\": {\"doesel\":"+(i+3)+"}}", encodeBasicHeader("admin", "admin"));
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         }
 
@@ -390,7 +395,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
 
         try (Client tc = getClient()) {
-            tc.prepareIndex("humanresources", "employees", "100")
+            tc.prepareIndex("humanresources")
             .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .setSource("Age", 456)
             .execute()
@@ -401,20 +406,20 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         String body = "{\"doc\": {\"Age\":123}}";
 
-        HttpResponse response = rh.executePostRequest("humanresources/employees/100/_update?pretty", body, encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        HttpResponse response = rh.executePostRequest("humanresources/_doc/100?pretty", body, encodeBasicHeader("admin", "admin"));
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         System.out.println(response.getBody());
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().split(".*audit_compliance_diff_content.*replace.*").length == 2);
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().split(".*audit_compliance_diff_content.*replace.*").length == 1);
 
-        body = "{\"Age\":555}";
+        body = "{\"doc\": {\"Age\":555}}";
         TestAuditlogImpl.clear();
-        response = rh.executePostRequest("humanresources/employees/100?pretty", body, encodeBasicHeader("admin", "admin"));
+        response = rh.executePostRequest("humanresources/_update/100?pretty", body, encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(response.getBody());
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().split(".*audit_compliance_diff_content.*replace.*").length == 2);
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().split(".*audit_compliance_diff_content.*replace.*").length == 1);
     }
 }

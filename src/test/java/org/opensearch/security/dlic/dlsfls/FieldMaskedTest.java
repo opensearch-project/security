@@ -30,14 +30,14 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest("deals").type("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust1\"}, \"ip_source\": \"100.100.1.1\",\"ip_dest\": \"123.123.1.1\",\"amount\": 10}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").type("deals").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust2\"}, \"ip_source\": \"100.100.2.2\",\"ip_dest\": \"123.123.2.2\",\"amount\": 20}", XContentType.JSON)).actionGet();
 
 
         for (int i=0; i<30;i++) {
-            tc.index(new IndexRequest("deals").type("deals").id("a"+i).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+            tc.index(new IndexRequest("deals").id("a"+i).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source("{\"customer\": {\"name\":\"cust1\"}, \"ip_source\": \"200.100.1.1\",\"ip_dest\": \"123.123.1.1\",\"amount\": 10}", XContentType.JSON)).actionGet();
         }
 
@@ -187,7 +187,7 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/deals/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
         Assert.assertTrue(res.getBody().contains("cust1"));
         Assert.assertFalse(res.getBody().contains("cust2"));
@@ -196,7 +196,7 @@ public class FieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains("87873bdb698e5f0f60e0b02b76dad1ec11b2787c628edbc95b7ff0e82274b140"));
 
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/deals/0?pretty", encodeBasicHeader("user_masked", "password"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("user_masked", "password"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
         Assert.assertTrue(res.getBody().contains("cust1"));
         Assert.assertFalse(res.getBody().contains("cust2"));

@@ -232,8 +232,8 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = true;
 		rh.executePutRequest("sf", null, new Header[0]);
-		rh.executePutRequest("sf/ships/0", "{\"number\" : \"NCC-1701-D\"}", new Header[0]);
-		rh.executePutRequest("sf/public/0", "{\"some\" : \"value\"}", new Header[0]);
+		rh.executePutRequest("sf/_doc/0", "{\"number\" : \"NCC-1701-D\"}", new Header[0]);
+		rh.executePutRequest("sf/_doc/0", "{\"some\" : \"value\"}", new Header[0]);
 		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 

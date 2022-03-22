@@ -62,7 +62,6 @@ public class IgnoreAuditUsersTest {
     public static void initSearchRequest() {
         sr = new SearchRequest();
         sr.indices("index1", "logstash*");
-        sr.types("mytype", "logs");
     }
 
 
@@ -117,7 +116,6 @@ public class IgnoreAuditUsersTest {
         //sr.putInContext(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL, "CN=kirk,OU=client,O=client,L=test,C=DE");
         //sr.putHeader("myheader", "hval");
         sr.indices("index1","logstash*");
-        sr.types("mytype","logs");
         //sr.source("{\"query\": false}");
 
         Settings settings = Settings.builder()

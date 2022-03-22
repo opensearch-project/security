@@ -285,10 +285,6 @@ public abstract class AbstractSecurityUnitTest {
     }
 
 
-    protected String getType() {
-        return "_doc";
-    }
-
     /**
      * Check if transport certs are is mentioned in the custom settings
      * @param customSettings custom settings from the test class

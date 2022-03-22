@@ -31,20 +31,20 @@ public class DlsScrollTest extends AbstractDlsFlsTest{
     @Override
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest("deals").type("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"amount\": 3}", XContentType.JSON)).actionGet(); //not in
 
-        tc.index(new IndexRequest("deals").type("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"amount\": 10}", XContentType.JSON)).actionGet(); //not in
 
-        tc.index(new IndexRequest("deals").type("deals").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"amount\": 1500}", XContentType.JSON)).actionGet();
 
-        tc.index(new IndexRequest("deals").type("deals").id("4").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("4").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"amount\": 21500}", XContentType.JSON)).actionGet(); //not in
 
         for(int i=0; i<100; i++) {
-            tc.index(new IndexRequest("deals").type("deals").id("gen"+i).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+            tc.index(new IndexRequest("deals").id("gen"+i).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source("{\"amount\": 1500}", XContentType.JSON)).actionGet();
         }
     }
