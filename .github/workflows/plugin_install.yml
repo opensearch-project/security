@@ -1,0 +1,70 @@
+name: Plugin Install
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  OPENSEARCH_VERSION: "1.4.0"
+
+jobs:
+  plugin_install:
+    name: Plugin Install
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        jdk: [8, 11, 14]
+
+    steps:
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v2
+
+    - name: Build
+      run: ./gradlew clean assemble -Dbuild.snapshot=false
+
+    - name: Download OpenSearch Core
+      run: |
+        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{env.OPENSEARCH_VERSION}}/latest/linux/x64/builds/opensearch/dist/opensearch-min-${{env.OPENSEARCH_VERSION}}-linux-x64.tar.gz
+        tar -xzf opensearch-*.tar.gz
+        rm -f opensearch-*.tar.gz
+
+    - name: Move and rename security plugin for installation
+      run: mv build/distributions/opensearch-security-*.0.zip opensearch-security.zip
+
+    - name: Run OpenSearch with plugin
+      run: |
+        cat > os-ep.sh <<EOF
+        yes | opensearch-plugin install file:///docker-host/security-plugin.zip
+        chmod +x plugins/opensearch-security/tools/install_demo_configuration.sh
+        yes | plugins/opensearch-security/tools/install_demo_configuration.sh
+        chown 1001:1001 -R /opensearch
+        su -c "/opensearch/bin/opensearch" -s /bin/bash opensearch
+        EOF
+        docker build -t opensearch-test:latest -f- . <<EOF
+        FROM ubuntu:latest
+        COPY --chown=1001:1001 os-ep.sh /docker-host/
+        COPY --chown=1001:1001 opensearch-security.zip /docker-host/security-plugin.zip
+        COPY --chown=1001:1001 opensearch* /opensearch/
+        RUN chmod +x /docker-host/os-ep.sh
+        RUN useradd -u 1001 -s /sbin/nologin opensearch
+        ENV PATH="/opensearch/bin:${PATH}"
+        WORKDIR /opensearch/
+        ENTRYPOINT /docker-host/os-ep.sh
+        EOF
+        docker run --name ops -d -p 9200:9200 -p 9600:9600 -i opensearch-test:latest
+
+    - name: Sleep while OpenSearch finishes starting up
+      uses: whatnick/wait-action@v0.1.2
+      with:
+        time: '30s'
+
+    - name: Check OpenSearch Running
+      run: curl -XGET https://localhost:9200 -u 'admin:admin' -k -v
+
+    - name: Get Docker Logs
+      if: always()
+      run: docker logs ops
