@@ -193,7 +193,6 @@ public class DisabledCategoriesTest {
 	}
 
 	protected void logAll(AuditLog auditLog) {
-		//10 requests
 	    logRestFailedLogin(auditLog);
 		logRestBadHeaders(auditLog);
 		logRestSSLException(auditLog);
