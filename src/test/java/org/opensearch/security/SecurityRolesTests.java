@@ -117,4 +117,3 @@ public class SecurityRolesTests extends SingleClusterTest {
 		Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 	}
 }
-

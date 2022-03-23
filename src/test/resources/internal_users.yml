@@ -350,4 +350,3 @@ hidden_test:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   opendistro_security_roles:
   - hidden_test
-

@@ -47,4 +47,3 @@ config:
     multi_rolespan_enabled: false
     hosts_resolver_mode: "ip-only"
     transport_userrname_attribute: null
-
