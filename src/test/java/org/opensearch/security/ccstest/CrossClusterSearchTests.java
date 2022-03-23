@@ -945,7 +945,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
         System.out.println(ccs.getBody());
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
-        assertThat(ccs.getBody(), containsString("no OID or security.nodes_dn incorrect configured"));
+        assertThat(ccs.getBody(), containsString("Transport client authentication no longer supported"));
     }
 
     @Test

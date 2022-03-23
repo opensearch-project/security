@@ -45,10 +45,8 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.search.internal.ShardSearchRequest;
-import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportChannel;
@@ -57,13 +55,11 @@ import org.opensearch.transport.TransportRequestHandler;
 
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
-import org.opensearch.security.ssl.transport.SecuritySSLRequestHandler;
 import org.opensearch.security.ssl.transport.SSLConfig;
 
 import com.google.common.base.Strings;
@@ -72,16 +68,13 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnab
 
 public class SecurityRequestHandler<T extends TransportRequest> extends SecuritySSLRequestHandler<T> {
 
-    private final BackendRegistry backendRegistry;
     private final AuditLog auditLog;
     private final InterClusterRequestEvaluator requestEvalProvider;
     private final ClusterService cs;
-    private final SSLConfig SSLConfig;
 
         SecurityRequestHandler(String action,
             final TransportRequestHandler<T> actualHandler,
             final ThreadPool threadPool,
-            final BackendRegistry backendRegistry,
             final AuditLog auditLog,
             final PrincipalExtractor principalExtractor,
             final InterClusterRequestEvaluator requestEvalProvider,
@@ -89,11 +82,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             final SSLConfig SSLConfig,
             final SslExceptionHandler sslExceptionHandler) {
         super(action, actualHandler, threadPool, principalExtractor, SSLConfig, sslExceptionHandler);
-        this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.requestEvalProvider = requestEvalProvider;
         this.cs = cs;
-        this.SSLConfig = SSLConfig;
     }
 
     @Override
@@ -274,56 +265,12 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     //this is a netty request from a non-server node (maybe also be internal: or a shard request)
                     //and therefore issued by a transport client
 
-                    if(SSLRequestHelper.containsBadHeader(getThreadContext(), ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
-                        final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
-                        auditLog.logBadHeaders(request, task.getAction(), task);
-                        log.error(exception.toString());
-                        transportChannel.sendResponse(exception);
-                        return;
-                    }
+                    //since OS 2.0 we do not support this any longer because transport client no longer available
 
-                    //TODO OpenSearch Security exception handling, introduce authexception
-                    User user;
-                    //try {
-                    if((user = backendRegistry.authenticate(request, principal, task, task.getAction())) == null) {
-                        org.apache.logging.log4j.ThreadContext.remove("user");
-
-                        if(task.getAction().equals(WhoAmIAction.NAME)) {
-                            super.messageReceivedDecorate(request, handler, transportChannel, task);
-                            return;
-                        }
-
-                        if(task.getAction().equals("cluster:monitor/nodes/liveness")
-                                || task.getAction().equals("internal:transport/handshake")) {
-                            super.messageReceivedDecorate(request, handler, transportChannel, task);
-                            return;
-                                }
-
-
-                        log.error("Cannot authenticate {} for {}", getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER), task.getAction());
-                        transportChannel.sendResponse(new OpenSearchSecurityException("Cannot authenticate "+getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)));
-                        return;
-                    } else {
-                        // make it possible to filter logs by username
-                        org.apache.logging.log4j.ThreadContext.put("user", user.getName());
-                    }
-                    //} catch (Exception e) {
-                    //    log.error("Error authentication transport user "+e, e);
-                    //auditLog.logFailedLogin(principal, false, null, request);
-                    //transportChannel.sendResponse(ExceptionsHelper.convertToOpenSearchException(e));
-                    //return;
-                    //}
-
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                    TransportAddress originalRemoteAddress = request.remoteAddress();
-
-                    if(originalRemoteAddress != null && (originalRemoteAddress instanceof TransportAddress)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, originalRemoteAddress);
-                    } else {
-                        log.error("Request has no proper remote address {}", originalRemoteAddress);
-                        transportChannel.sendResponse(new OpenSearchException("Request has no proper remote address"));
-                        return;
-                    }
+                    final OpenSearchException exception = ExceptionUtils.createTransportClientNoLongerSupportedException();
+                    log.error(exception.toString());
+                    transportChannel.sendResponse(exception);
+                    return;
                 }
 
                 if (isActionTraceEnabled()) {

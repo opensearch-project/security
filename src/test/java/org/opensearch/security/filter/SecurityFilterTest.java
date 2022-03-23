@@ -79,7 +79,6 @@ public class SecurityFilterTest {
     @Test
     public void testImmutableIndicesWildcardMatcher() {
         final SecurityFilter filter = new SecurityFilter(
-                mock(Client.class),
                 settings,
                 mock(PrivilegesEvaluator.class),
                 mock(AdminDNs.class),
@@ -88,9 +87,7 @@ public class SecurityFilterTest {
                 mock(ThreadPool.class),
                 mock(ClusterService.class),
                 mock(CompatConfig.class),
-                mock(IndexResolverReplacer.class),
-                mock(BackendRegistry.class),
-                mock(NamedXContentRegistry.class)
+                mock(IndexResolverReplacer.class)
         );
         assertEquals(expected, filter.getImmutableIndicesMatcher());
     }
@@ -104,7 +101,6 @@ public class SecurityFilterTest {
         final ActionListener<ActionResponse> listener = mock(ActionListener.class);
 
         final SecurityFilter filter = new SecurityFilter(
-            mock(Client.class),
             settings,
             mock(PrivilegesEvaluator.class),
             mock(AdminDNs.class),
@@ -113,9 +109,7 @@ public class SecurityFilterTest {
             new ThreadPool(Settings.builder().put("node.name",  "mock").build()),
             mock(ClusterService.class),
             mock(CompatConfig.class),
-            mock(IndexResolverReplacer.class),
-            mock(BackendRegistry.class),
-            mock(NamedXContentRegistry.class)
+            mock(IndexResolverReplacer.class)
         );
 
         // Act

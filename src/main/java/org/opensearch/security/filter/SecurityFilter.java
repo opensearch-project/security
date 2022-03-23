@@ -40,7 +40,6 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import org.opensearch.security.auth.BackendRegistry;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
@@ -72,13 +71,11 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.logging.LoggerMessageFormat;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
 import org.opensearch.rest.RestStatus;
@@ -116,15 +113,10 @@ public class SecurityFilter implements ActionFilter {
     private final IndexResolverReplacer indexResolverReplacer;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
-    private final Client client;
-    private final BackendRegistry backendRegistry;
-    private final NamedXContentRegistry namedXContentRegistry;
 
-    public SecurityFilter(final Client client, final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
+    public SecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
                           DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry,
-                          NamedXContentRegistry namedXContentRegistry) {
-        this.client = client;
+                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -135,8 +127,6 @@ public class SecurityFilter implements ActionFilter {
         this.indexResolverReplacer = indexResolverReplacer;
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         this.rolesInjector = new RolesInjector(auditLog);
-        this.backendRegistry = backendRegistry;
-        this.namedXContentRegistry = namedXContentRegistry;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -176,12 +166,7 @@ public class SecurityFilter implements ActionFilter {
                 attachSourceFieldContext(request);
             }
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
-            boolean enforcePrivilegesEvaluation = false;
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if(user == null && (user = backendRegistry.authenticate(request, null, task, action)) != null) {
-                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                enforcePrivilegesEvaluation = true;
-            }
 
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
@@ -264,7 +249,6 @@ public class SecurityFilter implements ActionFilter {
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
                     && (injectedRoles == null)
-                    && !enforcePrivilegesEvaluation
                     ) {
 
                 chain.proceed(task, action, request, listener);
