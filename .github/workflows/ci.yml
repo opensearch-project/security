@@ -68,3 +68,34 @@ jobs:
         cp -r build/ ./bwc-test/
         cd bwc-test/
         ./gradlew bwcTestSuite -Dtests.security.manager=false
+
+  build-artifact-names:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - id: security-plugin-version
+      uses: madhead/read-java-properties@66cc8c88f5c6f6069ebfb42586024dd6ffe2e451
+      with:
+         file: gradle.properties
+         property: security-plugin.version
+
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
+    - run: ./gradlew clean assemble
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-SNAPSHOT.jar
+
+    - run: ./gradlew clean assemble -Dbuild.snapshot=false
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}.jar
+
+    - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=alpha1
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha1.jar
+
+    - run: ./gradlew clean assemble -Dbuild.version_qualifier=alpha1
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha1-SNAPSHOT.jar
+
+    - name: List files in the build directory if there was an error
+      run: ls -al ./build/
+      if: failure()
