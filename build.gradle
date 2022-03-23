@@ -131,7 +131,7 @@ ext {
 }
 
 group = 'org.opensearch'
-version = opensearch_version.tokenize('-')[0] + '.0'
+version = securityPluginVersion
 if (buildVersionQualifier) {
     version += "-${buildVersionQualifier}"
 }
