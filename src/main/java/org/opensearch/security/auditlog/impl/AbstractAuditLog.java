@@ -134,23 +134,6 @@ public abstract class AbstractAuditLog implements AuditLog {
     }
 
     @Override
-    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, Task task) {
-        final String action = null;
-
-        if(!checkTransportFilter(AuditCategory.FAILED_LOGIN, action, effectiveUser, request)) {
-            return;
-        }
-
-        final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.FAILED_LOGIN, getOrigin(), action, null, effectiveUser, securityadmin, initiatingUser, remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), securityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
-
-        for(AuditMessage msg: msgs) {
-            save(msg);
-        }
-    }
-
-
-    @Override
     public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request) {
 
         if(!checkRestFilter(AuditCategory.FAILED_LOGIN, effectiveUser, request)) {
@@ -166,21 +149,6 @@ public abstract class AbstractAuditLog implements AuditLog {
         msg.addIsAdminDn(securityadmin);
 
         save(msg);
-    }
-
-    @Override
-    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, String action, Task task) {
-
-        if(!checkTransportFilter(AuditCategory.AUTHENTICATED, action, effectiveUser, request)) {
-            return;
-        }
-
-        final TransportAddress remoteAddress = getRemoteAddress();
-        final List<AuditMessage> msgs = RequestResolver.resolve(AuditCategory.AUTHENTICATED, getOrigin(), action, null, effectiveUser, securityadmin, initiatingUser,remoteAddress, request, getThreadContextHeaders(), task, resolver, clusterService, settings, auditConfigFilter.shouldLogRequestBody(), auditConfigFilter.shouldResolveIndices(), auditConfigFilter.shouldResolveBulkRequests(), securityIndex, auditConfigFilter.shouldExcludeSensitiveHeaders(), null);
-
-        for(AuditMessage msg: msgs) {
-            save(msg);
-        }
     }
 
     @Override

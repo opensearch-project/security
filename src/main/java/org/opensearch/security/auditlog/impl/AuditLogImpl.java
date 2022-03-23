@@ -129,23 +129,9 @@ public final class AuditLogImpl extends AbstractAuditLog {
 	}
 
 	@Override
-	public void logFailedLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, TransportRequest request, Task task) {
-		if (enabled) {
-			super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request, task);
-		}
-	}
-
-	@Override
 	public void logFailedLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, RestRequest request) {
 		if (enabled) {
 			super.logFailedLogin(effectiveUser, securityAdmin, initiatingUser, request);
-		}
-	}
-
-	@Override
-	public void logSucceededLogin(String effectiveUser, boolean securityAdmin, String initiatingUser, TransportRequest request, String action, Task task) {
-		if (enabled) {
-			super.logSucceededLogin(effectiveUser, securityAdmin, initiatingUser, request, action, task);
 		}
 	}
 
