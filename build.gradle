@@ -47,7 +47,6 @@ import org.gradle.crypto.checksum.Checksum
 
 import java.text.SimpleDateFormat
 
-
 repositories {
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
@@ -56,7 +55,9 @@ repositories {
 }
 
 ext {
-    opensearch_version = System.getProperty("opensearch.version", "1.4.0-SNAPSHOT")
+    default_opensearch_version = property("opensearch-core.version") + "-SNAPSHOT"
+    opensearch_version = System.getProperty("opensearch.version", default_opensearch_version)
+    buildVersionQualifier = System.getProperty("build.version_qualifier")
 }
 
 configurations.all {
@@ -125,12 +126,19 @@ dependencies {
 }
 
 ext {
-    securityPluginVersion = '2.0.0.0'
+    securityPluginVersion = property('security-plugin.version')
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
 group = 'org.opensearch'
-version = "${securityPluginVersion}" + (isSnapshot ? "-SNAPSHOT" : "")
+version = securityPluginVersion
+if (buildVersionQualifier) {
+    version += "-${buildVersionQualifier}"
+}
+if (isSnapshot) {
+    version += "-SNAPSHOT"
+}
+
 description = 'OpenSearch Security'
 
 

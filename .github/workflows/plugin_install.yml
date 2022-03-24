@@ -2,9 +2,6 @@ name: Plugin Install
 
 on: [push, pull_request, workflow_dispatch]
 
-env:
-  OPENSEARCH_VERSION: "1.4.0"
-
 jobs:
   plugin_install:
     name: Plugin Install
@@ -15,25 +12,30 @@ jobs:
         jdk: [11, 14]
 
     steps:
+    - uses: actions/checkout@v2
+
+    - id: opensearch-version
+      uses: madhead/read-java-properties@66cc8c88f5c6f6069ebfb42586024dd6ffe2e451
+      with:
+         file: gradle.properties
+         property: opensearch-core.version
+
     - name: Set up JDK
       uses: actions/setup-java@v1
       with:
         java-version: ${{ matrix.jdk }}
-
-    - name: Checkout security
-      uses: actions/checkout@v2
 
     - name: Build
       run: ./gradlew clean assemble -Dbuild.snapshot=false
 
     - name: Download OpenSearch Core
       run: |
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{env.OPENSEARCH_VERSION}}/latest/linux/x64/builds/opensearch/dist/opensearch-min-${{env.OPENSEARCH_VERSION}}-linux-x64.tar.gz
+        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-version.outputs.value }}/latest/linux/x64/builds/opensearch/dist/opensearch-min-${{ steps.opensearch-version.outputs.value }}-linux-x64.tar.gz
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
 
     - name: Move and rename security plugin for installation
-      run: mv build/distributions/opensearch-security-*.0.zip opensearch-security.zip
+      run: mv build/distributions/opensearch-security-*.zip opensearch-security.zip
 
     - name: Run OpenSearch with plugin
       run: |
