@@ -33,7 +33,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.client.Request;
@@ -71,7 +70,6 @@ import java.util.Scanner;
 
 public class PasswordSetup {
 
-    private static final boolean ALLOW_MIXED = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_ALLOW_MIXED_CLUSTER"));
     private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
     private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
     private static final String OPENDISTRO_SECURITY_KEYPASS = "OPENDISTRO_SECURITY_KEYPASS";
@@ -430,8 +428,9 @@ public class PasswordSetup {
                         String password = sc.nextLine();
                         setPasswordSingleUser(user, lowLevelClient, password);
                         isWeakPassword = false;
-                    } catch(ResponseException e) {
-                        System.out.println("A password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
+                    } 
+                    catch(ResponseException e) {
+                        System.out.println(Settings.builder().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE));
                         System.out.print("Would you like to try again? [y/N] ");
                         if (!sc.nextLine().equals("y")) {
                             return -1;
