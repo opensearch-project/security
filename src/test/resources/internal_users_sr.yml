@@ -21,4 +21,3 @@ sr_impuser:
     - ert_ber
   opendistro_security_roles:
     - xyz_impsr
-

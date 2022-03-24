@@ -140,5 +140,3 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
 
     }
 }
-
-

@@ -282,4 +282,3 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         assertTrue(response.getBody().contains("\"enabled\":false"));
     }
 }
-
