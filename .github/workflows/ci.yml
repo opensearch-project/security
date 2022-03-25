@@ -32,11 +32,6 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v2
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
-      with:
-        languages: java
-
     - name: Cache Gradle packages
       uses: actions/cache@v2
       with:
@@ -49,9 +44,6 @@ jobs:
 
     - name: Package
       run: ./gradlew clean build -Dbuild.snapshot=false -x test
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
 
     - name: Test
       run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test -i
@@ -75,6 +67,19 @@ jobs:
         cp -r build/ ./bwc-test/
         cd bwc-test/
         ./gradlew bwcTestSuite -Dtests.security.manager=false
+
+  code-ql:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 11
+    - uses: github/codeql-action/init@v1
+      with:
+        languages: java
+    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
+    - uses: github/codeql-action/analyze@v1
 
   build-artifact-names:
     runs-on: ubuntu-latest
