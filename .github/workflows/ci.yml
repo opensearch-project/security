@@ -62,8 +62,15 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./build/jacoco/test/jacocoTestReport.xml
 
-    - name: Run Security Backwards Compatibility Tests
-      run: |
+  backward-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 11
+    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
+    - run: |
         echo "Running backwards compatibility tests ..."
         cp -r build/ ./bwc-test/
         cd bwc-test/
@@ -73,6 +80,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+
+    - run: ./gradlew clean assemble
 
     - id: security-plugin-version
       uses: madhead/read-java-properties@66cc8c88f5c6f6069ebfb42586024dd6ffe2e451
