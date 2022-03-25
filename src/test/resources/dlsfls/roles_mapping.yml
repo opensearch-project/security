@@ -234,3 +234,6 @@ opendistro_security_date_math:
 opendistro_security_fls_exists:
   users:
     - fls_exists
+logs_index_with_dls:
+  users:
+    - dept_manager

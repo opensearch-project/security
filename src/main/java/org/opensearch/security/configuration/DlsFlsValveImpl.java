@@ -15,7 +15,14 @@
 
 package org.opensearch.security.configuration;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregatorFactories;
+import org.opensearch.search.aggregations.BucketOrder;
+import org.opensearch.search.aggregations.InternalAggregation;
+import org.opensearch.search.aggregations.InternalAggregations;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.security.support.SecurityUtils;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
@@ -47,9 +54,6 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.index.query.ParsedQuery;
 import org.opensearch.search.DocValueFormat;
-import org.opensearch.search.aggregations.BucketOrder;
-import org.opensearch.search.aggregations.InternalAggregation;
-import org.opensearch.search.aggregations.InternalAggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation.Bucket;
 import org.opensearch.search.aggregations.bucket.terms.InternalTerms;
 import org.opensearch.search.aggregations.bucket.terms.StringTerms;
@@ -129,6 +133,15 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if(request instanceof SearchRequest) {
                 final SearchSourceBuilder source = ((SearchRequest)request).source();
                 if(source != null) {
+                    AggregatorFactories.Builder aggregations = source.aggregations();
+                    if (aggregations != null) {
+                        for (AggregationBuilder factory : aggregations.getAggregatorFactories()) {
+                            if (factory instanceof TermsAggregationBuilder && ((TermsAggregationBuilder) factory).minDocCount() == 0) {
+                                listener.onFailure(new OpenSearchException("min_doc_count 0 is not supported when DLS is activated"));
+                                return false;
+                            }
+                        }
+                    }
 
                     if(source.profile()) {
                         listener.onFailure(new OpenSearchSecurityException("Profiling is not supported when DLS is activated"));
