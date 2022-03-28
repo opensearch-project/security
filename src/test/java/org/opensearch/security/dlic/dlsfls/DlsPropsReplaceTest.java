@@ -40,7 +40,10 @@ public class DlsPropsReplaceTest extends AbstractDlsFlsTest{
                 .source("{\"role\": \"prole2\", \"amount\": 4040}", XContentType.JSON)).actionGet();
         tc.index(new IndexRequest("prop2").type("_doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"role\": \"prole3\", \"amount\": 5050}", XContentType.JSON)).actionGet();
-
+        tc.index(new IndexRequest("prop-mapped").type("_doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+            .source("{\"securityRole\": \"opendistro_security_mapped\", \"amount\": 6060}", XContentType.JSON)).actionGet();
+        tc.index(new IndexRequest("prop-mapped").type("_doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+            .source("{\"securityRole\": \"not_assigned\", \"amount\": 7070}", XContentType.JSON)).actionGet();
     }
 
 
@@ -58,5 +61,10 @@ public class DlsPropsReplaceTest extends AbstractDlsFlsTest{
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/prop1,prop2/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
+
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/prop-mapped/_search?pretty&size=100", encodeBasicHeader("prop_replace", "password"))).getStatusCode());
+        System.out.println(res.getBody());
+        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"amount\" : 6060"));
     }
 }
