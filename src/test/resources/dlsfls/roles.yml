@@ -2473,3 +2473,12 @@ opendistro_security_combined:
     allowed_actions:
     - "OPENDISTRO_SECURITY_READ"
   tenant_permissions: []
+
+logs_index_with_dls:
+  index_permissions:
+    - index_patterns:
+        - "logs"
+      dls: "{\"bool\": {\"filter\": {\"term\" : {\"termX\" : \"A\" }}}}"
+      masked_fields: null
+      allowed_actions:
+        - "OPENDISTRO_SECURITY_READ"

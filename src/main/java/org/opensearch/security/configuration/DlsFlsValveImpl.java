@@ -28,6 +28,7 @@ import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.util.BytesRef;
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.action.ActionListener;
@@ -52,6 +53,7 @@ import org.opensearch.index.query.ParsedQuery;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.search.DocValueFormat;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.InternalAggregation;
 import org.opensearch.search.aggregations.InternalAggregations;
@@ -266,6 +268,15 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
                 final SearchSourceBuilder source = ((SearchRequest) request).source();
                 if (source != null) {
+                    AggregatorFactories.Builder aggregations = source.aggregations();
+                    if (aggregations != null) {
+                        for (AggregationBuilder factory : aggregations.getAggregatorFactories()) {
+                            if (factory instanceof TermsAggregationBuilder && ((TermsAggregationBuilder) factory).minDocCount() == 0) {
+                                listener.onFailure(new OpenSearchException("min_doc_count 0 is not supported when DLS is activated"));
+                                return false;
+                            }
+                        }
+                    }
 
                     if (source.profile()) {
                         listener.onFailure(new OpenSearchSecurityException("Profiling is not supported when DLS is activated"));
