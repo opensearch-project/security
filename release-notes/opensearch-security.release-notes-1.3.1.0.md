@@ -8,4 +8,5 @@ Compatible with OpenSearch 1.3.1
 
 ### Maintenance
 
+* Bump plugin version to 1.3.1.0 and OpenSearch dependency version to 1.3.1 ([#1697](https://github.com/opensearch-project/security/pull/1697))
 * Add 1.3.1 release notes ([#1713](https://github.com/opensearch-project/security/pull/1713))
