@@ -243,3 +243,7 @@ opendistro_security_mapped:
   users: []
   and_backend_roles: []
   description: "Security role mapping to backend role prolemapped"
+
+logs_index_with_dls:
+  users:
+    - dept_manager
