@@ -1091,6 +1091,7 @@ data_stream_1:
       allowed_actions:
         - "indices:admin/data_stream/get"
         - "indices:admin/data_stream/create"
+        - "indices:admin/data_stream/delete"
 
 data_stream_2:
   reserved: true
@@ -1104,7 +1105,6 @@ data_stream_2:
         - "indices:admin/data_stream/get"
         - "indices:admin/data_stream/create"
         - "indices:monitor/data_stream/stats"
-        - "indices:admin/data_stream/delete"
 
 data_stream_3:
   reserved: true

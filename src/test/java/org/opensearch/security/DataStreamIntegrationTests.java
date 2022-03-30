@@ -34,9 +34,7 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
         rh.executePutRequest("/_index_template/my-data-stream-template", getIndexTemplateBody(), encodeBasicHeader("ds1", "nagilum"));
 
         rh.executePutRequest("/_data_stream/my-data-stream11", getIndexTemplateBody(), encodeBasicHeader("ds3", "nagilum"));
-        rh.executePutRequest("/_data_stream/my-data-stream21", getIndexTemplateBody(), encodeBasicHeader("ds3", "nagilum"));
         rh.executePutRequest("/_data_stream/my-data-stream22", getIndexTemplateBody(), encodeBasicHeader("ds3", "nagilum"));
-        rh.executePutRequest("/_data_stream/my-data-stream23", getIndexTemplateBody(), encodeBasicHeader("ds3", "nagilum"));
         rh.executePutRequest("/_data_stream/my-data-stream33", getIndexTemplateBody(), encodeBasicHeader("ds3", "nagilum"));
     }
 
@@ -91,27 +89,6 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
 
         response = rh.executeGetRequest("/_data_stream/my-data-stream33", encodeBasicHeader("ds3", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream*", encodeBasicHeader("ds0", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream21,my-data-stream22", encodeBasicHeader("ds0", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream*", encodeBasicHeader("ds1", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream2*", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream21,my-data-stream22", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream*", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream*", encodeBasicHeader("ds3", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
     @Test
@@ -126,39 +103,18 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         response = rh.executeDeleteRequest("/_data_stream/my-data-stream11", encodeBasicHeader("ds1", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executeDeleteRequest("/_data_stream/my-data-stream11", encodeBasicHeader("ds2", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         response = rh.executeDeleteRequest("/_data_stream/my-data-stream22", encodeBasicHeader("ds2", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+
+        response = rh.executeDeleteRequest("/_data_stream/my-data-stream22", encodeBasicHeader("ds1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executeDeleteRequest("/_data_stream/my-data-stream33", encodeBasicHeader("ds3", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeDeleteRequest("/_data_stream/my-data-stream*", encodeBasicHeader("ds0", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeDeleteRequest("/_data_stream/my-data-stream21,my-data-stream22", encodeBasicHeader("ds0", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeDeleteRequest("/_data_stream/my-data-stream*", encodeBasicHeader("ds1", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeDeleteRequest("/_data_stream/my-data-stream21,my-data-stream22", encodeBasicHeader("ds1", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeDeleteRequest("/_data_stream/my-data-stream2*", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeDeleteRequest("/_data_stream/my-data-stream21,my-data-stream22", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeDeleteRequest("/_data_stream/my-data-stream*", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeDeleteRequest("/_data_stream/my-data-stream*", encodeBasicHeader("ds3", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
@@ -186,27 +142,6 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executeGetRequest("/_data_stream/my-data-stream33/_stats", encodeBasicHeader("ds3", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream*/_stats", encodeBasicHeader("ds0", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream21,my-data-stream22/_stats", encodeBasicHeader("ds0", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream*/_stats", encodeBasicHeader("ds1", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream2*/_stats", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream21,my-data-stream22/_stats", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream*/_stats", encodeBasicHeader("ds2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-
-        response = rh.executeGetRequest("/_data_stream/my-data-stream*/_stats", encodeBasicHeader("ds3", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 }
