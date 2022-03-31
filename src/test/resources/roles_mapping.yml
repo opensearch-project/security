@@ -393,6 +393,11 @@ index_template_perm:
   hidden: false
   users:
     - "ds1"
+data_stream_0:
+  reserved: false
+  hidden: false
+  users:
+    - "ds0"
 data_stream_1:
   reserved: false
   hidden: false
