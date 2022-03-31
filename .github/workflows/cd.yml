@@ -14,10 +14,10 @@ jobs:
 
     steps:
 
-    - name: Set up JDK 14
+    - name: Set up JDK
       uses: actions/setup-java@v1
       with:
-        java-version: 14.0.x
+        java-version: 11
 
     - name: Checkout security
       uses: actions/checkout@v2
