@@ -36,7 +36,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
     protected void populateData(Client tc) {
 
         try {
-            tc.admin().indices().create(new CreateIndexRequest("logs").mapping("_doc", FileHelper.loadFile("dlsfls/masked_field_mapping.json"), XContentType.JSON)).actionGet();
+            tc.admin().indices().create(new CreateIndexRequest("logs")).actionGet();
 
 
             byte[] data = FileHelper.loadFile("dlsfls/logs_bulk_data.json").getBytes(StandardCharsets.UTF_8);
