@@ -55,9 +55,19 @@ repositories {
 }
 
 ext {
-    default_opensearch_version = property("opensearch-core.version") + "-SNAPSHOT"
-    opensearch_version = System.getProperty("opensearch.version", default_opensearch_version)
-    buildVersionQualifier = System.getProperty("build.version_qualifier")
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    opensearch_version = System.getProperty("opensearch.version", "2.0.0-alpha1-SNAPSHOT")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
+    // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
+    version_tokens = opensearch_version.tokenize('-')
+    opensearch_build = version_tokens[0] + '.0'
+    if (buildVersionQualifier) {
+        opensearch_build += "-${buildVersionQualifier}"
+        opensearch_build_nosnapshot = opensearch_build
+    }
+    if (isSnapshot) {
+        opensearch_build += "-SNAPSHOT"
+    }
 }
 
 configurations.all {
@@ -124,19 +134,8 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 }
 
-ext {
-    securityPluginVersion = property('security-plugin.version')
-    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-}
-
 group = 'org.opensearch'
-version = securityPluginVersion
-if (buildVersionQualifier) {
-    version += "-${buildVersionQualifier}"
-}
-if (isSnapshot) {
-    version += "-SNAPSHOT"
-}
+version = opensearch_build
 
 description = 'OpenSearch Security'
 
@@ -326,16 +325,13 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
 }
 
 task createPluginDescriptor() {
-    if (opensearch_version.contains("-SNAPSHOT")) {
-        opensearch_version=opensearch_version.substring(0, opensearch_version.length() - 9)
-    }
     List<String> descriptorProperties = [
         "description=Provide access control related features for OpenSearch",
         "version=${version}",
         "name=opensearch-security",
         "classname=org.opensearch.security.OpenSearchSecurityPlugin",
         "java.version=${java.targetCompatibility}",
-        "opensearch.version=${opensearch_version}",
+        "opensearch.version=${opensearch_build_nosnapshot}",
     ]
 
     new File("plugin-descriptor.properties").text = descriptorProperties.join ("\n")
