@@ -224,6 +224,7 @@ public class IndexResolverReplacer {
 
             final Collection<String> matchingAliases;
             Collection<String> matchingAllIndices;
+            Collection<String> matchingDataStreams = null;
 
             if (isLocalAll(original)) {
                 if (isTraceEnabled) {
@@ -259,8 +260,11 @@ public class IndexResolverReplacer {
                 final boolean isDebugEnabled = log.isDebugEnabled();
                 try {
                     matchingAllIndices = Arrays.asList(resolver.concreteIndexNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0])));
+                    matchingDataStreams = resolver.dataStreamNames(state, indicesOptions, localRequestedPatterns.toArray(new String[0]));
+
                     if (isDebugEnabled) {
-                        log.debug("Resolved pattern {} to {}", localRequestedPatterns, matchingAllIndices);
+                        log.debug("Resolved pattern {} to indices: {} and data-streams: {}",
+                                localRequestedPatterns, matchingAllIndices, matchingDataStreams);
                     }
                 } catch (IndexNotFoundException e1) {
                     if (isDebugEnabled) {
@@ -271,13 +275,16 @@ public class IndexResolverReplacer {
                 }
             }
 
-            if (isTraceEnabled) {
-                log.trace("Resolved patterns {} for {} ({}) to [aliases {}, allIndices {}, originalRequested{}, remote indices {}]",
-                        original, name, this.name, matchingAliases, matchingAllIndices, Arrays.toString(original), remoteIndices);
+            if (matchingDataStreams == null || matchingDataStreams.size() == 0) {
+                matchingDataStreams = Arrays.asList(NOOP);
             }
 
-            resolveTo(matchingAliases, matchingAllIndices, original, remoteIndices);
+            if (isTraceEnabled) {
+                log.trace("Resolved patterns {} for {} ({}) to [aliases {}, allIndices {}, dataStreams {}, originalRequested{}, remote indices {}]",
+                        original, name, this.name, matchingAliases, matchingAllIndices, matchingDataStreams, Arrays.toString(original), remoteIndices);
+            }
 
+            resolveTo(matchingAliases, matchingAllIndices, matchingDataStreams, original, remoteIndices);
         }
 
         private void resolveToLocalAll() {
@@ -286,9 +293,11 @@ public class IndexResolverReplacer {
             originalRequested.add(Resolved.ANY);
         }
 
-        private void resolveTo(Iterable<String> matchingAliases, Iterable<String> matchingAllIndices, String[] original, Iterable<String> remoteIndices) {
+        private void resolveTo(Iterable<String> matchingAliases, Iterable<String> matchingAllIndices,
+                               Iterable<String> matchingDataStreams, String[] original, Iterable<String> remoteIndices) {
             aliases.addAll(matchingAliases);
             allIndices.addAll(matchingAllIndices);
+            allIndices.addAll(matchingDataStreams);
             originalRequested.add(original);
             this.remoteIndices.addAll(remoteIndices);
         }
