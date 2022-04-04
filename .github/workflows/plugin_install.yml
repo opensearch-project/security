@@ -23,9 +23,13 @@ jobs:
     - name: Build
       run: ./gradlew clean assemble -Dbuild.snapshot=false
 
+    - name: Find OpenSearch version
+      id: opensearch-version-finder
+      run: echo "::set-output  name=number_only::$(echo "${{ steps.opensearch-version.outputs.value }}" | sed "s/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/g")"
+
     - name: Download OpenSearch Core
       run: |
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-version.outputs.value }}/latest/linux/x64/builds/opensearch/dist/opensearch-min-${{ steps.opensearch-version.outputs.value }}-linux-x64.tar.gz
+        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-version-finder.outputs.number_only }}/latest/linux/x64/builds/opensearch/dist/opensearch-min-${{ steps.opensearch-version-finder.outputs.number_only }}-linux-x64.tar.gz
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
 

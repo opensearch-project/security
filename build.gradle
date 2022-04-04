@@ -55,9 +55,10 @@ repositories {
 }
 
 ext {
-    default_opensearch_version = property("opensearch-core.version") + "-SNAPSHOT"
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    default_opensearch_version = property("opensearch-core.version")
     opensearch_version = System.getProperty("opensearch.version", default_opensearch_version)
-    buildVersionQualifier = System.getProperty("build.version_qualifier")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 }
 
 configurations.all {
@@ -124,21 +125,16 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 }
 
-ext {
-    securityPluginVersion = property('security-plugin.version')
-    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-}
-
 group = 'org.opensearch'
-version = securityPluginVersion
+description = 'OpenSearch Security'
+
+version = property('security-plugin.version')
 if (buildVersionQualifier) {
     version += "-${buildVersionQualifier}"
 }
 if (isSnapshot) {
     version += "-SNAPSHOT"
 }
-
-description = 'OpenSearch Security'
 
 
 java.sourceCompatibility = JavaVersion.VERSION_11
@@ -326,22 +322,19 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
 }
 
 task createPluginDescriptor() {
-    if (opensearch_version.contains("-SNAPSHOT")) {
-        opensearch_version=opensearch_version.substring(0, opensearch_version.length() - 9)
-    }
     List<String> descriptorProperties = [
         "description=Provide access control related features for OpenSearch",
-        "version=${version}",
+        "version=${version.tokenize('-')[0]}",
         "name=opensearch-security",
         "classname=org.opensearch.security.OpenSearchSecurityPlugin",
         "java.version=${java.targetCompatibility}",
-        "opensearch.version=${opensearch_version}",
+        "opensearch.version=${opensearch_version.tokenize('-')[0]}",
     ]
 
     new File("plugin-descriptor.properties").text = descriptorProperties.join ("\n")
 }
 bundle.doLast() {
-    new File("plugin-descriptor.properties").delete()
+   new File("plugin-descriptor.properties").delete()
 }
 
 tasks.assemble.dependsOn(bundle)

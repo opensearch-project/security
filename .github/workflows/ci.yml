@@ -97,11 +97,14 @@ jobs:
     - run: ./gradlew clean assemble -Dbuild.snapshot=false
     - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}.jar
 
-    - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=alpha1
-    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha1.jar
+    - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=alpha2
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha2.jar
 
-    - run: ./gradlew clean assemble -Dbuild.version_qualifier=alpha1
-    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha1-SNAPSHOT.jar
+    - run: ./gradlew clean assemble -Dbuild.version_qualifier=alpha2
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha2-SNAPSHOT.jar
+
+    - run: ./gradlew clean assemble -Dopensearch.version=2.0.0-alpha1-SNAPSHOT -Dbuild.snapshot=false -Dbuild.version_qualifier=alpha2
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha2.jar
 
     - name: List files in the build directory if there was an error
       run: ls -al ./build/
