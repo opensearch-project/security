@@ -15,9 +15,40 @@
 
 package org.opensearch.security.tools;
 
+import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
+import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
+
+import java.io.Console;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
+import com.google.common.io.ByteSource;
+import com.google.common.io.CharStreams;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -33,43 +64,42 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.get.GetIndexRequest;
+import org.opensearch.action.admin.indices.get.GetIndexRequest.Feature;
+import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
-import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.NonValidatingObjectMapper;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.PemKeyReader;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import java.io.Console;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.nio.file.Paths;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Scanner;
 
 public class PasswordSetup {
 
+    private static final boolean CREATE_AS_LEGACY = Boolean.parseBoolean(System.getenv("OPENDISTRO_SECURITY_ADMIN_CREATE_AS_LEGACY"));
     private static final String OPENDISTRO_SECURITY_TS_PASS = "OPENDISTRO_SECURITY_TS_PASS";
     private static final String OPENDISTRO_SECURITY_KS_PASS = "OPENDISTRO_SECURITY_KS_PASS";
     private static final String OPENDISTRO_SECURITY_KEYPASS = "OPENDISTRO_SECURITY_KEYPASS";
@@ -175,6 +205,7 @@ public class PasswordSetup {
         String explicitReplicas = null;
         Integer validateConfig = null;
         String migrateOffline = null;
+        final boolean resolveEnvVars;
 
         InjectableValues.Std injectableValues = new InjectableValues.Std();
         injectableValues.addValue(Settings.class, Settings.builder().build());
@@ -246,6 +277,8 @@ public class PasswordSetup {
             }
             
             migrateOffline = line.getOptionValue("mo");
+
+            resolveEnvVars = line.hasOption("rev");
             
         }
         catch( ParseException exp ) {
@@ -415,28 +448,79 @@ public class PasswordSetup {
 			System.out.println("Number of nodes: " + chResponse.getNumberOfNodes());
 			System.out.println("Number of data nodes: " + chResponse.getNumberOfDataNodes());
 
+            GetIndexResponse securityIndex = null;
+            try {
+				securityIndex = restHighLevelClient.indices().get(new GetIndexRequest().indices(index).addFeatures(Feature.MAPPINGS), RequestOptions.DEFAULT);
+			} catch (OpenSearchStatusException e1) {
+			    if(e1.status() == RestStatus.NOT_FOUND) {
+                //ignore
+                } else {
+                    System.out.println("Unable to get index because return code was " + e1.status().getStatus());
+                    return (-1);
+                }
+            }
+            final boolean indexExists = securityIndex != null;
+
+			int expectedNodeCount = restHighLevelClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT).getNumberOfNodes();
+
+               
+            if (!indexExists) {
+                System.out.print(index +" index does not exists, attempt to create it ... ");
+				final int created = createConfigIndex(restHighLevelClient, index, explicitReplicas);
+                if(created != 0) {
+                    return created;
+                }
+
+            } else {
+                System.out.println(index+" index already exists, so we do not need to create one.");
+                
+                try {
+					ClusterHealthResponse clusterHealthResponse = restHighLevelClient.cluster().health(new ClusterHealthRequest(index), RequestOptions.DEFAULT);
+
+					if (clusterHealthResponse.isTimedOut()) {
+                        System.out.println("ERR: Timed out while waiting for "+index+" index state.");
+                    }
+
+					if (clusterHealthResponse.getStatus() == ClusterHealthStatus.RED) {
+                        System.out.println("ERR: "+index+" index state is RED.");
+                    }
+
+					if (clusterHealthResponse.getStatus() == ClusterHealthStatus.YELLOW) {
+                        System.out.println("INFO: "+index+" index state is YELLOW, it seems you miss some replicas");
+                    }
+                    
+                } catch (Exception e) {
+                    if(!failFast) {
+                        System.out.println("Cannot retrieve "+index+" index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
+                    } else {
+                        System.out.println("ERR: Cannot retrieve "+index+" index state state due to "+e.getMessage()+".");
+                        return (-1);
+                    }
+                }
+            }
+
+
+            final boolean createLegacyMode = !indexExists && CREATE_AS_LEGACY;
+
+            if(createLegacyMode) {
+                System.out.println("We forcibly create the new index in legacy mode so that ES 6 config can be uploaded. To move to v7 configs youneed to migrate.");
+            }
+
+            final boolean legacy = createLegacyMode || (indexExists
+                    && securityIndex.getMappings() != null
+                    && securityIndex.getMappings().get(index) != null
+                    && securityIndex.getMappings().get(index).containsKey("security"));
+
+            upload(restHighLevelClient, index, cd, legacy, expectedNodeCount, resolveEnvVars);
             Scanner sc = new Scanner(System.in);
             ArrayList<String> users = new ArrayList<String>(Arrays.asList("admin", "kibanaserver", "kibanaro", "logstash", "readall", "snapshotrestore"));
-
+            
             System.out.println("\n\nBeginning Password Setup");
 
             for (String user: users) {
-                boolean isWeakPassword = true;
-                while(isWeakPassword) {
-                    try {
-                        System.out.println("\nEnter password for " + user + ": ");
-                        String password = sc.nextLine();
-                        setPasswordSingleUser(user, lowLevelClient, password);
-                        isWeakPassword = false;
-                    } 
-                    catch(ResponseException e) {
-                        System.out.println(Settings.builder().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE));
-                        System.out.print("Would you like to try again? [y/N] ");
-                        if (!sc.nextLine().equals("y")) {
-                            return -1;
-                        }
-                    }
-                }
+                    System.out.println("\nEnter password for " + user + ": ");
+                    String password = sc.nextLine();
+                    setPasswordSingleUser(user, lowLevelClient, password);
             }
             sc.close();
         } catch (Throwable e) {
@@ -452,6 +536,7 @@ public class PasswordSetup {
         Request request = new Request("PATCH", "/_plugins/_security/api/internalusers/" + user);
         request.setEntity(entity);
         restClient.performRequest(request);
+        System.out.println("Done setting password for " + user);
     }
 
     private static String promptForPassword(String passwordName, String commandLineOption, String envVarName) throws Exception {
@@ -463,7 +548,7 @@ public class PasswordSetup {
     }
 
     private static SSLContext sslContext(
-	        //keystore & trusstore related properties
+	        //keystore & truststore related properties
 			String ts,
 			String tspass,
             String trustStoreType,
@@ -645,4 +730,199 @@ public class PasswordSetup {
             throw new ParseException("Specify at least -ts or -cacert");
         }
     }
+
+    private static int createConfigIndex(RestHighLevelClient restHighLevelClient, String index, String explicitReplicas) throws IOException {
+        Map<String, Object> indexSettings = new HashMap<>();
+        indexSettings.put("index.number_of_shards", 1);
+        
+        if(explicitReplicas != null) {
+            if(explicitReplicas.contains("-")) {
+                indexSettings.put("index.auto_expand_replicas", explicitReplicas);
+            } else {
+                indexSettings.put("index.number_of_replicas", Integer.parseInt(explicitReplicas));
+            }
+        } else {
+            indexSettings.put("index.auto_expand_replicas", "0-all");
+        }
+
+		final boolean indexCreated = restHighLevelClient.indices().create(new CreateIndexRequest(index)
+						.settings(indexSettings), RequestOptions.DEFAULT)
+				.isAcknowledged();
+
+        if (indexCreated) {
+            System.out.println("done ("+(explicitReplicas!=null?explicitReplicas:"0-all")+" replicas)");
+            return 0;
+        } else {
+            System.out.println("failed!");
+            System.out.println("FAIL: Unable to create the "+index+" index. See opensearch logs for more details");
+            return (-1);
+        }
+    }
+
+    private static boolean uploadFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars) {
+		return uploadFile(restHighLevelClient, filepath, index, _id, legacy, resolveEnvVars, false);
+    }
+
+    private static boolean uploadFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars,
+        final boolean populateEmptyIfMissing) {
+
+        String type = "_doc";
+        String id = _id;
+                
+        if(legacy) {
+            type = "security";
+            id = _id;
+
+            try {
+                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 1, 0, 0);
+            } catch (Exception e) {
+                System.out.println("ERR: Seems "+filepath+" is not in legacy format: "+e);
+                return false;
+            }
+
+        } else {
+            try {
+                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
+            } catch (Exception e) {
+                System.out.println("ERR: Seems "+filepath+" is not in OpenSearch Security 7 format: "+e);
+                return false;
+            }
+        }
+
+        System.out.println("Will update '" + type + "/" + id + "' with " + filepath + " " + (legacy ? "(legacy mode)" : ""));
+
+		try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)) {
+			final String content = CharStreams.toString(reader);
+			final String res = restHighLevelClient
+					.index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+							.source(_id, readXContent(resolveEnvVars ? replaceEnvVars(content, Settings.EMPTY) : content, XContentType.YAML)), RequestOptions.DEFAULT).getId();
+
+
+            if (id.equals(res)) {
+                System.out.println("   SUCC: Configuration for '" + _id + "' created or updated");
+                return true;
+            } else {
+                System.out.println("   FAIL: Configuration for '" + _id
+                        + "' failed for unknown reasons. Please consult the OpenSearch logfile.");
+            }
+        } catch (Exception e) {
+            System.out.println("   FAIL: Configuration for '" + _id + "' failed because of " + e.toString());
+        }
+
+        return false;
+    }
+
+    private static BytesReference readXContent(final String content, final XContentType xContentType) throws IOException {
+        BytesReference retVal;
+        XContentParser parser = null;
+        try {
+            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
+            parser.nextToken();
+            final XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.copyCurrentStructure(parser);
+            retVal = BytesReference.bytes(builder);
+        } finally {
+            if (parser != null) {
+                parser.close();
+            }
+        }
+        
+        //validate
+        return retVal;
+    }
+
+    private static String[] getTypes(boolean legacy) {
+		if (legacy) {
+            
+			return new String[]{"config", "roles", "rolesmapping", "internalusers", "actiongroups", "nodesdn", "audit"};
+		}
+		return CType.lcStringValues().toArray(new String[0]);
+	}
+
+    private static int upload(RestHighLevelClient tc, String index, String cd, boolean legacy, int expectedNodeCount, boolean resolveEnvVars) throws IOException {
+        boolean success = uploadFile(tc, cd + "config.yml", index, "config", legacy, resolveEnvVars);
+        success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
+        
+        success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
+
+        
+        if(!legacy) {
+            success = uploadFile(tc, cd+"tenants.yml", index, "tenants", legacy, resolveEnvVars) && success;
+        }
+
+        success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
+        success = uploadFile(tc, cd+"whitelist.yml", index, "whitelist", legacy, resolveEnvVars) && success;
+        if (new File(cd+"audit.yml").exists()) {
+            success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
+        }
+
+        if(!success) {
+            System.out.println("ERR: cannot upload configuration, see errors above");
+            return -1;
+        }
+
+		Response cur = tc.getLowLevelClient().performRequest(new Request("PUT", "/_plugins/_security/configupdate?config_types=" + Joiner.on(",").join(getTypes((legacy)))));
+		success = checkConfigUpdateResponse(cur, expectedNodeCount, getTypes(legacy).length) && success;
+
+        System.out.println("Done with "+(success?"success":"failures"));
+
+        return (success?0:-1);
+    }
+
+    private static boolean checkConfigUpdateResponse(Response response, int expectedNodeCount, int expectedConfigCount) throws IOException {
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			System.out.println("Unable to check configupdate response because return code was " + response.getStatusLine());
+		}
+
+		JsonNode resNode = DefaultObjectMapper.objectMapper.readTree(response.getEntity().getContent());
+
+		if (resNode.at("/configupdate_response/has_failures").asBoolean()) {
+			System.out.println("FAIL: " + resNode.at("/configupdate_response/failures_size").asInt() + " nodes reported failures. Failure is " + responseToString(response, false) + "/" + resNode);
+        }
+
+
+		boolean success = resNode.at("/configupdate_response/node_size").asInt() == expectedNodeCount;
+        if(!success) {
+			System.out.println("FAIL: Expected " + expectedNodeCount + " nodes to return response, but got " + resNode.at("/configupdate_response/node_size").asInt());
+        }
+
+		for (JsonNode n : resNode.at("/configupdate_response/nodes")) {
+			boolean successNode = (n.get("updated_config_types") != null && n.get("updated_config_size").asInt() == expectedConfigCount);
+
+            if(!successNode) {
+				System.out.println("FAIL: Expected " + expectedConfigCount + " config types for node " + n + " but got " + n.get("updated_config_size").asInt() + " (" + n.get("updated_config_types") + ") due to: " + (n.get("message") == null ? "unknown reason" : n.get("message")));
+			} else {
+				System.out.println("SUCC: Expected " + expectedConfigCount + " config types for node " + n + " is " + n.get("updated_config_size").asInt() + " (" + n.get("updated_config_types") + ") due to: " + (n.get("message") == null ? "unknown reason" : n.get("message")));
+            }
+            
+            success = success && successNode;
+        }
+
+		return success && !resNode.at("/configupdate_response/has_failures").asBoolean();
+    }
+
+    private static String responseToString(Response response, boolean prettyJson) {
+		ByteSource byteSource = new ByteSource() {
+			@Override
+			public InputStream openStream() throws IOException {
+				return response.getEntity().getContent();
+			}
+		};
+
+		try {
+			String value = byteSource.asCharSource(Charsets.UTF_8).read();
+
+			if (prettyJson) {
+				return DefaultObjectMapper.objectMapper.readTree(value).toPrettyString();
+			}
+
+			return value;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return "ERR: Unable to handle response due to " + e;
+		}
+	}
 }
