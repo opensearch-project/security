@@ -9,3 +9,4 @@ _meta:
 admin_tenant:
   reserved: false
   description: "Demo tenant for admin user"
+  
