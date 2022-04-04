@@ -17,7 +17,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 public class PasswordSetupTests extends SingleClusterTest {
     @Test
-    public void testSecurityAdmin() throws Exception {
+    public void testPasswordSetup() throws Exception {
         final Settings settings = Settings.builder()
                 .put("plugins.security.ssl.http.enabled",true)
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
@@ -37,13 +37,13 @@ public class PasswordSetupTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        argsAsList.add(new File("src/test/resources/password_setup/").getAbsolutePath());
         argsAsList.add("-nhnv");
 
-        String userInput = "Admins#1";
-        //\nKibanaServer@2\nKibanaro!3\nLogstash&4\nReadall%5\nSnapshotrestore$6";
+        String userInput = "Admins#1\nKibanaServer@2\nKibanaro!3\nLogstash&4\nReadall%5\nSnapshotrestore$6";
         ByteArrayInputStream input = new ByteArrayInputStream(userInput.getBytes());
         System.setIn(input);
+        
         int returnCode  = PasswordSetup.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
 
@@ -52,5 +52,39 @@ public class PasswordSetupTests extends SingleClusterTest {
         RestHelper rh = restHelper();
 
         Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "Admins#1")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("kibanaserver", "KibanaServer@2")).getStatusCode());
+    }
+
+    @Test
+    public void testInvalidInput() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .build();
+        setup(Settings.EMPTY, null, settings, false);
+        
+        final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+        
+        List<String> argsAsList = new ArrayList<>();
+        argsAsList.add("-ts");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-ks");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-p");
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
+        argsAsList.add("-cn");
+        argsAsList.add(clusterInfo.clustername);
+        argsAsList.add("-cd");
+        argsAsList.add(new File("src/test/resources/password_setup/").getAbsolutePath());
+        argsAsList.add("-nhnv");
+
+        String userInput = "Admins#1";
+        ByteArrayInputStream input = new ByteArrayInputStream(userInput.getBytes());
+        System.setIn(input);
+        
+        int returnCode  = PasswordSetup.execute(argsAsList.toArray(new String[0]));
+        Assert.assertEquals(-1, returnCode);
     }
 }
