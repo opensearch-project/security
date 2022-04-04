@@ -1,25 +1,31 @@
 # Developer Guide
 So you want to contribute code to this project? Excellent! We're glad you're here. Here's what you need to do.
 
-- [Prerequisites](#prerequisites)
-- [Building](#building)
-- [Using IntelliJ IDEA](#using-intellij-idea)
-- [Submitting Changes](#submitting-changes)
+- [Developer Guide](#developer-guide)
+  - [Prerequisites](#prerequisites)
+    - [Native platforms](#native-platforms)
+  - [Building](#building)
+  - [Using IntelliJ IDEA](#using-intellij-idea)
+  - [Submitting Changes](#submitting-changes)
+  - [Backports](#backports)
 
 ## Prerequisites
 
-> Note: We currently support four JDKs: 8, 11, 14, 17. Please make sure that you have installed one of these java versions before proceeding to the next steps.
+> Please make sure to follow the OpenSearch [Install Prerequisites](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#install-prerequisites) before starting for the first time.
 
 This project runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install this plugin there. However, we will compile it using source code so that we are pulling in changes from the latest commit.
->**MacOS users please note:**\
->At this moment there are no MacOS distributions available for OpenSearch. Having said that, you have an option to run it as a Docker Container, but that will come with security plugin pre-installed which defeats the purpose of this setup.
 
-To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. Reach to the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+c`.
+### Native platforms
+Not all platforms natively support OpenSearch, to check distribution avaliability please check these [issues](https://github.com/opensearch-project/opensearch-build/labels/distributions).
+
+On MacOS / PC the OpenSearch distribution can be run with docker.  This distribution contains the released version of OpenSearch including the security plugin.  For development we do not recommend using this docker image.
+
+To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. Reach to the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
 
 Next, run the following commands to copy the built code (snapshot) to a new folder in a different location. (This where you'll be running OpenSearch service). Run this from the base directory of the OpenSearch fork you cloned above:
 ```bash
-export OPENSEARCH_HOME=~/<your-folder-location>/opensearch-1.3.0-SNAPSHOT
-export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-1.3.0-SNAPSHOT
+export OPENSEARCH_HOME=~/<your-folder-location>/opensearch-*
+export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-*
 cp -Rf $OPENSEARCH_BUILD $OPENSEARCH_HOME
 ```
 
@@ -50,13 +56,11 @@ Install the built plugin into the OpenSearch server:
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
 mkdir $OPENSEARCH_SECURITY_HOME
-cp build/distributions/opensearch-security-1.3.0.0-SNAPSHOT.zip $OPENSEARCH_SECURITY_HOME
+cp build/distributions/opensearch-security-*.zip $OPENSEARCH_SECURITY_HOME
 cd $OPENSEARCH_SECURITY_HOME
-unzip opensearch-security-1.3.0.0-SNAPSHOT.zip
-rm opensearch-security-1.3.0.0-SNAPSHOT.zip
+unzip opensearch-security-*.zip
+rm opensearch-security-*.zip
 ```
-
-You will have to adjust it to your specific version. In this example I'm using `1.3.0.0-SNAPSHOT`.
 
 Install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
 
