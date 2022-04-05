@@ -516,6 +516,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         }
 
         @Override
+        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
+            fieldReadCallback.stringFieldRead(fieldInfo, value);
+            delegate.stringField(fieldInfo, value);
+        }
+
+        @Override
         public void intField(final FieldInfo fieldInfo, final int value) throws IOException {
             fieldReadCallback.numericFieldRead(fieldInfo, value);
             delegate.intField(fieldInfo, value);
@@ -599,6 +605,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         }
 
         @Override
+        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
+            delegate.stringField(fieldInfo, value);
+        }
+
+        @Override
         public void intField(final FieldInfo fieldInfo, final int value) throws IOException {
             delegate.intField(fieldInfo, value);
         }
@@ -662,6 +673,17 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         @Override
         public int hashCode() {
             return delegate.hashCode();
+        }
+
+        @Override
+        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
+            final Optional<MaskedField> mf = maskedFieldsMap.getMaskedField(fieldInfo.name);
+
+            if(mf.isPresent()) {
+                delegate.stringField(fieldInfo, mf.get().mask(value));
+            } else {
+                delegate.stringField(fieldInfo, value);
+            }
         }
 
         @Override
