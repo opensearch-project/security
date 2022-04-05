@@ -1,38 +1,51 @@
 # Developer Guide
 So you want to contribute code to this project? Excellent! We're glad you're here. Here's what you need to do.
 
-- [Prerequisites](#prerequisites)
-- [Building](#building)
-- [Using IntelliJ IDEA](#using-intellij-idea)
-- [Submitting Changes](#submitting-changes)
+- [Developer Guide](#developer-guide)
+  - [Prerequisites](#prerequisites)
+    - [Native platforms](#native-platforms)
+  - [Building](#building)
+  - [Using IntelliJ IDEA](#using-intellij-idea)
+  - [Submitting Changes](#submitting-changes)
+  - [Backports](#backports)
 
 ## Prerequisites
-This project runs as a plugin of OpenSearch. You could [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install the plugin there, but at this time there are no MacOS distributions (although you can run it as a docker container, but those images come with the security plugin already preinstalled). In addition, it might come in handy to be able to always run against the latest commit of the version under development, so we'll be compiling it from source instead.
 
-To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get you up and running with OpenSearch built from source code. Get to the point where you can run a successful `curl localhost:9200` call (you can skip the `./gradlew check` step to save some time. Great! now kill the server with `Ctrl+c` and copy the built code to a new folder somewhere else where you'll be running your service (run this from the base directory of the OpenSearch fork you cloned above):
+> Please make sure to follow the OpenSearch [Install Prerequisites](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#install-prerequisites) before starting for the first time.
 
+This project runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install this plugin there. However, we will compile it using source code so that we are pulling in changes from the latest commit.
+
+### Native platforms
+Not all platforms natively support OpenSearch, to check distribution avaliability please check these [issues](https://github.com/opensearch-project/opensearch-build/labels/distributions).
+
+On MacOS / PC the OpenSearch distribution can be run with docker.  This distribution contains the released version of OpenSearch including the security plugin.  For development we do not recommend using this docker image.
+
+To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. Reach to the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
+
+Next, run the following commands to copy the built code (snapshot) to a new folder in a different location. (This where you'll be running OpenSearch service). Run this from the base directory of the OpenSearch fork you cloned above:
 ```bash
-export OPENSEARCH_HOME=~/Test/opensearch-1.3.0-SNAPSHOT
-export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-1.3.0-SNAPSHOT
+export OPENSEARCH_HOME=~/<your-folder-location>/opensearch-*
+export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-*
 cp -Rf $OPENSEARCH_BUILD $OPENSEARCH_HOME
 ```
 
-Choose `$OPENSEARCH_HOME` as the base folder where your server will live, and adjust `$OPENSEARCH_BUILD` based on your version and OS (this is an example running on MacOS.)
+Choose `$OPENSEARCH_HOME` as the base folder where your server will live, and adjust `$OPENSEARCH_BUILD` based on your version and OS (this is an example running on MacOS, hence `darwin`.)
 
-Let's test it!
+Let's test and see if we can run the server!
 
 ```bash
 cd $OPENSEARCH_HOME
 ./bin/opensearch
 ```
 
-The `curl localhost:9200` call from before should also succeed now. Kill the server again with `Ctrl+c`. We are ready to install the security plugin.
+The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+c`. We are ready to install the security plugin.
 
->Worth noting is that the version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of this writing the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT`, compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
+>Worth noting:\
+> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT` compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
 
 ## Building
 
-First create a fork of this repo and clone it locally. Changing into the directory of the newly cloned repository, run the following to build the project:
+First create a fork of this repo and clone it locally. Changing to directory containing this clone and run this to build the project:
 
 ```bash
 ./gradlew clean assemble
@@ -42,15 +55,14 @@ Install the built plugin into the OpenSearch server:
 
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
-cp build/distributions/opensearch-security-1.3.0.0-SNAPSHOT.zip $OPENSEARCH_SECURITY_HOME
+mkdir $OPENSEARCH_SECURITY_HOME
+cp build/distributions/opensearch-security-*.zip $OPENSEARCH_SECURITY_HOME
 cd $OPENSEARCH_SECURITY_HOME
-unzip opensearch-security-1.3.0.0-SNAPSHOT.zip
-rm opensearch-security-1.3.0.0-SNAPSHOT.zip
+unzip opensearch-security-*.zip
+rm opensearch-security-*.zip
 ```
 
-You will have to adjust it to your specific version. In this example I'm using `1.3.0.0-SNAPSHOT`.
-
-Install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one:
+Install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
 
 ```bash
 ./tools/install_demo_configuration.sh
@@ -84,7 +96,10 @@ Detected OpenSearch Security Version: *
 ### (Ignore the SSL certificate warning because we installed self-signed demo certificates)
 ```
 
-Now if we start our server again and try the original `curl localhost:9200`, it will fail. Try this one instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. You can also make this call to return the authenticated user details:
+Now if we start our server again and try the original `curl localhost:9200`, it will fail.
+Try this one instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. It should succeed.
+
+You can also make this call to return the authenticated user details:
 
 ```bash
 curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' --insecure
