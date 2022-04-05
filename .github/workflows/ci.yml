@@ -87,12 +87,12 @@ jobs:
 
     - run: ./gradlew clean assemble
     - run: |
-        security_plugin_version=`./gradlew properties -q | grep -E "^version:" | awk '{print $2}'`
+        echo security_plugin_version=$(./gradlew properties -q | grep -E "^version:" | awk '{print $2}') >> $GITHUB_ENV
         test -s ./build/opensearch-security-$security_plugin_version.jar
 
     - run: ./gradlew clean assemble -Dbuild.snapshot=false
     - run: |
-        security_plugin_version_no_snapshot=`./gradlew properties -q | grep -E "^version:" | awk '{print $2}' | sed 's/-SNAPSHOT//g'`
+        echo security_plugin_version_no_snapshot=$(/gradlew properties -q | grep -E "^version:" | awk '{print $2}' | sed 's/-SNAPSHOT//g') >> $GITHUB_ENV
         test -s ./build/opensearch-security-$security_plugin_version_no_snapshot.jar
 
     - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=alpha1
