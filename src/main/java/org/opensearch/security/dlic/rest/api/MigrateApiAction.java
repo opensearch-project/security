@@ -173,7 +173,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                 public void onResponse(CreateIndexResponse response) {
                                     final List<SecurityDynamicConfiguration<?>> dynamicConfigurations = builder.build();
                                     final ImmutableList.Builder<String> cTypes = ImmutableList.builderWithExpectedSize(dynamicConfigurations.size());
-                                    final BulkRequestBuilder br = client.prepareBulk(opendistroIndex, "_doc");
+                                    final BulkRequestBuilder br = client.prepareBulk(opendistroIndex);
                                     br.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
                                     try {
                                         for (SecurityDynamicConfiguration dynamicConfiguration : dynamicConfigurations) {

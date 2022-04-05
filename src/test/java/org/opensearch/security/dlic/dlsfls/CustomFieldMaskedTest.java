@@ -29,14 +29,14 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest("deals").type("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust1\", \"street\":\"testroad\"}, \"ip_source\": \"100.100.1.1\",\"ip_dest\": \"123.123.1.1\",\"amount\": 10, \"mynum\": 1000000000000000000}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").type("deals").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust2\", \"street\":\"testroad\"}, \"ip_source\": \"100.100.2.2\",\"ip_dest\": \"123.123.2.2\",\"amount\": 20, \"mynum\": 1000000000000000000}", XContentType.JSON)).actionGet();
 
 
         for (int i=0; i<30;i++) {
-            tc.index(new IndexRequest("deals").type("deals").id("a"+i).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+            tc.index(new IndexRequest("deals").id("a"+i).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source("{\"customer\": {\"name\":\"cust1\", \"street\":\"testroad\"}, \"ip_source\": \"200.100.1.1\",\"ip_dest\": \"123.123.1.1\",\"amount\": 10, \"mynum\": 1000000000000000000}", XContentType.JSON)).actionGet();
         }
 
@@ -209,7 +209,7 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/deals/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
         Assert.assertTrue(res.getBody().contains("cust1"));
         Assert.assertFalse(res.getBody().contains("cust2"));
@@ -220,7 +220,7 @@ public class CustomFieldMaskedTest extends AbstractDlsFlsTest {
         Assert.assertFalse(res.getBody().contains("XXX"));
 
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/deals/0?pretty", encodeBasicHeader("user_masked_custom", "password"))).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("user_masked_custom", "password"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
         Assert.assertFalse(res.getBody().contains("cust1"));
         Assert.assertFalse(res.getBody().contains("cust2"));

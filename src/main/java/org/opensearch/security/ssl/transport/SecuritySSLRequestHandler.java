@@ -175,7 +175,7 @@ implements TransportRequestHandler<T> {
     protected TransportChannel getInnerChannel(TransportChannel transportChannel) throws Exception {
         try {
             Class wrappedChannelCls = transportChannel.getClass();
-            Method getInnerChannel = wrappedChannelCls.getMethod("getInnerChannel", null);
+            Method getInnerChannel = wrappedChannelCls.getMethod("getInnerChannel");
             TransportChannel innerChannel = (TransportChannel)(getInnerChannel.invoke(transportChannel));
             log.debug("Using inner transport channel " + innerChannel.getChannelType());
             return innerChannel;

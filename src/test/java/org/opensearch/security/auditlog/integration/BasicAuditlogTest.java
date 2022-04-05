@@ -34,7 +34,6 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.transport.TransportClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentType;
@@ -351,7 +350,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     public void testSecurityIndexAttempt() throws Exception {
 
-        HttpResponse response = rh.executePutRequest(".opendistro_security/config/0", "{}", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("MISSING_PRIVILEGES"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("OPENDISTRO_SECURITY_INDEX_ATTEMPT"));
@@ -415,15 +414,15 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         System.out.println("#### testBulkAuth");
         String bulkBody =
-                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
-                "{ \"index\" : { \"_index\" : \"worf\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"worf\", \"_id\" : \"2\" } }"+System.lineSeparator()+
                 "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
 
-                "{ \"update\" : {\"_id\" : \"1\", \"_type\" : \"type1\", \"_index\" : \"test\"} }"+System.lineSeparator()+
+                "{ \"update\" : {\"_id\" : \"1\", \"_index\" : \"test\"} }"+System.lineSeparator()+
                 "{ \"doc\" : {\"field\" : \"valuex\"} }"+System.lineSeparator()+
-                "{ \"delete\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
-                "{ \"create\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"delete\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"create\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value3x\" }"+System.lineSeparator();
 
 
@@ -445,15 +444,15 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testBulkNonAuth() throws Exception {
 
         String bulkBody =
-                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
-                "{ \"index\" : { \"_index\" : \"worf\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"worf\", \"_id\" : \"2\" } }"+System.lineSeparator()+
                 "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
 
-                "{ \"update\" : {\"_id\" : \"1\", \"_type\" : \"type1\", \"_index\" : \"test\"} }"+System.lineSeparator()+
+                "{ \"update\" : {\"_id\" : \"1\", \"_index\" : \"test\"} }"+System.lineSeparator()+
                 "{ \"doc\" : {\"field\" : \"valuex\"} }"+System.lineSeparator()+
-                "{ \"delete\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
-                "{ \"create\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"delete\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"create\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value3x\" }"+System.lineSeparator();
 
         HttpResponse response = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("worf", "worf"));
@@ -477,10 +476,10 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         String json =
         "{"+
             "\"persistent\" : {"+
-                "\"discovery.zen.minimum_master_nodes\" : 1"+
+                "\"indices.recovery.*\" : null"+
             "},"+
             "\"transient\" : {"+
-                "\"discovery.zen.minimum_master_nodes\" : 1"+
+                "\"indices.recovery.*\" : null"+
              "}"+
         "}";
 
@@ -489,7 +488,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("cluster:admin/settings/update"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("discovery.zen.minimum_master_nodes"));
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices.recovery.*"));
         //may vary because we log may hit master directly or not
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 1);
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
@@ -537,16 +536,16 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").type("students").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet_library").type("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("klingonempire").type("ships").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("public").type("legends").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("vulcangov").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("starfleet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("starfleet_academy").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("starfleet_library").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("klingonempire").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
-            tc.index(new IndexRequest("spock").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("kirk").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("role01_role02").type("type01").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("spock").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("kirk").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("role01_role02").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("starfleet","starfleet_academy","starfleet_library").alias("sf"))).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("klingonempire","vulcangov").alias("nonsf"))).actionGet();
@@ -581,7 +580,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         try (Client tc = getClient()) {
             for(int i=0; i<3; i++)
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("vulcangov").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
 
         TestAuditlogImpl.clear();
@@ -623,7 +622,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         try (Client tc = getClient()) {
             for(int i=0; i<3; i++)
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("vulcangov").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().alias("thealias").index("vulcangov"))).actionGet();
         }
 
@@ -711,7 +710,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         try (Client tc = getClient()) {
             for(int i=0; i<3; i++)
-            tc.index(new IndexRequest("vulcangov").type("kolinahr").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest("vulcangov").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
 
         TestAuditlogImpl.clear();

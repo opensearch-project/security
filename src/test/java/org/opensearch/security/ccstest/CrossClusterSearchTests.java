@@ -173,9 +173,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
@@ -183,9 +183,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
@@ -208,13 +208,13 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         //Assert.assertTrue(ccs.getBody().contains("Can not filter indices; index cross_cluster_two:xx exists but there is also a remote cluster named: cross_cluster_two"));
 
         System.out.println("###################### query 5");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:abcnonext/xx/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:abcnonext/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("nagilum","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("index_not_found_exception"));
 
         System.out.println("###################### query 6");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twutter/tweet/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twutter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("nagilum","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
@@ -232,9 +232,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("coordalias"))).actionGet();
 
@@ -244,9 +244,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("remotealias"))).actionGet();
 
@@ -282,7 +282,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
         System.out.println("###################### query 5");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twutter,twitter/tweet/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twutter,twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
@@ -291,7 +291,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                 "{}"+System.lineSeparator()+
                         "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter,twitter/tweet/_msearch?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, msearchBody, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter,twitter/_msearch?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, msearchBody, encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
@@ -300,7 +300,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                 "{}"+System.lineSeparator()+
                         "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter/tweet/_msearch?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, msearchBody, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter/_msearch?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, msearchBody, encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
@@ -403,9 +403,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("coordalias"))).actionGet();
 
@@ -415,9 +415,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("remotealias"))).actionGet();
 
@@ -452,7 +452,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
         System.out.println("###################### query 5");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twutter,twitter/tweet/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twutter,twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
@@ -461,7 +461,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                 "{}"+System.lineSeparator()+
                         "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter,twitter/tweet/_msearch?pretty", msearchBody, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter,twitter/_msearch?pretty", msearchBody, encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
@@ -470,7 +470,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                 "{}"+System.lineSeparator()+
                         "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter/tweet/_msearch?pretty", msearchBody, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter/_msearch?pretty", msearchBody, encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
@@ -584,14 +584,14 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter/tweet/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips, encodeBasicHeader("twitter","nagilum"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
@@ -612,15 +612,15 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("coordinating").type("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("abc").type("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("remote").type("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
@@ -692,20 +692,20 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("coordinating").type("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("abc").type("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twitter").type("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("remote").type("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
 
-            tc.index(new IndexRequest("analytics").type("analytics").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("analytics").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
@@ -782,15 +782,15 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("coordinating").type("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("abc").type("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("remote").type("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
@@ -847,20 +847,20 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("coordinating").type("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("abc").type("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twitter").type("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("remote").type("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
 
-            tc.index(new IndexRequest("analytics").type("analytics").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("analytics").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
@@ -923,12 +923,12 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                 .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                 .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
     }
@@ -941,7 +941,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         setupCcs(new DynamicSecurityConfig(), cluster1, cluster2);
         populateBaseData(cluster1, cluster2);
 
-        String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
+        String uri = "cross_cluster_two:twitter/_search?pretty";
         HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
         System.out.println(ccs.getBody());
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
@@ -963,7 +963,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         setupCcs(new DynamicSecurityConfig(), cluster1, cluster2);
         populateBaseData(cluster1, cluster2);
 
-        String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
+        String uri = "cross_cluster_two:twitter/_search?pretty";
         HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
         System.out.println(ccs.getBody());
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -988,7 +988,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         populateBaseData(cluster1, cluster2);
 
-        String uri = "cross_cluster_two:twitter/tweet/_search?pretty";
+        String uri = "cross_cluster_two:twitter/_search?pretty";
         HttpResponse ccs = rh1.executeGetRequest(uri, encodeBasicHeader("twitter", "nagilum"));
         System.out.println(ccs.getBody());
         assertThat(ccs.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -1032,7 +1032,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                 health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 

@@ -33,19 +33,19 @@ public class FlsDlsTestAB extends AbstractDlsFlsTest{
     protected void populateData(Client tc) {
 
         //aaa
-        tc.index(new IndexRequest("aaa").type("aaa").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("aaa").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"f1\": \"f1_a0\", \"f2\": \"f2_a0\", \"f3\": \"f3_a0\", \"f4\": \"f4_a0\",\"type\": \"a\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("aaa").type("aaa").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("aaa").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"f1\": \"f1_a1\", \"f2\": \"f2_a1\", \"f3\": \"f3_a1\", \"f4\": \"f4_a1\",\"type\": \"a\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("aaa").type("aaa").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("aaa").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"f1\": \"f1_a2\", \"f2\": \"f2_a2\", \"f3\": \"f3_a2\", \"f4\": \"f4_a2\",\"type\": \"x\"}", XContentType.JSON)).actionGet();
 
         //bbb
-        tc.index(new IndexRequest("bbb").type("bbb").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("bbb").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"f1\": \"f1_b0\", \"f2\": \"f2_b0\", \"f3\": \"f3_b0\", \"f4\": \"f4_b0\",\"type\": \"b\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("bbb").type("bbb").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("bbb").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"f1\": \"f1_b1\", \"f2\": \"f2_b1\", \"f3\": \"f3_b1\", \"f4\": \"f4_b1\",\"type\": \"b\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("bbb").type("bbb").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("bbb").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"f1\": \"f1_b2\", \"f2\": \"f2_b2\", \"f3\": \"f3_b2\", \"f4\": \"f4_b2\",\"type\": \"x\"}", XContentType.JSON)).actionGet();
 
         tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("aaa","bbb").alias("abalias"))).actionGet();

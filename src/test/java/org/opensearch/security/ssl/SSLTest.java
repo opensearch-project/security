@@ -591,7 +591,7 @@ public class SSLTest extends SingleClusterTest {
             Assert.assertEquals(3, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
             log.debug("Client connected");
             TestPrincipalExtractor.reset();
-            Assert.assertEquals("test", tc.index(new IndexRequest("test","test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON)).actionGet().getIndex());            
+            Assert.assertEquals("test", tc.index(new IndexRequest("test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"a\":5}", XContentType.JSON)).actionGet().getIndex());
             log.debug("Index created");           
             Assert.assertEquals(1L, tc.search(new SearchRequest("test")).actionGet().getHits().getTotalHits().value);
             log.debug("Search done");

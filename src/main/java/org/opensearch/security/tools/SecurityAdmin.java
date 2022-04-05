@@ -58,11 +58,10 @@ import org.opensearch.Version;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.client.indices.CreateIndexRequest;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.action.admin.indices.get.GetIndexRequest;
-import org.opensearch.action.admin.indices.get.GetIndexRequest.Feature;
-import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.client.indices.GetIndexRequest;
+import org.opensearch.client.indices.GetIndexRequest.Feature;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -75,6 +74,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.transport.NoNodeAvailableException;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.Strings;
@@ -655,7 +655,7 @@ public class SecurityAdmin {
 
             GetIndexResponse securityIndex = null;
             try {
-				securityIndex = restHighLevelClient.indices().get(new GetIndexRequest().indices(index).addFeatures(Feature.MAPPINGS), RequestOptions.DEFAULT);
+				securityIndex = restHighLevelClient.indices().get(new GetIndexRequest(index).addFeatures(Feature.MAPPINGS), RequestOptions.DEFAULT);
 			} catch (OpenSearchStatusException e1) {
 			    if(e1.status() == RestStatus.NOT_FOUND) {
                 //ignore
@@ -715,8 +715,7 @@ public class SecurityAdmin {
 
             final boolean legacy = createLegacyMode || (indexExists
                     && securityIndex.getMappings() != null
-                    && securityIndex.getMappings().get(index) != null
-                    && securityIndex.getMappings().get(index).containsKey("security"));
+                    && securityIndex.getMappings().get(index) != null);
             
             if(legacy) {
                 System.out.println("Legacy index '"+index+"' (ES 6) detected (or forced). You should migrate the configuration!");
@@ -832,15 +831,13 @@ public class SecurityAdmin {
 	private static boolean uploadFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy, boolean resolveEnvVars,
         final boolean populateEmptyIfMissing) {
 
-        String type = "_doc";
         String id = _id;
                 
         if(legacy) {
-            type = "security";
             id = _id;
 
             try {
-                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 1, 0, 0);
+                ConfigHelper.fromYamlFile(filepath, CType.fromString(_id), 2, 0, 0);
             } catch (Exception e) {
                 System.out.println("ERR: Seems "+filepath+" is not in legacy format: "+e);
                 return false;
@@ -855,12 +852,12 @@ public class SecurityAdmin {
             }
         }
 
-        System.out.println("Will update '" + type + "/" + id + "' with " + filepath + " " + (legacy ? "(legacy mode)" : ""));
+        System.out.println("Will update '" + "/" + id + "' with " + filepath + " " + (legacy ? "(legacy mode)" : ""));
 
 		try (Reader reader = ConfigHelper.createFileOrStringReader(CType.fromString(_id), legacy ? 1 : 2, filepath, populateEmptyIfMissing)) {
 			final String content = CharStreams.toString(reader);
 			final String res = restHighLevelClient
-					.index(new IndexRequest(index).type(type).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+					.index(new IndexRequest(index).id(id).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
 							.source(_id, readXContent(resolveEnvVars ? replaceEnvVars(content, Settings.EMPTY) : content, XContentType.YAML)), RequestOptions.DEFAULT).getId();
 
 
@@ -883,19 +880,17 @@ public class SecurityAdmin {
 	}
 
 	private static boolean retrieveFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy, final boolean populateFileIfEmpty) {
-        String type = "_doc";
         String id = _id;
                 
         if(legacy) {
-            type = "security";
             id = _id;
             
         }
         
-        System.out.println("Will retrieve '"+type+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
+        System.out.println("Will retrieve '"+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
         try (Writer writer = new FileWriter(filepath)) {
 
-			final GetResponse response = restHighLevelClient.get(new GetRequest(index).type(type).id(id).refresh(true).realtime(false), RequestOptions.DEFAULT);
+			final GetResponse response = restHighLevelClient.get(new GetRequest(index).id(id).refresh(true).realtime(false), RequestOptions.DEFAULT);
 
             boolean isEmpty = !response.isExists() || response.isSourceEmpty();
             String yaml;

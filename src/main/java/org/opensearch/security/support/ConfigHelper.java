@@ -76,7 +76,6 @@ public class ConfigHelper {
         try (Reader reader = createFileOrStringReader(cType, configVersion, filepath, populateEmptyIfFileMissing)) {
 
             final IndexRequest indexRequest = new IndexRequest(index)
-                    .type(configVersion == 1 ? "security" : "_doc")
                     .id(configType)
                     .opType(OpType.CREATE)
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)

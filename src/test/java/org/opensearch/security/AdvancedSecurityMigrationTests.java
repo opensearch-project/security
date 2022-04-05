@@ -191,7 +191,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
 
         RestHelper.HttpResponse res;
         RestHelper rh = nonSslRestHelper();
-        res = rh.executeGetRequest("/_cluster/health", null);
+        res = rh.executeGetRequest("/_cluster/health");
         Assert.assertEquals(res.getBody(), HttpStatus.SC_INTERNAL_SERVER_ERROR, res.getStatusCode());
     }
 
@@ -210,7 +210,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
 
         RestHelper.HttpResponse res;
         RestHelper rh = nonSslRestHelper();
-        res = rh.executeGetRequest("/_cluster/health", null);
+        res = rh.executeGetRequest("/_cluster/health");
         Assert.assertEquals(res.getBody(), HttpStatus.SC_INTERNAL_SERVER_ERROR, res.getStatusCode());
 
     }

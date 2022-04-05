@@ -72,7 +72,7 @@ public final class InternalOpenSearchSink extends AuditLogSink {
 
 		try (StoredContext ctx = threadPool.getThreadContext().stashContext()) {
 			try {
-				final IndexRequestBuilder irb = clientProvider.prepareIndex(getExpandedIndexName(indexPattern, index), type).setRefreshPolicy(RefreshPolicy.IMMEDIATE).setSource(msg.getAsMap());
+				final IndexRequestBuilder irb = clientProvider.prepareIndex(getExpandedIndexName(indexPattern, index)).setRefreshPolicy(RefreshPolicy.IMMEDIATE).setSource(msg.getAsMap());
 				threadPool.getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 				irb.setTimeout(TimeValue.timeValueMinutes(1));
 				irb.execute().actionGet();

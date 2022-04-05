@@ -30,13 +30,13 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest{
 
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest("deals").type("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust1\"}, \"zip\": \"12345\",\"secret\": \"tellnoone\",\"amount\": 10}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").type("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust2\", \"ctype\":\"industry\"}, \"amount\": 1500}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").type("deals").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust3\", \"ctype\":\"industry\"}, \"amount\": 200}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").type("deals").id("3").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("3").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust4\", \"ctype\":\"industry\"}, \"amount\": 20001}", XContentType.JSON)).actionGet();
 
 
@@ -138,13 +138,13 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        res = rh.executeGetRequest("/deals/deals/3?pretty", encodeBasicHeader("dept_manager_multi", "password"));
+        res = rh.executeGetRequest("/deals/_doc/3?pretty", encodeBasicHeader("dept_manager_multi", "password"));
         Assert.assertTrue(res.getBody().contains("\"found\" : false"));
 
-        res = rh.executeGetRequest("/deals/deals/3?realtime=true&pretty", encodeBasicHeader("dept_manager_multi", "password"));
+        res = rh.executeGetRequest("/deals/_doc/3?realtime=true&pretty", encodeBasicHeader("dept_manager_multi", "password"));
         Assert.assertTrue(res.getBody().contains("\"found\" : false"));
 
-        res = rh.executeGetRequest("/deals/deals/1?pretty", encodeBasicHeader("dept_manager_multi", "password"));
+        res = rh.executeGetRequest("/deals/_doc/1?pretty", encodeBasicHeader("dept_manager_multi", "password"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
@@ -158,9 +158,9 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest{
         //mget
         //msearch
         String msearchBody =
-                "{\"index\":\"deals\", \"type\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
                 "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
-                //"{\"index\":\".opendistro_security\", \"type\":\"config\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                //"{\"index\":\".opendistro_security\", \"type\":\"_doc\", \"ignore_unavailable\": true}"+System.lineSeparator()+
                //"{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager_multi", "password"))).getStatusCode());
@@ -178,22 +178,18 @@ public class FlsDlsTestMulti extends AbstractDlsFlsTest{
                 "\"docs\" : ["+
                     "{"+
                          "\"_index\" : \"deals\","+
-                        "\"_type\" : \"deals\","+
                         "\"_id\" : \"0\""+
                    " },"+
                    " {"+
                        "\"_index\" : \"deals\","+
-                       " \"_type\" : \"deals\","+
                        " \"_id\" : \"1\""+
                     "},"+
                     " {"+
                         "\"_index\" : \"deals\","+
-                        " \"_type\" : \"deals\","+
                         " \"_id\" : \"2\""+
                      "},"+
                      " {"+
                      "\"_index\" : \"deals\","+
-                     " \"_type\" : \"deals\","+
                      " \"_id\" : \"3\""+
                   "}"+
                 "]"+
