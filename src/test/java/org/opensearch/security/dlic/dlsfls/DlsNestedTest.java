@@ -33,18 +33,17 @@ public class DlsNestedTest extends AbstractDlsFlsTest{
     protected void populateData(Client tc) {
 
         String mapping = "{" +
-                "        \"mytype\" : {" +
                 "            \"properties\" : {" +
                 "                \"amount\" : {\"type\": \"integer\"}," +
                 "                \"owner\" : {\"type\": \"text\"}," +
                 "                \"my_nested_object\" : {\"type\" : \"nested\"}" +
                 "            }" +
-                "        }" +
                 "    }" +
                 "";
 
         tc.admin().indices().create(new CreateIndexRequest("deals")
-        .settings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0).build())).actionGet();
+        .settings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0).build())
+        .mapping(mapping, XContentType.JSON)).actionGet();
 
         //tc.index(new IndexRequest("deals").id("3").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         //        .source("{\"amount\": 7,\"owner\": \"a\", \"my_nested_object\" : {\"name\": \"spock\"}}", XContentType.JSON)).actionGet();
@@ -52,7 +51,7 @@ public class DlsNestedTest extends AbstractDlsFlsTest{
         //        .source("{\"amount\": 8, \"my_nested_object\" : {\"name\": \"spock\"}}", XContentType.JSON)).actionGet();
         //tc.index(new IndexRequest("deals").id("5").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
         //        .source("{\"amount\": 1400,\"owner\": \"a\", \"my_nested_object\" : {\"name\": \"spock\"}}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"amount\": 1500,\"owner\": \"b\", \"my_nested_object\" : {\"name\": \"spock\"}}", XContentType.JSON)).actionGet();
     }
 
