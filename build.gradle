@@ -331,7 +331,7 @@ task createPluginDescriptor() {
         "name=opensearch-security",
         "classname=org.opensearch.security.OpenSearchSecurityPlugin",
         "java.version=${java.targetCompatibility}",
-        "opensearch.version=${opensearch_build_nosnapshot}",
+        "opensearch.version=${version_tokens[0]}",
     ]
 
     new File("plugin-descriptor.properties").text = descriptorProperties.join ("\n")

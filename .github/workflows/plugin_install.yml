@@ -9,12 +9,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - id: opensearch-version
-      uses: madhead/read-java-properties@66cc8c88f5c6f6069ebfb42586024dd6ffe2e451
-      with:
-         file: gradle.properties
-         property: opensearch-core.version
-
     - name: Set up JDK
       uses: actions/setup-java@v1
       with:
@@ -25,7 +19,8 @@ jobs:
 
     - name: Download OpenSearch Core
       run: |
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-version.outputs.value }}/latest/linux/x64/builds/opensearch/dist/opensearch-min-${{ steps.opensearch-version.outputs.value }}-linux-x64.tar.gz
+        opensearch_version=`./gradlew properties -q | grep "opensearch_version:" | awk '{print $2}' | sed 's/-SNAPSHOT//g'`
+        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/$opensearch_version/latest/linux/x64/builds/opensearch/dist/opensearch-min-$opensearch_version-linux-x64.tar.gz
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
 
