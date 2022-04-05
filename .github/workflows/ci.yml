@@ -92,10 +92,10 @@ jobs:
         java-version: 11
 
     - run: ./gradlew clean assemble
-    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha1-SNAPSHOT.jar
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-SNAPSHOT.jar
 
     - run: ./gradlew clean assemble -Dbuild.snapshot=false
-    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha1.jar
+    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}.jar
 
     - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=alpha2
     - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha2.jar
