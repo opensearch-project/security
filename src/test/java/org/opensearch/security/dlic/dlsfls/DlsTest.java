@@ -273,7 +273,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         setup();
 
         try (Client client = getClient()) {
-            client.admin().indices().create(new CreateIndexRequest("logs")).actionGet();
+            client.admin().indices().create(new CreateIndexRequest("logs").mapping(ImmutableMap.of("properties", ImmutableMap.of("termX", ImmutableMap.of("type", "keyword"))))).actionGet();
 
             for (int i = 0; i < 3; i++) {
                 client.index(new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("amount", i, "termX", "A", "timestamp", "2022-01-06T09:05:00Z")).actionGet();
@@ -310,7 +310,8 @@ public class DlsTest extends AbstractDlsFlsTest{
                 + "  }\n"
                 + "}";
 
-        HttpResponse response1 = rh.executePostRequest("logs*/_search", query1, encodeBasicHeader("dept_manager", "password"));
+        final String queryPath = "logs*/_search?size=100";
+        HttpResponse response1 = rh.executePostRequest(queryPath, query1, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response1.getStatusCode());
         Assert.assertTrue(response1.getBody(), response1.getBody().contains("min_doc_count 0 is not supported when DLS is activated"));
@@ -340,7 +341,7 @@ public class DlsTest extends AbstractDlsFlsTest{
                 + "  }\n"
                 + "}";
 
-        HttpResponse response2 = rh.executePostRequest("logs*/_search", query2, encodeBasicHeader("dept_manager", "password"));
+        HttpResponse response2 = rh.executePostRequest(queryPath, query2, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response2.getStatusCode());
         Assert.assertTrue(response2.getBody(), response2.getBody().contains("\"key\":\"A\""));
@@ -350,7 +351,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(response2.getBody(), response2.getBody().contains("\"key\":\"E\""));
 
         // Admin with setting "min_doc_count":0. Expected to have access to all buckets".
-        HttpResponse response3 = rh.executePostRequest("logs*/_search", query1, encodeBasicHeader("admin", "admin"));
+        HttpResponse response3 = rh.executePostRequest(queryPath, query1, encodeBasicHeader("admin", "admin"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response3.getStatusCode());
         Assert.assertTrue(response3.getBody(), response3.getBody().contains("\"key\":\"A\""));
@@ -360,7 +361,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertTrue(response3.getBody(), response3.getBody().contains("\"key\":\"E\",\"doc_count\":0"));
 
         // Admin without setting "min_doc_count". Expected to have access to all buckets excluding E with 0 doc_count".
-        HttpResponse response4 = rh.executePostRequest("logs*/_search", query2, encodeBasicHeader("admin", "admin"));
+        HttpResponse response4 = rh.executePostRequest(queryPath, query2, encodeBasicHeader("admin", "admin"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response4.getStatusCode());
         Assert.assertTrue(response4.getBody(), response4.getBody().contains("\"key\":\"A\""));
@@ -372,7 +373,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         // Significant Text Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
         String query3 = "{\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\",\"min_doc_count\":0}}}}";
-        HttpResponse response5 = rh.executePostRequest("logs*/_search", query3, encodeBasicHeader("dept_manager", "password"));
+        HttpResponse response5 = rh.executePostRequest(queryPath, query3, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response5.getStatusCode());
         Assert.assertTrue(response5.getBody(), response5.getBody().contains("\"termX\":\"A\""));
@@ -384,7 +385,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
         String query4 = "{\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\"}}}}";
 
-        HttpResponse response6 = rh.executePostRequest("logs*/_search", query4, encodeBasicHeader("dept_manager", "password"));
+        HttpResponse response6 = rh.executePostRequest(queryPath, query4, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response6.getStatusCode());
         Assert.assertTrue(response6.getBody(), response6.getBody().contains("\"termX\":\"A\""));
@@ -394,7 +395,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(response6.getBody(), response6.getBody().contains("\"termX\":\"E\""));
 
         // Admin with setting "min_doc_count":0. Expected to have access to all buckets".
-        HttpResponse response7 = rh.executePostRequest("logs*/_search", query3, encodeBasicHeader("admin", "admin"));
+        HttpResponse response7 = rh.executePostRequest(queryPath, query3, encodeBasicHeader("admin", "admin"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response7.getStatusCode());
         Assert.assertTrue(response7.getBody(), response7.getBody().contains("\"termX\":\"A\""));
@@ -404,7 +405,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertTrue(response7.getBody(), response7.getBody().contains("\"termX\":\"E\""));
 
         // Admin without setting "min_doc_count". Expected to have access to all buckets".
-        HttpResponse response8 = rh.executePostRequest("logs*/_search", query4, encodeBasicHeader("admin", "admin"));
+        HttpResponse response8 = rh.executePostRequest(queryPath, query4, encodeBasicHeader("admin", "admin"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response8.getStatusCode());
         Assert.assertTrue(response8.getBody(), response8.getBody().contains("\"termX\":\"A\""));
@@ -417,7 +418,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
         String query5 = "{\"aggs\":{\"amount\":{\"histogram\":{\"field\":\"amount\",\"interval\":1,\"min_doc_count\":0}}}}";
 
-        HttpResponse response9 = rh.executePostRequest("logs*/_search", query5, encodeBasicHeader("dept_manager", "password"));
+        HttpResponse response9 = rh.executePostRequest(queryPath, query5, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response9.getStatusCode());
         Assert.assertTrue(response9.getBody(), response9.getBody().contains("\"termX\":\"A\""));
@@ -429,7 +430,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
         String query6 = "{\"aggs\":{\"amount\":{\"histogram\":{\"field\":\"amount\",\"interval\":1}}}}";
 
-        HttpResponse response10 = rh.executePostRequest("logs*/_search", query6, encodeBasicHeader("dept_manager", "password"));
+        HttpResponse response10 = rh.executePostRequest(queryPath, query6, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response10.getStatusCode());
         Assert.assertTrue(response10.getBody(), response10.getBody().contains("\"termX\":\"A\""));
@@ -439,7 +440,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(response10.getBody(), response10.getBody().contains("\"termX\":\"E\""));
 
         // Admin with setting "min_doc_count":0. Expected to have access to all buckets".
-        HttpResponse response11 = rh.executePostRequest("logs*/_search", query5, encodeBasicHeader("admin", "admin"));
+        HttpResponse response11 = rh.executePostRequest(queryPath, query5, encodeBasicHeader("admin", "admin"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response11.getStatusCode());
         Assert.assertTrue(response11.getBody(), response11.getBody().contains("\"termX\":\"A\""));
@@ -450,7 +451,7 @@ public class DlsTest extends AbstractDlsFlsTest{
 
 
         // Admin without setting "min_doc_count". Expected to have access to all buckets".
-        HttpResponse response12 = rh.executePostRequest("logs*/_search", query6, encodeBasicHeader("admin", "admin"));
+        HttpResponse response12 = rh.executePostRequest(queryPath, query6, encodeBasicHeader("admin", "admin"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response12.getStatusCode());
         Assert.assertTrue(response12.getBody(), response12.getBody().contains("\"termX\":\"A\""));
@@ -463,7 +464,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
         String query7 = "{\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\",\"min_doc_count\":0}}}}";
 
-        HttpResponse response13 = rh.executePostRequest("logs*/_search", query7, encodeBasicHeader("dept_manager", "password"));
+        HttpResponse response13 = rh.executePostRequest(queryPath, query7, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response13.getStatusCode());
         Assert.assertTrue(response13.getBody(), response13.getBody().contains("\"termX\":\"A\""));
@@ -475,7 +476,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
         String query8 = "{\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\"}}}}";
 
-        HttpResponse response14 = rh.executePostRequest("logs*/_search", query8, encodeBasicHeader("dept_manager", "password"));
+        HttpResponse response14 = rh.executePostRequest(queryPath, query8, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response14.getStatusCode());
         Assert.assertTrue(response14.getBody(), response14.getBody().contains("\"termX\":\"A\""));
@@ -485,7 +486,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(response14.getBody(), response14.getBody().contains("\"termX\":\"E\""));
 
         // Admin with setting "min_doc_count":0. Expected to have access to all buckets".
-        HttpResponse response15 = rh.executePostRequest("logs*/_search", query7, encodeBasicHeader("admin", "admin"));
+        HttpResponse response15 = rh.executePostRequest(queryPath, query7, encodeBasicHeader("admin", "admin"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response15.getStatusCode());
         Assert.assertTrue(response15.getBody(), response15.getBody().contains("\"termX\":\"A\""));
@@ -495,7 +496,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertTrue(response15.getBody(), response15.getBody().contains("\"termX\":\"E\""));
 
         // Admin without setting "min_doc_count". Expected to have access to all buckets".
-        HttpResponse response16 = rh.executePostRequest("logs*/_search", query8, encodeBasicHeader("admin", "admin"));
+        HttpResponse response16 = rh.executePostRequest(queryPath, query8, encodeBasicHeader("admin", "admin"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response16.getStatusCode());
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"A\""));
