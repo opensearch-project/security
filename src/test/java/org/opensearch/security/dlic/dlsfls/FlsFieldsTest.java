@@ -34,7 +34,7 @@ public class FlsFieldsTest extends AbstractDlsFlsTest{
 
     protected void populateData(Client tc) {
 
-        tc.admin().indices().create(new CreateIndexRequest("deals")).actionGet();
+        tc.admin().indices().create(new CreateIndexRequest("deals").simpleMapping("timestamp", "type=date", "@timestamp", "type=date")).actionGet();
 
         try {
             String doc = FileHelper.loadFile("dlsfls/doc1.json");
