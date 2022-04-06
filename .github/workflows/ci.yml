@@ -45,7 +45,18 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./build/jacoco/test/jacocoTestReport.xml
+        files: ./build/reports/jacoco/test/jacocoTestReport.xml
+
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: ${{ matrix.jdk }}-reports
+        path: |
+          ./build/reports/
+
+    - name: check archive for debugging
+      if: always()
+      run: echo "Check the artifact ${{ matrix.jdk }}-reports.zip for detailed test results"
 
   backward-compatibility:
     runs-on: ubuntu-latest
