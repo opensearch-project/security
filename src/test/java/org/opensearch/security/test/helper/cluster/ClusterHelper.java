@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -247,10 +248,10 @@ public final class ClusterHelper {
 
     private void closeAllNodes() throws  Exception {
         //close non master nodes
-        opensearchNodes.stream().filter(n->!n.isMasterEligible()).forEach(node->closeNode(node));
+        opensearchNodes.stream().filter(n->!n.isMasterEligible()).forEach(ClusterHelper::closeNode);
 
         //close master nodes
-        opensearchNodes.stream().filter(n->n.isMasterEligible()).forEach(node->closeNode(node));
+        opensearchNodes.stream().filter(n->n.isMasterEligible()).forEach(ClusterHelper::closeNode);
         opensearchNodes.clear();
         clusterState = ClusterState.STOPPED;
     }
@@ -258,7 +259,7 @@ public final class ClusterHelper {
     private static void closeNode(Node node) {
         try {
             node.close();
-            Thread.sleep(250);
+            node.awaitClose(250, TimeUnit.MILLISECONDS);
         } catch (Throwable e) {
             //ignore
         }
