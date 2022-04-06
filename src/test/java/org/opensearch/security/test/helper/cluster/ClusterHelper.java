@@ -367,7 +367,7 @@ public final class ClusterHelper {
                 .put("path.logs", "./target/data/"+clustername+"/logs")
                 .put("node.max_local_storage_nodes", nodeCount)
                 //.put("discovery.zen.minimum_master_nodes", minMasterNodes(masterTcpPorts.size()))
-                .putList("cluster.initial_master_nodes", masterTcpPorts.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList()))
+                .putList("cluster.initial_cluster_manager_nodes", masterTcpPorts.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList()))
                 //.put("discovery.zen.no_master_block", "all")
                 //.put("discovery.zen.fd.ping_timeout", "5s")
                 .put("discovery.initial_state_timeout","8s")
