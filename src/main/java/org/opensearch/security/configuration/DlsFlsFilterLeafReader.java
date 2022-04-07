@@ -421,11 +421,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         public void close() throws IOException {
             in.close();
         }
-
-        @Override
-        public long ramBytesUsed() {
-            return in.ramBytesUsed();
-        }
     }
 
     @Override
@@ -521,7 +516,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         }
 
         @Override
-        public void stringField(final FieldInfo fieldInfo, final byte[] value) throws IOException {
+        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
             fieldReadCallback.stringFieldRead(fieldInfo, value);
             delegate.stringField(fieldInfo, value);
         }
@@ -610,7 +605,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         }
 
         @Override
-        public void stringField(final FieldInfo fieldInfo, final byte[] value) throws IOException {
+        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
             delegate.stringField(fieldInfo, value);
         }
 
@@ -681,7 +676,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         }
 
         @Override
-        public void stringField(final FieldInfo fieldInfo, final byte[] value) throws IOException {
+        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
             final Optional<MaskedField> mf = maskedFieldsMap.getMaskedField(fieldInfo.name);
 
             if(mf.isPresent()) {
@@ -867,11 +862,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
 
             if (mf != null) {
                 return new SortedDocValues() {
-
-                    @Override
-                    public BytesRef binaryValue() throws IOException {
-                        return mf.mask(sortedDocValues.binaryValue());
-                    }
 
                     @Override
                     public int lookupTerm(BytesRef key) throws IOException {

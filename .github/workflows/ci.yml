@@ -79,29 +79,34 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - run: ./gradlew clean assemble
-
-    - id: security-plugin-version
-      uses: madhead/read-java-properties@66cc8c88f5c6f6069ebfb42586024dd6ffe2e451
-      with:
-         file: gradle.properties
-         property: security-plugin.version
-
     - uses: actions/setup-java@v1
       with:
         java-version: 11
 
-    - run: ./gradlew clean assemble
-    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-SNAPSHOT.jar
+    - run: |
+        security_plugin_version=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}')
+        security_plugin_version_no_snapshot=$(echo $security_plugin_version | sed 's/-SNAPSHOT//g')
+        security_plugin_version_only_number=$(echo $security_plugin_version_no_snapshot | cut -d- -f1)
+        test_qualifier=alpha2
 
-    - run: ./gradlew clean assemble -Dbuild.snapshot=false
-    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}.jar
+        echo "SECURITY_PLUGIN_VERSION=$security_plugin_version" >> $GITHUB_ENV
+        echo "SECURITY_PLUGIN_VERSION_NO_SNAPSHOT=$security_plugin_version_no_snapshot" >> $GITHUB_ENV
+        echo "SECURITY_PLUGIN_VERSION_ONLY_NUMBER=$security_plugin_version_only_number" >> $GITHUB_ENV
+        echo "TEST_QUALIFIER=$test_qualifier" >> $GITHUB_ENV
 
-    - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=alpha1
-    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha1.jar
+    - run: |
+        echo ${{ env.SECURITY_PLUGIN_VERSION }}
+        echo ${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}
+        echo ${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}
+        echo ${{ env.TEST_QUALIFIER }}
 
-    - run: ./gradlew clean assemble -Dbuild.version_qualifier=alpha1
-    - run: test -s ./build/opensearch-security-${{ steps.security-plugin-version.outputs.value }}-alpha1-SNAPSHOT.jar
+    - run: ./gradlew clean assemble && test -s ./build/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.jar
+
+    - run: ./gradlew clean assemble -Dbuild.snapshot=false && test -s ./build/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}.jar
+
+    - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}.jar
+
+    - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.jar
 
     - name: List files in the build directory if there was an error
       run: ls -al ./build/
