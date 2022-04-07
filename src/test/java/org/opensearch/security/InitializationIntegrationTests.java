@@ -79,12 +79,12 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/config/0", "{}", encodeBasicHeader("___", "")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/"+getType()+"/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
         
         
         rh.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/"+getType()+"/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
     
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"tx_size_in_bytes\" : 0"));
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"rx_count\" : 0"));
@@ -105,8 +105,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest(".opendistro_security/config/0", "{}", encodeBasicHeader("___", "")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest(".opendistro_security/sg/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
 
     }
 
@@ -148,7 +148,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (Client tc = getClient()) {
             Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-            tc.index(new IndexRequest(".opendistro_security").type(getType()).setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users_spock_add_roles.yml"))).actionGet();
+            tc.index(new IndexRequest(".opendistro_security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users_spock_add_roles.yml"))).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());   
         } 
@@ -165,7 +165,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
         
         try (Client tc = getClient()) {
             Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-            tc.index(new IndexRequest(".opendistro_security").type(getType()).setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("config").source("config", FileHelper.readYamlContent("config_anon.yml"))).actionGet();
+            tc.index(new IndexRequest(".opendistro_security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("config").source("config", FileHelper.readYamlContent("config_anon.yml"))).actionGet();
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());   
         }

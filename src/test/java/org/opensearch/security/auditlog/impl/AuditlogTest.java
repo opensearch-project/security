@@ -67,7 +67,6 @@ public class AuditlogTest {
 
         SearchRequest sr = new SearchRequest();
         sr.indices("index1","logstash*");
-        sr.types("mytype","logs");
 
         Settings settings = Settings.builder()
                 .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())

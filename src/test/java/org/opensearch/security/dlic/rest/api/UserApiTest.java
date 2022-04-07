@@ -389,20 +389,20 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // changed in ES5, you now need cluster:monitor/main which pucard does not have
         checkGeneralAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard");
 
-        // check read access to starfleet index and ships type, must fail
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 0);
+        // check read access to starfleet index and _doc type, must fail
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
 
         // overwrite user picard, and give him role "starfleet".
         addUserWithPassword("picard", "picard", new String[]{"starfleet"}, HttpStatus.SC_OK);
 
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "ships", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "ships", 1);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
 
         // overwrite user picard, and give him role "starfleet" plus "captains. Now
         // document can be created.
         addUserWithPassword("picard", "picard", new String[]{"starfleet", "captains"}, HttpStatus.SC_OK);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "ships", 0);
-        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "ships", 1);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
 
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/picard", new Header[0]);

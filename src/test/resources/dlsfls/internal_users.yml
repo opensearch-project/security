@@ -156,6 +156,7 @@ prop_replace:
   backend_roles:
   - "prole1"
   - "prole2"
+  - "prolemapped"
   attributes: {}
   description: "Migrated from v6"
 user_masked_custom:

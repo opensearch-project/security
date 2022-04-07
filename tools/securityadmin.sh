@@ -26,4 +26,3 @@ else
 fi
 
 "$BIN_PATH" $JAVA_OPTS -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "$DIR/../*:$DIR/../../../lib/*:$DIR/../deps/*" org.opensearch.security.tools.SecurityAdmin "$@" 2>/dev/null
-

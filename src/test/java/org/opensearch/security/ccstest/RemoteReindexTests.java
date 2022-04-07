@@ -96,7 +96,7 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
         
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").type("tweet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
+            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
                     .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
         
@@ -111,7 +111,7 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
                     "\"size\": 10,"+
                     "\"query\": {"+
                     "\"match\": {"+
-                    "\"_type\": \"tweet\""+
+                    "\"_type\": \"_doc\""+
                     "}"+
                   "}"+
             "},"+

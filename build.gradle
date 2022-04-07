@@ -47,7 +47,6 @@ import org.gradle.crypto.checksum.Checksum
 
 import java.text.SimpleDateFormat
 
-
 repositories {
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
@@ -56,7 +55,19 @@ repositories {
 }
 
 ext {
-    opensearch_version = System.getProperty("opensearch.version", "1.3.0-SNAPSHOT")
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    opensearch_version = System.getProperty("opensearch.version", "2.0.0-alpha1-SNAPSHOT")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
+    // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
+    version_tokens = opensearch_version.tokenize('-')
+    opensearch_build = version_tokens[0] + '.0'
+    if (buildVersionQualifier) {
+        opensearch_build += "-${buildVersionQualifier}"
+        opensearch_build_nosnapshot = opensearch_build
+    }
+    if (isSnapshot) {
+        opensearch_build += "-SNAPSHOT"
+    }
 }
 
 configurations.all {
@@ -81,7 +92,6 @@ dependencies {
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'commons-cli:commons-cli:1.3.1'
     implementation 'org.bouncycastle:bcprov-jdk15on:1.67'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
     implementation 'org.slf4j:slf4j-api:1.7.32'
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'org.apache.httpcomponents:httpclient-cache:4.5.13'
@@ -124,18 +134,14 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 }
 
-ext {
-    securityPluginVersion = '2.0.0.0'
-    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-}
-
 group = 'org.opensearch'
-version = "${securityPluginVersion}" + (isSnapshot ? "-SNAPSHOT" : "")
+version = opensearch_build
+
 description = 'OpenSearch Security'
 
 
-java.sourceCompatibility = JavaVersion.VERSION_1_8
-java.targetCompatibility = JavaVersion.VERSION_1_8
+java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
 
 tasks.register('testsJar', Jar) {
     archiveClassifier = 'tests'
@@ -319,16 +325,13 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
 }
 
 task createPluginDescriptor() {
-    if (opensearch_version.contains("-SNAPSHOT")) {
-        opensearch_version=opensearch_version.substring(0, opensearch_version.length() - 9)
-    }
     List<String> descriptorProperties = [
         "description=Provide access control related features for OpenSearch",
         "version=${version}",
         "name=opensearch-security",
         "classname=org.opensearch.security.OpenSearchSecurityPlugin",
         "java.version=${java.targetCompatibility}",
-        "opensearch.version=${opensearch_version}",
+        "opensearch.version=${version_tokens[0]}",
     ]
 
     new File("plugin-descriptor.properties").text = descriptorProperties.join ("\n")
@@ -386,4 +389,29 @@ buildRpm {
 buildDeb {
     arch = 'all'
     archiveName "${packageName}-${version}.deb"
+}
+
+allprojects {
+    // add a collection to track failedTests
+    ext.failedTests = []
+
+    // add a testlistener to all tasks of type Test
+    tasks.withType(Test) {
+        afterTest { TestDescriptor descriptor, TestResult result ->
+            if(result.resultType == org.gradle.api.tasks.testing.TestResult.ResultType.FAILURE){
+                failedTests << ["${descriptor.className}::${descriptor.name}"]
+            }
+        }
+    }
+
+    // print out tracked failed tests when the build has finished
+    gradle.buildFinished {
+        if(!failedTests.empty){
+            println "Failed tests for ${project.name}:"
+            failedTests.each { failedTest ->
+                println failedTest
+            }
+            println ""
+        }
+    }
 }

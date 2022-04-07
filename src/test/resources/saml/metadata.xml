@@ -33,4 +33,3 @@
         <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://localhost:33667/saml/sso" />
     </md:IDPSSODescriptor>
 </md:EntityDescriptor>
-

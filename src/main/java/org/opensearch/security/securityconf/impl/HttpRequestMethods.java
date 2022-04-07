@@ -36,4 +36,3 @@ public enum HttpRequestMethods {
         return requestMethod;
     }
 }
-

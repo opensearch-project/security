@@ -44,11 +44,11 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
         LocalDateTime tomorrow = LocalDateTime.now(ZoneId.of("UTC")).plusDays(1);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         
-        tc.index(new IndexRequest("logstash").type("_doc").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("logstash").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"@timestamp\": \""+formatter.format(yesterday)+"\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("logstash").type("_doc").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("logstash").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"@timestamp\": \""+formatter.format(today)+"\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("logstash").type("_doc").id("3").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("logstash").id("3").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"@timestamp\": \""+formatter.format(tomorrow)+"\"}", XContentType.JSON)).actionGet();
     }
 

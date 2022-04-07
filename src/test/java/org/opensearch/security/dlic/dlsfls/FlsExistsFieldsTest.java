@@ -30,19 +30,15 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
 
-        tc.admin().indices().create(new CreateIndexRequest("data").mapping("doc",
-                "@timestamp", "type=date",
-                "host", "type=text,norms=false",
-                "response", "type=text,norms=false",
-                "non-existing", "type=text,norms=false"
-        ))
+        tc.admin().indices().create(new CreateIndexRequest("data")
+                .simpleMapping("@timestamp", "type=date", "host", "type=text,norms=false", "response", "type=text,norms=false", "non-existing", "type=text,norms=false"))
                 .actionGet();
 
         for (int i = 0; i < 1; i++) {
             String doc = "{\"host\" : \"myhost"+i+"\",\n" +
                     "        \"@timestamp\" : \"2018-01-18T09:03:25.877Z\",\n" +
                     "        \"response\": \"404\"}";
-            tc.index(new IndexRequest("data").type("doc").id("a-normal-" + i).setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(doc,
+            tc.index(new IndexRequest("data").id("a-normal-" + i).setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(doc,
                     XContentType.JSON)).actionGet();
         }
 
@@ -50,7 +46,7 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
             String doc = "{" +
                     "        \"@timestamp\" : \"2017-01-18T09:03:25.877Z\",\n" +
                     "        \"response\": \"200\"}";
-            tc.index(new IndexRequest("data").type("doc").id("b-missing1-" + i).setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(doc,
+            tc.index(new IndexRequest("data").id("b-missing1-" + i).setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(doc,
                     XContentType.JSON)).actionGet();
         }
 
@@ -59,7 +55,7 @@ public class FlsExistsFieldsTest extends AbstractDlsFlsTest {
                     "        \"@timestamp\" : \"2018-01-18T09:03:25.877Z\",\n" +
                     "         \"non-existing\": \"xxx\","+
                     "        \"response\": \"403\"}";
-            tc.index(new IndexRequest("data").type("doc").id("c-missing2-" + i).setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(doc,
+            tc.index(new IndexRequest("data").id("c-missing2-" + i).setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(doc,
                     XContentType.JSON)).actionGet();
         }
 

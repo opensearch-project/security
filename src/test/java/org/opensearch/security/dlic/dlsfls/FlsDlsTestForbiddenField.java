@@ -30,9 +30,9 @@ public class FlsDlsTestForbiddenField extends AbstractDlsFlsTest{
 
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest("deals").type("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust1\"}, \"zip\": \"12345\",\"secret\": \"tellnoone\",\"amount\": 10}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").type("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"customer\": {\"name\":\"cust2\", \"ctype\":\"industry\"}, \"amount\": 1500}", XContentType.JSON)).actionGet();
 
     }
@@ -125,16 +125,16 @@ public class FlsDlsTestForbiddenField extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        res = rh.executeGetRequest("/deals/deals/0?pretty", encodeBasicHeader("dept_manager_fls_dls", "password"));
+        res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("dept_manager_fls_dls", "password"));
         Assert.assertTrue(res.getBody().contains("\"found\" : false"));
 
-        res = rh.executeGetRequest("/deals/deals/0?realtime=true&pretty", encodeBasicHeader("dept_manager_fls_dls", "password"));
+        res = rh.executeGetRequest("/deals/_doc/0?realtime=true&pretty", encodeBasicHeader("dept_manager_fls_dls", "password"));
         Assert.assertTrue(res.getBody().contains("\"found\" : false"));
 
-        res = rh.executeGetRequest("/deals/deals/1?pretty", encodeBasicHeader("admin", "admin"));
+        res = rh.executeGetRequest("/deals/_doc/1?pretty", encodeBasicHeader("admin", "admin"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
 
-        res = rh.executeGetRequest("/deals/deals/1?pretty", encodeBasicHeader("dept_manager_fls_dls", "password"));
+        res = rh.executeGetRequest("/deals/_doc/1?pretty", encodeBasicHeader("dept_manager_fls_dls", "password"));
         Assert.assertTrue(res.getBody().contains("\"found\" : false"));
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());

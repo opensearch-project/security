@@ -179,13 +179,13 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
     }
 
     void populateData(Client tc) {
-        tc.index(new IndexRequest("hr-dls").type("config").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("hr-dls").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .source("{\"User\": \"testuser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"HR\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("hr-fls").type("config").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("hr-fls").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .source("{\"User\": \"adminuser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"CEO\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("hr-masking").type("config").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("hr-masking").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .source("{\"User\": \"maskeduser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"CEO\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("hr-normal").type("config").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+        tc.index(new IndexRequest("hr-normal").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .source("{\"User\": \"employee1\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"EMPLOYEE\"}", XContentType.JSON)).actionGet();
     }
 

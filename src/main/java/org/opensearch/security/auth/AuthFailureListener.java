@@ -24,4 +24,3 @@ import org.opensearch.security.user.AuthCredentials;
 public interface AuthFailureListener {
     void onAuthFailure(InetAddress remoteAddress, AuthCredentials authCredentials, Object request);
 }
-

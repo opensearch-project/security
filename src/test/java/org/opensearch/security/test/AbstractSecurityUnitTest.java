@@ -192,18 +192,7 @@ public abstract class AbstractSecurityUnitTest {
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
 
             SearchResponse sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
-            //Assert.assertEquals(5L, sr.getHits().getTotalHits());
-
             sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
-            //Assert.assertEquals(5L, sr.getHits().getTotalHits());
-
-            String type=securityConfig.getType();
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
         }
     }
 
@@ -295,10 +284,6 @@ public abstract class AbstractSecurityUnitTest {
         return null;
     }
 
-
-    protected String getType() {
-        return "_doc";
-    }
 
     /**
      * Check if transport certs are is mentioned in the custom settings

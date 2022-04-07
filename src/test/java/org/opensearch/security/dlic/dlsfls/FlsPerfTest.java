@@ -50,7 +50,7 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
 
         try {
 
-            IndexRequest ir =  new IndexRequest("deals").type("deals2").id("idx1");
+            IndexRequest ir =  new IndexRequest("deals").id("idx1");
             XContentBuilder b = XContentBuilder.builder(JsonXContent.jsonXContent);
             b.startObject();
 
@@ -67,7 +67,7 @@ public class FlsPerfTest extends AbstractDlsFlsTest{
 
             for(int i=0; i<1500; i++) {
 
-                ir =  new IndexRequest("deals").type("deals").id("id"+i);
+                ir =  new IndexRequest("deals").id("id"+i);
                 b = XContentBuilder.builder(JsonXContent.jsonXContent);
                 b.startObject();
                 for(int j=0; j<2000;j++) {

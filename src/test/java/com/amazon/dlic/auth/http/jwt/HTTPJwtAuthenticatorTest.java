@@ -30,7 +30,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Before;
+
 import org.opensearch.common.settings.Settings;
 
 import org.apache.http.HttpHeaders;
@@ -43,23 +43,12 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 import com.google.common.io.BaseEncoding;
 
-import static org.junit.Assume.assumeFalse;
-
 public class HTTPJwtAuthenticatorTest {
 
     final static byte[] secretKey = new byte[1024];
 
     static {
         new SecureRandom().nextBytes(secretKey);
-    }
-
-    /*
-    This test fails during Java 17 build due to a known bug: https://bugs.openjdk.java.net/browse/JDK-8251547
-    TODO: This method should be removed once a fix is implemented
-    */
-    @Before
-    public void isJavaVersionBelow17(){
-        assumeFalse(System.getProperty("java.version").startsWith("17"));
     }
 
     @Test
@@ -485,7 +474,7 @@ public class HTTPJwtAuthenticatorTest {
     public void testES512() throws Exception {
 
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC");
-        keyGen.initialize(571);
+        keyGen.initialize(521);
         KeyPair pair = keyGen.generateKeyPair();
         PrivateKey priv = pair.getPrivate();
         PublicKey pub = pair.getPublic();
