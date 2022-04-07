@@ -16,8 +16,8 @@
 package org.opensearch.security.auditlog.sink;
 
 import org.apache.logging.log4j.Level;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.common.settings.Settings;
 
 import org.opensearch.security.auditlog.impl.AuditMessage;
@@ -32,7 +32,7 @@ public final class Log4JSink extends AuditLogSink {
     public Log4JSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
         super(name, settings, settingsPrefix, fallbackSink);
         loggerName = settings.get( settingsPrefix + ".log4j.logger_name","sgaudit");
-        auditLogger = LoggerFactory.getLogger(loggerName);
+        auditLogger = LogManager.getLogger(loggerName);
         logLevel = Level.toLevel(settings.get(settingsPrefix + ".log4j.level","INFO").toUpperCase());
         enabled = isLogLevelEnabled(auditLogger, logLevel);
     }

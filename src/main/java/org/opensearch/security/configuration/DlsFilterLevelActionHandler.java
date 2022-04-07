@@ -25,8 +25,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionRequest;
@@ -69,7 +69,7 @@ import org.opensearch.security.support.ReflectiveAttributeAccessors;
 import org.opensearch.security.support.SecurityUtils;
 
 public class DlsFilterLevelActionHandler {
-    private static final Logger log = LoggerFactory.getLogger(DlsFilterLevelActionHandler.class);
+    private static final Logger log = LogManager.getLogger(DlsFilterLevelActionHandler.class);
 
     private static final Function<SearchRequest, String> LOCAL_CLUSTER_ALIAS_GETTER = ReflectiveAttributeAccessors
             .protectedObjectAttr("localClusterAlias", String.class);

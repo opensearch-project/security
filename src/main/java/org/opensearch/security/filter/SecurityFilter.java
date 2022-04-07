@@ -41,8 +41,8 @@ import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.opensearch.security.auth.BackendRegistry;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
@@ -105,7 +105,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 
 public class SecurityFilter implements ActionFilter {
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;

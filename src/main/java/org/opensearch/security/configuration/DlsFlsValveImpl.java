@@ -75,13 +75,13 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
 	private static final String MAP_EXECUTION_HINT = "map";
-	private static final Logger log = LoggerFactory.getLogger(DlsFlsValveImpl.class);
+	private static final Logger log = LogManager.getLogger(DlsFlsValveImpl.class);
 
     private final Client nodeClient;
     private final ClusterService clusterService;
@@ -213,14 +213,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
                     sb.append(Strings.toString(af) + System.lineSeparator());
 
-                    LoggerFactory.getLogger("debuglogger").error(sb.toString());
+                    LogManager.getLogger("debuglogger").error(sb.toString());
 
                 }
 
                 if (!cacheable) {
                     searchRequest.requestCache(Boolean.FALSE);
                 } else {
-                	LoggerFactory.getLogger("debuglogger").error("Shard requestcache enabled for "
+                	LogManager.getLogger("debuglogger").error("Shard requestcache enabled for "
                             + (searchRequest.source() == null ? "<NULL>" : Strings.toString(searchRequest.source())));
                 }
 
