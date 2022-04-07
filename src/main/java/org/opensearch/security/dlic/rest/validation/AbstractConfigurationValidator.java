@@ -25,8 +25,8 @@ import java.util.Set;
 
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.DefaultObjectMapper;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentBuilder;
@@ -57,7 +57,7 @@ public abstract class AbstractConfigurationValidator {
     /* public for testing */
     public final static String MISSING_MANDATORY_OR_KEYS_KEY = "specify_one_of";
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
 
     /** Define the various keys for this validator */
     protected final Map<String, DataType> allowedKeys = new HashMap<>();

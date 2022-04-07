@@ -67,8 +67,8 @@ import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.setting.OpensearchDynamicSetting;
 import org.opensearch.security.setting.TransportPassiveAuthSetting;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -183,7 +183,7 @@ import com.google.common.collect.Lists;
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
 
     private static final String KEYWORD = ".keyword";
-    private static final Logger actionTrace = LoggerFactory.getLogger("opendistro_security_action_trace");
+    private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenSearchSecurityPlugin.class);
 
     public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";

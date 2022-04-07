@@ -21,8 +21,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
@@ -48,7 +48,7 @@ import com.google.common.cache.CacheBuilder;
 
 public final class DlsQueryParser {
 
-    private static final Logger log = LoggerFactory.getLogger(DlsQueryParser.class);
+    private static final Logger log = LogManager.getLogger(DlsQueryParser.class);
     private static final Query NON_NESTED_QUERY;
 
     static {

@@ -42,8 +42,8 @@ import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableSet;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
@@ -116,7 +116,7 @@ public class PrivilegesEvaluator {
 
     private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final ClusterService clusterService;
 
     private final IndexNameExpressionResolver resolver;
