@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -65,7 +65,7 @@ import org.opensearch.security.support.WildcardMatcher;
 
 public final class RequestResolver {
 
-    private static final Logger log = LoggerFactory.getLogger(RequestResolver.class);
+    private static final Logger log = LogManager.getLogger(RequestResolver.class);
 
     public static List<AuditMessage> resolve(
             final AuditCategory category,
