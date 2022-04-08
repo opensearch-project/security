@@ -21,7 +21,6 @@ else
     DIR="$( cd "$( dirname "$(realpath "$SCRIPT_PATH")" )" && pwd -P)"
 fi
 
-exit 
 echo "OpenSearch Security Demo Installer"
 echo " ** Warning: Do not use on production or public reachable systems **"
 
