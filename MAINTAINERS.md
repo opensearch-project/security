@@ -23,9 +23,9 @@ To ensure common practices as maintainers, all practices are expected to be docu
 ## Reverting Commits
 There will be changes that destabilize or block contributions.  The impact of these changes will be localized on the repository or even the entire OpenSearch project.  We should bias towards keeping contributions unblocked by immediately reverting impacting changes, these reverts will be done by a maintainer.  After the change has been reverted, an issue will be openned to re-merge the change and callout the elements of the contribution that need extra examination such as additional tests or even pull request workflows.
 
-Exceptional, instead of immediately reverting, if a contributor knows how and will resolve the issue in an hour we should fix-forward to reduce overhead.
+Exceptional, instead of immediately reverting, if a contributor knows how and will resolve the issue in an hour or less we should fix-forward to reduce overhead.
 
 ### Performing Revert
 Go to the pull request of the change that was an issue, there is a `Revert` button at the bottom.  If there are no conflicts to resolve, this can be done immediately bypassing standard approval.
 
-Reverts can also be done via the command line using `git revert` and creating a new pull request.  If done in this way they should have references to the pull request that was reverted.
+Reverts can also be done via the command line using `git revert <commit-id>` and creating a new pull request.  If done in this way they should have references to the pull request that was reverted.
