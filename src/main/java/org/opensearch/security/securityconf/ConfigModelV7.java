@@ -368,7 +368,7 @@ public class ConfigModelV7 extends ConfigModel {
             Map<String, Set<String>> maskedFieldsMap = new HashMap<String, Set<String>>();
 
             // we capture all concrete indices that do not have any
-            // DLS/FLS/Masked Fields restrictions. If the dmf_empty_overwrites_all
+            // DLS/FLS/Masked Fields restrictions. If the dfm_empty_overwrites_all
             // switch is enabled, this trumps any restrictions on those indices
             // that may be imposed by other roles.
             Set<String> noDlsConcreteIndices = new HashSet<>();

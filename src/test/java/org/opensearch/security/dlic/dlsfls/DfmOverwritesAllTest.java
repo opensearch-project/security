@@ -127,7 +127,7 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
         Assert.assertFalse(response.getBody().contains("value-2-3"));
         Assert.assertFalse(response.getBody().contains("value-2-4"));
 
-        // field2 - check also some masked vallues
+        // field2 - check also some masked values
         Assert.assertTrue(response.getBody().contains("514b27191e2322b0f7cd6afc3a5d657ff438fd0cc8dc229bd1a589804fdffd99"));
         Assert.assertTrue(response.getBody().contains("3090f7e867f390fb96b20ba30ee518b09a927b857393ebd1262f31191a385efa"));
     }
