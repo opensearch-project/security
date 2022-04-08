@@ -364,7 +364,7 @@ public class ConfigModelV6 extends ConfigModel {
 
 
         @Override
-        public EvaluatedDlsFlsConfig getDlsFls(User user, IndexNameExpressionResolver resolver, ClusterService cs,
+        public EvaluatedDlsFlsConfig getDlsFls(User user, boolean dfmEmptyOverwritesAll, IndexNameExpressionResolver resolver, ClusterService cs,
                 NamedXContentRegistry namedXContentRegistry) {
 
             final Map<String, Set<String>> dlsQueries = new HashMap<String, Set<String>>();

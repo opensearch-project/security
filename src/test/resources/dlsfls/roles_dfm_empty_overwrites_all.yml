@@ -1,0 +1,50 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+
+os_admin:
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - '*'
+
+os_dfm_restricted_all_indices:
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "index1-*"
+      allowed_actions:
+        - "*"
+      dls: '{ "bool": { "must_not": { "term": { "field1": 1  }}}}'
+      masked_fields:
+        - "field2"
+      fls:
+        - "~field3"
+        - "~field4"
+
+os_dfm_not_restricted_all_indices:
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "index1-*"
+      allowed_actions:
+        - "*"
+
+os_dfm_not_restricted_one_index:
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "index1-4"
+      allowed_actions:
+        - "*"
+    - index_patterns:
+        - "index1-1"
+      allowed_actions:
+        - "*"

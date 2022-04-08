@@ -136,6 +136,7 @@ public class PrivilegesEvaluator {
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
     private final boolean dlsFlsEnabled;
+    private final boolean dfmEmptyOverwritesAll;
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
     
@@ -164,6 +165,7 @@ public class PrivilegesEvaluator {
         termsAggregationEvaluator = new TermsAggregationEvaluator();
         this.namedXContentRegistry = namedXContentRegistry;
         this.dlsFlsEnabled = dlsFlsEnabled;
+        this.dfmEmptyOverwritesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
     }
 
     @Subscribe
@@ -292,7 +294,7 @@ public class PrivilegesEvaluator {
             log.trace("dnfof enabled? {}", dnfofEnabled);
         }
 
-        presponse.evaluatedDlsFlsConfig = getSecurityRoles(mappedRoles).getDlsFls(user, resolver, clusterService, namedXContentRegistry);
+        presponse.evaluatedDlsFlsConfig = getSecurityRoles(mappedRoles).getDlsFls(user, dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
         
 
         if (isClusterPerm(action0)) {

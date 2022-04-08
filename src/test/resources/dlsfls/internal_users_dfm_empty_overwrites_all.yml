@@ -1,0 +1,24 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+admin:
+  #password
+  hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe
+
+dfm_user:
+  #password
+  hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe
+
+dfm_restricted_and_unrestricted_all_indices_role:
+  #password
+  hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe
+
+dfm_restricted_and_unrestricted_one_index_role:
+  #password
+  hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe
+
+dfm_restricted_role:
+  #password
+  hash: $2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe
