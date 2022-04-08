@@ -1,6 +1,11 @@
 #!/bin/bash
 #install_demo_configuration.sh [-y]
 
+echo "**************************************************************************"
+echo "** This tool will be deprecated in the next major release of OpenSearch **"
+echo "** https://github.com/opensearch-project/security/issues/1755           **"
+echo "**************************************************************************"
+
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 if ! [ -x "$(command -v realpath)" ]; then
     if [ -L "$SCRIPT_PATH" ]; then
@@ -16,6 +21,7 @@ else
     DIR="$( cd "$( dirname "$(realpath "$SCRIPT_PATH")" )" && pwd -P)"
 fi
 
+exit 
 echo "OpenSearch Security Demo Installer"
 echo " ** Warning: Do not use on production or public reachable systems **"
 
