@@ -1,0 +1,102 @@
+plugins {
+    id 'maven-publish'
+}
+
+ext {
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    opensearch_version = System.getProperty("opensearch.version", "2.0.0-alpha1-SNAPSHOT")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
+    // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
+    version_tokens = opensearch_version.tokenize('-')
+    opensearch_build = version_tokens[0] + '.0'
+    if (buildVersionQualifier) {
+        opensearch_build += "-${buildVersionQualifier}"
+        opensearch_build_nosnapshot = opensearch_build
+    }
+    if (isSnapshot) {
+        opensearch_build += "-SNAPSHOT"
+    }
+}
+
+
+allprojects {
+    // Default to the apache license
+    project.ext.licenseName = 'The Apache Software License, Version 2.0'
+    project.ext.licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    publishing {
+            repositories {
+                maven {
+                    name = 'staging'
+                    url = "${rootProject.buildDir}/local-staging-repo"
+                }
+            }
+            publications {
+                // add license information to generated poms
+                all {
+                    pom.withXml { XmlProvider xml ->
+                        Node node = xml.asNode()
+                        node.appendNode('inceptionYear', '2021')
+
+                        Node license = node.appendNode('licenses').appendNode('license')
+                        license.appendNode('name', project.licenseName)
+                        license.appendNode('url', project.licenseUrl)
+
+                        Node developer = node.appendNode('developers').appendNode('developer')
+                        developer.appendNode('name', 'OpenSearch')
+                        developer.appendNode('url', 'https://github.com/opensearch-project/security')
+                    }
+                }
+            }
+        }
+}
+
+def group = "org.opensearch.plugin"
+def pluginversion = opensearch_build
+def component = "opensearch-security"
+def description = "OpenSearch Security plugin Zip"
+def zipFile = "${component}-${pluginversion}.zip"
+def zipArtifact = "${rootProject.buildDir}/distributions/${zipFile}"
+
+
+publishing {
+    publications { 
+        maven(MavenPublication) {
+            //Add ext.publish = 'skip' to skip publishing skip to maven staging repo
+            groupId = "${group}"
+            artifactId = "${component}"
+            version = "${pluginversion}"
+            // Add extension, to get <packaging>zip</packaging> as in pom file
+            artifact(zipArtifact) {
+                extension 'zip'
+            }
+            pom {
+              name = "${component}"
+              description = "${description}"
+            }
+        }
+    }
+}
+
+task printZipsPublishProperty {
+  doLast {
+      tasks.withType(PublishToMavenRepository).all { publishTask ->
+      if (publication.hasProperty('publish')) {
+          println(publication.publish)
+      }else {
+          println("null")
+      }
+    }
+  }
+}
+
+afterEvaluate {
+    tasks.withType(PublishToMavenRepository).all { publishTask ->                                   
+        publishTask.onlyIf { task ->                                                                  
+        if (publication.hasProperty('publish') && publication.publish == 'skip') {
+            return false                                                                    
+        }                                                                                           
+        return true                                                                                 
+       }   
+    } 
+}
+
