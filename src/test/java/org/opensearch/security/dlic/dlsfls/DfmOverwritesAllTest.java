@@ -54,9 +54,12 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
 
     }
 
+    /**
+     * Admin user sees all, no dfm restrictions apply.
+     * @throws Exception
+     */
     @Test
     public void testDFMUnrestrictedUser() throws Exception {
-        // admin user sees all, no dfm restrictions apply
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, true).build();
 
         setup(settings, new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
@@ -90,11 +93,13 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
         Assert.assertTrue(response.getBody().contains("value-2-4"));
     }
 
-
+    /**
+     * Tests that the DFM settings are applied. User has only one role
+     * with D/F/M all enabled, so restrictions must kick in.
+     * @throws Exception
+     */
     @Test
     public void testDFMRestrictedUser() throws Exception {
-        // tests that the DFM settings are applied. User has only one role
-        // with D/F/M all enabled, so restrictions must kick in
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, true).build();
 
         setup(settings, new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
@@ -132,13 +137,16 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
         Assert.assertTrue(response.getBody().contains("3090f7e867f390fb96b20ba30ee518b09a927b857393ebd1262f31191a385efa"));
     }
 
+    /**
+     * User has the restricted role as in test testDFMRestrictedUser(). In addition, user has
+     * another role with the same index pattern as the restricted role but no DFM settings. In that
+     * case the unrestricted role should trump the restricted one, so basically user has
+     * full access again.
+     * @throws Exception
+     */
     @Test
     public void testDFMRestrictedAndUnrestrictedAllIndices() throws Exception {
 
-        // user has the restricted role as in test testDFMRestrictedUser(). In addition, user has
-        // another role with the same index pattern as the restricted role but no DFM settings. In that
-        // case the unrestricted role should trump the restricted one, so basically user has
-        // full access again.
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, true).build();
 
         setup(settings, new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
@@ -172,13 +180,15 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
         Assert.assertTrue(response.getBody().contains("value-2-4"));
     }
 
+    /**
+     * User has the restricted role as in test testDFMRestrictedUser(). In addition, user has
+     * another role where the index pattern matches two specific index ("index1-2", "index-1-1"), means this role has two indices
+     * which are more specific than the index pattern in the restricted role ("index1-*"), So the second role should
+     * remove the DMF restrictions from exactly two indices. Otherwise, restrictions still apply.
+     * @throws Exception
+     */
     @Test
     public void testDFMRestrictedAndUnrestrictedOneIndex() throws Exception {
-
-        // user has the restricted role as in test testDFMRestrictedUser(). In addition, user has
-        // another role where the index pattern matches two specific index ("index1-2", "index-1-1"), means this role has two indices
-        // which are more specific than the index pattern in the restricted role ("index1-*"), So the second role should
-        // remove the DMF restrictions from exactly two indices. Otherwise, restrictions still apply.
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, true).build();
         setup(settings, new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
                 .setSecurityInternalUsers("internal_users_dfm_empty_overwrites_all.yml")
