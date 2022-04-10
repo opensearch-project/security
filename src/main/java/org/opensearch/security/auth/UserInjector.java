@@ -30,14 +30,7 @@
 
 package org.opensearch.security.auth;
 
-import java.io.ObjectStreamException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Map;
-
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import com.google.common.base.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.rest.RestRequest;
@@ -47,8 +40,14 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Strings;
+import java.io.ObjectStreamException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Map;
 
 public class UserInjector {
 
@@ -59,7 +58,7 @@ public class UserInjector {
     private final XFFResolver xffResolver;
     private final Boolean injectUserEnabled;
 
-    UserInjector(Settings settings, ThreadPool threadPool, AuditLog auditLog, XFFResolver xffResolver) {
+    public UserInjector(Settings settings, ThreadPool threadPool, AuditLog auditLog, XFFResolver xffResolver) {
         this.threadPool = threadPool;
         this.auditLog = auditLog;
         this.xffResolver = xffResolver;
@@ -102,7 +101,7 @@ public class UserInjector {
         }
     }
 
-    InjectedUser getInjectedUser() {
+    public InjectedUser getInjectedUser() {
         if (!injectUserEnabled) {
             return null;
         }

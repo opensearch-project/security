@@ -30,22 +30,11 @@
 
 package org.opensearch.security.filter;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.opensearch.security.auth.RolesInjector;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
-
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionRequest;
@@ -82,20 +71,27 @@ import org.opensearch.rest.RestStatus;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.auth.RolesInjector;
+import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
+import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.support.*;
+import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.opensearch.security.support.Base64Helper;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.support.SourceFieldsContext;
-import org.opensearch.security.user.User;
+import java.util.Collections;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
@@ -111,12 +107,14 @@ public class SecurityFilter implements ActionFilter {
     private final ClusterService cs;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
+    private final XFFResolver xffResolver;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
+    private final UserInjector userInjector;
 
     public SecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
                           DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer) {
+                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, final XFFResolver xffResolver) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -125,8 +123,10 @@ public class SecurityFilter implements ActionFilter {
         this.cs = cs;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
+        this.xffResolver = xffResolver;
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         this.rolesInjector = new RolesInjector(auditLog);
+        this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -166,8 +166,16 @@ public class SecurityFilter implements ActionFilter {
                 attachSourceFieldContext(request);
             }
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
+            boolean enforcePrivilegesEvaluation = false;
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-
+            if(user == null && (user = userInjector.getInjectedUser()) != null) {
+                threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                // since there is no support for TransportClient auth/auth in 2.0 anymore, usually we
+                // can skip any checks on transport in case of trusted requests.
+                // However, if another plugin injected a user in the ThreadContext, we still need
+                // to perform privileges checks.
+                enforcePrivilegesEvaluation = true;
+            }
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
@@ -249,6 +257,7 @@ public class SecurityFilter implements ActionFilter {
             if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
                     && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
                     && (injectedRoles == null)
+                    && !enforcePrivilegesEvaluation
                     ) {
 
                 chain.proceed(task, action, request, listener);

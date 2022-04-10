@@ -15,40 +15,34 @@
 
 package org.opensearch.security.filter;
 
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.configuration.CompatConfig;
-import org.opensearch.security.configuration.DlsFlsRequestValve;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.collect.ImmutableSet;
-
-import org.opensearch.action.ActionListener;
-import org.opensearch.action.ActionResponse;
-import org.opensearch.client.Client;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
-import org.opensearch.threadpool.ThreadPool;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionListener;
+import org.opensearch.action.ActionResponse;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.CompatConfig;
+import org.opensearch.security.configuration.DlsFlsRequestValve;
+import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.util.Arrays;
 import java.util.Collection;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.*;
 
 @RunWith(Parameterized.class)
 public class SecurityFilterTest {
@@ -87,7 +81,8 @@ public class SecurityFilterTest {
                 mock(ThreadPool.class),
                 mock(ClusterService.class),
                 mock(CompatConfig.class),
-                mock(IndexResolverReplacer.class)
+                mock(IndexResolverReplacer.class),
+                mock(XFFResolver.class)
         );
         assertEquals(expected, filter.getImmutableIndicesMatcher());
     }
@@ -109,7 +104,8 @@ public class SecurityFilterTest {
             new ThreadPool(Settings.builder().put("node.name",  "mock").build()),
             mock(ClusterService.class),
             mock(CompatConfig.class),
-            mock(IndexResolverReplacer.class)
+            mock(IndexResolverReplacer.class),
+            mock(XFFResolver.class)
         );
 
         // Act
