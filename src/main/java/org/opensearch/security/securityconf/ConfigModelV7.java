@@ -387,8 +387,8 @@ public class ConfigModelV7 extends ConfigModel {
 							dlsQueriesByIndex.computeIfAbsent(concreteIndex, (key) -> new HashSet<String>()).add(dls);
 						}
 					} else if (dfmEmptyOverwritesAll) {
-                        noDlsConcreteIndices.addAll(concreteIndices);
-                    }
+					    noDlsConcreteIndices.addAll(concreteIndices);
+					}
 
                     Set<String> fls = ip.getFls();
 
@@ -423,14 +423,15 @@ public class ConfigModelV7 extends ConfigModel {
                     }
                 }
             }
-
             if (dfmEmptyOverwritesAll) {
-                log.debug("Index patterns with no dls queries attached: {} - They will be removed from {}", noDlsConcreteIndices,
-                        dlsQueriesByIndex.keySet());
-                log.debug("Index patterns with no fls fields attached: {} - They will be removed from {}", noFlsConcreteIndices,
-                        flsFields.keySet());
-                log.debug("Index patterns with no masked fields attached: {} - They will be removed from {}", noMaskedFieldConcreteIndices,
-                        maskedFieldsMap.keySet());
+                if (log.isDebugEnabled()) {
+                    log.debug("Index patterns with no dls queries attached: {} - They will be removed from {}", noDlsConcreteIndices,
+                            dlsQueriesByIndex.keySet());
+                    log.debug("Index patterns with no fls fields attached: {} - They will be removed from {}", noFlsConcreteIndices,
+                            flsFields.keySet());
+                    log.debug("Index patterns with no masked fields attached: {} - They will be removed from {}", noMaskedFieldConcreteIndices,
+                            maskedFieldsMap.keySet());
+                }
                 // removing the indices that do not have D/M/F restrictions
                 // from the keySet will also modify the underlying map
                 dlsQueriesByIndex.keySet().removeAll(noDlsConcreteIndices);
