@@ -63,7 +63,6 @@ publishing {
         maven(MavenPublication) {
             //Add ext.publish = 'skip' to skip publishing skip to maven staging repo
             groupId = "${group}"
-            ext.publish = 'skip'
             artifactId = "${component}"
             version = "${pluginversion}"
             // Add extension, to get <packaging>zip</packaging> as in pom file
