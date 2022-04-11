@@ -9,13 +9,13 @@ ext {
     // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
     version_tokens = opensearch_version.tokenize('-')
     opensearch_build = version_tokens[0] + '.0'
-    if (buildVersionQualifier) {
+    /*if (buildVersionQualifier) {
         opensearch_build += "-${buildVersionQualifier}"
         opensearch_build_nosnapshot = opensearch_build
     }
     if (isSnapshot) {
         opensearch_build += "-SNAPSHOT"
-    }
+    }*/
 }
 
 
