@@ -9,13 +9,13 @@ ext {
     // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
     version_tokens = opensearch_version.tokenize('-')
     opensearch_build = version_tokens[0] + '.0'
-    /*if (buildVersionQualifier) {
+    if (buildVersionQualifier) {
         opensearch_build += "-${buildVersionQualifier}"
         opensearch_build_nosnapshot = opensearch_build
     }
     if (isSnapshot) {
         opensearch_build += "-SNAPSHOT"
-    }*/
+    }
 }
 
 
@@ -55,7 +55,7 @@ def pluginversion = opensearch_build
 def component = "opensearch-security"
 def description = "OpenSearch Security plugin Zip"
 def zipFile = "${component}-${pluginversion}.zip"
-def zipArtifact = "${rootProject.buildDir}/distributions/opensearch-security-2.0.0.0.zip"
+def zipArtifact = "${rootProject.buildDir}/distributions/${zipFile}"
 
 
 publishing {
