@@ -5,4 +5,7 @@
  */
 
 rootProject.name = 'opensearch-security'
-include "zipsmaven"
+
+//Adding pluginZips project under maven folder, this is to publish generated plugin zips to maven repo
+include 'pluginZips'
+project(':pluginZips').projectDir = file('maven/plugin-zips')
