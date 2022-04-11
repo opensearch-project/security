@@ -433,9 +433,17 @@ public final class AuditMessage {
         return (String) this.auditInfo.get(TRANSPORT_REQUEST_TYPE);
     }
 
+    public RestRequest.Method getRequestMethod() {
+        return (RestRequest.Method) this.auditInfo.get(REST_REQUEST_METHOD);
+    }
+
 	public AuditCategory getCategory() {
 		return msgCategory;
 	}
+
+    public String getExceptionStackTrace() {
+        return (String) this.auditInfo.get(EXCEPTION);
+    }
 
 	@Override
 	public String toString() {
