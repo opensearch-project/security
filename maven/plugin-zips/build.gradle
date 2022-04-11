@@ -62,6 +62,7 @@ publishing {
     publications { 
         maven(MavenPublication) {
             //Add ext.publish = 'skip' to skip publishing skip to maven staging repo
+            ext.publish = 'skip'
             groupId = "${group}"
             artifactId = "${component}"
             version = "${pluginversion}"
