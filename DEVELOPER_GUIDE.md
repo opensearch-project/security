@@ -5,6 +5,7 @@ So you want to contribute code to this project? Excellent! We're glad you're her
   - [Prerequisites](#prerequisites)
     - [Native platforms](#native-platforms)
   - [Building](#building)
+  - [Publish zips to maven](#to-publish-generated-plugin-zips-to-maven-repo)
   - [Using IntelliJ IDEA](#using-intellij-idea)
   - [Submitting Changes](#submitting-changes)
   - [Backports](#backports)
@@ -127,6 +128,15 @@ curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' -
   "sso_logout_url": null
 }
 ```
+## To Publish generated plugin zips to maven repo
+The generated plugin zip `opensearch-security-<version>.zip` after the build, inside the folder `build/distributions` can be published to maven repo. This can be done by including the project `pluginZips` inside `settings.gradle` file. Once added the generated plugin zip will be published to maven repo with following maven coordinates
+```
+  <groupId>org.opensearch.plugin</groupId>
+  <artifactId>opensearch-security</artifactId>
+  <version><version></version>
+  <packaging>zip</packaging>
+```
+To skip the publish, while this sub-project is still included, pass the flag as ` ext.publish = 'skip'` to file `build.gradle` inside `maven/plugin-zips/` folder.
 
 ## Using IntelliJ IDEA
 
