@@ -71,7 +71,8 @@ public class TestAuditlogImpl extends AuditLogSink {
         
         try {
             action.run();
-            final boolean foundAll = latch.await(1, TimeUnit.SECONDS);
+            final int maxSecondsToWaitForMessages = 1; 
+            final boolean foundAll = latch.await(maxSecondsToWaitForMessages, TimeUnit.SECONDS);
             if (!foundAll) {
                 throw new RuntimeException("Did not recieve all " + expectedCount +" audit messages after a short wait.");
             }
