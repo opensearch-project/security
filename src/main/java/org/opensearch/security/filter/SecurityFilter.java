@@ -83,12 +83,14 @@ import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.action.whoami.WhoAmIAction;
+import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
+import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.tasks.Task;
@@ -114,17 +116,14 @@ public class SecurityFilter implements ActionFilter {
     private final ClusterService cs;
     private final CompatConfig compatConfig;
     private final IndexResolverReplacer indexResolverReplacer;
+    private final XFFResolver xffResolver;
     private final WildcardMatcher immutableIndicesMatcher;
     private final RolesInjector rolesInjector;
-    private final Client client;
-    private final BackendRegistry backendRegistry;
-    private final NamedXContentRegistry namedXContentRegistry;
+    private final UserInjector userInjector;
 
-    public SecurityFilter(final Client client, final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
+    public SecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
                           DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry,
-                          NamedXContentRegistry namedXContentRegistry) {
-        this.client = client;
+                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, final XFFResolver xffResolver) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -133,10 +132,10 @@ public class SecurityFilter implements ActionFilter {
         this.cs = cs;
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
+        this.xffResolver = xffResolver;
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         this.rolesInjector = new RolesInjector(auditLog);
-        this.backendRegistry = backendRegistry;
-        this.namedXContentRegistry = namedXContentRegistry;
+        this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -178,11 +177,14 @@ public class SecurityFilter implements ActionFilter {
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
             boolean enforcePrivilegesEvaluation = false;
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if(user == null && (user = backendRegistry.authenticate(request, null, task, action)) != null) {
+            if(user == null && (user = userInjector.getInjectedUser()) != null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                // since there is no support for TransportClient auth/auth in 2.0 anymore, usually we
+                // can skip any checks on transport in case of trusted requests.
+                // However, if another plugin injected a user in the ThreadContext, we still need
+                // to perform privileges checks.
                 enforcePrivilegesEvaluation = true;
             }
-
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);

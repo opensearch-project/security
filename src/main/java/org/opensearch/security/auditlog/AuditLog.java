@@ -48,9 +48,7 @@ import org.opensearch.transport.TransportRequest;
 public interface AuditLog extends Closeable {
 
     //login
-    void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, Task task);
     void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
-    void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, String action, Task task);
     void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
 
     //privs

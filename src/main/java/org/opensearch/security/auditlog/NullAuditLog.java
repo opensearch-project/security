@@ -53,17 +53,7 @@ public class NullAuditLog implements AuditLog {
     }
 
     @Override
-    public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, Task task) {
-        //noop, intentionally left empty
-    }
-
-    @Override
     public void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request) {
-        //noop, intentionally left empty
-    }
-
-    @Override
-    public void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, TransportRequest request, String action, Task task) {
         //noop, intentionally left empty
     }
 

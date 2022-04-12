@@ -82,6 +82,5 @@ final public class RolesInjector {
             return;
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-        auditLog.logSucceededLogin(user.getName(), false, null, transportRequest, action, task);
     }
 }

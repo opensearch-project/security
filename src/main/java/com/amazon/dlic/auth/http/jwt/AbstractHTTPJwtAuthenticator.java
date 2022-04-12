@@ -28,8 +28,6 @@ import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.http.HttpHeaders;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.Strings;

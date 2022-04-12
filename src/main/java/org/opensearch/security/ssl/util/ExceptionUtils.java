@@ -58,4 +58,8 @@ public class ExceptionUtils {
                 + "is spoofing requests. Check your TLS certificate setup as described here: "
                 + "See https://opendistro.github.io/for-elasticsearch-docs/docs/troubleshoot/tls/");
     }
+
+    public static OpenSearchException createTransportClientNoLongerSupportedException() {
+        return new OpenSearchException("Transport client authentication no longer supported.");
+    }
 }

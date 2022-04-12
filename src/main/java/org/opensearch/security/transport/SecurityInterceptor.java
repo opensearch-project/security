@@ -113,7 +113,7 @@ public class SecurityInterceptor {
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action,
             TransportRequestHandler<T> actualHandler) {
-        return new SecurityRequestHandler<T>(action, actualHandler, threadPool, backendRegistry, auditLog,
+        return new SecurityRequestHandler<T>(action, actualHandler, threadPool, auditLog,
                 principalExtractor, requestEvalProvider, cs, SSLConfig, sslExceptionHandler);
     }
 

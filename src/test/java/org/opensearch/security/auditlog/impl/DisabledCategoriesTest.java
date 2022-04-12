@@ -116,10 +116,8 @@ public class DisabledCategoriesTest {
 
 		Assert.assertTrue(AuditCategory.values()+"#"+result, categoriesPresentInLog(result, filterComplianceCategories(AuditCategory.values())));
 
-		Assert.assertThat(result, containsString("testuser.transport.succeededlogin"));
 		Assert.assertThat(result, containsString("testuser.rest.succeededlogin"));
 		Assert.assertThat(result, containsString("testuser.rest.failedlogin"));
-		Assert.assertThat(result, containsString("testuser.transport.failedlogin"));
 		Assert.assertThat(result, containsString("privilege.missing"));
 		Assert.assertThat(result, containsString("action.indexattempt"));
 		Assert.assertThat(result, containsString("action.transport.ssl"));
@@ -195,7 +193,6 @@ public class DisabledCategoriesTest {
 	}
 
 	protected void logAll(AuditLog auditLog) {
-		//11 requests
 	    logRestFailedLogin(auditLog);
 		logRestBadHeaders(auditLog);
 		logRestSSLException(auditLog);
@@ -207,8 +204,6 @@ public class DisabledCategoriesTest {
 
 		logTransportSSLException(auditLog);
 		logTransportBadHeaders(auditLog);
-		logTransportFailedLogin(auditLog);
-		logTransportSucceededLogin(auditLog);
 
 		logIndexEvent(auditLog);
     }
@@ -217,17 +212,8 @@ public class DisabledCategoriesTest {
 	     auditLog.logSucceededLogin("testuser.rest.succeededlogin", false, "testuser.rest.succeededlogin", new MockRestRequest());
 	 }
 
-	 protected void logTransportSucceededLogin(AuditLog auditLog) {
-	     auditLog.logSucceededLogin("testuser.transport.succeededlogin", false, "testuser.transport.succeededlogin", new TransportRequest.Empty(), "test/action", new Task(0, "x", "ac", "", null, null));
-	 }
-
-
     protected void logRestFailedLogin(AuditLog auditLog) {
     	auditLog.logFailedLogin("testuser.rest.failedlogin", false, "testuser.rest.failedlogin", new MockRestRequest());
-    }
-
-    protected void logTransportFailedLogin(AuditLog auditLog) {
-    	auditLog.logFailedLogin("testuser.transport.failedlogin", false, "testuser.transport.failedlogin", new TransportRequest.Empty(), null);
     }
 
     protected void logMissingPrivileges(AuditLog auditLog) {

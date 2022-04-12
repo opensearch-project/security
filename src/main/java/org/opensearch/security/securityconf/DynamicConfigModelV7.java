@@ -99,18 +99,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         return Collections.unmodifiableSet(restAuthorizers);
     }
     @Override
-    public SortedSet<AuthDomain> getTransportAuthDomains() {
-        return Collections.unmodifiableSortedSet(transportAuthDomains);
-    }
-    @Override
-    public Set<AuthorizationBackend> getTransportAuthorizers() {
-        return Collections.unmodifiableSet(transportAuthorizers);
-    }
-    @Override
-    public String getTransportUsernameAttribute() {
-        return config.dynamic.transport_userrname_attribute;
-    }
-    @Override
     public boolean isAnonymousAuthenticationEnabled() {
         return config.dynamic.http.anonymous_auth_enabled;
     }

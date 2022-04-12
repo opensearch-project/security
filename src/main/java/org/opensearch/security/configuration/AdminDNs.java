@@ -158,12 +158,6 @@ public class AdminDNs {
         return isAdmin;
     }
     
-    public boolean isTransportImpersonationAllowed(LdapName dn, String impersonated) {
-        if(dn == null) return false;
-        
-        return isAdminDN(dn) || allowedDnsImpersonations.getOrDefault(dn, WildcardMatcher.NONE).test(impersonated);
-    }
-    
     public boolean isRestImpersonationAllowed(final String originalUser, final String impersonated) {
         return (originalUser != null) ? allowedRestImpersonations.getOrDefault(originalUser, WildcardMatcher.NONE).test(impersonated) : false;
     }

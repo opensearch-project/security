@@ -217,7 +217,7 @@ public abstract class AbstractSecurityUnitTest {
             builder.putList("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
             builder.put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
-
+        builder.put("cluster.routing.allocation.disk.threshold_enabled", false);
         builder.put(other);
 
         return builder;
