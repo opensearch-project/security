@@ -30,6 +30,8 @@
 
 package org.opensearch.security.filter;
 
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.opensearch.ExceptionsHelper;
@@ -85,8 +87,6 @@ import org.opensearch.security.support.*;
 import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Set;
@@ -98,7 +98,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 
 public class SecurityFilter implements ActionFilter {
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;

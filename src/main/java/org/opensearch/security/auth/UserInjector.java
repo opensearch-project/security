@@ -31,6 +31,8 @@
 package org.opensearch.security.auth;
 
 import com.google.common.base.Strings;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.rest.RestRequest;
@@ -40,8 +42,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ObjectStreamException;
 import java.net.InetAddress;
@@ -51,7 +51,7 @@ import java.util.Map;
 
 public class UserInjector {
 
-    protected final Logger log = LoggerFactory.getLogger(UserInjector.class);
+    protected final Logger log = LogManager.getLogger(UserInjector.class);
 
     private final ThreadPool threadPool;
     private final AuditLog auditLog;

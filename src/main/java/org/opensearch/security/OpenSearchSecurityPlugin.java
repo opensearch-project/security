@@ -126,8 +126,9 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.*;
 import org.opensearch.transport.Transport.Connection;
 import org.opensearch.watcher.ResourceWatcherService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -149,7 +150,7 @@ import java.util.stream.Stream;
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
 
     private static final String KEYWORD = ".keyword";
-    private static final Logger actionTrace = LoggerFactory.getLogger("opendistro_security_action_trace");
+    private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(OpenSearchSecurityPlugin.class);
 
     public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";

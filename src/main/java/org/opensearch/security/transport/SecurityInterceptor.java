@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsAction;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.opensearch.action.get.GetRequest;
@@ -79,7 +79,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnab
 
 public class SecurityInterceptor {
 
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+    protected final Logger log = LogManager.getLogger(getClass());
     private BackendRegistry backendRegistry;
     private AuditLog auditLog;
     private final ThreadPool threadPool;

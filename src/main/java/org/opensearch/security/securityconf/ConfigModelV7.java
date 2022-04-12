@@ -35,8 +35,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -68,7 +68,7 @@ import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 
 public class ConfigModelV7 extends ConfigModel {
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private ConfigConstants.RolesMappingResolution rolesMappingResolution;
     private ActionGroupResolver agr = null;
     private SecurityRoles securityRoles = null;
@@ -286,7 +286,7 @@ public class ConfigModelV7 extends ConfigModel {
 
     public static class SecurityRoles implements org.opensearch.security.securityconf.SecurityRoles {
 
-        protected final Logger log = LoggerFactory.getLogger(this.getClass());
+        protected final Logger log = LogManager.getLogger(this.getClass());
 
         final Set<SecurityRole> roles;
 
