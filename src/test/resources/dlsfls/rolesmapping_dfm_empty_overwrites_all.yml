@@ -1,0 +1,22 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+os_admin:
+  users:
+    - admin
+
+os_dfm_restricted_all_indices:
+  users:
+    - dfm_restricted_role
+    - dfm_restricted_and_unrestricted_one_index_role
+    - dfm_restricted_and_unrestricted_all_indices_role
+
+os_dfm_not_restricted_all_indices:
+  users:
+    - dfm_restricted_and_unrestricted_all_indices_role
+
+os_dfm_not_restricted_one_index:
+  users:
+    - dfm_restricted_and_unrestricted_one_index_role

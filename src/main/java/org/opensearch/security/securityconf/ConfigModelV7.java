@@ -351,7 +351,7 @@ public class ConfigModelV7 extends ConfigModel {
 
 
         @Override
-        public EvaluatedDlsFlsConfig getDlsFls(User user, IndexNameExpressionResolver resolver, ClusterService cs,
+        public EvaluatedDlsFlsConfig getDlsFls(User user, boolean dfmEmptyOverwritesAll, IndexNameExpressionResolver resolver, ClusterService cs,
                 NamedXContentRegistry namedXContentRegistry) {
 
 
@@ -366,11 +366,19 @@ public class ConfigModelV7 extends ConfigModel {
             Map<String, Set<String>> dlsQueriesByIndex = new HashMap<String, Set<String>>();            
             Map<String, Set<String>> flsFields = new HashMap<String, Set<String>>();
             Map<String, Set<String>> maskedFieldsMap = new HashMap<String, Set<String>>();
+
+            // we capture all concrete indices that do not have any
+            // DLS/FLS/Masked Fields restrictions. If the dfm_empty_overwrites_all
+            // switch is enabled, this trumps any restrictions on those indices
+            // that may be imposed by other roles.
+            Set<String> noDlsConcreteIndices = new HashSet<>();
+            Set<String> noFlsConcreteIndices = new HashSet<>();
+            Set<String> noMaskedFieldConcreteIndices = new HashSet<>();
                         
             for (SecurityRole role : roles) {
                 for (IndexPattern ip : role.getIpatterns()) {
 					Set<String> concreteIndices;
-					concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+					concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs, false);
 					String dls = ip.getDlsQuery(user);
 
 					if (dls != null && dls.length() > 0) {
@@ -378,6 +386,8 @@ public class ConfigModelV7 extends ConfigModel {
 						for (String concreteIndex : concreteIndices) {
 							dlsQueriesByIndex.computeIfAbsent(concreteIndex, (key) -> new HashSet<String>()).add(dls);
 						}
+					} else if (dfmEmptyOverwritesAll) {
+					    noDlsConcreteIndices.addAll(concreteIndices);
 					}
 
                     Set<String> fls = ip.getFls();
@@ -392,6 +402,8 @@ public class ConfigModelV7 extends ConfigModel {
                                 flsFields.get(concreteIndex).addAll(Sets.newHashSet(fls));
                             }
                         }
+                    } else if (dfmEmptyOverwritesAll) {
+                        noFlsConcreteIndices.addAll(concreteIndices);
                     }
                     
                     Set<String> maskedFields = ip.getMaskedFields();
@@ -406,8 +418,25 @@ public class ConfigModelV7 extends ConfigModel {
                                 maskedFieldsMap.get(concreteIndex).addAll(Sets.newHashSet(maskedFields));
                             }
                         }
-                    } 
+                    } else if (dfmEmptyOverwritesAll) {
+                        noMaskedFieldConcreteIndices.addAll(concreteIndices);
+                    }
                 }
+            }
+            if (dfmEmptyOverwritesAll) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Index patterns with no dls queries attached: {} - They will be removed from {}", noDlsConcreteIndices,
+                            dlsQueriesByIndex.keySet());
+                    log.debug("Index patterns with no fls fields attached: {} - They will be removed from {}", noFlsConcreteIndices,
+                            flsFields.keySet());
+                    log.debug("Index patterns with no masked fields attached: {} - They will be removed from {}", noMaskedFieldConcreteIndices,
+                            maskedFieldsMap.keySet());
+                }
+                // removing the indices that do not have D/M/F restrictions
+                // from the keySet will also modify the underlying map
+                dlsQueriesByIndex.keySet().removeAll(noDlsConcreteIndices);
+                flsFields.keySet().removeAll(noFlsConcreteIndices);
+                maskedFieldsMap.keySet().removeAll(noMaskedFieldConcreteIndices);
             }
 
             return new EvaluatedDlsFlsConfig(dlsQueriesByIndex, flsFields, maskedFieldsMap);
@@ -530,7 +559,7 @@ public class ConfigModelV7 extends ConfigModel {
 //                }
                 if (patternMatch) {
                     //resolved but can contain patterns for nonexistent indices
-                    final WildcardMatcher permitted = WildcardMatcher.from(p.getResolvedIndexPattern(user, resolver, cs)); //maybe they do not exist
+                    final WildcardMatcher permitted = WildcardMatcher.from(p.getResolvedIndexPattern(user, resolver, cs, true)); //maybe they do not exist
                     final Set<String> res = new HashSet<>();
                     if (!resolved.isLocalAll() && !resolved.getAllIndices().contains("*") && !resolved.getAllIndices().contains("_all")) {
                         //resolved but can contain patterns for nonexistent indices
@@ -722,7 +751,7 @@ public class ConfigModelV7 extends ConfigModel {
             return replaceProperties(indexPattern, user);
         }
 
-        public Set<String> getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
+        public Set<String> getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs, boolean appendUnresolved) {
             String unresolved = getUnresolvedIndexPattern(user);
             WildcardMatcher matcher = WildcardMatcher.from(unresolved);
             String[] resolved = null;
@@ -744,10 +773,12 @@ public class ConfigModelV7 extends ConfigModel {
             if (resolved == null || resolved.length == 0) {
                 return ImmutableSet.of(unresolved);
             } else {
-                return ImmutableSet.<String>builder()
-                        .addAll(Arrays.asList(resolved))
-                        .add(unresolved)
-                        .build();
+                ImmutableSet.Builder<String> builder = ImmutableSet.<String>builder()
+                        .addAll(Arrays.asList(resolved));
+                if (appendUnresolved) {
+                    builder.add(unresolved);
+                }
+                return builder.build();
             }
         }
 
@@ -963,12 +994,12 @@ public class ConfigModelV7 extends ConfigModel {
             indexMatcherAndPermissions = ipatterns
                     .stream()
                     .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
-                    .map(p -> new IndexMatcherAndPermissions(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
+                    .map(p -> new IndexMatcherAndPermissions(p.getResolvedIndexPattern(user, resolver, cs, true), p.perms))
                     .toArray(IndexMatcherAndPermissions[]::new);
         } else {
             indexMatcherAndPermissions = ipatterns
                     .stream()
-                    .map(p -> new IndexMatcherAndPermissions(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
+                    .map(p -> new IndexMatcherAndPermissions(p.getResolvedIndexPattern(user, resolver, cs, true), p.perms))
                     .toArray(IndexMatcherAndPermissions[]::new);
         }
         return resolvedRequestedIndices
