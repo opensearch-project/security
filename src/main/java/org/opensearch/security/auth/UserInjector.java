@@ -30,7 +30,12 @@
 
 package org.opensearch.security.auth;
 
-import com.google.common.base.Strings;
+import java.io.ObjectStreamException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Map;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.opensearch.common.settings.Settings;
@@ -43,11 +48,7 @@ import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.io.ObjectStreamException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Map;
+import com.google.common.base.Strings;
 
 public class UserInjector {
 
