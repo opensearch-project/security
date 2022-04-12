@@ -41,7 +41,7 @@ public class TestAuditlogImpl extends AuditLogSink {
         super(name, settings, null, fallbackSink);
     }
 
-    public boolean doStore(AuditMessage msg) {
+    public synchronized boolean doStore(AuditMessage msg) {
         if (messagesRef.get() == null || countDownRef.get() == null) {
             throw new RuntimeException("No message latch is waiting");
         }
