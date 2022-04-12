@@ -17,10 +17,12 @@ package org.opensearch.security.filter;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auth.UserInjector;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
+import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.ConfigConstants;
