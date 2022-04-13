@@ -131,24 +131,9 @@ public class PasswordSetup {
         options.addOption(Option.builder("h").longOpt("hostname").hasArg().argName("host").desc("OpenSearch host (default: localhost)").build());
         options.addOption(Option.builder("p").longOpt("port").hasArg().argName("port").desc("OpenSearch transport port (default: 9200)").build());
         options.addOption(Option.builder("cn").longOpt("clustername").hasArg().argName("clustername").desc("Clustername (do not use together with -icl)").build());
-        options.addOption( "sniff", "enable-sniffing", false, "Enable client.transport.sniff" );
         options.addOption( "icl", "ignore-clustername", false, "Ignore clustername (do not use together with -cn)" );
-        options.addOption(Option.builder("r").longOpt("retrieve").desc("retrieve current config").build());
-        options.addOption(Option.builder("f").longOpt("file").hasArg().argName("file").desc("file").build());
-        options.addOption(Option.builder("t").longOpt("type").hasArg().argName("file-type").desc("file-type").build());
         options.addOption(Option.builder("ksalias").longOpt("keystore-alias").hasArg().argName("alias").desc("Keystore alias").build());
-        options.addOption(Option.builder("ec").longOpt("enabled-ciphers").hasArg().argName("cipers").desc("Comma separated list of enabled TLS ciphers").build());
-        options.addOption(Option.builder("ep").longOpt("enabled-protocols").hasArg().argName("protocols").desc("Comma separated list of enabled TLS protocols").build());
-        //TODO mark as deprecated and replace it with "era" if "era" is mature enough
-        options.addOption(Option.builder("us").longOpt("update_settings").hasArg().argName("number of replicas").desc("Update the number of Security index replicas, reload configuration on all nodes and exit").build());
-        options.addOption(Option.builder("i").longOpt("index").hasArg().argName("indexname").desc("The index OpenSearch Security uses to store the configuration").build());
-        options.addOption(Option.builder("era").longOpt("enable-replica-autoexpand").desc("Enable replica auto expand and exit").build());
-        options.addOption(Option.builder("dra").longOpt("disable-replica-autoexpand").desc("Disable replica auto expand and exit").build());
-        options.addOption(Option.builder("rl").longOpt("reload").desc("Reload the configuration on all nodes, flush all Security caches and exit").build());
         options.addOption(Option.builder("ff").longOpt("fail-fast").desc("fail-fast if something goes wrong").build());
-        options.addOption(Option.builder("dg").longOpt("diagnose").desc("Log diagnostic trace into a file").build());
-        options.addOption(Option.builder("dci").longOpt("delete-config-index").desc("Delete '.opendistro_security' config index and exit.").build());
-        options.addOption(Option.builder("esa").longOpt("enable-shard-allocation").desc("Enable all shard allocation and exit.").build());
         options.addOption(Option.builder("arc").longOpt("accept-red-cluster").desc("Also operate on a red cluster. If not specified the cluster state has to be at least yellow.").build());
 
         options.addOption(Option.builder("cacert").hasArg().argName("file").desc("Path to trusted cacert (PEM format)").build());
@@ -157,22 +142,6 @@ public class PasswordSetup {
         options.addOption(Option.builder("keypass").hasArg().argName("password").desc("Password of the key of admin certificate (optional)").build());
 
         options.addOption(Option.builder("si").longOpt("show-info").desc("Show system and license info").build());
-
-        options.addOption(Option.builder("w").longOpt("whoami").desc("Show information about the used admin certificate").build());
-
-        options.addOption(Option.builder("prompt").longOpt("prompt-for-password").desc("Prompt for password if not supplied").build());
-
-        options.addOption(Option.builder("er").longOpt("explicit-replicas").hasArg().argName("number of replicas").desc("Set explicit number of replicas or autoexpand expression for .opendistro_security index").build());
-
-        options.addOption(Option.builder("backup").hasArg().argName("folder").desc("Backup configuration to folder").build());
-
-        options.addOption(Option.builder("migrate").hasArg().argName("folder").desc("Migrate and use folder to store migrated files").build());
-        
-        options.addOption(Option.builder("rev").longOpt("resolve-env-vars").desc("Resolve/Substitute env vars in config with their value before uploading").build());
-
-        options.addOption(Option.builder("vc").numberOfArgs(1).optionalArg(true).argName("version").longOpt("validate-configs").desc("Validate config for version 6 or 7 (default 7)").build());
-
-        options.addOption(Option.builder("mo").longOpt("migrate-offline").hasArg().argName("folder").desc("Migrate and use folder to store migrated files").build());
         
         String hostname = "localhost";
         int port = 9200;
@@ -515,7 +484,8 @@ public class PasswordSetup {
             Scanner sc = new Scanner(System.in);
             ArrayList<String> users = new ArrayList<String>(Arrays.asList("admin", "kibanaserver", "kibanaro", "logstash", "readall", "snapshotrestore"));
             
-            System.out.println("\n\nBeginning Password Setup");
+            System.out.println("\n\nBeginning Password Setup\n");
+            System.out.println("Disclaimer: User must input \\\\ in order to include \\ in a password");
 
             for (String user: users) {
                     System.out.println("\nEnter password for " + user + ": ");
