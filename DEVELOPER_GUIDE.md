@@ -60,6 +60,9 @@ cp build/distributions/opensearch-security-*.zip $OPENSEARCH_SECURITY_HOME
 cd $OPENSEARCH_SECURITY_HOME
 unzip opensearch-security-*.zip
 rm opensearch-security-*.zip
+mkdir $OPENSEARCH_HOME/config/opensearch-security
+mv config/* $OPENSEARCH_HOME/config/opensearch-security/
+rm -rf config/
 ```
 
 Install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
@@ -74,22 +77,22 @@ Cluster mode requires maybe additional setup of:
   - Virtual memory (vm.max_map_count)
 
 Enable cluster mode? [y/N] n
-Basedir: /Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT
+Basedir: /Users/XXXXX/Test/opensearch-*
 OpenSearch install type: .tar.gz on
-OpenSearch config dir: /Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/config
-OpenSearch config file: /Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/config/opensearch.yml
-OpenSearch bin dir: /Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/bin
-OpenSearch plugins dir: /Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/plugins
-OpenSearch lib dir: /Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/lib
-Detected OpenSearch Version: x-content-1.3.0-SNAPSHOT
+OpenSearch config dir: /Users/XXXXX/Test/opensearch-*/config
+OpenSearch config file: /Users/XXXXX/Test/opensearch-*/config/opensearch.yml
+OpenSearch bin dir: /Users/XXXXX/Test/opensearch-*/bin
+OpenSearch plugins dir: /Users/XXXXX/Test/opensearch-*/plugins
+OpenSearch lib dir: /Users/XXXXX/Test/opensearch-*/lib
+Detected OpenSearch Version: x-content-*
 Detected OpenSearch Security Version: *
 
 ### Success
 ### Execute this script now on all your nodes and then start all nodes
 ### OpenSearch Security will be automatically initialized.
 ### If you like to change the runtime configuration
-### change the files in ../securityconfig and execute:
-"/Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/plugins/opensearch-security/securityconfig" -icl -key "/Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/config/kirk-key.pem" -cert "/Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/config/kirk.pem" -cacert "/Users/XXXXX/Test/opensearch-1.3.0-SNAPSHOT/config/root-ca.pem" -nhnv
+### change the files in ../config and execute:
+"/Users/XXXXX/Test/opensearch-*/plugins/opensearch-security/tools/securityadmin.sh" -cd "/Users/XXXXX/Test/opensearch-*/config/opensearch-security/" -icl -key "/Users/XXXXX/Test/opensearch-*/config/kirk-key.pem" -cert "/Users/XXXXX/Test/opensearch-*/config/kirk.pem" -cacert "/Users/XXXXX/Test/opensearch-*/config/root-ca.pem" -nhnv
 ### or run ./securityadmin_demo.sh
 ### To use the Security Plugin ConfigurationGUI
 ### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin.

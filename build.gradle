@@ -283,7 +283,7 @@ task bundle(dependsOn: jar, type: Zip) {
     from 'plugin-security.policy'
     from 'plugin-descriptor.properties'
     from('securityconfig') {
-        into 'securityconfig/'
+        into 'config/'
     }
     from('tools') {
         into 'tools/'
