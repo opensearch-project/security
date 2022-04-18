@@ -29,7 +29,6 @@
  */
 
 import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
-import java.util.concurrent.Callable
 
 apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.rest-test'
@@ -47,7 +46,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "1.3.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "1.3.0")
         opensearch_group = "org.opensearch"
     }
     repositories {
@@ -73,28 +72,59 @@ dependencies {
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
 }
 
-String bwcVersion = "1.0.1.0";
-String baseName = "securityBwcCluster"
-String bwcFilePath = "src/test/resources/"
-String projectVersion = "1.3.0.0"
 
+String baseName = "securityBwcCluster"
+
+def tmp_dir = project.file('build/private/artifact_tmp').absoluteFile
+tmp_dir.mkdirs()
+
+String securityBwcVersion = "1.0.0";
+//String securityBwcVersion = System.getProperty("bwc.version")
+
+// Task to pull security plugin from archive
+task pullBwcPlugin {
+    doFirst {
+        delete java.nio.file.Path.of(tmp_dir.absolutePath, "opensearch-*")
+    }
+
+    doLast {
+        ant.get(
+                src: "https://artifacts.opensearch.org/releases/bundle/opensearch/${securityBwcVersion}/opensearch-${securityBwcVersion}-linux-x64.tar.gz",
+                dest: tmp_dir.absolutePath,
+                httpusecaches: false
+        )
+        copy {
+            from tarTree(java.nio.file.Path.of(tmp_dir.absolutePath, "opensearch-${securityBwcVersion}-linux-x64.tar.gz"))
+            into tmp_dir.absolutePath
+        }
+        copy {
+            from(java.nio.file.Path.of(tmp_dir.absolutePath, "opensearch-${securityBwcVersion}", "plugins", "opensearch-security"))
+            into java.nio.file.Path.of(tmp_dir.absolutePath, "opensearch-security")
+        }
+        delete java.nio.file.Path.of(tmp_dir.absolutePath, "opensearch-${securityBwcVersion}"), java.nio.file.Path.of(tmp_dir.absolutePath, "opensearch-${securityBwcVersion}-linux-x64.tar.gz")
+    }
+}
+
+
+// Task to zip plugin from archive
+task zipBwcPlugin(type: Zip) {
+    dependsOn "pullBwcPlugin"
+    from(java.nio.file.Path.of(tmp_dir.absolutePath, "opensearch-security"))
+    destinationDirectory = tmp_dir
+    archiveFileName = "opensearch-security-${securityBwcVersion}.zip"
+    doLast {
+        delete java.nio.file.Path.of(tmp_dir.absolutePath, "opensearch-security")
+    }
+}
+
+// Creates two test clusters of previous version and loads security plugin of bwcVersion
 2.times {i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-        versions = ["1.0.0","1.3.0-SNAPSHOT"]
+            versions = ["1.0.0",opensearch_version]
             numberOfNodes = 3
-            plugin(provider(new Callable<RegularFile>() {
-                @Override
-                RegularFile call() throws Exception {
-                    return new RegularFile() {
-                        @Override
-                        File getAsFile() {
-                            return fileTree(bwcFilePath  + bwcVersion).getSingleFile()
-                        }
-                    }
-                }
-            }))
+            plugin(project.tasks.zipBwcPlugin.archiveFile)
             nodes.each { node ->
                 def plugins = node.plugins
                 def firstPlugin = plugins.get(0)
@@ -131,24 +161,11 @@ String projectVersion = "1.3.0.0"
     }
 }
 
-List<Provider<RegularFile>> plugins = [
-        provider(new Callable<RegularFile>(){
-            @Override
-            RegularFile call() throws Exception {
-                return new RegularFile() {
-                    @Override
-                    File getAsFile() {
-                        return fileTree(bwcFilePath  + projectVersion).getSingleFile()
-                    }
-                }
-            }
-        })
-]
-
 // Creates a test cluster with 3 nodes of the old version.
 2.times {i ->
     task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
         exclude '**/*Test*'
+        dependsOn "zipBwcPlugin"
         useCluster testClusters."${baseName}$i"
         exclude '**/*Test*'
         if (System.getProperty("mixedCluster") != null) {
@@ -168,7 +185,7 @@ List<Provider<RegularFile>> plugins = [
         }
         systemProperty 'tests.rest.bwcsuite', 'old_cluster'
         systemProperty 'tests.rest.bwcsuite_round', 'old'
-        systemProperty 'tests.plugin_bwc_version', bwcVersion
+        systemProperty 'tests.plugin_bwc_version', securityBwcVersion
         nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
         nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
     }
@@ -196,7 +213,7 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
     }
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'first'
-    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    systemProperty 'tests.plugin_bwc_version', securityBwcVersion
     nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
     nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
 }
@@ -218,7 +235,7 @@ task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTas
     }
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'second'
-    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    systemProperty 'tests.plugin_bwc_version', securityBwcVersion
     nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
     nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
 }
@@ -240,7 +257,7 @@ task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) 
     }
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'third'
-    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    systemProperty 'tests.plugin_bwc_version', securityBwcVersion
     nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
     nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
 }
@@ -260,7 +277,7 @@ tasks.register("${baseName}#fullRestartClusterTask", StandaloneRestIntegTestTask
         }
     }
     systemProperty 'tests.rest.bwcsuite', 'upgraded_cluster'
-    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    systemProperty 'tests.plugin_bwc_version', securityBwcVersion
     nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}1".allHttpSocketURI.join(",")}")
     nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}1".getName()}")
 }
