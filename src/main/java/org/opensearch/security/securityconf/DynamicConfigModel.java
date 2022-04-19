@@ -61,9 +61,6 @@ public abstract class DynamicConfigModel {
     protected final Logger log = LogManager.getLogger(this.getClass());
     public abstract SortedSet<AuthDomain> getRestAuthDomains();
     public abstract Set<AuthorizationBackend> getRestAuthorizers();
-    public abstract SortedSet<AuthDomain> getTransportAuthDomains();
-    public abstract Set<AuthorizationBackend> getTransportAuthorizers();
-    public abstract String getTransportUsernameAttribute();
     public abstract boolean isAnonymousAuthenticationEnabled();
     public abstract boolean isXffEnabled();
     public abstract String getInternalProxies();

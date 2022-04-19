@@ -49,7 +49,14 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+
+import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.DELETE;
+import static org.opensearch.rest.RestRequest.Method.PATCH;
+import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.rest.RestRequest.Method.PUT;
 
 public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
@@ -123,22 +130,18 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
 
         setup(additionalSettings);
-        TestAuditlogImpl.clear();
+        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            final RuntimeException ex = Assert.assertThrows(RuntimeException.class,
+                () -> nonSslRestHelper().executeGetRequest("_search", encodeBasicHeader("admin", "admin")));
+            Assert.assertEquals("org.apache.http.NoHttpResponseException", ex.getCause().getClass().getName());
+        }, 4);
 
-        try {
-            nonSslRestHelper().executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
-            Assert.fail();
-        } catch (NoHttpResponseException e) {
-            //expected
-        }
-
-        Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertFalse(TestAuditlogImpl.messages.isEmpty());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("SSL_EXCEPTION"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("exception_stacktrace"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("not an SSL/TLS record"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        // All of the messages should be the same as the http client is attempting multiple times.
+        messages.stream().forEach((message) -> {
+            Assert.assertEquals(AuditCategory.SSL_EXCEPTION, message.getCategory());
+            Assert.assertTrue(message.getExceptionStackTrace().contains("not an SSL/TLS record"));
+            });
+        Assert.assertTrue(validateMsgs(messages));
     }
 
     @Test
@@ -767,6 +770,10 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"DeleteIndexRequest\","));
     }
 
+    private String messageRestRequestMethod(AuditMessage msg) {
+        return msg.getAsMap().get("audit_rest_request_method").toString();
+    }
+
     @Test
     public void testRestMethod() throws Exception {
         final Settings settings = Settings.builder()
@@ -777,66 +784,70 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
                 .build();
         setup(settings);
         final Header adminHeader = encodeBasicHeader("admin", "admin");
+        List<AuditMessage> messages;
 
         // test GET
-        TestAuditlogImpl.clear();
-        rh.executeGetRequest("test", adminHeader);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executeGetRequest("test", adminHeader);
+        }, 1);
+        Assert.assertEquals(GET, messages.get(0).getRequestMethod());
 
         // test PUT
-        TestAuditlogImpl.clear();
-        rh.executePutRequest("test/_doc/0", "{}", adminHeader);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PUT\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executePutRequest("test/_doc/0", "{}", adminHeader);
+        }, 1);
+        Assert.assertEquals(PUT, messages.get(0).getRequestMethod());
 
         // test DELETE
-        TestAuditlogImpl.clear();
-        rh.executeDeleteRequest("test", adminHeader);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"DELETE\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executeDeleteRequest("test", adminHeader);
+        }, 1);
+        Assert.assertEquals(DELETE, messages.get(0).getRequestMethod());
 
         // test POST
-        TestAuditlogImpl.clear();
-        rh.executePostRequest("test/_doc", "{}", adminHeader);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"POST\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executePostRequest("test/_doc", "{}", adminHeader);
+        }, 1);
+        Assert.assertEquals(POST, messages.get(0).getRequestMethod());
 
         // test PATCH
-        TestAuditlogImpl.clear();
-        rh.executePatchRequest("/_opendistro/_security/api/audit", "[]");
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PATCH\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executePatchRequest("/_opendistro/_security/api/audit", "[]");
+        }, 1);
+        Assert.assertEquals(PATCH, messages.get(0).getRequestMethod());
 
         // test MISSING_PRIVILEGES
         // admin does not have REST role here
-        TestAuditlogImpl.clear();
-        rh.executePatchRequest("/_opendistro/_security/api/audit", "[]", adminHeader);
-        Assert.assertEquals(2, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("MISSING_PRIVILEGES"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"PATCH\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executePatchRequest("/_opendistro/_security/api/audit", "[]", adminHeader);
+        }, 2);
+        // The intital request is authenicated
+        Assert.assertEquals(PATCH, messages.get(0).getRequestMethod());
+        Assert.assertEquals(AuditCategory.AUTHENTICATED, messages.get(0).getCategory());
+        // The secondary request does not have permissions
+        Assert.assertEquals(PATCH, messages.get(1).getRequestMethod());
+        Assert.assertEquals(AuditCategory.MISSING_PRIVILEGES, messages.get(1).getCategory());
 
         // test AUTHENTICATED
-        TestAuditlogImpl.clear();
-        rh.executeGetRequest("test", adminHeader);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executeGetRequest("test", adminHeader);
+        }, 1);
+        Assert.assertEquals(AuditCategory.AUTHENTICATED, messages.get(0).getCategory());
+        Assert.assertEquals(GET, messages.get(0).getRequestMethod());
 
         // test FAILED_LOGIN
-        TestAuditlogImpl.clear();
-        rh.executeGetRequest("test", encodeBasicHeader("random", "random"));
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("FAILED_LOGIN"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executeGetRequest("test", encodeBasicHeader("random", "random"));
+        }, 1);
+        Assert.assertEquals(AuditCategory.FAILED_LOGIN, messages.get(0).getCategory());
+        Assert.assertEquals(GET, messages.get(0).getRequestMethod());
 
         // test BAD_HEADERS
-        TestAuditlogImpl.clear();
-        rh.executeGetRequest("test", new BasicHeader("_opendistro_security_user", "xxx"));
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("BAD_HEADERS"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("\"audit_rest_request_method\" : \"GET\""));
+        messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            rh.executeGetRequest("test", new BasicHeader("_opendistro_security_user", "xxx"));
+        }, 1);
+        Assert.assertEquals(AuditCategory.BAD_HEADERS, messages.get(0).getCategory());
+        Assert.assertEquals(GET, messages.get(0).getRequestMethod());
     }
 
     @Test

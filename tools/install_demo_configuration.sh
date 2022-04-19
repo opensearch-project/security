@@ -1,6 +1,11 @@
 #!/bin/bash
 #install_demo_configuration.sh [-y]
 
+echo "**************************************************************************"
+echo "** This tool will be deprecated in the next major release of OpenSearch **"
+echo "** https://github.com/opensearch-project/security/issues/1755           **"
+echo "**************************************************************************"
+
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 if ! [ -x "$(command -v realpath)" ]; then
     if [ -L "$SCRIPT_PATH" ]; then
@@ -412,7 +417,7 @@ echo "### Success"
 echo "### Execute this script now on all your nodes and then start all nodes"
 #Generate securityadmin_demo.sh
 echo "#!/bin/bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null 
-echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
+echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_CONF_DIR/opensearch-security"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x securityadmin_demo.sh
 
 if [ "$initsecurity" == 0 ]; then
@@ -423,7 +428,7 @@ if [ "$initsecurity" == 0 ]; then
 else
     echo "### OpenSearch Security will be automatically initialized."
     echo "### If you like to change the runtime configuration "
-    echo "### change the files in ../securityconfig and execute: "
+    echo "### change the files in ../../../config/opensearch-security and execute: "
 	$SUDO_CMD cat securityadmin_demo.sh | tail -1
 	echo "### or run ./securityadmin_demo.sh"
 	echo "### To use the Security Plugin ConfigurationGUI"

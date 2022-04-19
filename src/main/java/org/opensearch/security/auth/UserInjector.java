@@ -59,7 +59,7 @@ public class UserInjector {
     private final XFFResolver xffResolver;
     private final Boolean injectUserEnabled;
 
-    UserInjector(Settings settings, ThreadPool threadPool, AuditLog auditLog, XFFResolver xffResolver) {
+    public UserInjector(Settings settings, ThreadPool threadPool, AuditLog auditLog, XFFResolver xffResolver) {
         this.threadPool = threadPool;
         this.auditLog = auditLog;
         this.xffResolver = xffResolver;
@@ -102,7 +102,7 @@ public class UserInjector {
         }
     }
 
-    InjectedUser getInjectedUser() {
+    public InjectedUser getInjectedUser() {
         if (!injectUserEnabled) {
             return null;
         }

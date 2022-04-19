@@ -20,7 +20,7 @@ jobs:
     - name: Download OpenSearch Core
       run: |
         opensearch_version=`./gradlew properties -q | grep "opensearch_version:" | awk '{print $2}' | sed 's/-SNAPSHOT//g'`
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/$opensearch_version/latest/linux/x64/builds/opensearch/dist/opensearch-min-$opensearch_version-linux-x64.tar.gz
+        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/$opensearch_version/latest/linux/x64/tar/builds/opensearch/dist/opensearch-min-$opensearch_version-linux-x64.tar.gz
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
 

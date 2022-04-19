@@ -42,10 +42,6 @@ import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.opensearch.OpenSearchSecurityException;
@@ -64,12 +60,9 @@ import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.ssl.util.Utils;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
-import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.TransportRequest;
 import org.greenrobot.eventbus.Subscribe;
 
 import com.google.common.base.Strings;
@@ -84,8 +77,6 @@ public class BackendRegistry {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private SortedSet<AuthDomain> restAuthDomains;
     private Set<AuthorizationBackend> restAuthorizers;
-    private SortedSet<AuthDomain> transportAuthDomains;
-    private Set<AuthorizationBackend> transportAuthorizers;
 
     private List<AuthFailureListener> ipAuthFailureListeners;
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
@@ -105,33 +96,10 @@ public class BackendRegistry {
     private final int ttlInMin;
     private Cache<AuthCredentials, User> userCache; //rest standard
     private Cache<String, User> restImpersonationCache; //used for rest impersonation
-    private Cache<String, User> userCacheTransport; //transport no creds, possibly impersonated
-    private Cache<AuthCredentials, User> authenticatedUserCacheTransport; //transport creds, no impersonation
-
-    private Cache<User, Set<String>> transportRoleCache; //
     private Cache<User, Set<String>> restRoleCache; //
-    private Cache<String, User> transportImpersonationCache; //used for transport impersonation
 
-    private volatile String transportUsernameAttribute = null;
-    
     private void createCaches() {
         userCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-                .removalListener(new RemovalListener<AuthCredentials, User>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
-                        log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
-                    }
-                }).build();
-
-        userCacheTransport = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-                .removalListener(new RemovalListener<String, User>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<String, User> notification) {
-                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
-                    }
-                }).build();
-
-        authenticatedUserCacheTransport = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<AuthCredentials, User>() {
                     @Override
                     public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
@@ -147,26 +115,10 @@ public class BackendRegistry {
                     }
                 }).build();
 
-        transportRoleCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-                .removalListener(new RemovalListener<User, Set<String>>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<User, Set<String>> notification) {
-                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
-                    }
-                }).build();
-
         restRoleCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
                 .removalListener(new RemovalListener<User, Set<String>>() {
                     @Override
                     public void onRemoval(RemovalNotification<User, Set<String>> notification) {
-                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
-                    }
-                }).build();
-
-        transportImpersonationCache = CacheBuilder.newBuilder().expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-                .removalListener(new RemovalListener<String, User>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<String, User> notification) {
                         log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
                     }
                 }).build();
@@ -197,26 +149,19 @@ public class BackendRegistry {
 
     public void invalidateCache() {
         userCache.invalidateAll();
-        userCacheTransport.invalidateAll();
-        authenticatedUserCacheTransport.invalidateAll();
         restImpersonationCache.invalidateAll();
         restRoleCache.invalidateAll();
-        transportRoleCache.invalidateAll();
-        transportImpersonationCache.invalidateAll();
     }
 
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
 
         invalidateCache();
-        transportUsernameAttribute = dcm.getTransportUsernameAttribute();// config.dynamic.transport_userrname_attribute;
         anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled()//config.dynamic.http.anonymous_auth_enabled
                 && !opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
         restAuthDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
-        transportAuthDomains = Collections.unmodifiableSortedSet(dcm.getTransportAuthDomains());
         restAuthorizers = Collections.unmodifiableSet(dcm.getRestAuthorizers());
-        transportAuthorizers = Collections.unmodifiableSet(dcm.getTransportAuthorizers());
 
         ipAuthFailureListeners = dcm.getIpAuthFailureListeners();
         authBackendFailureListeners = dcm.getAuthBackendFailureListeners();
@@ -225,123 +170,6 @@ public class BackendRegistry {
 
         //OpenSearch Security no default authc
         initialized = !restAuthDomains.isEmpty() || anonymousAuthEnabled  || injectedUserEnabled;
-    }
-
-    public User authenticate(final TransportRequest request, final String sslPrincipal, final Task task, final String action) {
-        final boolean isDebugEnabled = log.isDebugEnabled();
-        if(isDebugEnabled && request.remoteAddress() != null) {
-            log.debug("Transport authentication request from {}", request.remoteAddress());
-        }
-
-        if (request.remoteAddress() != null && isBlocked(request.remoteAddress().address().getAddress())) {
-            if (isDebugEnabled) {
-                log.debug("Rejecting transport request because of blocked address: {}", request.remoteAddress());
-            }
-            return null;
-        }
-
-        User injectedUser = userInjector.getInjectedUser();
-
-        if(injectedUser != null) {
-            auditLog.logSucceededLogin(injectedUser.getName(), true, null, request, action, task);
-            return injectedUser;
-        }
-
-        if(sslPrincipal == null) {
-            return null;
-        }
-        
-        User origPKIUser = new User(sslPrincipal);
-        
-        if(adminDns.isAdmin(origPKIUser)) {
-            auditLog.logSucceededLogin(origPKIUser.getName(), true, null, request, action, task);
-            return origPKIUser;
-        }
-
-        if (!isInitialized()) {
-            log.error("Not yet initialized (you may need to run securityadmin)");
-            return null;
-        }
-
-        final String authorizationHeader = threadPool.getThreadContext().getHeader("Authorization");
-        //Use either impersonation OR credentials authentication
-        //if both is supplied credentials authentication win
-        final AuthCredentials creds = HTTPHelper.extractCredentials(authorizationHeader, log);
-
-        User impersonatedTransportUser = null;
-
-        if(creds != null) {
-            if (isDebugEnabled)  {
-                log.debug("User {} submitted also basic credentials: {}", origPKIUser.getName(), creds);
-            }
-        }
-
-        //loop over all transport auth domains
-        for (final AuthDomain authDomain: transportAuthDomains) {
-
-            if (isDebugEnabled) {
-                log.debug("Check transport authdomain {}/{} or {} in total", authDomain.getBackend().getType(), authDomain.getOrder(), transportAuthDomains.size());
-            }
-            
-            User authenticatedUser = null;
-
-            if(creds == null) {
-                //no credentials submitted
-                //impersonation possible
-                impersonatedTransportUser = impersonate(request, origPKIUser);
-                origPKIUser = resolveTransportUsernameAttribute(origPKIUser);
-                authenticatedUser = checkExistsAndAuthz(userCacheTransport,
-                        impersonatedTransportUser == null ? origPKIUser : impersonatedTransportUser, authDomain.getBackend(), transportAuthorizers);
-            } else {
-                 //auth credentials submitted
-                //impersonation not possible, if requested it will be ignored
-                authenticatedUser = authcz(authenticatedUserCacheTransport, transportRoleCache, creds, authDomain.getBackend(), transportAuthorizers);
-            }
-
-            if (authenticatedUser == null) {
-                for (AuthFailureListener authFailureListener : authBackendFailureListeners.get(authDomain.getBackend().getClass().getName())) {
-                    authFailureListener.onAuthFailure(request.remoteAddress() != null ? request.remoteAddress().address().getAddress() : null, creds,
-                            request);
-                }
-
-                if (isDebugEnabled) {
-                    log.debug("Cannot authenticate transport user {} (or add roles) with authdomain {}/{} of {}, try next", creds==null?(impersonatedTransportUser==null?origPKIUser.getName():impersonatedTransportUser.getName()):creds.getUsername(), authDomain.getBackend().getType(), authDomain.getOrder(), transportAuthDomains.size());
-                }
-                continue;
-            }
-
-            if(adminDns.isAdmin(authenticatedUser)) {
-                log.error("Cannot authenticate transport user because admin user is not permitted to login");
-                auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request, task);
-                return null;
-            }
-
-            if (isDebugEnabled) {
-                log.debug("Transport user '{}' is authenticated", authenticatedUser);
-            }
-
-            auditLog.logSucceededLogin(authenticatedUser.getName(), false, impersonatedTransportUser == null ? null : origPKIUser.getName(), request,
-                    action, task);
-
-            return authenticatedUser;
-        }//end looping auth domains
-
-
-        //auditlog
-        if(creds == null) {
-            auditLog.logFailedLogin(impersonatedTransportUser == null ? origPKIUser.getName() : impersonatedTransportUser.getName(), false,
-                    impersonatedTransportUser == null ? null : origPKIUser.getName(), request, task);
-        } else {
-            auditLog.logFailedLogin(creds.getUsername(), false, null, request, task);
-        }
-
-        log.warn("Transport authentication finally failed for {} from {}",
-                creds == null ? impersonatedTransportUser == null ? origPKIUser.getName() : impersonatedTransportUser.getName() : creds.getUsername(),
-                request.remoteAddress());
-
-        notifyIpAuthFailureListeners(request.remoteAddress() != null ? request.remoteAddress().address().getAddress() : null, creds, request);
-
-        return null;
     }
 
     /**
@@ -567,9 +395,6 @@ public class BackendRegistry {
     /**
      * no auditlog, throw no exception, does also authz for all authorizers
      *
-     * @param cache
-     * @param ac
-     * @param authDomain
      * @return null if user cannot b authenticated
      */
     private User checkExistsAndAuthz(final Cache<String, User> cache, final User user, final AuthenticationBackend authenticationBackend,
@@ -646,9 +471,6 @@ public class BackendRegistry {
     /**
      * no auditlog, throw no exception, does also authz for all authorizers
      *
-     * @param cache
-     * @param ac
-     * @param authDomain
      * @return null if user cannot b authenticated
      */
     private User authcz(final Cache<AuthCredentials, User> cache, Cache<User, Set<String>> roleCache, final AuthCredentials ac,
@@ -684,65 +506,6 @@ public class BackendRegistry {
         } finally {
             ac.clearSecrets();
         }
-    }
-
-    private User impersonate(final TransportRequest tr, final User origPKIuser) throws OpenSearchSecurityException {
-
-        final String impersonatedUser = threadPool.getThreadContext().getHeader("opendistro_security_impersonate_as");
-
-        if(Strings.isNullOrEmpty(impersonatedUser)) {
-            return null; //nothing to do
-        }
-
-        if (!isInitialized()) {
-            throw new OpenSearchSecurityException("Could not check for impersonation because OpenSearch Security is not yet initialized");
-        }
-
-        if (origPKIuser == null) {
-            throw new OpenSearchSecurityException("no original PKI user found");
-        }
-
-        User aU = origPKIuser;
-
-        if (adminDns.isAdminDN(impersonatedUser)) {
-            throw new OpenSearchSecurityException(
-                    "'" + origPKIuser.getName() + "' is not allowed to impersonate as an adminuser  '" + impersonatedUser + "'");
-        }
-
-        try {
-            if (impersonatedUser != null && !adminDns.isTransportImpersonationAllowed(new LdapName(origPKIuser.getName()), impersonatedUser)) {
-                throw new OpenSearchSecurityException(
-                        "'"+origPKIuser.getName() + "' is not allowed to impersonate as '" + impersonatedUser+"'");
-            } else if (impersonatedUser != null) {
-                final boolean isDebugEnabled = log.isDebugEnabled();
-                //loop over all transport auth domains
-                for (final AuthDomain authDomain : transportAuthDomains) {
-                    final AuthenticationBackend authenticationBackend = authDomain.getBackend();
-                    final User impersonatedUserObject = checkExistsAndAuthz(transportImpersonationCache, new User(impersonatedUser),
-                            authenticationBackend, transportAuthorizers);
-
-                    if (impersonatedUserObject == null) {
-                        log.debug(
-                                "Unable to impersonate transport user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...",
-                                origPKIuser.getName(), impersonatedUser, authenticationBackend.getType());
-                        continue;
-                    }
-
-                    if (isDebugEnabled) {
-                        log.debug("Impersonate transport user from '{}' to '{}'", origPKIuser.getName(), impersonatedUser);
-                    }
-                    return impersonatedUserObject;
-                }
-
-                log.debug("Unable to impersonate transport user from '{}' to '{}' because the impersonated user does not exists",
-                        origPKIuser.getName(), impersonatedUser);
-                throw new OpenSearchSecurityException("No such transport user: " + impersonatedUser, RestStatus.FORBIDDEN);
-            }
-        } catch (final InvalidNameException e1) {
-            throw new OpenSearchSecurityException("PKI does not have a valid name ('" + origPKIuser.getName() + "'), should never happen", e1);
-        }
-
-        return aU;
     }
 
     private User impersonate(final RestRequest request, final User originalUser) throws OpenSearchSecurityException {
@@ -792,24 +555,6 @@ public class BackendRegistry {
             throw new OpenSearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
         }
 
-    }
-
-    private User resolveTransportUsernameAttribute(User pkiUser) {
-    	//#547
-        if(transportUsernameAttribute != null && !transportUsernameAttribute.isEmpty()) {
-	    	try {
-				final LdapName sslPrincipalAsLdapName = new LdapName(pkiUser.getName());
-				for(final Rdn rdn: sslPrincipalAsLdapName.getRdns()) {
-					if(rdn.getType().equals(transportUsernameAttribute)) {
-						return new User((String) rdn.getValue());
-					}
-				}
-			} catch (InvalidNameException e) {
-				//cannot happen
-			}
-        }
-        
-        return pkiUser;
     }
 
     private boolean isBlocked(InetAddress address) {
