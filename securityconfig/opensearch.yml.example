@@ -7,11 +7,6 @@
 
 ############## Common configuration settings ##############
 
-# Enable or disable the OpenSearch Security advanced modules
-# By default advanced modules are enabled, you can switch
-# all advanced features off by setting the following key to false
-plugins.security.advanced_modules_enabled: true
-
 # Specify a list of DNs which denote the other nodes in the cluster.
 # This settings support wildcards and regular expressions
 # The list of DNs are also read from security index **in addition** to the yml configuration if
