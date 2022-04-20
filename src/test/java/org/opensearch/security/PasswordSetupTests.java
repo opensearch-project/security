@@ -85,4 +85,36 @@ public class PasswordSetupTests extends SingleClusterTest {
         int returnCode  = PasswordSetup.execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(-1, returnCode);
     }
+
+    @Test
+    public void testAutoGenerate() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .build();
+        
+        DynamicSecurityConfig config = new DynamicSecurityConfig().setSecurityInternalUsers("internal_users_password_setup.yml");
+        setup(Settings.EMPTY, config, settings, true);
+        
+        final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+        
+        List<String> argsAsList = new ArrayList<>();
+        argsAsList.add("-ts");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-ks");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-p");
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
+        argsAsList.add("-cn");
+        argsAsList.add(clusterInfo.clustername);
+        argsAsList.add("-nhnv");
+        argsAsList.add("-a");
+
+        int returnCode  = PasswordSetup.execute(argsAsList.toArray(new String[0]));
+        Assert.assertEquals(0, returnCode);
+
+        RestHelper rh = restHelper();
+        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+    }
 }

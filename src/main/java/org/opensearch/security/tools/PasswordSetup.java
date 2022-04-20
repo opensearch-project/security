@@ -34,9 +34,12 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -56,6 +59,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -135,6 +139,7 @@ public class PasswordSetup {
         options.addOption(Option.builder("ksalias").longOpt("keystore-alias").hasArg().argName("alias").desc("Keystore alias").build());
         options.addOption(Option.builder("ff").longOpt("fail-fast").desc("fail-fast if something goes wrong").build());
         options.addOption(Option.builder("arc").longOpt("accept-red-cluster").desc("Also operate on a red cluster. If not specified the cluster state has to be at least yellow.").build());
+        options.addOption(Option.builder("a").longOpt("auto-generate-passwords").desc("Auto-generate passwords").build());
 
         options.addOption(Option.builder("cacert").hasArg().argName("file").desc("Path to trusted cacert (PEM format)").build());
         options.addOption(Option.builder("cert").hasArg().argName("file").desc("Path to admin certificate in PEM format").build());
@@ -163,6 +168,7 @@ public class PasswordSetup {
         String index = ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX;
         boolean failFast = false;
         boolean acceptRedCluster = false;
+        boolean autoGenerate = false;
         
         String keypass = System.getenv(OPENDISTRO_SECURITY_KEYPASS);
         String cacert = null;
@@ -174,7 +180,6 @@ public class PasswordSetup {
         String explicitReplicas = null;
         Integer validateConfig = null;
         String migrateOffline = null;
-        final boolean resolveEnvVars;
 
         InjectableValues.Std injectableValues = new InjectableValues.Std();
         injectableValues.addValue(Settings.class, Settings.builder().build());
@@ -230,36 +235,17 @@ public class PasswordSetup {
             
             failFast = line.hasOption("ff");
             acceptRedCluster = line.hasOption("arc");
+            autoGenerate = line.hasOption("a");
             
             cacert = line.getOptionValue("cacert");
             cert = line.getOptionValue("cert");
             key = line.getOptionValue("key");
             keypass = line.getOptionValue("keypass", keypass);
-            si = line.hasOption("si");
-            whoami = line.hasOption("w");
-            explicitReplicas = line.getOptionValue("er", explicitReplicas);
-
-            validateConfig = !line.hasOption("vc")?null:Integer.parseInt(line.getOptionValue("vc", "7"));
-            
-            if(validateConfig != null && validateConfig.intValue() != 6 && validateConfig.intValue() != 7) {
-                throw new ParseException("version must be 6 or 7");
-            }
-            
-            migrateOffline = line.getOptionValue("mo");
-
-            resolveEnvVars = line.hasOption("rev");
-            
         }
         catch( ParseException exp ) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("set_passwords.sh", options, true);
             return -1;
-        }
-        
-        if(migrateOffline != null) {
-            System.out.println("Migrate "+migrateOffline+" offline");
-            final boolean retVal =  Migrater.migrateDirectory(new File(migrateOffline), true);
-            return retVal?0:-1;
         }
 
         System.out.print("Will connect to "+hostname+":"+port);
@@ -349,15 +335,6 @@ public class PasswordSetup {
                 throw e1;
             }
 
-            if(si) {
-                return (0);
-            }
-
-			if (whoami) {
-				System.out.println(whoAmIResNode.toPrettyString());
-                return (0);
-            }
-
             if(failFast) {
                 System.out.println("Fail-fast is activated");
             }
@@ -417,18 +394,24 @@ public class PasswordSetup {
 			System.out.println("Number of nodes: " + chResponse.getNumberOfNodes());
 			System.out.println("Number of data nodes: " + chResponse.getNumberOfDataNodes());
             
-            Scanner sc = new Scanner(System.in);
             ArrayList<String> users = new ArrayList<String>(Arrays.asList("admin", "kibanaserver", "kibanaro", "logstash", "readall", "snapshotrestore"));
             
             System.out.println("\n\nBeginning Password Setup\n");
             System.out.println("Disclaimer: Use an escape sequence character when using \\.  Example: If your password is Abcd\\efg!, then the input should be Abcd\\\\efg!");
 
-            for (String user: users) {
+            if (autoGenerate) {
+                for (String user: users) {
+                    setPasswordSingleUser(user, lowLevelClient, createPassword());
+                }
+            } else {
+                Scanner sc = new Scanner(System.in);
+                for (String user: users) {
                     System.out.println("\nEnter password for " + user + ": ");
                     String password = sc.nextLine();
                     setPasswordSingleUser(user, lowLevelClient, password);
+                }
+                sc.close();
             }
-            sc.close();
         } catch (Throwable e) {
             System.out.println(e);
             return -1;
@@ -443,6 +426,20 @@ public class PasswordSetup {
         request.setEntity(entity);
         restClient.performRequest(request);
         System.out.println("Done setting password for " + user);
+    }
+
+    private static String createPassword() {
+        String upperCaseLetters = RandomStringUtils.random(2, 65, 90, true, true);
+        String lowerCaseLetters = RandomStringUtils.random(2, 97, 122, true, true);
+        String numbers = RandomStringUtils.randomNumeric(2);
+        String specialChars = RandomStringUtils.random(2, 33, 64, false, false);
+        String extraChars = RandomStringUtils.random(8, 33, 122, true, true);
+        String combinedChars = upperCaseLetters.concat(lowerCaseLetters).concat(numbers).concat(specialChars).concat(extraChars);
+
+        List<Character> passwordAsList = combinedChars.chars().mapToObj(c -> (char) c).collect(Collectors.toList());
+        Collections.shuffle(passwordAsList);
+        String password = passwordAsList.stream().collect(StringBuilder::new, StringBuilder::append, StringBuilder::append).toString();
+        return password;
     }
 
     private static String promptForPassword(String passwordName, String commandLineOption, String envVarName) throws Exception {
