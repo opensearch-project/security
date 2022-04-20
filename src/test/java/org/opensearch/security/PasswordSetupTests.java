@@ -10,7 +10,7 @@ import org.apache.http.HttpStatus;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
-
+import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
@@ -23,8 +23,8 @@ public class PasswordSetupTests extends SingleClusterTest {
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
-        setup(Settings.EMPTY, null, settings, false);
-        
+        DynamicSecurityConfig config = new DynamicSecurityConfig().setSecurityInternalUsers("internal_users_password_setup.yml");
+        setup(Settings.EMPTY, config, settings, true);
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
         
         List<String> argsAsList = new ArrayList<>();
@@ -36,11 +36,9 @@ public class PasswordSetupTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/password_setup/").getAbsolutePath());
         argsAsList.add("-nhnv");
 
-        String userInput = "Admins#1\nKibanaServer@2\nKibanaro!3\nLogstash&4\nReadall%5\nSnapshotrestore$6";
+        String userInput = "Admins#1\nKibanaServer@2\nKibanaro*3\nLogstash&4\nReadall%5\nSnapshotrestore$6";
         ByteArrayInputStream input = new ByteArrayInputStream(userInput.getBytes());
         System.setIn(input);
         
@@ -63,7 +61,9 @@ public class PasswordSetupTests extends SingleClusterTest {
                 .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
                 .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
                 .build();
-        setup(Settings.EMPTY, null, settings, false);
+        
+        DynamicSecurityConfig config = new DynamicSecurityConfig().setSecurityInternalUsers("internal_users_password_setup.yml");
+        setup(Settings.EMPTY, config, settings, true);
         
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
         
@@ -76,8 +76,6 @@ public class PasswordSetupTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/password_setup/").getAbsolutePath());
         argsAsList.add("-nhnv");
 
         String userInput = "Admins#1";
