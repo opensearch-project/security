@@ -397,14 +397,17 @@ public class PasswordSetup {
             ArrayList<String> users = new ArrayList<String>(Arrays.asList("admin", "kibanaserver", "kibanaro", "logstash", "readall", "snapshotrestore"));
             
             System.out.println("\n\nBeginning Password Setup\n");
-            System.out.println("Disclaimer: Use an escape sequence character when using \\.  Example: If your password is Abcd\\efg!, then the input should be Abcd\\\\efg!");
+            
 
             if (autoGenerate) {
                 for (String user: users) {
-                    setPasswordSingleUser(user, lowLevelClient, createPassword());
+                    String password = createPassword();
+                    System.out.println("\nPassword for " + user + " is: " + password);
+                    setPasswordSingleUser(user, lowLevelClient, password);
                 }
             } else {
                 Scanner sc = new Scanner(System.in);
+                System.out.println("Disclaimer: Use an escape sequence character when using \\.  Example: If your password is Abcd\\efg!, then the input should be Abcd\\\\efg!");
                 for (String user: users) {
                     System.out.println("\nEnter password for " + user + ": ");
                     String password = sc.nextLine();
@@ -432,7 +435,7 @@ public class PasswordSetup {
         String upperCaseLetters = RandomStringUtils.random(2, 65, 90, true, true);
         String lowerCaseLetters = RandomStringUtils.random(2, 97, 122, true, true);
         String numbers = RandomStringUtils.randomNumeric(2);
-        String specialChars = RandomStringUtils.random(2, 33, 64, false, false);
+        String specialChars = RandomStringUtils.random(2, 35, 47, false, false);
         String extraChars = RandomStringUtils.random(8, 33, 122, true, true);
         String combinedChars = upperCaseLetters.concat(lowerCaseLetters).concat(numbers).concat(specialChars).concat(extraChars);
 
