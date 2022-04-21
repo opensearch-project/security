@@ -27,7 +27,7 @@
       https://checkstyle.org/config.html#Checker
       <property name="basedir" value="${basedir}"/>
   -->
-  <property name="severity" value="error"/>
+  <property name="severity" value="ignore"/>
 
   <property name="fileExtensions" value="java, properties, xml"/>
 
@@ -181,6 +181,20 @@
       <property name="optional" value="true"/>
     </module>
 
+  </module>
+
+  <module name="RegexpSingleline">
+    <property name="format" value="whitelist"/>
+    <property name="ignoreCase" value="true"/>
+    <property name="message" value="Usage should be switched to an allow* based pattern" />
+    <property name="severity" value="warning"/>
+  </module>
+
+  <module name="RegexpSingleline">
+    <property name="format" value="master"/>
+    <property name="ignoreCase" value="true"/>
+    <property name="message" value="Usage should be switched to cluster manager" />
+    <property name="severity" value="warning"/>
   </module>
 
 </module>
