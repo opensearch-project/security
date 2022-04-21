@@ -372,11 +372,9 @@ checkstyle {
 }
 
 tasks.withType(Checkstyle) {
+    showViolations true
     reports {
-        showViolations false
-        ignoreFailures = true
-        xml.required = true
-        html.required = true
+        ignoreFailures = false
     }
 }
 
