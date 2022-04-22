@@ -18,6 +18,7 @@ package org.opensearch.security.multitenancy.test;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
 import org.opensearch.action.admin.indices.alias.Alias;
@@ -39,6 +40,9 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 public class MultitenancyTests extends SingleClusterTest {
 
@@ -396,48 +400,45 @@ public class MultitenancyTests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res;
+        final String url = ".kibana/_doc/5.6.0?pretty";
 
-        System.out.println("#### testTenantParametersSubstitution : user_tenant_parameters_substitution does not have access to tenant blafasel") ;
-        String body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution\"}";
-        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "blafasel"), encodeBasicHeader("user_tenant_parameters_substitution","user_tenant_parameters_substitution")) ; 
-        System.out.println(res.getBody());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        final String tenantName = "tenant_parameters_substitution";
+        final String createTenantBody = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"" + tenantName + "\"}";
+        final Header asNoAccessUser = encodeBasicHeader("hr_employee", "hr_employee");
+        final Header asUser = encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution");
 
-        System.out.println("#### testTenantParametersSubstitution : hr_employee does not have access to tenant tenant_parameters_substitution") ;
-        body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution\"}";
-        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "tenant_parameters_substitution"), encodeBasicHeader("hr_employee", "hr_employee")) ;
-        System.out.println(res.getBody());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
-        
-        System.out.println("#### testTenantParametersSubstitution : hr_employee does not have access to tenant tenant_parameters_substitution_1") ;
-        body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution_1\"}";
-        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "tenant_parameters_substitution"), encodeBasicHeader("hr_employee", "hr_employee")) ;
-        System.out.println(res.getBody());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        final Header actOnNoAccessTenant = new BasicHeader("securitytenant", "blafasel");
+        final Header actOnUserTenant = new BasicHeader("securitytenant", tenantName);
 
-        System.out.println("#### testTenantParametersSubstitution : user user_tenant_parameters_substitution creates a doc in tenant tenant_parameters_substitution that is a match of the attribute 'attribute1' for this user") ;
-        body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution\"}";
-        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "tenant_parameters_substitution"), encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution")) ; 
-        System.out.println(res.getBody());
-        Assert.assertEquals(HttpStatus.SC_CREATED, res.getStatusCode());
+        res = rh.executePutRequest(url, createTenantBody, asUser, actOnNoAccessTenant);
+        assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        System.out.println("#### testTenantParametersSubstitution : user user_tenant_parameters_substitution gets kibana index for tenant tenant_parameters_substitution that is a match of the attribute 'attribute1' for this user") ;
-        res = rh.executeGetRequest(".kibana/config/5.6.0?pretty",new BasicHeader("securitytenant", "tenant_parameters_substitution"), encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution")) ; 
-        System.out.println(res.getBody());
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());;
-        Assert.assertTrue(WildcardMatcher.from("*tenant_parameters_substitution*").test(res.getBody()));
-        
-        System.out.println("#### testTenantParametersSubstitution : user user_tenant_parameters_substitution creates a doc in tenant tenant_parameters_substitution_1 that is a match of the attribute 'attribute1' for this use1r") ;
-        body = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"tenant_parameters_substitution_1\"}";
-        res = rh.executePutRequest(".kibana/config/5.6.0?pretty",body, new BasicHeader("securitytenant", "tenant_parameters_substitution_1"), encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution")) ; 
-        System.out.println(res.getBody());
-        Assert.assertEquals(HttpStatus.SC_CREATED, res.getStatusCode());
-        
-        System.out.println("#### testTenantParametersSubstitution : user user_tenant_parameters_substitution gets kibana index for tenant tenant_parameters_substitution_1 that is a value of the attribute 'attribute1' for this user") ;
-        res = rh.executeGetRequest(".kibana/config/5.6.0?pretty",new BasicHeader("securitytenant", "tenant_parameters_substitution_1"), encodeBasicHeader("user_tenant_parameters_substitution", "user_tenant_parameters_substitution")) ;
-        System.out.println(res.getBody());
-        System.out.println(res.getBody());
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        Assert.assertTrue(WildcardMatcher.from("*tenant_parameters_substitution_1*").test(res.getBody()));
+        res = rh.executePutRequest(url, createTenantBody, asNoAccessUser, actOnUserTenant);
+        assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+        res = rh.executePutRequest(url, createTenantBody, asUser, actOnUserTenant);
+        assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
+
+        res = rh.executeGetRequest(url, asUser, actOnUserTenant);
+        assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(res.findValueInJson("_source.tenant"), equalTo(tenantName));
+
+
+        final String tenantNameAppended = "tenant_parameters_substitution_1";
+        final String createTenantAppendedBody = "{\"buildNum\": 15460, \"defaultIndex\": \"plop\", \"tenant\": \"" + tenantNameAppended + "\"}";
+        final Header userTenantAppended = new BasicHeader("securitytenant", tenantNameAppended);
+
+        res = rh.executeGetRequest(url, asNoAccessUser, userTenantAppended);
+        assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+        res = rh.executeGetRequest(url, asUser, userTenantAppended);
+        assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_NOT_FOUND));
+
+        res = rh.executePutRequest(url, createTenantAppendedBody, asUser, userTenantAppended);
+        assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
+
+        res = rh.executeGetRequest(url, asUser, userTenantAppended);
+        assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        assertThat(res.findValueInJson("_source.tenant"), equalTo(tenantNameAppended));
     }
 }
