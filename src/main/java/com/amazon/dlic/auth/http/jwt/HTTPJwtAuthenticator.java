@@ -61,6 +61,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final String jwtUrlParameter;
     private final String rolesKey;
     private final String subjectKey;
+    private final String requireAudience;
+    private final String requireIssuer;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
@@ -109,6 +111,17 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
+        requireAudience = settings.get("required_audience");
+        requireIssuer = settings.get("required_issuer");
+
+        if (requireAudience != null) {
+            _jwtParser.requireAudience(requireAudience);
+        }
+
+        if (requireIssuer != null) {
+            _jwtParser.requireIssuer(requireIssuer);
+        }
+
         jwtParser = _jwtParser;
     }
 
