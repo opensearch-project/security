@@ -356,7 +356,7 @@ tasks.assemble.finalizedBy(createChecksums)
 
 
 jacoco {
-    reportsDirectory = file("$buildDir/jacoco")
+    reportsDirectory = file("$buildDir/reports/jacoco")
 }
 jacocoTestReport {
     reports {
