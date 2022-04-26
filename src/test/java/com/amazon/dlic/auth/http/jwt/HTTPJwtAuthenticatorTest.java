@@ -15,10 +15,6 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -30,18 +26,19 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-
-import org.opensearch.common.settings.Settings;
-
+import com.google.common.io.BaseEncoding;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.apache.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.FieldSetter;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
-import com.google.common.io.BaseEncoding;
 
 public class HTTPJwtAuthenticatorTest {
 

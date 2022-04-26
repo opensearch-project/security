@@ -5,10 +5,10 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 
-import org.opensearch.security.test.helper.file.FileHelper;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import org.opensearch.security.test.helper.file.FileHelper;
 
 public class CertFromTruststoreTests {
 

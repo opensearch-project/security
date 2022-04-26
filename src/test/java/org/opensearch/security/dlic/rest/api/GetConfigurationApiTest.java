@@ -15,17 +15,17 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import org.opensearch.security.DefaultObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableList;
 import org.apache.http.HttpStatus;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import com.google.common.collect.ImmutableList;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;

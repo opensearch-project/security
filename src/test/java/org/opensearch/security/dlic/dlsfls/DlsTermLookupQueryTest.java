@@ -15,8 +15,6 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
-import static org.opensearch.security.dlic.dlsfls.DlsTermsLookupAsserts.assertAccessCodesMatch;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +24,7 @@ import java.util.stream.Collectors;
 
 import org.junit.Assert;
 import org.junit.Test;
+
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.opensearch.action.get.GetResponse;
@@ -54,6 +53,8 @@ import org.opensearch.search.aggregations.metrics.ParsedTopHits;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.opensearch.security.dlic.dlsfls.DlsTermsLookupAsserts.assertAccessCodesMatch;
 
 public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
 

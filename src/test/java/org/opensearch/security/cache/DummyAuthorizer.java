@@ -19,7 +19,6 @@ import java.nio.file.Path;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;

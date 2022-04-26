@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import org.opensearch.security.securityconf.Hideable;
 
 public class ActionGroupsV6 implements Hideable {

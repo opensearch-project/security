@@ -67,9 +67,10 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bouncycastle.util.encoders.Base64;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;

@@ -17,13 +17,14 @@
 
 package org.opensearch.security.auth.limiting;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.net.InetAddress;
 
-import org.opensearch.common.settings.Settings;
 import org.junit.Test;
+
+import org.opensearch.common.settings.Settings;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class UserNameBasedRateLimiterTest {
 

@@ -15,14 +15,14 @@
 
 package org.opensearch.security.system_indices;
 
-import org.opensearch.client.Client;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.DynamicSecurityConfig;
-import org.opensearch.security.test.SingleClusterTest;
-import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
+import org.junit.Test;
+
 import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.opensearch.action.admin.indices.close.CloseIndexRequest;
@@ -30,17 +30,18 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.RestStatus;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.DynamicSecurityConfig;
+import org.opensearch.security.test.SingleClusterTest;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;

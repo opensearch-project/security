@@ -43,12 +43,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
-import org.apache.logging.log4j.Logger;
+import com.google.common.collect.HashMultimap;
+import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.Strings;
-import org.opensearch.common.settings.Settings;
+import org.apache.logging.log4j.Logger;
 import org.ldaptive.BindConnectionInitializer;
 import org.ldaptive.BindRequest;
 import org.ldaptive.Connection;
@@ -63,7 +61,6 @@ import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
 import org.ldaptive.control.RequestControl;
 import org.ldaptive.provider.ProviderConnection;
-import org.ldaptive.provider.jndi.JndiConnection;
 import org.ldaptive.sasl.Mechanism;
 import org.ldaptive.sasl.SaslConfig;
 import org.ldaptive.ssl.AllowAnyHostnameVerifier;
@@ -77,15 +74,17 @@ import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;
 import com.amazon.dlic.auth.ldap.util.Utils;
+
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.Strings;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
-import com.google.common.collect.HashMultimap;
-
-import io.netty.util.internal.PlatformDependent;
 
 public class LDAPAuthorizationBackend implements AuthorizationBackend {
 

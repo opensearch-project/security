@@ -15,9 +15,9 @@
 
 package org.opensearch.security.setting;
 
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.ConfigConstants;
 
 public class TransportPassiveAuthSetting extends OpensearchDynamicSetting<Boolean> {
 

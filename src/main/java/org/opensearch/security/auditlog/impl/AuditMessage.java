@@ -28,12 +28,14 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.Strings;
@@ -45,14 +47,12 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.index.shard.ShardId;
 import org.opensearch.rest.RestRequest;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-
 import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.support.WildcardMatcher;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;

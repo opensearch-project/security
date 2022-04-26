@@ -38,7 +38,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.message.BasicHeader;
-import org.checkerframework.checker.units.qual.C;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -47,11 +50,6 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -61,7 +59,7 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
-
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 

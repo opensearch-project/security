@@ -108,11 +108,18 @@
 
     <!-- Checks for imports                              -->
     <!-- See https://checkstyle.org/config_imports.html -->
-    <module name="AvoidStarImport"/>
-    <module name="IllegalImport"/> <!-- defaults to sun.* packages -->
-    <module name="RedundantImport"/>
+    <module name="AvoidStarImport">
+      <property name="severity" value="error"/>
+    </module>
+    <module name="IllegalImport"> <!-- defaults to sun.* packages -->
+      <property name="severity" value="error"/>
+    </module>
+    <module name="RedundantImport">
+      <property name="severity" value="error"/>
+    </module>
     <module name="UnusedImports">
-      <property name="processJavadoc" value="false"/>
+      <property name="severity" value="error"/>
+      <property name="processJavadoc" value="true"/>
     </module>
 
     <!-- Checks for Size Violations.                    -->

@@ -21,11 +21,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.LongSupplier;
 
-import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.support.SecurityUtils;
+import com.google.common.collect.Sets;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
+
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexService;
@@ -33,13 +33,12 @@ import org.opensearch.index.mapper.IgnoredFieldMapper;
 import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.shard.ShardId;
 import org.opensearch.index.shard.ShardUtils;
-
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
+import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
-
-import com.google.common.collect.Sets;
+import org.opensearch.security.support.SecurityUtils;
 
 public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWrapper {
 

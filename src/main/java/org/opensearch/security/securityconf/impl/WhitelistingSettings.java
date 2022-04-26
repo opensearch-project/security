@@ -15,15 +15,16 @@
 
 package org.opensearch.security.securityconf.impl;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 public class WhitelistingSettings {
     private boolean enabled;

@@ -20,6 +20,9 @@ import java.util.Map;
 
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
+import org.junit.Assert;
+import org.junit.Test;
+
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
@@ -29,9 +32,6 @@ import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import org.junit.Assert;
-import org.junit.Test;
-
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;

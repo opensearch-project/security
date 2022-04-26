@@ -29,9 +29,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auditlog.impl.AuditMessage;
 
 public class KafkaSink extends AuditLogSink {

@@ -15,18 +15,19 @@
 
 package org.opensearch.security.auth;
 
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import com.google.common.collect.ImmutableSet;
-import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
-
-import java.util.Set;
 
 /**
  * This is used to inject opendistro-roles into the request when there is no user involved, like periodic plugin

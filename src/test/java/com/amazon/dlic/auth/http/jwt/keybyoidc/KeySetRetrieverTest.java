@@ -24,6 +24,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 
+import com.google.common.hash.Hashing;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -39,9 +40,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
-import com.google.common.hash.Hashing;
 
 public class KeySetRetrieverTest {
     protected static MockIpdServer mockIdpServer;

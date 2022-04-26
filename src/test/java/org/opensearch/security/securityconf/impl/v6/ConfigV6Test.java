@@ -1,14 +1,13 @@
 package org.opensearch.security.securityconf.impl.v6;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableList;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import org.opensearch.security.DefaultObjectMapper;
-
-import com.google.common.collect.ImmutableList;
 
 @RunWith(Parameterized.class)
 public class ConfigV6Test {

@@ -5,11 +5,20 @@
 
 package org.opensearch.security.rest;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+
 import com.google.common.collect.ImmutableList;
+
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.*;
+import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestStatus;
 import org.opensearch.rest.action.RestActions.NodesResponseRestListener;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
@@ -19,10 +28,6 @@ import org.opensearch.security.ssl.util.SSLRequestHelper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;

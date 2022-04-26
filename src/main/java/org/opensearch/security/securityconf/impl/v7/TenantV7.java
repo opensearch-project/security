@@ -32,6 +32,7 @@
 package org.opensearch.security.securityconf.impl.v7;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 

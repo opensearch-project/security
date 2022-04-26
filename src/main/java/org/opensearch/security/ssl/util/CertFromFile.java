@@ -1,9 +1,9 @@
 package org.opensearch.security.ssl.util;
 
-import org.opensearch.security.support.PemKeyReader;
-
 import java.io.File;
 import java.security.cert.X509Certificate;
+
+import org.opensearch.security.support.PemKeyReader;
 
 public class CertFromFile {
     private final CertFileProps clientCertProps;

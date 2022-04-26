@@ -15,23 +15,24 @@
 
 package org.opensearch.security.auth;
 
-import org.junit.Before;
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.junit.Test;
-import org.opensearch.tasks.Task;
-import org.opensearch.transport.TransportRequest;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.Before;
+import org.junit.Test;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
+import org.opensearch.tasks.Task;
+import org.opensearch.transport.TransportRequest;
+
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
-import static org.junit.Assert.assertEquals;
 
 
 public class RolesInjectorTest {

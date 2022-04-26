@@ -37,6 +37,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpGet;
+import org.junit.Assert;
+import org.junit.Test;
+
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -48,10 +51,6 @@ import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
-import org.junit.Assert;
-import org.junit.Test;
-
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -61,6 +60,7 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class InitializationIntegrationTests extends SingleClusterTest {
 

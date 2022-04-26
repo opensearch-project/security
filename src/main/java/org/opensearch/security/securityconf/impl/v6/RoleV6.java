@@ -39,6 +39,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import org.opensearch.security.securityconf.Hideable;
 
 public class RoleV6 implements Hideable {

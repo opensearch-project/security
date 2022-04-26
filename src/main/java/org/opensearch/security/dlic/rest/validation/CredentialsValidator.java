@@ -15,8 +15,9 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-import org.opensearch.security.ssl.util.Utils;
-import org.opensearch.security.support.ConfigConstants;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import org.opensearch.common.Strings;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.compress.NotXContentException;
@@ -24,9 +25,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.RestRequest;
-
-import java.util.Map;
-import java.util.regex.Pattern;
+import org.opensearch.security.ssl.util.Utils;
+import org.opensearch.security.support.ConfigConstants;
 
 /**
  * Validator for validating password and hash present in the payload

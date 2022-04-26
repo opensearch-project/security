@@ -39,28 +39,27 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.securityconf.impl.NodesDn;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.support.WildcardMatcher;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
-import org.apache.logging.log4j.Logger;
+import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.EventBusBuilder;
+
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationChangeListener;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.StaticResourceException;
-import org.opensearch.threadpool.ThreadPool;
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.EventBusBuilder;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
@@ -73,8 +72,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.support.ConfigConstants;
-
-import com.google.common.collect.ImmutableMap;
+import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.threadpool.ThreadPool;
 
 public class DynamicConfigFactory implements Initializable, ConfigurationChangeListener {
 

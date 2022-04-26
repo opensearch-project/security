@@ -38,11 +38,10 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.securityconf.DynamicConfigModel;
-import org.opensearch.threadpool.ThreadPool;
-
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
+import org.opensearch.threadpool.ThreadPool;
 
 public class PrivilegesInterceptor {
 

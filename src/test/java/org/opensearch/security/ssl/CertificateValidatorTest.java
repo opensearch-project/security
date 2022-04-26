@@ -30,12 +30,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.ExceptionsHelper;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.security.ssl.util.CertificateValidator;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.test.helper.file.FileHelper;

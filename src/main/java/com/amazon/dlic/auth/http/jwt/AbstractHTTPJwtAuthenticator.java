@@ -26,8 +26,14 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.http.HttpHeaders;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
+import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
+import com.amazon.dlic.auth.http.jwt.keybyoidc.JwtVerifier;
+import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.Strings;
@@ -37,11 +43,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
-
-import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.JwtVerifier;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.KeyProvider;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
 

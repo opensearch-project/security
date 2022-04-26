@@ -15,13 +15,18 @@
 
 package org.opensearch.security.ssl.rest;
 
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.ssl.SecurityKeyStore;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import java.io.IOException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.ImmutableMap;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -33,16 +38,11 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.ssl.SecurityKeyStore;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.io.IOException;
-import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 
 /**

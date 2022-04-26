@@ -42,8 +42,16 @@ import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.logging.log4j.Logger;
+import com.google.common.base.Strings;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.Multimap;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
@@ -63,14 +71,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-import org.greenrobot.eventbus.Subscribe;
-
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
-import com.google.common.collect.Multimap;
 
 public class BackendRegistry {
 

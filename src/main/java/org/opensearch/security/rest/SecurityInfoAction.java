@@ -30,9 +30,6 @@
 
 package org.opensearch.security.rest;
 
-import static org.opensearch.rest.RestRequest.Method.GET;
-import static org.opensearch.rest.RestRequest.Method.POST;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -40,9 +37,11 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.logging.log4j.Logger;
+import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.RamUsageEstimator;
+
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
@@ -59,8 +58,9 @@ import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityInfoAction extends BaseRestHandler {
