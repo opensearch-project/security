@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class DlsFlsEvaluator {
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
 
     private final ThreadPool threadPool;
 
