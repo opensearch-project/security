@@ -546,6 +546,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
 
     /**
+     * If the current and new certificates are same, skip remaining checks.
      * For new X509 cert to be valid Issuer, Subject DN must be the same and
      * new certificates should expire after current ones.
      * @param currentX509Certs  Array of current x509 certificates
@@ -556,6 +557,10 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
         // First time we init certs ignore validity check
         if (currentX509Certs == null) {
+            return;
+        }
+
+        if (areSameCerts(currentX509Certs, newX509Certs)) {
             return;
         }
 
@@ -622,6 +627,34 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             });
 
         return !newCertsExpireBeforeCurrentCerts;
+    }
+
+    /**
+     * Check if new X509 certs have same signature has as the current X509 certs.
+     * @param currentX509Certs Array of current X509Certificates.
+     * @param newX509Certs Array of new X509Certificates.
+     * @return true if all of the new certificates have the same signature as currentX509 certificates.
+     * @return false if any new certificate signature is different than currentX509 certificates
+     */
+
+    private boolean areSameCerts(final X509Certificate[] currentX509Certs, final X509Certificate[] newX509Certs) {
+
+        final Function<? super X509Certificate, String> certificateSignature = cert -> {
+            final byte[] signature = cert !=null && cert.getSignature() != null ? cert.getSignature() : null;
+            return new String(signature);
+        };
+
+        final List<String> currentCertSignatureList = Arrays.stream(currentX509Certs)
+                .map(certificateSignature)
+                .sorted()
+                .collect(Collectors.toList());
+
+        final List<String> newCertSignatureList = Arrays.stream(newX509Certs)
+                .map(certificateSignature)
+                .sorted()
+                .collect(Collectors.toList());
+
+        return currentCertSignatureList.equals(newCertSignatureList);
     }
 
     public SSLEngine createHTTPSSLEngine() throws SSLException {

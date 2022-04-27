@@ -211,17 +211,6 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         expectedResponse.appendField("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: " +
             "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];");
         Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
-
-
-        // Test Invalid Case: Reloading with same certificates
-        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.crt.pem").toString(), pemCertFilePath);
-        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.key.pem").toString(), pemKeyFilePath);
-
-        reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
-        Assert.assertEquals(500, reloadCertsResponse.getStatusCode());
-        expectedResponse = new JSONObject();
-        expectedResponse.appendField("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: New certificates should not expire before the current ones.]; nested: Exception[New certificates should not expire before the current ones.];");
-        Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
     }
 
     @Test
@@ -250,6 +239,85 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         final String expectedResponseString = expectedResponse.toString().replace("\\", "");
         Assert.assertEquals(expectedResponseString, reloadCertsResponse.getBody());
     }
+
+    @Test
+    public void testReloadTransportSSLSameCertsPass() throws Exception {
+        final String pemCertFilePath = testFolder.newFile("node-temp-cert.pem").getAbsolutePath();
+        final String pemKeyFilePath = testFolder.newFile("node-temp-key.pem").getAbsolutePath();
+        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.crt.pem").toString(), pemCertFilePath);
+        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.key.pem").toString(), pemKeyFilePath);
+
+        initTestCluster(pemCertFilePath, pemKeyFilePath, pemCertFilePath, pemKeyFilePath, true);
+
+        RestHelper rh = restHelper();
+        rh.enableHTTPClientSSL = true;
+        rh.trustHTTPServerCertificate = true;
+        rh.sendAdminCertificate = true;
+        rh.keystore = "ssl/reload/kirk-keystore.jks";
+
+        String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
+
+        JSONObject expectedJsonResponse = new JSONObject();
+        expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
+        expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
+        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+
+        // Test Valid Case: Reload same certificate
+        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.crt.pem").toString(), pemCertFilePath);
+        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.key.pem").toString(), pemKeyFilePath);
+        RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
+
+        Assert.assertEquals(200, reloadCertsResponse.getStatusCode());
+        expectedJsonResponse = new JSONObject();
+        expectedJsonResponse.appendField("message", "updated transport certs");
+        Assert.assertEquals(expectedJsonResponse.toString(), reloadCertsResponse.getBody());
+
+        certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
+        expectedJsonResponse = new JSONObject();
+        expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
+        expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
+        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+    }
+
+    @Test
+    public void testReloadHttpSSLSameCertsPass() throws Exception {
+        final String pemCertFilePath = testFolder.newFile("node-temp-cert.pem").getAbsolutePath();
+        final String pemKeyFilePath = testFolder.newFile("node-temp-key.pem").getAbsolutePath();
+        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.crt.pem").toString(), pemCertFilePath);
+        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.key.pem").toString(), pemKeyFilePath);
+
+        initTestCluster(pemCertFilePath, pemKeyFilePath, pemCertFilePath, pemKeyFilePath, true);
+
+        RestHelper rh = restHelper();
+        rh.enableHTTPClientSSL = true;
+        rh.trustHTTPServerCertificate = true;
+        rh.sendAdminCertificate = true;
+        rh.keystore = "ssl/reload/kirk-keystore.jks";
+
+        String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
+        JSONObject expectedJsonResponse = new JSONObject();
+        expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
+        expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
+        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+
+        // Test Valid Case: Reload same certificate
+        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.crt.pem").toString(), pemCertFilePath);
+        FileHelper.copyFileContents(FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/node.key.pem").toString(), pemKeyFilePath);
+        RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_HTTP_CERTS_ENDPOINT, null);
+
+        Assert.assertEquals(200, reloadCertsResponse.getStatusCode());
+        expectedJsonResponse = new JSONObject();
+        expectedJsonResponse.appendField("message", "updated http certs");
+        Assert.assertEquals(expectedJsonResponse.toString(), reloadCertsResponse.getBody());
+
+        certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
+        expectedJsonResponse = new JSONObject();
+        expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
+        expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
+        Assert.assertEquals(expectedJsonResponse.toString(), certDetailsResponse);
+    }
+
+
 
     /**
      * Helper method to initialize test cluster for SSL Certificate Reload Tests
