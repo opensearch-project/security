@@ -644,17 +644,15 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             return new String(signature);
         };
 
-        final List<String> currentCertSignatureList = Arrays.stream(currentX509Certs)
+        final Set<String> currentCertSignatureSet = Arrays.stream(currentX509Certs)
                 .map(certificateSignature)
-                .sorted()
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
-        final List<String> newCertSignatureList = Arrays.stream(newX509Certs)
+        final Set<String> newCertSignatureSet = Arrays.stream(newX509Certs)
                 .map(certificateSignature)
-                .sorted()
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
-        return currentCertSignatureList.equals(newCertSignatureList);
+        return currentCertSignatureSet.equals(newCertSignatureSet);
     }
 
     public SSLEngine createHTTPSSLEngine() throws SSLException {
