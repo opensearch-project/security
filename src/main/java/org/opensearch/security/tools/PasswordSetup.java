@@ -119,9 +119,6 @@ public class PasswordSetup {
 
     public static int execute(final String[] args) throws Exception {
 
-        System.setProperty("security.nowarn.client","true");
-        System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation","true");
-
         final HelpFormatter formatter = new HelpFormatter();
         Options options = new Options();
         options.addOption( "nhnv", "disable-host-name-verification", false, "Disable hostname verification" );
@@ -210,7 +207,7 @@ public class PasswordSetup {
             if(!cd.endsWith(File.separator)) {
                 cd += File.separator;
             }
-            
+
             ks = line.getOptionValue("ks",ks);
             ts = line.getOptionValue("ts",ts);
             kst = line.getOptionValue("kst", kst);
@@ -251,6 +248,7 @@ public class PasswordSetup {
         System.out.print("Will connect to "+hostname+":"+port);
         Socket socket = new Socket();
 
+        /**
         try {
             
             socket.connect(new InetSocketAddress(hostname, port));
@@ -267,6 +265,7 @@ public class PasswordSetup {
             }
           }
         System.out.println(" ... done");
+        */
 
         if(ks != null) {
             kst = kst==null?(ks.endsWith(".jks")?"JKS":"PKCS12"):kst;
@@ -400,6 +399,7 @@ public class PasswordSetup {
             
 
             if (autoGenerate) {
+                System.out.println("Disclaimer: You may have to escape special characters when accessing cluster");
                 for (String user: users) {
                     String password = createPassword();
                     System.out.println("\nPassword for " + user + " is: " + password);
@@ -412,6 +412,7 @@ public class PasswordSetup {
                     System.out.println("\nEnter password for " + user + ": ");
                     String password = sc.nextLine();
                     setPasswordSingleUser(user, lowLevelClient, password);
+                    System.out.println("Done setting password for " + user);
                 }
                 sc.close();
             }
@@ -428,7 +429,6 @@ public class PasswordSetup {
         Request request = new Request("PATCH", "/_plugins/_security/api/internalusers/" + user);
         request.setEntity(entity);
         restClient.performRequest(request);
-        System.out.println("Done setting password for " + user);
     }
 
     private static String createPassword() {

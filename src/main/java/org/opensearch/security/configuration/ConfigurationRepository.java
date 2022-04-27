@@ -32,6 +32,7 @@ package org.opensearch.security.configuration;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +49,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.support.SecurityUtils;
+import org.opensearch.security.tools.PasswordSetup;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -194,6 +199,14 @@ public class ConfigurationRepository {
                     }
 
                     LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
+
+                    try {
+                        generatePasswords();
+                        System.out.println("Passwords generated");
+                    } catch (Exception e) {
+                        System.out.println(e);
+                        System.out.println("Threw an error while setting up passwords");
+                    }
 
                 } catch (Exception e) {
                     LOGGER.error("Unexpected exception while initializing node "+e, e);
@@ -405,5 +418,23 @@ public class ConfigurationRepository {
 
     public static int getDefaultConfigVersion() {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
+    }
+
+    private static void generatePasswords() throws Exception {
+
+        String configDirectory = Paths.get("").toAbsolutePath().toString().concat("/config/");
+        List<String> argsAsList = new ArrayList<>();
+
+        argsAsList.add("-icl");
+        argsAsList.add("-key");
+        argsAsList.add(configDirectory + "kirk-key.pem");
+        argsAsList.add("-cert");
+        argsAsList.add(configDirectory + "kirk.pem");
+        argsAsList.add("-cacert");
+        argsAsList.add(configDirectory + "root-ca.pem");
+        argsAsList.add("-nhnv");
+        argsAsList.add("-a");
+
+        PasswordSetup.execute(argsAsList.toArray(new String[0]));
     }
 }
