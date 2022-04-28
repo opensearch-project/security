@@ -59,6 +59,13 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+<<<<<<< HEAD
+=======
+import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.threadpool.ThreadPool;
+
+import com.fasterxml.jackson.databind.JsonNode;
+>>>>>>> 3f252b66 (Remove import changes)
 import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
