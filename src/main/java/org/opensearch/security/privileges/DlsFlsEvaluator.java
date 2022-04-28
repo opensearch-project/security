@@ -34,8 +34,8 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class DlsFlsEvaluator {
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
 
     private final ThreadPool threadPool;
 
