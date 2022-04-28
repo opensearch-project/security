@@ -145,6 +145,7 @@ public class ConfigurationRepository {
                                     final boolean populateEmptyIfFileMissing = true;
                                     ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", securityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                     ConfigHelper.uploadFile(client, cd + "whitelist.yml", securityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                    ConfigHelper.uploadFile(client, cd + "allowlist.yml", securityIndex, CType.ALLOWLIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
 
                                     // audit.yml is not packaged by default
                                     final String auditConfigPath = cd + "audit.yml";

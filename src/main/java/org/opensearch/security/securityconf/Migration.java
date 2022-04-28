@@ -39,6 +39,7 @@ import java.util.Set;
 import org.opensearch.common.Strings;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.Meta;
 import org.opensearch.security.securityconf.impl.NodesDn;
@@ -161,6 +162,19 @@ public class Migration {
 
         for(final Entry<String, WhitelistingSettings> entry: whitelistingSetting.getCEntries().entrySet()) {
             migrated.putCEntry(entry.getKey(), new WhitelistingSettings(entry.getValue()));
+        }
+        return migrated;
+    }
+
+    public static SecurityDynamicConfiguration<AllowlistingSettings> migrateAllowlistingSetting(SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSetting) {
+        final SecurityDynamicConfiguration<AllowlistingSettings> migrated = SecurityDynamicConfiguration.empty();
+        migrated.setCType(allowlistingSetting.getCType());
+        migrated.set_meta(new Meta());
+        migrated.get_meta().setConfig_version(2);
+        migrated.get_meta().setType("whitelist");
+
+        for(final Entry<String, AllowlistingSettings> entry: allowlistingSetting.getCEntries().entrySet()) {
+            migrated.putCEntry(entry.getKey(), new AllowlistingSettings(entry.getValue()));
         }
         return migrated;
     }

@@ -54,6 +54,7 @@ import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidat
 import org.opensearch.security.dlic.rest.validation.NoOpValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Migration;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -121,6 +122,7 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = (SecurityDynamicConfiguration<RoleMappingsV6>) load(CType.ROLESMAPPING, true);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV6 = (SecurityDynamicConfiguration<NodesDn>) load(CType.NODESDN, true);
         final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV6 = (SecurityDynamicConfiguration<WhitelistingSettings>) load(CType.WHITELIST, true);
+        final SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSettingV6 = (SecurityDynamicConfiguration<AllowlistingSettings>) load(CType.ALLOWLIST, true);
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV6 = (SecurityDynamicConfiguration<AuditConfig>) load(CType.AUDIT, true);
 
         final ImmutableList.Builder<SecurityDynamicConfiguration<?>> builder = ImmutableList.builder();
@@ -141,6 +143,8 @@ public class MigrateApiAction extends AbstractApiAction {
         builder.add(nodesDnV7);
         final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV7 = Migration.migrateWhitelistingSetting(whitelistingSettingV6);
         builder.add(whitelistingSettingV7);
+        final SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSettingV7 = Migration.migrateAllowlistingSetting(allowlistingSettingV6);
+        builder.add(allowlistingSettingV7);
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
         builder.add(auditConfigV7);
 
