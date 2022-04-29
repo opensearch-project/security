@@ -64,6 +64,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testAuditLogEnable() throws Exception {
         Settings additionalSettings = Settings.builder()
                 .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
+                .put("plugins.security.audit.config.enable_transport", true)
                 .build();
 
         setup(additionalSettings);

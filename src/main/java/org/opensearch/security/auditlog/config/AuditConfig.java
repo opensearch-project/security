@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT;
 
 /**
  * Class represents configuration for audit logging.
@@ -174,6 +175,30 @@ public class AuditConfig {
             this.disabledTransportCategories = disabledTransportCategories;
         }
 
+        public enum FilterEntries {
+            ENABLE_REST("enable_rest"),
+            ENABLE_TRANSPORT("enable_transport"),
+            RESOLVE_BULK_REQUESTS("resolve_bulk_requests"),
+            LOG_REQUEST_BODY("log_request_body"),
+            RESOLVE_INDICES("resolve_indices"),
+            EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers"),
+            DISABLE_REST_CATEGORIES("disabled_rest_categories"),
+            DISABLE_TRANSPORT_CATEGORIES("disabled_transport_categories"),
+            IGNORE_USERS("ignore_users"),
+            IGNORE_REQUESTS("ignore_requests");
+
+            private final String key;
+            private FilterEntries(final String entryKey) {
+                this.key = entryKey;
+            }
+            public String getKey() {
+                return this.key;
+            }
+            public String getKeyWithNamepace() {
+                return SECURITY_AUDIT_CONFIG_DEFAULT + this.key;
+            }
+        }
+
         @JsonCreator
         @VisibleForTesting
         public static Filter from(Map<String, Object> properties) throws JsonProcessingException {
@@ -181,16 +206,16 @@ public class AuditConfig {
                 throw new UnrecognizedPropertyException(null, "Unrecognized field(s) present in the input data for audit filter config", null, Filter.class, null, null);
             }
 
-            final boolean isRestApiAuditEnabled = getOrDefault(properties,"enable_rest", true);
-            final boolean isTransportAuditEnabled = getOrDefault(properties,"enable_transport", true);
-            final boolean resolveBulkRequests = getOrDefault(properties, "resolve_bulk_requests", false);
-            final boolean logRequestBody = getOrDefault(properties, "log_request_body", true);
-            final boolean resolveIndices = getOrDefault(properties, "resolve_indices", true);
-            final boolean excludeSensitiveHeaders = getOrDefault(properties, "exclude_sensitive_headers", true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(getOrDefault(properties,"disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(getOrDefault(properties, "disabled_transport_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(getOrDefault(properties, "ignore_users", DEFAULT_IGNORED_USERS));
-            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(getOrDefault(properties, "ignore_requests", Collections.emptyList()));
+            final boolean isRestApiAuditEnabled = getOrDefault(properties, FilterEntries.ENABLE_REST.getKey(), true);
+            final boolean isTransportAuditEnabled = getOrDefault(properties, FilterEntries.ENABLE_TRANSPORT.getKey(), true);
+            final boolean resolveBulkRequests = getOrDefault(properties, FilterEntries.RESOLVE_BULK_REQUESTS.getKey(), false);
+            final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
+            final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
+            final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
+            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(getOrDefault(properties, FilterEntries.DISABLE_REST_CATEGORIES.getKey(), ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(getOrDefault(properties, FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(), ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS));
+            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList()));
 
             return new Filter(
                     isRestApiAuditEnabled,
