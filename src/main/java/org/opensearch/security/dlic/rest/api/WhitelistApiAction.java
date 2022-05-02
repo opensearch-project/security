@@ -38,13 +38,12 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.WhitelistValidator;
+import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
-
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * This class implements GET and PUT operations to manage dynamic WhitelistingSettings.
@@ -87,10 +86,10 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * <p>
  */
 public class WhitelistApiAction extends PatchableResourceApiAction {
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
-            new Route(RestRequest.Method.GET, "/whitelist"),
-            new Route(RestRequest.Method.PUT, "/whitelist"),
-            new Route(RestRequest.Method.PATCH, "/whitelist")
+    private static final List<DeprecatedRoute> routes = addDeprecatedRoutesPrefix(ImmutableList.of(
+            new DeprecatedRoute(RestRequest.Method.GET, "/whitelist", "[/whitelist] is a deprecated endpoint. Please use [/allowlist] instead."),
+            new DeprecatedRoute(RestRequest.Method.PUT, "/whitelist", "[/whitelist] is a deprecated endpoint. Please use [/allowlist] instead."),
+            new DeprecatedRoute(RestRequest.Method.PATCH, "/whitelist", "[/whitelist] is a deprecated endpoint. Please use [/allowlist] instead.")
     ));
 
     private static final String name = "config";
@@ -153,7 +152,7 @@ public class WhitelistApiAction extends PatchableResourceApiAction {
 
 
     @Override
-    public List<Route> routes() {
+    public List<DeprecatedRoute> deprecatedRoutes() {
         return routes;
     }
 

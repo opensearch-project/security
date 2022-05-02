@@ -45,6 +45,7 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.rest.RestHandler.DeprecatedRoute;
 import org.opensearch.rest.RestHandler.Route;
 import org.opensearch.security.DefaultObjectMapper;
 
@@ -240,5 +241,30 @@ public class Utils {
                 r -> Arrays.stream(prefixes)
                    .map(p -> new Route(r.getMethod(), p + r.getPath())))
              .collect(ImmutableList.toImmutableList());
+    }
+
+    /**
+     * Add prefixes(_plugins...) to rest API routes
+     * @param deprecatedRoutes Routes being deprecated
+     * @return new list of API routes prefixed with _opendistro... and _plugins...
+     *Total number of routes is expanded as twice as the number of routes passed in
+     */
+    public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes){
+        return addDeprecatedRoutesPrefix(deprecatedRoutes, "/_opendistro/_security/api", "/_plugins/_security/api");
+    }
+
+    /**
+     * Add customized prefix(_opendistro... and _plugins...)to API rest routes
+     * @param deprecatedRoutes Routes being deprecated
+     * @param prefixes all api prefix
+     * @return new list of API routes prefixed with the strings listed in prefixes
+     * Total number of routes will be expanded len(prefixes) as much comparing to the list passed in
+     */
+    public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes, final String... prefixes){
+        return deprecatedRoutes.stream()
+                .flatMap(
+                        r -> Arrays.stream(prefixes)
+                                .map(p -> new DeprecatedRoute(r.getMethod(), p + r.getPath(), r.getDeprecationMessage())))
+                .collect(ImmutableList.toImmutableList());
     }
 }
