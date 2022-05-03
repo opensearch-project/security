@@ -19,7 +19,6 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import org.opensearch.SpecialPermission;
 import org.ldaptive.AddRequest;
 import org.ldaptive.BindRequest;
 import org.ldaptive.CompareRequest;
@@ -39,6 +38,8 @@ import org.ldaptive.provider.ProviderConnectionFactory;
 import org.ldaptive.provider.SearchIterator;
 import org.ldaptive.provider.SearchListener;
 import org.ldaptive.provider.jndi.JndiProviderConfig;
+
+import org.opensearch.SpecialPermission;
 
 public class PrivilegedProvider implements Provider<JndiProviderConfig> {
 

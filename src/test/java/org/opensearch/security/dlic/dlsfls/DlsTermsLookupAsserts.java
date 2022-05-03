@@ -15,14 +15,15 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
-import static org.junit.Assert.assertTrue;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
 import org.junit.Assert;
+
 import org.opensearch.search.SearchHit;
+
+import static org.junit.Assert.assertTrue;
 
 /*
  * Copyright OpenSearch Contributors

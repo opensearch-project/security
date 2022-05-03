@@ -15,10 +15,10 @@
 
 package org.opensearch.security.auditlog.impl;
 
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.settings.Settings.Builder;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings.Builder;
 import org.opensearch.security.auditlog.helper.MyOwnAuditLog;
 import org.opensearch.security.auditlog.sink.AuditLogSink;
 import org.opensearch.security.auditlog.sink.DebugSink;

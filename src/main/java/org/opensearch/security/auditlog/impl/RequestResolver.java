@@ -24,8 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -56,12 +57,11 @@ import org.opensearch.index.Index;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
-import org.opensearch.tasks.Task;
-import org.opensearch.transport.TransportRequest;
-
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.tasks.Task;
+import org.opensearch.transport.TransportRequest;
 
 public final class RequestResolver {
 

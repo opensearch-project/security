@@ -17,9 +17,10 @@
 
 package org.opensearch.security.ssl;
 
+import java.security.cert.X509Certificate;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import java.security.cert.X509Certificate;
 
 public interface SecurityKeyStore {
 

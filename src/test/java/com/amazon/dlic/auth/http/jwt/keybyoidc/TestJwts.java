@@ -17,6 +17,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jws.JwsHeaders;
 import org.apache.cxf.rs.security.jose.jws.JwsSignatureProvider;
@@ -26,8 +27,6 @@ import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtConstants;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.logging.log4j.util.Strings;
-
-import com.google.common.collect.ImmutableSet;
 
 class TestJwts {
 	static final String ROLES_CLAIM = "roles";

@@ -24,11 +24,6 @@ import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.amazon.dlic.auth.http.jwt.keybyoidc.AuthenticatorUnavailableException;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.BadCredentialsException;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.KeySetProvider;
-import com.amazon.dlic.auth.http.jwt.keybyoidc.SelfRefreshingKeySet;
-
 public class SelfRefreshingKeySetTest {
 
 	@Test

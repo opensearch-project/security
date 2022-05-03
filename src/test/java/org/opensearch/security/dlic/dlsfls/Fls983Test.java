@@ -16,13 +16,13 @@
 package org.opensearch.security.dlic.dlsfls;
 
 import org.apache.http.HttpStatus;
+import org.junit.Assert;
+import org.junit.Test;
+
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
-import org.junit.Assert;
-import org.junit.Test;
-
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 

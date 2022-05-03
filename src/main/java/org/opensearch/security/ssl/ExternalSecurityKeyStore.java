@@ -32,7 +32,6 @@ import javax.net.ssl.SSLParameters;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 
 public class ExternalSecurityKeyStore implements SecurityKeyStore {

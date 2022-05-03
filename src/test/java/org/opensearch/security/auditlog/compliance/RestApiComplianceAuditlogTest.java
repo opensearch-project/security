@@ -15,14 +15,14 @@
 
 package org.opensearch.security.auditlog.compliance;
 
-import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.apache.http.HttpStatus;
-import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;

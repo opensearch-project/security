@@ -21,7 +21,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Map;
 
-import org.opensearch.security.auditlog.config.AuditConfig;
+import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.SpecialPermission;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -35,12 +36,11 @@ import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.index.shard.ShardId;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
-
-import org.greenrobot.eventbus.Subscribe;
 
 public final class AuditLogImpl extends AbstractAuditLog {
 

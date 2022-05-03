@@ -36,7 +36,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.opensearch.security.ssl.transport.SecuritySSLRequestHandler;
+import com.google.common.base.Strings;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.bulk.BulkShardRequest;
@@ -45,24 +46,22 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.search.internal.ShardSearchRequest;
+import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.security.ssl.transport.SSLConfig;
+import org.opensearch.security.ssl.transport.SecuritySSLRequestHandler;
 import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.support.Base64Helper;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.user.User;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
-
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.ssl.SslExceptionHandler;
-import org.opensearch.security.support.Base64Helper;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.HeaderHelper;
-import org.opensearch.security.user.User;
-import org.opensearch.security.ssl.transport.SSLConfig;
-
-import com.google.common.base.Strings;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 

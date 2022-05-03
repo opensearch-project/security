@@ -16,10 +16,10 @@
 package org.opensearch.security.auditlog.sink;
 
 import org.apache.logging.log4j.Level;
-import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.test.helper.file.FileHelper;
 
 public class SinkProviderTest {

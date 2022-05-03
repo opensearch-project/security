@@ -15,12 +15,13 @@
 
 package org.opensearch.security.filter;
 
-import org.opensearch.security.dlic.rest.api.AbstractRestApiUnitTest;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.test.helper.rest.RestHelper;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
+
+import org.opensearch.security.dlic.rest.api.AbstractRestApiUnitTest;
+import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

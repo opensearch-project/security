@@ -39,11 +39,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.support.ConfigHelper;
-import org.opensearch.security.support.SecurityUtils;
-import org.apache.logging.log4j.Logger;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.LegacyESVersion;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.get.GetResponse;
@@ -59,13 +58,14 @@ import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.threadpool.ThreadPool;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.ConfigHelper;
+import org.opensearch.security.support.SecurityUtils;
+import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 

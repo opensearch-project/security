@@ -18,8 +18,10 @@ package org.opensearch.security.configuration;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.Logger;
+import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
@@ -47,14 +49,11 @@ import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.threadpool.ThreadPool;
-
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.User;
-
-import com.google.common.collect.ImmutableMap;
+import org.opensearch.threadpool.ThreadPool;
 
 public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
 

@@ -21,22 +21,22 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.AuditTestUtils;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.plugins.Plugin;
 import org.junit.Assert;
 
+import org.opensearch.common.settings.Settings;
+import org.opensearch.plugins.Plugin;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 

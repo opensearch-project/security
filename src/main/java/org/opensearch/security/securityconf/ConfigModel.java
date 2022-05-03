@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.opensearch.common.transport.TransportAddress;
-
 import org.opensearch.security.user.User;
 
 

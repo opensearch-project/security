@@ -29,24 +29,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
-import org.apache.logging.log4j.Logger;
+import com.google.common.base.Strings;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.ExceptionsHelper;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.XContentBuilder;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.env.Environment;
-//import org.opensearch.env.Environment;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
+import org.apache.logging.log4j.Logger;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -56,9 +44,20 @@ import org.ietf.jgss.Oid;
 
 import com.amazon.dlic.auth.http.kerberos.util.JaasKrbUtil;
 import com.amazon.dlic.auth.http.kerberos.util.KrbConstants;
+
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.env.Environment;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
-import com.google.common.base.Strings;
 
 public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 

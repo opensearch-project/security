@@ -33,7 +33,6 @@ package org.opensearch.security.auditlog;
 import java.io.Closeable;
 import java.util.Map;
 
-import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.index.engine.Engine.Delete;
 import org.opensearch.index.engine.Engine.DeleteResult;
 import org.opensearch.index.engine.Engine.Index;
@@ -41,6 +40,7 @@ import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.index.shard.ShardId;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;

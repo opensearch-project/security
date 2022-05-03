@@ -17,14 +17,14 @@ package org.opensearch.security.dlic.rest.validation;
 
 import java.util.List;
 
-import org.opensearch.security.configuration.Salt;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.ReadContext;
+
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
-
 import org.opensearch.security.configuration.MaskedField;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.ReadContext;
+import org.opensearch.security.configuration.Salt;
 
 public class RolesValidator extends AbstractConfigurationValidator {
 

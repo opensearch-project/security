@@ -17,8 +17,9 @@ package org.opensearch.security.compliance;
 
 import java.util.Objects;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.engine.Engine.Delete;
@@ -28,7 +29,6 @@ import org.opensearch.index.engine.Engine.IndexResult;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.index.shard.IndexShard;
 import org.opensearch.index.shard.ShardId;
-
 import org.opensearch.security.auditlog.AuditLog;
 
 public final class ComplianceIndexingOperationListenerImpl extends ComplianceIndexingOperationListener {

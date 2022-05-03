@@ -14,9 +14,9 @@
  */
 package org.opensearch.security.ssl.util;
 
-import io.netty.buffer.ByteBuf;
-
 import java.nio.ByteOrder;
+
+import io.netty.buffer.ByteBuf;
 
 
 public class TLSUtil {

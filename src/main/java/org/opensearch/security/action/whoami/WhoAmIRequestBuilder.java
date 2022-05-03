@@ -30,11 +30,11 @@
 
 package org.opensearch.security.action.whoami;
 
+import java.io.IOException;
+
 import org.opensearch.action.ActionRequestBuilder;
 import org.opensearch.client.ClusterAdminClient;
 import org.opensearch.client.OpenSearchClient;
-
-import java.io.IOException;
 
 public class WhoAmIRequestBuilder extends
 ActionRequestBuilder<WhoAmIRequest, WhoAmIResponse> {    

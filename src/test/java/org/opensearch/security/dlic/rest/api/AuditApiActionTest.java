@@ -15,14 +15,12 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.AuditTestUtils;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.compliance.ComplianceConfig;
-import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,22 +30,25 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.opensearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.AuditTestUtils;
+import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.compliance.ComplianceConfig;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.rest.RestHelper;
 
-import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
-import static org.opensearch.security.DefaultObjectMapper.readTree;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.opensearch.security.DefaultObjectMapper.readTree;
+import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 

@@ -17,15 +17,6 @@
 
 package org.opensearch.security.ssl;
 
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.NonValidatingObjectMapper;
-import org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
-import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
-import com.fasterxml.jackson.databind.InjectableValues;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.util.internal.PlatformDependent;
-
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -39,8 +30,12 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.logging.log4j.Logger;
+import com.fasterxml.jackson.databind.InjectableValues;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
@@ -74,18 +69,22 @@ import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.NonValidatingObjectMapper;
+import org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport;
+import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
 import org.opensearch.security.ssl.rest.SecuritySSLInfoAction;
-import org.opensearch.security.ssl.transport.*;
+import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
+import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.security.ssl.transport.SSLConfig;
+import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
+import org.opensearch.security.ssl.transport.SecuritySSLTransportInterceptor;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 import org.opensearch.transport.Transport;
 import org.opensearch.transport.TransportInterceptor;
 import org.opensearch.watcher.ResourceWatcherService;
-
-import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
-import org.opensearch.security.ssl.transport.SecuritySSLTransportInterceptor;
 
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {

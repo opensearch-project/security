@@ -19,10 +19,10 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import org.opensearch.SpecialPermission;
+import io.netty.util.internal.PlatformDependent;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
-import io.netty.util.internal.PlatformDependent;
+import org.opensearch.SpecialPermission;
 
 public class MakeJava9Happy {
 

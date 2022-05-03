@@ -30,20 +30,20 @@
 
 package org.opensearch.security;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
-
 import java.util.Map;
 
-import org.opensearch.security.support.SecurityUtils;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
-import org.opensearch.common.settings.Settings;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class UtilTests {
 

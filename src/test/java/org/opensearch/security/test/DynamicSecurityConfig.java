@@ -36,7 +36,6 @@ import java.util.List;
 
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.test.helper.file.FileHelper;
 

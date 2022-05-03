@@ -33,9 +33,9 @@ package org.opensearch.security.support;
 import java.io.Serializable;
 import java.util.Map;
 
-import org.opensearch.common.util.concurrent.ThreadContext;
-
 import com.google.common.base.Strings;
+
+import org.opensearch.common.util.concurrent.ThreadContext;
 
 public class HeaderHelper {
 
