@@ -59,23 +59,23 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * SuperAdmin certificate for the default superuser is stored as a kirk.pem file in config folder of OpenSearch
  * <p>
  * Example calling the PUT API as SuperAdmin using curl (if http basic auth is on):
- * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_opendistro/_security/api/allowlist -H "Content-Type: application/json" -d’
+ * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPUT https://localhost:9200/_plugins/_security/api/allowlist -H "Content-Type: application/json" -d’
  * {
  *      "enabled" : false,
- *      "requests" : {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/allowlist": ["GET"]}
+ *      "requests" : {"/_cat/nodes": ["GET"], "/_plugins/_security/api/allowlist": ["GET"]}
  * }
  *
  * Example using the PATCH API to change the requests as SuperAdmin:
- * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_opendistro/_security/api/allowlist -H "Content-Type: application/json" -d’
+ * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_plugins/_security/api/allowlist -H "Content-Type: application/json" -d’
  * {
  *      "op":"replace",
  *      "path":"/config/requests",
- *      "value": {"/_cat/nodes": ["GET"], "/_opendistro/_security/api/allowlist": ["GET"]}
+ *      "value": {"/_cat/nodes": ["GET"], "/_plugins/_security/api/allowlist": ["GET"]}
  * }
  *
  * To update enabled, use the "add" operation instead of the "replace" operation, since boolean variables are not recognized as valid paths when they are false.
  * eg:
- * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_opendistro/_security/api/allowlist -H "Content-Type: application/json" -d’
+ * curl -v --cacert path_to_config/root-ca.pem --cert path_to_config/kirk.pem --key path_to_config/kirk-key.pem -XPATCH https://localhost:9200/_plugins/_security/api/allowlist -H "Content-Type: application/json" -d’
  * {
  *      "op":"add",
  *      "path":"/config/enabled",
@@ -88,11 +88,11 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * <p>
  */
 public class AllowlistApiAction extends PatchableResourceApiAction {
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
-            new Route(RestRequest.Method.GET, "/allowlist"),
-            new Route(RestRequest.Method.PUT, "/allowlist"),
-            new Route(RestRequest.Method.PATCH, "/allowlist")
-    ));
+    private static final List<Route> routes = ImmutableList.of(
+            new Route(RestRequest.Method.GET, "/_plugins/_security/api/allowlist"),
+            new Route(RestRequest.Method.PUT, "/_plugins/_security/api/allowlist"),
+            new Route(RestRequest.Method.PATCH, "/_plugins/_security/api/allowlist")
+    );
 
     private static final String name = "config";
 
