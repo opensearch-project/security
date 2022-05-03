@@ -219,7 +219,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         updateFiles(defaultCertFilePath, pemCertFilePath);
         updateFiles(defaultKeyFilePath, pemKeyFilePath);
 
-        Assert.assertTrue(reloadAndVerifyResponse(rh, "transport", getInitCertDetailsExpectedResponse()));
+        Assert.assertTrue(reloadAndVerifyResponse(rh, "http", getInitCertDetailsExpectedResponse()));
     }
 
     /**
