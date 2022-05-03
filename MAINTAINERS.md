@@ -48,4 +48,4 @@ Exceptional, instead of immediately reverting, if a contributor knows how and wi
 ### Performing Revert
 Go to the pull request of the change that was an issue, there is a `Revert` button at the bottom.  If there are no conflicts to resolve, this can be done immediately bypassing standard approval.
 
-Reverts can also be done via the command line using `git revert <commit-id>` and creating a new pull request.  If done in this way they should have references to the pull requestthat was reverted.
+Reverts can also be done via the command line using `git revert <commit-id>` and creating a new pull request.  If done in this way they should have references to the pull request that was reverted.
