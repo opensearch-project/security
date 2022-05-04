@@ -17,10 +17,10 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.nio.file.Path;
 
-import org.opensearch.common.settings.Settings;
-
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+
+import org.opensearch.common.settings.Settings;
 
 public class HTTPJwtKeyByOpenIdConnectAuthenticator extends AbstractHTTPJwtAuthenticator {
 

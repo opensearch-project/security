@@ -15,12 +15,11 @@
 
 package org.opensearch.security.auditlog.config;
 
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.compliance.ComplianceConfig;
-import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -32,13 +31,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.settings.Settings;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.compliance.ComplianceConfig;
+import org.opensearch.security.dlic.rest.support.Utils;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 
 import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
 

@@ -36,18 +36,25 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.opensearch.common.Strings;
+import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.Meta;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
-import org.opensearch.security.securityconf.impl.v6.*;
-import org.opensearch.security.securityconf.impl.v7.*;
-import org.opensearch.common.Strings;
-import org.opensearch.common.collect.Tuple;
-import org.opensearch.security.securityconf.impl.v6.*;
-import org.opensearch.security.securityconf.impl.v7.*;
+import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
+import org.opensearch.security.securityconf.impl.v6.ConfigV6;
+import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
+import org.opensearch.security.securityconf.impl.v6.RoleMappingsV6;
+import org.opensearch.security.securityconf.impl.v6.RoleV6;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
+import org.opensearch.security.securityconf.impl.v7.ConfigV7;
+import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
+import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
+import org.opensearch.security.securityconf.impl.v7.RoleV7;
+import org.opensearch.security.securityconf.impl.v7.TenantV7;
 
 
 public class Migration {

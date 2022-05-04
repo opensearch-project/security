@@ -19,15 +19,15 @@ package org.opensearch.security;
 
 import java.io.File;
 
-import org.apache.commons.io.FileUtils;
-import org.opensearch.common.Strings;
-import org.opensearch.common.collect.Tuple;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.commons.io.FileUtils;
+import org.junit.Assert;
+import org.junit.Test;
+
+import org.opensearch.common.Strings;
+import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;

@@ -21,11 +21,11 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import org.opensearch.common.settings.Settings;
-import org.opensearch.env.Environment;
+import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.opensaml.saml.metadata.resolver.impl.FilesystemMetadataResolver;
 
-import net.shibboleth.utilities.java.support.resolver.ResolverException;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 
 public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
 

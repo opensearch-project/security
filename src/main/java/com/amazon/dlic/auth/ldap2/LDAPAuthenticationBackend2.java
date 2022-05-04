@@ -25,11 +25,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.settings.Settings;
+import org.apache.logging.log4j.Logger;
 import org.ldaptive.BindRequest;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionFactory;
@@ -43,11 +40,15 @@ import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.Utils;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
+
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.auth.Destroyable;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
-import org.opensearch.security.support.WildcardMatcher;
 
 public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destroyable {
 

@@ -17,27 +17,28 @@
 
 package org.opensearch.security.ssl;
 
-import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.nio.file.Paths;
-import java.security.KeyStore;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.TrustManagerFactory;
 
-import org.opensearch.client.Client;
-import org.opensearch.security.OpenSearchSecurityPlugin;
+import io.netty.util.internal.PlatformDependent;
 import org.apache.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -45,11 +46,13 @@ import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
@@ -57,13 +60,6 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4Plugin;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import io.netty.util.internal.PlatformDependent;
 
 @SuppressWarnings({"resource", "unchecked"})
 public class SSLTest extends SingleClusterTest {

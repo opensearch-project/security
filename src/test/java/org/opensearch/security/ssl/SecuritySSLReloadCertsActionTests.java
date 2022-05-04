@@ -15,13 +15,9 @@
 
 package org.opensearch.security.ssl;
 
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.DynamicSecurityConfig;
-import org.opensearch.security.test.SingleClusterTest;
-import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
-import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import net.minidev.json.JSONObject;
@@ -36,9 +32,14 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.DynamicSecurityConfig;
+import org.opensearch.security.test.SingleClusterTest;
+import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.rest.RestHelper;
 
 public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 

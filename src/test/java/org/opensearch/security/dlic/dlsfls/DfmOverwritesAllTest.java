@@ -17,6 +17,7 @@ package org.opensearch.security.dlic.dlsfls;
 
 import org.junit.Assert;
 import org.junit.Test;
+
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;

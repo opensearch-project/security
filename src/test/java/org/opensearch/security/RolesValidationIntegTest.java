@@ -1,7 +1,13 @@
 package org.opensearch.security;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.function.Supplier;
+
 import org.junit.Assert;
 import org.junit.Test;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -28,11 +34,6 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Netty4Plugin;
 import org.opensearch.watcher.ResourceWatcherService;
-
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.function.Supplier;
 
 public class RolesValidationIntegTest extends SingleClusterTest {
 

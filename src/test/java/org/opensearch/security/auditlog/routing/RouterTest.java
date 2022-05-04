@@ -19,15 +19,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.auditlog.helper.LoggingSink;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
-import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.sink.AuditLogSink;
 import org.opensearch.security.auditlog.sink.DebugSink;
 import org.opensearch.security.auditlog.sink.ExternalOpenSearchSink;

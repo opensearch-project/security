@@ -41,10 +41,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.common.settings.Settings;
+import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.tools.Hasher;
 
 public final class SecurityUtils {

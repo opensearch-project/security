@@ -30,12 +30,12 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.opensearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public class PrivilegesEvaluatorResponse {
     boolean allowed = false;

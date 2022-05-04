@@ -39,17 +39,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.opensearch.security.securityconf.DynamicConfigFactory;
-import org.opensearch.security.securityconf.NodesDnModel;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.transport.TransportRequest;
-
+import org.opensearch.security.securityconf.DynamicConfigFactory;
+import org.opensearch.security.securityconf.NodesDnModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-import org.greenrobot.eventbus.Subscribe;
+import org.opensearch.transport.TransportRequest;
 
 public final class DefaultInterClusterRequestEvaluator implements InterClusterRequestEvaluator {
 

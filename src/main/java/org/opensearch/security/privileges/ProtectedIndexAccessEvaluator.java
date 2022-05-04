@@ -18,17 +18,18 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.RealtimeRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.opensearch.action.ActionRequest;
-import org.opensearch.action.RealtimeRequest;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.tasks.Task;
 
 public class ProtectedIndexAccessEvaluator {

@@ -35,30 +35,29 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-import org.opensearch.client.Client;
-import org.opensearch.security.support.SecurityUtils;
 import org.apache.http.HttpStatus;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.indices.InvalidIndexNameException;
-import org.opensearch.indices.InvalidTypeNameException;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class IndexIntegrationTests extends SingleClusterTest {
 

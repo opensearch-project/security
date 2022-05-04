@@ -1,7 +1,9 @@
 package org.opensearch.security;
 
+import com.google.common.collect.ImmutableMap;
 import org.junit.Assert;
 import org.junit.Test;
+
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -9,8 +11,6 @@ import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
-
-import com.google.common.collect.ImmutableMap;
 
 public class PrivilegesEvaluationTest extends SingleClusterTest {
     @Test

@@ -15,15 +15,16 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.auditlog.impl.AuditCategory;
+import java.util.Set;
+
 import com.google.common.collect.ImmutableSet;
+
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
-
-import java.util.Set;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.impl.AuditCategory;
 
 public class AuditValidator extends AbstractConfigurationValidator {
 

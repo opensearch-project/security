@@ -1,8 +1,13 @@
 package org.opensearch.security;
 
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.DynamicSecurityConfig;
-import org.opensearch.security.test.SingleClusterTest;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.function.Supplier;
+
+import org.junit.Assert;
+import org.junit.Test;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -21,16 +26,12 @@ import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.DynamicSecurityConfig;
+import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Netty4Plugin;
 import org.opensearch.watcher.ResourceWatcherService;
-import org.junit.Assert;
-import org.junit.Test;
-
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.function.Supplier;
 
 public class TransportUserInjectorIntegTest extends SingleClusterTest {
 

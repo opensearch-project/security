@@ -15,10 +15,10 @@
 
 package org.opensearch.security.auditlog.impl;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
-import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.ClusterName;
@@ -26,15 +26,15 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.helper.RetrySink;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.transport.TransportRequest;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.opensearch.security.test.AbstractSecurityUnitTest;
+import org.opensearch.transport.TransportRequest;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AuditlogTest {
 

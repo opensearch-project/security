@@ -17,17 +17,9 @@
 
 package org.opensearch.security.ssl;
 
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
-
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -57,18 +49,16 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
-import org.opensearch.security.ssl.util.CertFileProps;
-import org.opensearch.security.ssl.util.CertFromFile;
-import org.opensearch.security.ssl.util.CertFromKeystore;
-import org.opensearch.security.ssl.util.CertFromTruststore;
-import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.ssl.util.KeystoreProps;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import io.netty.util.internal.PlatformDependent;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-
+import org.apache.logging.log4j.Logger;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Primitive;
@@ -81,6 +71,13 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.security.ssl.util.CertFileProps;
+import org.opensearch.security.ssl.util.CertFromFile;
+import org.opensearch.security.ssl.util.CertFromKeystore;
+import org.opensearch.security.ssl.util.CertFromTruststore;
+import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.ssl.util.KeystoreProps;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 
 public class DefaultSecurityKeyStore implements SecurityKeyStore {
 

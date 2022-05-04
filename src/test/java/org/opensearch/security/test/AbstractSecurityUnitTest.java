@@ -30,68 +30,57 @@
 
 package org.opensearch.security.test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterators;
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
-import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.client.*;
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.OpenSearchSecurityPlugin;
-import io.netty.handler.ssl.OpenSsl;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.net.ssl.SSLContext;
+
+import io.netty.handler.ssl.OpenSsl;
 import org.apache.http.Header;
+import org.apache.http.HttpHost;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.message.BasicHeader;
-import org.opensearch.security.action.configupdate.ConfigUpdateAction;
-import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
-import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.test.helper.cluster.ClusterHelper;
-import org.apache.logging.log4j.Logger;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
-import org.opensearch.plugins.Plugin;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.WildcardMatcher;
-import org.opensearch.security.test.helper.cluster.ClusterInfo;
-import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
-import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
-import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.Netty4Plugin;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
+import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.action.configupdate.ConfigUpdateAction;
+import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
+import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
-
-import javax.net.ssl.SSLContext;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
+import org.opensearch.security.test.helper.cluster.ClusterHelper;
+import org.opensearch.security.test.helper.cluster.ClusterInfo;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
+import org.opensearch.threadpool.ThreadPool;
 
 public abstract class AbstractSecurityUnitTest {
 

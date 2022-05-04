@@ -6,16 +6,23 @@
 
 OpenSearch Security is a plugin for OpenSearch that offers encryption, authentication and authorization. When combined with OpenSearch Security-Advanced Modules, it supports authentication via Active Directory, LDAP, Kerberos, JSON web tokens, SAML, OpenID and more. It includes fine grained role-based access control to indices, documents and fields. It also provides multi-tenancy support in OpenSearch Dashboards.
 
-- [Features](#features)
-- [Installation](#installation)
-- [Test and Build](#test-and-build)
-- [Config hot reloading](#config-hot-reloading)
-- [Contributing](#contributing)
-- [Getting Help](#getting-help)
-- [Code of Conduct](#code-of-conduct)
-- [Security](#security)
-- [License](#license)
-- [Copyright](#copyright)
+- [OpenSearch Security Plugin](#opensearch-security-plugin)
+  - [Features](#features)
+    - [Encryption](#encryption)
+    - [Authentication](#authentication)
+    - [Access control](#access-control)
+    - [Audit/Compliance logging](#auditcompliance-logging)
+    - [OpenSearch Dashboards multi-tenancy](#opensearch-dashboards-multi-tenancy)
+  - [Installation](#installation)
+  - [Test and Build](#test-and-build)
+  - [Config hot reloading](#config-hot-reloading)
+  - [Onboarding new APIs](#onboarding-new-apis)
+  - [Contributing](#contributing)
+  - [Getting Help](#getting-help)
+  - [Code of Conduct](#code-of-conduct)
+  - [Security](#security)
+  - [License](#license)
+  - [Copyright](#copyright)
 
 ## Features
 
@@ -88,6 +95,13 @@ The Security Plugin configuration is stored in a dedicated index in OpenSearch i
 * No configuration files on the nodes necessary
 * Configuration changes do not require a restart
 * Configuration changes take effect immediately
+
+## Onboarding new APIs
+
+It is common practice to create new transport actions to perform different tasks between nodes when developing new APIs. For any new or existing plugins that want to onboard & integrate these actions with security, they should follow the steps below:
+1. Name your action ([example](https://github.com/opensearch-project/anomaly-detection/blob/main/src/main/java/org/opensearch/ad/transport/SearchADTasksAction.java#L35)), and register it ([example](https://github.com/opensearch-project/anomaly-detection/blob/main/src/main/java/org/opensearch/ad/AnomalyDetectorPlugin.java#L935)) in your plugin. Best practice is to follow existing naming conventions, which follow a hierarchical pattern to keep the action names organized between different plugins.
+2. Register the action in the [OpenSearch Security plugin](https://github.com/opensearch-project/security). Each new action is registered in the plugin as a new permission. Usually, plugins will define different roles for their plugin (e.g., read-only access, write access). Each role will contain a set of permissions. An example of adding a new permission to the `anomaly_read_access` role for the [Anomaly Detection plugin](https://github.com/opensearch-project/anomaly-detection) can be found in [this PR](https://github.com/opensearch-project/security/pull/997/files).
+3. Register the action in the [OpenSearch Dashboards Security plugin](https://github.com/opensearch-project/security-dashboards-plugin). This plugin maintains the full list of possible permissions, so users can see all of them when creating new roles or searching permissions via Dashboards. An example of adding different permissions can be found in [this PR](https://github.com/opensearch-project/security-dashboards-plugin/pull/689/files).
 
 ## Contributing
 

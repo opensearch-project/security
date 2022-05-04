@@ -1,13 +1,13 @@
 package org.opensearch.security.ssl.util;
 
-import org.opensearch.OpenSearchException;
-
 import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+
+import org.opensearch.OpenSearchException;
 
 public class CertFromTruststore {
     private final KeystoreProps keystoreProps;

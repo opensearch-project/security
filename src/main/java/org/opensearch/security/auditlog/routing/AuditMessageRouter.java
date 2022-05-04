@@ -21,21 +21,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.opensearch.security.auditlog.config.ThreadPoolConfig;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.threadpool.ThreadPool;
-
-import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.security.auditlog.config.ThreadPoolConfig;
 import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.sink.AuditLogSink;
 import org.opensearch.security.auditlog.sink.SinkProvider;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.threadpool.ThreadPool;
 
 import static com.google.common.base.Preconditions.checkState;
 
