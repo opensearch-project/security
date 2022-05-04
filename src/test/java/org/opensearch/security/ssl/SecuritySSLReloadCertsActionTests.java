@@ -42,6 +42,7 @@ import java.util.Objects;
 
 public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
+    private final ClusterConfiguration clusterConfiguration = ClusterConfiguration.DEFAULT;
     private final String GET_CERT_DETAILS_ENDPOINT = "_opendistro/_security/api/ssl/certs";
     private final String RELOAD_TRANSPORT_CERTS_ENDPOINT = "_opendistro/_security/api/ssl/transport/reloadcerts";
     private final String RELOAD_HTTP_CERTS_ENDPOINT = "_opendistro/_security/api/ssl/http/reloadcerts";
@@ -93,7 +94,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         String catNodesResponse = rh.executeSimpleRequest("_cat/nodes?format=json");
         JSONArray catNodesResponseJson = (JSONArray) parser.parse(catNodesResponse);
-        Assert.assertEquals(3, catNodesResponseJson.size());
+        Assert.assertEquals(clusterConfiguration.getNodes(), catNodesResponseJson.size());
     }
 
     @Test
@@ -109,7 +110,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         updateFiles(newCertFilePath, pemCertFilePath);
         updateFiles(newKeyFilePath, pemKeyFilePath);
 
-        Assert.assertTrue(reloadAndVerifyResponse(rh, "transport", getUpdatedCertDetailsExpectedResponse("transport")));
+        assertReloadCertificateSuccess(rh, "transport", getUpdatedCertDetailsExpectedResponse("transport"));
     }
 
     @Test
@@ -126,7 +127,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         updateFiles(newCertFilePath, pemCertFilePath);
         updateFiles(newKeyFilePath, pemKeyFilePath);
 
-        Assert.assertTrue(reloadAndVerifyResponse(rh, "http", getUpdatedCertDetailsExpectedResponse("http")));
+        assertReloadCertificateSuccess(rh, "http", getUpdatedCertDetailsExpectedResponse("http"));
     }
 
     @Test
@@ -203,7 +204,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         updateFiles(defaultCertFilePath, pemCertFilePath);
         updateFiles(defaultKeyFilePath, pemKeyFilePath);
 
-        Assert.assertTrue(reloadAndVerifyResponse(rh, "transport", getInitCertDetailsExpectedResponse()));
+        assertReloadCertificateSuccess(rh, "transport", getInitCertDetailsExpectedResponse());
     }
 
     @Test
@@ -219,7 +220,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         updateFiles(defaultCertFilePath, pemCertFilePath);
         updateFiles(defaultKeyFilePath, pemKeyFilePath);
 
-        Assert.assertTrue(reloadAndVerifyResponse(rh, "http", getInitCertDetailsExpectedResponse()));
+        assertReloadCertificateSuccess(rh, "http", getInitCertDetailsExpectedResponse());
     }
 
     /**
@@ -230,7 +231,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
      * @return True if all assertions pass
      * @throws Exception if rest api failed
      */
-    private Boolean reloadAndVerifyResponse(RestHelper rh, String updateChannel, JSONObject expectedCertResponse) throws Exception {
+    private void assertReloadCertificateSuccess(RestHelper rh, String updateChannel, JSONObject expectedCertResponse) throws Exception {
         String reloadEndpoint = updateChannel.equals("http") ? RELOAD_HTTP_CERTS_ENDPOINT : RELOAD_TRANSPORT_CERTS_ENDPOINT;
 
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(reloadEndpoint, null);
@@ -241,7 +242,6 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
         String certDetailsResponse = rh.executeSimpleRequest(GET_CERT_DETAILS_ENDPOINT);
         Assert.assertEquals(expectedCertResponse.toString(), certDetailsResponse);
-        return true;
     }
 
     private void updateFiles(String srcFile, String dstFile) {
@@ -333,7 +333,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/kirk-keystore.jks"))
             .build();
 
-        setup(initTransportClientSettings, new DynamicSecurityConfig(), settings, true, ClusterConfiguration.DEFAULT);
+        setup(initTransportClientSettings, new DynamicSecurityConfig(), settings, true, clusterConfiguration);
     }
 
 }
