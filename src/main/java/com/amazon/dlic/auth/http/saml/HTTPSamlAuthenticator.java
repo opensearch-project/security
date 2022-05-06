@@ -258,6 +258,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
     }
 
+    @SuppressWarnings("removal")
     static void ensureOpenSamlInitialization() {
         if (openSamlInitialized) {
             return;
@@ -299,6 +300,7 @@ public class HTTPSamlAuthenticator implements HTTPAuthenticator, Destroyable {
         }
     }
 
+    @SuppressWarnings("removal")
     private MetadataResolver createMetadataResolver(final Settings settings, final Path configPath)
             throws Exception {
         final AbstractMetadataResolver metadataResolver;

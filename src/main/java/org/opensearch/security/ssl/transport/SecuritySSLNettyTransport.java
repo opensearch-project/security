@@ -210,6 +210,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         private final DiscoveryNode node;
         private SSLConnectionTestResult connectionTestResult;
 
+        @SuppressWarnings("removal")
         public SSLClientChannelInitializer(DiscoveryNode node) {
             this.node = node;
             hostnameVerificationEnabled = settings.getAsBoolean(

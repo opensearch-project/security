@@ -34,6 +34,7 @@ public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
     }
 
     @Override
+    @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<byte[]>() {

@@ -562,6 +562,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             }
         }
 
+        @SuppressWarnings("removal")
         private static <T> Field getField(Class<T> cls, String name) {
             SpecialPermission.check();
             return AccessController.doPrivileged((PrivilegedAction<Field>) () -> getFieldPrivileged(cls, name));

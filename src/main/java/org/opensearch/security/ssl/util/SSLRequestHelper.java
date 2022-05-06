@@ -102,6 +102,7 @@ public class SSLRequestHelper {
 
     }
 
+    @SuppressWarnings("removal")
     public static SSLInfo getSSLInfo(final Settings settings, final Path configPath, final RestRequest request, PrincipalExtractor principalExtractor) throws SSLPeerUnverifiedException {
         
         if(request == null || request.getHttpChannel() == null || !(request.getHttpChannel() instanceof Netty4HttpChannel)) {

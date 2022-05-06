@@ -125,6 +125,7 @@ class AuthTokenProcessorHandler {
 
     }
 
+    @SuppressWarnings("removal")
     boolean handle(RestRequest restRequest, RestChannel restChannel) throws Exception {
         try {
             final SecurityManager sm = System.getSecurityManager();

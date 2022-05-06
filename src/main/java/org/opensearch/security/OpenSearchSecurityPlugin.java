@@ -258,6 +258,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         return settings.getAsBoolean(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, false);
     }
 
+    @SuppressWarnings("removal")
     public OpenSearchSecurityPlugin(final Settings settings, final Path configPath) {
         super(settings, configPath, isDisabled(settings));
 

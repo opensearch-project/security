@@ -102,6 +102,7 @@ public class WebhookSink extends AuditLogSink {
 	}
 
 	@Override
+    @SuppressWarnings("removal")
 	public boolean doStore(AuditMessage msg) {
 		if (Strings.isEmpty(webhookUrl)) {
 			log.debug("Webhook URL is null");
@@ -299,6 +300,7 @@ public class WebhookSink extends AuditLogSink {
 		}
 	}
 
+    @SuppressWarnings("removal")
 	private KeyStore getEffectiveKeyStore(final Path configPath) {
 
 		return AccessController.doPrivileged(new PrivilegedAction<KeyStore>() {

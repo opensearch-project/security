@@ -79,6 +79,7 @@ import org.opensearch.transport.TransportRequest;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
+
 public abstract class AbstractAuditLog implements AuditLog {
     protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -508,6 +509,7 @@ public abstract class AbstractAuditLog implements AuditLog {
         save(msg);
     }
 
+    @SuppressWarnings("removal")
     protected void logExternalConfig() {
 
         final ComplianceConfig complianceConfig = getComplianceConfig();

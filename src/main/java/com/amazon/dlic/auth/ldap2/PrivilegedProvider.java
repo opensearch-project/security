@@ -85,6 +85,7 @@ public class PrivilegedProvider implements Provider<JndiProviderConfig> {
         }
 
         @Override
+        @SuppressWarnings("removal")
         public ProviderConnection create() throws LdapException {
             final SecurityManager sm = System.getSecurityManager();
 
@@ -121,6 +122,7 @@ public class PrivilegedProvider implements Provider<JndiProviderConfig> {
             this.jndiProviderConfig = jndiProviderConfig;
         }
 
+        @SuppressWarnings("removal")
         public Response<Void> bind(BindRequest request) throws LdapException {
             final SecurityManager sm = System.getSecurityManager();
 

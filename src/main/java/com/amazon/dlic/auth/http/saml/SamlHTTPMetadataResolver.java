@@ -41,6 +41,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
     }
 
     @Override
+    @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<byte[]>() {
@@ -64,6 +65,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         return new SettingsBasedSSLConfigurator(settings, configPath, "idp").buildSSLConfig();
     }
 
+    @SuppressWarnings("removal")
     private static HttpClient createHttpClient(Settings settings, Path configPath) throws Exception {
         try {
             final SecurityManager sm = System.getSecurityManager();

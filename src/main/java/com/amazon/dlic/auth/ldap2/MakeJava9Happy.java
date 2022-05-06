@@ -29,6 +29,7 @@ public class MakeJava9Happy {
     private static ClassLoader classLoader;
     private static boolean isJava9OrHigher = PlatformDependent.javaVersion() >= 9;;
 
+    @SuppressWarnings("removal")
     static ClassLoader getClassLoader() {
         if (!isJava9OrHigher) {
             return null;

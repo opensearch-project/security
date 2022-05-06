@@ -41,6 +41,7 @@ public class KafkaSink extends AuditLogSink {
 	private Producer<Long, String> producer;
 	private String topicName;
 
+    @SuppressWarnings("removal")
 	public KafkaSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
 		super(name, settings, settingsPrefix, fallbackSink);
 

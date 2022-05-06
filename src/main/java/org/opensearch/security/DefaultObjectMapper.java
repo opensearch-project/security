@@ -100,6 +100,7 @@ public class DefaultObjectMapper {
         return value != null ? value : defaultValue;
     }
 
+    @SuppressWarnings("removal")
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -120,6 +121,7 @@ public class DefaultObjectMapper {
         }
     }
     
+    @SuppressWarnings("removal")
     public static <T> T readValue(String string, Class<T> clazz) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -140,6 +142,7 @@ public class DefaultObjectMapper {
         }
     }
     
+    @SuppressWarnings("removal")
     public static JsonNode readTree(String string) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -160,6 +163,7 @@ public class DefaultObjectMapper {
         }
     }
 
+    @SuppressWarnings("removal")
     public static String writeValueAsString(Object value, boolean omitDefaults) throws JsonProcessingException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -181,6 +185,7 @@ public class DefaultObjectMapper {
 
     }
 
+    @SuppressWarnings("removal")
     public static <T> T readValue(String string, TypeReference<T> tr) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -202,6 +207,7 @@ public class DefaultObjectMapper {
 
     }
 
+    @SuppressWarnings("removal")
     public static <T> T readValue(String string, JavaType jt) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();

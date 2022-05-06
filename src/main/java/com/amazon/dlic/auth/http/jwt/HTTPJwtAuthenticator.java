@@ -114,6 +114,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
 
     @Override
+    @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 

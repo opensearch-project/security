@@ -59,6 +59,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
 		this(settings, configPath, clientProvider, threadPool, resolver, clusterService, null);
 	}
 
+    @SuppressWarnings("removal")
 	public AuditLogImpl(final Settings settings,
 						final Path configPath,
 						final Client clientProvider,
@@ -103,6 +104,7 @@ public final class AuditLogImpl extends AbstractAuditLog {
     }
 
     @Override
+    @SuppressWarnings("removal")
     public void close() throws IOException {
 
         log.info("Closing {}", getClass().getSimpleName());

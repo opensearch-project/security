@@ -137,6 +137,7 @@ public class Utils {
 
     }
 
+    @SuppressWarnings("removal")
     public static byte[] jsonMapToByteArray(Map<String, Object> jsonAsMap) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -163,6 +164,7 @@ public class Utils {
         }
     }
 
+    @SuppressWarnings("removal")
     public static Map<String, Object> byteArrayToMutableJsonMap(byte[] jsonBytes) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();

@@ -40,6 +40,7 @@ public class DefaultPrincipalExtractor implements PrincipalExtractor {
     protected final Logger log = LogManager.getLogger(this.getClass());
     
     @Override
+    @SuppressWarnings("removal")
     public String extractPrincipal(final X509Certificate x509Certificate, final Type type) {
         if (x509Certificate == null) {
             return null;

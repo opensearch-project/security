@@ -107,6 +107,7 @@ public class Base64Helper {
 
         private static final boolean useSafeObjectOutputStream = checkSubstitutionPermission();
 
+        @SuppressWarnings("removal")
         private static boolean checkSubstitutionPermission() {
             SecurityManager sm = System.getSecurityManager();
             if (sm != null) {
@@ -135,6 +136,7 @@ public class Base64Helper {
             }
         }
 
+        @SuppressWarnings("removal")
         private SafeObjectOutputStream(OutputStream out) throws IOException {
             super(out);
 

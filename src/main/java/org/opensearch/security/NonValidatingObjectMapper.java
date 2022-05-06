@@ -59,6 +59,7 @@ public class NonValidatingObjectMapper {
         nonValidatingObjectMapper.setInjectableValues(injectableValues);
     }
 
+    @SuppressWarnings("removal")
     public static <T> T readValue(String string, JavaType jt) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
