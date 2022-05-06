@@ -16,8 +16,13 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
+
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
@@ -40,12 +45,6 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.tools.SecurityAdmin;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-
-import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
  * This class implements GET and PUT operations to manage dynamic AllowlistingSettings.

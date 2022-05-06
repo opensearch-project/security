@@ -16,7 +16,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -32,11 +31,12 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
+
+import static org.opensearch.security.dlic.rest.support.Utils.addDeprecatedRoutesPrefix;
 
 /**
  * This class implements GET and PUT operations to manage dynamic WhitelistingSettings.
