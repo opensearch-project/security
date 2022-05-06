@@ -81,7 +81,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
      *
      * @throws Exception
      */
-    private void testGetAndPut(final int expectedStatus, final boolean sendAdminCertificate, final Header... headers) throws Exception {
+    private void checkGetAndPutWhitelistPermissions(final int expectedStatus, final boolean sendAdminCertificate, final Header... headers) throws Exception {
 
         final boolean prevSendAdminCertificate = rh.sendAdminCertificate;
         rh.sendAdminCertificate = sendAdminCertificate;
@@ -104,34 +104,22 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = prevSendAdminCertificate;
     }
 
-    /**
-     * Tests that the response does not have a _meta header
-     *
-     * @throws Exception
-     */
     @Test
     public void testResponseDoesNotContainMetaHeader() throws Exception {
 
         setup();
 
-        rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/whitelist");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertFalse(response.getBody().contains("_meta"));
     }
 
-    /**
-     * Tests that putting an unknown key fails
-     *
-     * @throws Exception
-     */
     @Test
     public void testPutUnknownKey() throws Exception {
 
         setup();
 
-        rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT + "/whitelist", "{ \"unknownkey\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
@@ -139,16 +127,10 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         assertHealthy();
     }
 
-    /**
-     * Tests that invalid json body fails
-     *
-     * @throws Exception
-     */
     @Test
     public void testPutInvalidJson() throws Exception {
         setup();
 
-        rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT + "/whitelist", "{ \"invalid\"::{{ [\"*\"], \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
@@ -164,7 +146,6 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     public void testPayloadMandatory() throws Exception {
         setup();
 
-        rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(ENDPOINT + "/whitelist", "", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
@@ -184,18 +165,17 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testWhitelistApi() throws Exception {
         setupWithRestRoles(null);
-         rh.keystore = "restapi/kirk-keystore.jks";
         // No creds, no admin certificate - UNAUTHORIZED
-        testGetAndPut(HttpStatus.SC_UNAUTHORIZED, false);
+        checkGetAndPutWhitelistPermissions(HttpStatus.SC_UNAUTHORIZED, false);
 
         //non admin creds, no admin certificate - FORBIDDEN
-        testGetAndPut(HttpStatus.SC_FORBIDDEN, false, nonAdminCredsHeader);
+        checkGetAndPutWhitelistPermissions(HttpStatus.SC_FORBIDDEN, false, nonAdminCredsHeader);
 
         // admin creds, no admin certificate - FORBIDDEN
-        testGetAndPut(HttpStatus.SC_FORBIDDEN, false, adminCredsHeader);
+        checkGetAndPutWhitelistPermissions(HttpStatus.SC_FORBIDDEN, false, adminCredsHeader);
 
         // any creds, admin certificate - OK
-        testGetAndPut(HttpStatus.SC_OK, true, nonAdminCredsHeader);
+        checkGetAndPutWhitelistPermissions(HttpStatus.SC_OK, true, nonAdminCredsHeader);
     }
 
     @Test
@@ -215,8 +195,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         TestAuditlogImpl.clear();
 
         // any creds, admin certificate - OK
-        rh.keystore = "restapi/kirk-keystore.jks";
-        testGetAndPut(HttpStatus.SC_OK, true, nonAdminCredsHeader);
+        checkGetAndPutWhitelistPermissions(HttpStatus.SC_OK, true, nonAdminCredsHeader);
 
         //TESTS THAT 1 READ AND 1 WRITE HAPPENS IN testGetAndPut()
         final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(
@@ -230,7 +209,6 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testWhitelistInvalidHttpRequestMethod() throws Exception{
         setup();
-        rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
         response = rh.executePutRequest(ENDPOINT + "/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GE\"],\"/_cat/indices\": [\"PUT\"] }}", adminCredsHeader);
@@ -248,7 +226,6 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testPatchApi() throws Exception{
         setup();
-        rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
         //PATCH entire config entry
