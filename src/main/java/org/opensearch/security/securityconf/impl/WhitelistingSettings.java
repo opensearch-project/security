@@ -26,7 +26,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 
-public class WhitelistingSettings extends AllowlistingSettings {
+public class WhitelistingSettings {
     private boolean enabled;
     private Map<String, List<HttpRequestMethods>> requests;
 
@@ -41,6 +41,22 @@ public class WhitelistingSettings extends AllowlistingSettings {
     public WhitelistingSettings(WhitelistingSettings whitelistingSettings) {
         this.enabled = whitelistingSettings.getEnabled();
         this.requests = whitelistingSettings.getRequests();
+    }
+
+    public boolean getEnabled() {
+        return this.enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public Map<String, List<HttpRequestMethods>> getRequests() {
+        return this.requests == null ? Collections.emptyMap(): this.requests;
+    }
+
+    public void setRequests(Map<String, List<HttpRequestMethods>> requests) {
+        this.requests = requests;
     }
 
     @Override
