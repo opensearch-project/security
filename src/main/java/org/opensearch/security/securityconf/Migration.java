@@ -39,11 +39,11 @@ import java.util.Set;
 import org.opensearch.common.Strings;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.Meta;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
@@ -152,15 +152,15 @@ public class Migration {
         return migrated;
     }
 
-    public static SecurityDynamicConfiguration<WhitelistingSettings> migrateWhitelistingSetting(SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSetting) {
-        final SecurityDynamicConfiguration<WhitelistingSettings> migrated = SecurityDynamicConfiguration.empty();
+    public static SecurityDynamicConfiguration<AllowlistingSettings> migrateWhitelistingSetting(SecurityDynamicConfiguration<AllowlistingSettings> whitelistingSetting) {
+        final SecurityDynamicConfiguration<AllowlistingSettings> migrated = SecurityDynamicConfiguration.empty();
         migrated.setCType(whitelistingSetting.getCType());
         migrated.set_meta(new Meta());
         migrated.get_meta().setConfig_version(2);
         migrated.get_meta().setType("whitelist");
 
-        for(final Entry<String, WhitelistingSettings> entry: whitelistingSetting.getCEntries().entrySet()) {
-            migrated.putCEntry(entry.getKey(), new WhitelistingSettings(entry.getValue()));
+        for(final Entry<String, AllowlistingSettings> entry: whitelistingSetting.getCEntries().entrySet()) {
+            migrated.putCEntry(entry.getKey(), new AllowlistingSettings(entry.getValue()));
         }
         return migrated;
     }

@@ -55,7 +55,7 @@ import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
@@ -79,7 +79,7 @@ public class SecurityRestFilter {
     private final Path configPath;
     private final CompatConfig compatConfig;
 
-    private WhitelistingSettings whitelistingSettings;
+    private AllowlistingSettings whitelistingSettings;
 
     private static final String HEALTH_SUFFIX = "health";
     private static final String WHO_AM_I_SUFFIX = "whoami";
@@ -99,7 +99,7 @@ public class SecurityRestFilter {
         this.settings = settings;
         this.configPath = configPath;
         this.compatConfig = compatConfig;
-        this.whitelistingSettings = new WhitelistingSettings();
+        this.whitelistingSettings = new AllowlistingSettings();
     }
 
     /**
@@ -202,7 +202,7 @@ public class SecurityRestFilter {
     }
 
     @Subscribe
-    public void onWhitelistingSettingChanged(WhitelistingSettings whitelistingSettings) {
+    public void onWhitelistingSettingChanged(AllowlistingSettings whitelistingSettings) {
         this.whitelistingSettings = whitelistingSettings;
     }
 }

@@ -19,9 +19,9 @@ import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
 
-public class WhitelistValidator extends AbstractConfigurationValidator {
+public class AllowlistValidator extends AbstractConfigurationValidator {
 
-    public WhitelistValidator(final RestRequest request, final BytesReference ref, final Settings opensearchSettings, Object... param) {
+    public AllowlistValidator(final RestRequest request, final BytesReference ref, final Settings opensearchSettings, Object... param) {
         super(request, ref, opensearchSettings, param);
         this.payloadMandatory = true;
         allowedKeys.put("enabled", DataType.BOOLEAN);

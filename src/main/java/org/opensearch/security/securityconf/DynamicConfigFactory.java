@@ -56,10 +56,10 @@ import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationChangeListener;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.configuration.StaticResourceException;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
 import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
@@ -81,7 +81,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<RoleV7> staticRoles = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<ActionGroupsV7> staticActionGroups = SecurityDynamicConfiguration.empty();
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
-    private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
+    private static final AllowlistingSettings defaultWhitelistingSettings = new AllowlistingSettings();
 
     static void resetStatics() {
         staticRoles = SecurityDynamicConfiguration.empty();
@@ -191,7 +191,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final InternalUsersModel ium;
         final ConfigModel cm;
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
-        final WhitelistingSettings whitelist = (WhitelistingSettings) cr.getConfiguration(CType.WHITELIST).getCEntry("config");
+        final AllowlistingSettings whitelist = (AllowlistingSettings) cr.getConfiguration(CType.WHITELIST).getCEntry("config");
         final AuditConfig audit = (AuditConfig)cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
         if(config.getImplementingClass() == ConfigV7.class) {

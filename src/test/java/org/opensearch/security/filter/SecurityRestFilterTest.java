@@ -20,7 +20,7 @@ import org.apache.http.HttpStatus;
 import org.junit.Test;
 
 import org.opensearch.security.dlic.rest.api.AbstractRestApiUnitTest;
-import org.opensearch.security.securityconf.impl.WhitelistingSettings;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -106,7 +106,7 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
     }
 
     /**
-     * Checks that all APIs are accessible by any user when {@link WhitelistingSettings#getEnabled()} is false
+     * Checks that all APIs are accessible by any user when {@link AllowlistingSettings#getEnabled()} is false
      */
     @Test
     public void checkAllApisWhenWhitelistingNotEnabled() throws Exception {
