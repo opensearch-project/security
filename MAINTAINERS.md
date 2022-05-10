@@ -22,7 +22,7 @@ To ensure common practices as maintainers, all practices are expected to be docu
 # Practices
 
 ## Release Notes
-During all pull requests the maintainers will make sure that release notes have been created/updated.  To make these release notes more consistant follow the format described by https://keepachangelog.com/en/1.0.0/.  Work will mostly happen in the `[Unreleased]` section of the log, there are six subcategories of change: Added, Changed, Deprecated, Removed, Fixed, Security.  There can be changes that do not add entries to the changelog when it is useful for humans, such as modifications to the changelog itself.
+During all pull requests the maintainers will make sure that release notes have been created/updated.  To make these release notes more consistant follow the format described by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  Work will mostly happen in the `[Unreleased]` section of the log, there are six subcategories of change: Added, Changed, Deprecated, Removed, Fixed, Security.  There can be changes that do not add entries to the changelog when it is useful for humans, such as modifications to the changelog itself.
 
 ```
 # Changelog
@@ -35,8 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2017-06-20
 ### Added
-- New visual identity by [@tylerfortune8](https://github.com/tylerfortune8).
-- Version navigation.
+- [[#PR_NUMBER)[#LINK]] Added user pictures in identity panel. 
+- [[#PR_NUMBER)[#LINK]] Added version navigation between blitz and chitz.
 
 ```
 

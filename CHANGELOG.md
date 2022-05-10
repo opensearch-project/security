@@ -7,56 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-* Integrating APIs with security from [@ohltyler](https://github.com/ohltyler)
-
 ### Changed 
-* Corrected ml/stats/nodes permissions spelling from [@camAtGitHub](https://github.com/camAtGitHub)
-* Internal user usage clarification from [@reshippie](https://github.com/reshippie)
-* Remove `advanced_modules_enabled` examples from [@wjordan](https://github.com/wjordan)
-* CHANGELOG.md replaces release-notes
+* [[#1798](https://github.com/opensearch-project/security/pull/1798)] Changed behavior when certificates are reloaded allowing reloading of the same certificate.
+* [[#1821](https://github.com/opensearch-project/security/pull/1821)] Changed from release-notes to CHANGELOG.md.
+
+### Removed
+* [[#1773](https://github.com/opensearch-project/security/pull/1773)] Removed `advanced_modules_enabled` examples that were outdated.
+
+### Fixed
+* [[#1784](https://github.com/opensearch-project/security/pull/1784)] Fixed internal users configuration documentation to include the source role.
+* [[#1770](https://github.com/opensearch-project/security/pull/1770)] Fixed incorrect spelling in `cluster:admin/opensearch/ml/stats/nodes` permissions.
 
 ### Security
 
-* Security patch for `org.cryptacular:cryptacular`
-* Security patch for `org.springframework:spring-core`
-* Security patch for `org.apache.kafka:kafka-clients`
-* Security patch for `org.springframework.kafka:spring-kafka-test`
+* [[#1806](https://github.com/opensearch-project/security/pull/1806)] Update `org.cryptacular:cryptacular` to `1.2.4`, [CVE-2020-15522].
+* [[#1806](https://github.com/opensearch-project/security/pull/1806)] Updated `org.springframework:spring-core` to `5.3.19`, [CVE-2022-22968], [CVE-2022-22965], [CVE-2022-22950].
+* [[#1806](https://github.com/opensearch-project/security/pull/1806)] Updated `org.apache.kafka:kafka-clients` to `3.0.0`, [CVE-2020-36518].
+* [[#1806](https://github.com/opensearch-project/security/pull/1806)] Updated `org.springframework.kafka:spring-kafka-test` to `2.8.5`, [CVE-2021-45105], [CVE-2021-45046], [CVE-2021-44832], [CVE-2021-44228].
 
-## [2.0.0-rc1] - 2022-04-20
+## [2.0.0.0-rc1] - 2022-04-20
 
 ### Added
 
-* DLS privileges evaluation can process security roles from [@ch-govau](https://github.com/ch-govau)
-* Setting to enable role without DLS/FLS to override roles
-* DLS Term Lookup Queries
+* [[#1609](https://github.com/opensearch-project/security/pull/1609)] Added support for JDK17.
+* [[#1710](https://github.com/opensearch-project/security/pull/1710)] Added support for Gradle 7.
+* [[#1753](https://github.com/opensearch-project/security/pull/1735)] Added setting `dfm_empty_overrides_all` to prioritize privileges evulation of security roles without Document Level Security restrictions. 
+* [[#1508](https://github.com/opensearch-project/security/issues/1508)] Added support for Terms Lookup Queries in Document Level Security, see [the documentation](https://opensearch.org/docs/2.0/security-plugin/access-control/document-level-security/#use-term-level-lookup-queries-tlqs-with-dls) for further details.
 
 ### Changed 
 
-* Support for JDK17
-* Support for Gradle 7
-* Use standard Issue/Pull request templates from [@dblock](https://github.com/dblock)
-* Security configuration are placed side-by-side with other plugins
-* Cleaned up developer guide
+* [[#1749](https://github.com/opensearch-project/security/pull/1749)] Changed security configuration placement to be side-by-side with other plugins in the OpenSearch config directory.
 
 ### Deprecated
 
-* Security tools deprecation
+* [[1756](https://github.com/opensearch-project/security/issues/1756)] Deprecated security tools, audit config migrater, hash, security admin, install demo configuration scripts marked as deprecated, see the [deprecation notice](https://github.com/opensearch-project/security/issues/1755) to learn more, replacement plans are still pending.
 
 ### Removed
 
-* No longer supporting JDK14
-* Removed TransportClient
+* [[#1718](https://github.com/opensearch-project/security/issues/1718)] Removed support for JDK14. In the future only LTS versions of the JDK will be supported.
 
 ### Fixed 
 
-* Log messages are sent to the OpenSearch log, reported by [@patcable](https://github.com/patcable)
-* Wild-card expressions are properly invalidate from [@sandeshkr419](https://github.com/sandeshkr419)
-* DLS replication action failure reports correct failure from [@saikaranam-amazon](https://github.com/saikaranam-amazon)
-* Improvement to test speed / reliability
-* Backward compataiblity tests download binaries, rather than use a checked in binary
+* [[#1751](https://github.com/opensearch-project/security/pull/1751)] Fixed missing log message output in OpenSearch log.
 
 ### Security
 
-* DLS `min_doc_count` of zero will no longer disclose aggregate keys that user does not have permissions to see
+* [[#1723](https://github.com/opensearch-project/security/pull/1723)] Fixed data exfiltration of index names when wild-card expressions are evalutted. 
+* [[#1714](https://github.com/opensearch-project/security/pull/1714)] Fixed data exfiltration of string terms when `min_doc_count` was set to zero.
+
+
+[unreleased]: https://github.com/opensearch-project/security/compare/2.0.0.0-rc1...HEAD
+[2.0.0.0-rc1]: https://github.com/opensearch-project/security/compare/1.3.0.0...2.0.0.0-rc1
+[CVE-2020-15522]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-15522
+[CVE-2022-22968]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-22968
+[CVE-2022-22965]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-22965
+[CVE-2022-22950]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-22950
+[CVE-2020-36518]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-36518
+[CVE-2021-45105]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-45105
+[CVE-2021-45046]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-45046
+[CVE-2021-44832]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44832
+[CVE-2021-44228]: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44228
