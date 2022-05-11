@@ -49,8 +49,4 @@ public enum AuditCategory {
                 .map(AuditCategory::valueOf)
                 .collect(ImmutableSet.toImmutableSet());
     }
-
-    public static Set<AuditCategory> from(final Settings settings, final String key) {
-        return parse(ConfigConstants.getSettingAsSet(settings, key, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT, true));
-    }
 }

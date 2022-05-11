@@ -935,7 +935,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.boolSetting("plugins.security.audit.config.enable_transport", true, Property.NodeScope, Property.Filtered));
             final List<String> disabledCategories = new ArrayList<String>(2);
             disabledCategories.add("AUTHENTICATED");
             disabledCategories.add("GRANTED_PRIVILEGES");
@@ -954,20 +953,20 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 switch(filterEntry) {
                     case DISABLE_REST_CATEGORIES:
                     case DISABLE_TRANSPORT_CATEGORIES:
-                        return Setting.listSetting(filterEntry.getKeyWithNamepace(), disabledCategories, Function.identity(), Property.NodeScope);
+                        return Setting.listSetting(filterEntry.getKeyWithNamespace(), disabledCategories, Function.identity(), Property.NodeScope);
                     case IGNORE_REQUESTS:
-                        return Setting.listSetting(filterEntry.getKeyWithNamepace(), Collections.emptyList(), Function.identity(), Property.NodeScope);
+                        return Setting.listSetting(filterEntry.getKeyWithNamespace(), Collections.emptyList(), Function.identity(), Property.NodeScope);
                     case IGNORE_USERS:
-                        return Setting.listSetting(filterEntry.getKeyWithNamepace(), ignoredUsers, Function.identity(), Property.NodeScope);
+                        return Setting.listSetting(filterEntry.getKeyWithNamespace(), ignoredUsers, Function.identity(), Property.NodeScope);
                     // All boolean settings with default of true
                     case ENABLE_REST:
                     case ENABLE_TRANSPORT:
                     case EXCLUDE_SENSITIVE_HEADERS:
                     case LOG_REQUEST_BODY:
                     case RESOLVE_INDICES:
-                        return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamepace(), true);
+                        return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), true);
                     case RESOLVE_BULK_REQUESTS:
-                        return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamepace(), false);
+                        return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), false);
                     default:
                         throw new RuntimeException("Please add support for new FilterEntries value '" + filterEntry.name() + "'");
                 }

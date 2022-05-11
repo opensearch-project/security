@@ -40,20 +40,28 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         return "auditlog";
     }
 
-    protected final void setup(Settings additionalSettings) throws Exception {
-        final Settings.Builder auditSettingsBuilder = Settings.builder();
-        final Settings.Builder additionalSettingsBuilder = Settings.builder().put(additionalSettings);
-        AuditConfig.DEPRECATED_KEYS.forEach(key -> {
-            if (additionalSettingsBuilder.get(key) != null) {
-                auditSettingsBuilder.put(key, additionalSettings.get(key));
-                additionalSettingsBuilder.remove(key);
+    protected final void setup(Settings settings) throws Exception {
+
+
+        final Settings.Builder auditConfigSettings = Settings.builder();
+        final Settings.Builder defaultNodeSettings = Settings.builder();
+        settings.keySet().stream().forEach(key -> {
+            final boolean isAnAuditConfigSetting = key.contains("plugins.security.audit")
+                || key.contains("opendistro_security.audit");
+            if (isAnAuditConfigSetting) {
+                auditConfigSettings.put(key, settings.get(key));
+            } else {
+                defaultNodeSettings.put(key, settings.get(key));
             }
         });
 
-        final Settings nodeSettings = defaultNodeSettings(additionalSettingsBuilder.build());
+        System.err.println("AUDIT CONFIG:" + auditConfigSettings.build());
+        System.err.println("DEFAULT CONFIG:" + defaultNodeSettings.build());
+
+        final Settings nodeSettings = defaultNodeSettings(defaultNodeSettings.build());
         setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeSettings, init);
         rh = restHelper();
-        updateAuditConfig(auditSettingsBuilder.build());
+        updateAuditConfig(auditConfigSettings.build());
     }
 
     protected Settings defaultNodeSettings(Settings additionalSettings) {

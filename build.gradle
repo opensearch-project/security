@@ -217,6 +217,11 @@ testsJar {
     libsDirName = '.'
 }
 
+tasks.withType(JavaCompile) {
+    configure(options) {
+        options.compilerArgs << '-Xlint:none'
+    }
+}
 
 test {
     maxParallelForks = 3
@@ -226,8 +231,8 @@ test {
     }
     retry {
         failOnPassedAfterRetry = false
-        maxFailures = 30
-        maxRetries = 5
+        // maxFailures = 30
+        // maxRetries = 5
     }
     jacoco {
         excludes = [
