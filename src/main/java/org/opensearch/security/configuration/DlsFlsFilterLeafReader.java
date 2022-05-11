@@ -421,11 +421,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         public void close() throws IOException {
             in.close();
         }
-
-        @Override
-        public long ramBytesUsed() {
-            return in.ramBytesUsed();
-        }
     }
 
     @Override
