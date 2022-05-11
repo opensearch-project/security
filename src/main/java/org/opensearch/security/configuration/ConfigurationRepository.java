@@ -194,6 +194,7 @@ public class ConfigurationRepository {
                     }
 
                     LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
+
                 } catch (Exception e) {
                     LOGGER.error("Unexpected exception while initializing node "+e, e);
                 }
