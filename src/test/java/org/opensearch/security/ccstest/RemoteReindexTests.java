@@ -103,19 +103,14 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
         String reindex = "{"+
             "\"source\": {"+
                 "\"remote\": {"+
-                "\"host\": \"http://"+cl2Info.httpHost+":"+cl2Info.httpPort+"\","+
-                "\"username\": \"nagilum\","+
-                "\"password\": \"nagilum\""+
-                  "},"+
-                    "\"index\": \"twitter\","+
-                    "\"size\": 10,"+
-                    "\"query\": {"+
-                    "\"match\": {"+
-                    "\"_type\": \"_doc\""+
-                    "}"+
-                  "}"+
+                    "\"host\": \"http://"+cl2Info.httpHost+":"+cl2Info.httpPort+"\","+
+                    "\"username\": \"nagilum\","+
+                    "\"password\": \"nagilum\""+
+                "},"+
+                "\"index\": \"twitter\","+
+                "\"size\": 10"+
             "},"+
-                "\"dest\": {"+
+            "\"dest\": {"+
                 "\"index\": \"twutter\""+
             "}"+
         "}";
