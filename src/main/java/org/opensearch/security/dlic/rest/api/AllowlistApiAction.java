@@ -47,7 +47,7 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
- * This class implements GET and PUT operations to manage dynamic WhitelistingSettings.
+ * This class implements GET and PUT operations to manage dynamic AllowlistingSettings.
  * <p>
  * These APIs are only accessible to SuperAdmin since the configuration controls what APIs are accessible by normal users.
  * Eg: If allowlisting is enabled, and a specific API like "/_cat/nodes" is not allowlisted, then only the SuperAdmin can use "/_cat/nodes"
@@ -159,7 +159,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
 
     @Override
     protected Endpoint getEndpoint() {
-        return Endpoint.WHITELIST;
+        return Endpoint.ALLOWLIST;
     }
 
     @Override
@@ -174,7 +174,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
 
     @Override
     protected CType getConfigName() {
-        return CType.WHITELIST;
+        return CType.ALLOWLIST;
     }
 
 }

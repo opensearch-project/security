@@ -120,7 +120,7 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<RoleV6> rolesV6 = (SecurityDynamicConfiguration<RoleV6>) load(CType.ROLES, true);
         final SecurityDynamicConfiguration<RoleMappingsV6> rolesmappingV6 = (SecurityDynamicConfiguration<RoleMappingsV6>) load(CType.ROLESMAPPING, true);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV6 = (SecurityDynamicConfiguration<NodesDn>) load(CType.NODESDN, true);
-        final SecurityDynamicConfiguration<AllowlistingSettings> whitelistingSettingV6 = (SecurityDynamicConfiguration<AllowlistingSettings>) load(CType.WHITELIST, true);
+        final SecurityDynamicConfiguration<AllowlistingSettings> whitelistingSettingV6 = (SecurityDynamicConfiguration<AllowlistingSettings>) load(CType.ALLOWLIST, true);
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV6 = (SecurityDynamicConfiguration<AuditConfig>) load(CType.AUDIT, true);
 
         final ImmutableList.Builder<SecurityDynamicConfiguration<?>> builder = ImmutableList.builder();

@@ -49,7 +49,7 @@ public class DynamicSecurityConfig {
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
     private String securityNodesDn = "nodes_dn.yml";
-    private String securityWhitelist= "whitelist.yml";
+    private String securityAllowlist = "allowlist.yml";
     private String securityAudit = "audit.yml";
     private String securityConfigAsYamlString = null;
     private String legacyConfigFolder = "";
@@ -98,8 +98,8 @@ public class DynamicSecurityConfig {
         return this;
     }
 
-    public DynamicSecurityConfig setSecurityWhitelist(String whitelist){
-        this.securityWhitelist = whitelist;
+    public DynamicSecurityConfig setSecurityAllowlist(String allowlist){
+        this.securityAllowlist = allowlist;
         return this;
     }
 
@@ -158,12 +158,12 @@ public class DynamicSecurityConfig {
 
         }
 
-        final String whitelistYmlFile = prefix + securityWhitelist;
-        if (null != FileHelper.getAbsoluteFilePathFromClassPath(whitelistYmlFile)) {
+        final String allowlistYmlFile = prefix + securityAllowlist;
+        if (null != FileHelper.getAbsoluteFilePathFromClassPath(allowlistYmlFile)) {
             ret.add(new IndexRequest(securityIndexName)
-                    .id(CType.WHITELIST.toLCString())
+                    .id(CType.ALLOWLIST.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(CType.WHITELIST.toLCString(), FileHelper.readYamlContent(whitelistYmlFile)));
+                    .source(CType.ALLOWLIST.toLCString(), FileHelper.readYamlContent(allowlistYmlFile)));
         }
 
         final String auditYmlFile = prefix + securityAudit;

@@ -1197,7 +1197,7 @@ public class SecurityAdmin {
             success = retrieveFile(tc, backupDir.getAbsolutePath()+"/tenants.yml", index, "tenants", legacy) && success;
         }
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
-        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/allowlist.yml", index, "whitelist", legacy, true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/allowlist.yml", index, "allowlist", legacy, true) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit", legacy) && success;
 
         return success?0:-1;
@@ -1217,7 +1217,7 @@ public class SecurityAdmin {
         }
 
         success = uploadFile(tc, cd+"nodes_dn.yml", index, "nodesdn", legacy, resolveEnvVars, true) && success;
-        success = uploadFile(tc, cd+"allowlist.yml", index, "whitelist", legacy, resolveEnvVars) && success;
+        success = uploadFile(tc, cd+"allowlist.yml", index, "allowlist", legacy, resolveEnvVars) && success;
         if (new File(cd+"audit.yml").exists()) {
             success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
         }
@@ -1263,10 +1263,10 @@ public class SecurityAdmin {
                 Migration.migrateNodesDn(SecurityDynamicConfiguration.fromNode(
                     DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.NODESDN, 1, new File(backupDir,"nodes_dn.yml").getAbsolutePath(), true)),
                     CType.NODESDN, 1, 0, 0));
-            SecurityDynamicConfiguration<AllowlistingSettings> whitelistingSettings =
+            SecurityDynamicConfiguration<AllowlistingSettings> allowlistingSettings =
                     Migration.migrateWhitelistingSetting(SecurityDynamicConfiguration.fromNode(
-                            DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.WHITELIST, 1, new File(backupDir,"allowlist.yml").getAbsolutePath(), true)),
-                            CType.WHITELIST, 1, 0, 0));
+                            DefaultObjectMapper.YAML_MAPPER.readTree(ConfigHelper.createFileOrStringReader(CType.ALLOWLIST, 1, new File(backupDir,"allowlist.yml").getAbsolutePath(), true)),
+                            CType.ALLOWLIST, 1, 0, 0));
             SecurityDynamicConfiguration<AuditConfig> audit = Migration.migrateAudit(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(new File(backupDir,"audit.yml")), CType.AUDIT, 1, 0, 0));
 
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/action_groups.yml"), actionGroupsV7);
@@ -1276,7 +1276,7 @@ public class SecurityAdmin {
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/tenants.yml"), rolesTenantsV7.v2());
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/roles_mapping.yml"), rolesmappingV7);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/nodes_dn.yml"), nodesDn);
-            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/allowlist.yml"), whitelistingSettings);
+            DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/allowlist.yml"), allowlistingSettings);
             DefaultObjectMapper.YAML_MAPPER.writeValue(new File(v7Dir, "/audit.yml"), audit);
 
         } catch (Exception e) {

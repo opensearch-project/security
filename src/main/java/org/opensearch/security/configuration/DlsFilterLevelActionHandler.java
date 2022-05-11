@@ -119,7 +119,7 @@ public class DlsFilterLevelActionHandler {
     private final ThreadContext threadContext;
     private final IndexNameExpressionResolver resolver;
     private BoolQueryBuilder filterLevelQueryBuilder;
-    private DocumentAllowList documentWhitelist;
+    private DocumentAllowList documentAllowList;
 
     DlsFilterLevelActionHandler(String action, ActionRequest request, ActionListener<?> listener, EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
                                 Resolved resolved, Client nodeClient, ClusterService clusterService, IndicesService indicesService,
@@ -182,8 +182,8 @@ public class DlsFilterLevelActionHandler {
     }
 
     private boolean handle(SearchRequest searchRequest, StoredContext ctx) {
-        if (documentWhitelist != null) {
-            documentWhitelist.applyTo(threadContext);
+        if (documentAllowList != null) {
+            documentAllowList.applyTo(threadContext);
         }
 
         String localClusterAlias = LOCAL_CLUSTER_ALIAS_GETTER.apply(searchRequest);
@@ -229,8 +229,8 @@ public class DlsFilterLevelActionHandler {
     }
 
     private boolean handle(GetRequest getRequest, StoredContext ctx) {
-        if (documentWhitelist != null) {
-            documentWhitelist.applyTo(threadContext);
+        if (documentAllowList != null) {
+            documentAllowList.applyTo(threadContext);
         }
 
         SearchRequest searchRequest = new SearchRequest(getRequest.indices());
@@ -274,8 +274,8 @@ public class DlsFilterLevelActionHandler {
     }
 
     private boolean handle(MultiGetRequest multiGetRequest, StoredContext ctx) {
-        if (documentWhitelist != null) {
-            documentWhitelist.applyTo(threadContext);
+        if (documentAllowList != null) {
+            documentAllowList.applyTo(threadContext);
         }
 
         Map<String, Set<String>> idsGroupedByIndex = multiGetRequest.getItems().stream()
@@ -399,7 +399,7 @@ public class DlsFilterLevelActionHandler {
         Map<String, Set<String>> filterLevelQueries = evaluatedDlsFlsConfig.getDlsQueriesByIndex();
 
         BoolQueryBuilder dlsQueryBuilder = QueryBuilders.boolQuery().minimumShouldMatch(1);
-        DocumentAllowList documentWhitelist = new DocumentAllowList();
+        DocumentAllowList documentAllowList = new DocumentAllowList();
 
         int queryCount = 0;
 
@@ -454,7 +454,7 @@ public class DlsFilterLevelActionHandler {
                 for (QueryBuilder queryBuilder : queryBuilders) {
                     TermsQueryBuilder termsQueryBuilder = (TermsQueryBuilder) queryBuilder;
 
-                    documentWhitelist.add(termsQueryBuilder.termsLookup().index(), termsQueryBuilder.termsLookup().id());
+                    documentAllowList.add(termsQueryBuilder.termsLookup().index(), termsQueryBuilder.termsLookup().id());
                 }
             }
 
@@ -465,7 +465,7 @@ public class DlsFilterLevelActionHandler {
             return false;
         } else {
             this.filterLevelQueryBuilder = dlsQueryBuilder;
-            this.documentWhitelist = documentWhitelist;
+            this.documentAllowList = documentAllowList;
             return true;
         }
     }

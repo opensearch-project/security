@@ -1,6 +1,6 @@
 ---
 _meta:
-  type: "whitelist"
+  type: "allowlist"
   config_version: 2
 
 #this name must be config

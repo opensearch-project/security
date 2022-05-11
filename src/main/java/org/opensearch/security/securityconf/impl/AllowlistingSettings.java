@@ -61,7 +61,7 @@ public class AllowlistingSettings {
 
     @Override
     public String toString() {
-        return "WhitelistingSetting [enabled=" + enabled + ", requests=" + requests + ']';
+        return "AllowlistingSettings [enabled=" + enabled + ", requests=" + requests + ']';
     }
 
 
@@ -72,15 +72,15 @@ public class AllowlistingSettings {
      * This allows users to allowlist either /_cluster/settings/ or /_cluster/settings, to avoid potential issues.
      * This also ensures that requests to the cluster can have a trailing '/'
      * Scenarios:
-     * 1. Whitelisted API does not have an extra '/'. eg: If GET /_cluster/settings is allowlisted, these requests have the following response:
+     * 1. Allowlisted API does not have an extra '/'. eg: If GET /_cluster/settings is allowlisted, these requests have the following response:
      *      GET /_cluster/settings  - OK
      *      GET /_cluster/settings/ - OK
      *
-     * 2. Whitelisted API has an extra '/'. eg: If GET /_cluster/settings/ is allowlisted, these requests have the following response:
+     * 2. Allowlisted API has an extra '/'. eg: If GET /_cluster/settings/ is allowlisted, these requests have the following response:
      *      GET /_cluster/settings  - OK
      *      GET /_cluster/settings/ - OK
      */
-    private boolean requestIsWhitelisted(RestRequest request){
+    private boolean requestIsAllowlisted(RestRequest request){
 
         //ALSO ALLOWS REQUEST TO HAVE TRAILING '/'
         //pathWithoutTrailingSlash stores the endpoint path without extra '/'. eg: /_cat/nodes
@@ -115,7 +115,7 @@ public class AllowlistingSettings {
     public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel,
                                           NodeClient client) throws IOException {
         // if allowlisting is enabled but the request is not allowlisted, then return false, otherwise true.
-        if (this.enabled && !requestIsWhitelisted(request)){
+        if (this.enabled && !requestIsAllowlisted(request)){
             channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, channel.newErrorBuilder().startObject()
                     .field("error", request.method() + " " + request.path() + " API not allowlisted")
                     .field("status", RestStatus.FORBIDDEN)
