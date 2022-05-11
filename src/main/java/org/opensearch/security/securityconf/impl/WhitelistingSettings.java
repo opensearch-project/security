@@ -26,7 +26,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 
-public class WhitelistingSettings {
+public class WhitelistingSettings extends AllowlistingSettings {
     private boolean enabled;
     private Map<String, List<HttpRequestMethods>> requests;
 
@@ -112,6 +112,7 @@ public class WhitelistingSettings {
      * then all PUT /_opendistro/_security/api/rolesmapping/{resource_name} work.
      * Currently, each resource_name has to be whitelisted separately
      */
+    @Override
     public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel,
                                           NodeClient client) throws IOException {
         // if whitelisting is enabled but the request is not whitelisted, then return false, otherwise true.
