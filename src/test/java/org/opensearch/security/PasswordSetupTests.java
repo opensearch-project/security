@@ -42,7 +42,7 @@ public class PasswordSetupTests extends SingleClusterTest {
         ByteArrayInputStream input = new ByteArrayInputStream(userInput.getBytes());
         System.setIn(input);
         
-        int returnCode  = PasswordSetup.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = (new PasswordSetup()).execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
 
         System.setIn(System.in);
@@ -82,7 +82,7 @@ public class PasswordSetupTests extends SingleClusterTest {
         ByteArrayInputStream input = new ByteArrayInputStream(userInput.getBytes());
         System.setIn(input);
         
-        int returnCode  = PasswordSetup.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = (new PasswordSetup()).execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(-1, returnCode);
     }
 
@@ -111,7 +111,7 @@ public class PasswordSetupTests extends SingleClusterTest {
         argsAsList.add("-nhnv");
         argsAsList.add("-a");
 
-        int returnCode  = PasswordSetup.execute(argsAsList.toArray(new String[0]));
+        int returnCode  = (new PasswordSetup()).execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
 
         RestHelper rh = restHelper();

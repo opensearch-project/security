@@ -199,15 +199,6 @@ public class ConfigurationRepository {
                     }
 
                     LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
-
-                    try {
-                        generatePasswords();
-                        System.out.println("Passwords generated");
-                    } catch (Exception e) {
-                        System.out.println(e);
-                        System.out.println("Threw an error while setting up passwords");
-                    }
-
                 } catch (Exception e) {
                     LOGGER.error("Unexpected exception while initializing node "+e, e);
                 }
@@ -418,23 +409,5 @@ public class ConfigurationRepository {
 
     public static int getDefaultConfigVersion() {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
-    }
-
-    private static void generatePasswords() throws Exception {
-
-        String configDirectory = Paths.get("").toAbsolutePath().toString().concat("/config/");
-        List<String> argsAsList = new ArrayList<>();
-
-        argsAsList.add("-icl");
-        argsAsList.add("-key");
-        argsAsList.add(configDirectory + "kirk-key.pem");
-        argsAsList.add("-cert");
-        argsAsList.add(configDirectory + "kirk.pem");
-        argsAsList.add("-cacert");
-        argsAsList.add(configDirectory + "root-ca.pem");
-        argsAsList.add("-nhnv");
-        argsAsList.add("-a");
-
-        PasswordSetup.execute(argsAsList.toArray(new String[0]));
     }
 }
