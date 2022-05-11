@@ -412,7 +412,7 @@ fi
 echo "######## End OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 
 $SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"
-$SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/set_passwords.sh"
+$SUDO_CMD chmod +x "$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/opensearch-admin.sh"
 
 OPENSEARCH_PLUGINS_DIR=`cd "$OPENSEARCH_PLUGINS_DIR" ; pwd`
 
@@ -422,11 +422,6 @@ echo "### Execute this script now on all your nodes and then start all nodes"
 echo "#!/bin/bash" | $SUDO_CMD tee securityadmin_demo.sh > /dev/null 
 echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/securityadmin.sh"\" -cd \""$OPENSEARCH_CONF_DIR/opensearch-security"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a securityadmin_demo.sh > /dev/null
 $SUDO_CMD chmod +x securityadmin_demo.sh
-
-#Generate setpasswords_demo.sh
-echo "#!/bin/bash" | $SUDO_CMD tee setpasswords_demo.sh > /dev/null 
-echo $SUDO_CMD \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/tools/set_passwords.sh"\" -cd \""$OPENSEARCH_PLUGINS_DIR/opensearch-security/securityconfig"\" -icl -key \""$OPENSEARCH_CONF_DIR/kirk-key.pem"\" -cert \""$OPENSEARCH_CONF_DIR/kirk.pem"\" -cacert \""$OPENSEARCH_CONF_DIR/root-ca.pem"\" -nhnv | $SUDO_CMD tee -a setpasswords_demo.sh > /dev/null
-$SUDO_CMD chmod +x setpasswords_demo.sh
 
 if [ "$initsecurity" == 0 ]; then
 	echo "### After the whole cluster is up execute: "

@@ -278,7 +278,6 @@ public class PasswordSetup extends Command {
         }
     }
 
-    // TODO: check it succeeds on Green status
     private static void waitForClusterStatus(RestHighLevelClient restHighLevelClient) throws Exception {
         System.out.println(String.format("Waiting for YELLOW cluster state"));
         ClusterHealthResponse chResponse = null;

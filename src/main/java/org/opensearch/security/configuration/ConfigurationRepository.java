@@ -32,7 +32,6 @@ package org.opensearch.security.configuration;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,10 +48,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.support.SecurityUtils;
-import org.opensearch.security.tools.PasswordSetup;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

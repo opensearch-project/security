@@ -6,11 +6,6 @@ public class OpenSearchAdmin {
     protected Map<String, Command> commands = new LinkedHashMap<>();
     Set<String> helpOptions = new HashSet<>(Arrays.asList("--help", "-h", "help"));
 
-    protected String REPORT_ISSUE_MESSAGE =
-            "If you face any issues, please report at https://github.com/opensearch-project/security/issues/new/choose";
-    protected String INVALID_USAGE_MESSAGE = "ERR: Invalid Usage";
-    protected String ACTION_USAGE_MESSAGE = "Check usage with:\nopensearch-admin [action] --help";
-
     private String getSupportedActionsMessage() {
         StringBuilder supportedActionsMessage = new StringBuilder();
         supportedActionsMessage.append("\nList of supported actions:\n");
@@ -20,16 +15,6 @@ public class OpenSearchAdmin {
         }
         return supportedActionsMessage.toString();
     }
-
-//    static {
-////        System.out.println("A tool for installing and configuring OpenSearch security");
-////        commands.put("setup-passwords", new PasswordSetup());
-////        commands.put("setup-certificates", new ToBeImplemented());
-////        commands.put("rotate-passwords", new ToBeImplemented());
-////        commands.put("hasher", new ToBeImplemented());
-////        commands.put("audit-config", new ToBeImplemented());
-////        commands.put("dynamic-config", new ToBeImplemented());
-//    }
 
     void initialize() {
         commands.put("setup-passwords", new PasswordSetup());
@@ -50,14 +35,14 @@ public class OpenSearchAdmin {
     }
 
     protected void logInvalidUsage() {
-        System.out.println(INVALID_USAGE_MESSAGE);
+        System.out.println("ERR: Invalid Usage");
         printHelp();
     }
 
     protected void printHelp() {
         System.out.println(getSupportedActionsMessage());
-        System.out.println(ACTION_USAGE_MESSAGE);
-        System.out.println(REPORT_ISSUE_MESSAGE);
+        System.out.println("Check usage with:\nopensearch-admin [action] --help");
+        System.out.println("If you face any issues, please report at https://github.com/opensearch-project/security/issues/new/choose");
     }
 
     public static void main(String[] args) throws Exception {
