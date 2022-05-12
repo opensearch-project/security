@@ -15,7 +15,11 @@
 
 package org.opensearch.security.tools;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 public class OpenSearchAdmin {
     protected Map<String, Command> commands = new LinkedHashMap<>();
