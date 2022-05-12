@@ -20,14 +20,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
@@ -44,15 +41,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
-import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 /**
- * Testing class to verify that {@link WhitelistApiAction} works correctly.
- * Check {@link SecurityRestFilter} for extra tests for whitelisting functionality.
+ * Testing class to verify that {@link AllowlistApiAction} works correctly.
+ * Check {@link SecurityRestFilter} for extra tests for allowlisting functionality.
  */
-@RunWith(Parameterized.class)
-public class WhitelistApiTest extends AbstractRestApiUnitTest {
+public class AllowlistApiTest extends AbstractRestApiUnitTest {
     private RestHelper.HttpResponse response;
 
     /**
@@ -62,32 +56,20 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     private final Header adminCredsHeader = encodeBasicHeader("admin_all_access", "admin_all_access");
     private final Header nonAdminCredsHeader = encodeBasicHeader("sarek", "sarek");
 
-    private final String ENDPOINT;
-
-    public WhitelistApiTest(String endpoint){
-        ENDPOINT = endpoint;
-    }
-
-    @Parameterized.Parameters
-    public static Iterable<String> endpoints() {
-        return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX + "/api",
-                PLUGINS_PREFIX + "/api"
-        );
-    }
+    private final String ENDPOINT = "/_plugins/_security/api/allowlist";
 
     /**
      * Helper function to test the GET and PUT endpoints.
      *
      * @throws Exception
      */
-    private void checkGetAndPutWhitelistPermissions(final int expectedStatus, final boolean sendAdminCertificate, final Header... headers) throws Exception {
+    private void checkGetAndPutAllowlistPermissions(final int expectedStatus, final boolean sendAdminCertificate, final Header... headers) throws Exception {
 
         final boolean prevSendAdminCertificate = rh.sendAdminCertificate;
         rh.sendAdminCertificate = sendAdminCertificate;
 
         //CHECK GET REQUEST
-        response = rh.executeGetRequest(ENDPOINT + "/whitelist", headers);
+        response = rh.executeGetRequest(ENDPOINT, headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
         if (expectedStatus == HttpStatus.SC_OK) {
             //Note: the response has no whitespaces, so the .json file does not have whitespaces
@@ -98,7 +80,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
             assertTrue(response.getBody().contains("API allowed only for super admin."));
         }
         //CHECK PUT REQUEST
-        response = rh.executePutRequest(ENDPOINT + "/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", headers);
+        response = rh.executePutRequest(ENDPOINT, "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", headers);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(expectedStatus));
 
         rh.sendAdminCertificate = prevSendAdminCertificate;
@@ -110,9 +92,9 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         setup();
 
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT + "/whitelist");
+        RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Assert.assertFalse(response.getBody().contains("_meta"));
+        Assert.assertFalse(response.getHeaders().contains("_meta"));
     }
 
     @Test
@@ -121,7 +103,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         setup();
 
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT + "/whitelist", "{ \"unknownkey\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
+        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT, "{ \"unknownkey\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
@@ -132,7 +114,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         setup();
 
         rh.sendAdminCertificate = true;
-        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT + "/whitelist", "{ \"invalid\"::{{ [\"*\"], \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
+        RestHelper.HttpResponse response = rh.executePutRequest(ENDPOINT, "{ \"invalid\"::{{ [\"*\"], \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         assertHealthy();
     }
@@ -147,7 +129,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         setup();
 
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest(ENDPOINT + "/whitelist", "", new Header[0]);
+        response = rh.executePutRequest(ENDPOINT, "", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         JsonNode settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(AbstractConfigurationValidator.ErrorType.PAYLOAD_MANDATORY.getMessage(), settings.get("reason").asText());
@@ -163,23 +145,23 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
      * @throws Exception
      */
     @Test
-    public void testWhitelistApi() throws Exception {
+    public void testAllowlistApi() throws Exception {
         setupWithRestRoles(null);
         // No creds, no admin certificate - UNAUTHORIZED
-        checkGetAndPutWhitelistPermissions(HttpStatus.SC_UNAUTHORIZED, false);
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_UNAUTHORIZED, false);
 
         //non admin creds, no admin certificate - FORBIDDEN
-        checkGetAndPutWhitelistPermissions(HttpStatus.SC_FORBIDDEN, false, nonAdminCredsHeader);
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_FORBIDDEN, false, nonAdminCredsHeader);
 
         // admin creds, no admin certificate - FORBIDDEN
-        checkGetAndPutWhitelistPermissions(HttpStatus.SC_FORBIDDEN, false, adminCredsHeader);
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_FORBIDDEN, false, adminCredsHeader);
 
         // any creds, admin certificate - OK
-        checkGetAndPutWhitelistPermissions(HttpStatus.SC_OK, true, nonAdminCredsHeader);
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_OK, true, nonAdminCredsHeader);
     }
 
     @Test
-    public void testWhitelistAuditComplianceLogging() throws Exception {
+    public void testAllowlistAuditComplianceLogging() throws Exception {
         Settings settings = Settings.builder()
                 .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
                 .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, false)
@@ -195,7 +177,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         TestAuditlogImpl.clear();
 
         // any creds, admin certificate - OK
-        checkGetAndPutWhitelistPermissions(HttpStatus.SC_OK, true, nonAdminCredsHeader);
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_OK, true, nonAdminCredsHeader);
 
         //TESTS THAT 1 READ AND 1 WRITE HAPPENS IN testGetAndPut()
         final Map<AuditCategory, Long> expectedCategoryCounts = ImmutableMap.of(
@@ -207,11 +189,11 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testWhitelistInvalidHttpRequestMethod() throws Exception{
+    public void testAllowlistInvalidHttpRequestMethod() throws Exception{
         setup();
         rh.sendAdminCertificate = true;
 
-        response = rh.executePutRequest(ENDPOINT + "/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GE\"],\"/_cat/indices\": [\"PUT\"] }}", adminCredsHeader);
+        response = rh.executePutRequest(ENDPOINT, "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GE\"],\"/_cat/indices\": [\"PUT\"] }}", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
         assertTrue(response.getBody().contains("\\\"GE\\\": not one of the values accepted for Enum class"));
     }
@@ -229,33 +211,33 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         //PATCH entire config entry
-        response = rh.executePatchRequest(ENDPOINT + "/whitelist", "[{ \"op\": \"replace\", \"path\": \"/config\", \"value\": {\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"PUT\"] }}}]", new Header[0]);
+        response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"replace\", \"path\": \"/config\", \"value\": {\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"PUT\"] }}}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
+        response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertEquals(response.getBody(),"{\"config\":{\"enabled\":true,\"requests\":{\"/_cat/nodes\":[\"GET\"],\"/_cat/indices\":[\"PUT\"]}}}");
 
         //PATCH just requests
-        response = rh.executePatchRequest(ENDPOINT + "/whitelist", "[{ \"op\": \"replace\", \"path\": \"/config/requests\", \"value\": {\"/_cat/nodes\": [\"GET\"]}}]", new Header[0]);
+        response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"replace\", \"path\": \"/config/requests\", \"value\": {\"/_cat/nodes\": [\"GET\"]}}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
+        response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertTrue(response.getBody().contains("\"requests\":{\"/_cat/nodes\":[\"GET\"]}"));
 
-        //PATCH just whitelisted_enabled using "replace" operation  - works when enabled is already true
-        response = rh.executePatchRequest(ENDPOINT + "/whitelist", "[{ \"op\": \"replace\", \"path\": \"/config/enabled\", \"value\": false}]", new Header[0]);
+        //PATCH just allowlisted_enabled using "replace" operation  - works when enabled is already true
+        response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"replace\", \"path\": \"/config/enabled\", \"value\": false}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
+        response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":false"));
 
         //PATCH just enabled using "add" operation when it is currently false - works correctly
-        response = rh.executePatchRequest(ENDPOINT + "/whitelist", "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": true}]", new Header[0]);
+        response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": true}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
+        response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":true"));
 
         //PATCH just enabled using "add" operation when it is currently true - works correctly
-        response = rh.executePatchRequest(ENDPOINT + "/whitelist", "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": false}]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
-        response = rh.executeGetRequest(ENDPOINT + "/whitelist", adminCredsHeader);
+        response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"add\", \"path\": \"/config/enabled\", \"value\": false}]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
+        response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertTrue(response.getBody().contains("\"enabled\":false"));
     }
 }

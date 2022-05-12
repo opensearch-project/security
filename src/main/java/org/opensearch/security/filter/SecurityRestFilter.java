@@ -55,6 +55,8 @@ import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
+import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
+import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.ExceptionUtils;
@@ -80,6 +82,7 @@ public class SecurityRestFilter {
     private final CompatConfig compatConfig;
 
     private WhitelistingSettings whitelistingSettings;
+    private AllowlistingSettings allowlistingSettings;
 
     private static final String HEALTH_SUFFIX = "health";
     private static final String WHO_AM_I_SUFFIX = "whoami";
@@ -100,6 +103,7 @@ public class SecurityRestFilter {
         this.configPath = configPath;
         this.compatConfig = compatConfig;
         this.whitelistingSettings = new WhitelistingSettings();
+        this.allowlistingSettings = new AllowlistingSettings();
     }
 
     /**
@@ -112,7 +116,7 @@ public class SecurityRestFilter {
      * For example: if whitelisting is enabled and requests = ["/_cat/nodes"], then SuperAdmin can access all APIs, but non SuperAdmin
      * can only access "/_cat/nodes"
      * Further note: Some APIs are only accessible by SuperAdmin, regardless of whitelisting. For example: /_opendistro/_security/api/whitelist is only accessible by SuperAdmin.
-     * See {@link WhitelistApiAction} for the implementation of this API.
+     * See {@link AllowlistApiAction} for the implementation of this API.
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
@@ -123,7 +127,7 @@ public class SecurityRestFilter {
                 org.apache.logging.log4j.ThreadContext.clearAll();
                 if (!checkAndAuthenticateRequest(request, channel, client)) {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    if (userIsSuperAdmin(user, adminDNs) || whitelistingSettings.checkRequestIsAllowed(request, channel, client)) {
+                    if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
                         original.handleRequest(request, channel, client);
                     }
                 }
@@ -204,5 +208,10 @@ public class SecurityRestFilter {
     @Subscribe
     public void onWhitelistingSettingChanged(WhitelistingSettings whitelistingSettings) {
         this.whitelistingSettings = whitelistingSettings;
+    }
+
+    @Subscribe
+    public void onAllowlistingSettingChanged(AllowlistingSettings allowlistingSettings) {
+        this.allowlistingSettings = allowlistingSettings;
     }
 }
