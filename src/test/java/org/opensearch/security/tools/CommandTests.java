@@ -15,10 +15,11 @@
 
 package org.opensearch.security.tools;
 
-import org.junit.Assert;
-import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class CommandTests {
     class MockCommandImpl extends Command {

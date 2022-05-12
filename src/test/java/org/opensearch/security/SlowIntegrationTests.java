@@ -32,7 +32,7 @@ package org.opensearch.security;
 
 
 import java.io.IOException;
-import org.apache.http.Header;
+
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -47,7 +47,6 @@ import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.file.FileHelper;
