@@ -384,33 +384,13 @@ public class PasswordSetup extends Command {
 
         final SSLContextBuilder sslContextBuilder = SSLContexts.custom();
 
-		if (ks != null) {
-			File keyStoreFile = Paths.get(ks).toFile();
-
-            KeyStore keyStore = KeyStore.getInstance(keyStoreType.toUpperCase());
-			keyStore.load(new FileInputStream(keyStoreFile), kspass.toCharArray());
-            sslContextBuilder.loadKeyMaterial(keyStore, kspass.toCharArray(), (aliases, socket) -> {
-                if (aliases == null || aliases.isEmpty()) {
-                    return ksAlias;
-                }
-
-                if (ksAlias == null || ksAlias.isEmpty()) {
-                    return aliases.keySet().iterator().next();
-                }
-
-                return ksAlias;
-            });
-		}
-
 		if (ts != null) {
 			File trustStoreFile = Paths.get(ts).toFile();
 
 			KeyStore trustStore = KeyStore.getInstance(trustStoreType.toUpperCase());
 			trustStore.load(new FileInputStream(trustStoreFile), tspass == null ? null : tspass.toCharArray());
             sslContextBuilder.loadTrustMaterial(trustStore, null);
-		}
-
-		if (cacert != null) {
+		} else if (cacert != null) {
 			File caCertFile = Paths.get(cacert).toFile();
 			try (FileInputStream in = new FileInputStream(caCertFile)) {
 				X509Certificate[] certificates = PemKeyReader.loadCertificatesFromStream(in);
@@ -423,7 +403,23 @@ public class PasswordSetup extends Command {
 			}
 		}
 
-        if (cert != null && key != null) {
+        if (ks != null) {
+            File keyStoreFile = Paths.get(ks).toFile();
+
+            KeyStore keyStore = KeyStore.getInstance(keyStoreType.toUpperCase());
+            keyStore.load(new FileInputStream(keyStoreFile), kspass.toCharArray());
+            sslContextBuilder.loadKeyMaterial(keyStore, kspass.toCharArray(), (aliases, socket) -> {
+                if (aliases == null || aliases.isEmpty()) {
+                    return ksAlias;
+                }
+
+                if (ksAlias == null || ksAlias.isEmpty()) {
+                    return aliases.keySet().iterator().next();
+                }
+
+                return ksAlias;
+            });
+        } else if (cert != null && key != null) {
 			File certFile = Paths.get(cert).toFile();
 			X509Certificate[] certificates;
 			PrivateKey privateKey;

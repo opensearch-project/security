@@ -26,21 +26,17 @@ public class OpenSearchAdminTests {
     public void testHelpOptions() throws Exception {
         String[] args1 = {"help"};
 
-        OpenSearchAdmin mockOpenSearchAdmin = Mockito.mock(OpenSearchAdmin.class);
-        OpenSearchAdmin openSearchAdmin = OpenSearchAdmin.getInstance();
-        Mockito.doCallRealMethod().when(mockOpenSearchAdmin).main(Mockito.any());
-        mockOpenSearchAdmin.helpOptions = openSearchAdmin.helpOptions;
-        mockOpenSearchAdmin.commands = openSearchAdmin.commands;
-
-        mockOpenSearchAdmin.main(args1);
+        OpenSearchAdmin openSearchAdmin = new OpenSearchAdmin();
+        OpenSearchAdmin mockOpenSearchAdmin = Mockito.spy(openSearchAdmin);
+        mockOpenSearchAdmin.execute(args1);
         Mockito.verify(mockOpenSearchAdmin, Mockito.times(1)).printHelp();
 
         String[] args2 = {"-h"};
-        mockOpenSearchAdmin.main(args2);
+        mockOpenSearchAdmin.execute(args2);
         Mockito.verify(mockOpenSearchAdmin, Mockito.times(2)).printHelp();
 
         String[] args3 = {"--help"};
-        mockOpenSearchAdmin.main(args3);
+        mockOpenSearchAdmin.execute(args3);
         Mockito.verify(mockOpenSearchAdmin, Mockito.times(3)).printHelp();
     }
 
@@ -50,16 +46,21 @@ public class OpenSearchAdminTests {
     @Test
     public void testValidArguments() throws Exception {
         String[] args1 = {"setup-passwords"};
-        PasswordSetup passwordSetup = Mockito.mock(PasswordSetup.class);
-        Mockito.when(passwordSetup.execute(args1)).thenReturn(0);
-        OpenSearchAdmin openSearchAdmin = OpenSearchAdmin.getInstance();
-        openSearchAdmin.main(args1);
-        Mockito.verify(passwordSetup, Mockito.times(1)).execute(args1);
-
         String[] args2 = {"setup-passwords", "help"};
-        Mockito.when(passwordSetup.execute(args2)).thenReturn(0);
-        openSearchAdmin.main(args2);
-        Mockito.verify(passwordSetup, Mockito.times(2)).execute(args2);
+
+        OpenSearchAdmin openSearchAdmin = new OpenSearchAdmin();
+        OpenSearchAdmin mockOpenSearchAdmin = Mockito.spy(openSearchAdmin);
+        PasswordSetup mockPasswordSetup = Mockito.mock(PasswordSetup.class);
+        Mockito.doNothing().when(mockPasswordSetup).main(args1);
+        Mockito.doNothing().when(mockPasswordSetup).usage();
+
+        mockOpenSearchAdmin.commands.put("setup-passwords", mockPasswordSetup);
+
+        mockOpenSearchAdmin.execute(args1);
+        Mockito.verify(mockPasswordSetup, Mockito.times(1)).main(args1);
+
+        mockOpenSearchAdmin.execute(args2);
+        Mockito.verify(mockPasswordSetup, Mockito.times(1)).usage();
     }
 
     /**
@@ -68,13 +69,12 @@ public class OpenSearchAdminTests {
     @Test
     public void testInvalidArguments() throws Exception {
         String[] args1 = {"undefined-input"};
-        OpenSearchAdmin mockOpenSearchAdmin = Mockito.mock(OpenSearchAdmin.class);
-        OpenSearchAdmin openSearchAdmin = OpenSearchAdmin.getInstance();
-        Mockito.doCallRealMethod().when(mockOpenSearchAdmin).main(args1);
+        OpenSearchAdmin openSearchAdmin = new OpenSearchAdmin();
+        OpenSearchAdmin mockOpenSearchAdmin = Mockito.spy(openSearchAdmin);
         mockOpenSearchAdmin.helpOptions = openSearchAdmin.helpOptions;
         mockOpenSearchAdmin.commands = openSearchAdmin.commands;
 
-        mockOpenSearchAdmin.main(args1);
+        mockOpenSearchAdmin.execute(args1);
         Mockito.verify(mockOpenSearchAdmin, Mockito.times(1)).logInvalidUsage();
     }
 }

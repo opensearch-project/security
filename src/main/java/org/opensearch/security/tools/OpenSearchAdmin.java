@@ -41,16 +41,10 @@ public class OpenSearchAdmin {
 
     private static OpenSearchAdmin opensearchAdminInstance = null;
 
-    private OpenSearchAdmin() {
+    public OpenSearchAdmin() {
+
         System.out.println("A tool for installing and configuring OpenSearch security");
         initialize();
-    }
-
-    public static OpenSearchAdmin getInstance() {
-        if(null == opensearchAdminInstance)
-            opensearchAdminInstance = new OpenSearchAdmin();
-
-        return opensearchAdminInstance;
     }
 
     protected void logInvalidUsage() {
@@ -64,25 +58,28 @@ public class OpenSearchAdmin {
         System.out.println("If you face any issues, please report at https://github.com/opensearch-project/security/issues/new/choose");
     }
 
-    public static void main(String[] args) throws Exception {
-        OpenSearchAdmin openSearchAdmin = getInstance();
-        if(args.length == 0 || (args.length == 1 && openSearchAdmin.helpOptions.contains(args[0]))) {
-            openSearchAdmin.printHelp();
+    public void execute(String[] args) {
+        if(args.length == 0 || (args.length == 1 && helpOptions.contains(args[0]))) {
+            printHelp();
             return;
         }
-        else if(!openSearchAdmin.commands.containsKey(args[0])) {
-            openSearchAdmin.logInvalidUsage();
+        else if(!commands.containsKey(args[0])) {
+            logInvalidUsage();
             return;
         }
-        else if(args.length > 1 && openSearchAdmin.helpOptions.contains(args[1])) {
-            openSearchAdmin.commands.get(args[0]).usage();
+        else if(args.length > 1 && helpOptions.contains(args[1])) {
+            commands.get(args[0]).usage();
             return;
         }
 
         try {
-            openSearchAdmin.commands.get(args[0]).main(Arrays.copyOfRange(args, 0, args.length));
+            commands.get(args[0]).main(Arrays.copyOfRange(args, 0, args.length));
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        (new OpenSearchAdmin()).execute(args);
     }
 }

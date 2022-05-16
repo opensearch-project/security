@@ -124,7 +124,7 @@ public class PasswordSetupTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-nhnv");
-        argsAsList.add("-a");
+        argsAsList.add("-auto");
 
         int returnCode  = (new PasswordSetup()).execute(argsAsList.toArray(new String[0]));
         Assert.assertEquals(0, returnCode);
