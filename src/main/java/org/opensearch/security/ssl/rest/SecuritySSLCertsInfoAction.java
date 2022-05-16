@@ -18,11 +18,11 @@ package org.opensearch.security.ssl.rest;
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,16 +44,18 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+
 
 /**
  * Rest API action to get SSL certificate information related to http and transport encryption.
  * Only super admin users are allowed to access this API.
- * Currently this action serves GET request for _opendistro/_security/api/ssl/certs endpoint
+ * Currently this action serves GET request for _plugins/_security/api/ssl/certs endpoint
  */
 public class SecuritySSLCertsInfoAction extends BaseRestHandler {
-    private static final List<Route> routes = Collections.singletonList(
-            new Route(Method.GET, "/_opendistro/_security/api/ssl/certs")
-    );
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+            new Route(Method.GET, "/ssl/certs")
+    ));
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private Settings settings;
@@ -82,7 +84,7 @@ public class SecuritySSLCertsInfoAction extends BaseRestHandler {
      * GET request to fetch transport certificate details
      *
      * Sample request:
-     * GET _opendistro/_security/api/ssl/certs
+     * GET _plugins/_security/api/ssl/certs
      *
      * Sample response:
      * {
