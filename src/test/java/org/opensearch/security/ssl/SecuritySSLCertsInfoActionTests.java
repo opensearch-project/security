@@ -26,13 +26,30 @@ import net.minidev.json.JSONObject;
 import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.util.List;
 import java.util.Map;
 
-public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-    private final String ENDPOINT = "_opendistro/_security/api/ssl/certs";
+@RunWith(Parameterized.class)
+public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
+    private final String ENDPOINT;
+
+    public SecuritySSLCertsInfoActionTests(String endpoint){
+        ENDPOINT = endpoint;
+    }
+
+    @Parameterized.Parameters
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                LEGACY_OPENDISTRO_PREFIX +  "/api/ssl/certs",
+                PLUGINS_PREFIX +  "/api/ssl/certs"
+        );
+    }
 
     private final List<Map<String, String>> NODE_CERT_DETAILS = ImmutableList.of(
         ImmutableMap.of(
