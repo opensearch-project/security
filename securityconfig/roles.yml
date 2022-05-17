@@ -18,6 +18,7 @@ alerting_read_access:
     - 'cluster:admin/opendistro/alerting/destination/get'
     - 'cluster:admin/opendistro/alerting/monitor/get'
     - 'cluster:admin/opendistro/alerting/monitor/search'
+    - 'cluster:admin/opensearch/alerting/findings/get'
 
 # Allows users to view and acknowledge alerts
 alerting_ack_alerts:
@@ -31,6 +32,7 @@ alerting_full_access:
   cluster_permissions:
     - 'cluster_monitor'
     - 'cluster:admin/opendistro/alerting/*'
+    - 'cluster:admin/opensearch/alerting/*'
   index_permissions:
     - index_patterns:
         - '*'
