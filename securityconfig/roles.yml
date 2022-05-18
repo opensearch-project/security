@@ -33,6 +33,7 @@ alerting_full_access:
     - 'cluster_monitor'
     - 'cluster:admin/opendistro/alerting/*'
     - 'cluster:admin/opensearch/alerting/*'
+    - 'cluster:admin/opensearch/notifications/feature/publish'
   index_permissions:
     - index_patterns:
         - '*'
@@ -155,6 +156,7 @@ index_management_full_access:
     - "cluster:admin/opendistro/ism/*"
     - "cluster:admin/opendistro/rollup/*"
     - "cluster:admin/opendistro/transform/*"
+    - "cluster:admin/opensearch/notifications/feature/publish"
   index_permissions:
     - index_patterns:
         - '*'
@@ -211,3 +213,17 @@ ml_full_access:
         - '*'
       allowed_actions:
         - 'indices_monitor'
+
+# Allows users to use all Notifications functionality
+notifications_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/notifications/*'
+
+# Allows users to read Notifications config/channels
+notifications_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/notifications/configs/get'
+    - 'cluster:admin/opensearch/notifications/features'
+    - 'cluster:admin/opensearch/notifications/channels/get'
