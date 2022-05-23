@@ -67,6 +67,7 @@ public class Saml2SettingsProvider {
         this.spSignaturePrivateKey = spSignaturePrivateKey;
     }
 
+    @SuppressWarnings("removal")
     Saml2Settings get() throws SamlConfigException {
         try {
             HashMap<String, Object> configProperties = new HashMap<>();

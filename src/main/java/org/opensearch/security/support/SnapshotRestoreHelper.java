@@ -91,6 +91,7 @@ public class SnapshotRestoreHelper {
         return snapshotInfo;
     }
     
+    @SuppressWarnings("removal")
     private static void setCurrentThreadName(final String name) {
         final SecurityManager sm = System.getSecurityManager();
 

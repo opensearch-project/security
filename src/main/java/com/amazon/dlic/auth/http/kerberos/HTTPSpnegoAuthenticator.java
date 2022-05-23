@@ -70,6 +70,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     private Set<String> acceptorPrincipal;
     private Path acceptorKeyTabPath;
 
+    @SuppressWarnings("removal")
     public HTTPSpnegoAuthenticator(final Settings settings, final Path configPath) {
         super();
         try {
@@ -165,6 +166,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     }
 
     @Override
+    @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(final RestRequest request, ThreadContext threadContext) {
         final SecurityManager sm = System.getSecurityManager();
 

@@ -117,6 +117,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         this.userBaseSettings = LDAPAuthenticationBackend.getUserBaseSettings(settings);
     }
 
+    @SuppressWarnings("removal")
     public static void checkConnection(final ConnectionConfig connectionConfig, String bindDn, byte[] password) throws Exception {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -146,6 +147,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
     }
 
+    @SuppressWarnings("removal")
     public static Connection getConnection(final Settings settings, final Path configPath) throws Exception {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -201,7 +203,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         return Collections.singletonList(result.entrySet().iterator().next());
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("removal")
     private static void checkConnection0(final ConnectionConfig connectionConfig, String bindDn, byte[] password, final ClassLoader cl,
                                          final boolean needRestore) throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
                                          FileNotFoundException, IOException, LdapException {
@@ -244,7 +246,6 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static Connection getConnection0(final Settings settings, final Path configPath, final ClassLoader cl,
             final boolean needRestore) throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
             FileNotFoundException, IOException, LdapException {
@@ -477,6 +478,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         };
     }
 
+    @SuppressWarnings("removal")
     private static void restoreClassLoader0(final ClassLoader cl) {
         try {
             AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {

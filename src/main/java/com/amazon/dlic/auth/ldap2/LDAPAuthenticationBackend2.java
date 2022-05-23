@@ -85,6 +85,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     }
 
     @Override
+    @SuppressWarnings("removal")
     public User authenticate(final AuthCredentials credentials) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
@@ -184,6 +185,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
         return "ldap";
     }
 
+    @SuppressWarnings("removal")
     @Override
     public boolean exists(final User user) {
         final SecurityManager sm = System.getSecurityManager();
@@ -230,6 +232,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
         }
     }
 
+    @SuppressWarnings("removal")
     private void authenticateByLdapServer(final Connection connection, final String dn, byte[] password)
             throws LdapException {
         final SecurityManager sm = System.getSecurityManager();

@@ -769,6 +769,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
     }
 
+    @SuppressWarnings("removal")
     private void initEnabledSSLCiphers() {
 
         final List<String> secureHttpSSLCiphers = SSLConfigConstants.getSecureSSLCiphers(settings, true);
@@ -929,6 +930,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
     }
 
+    @SuppressWarnings("removal")
     private SslContext buildSSLContext0(final SslContextBuilder sslContextBuilder) throws SSLException {
 
         final SecurityManager sm = System.getSecurityManager();

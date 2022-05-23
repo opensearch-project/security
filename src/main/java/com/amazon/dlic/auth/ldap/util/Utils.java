@@ -41,6 +41,7 @@ public final class Utils {
 
     }
 
+    @SuppressWarnings("removal")
     public static void unbindAndCloseSilently(final Connection connection) {
         if (connection == null) {
             return;

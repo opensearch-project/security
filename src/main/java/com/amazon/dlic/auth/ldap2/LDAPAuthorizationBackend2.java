@@ -120,6 +120,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         return Collections.singletonList(result.entrySet().iterator().next());
     }
 
+    @SuppressWarnings("removal")
     @Override
     public void fillRoles(final User user, final AuthCredentials optionalAuthCreds)
             throws OpenSearchSecurityException {
