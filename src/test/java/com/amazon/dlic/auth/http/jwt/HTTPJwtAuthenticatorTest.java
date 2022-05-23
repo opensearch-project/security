@@ -28,22 +28,21 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
-import org.apache.http.HttpHeaders;
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.FieldSetter;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.security.user.AuthCredentials;
-import org.opensearch.security.util.FakeRestRequest;
-
 import com.google.common.io.BaseEncoding;
-
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.apache.http.HttpHeaders;
+import org.junit.Assert;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.internal.util.reflection.FieldSetter;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.FakeRestRequest;
 
 public class HTTPJwtAuthenticatorTest {
 
