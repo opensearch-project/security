@@ -21,9 +21,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
-
 public enum AuditCategory {
     BAD_HEADERS,
     FAILED_LOGIN,
