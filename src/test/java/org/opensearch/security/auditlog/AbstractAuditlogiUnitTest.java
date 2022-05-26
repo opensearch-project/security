@@ -41,24 +41,24 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     }
 
     protected final void setup(Settings settings) throws Exception {
-
-
         final Settings.Builder auditConfigSettings = Settings.builder();
         final Settings.Builder defaultNodeSettings = Settings.builder();
+        // Seperate the cluster defaults from audit settings that will be applied after the cluster is up
         settings.keySet().stream().forEach(key -> {
-            final boolean isAnAuditConfigSetting = 
-                (key.contains("plugins.security.audit")
-                 || key.contains("opendistro_security.audit")) &&
-                 ! "plugins.security.audit.type".equals(key);
+            final boolean isAuditLoaderConfigurationKey = "plugins.security.audit.type".equals(key);
+            if (isAuditLoaderConfigurationKey) {
+                defaultNodeSettings.put(key, settings.get(key));
+                return;
+            }
+
+            final boolean isAnAuditConfigSetting = key.contains("plugins.security.audit")
+                 || key.contains("opendistro_security.audit");
             if (isAnAuditConfigSetting) {
                 auditConfigSettings.put(key, settings.get(key));
             } else {
                 defaultNodeSettings.put(key, settings.get(key));
             }
         });
-
-        System.err.println("AUDIT CONFIG:" + auditConfigSettings.build());
-        System.err.println("DEFAULT CONFIG:" + defaultNodeSettings.build());
 
         final Settings nodeSettings = defaultNodeSettings(defaultNodeSettings.build());
         setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeSettings, init);
