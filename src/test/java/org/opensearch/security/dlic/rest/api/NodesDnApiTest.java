@@ -15,30 +15,31 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.auditlog.impl.AuditMessage;
-import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
-import org.opensearch.security.support.ConfigConstants;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
-import org.apache.http.Header;
-import org.apache.http.HttpStatus;
-import org.opensearch.common.settings.Settings;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
-import org.opensearch.security.test.helper.file.FileHelper;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.Assert;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.apache.http.Header;
+import org.apache.http.HttpStatus;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
+import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.helper.file.FileHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;

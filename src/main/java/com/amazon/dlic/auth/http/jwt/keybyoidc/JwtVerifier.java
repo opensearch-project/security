@@ -15,6 +15,8 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
+import com.google.common.base.Strings;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.cxf.rs.security.jose.jwa.SignatureAlgorithm;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jwk.KeyType;
@@ -26,11 +28,8 @@ import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtException;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-
-import com.google.common.base.Strings;
+import org.apache.logging.log4j.Logger;
 
 public class JwtVerifier {
 

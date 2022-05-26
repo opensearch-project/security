@@ -24,12 +24,17 @@ import java.util.Arrays;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
-import org.opensearch.security.support.ConfigConstants;
-import org.apache.logging.log4j.Logger;
+import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.OpenSearchException;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchException;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.ssl.SslExceptionHandler;
+import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.ssl.util.SSLRequestHelper;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TaskTransportChannel;
@@ -39,12 +44,6 @@ import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.netty4.Netty4TcpChannel;
-
-import org.opensearch.security.ssl.SslExceptionHandler;
-import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.ssl.util.SSLRequestHelper;
-
-import io.netty.handler.ssl.SslHandler;
 
 public class SecuritySSLRequestHandler<T extends TransportRequest>
 implements TransportRequestHandler<T> {

@@ -23,10 +23,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.DefaultObjectMapper;
-import org.apache.logging.log4j.Logger;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentBuilder;
@@ -35,13 +40,8 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.support.ConfigConstants;
 
 
 public abstract class AbstractConfigurationValidator {

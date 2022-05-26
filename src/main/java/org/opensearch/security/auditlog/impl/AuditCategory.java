@@ -15,14 +15,14 @@
 
 package org.opensearch.security.auditlog.impl;
 
-import org.opensearch.security.support.ConfigConstants;
-
-import com.google.common.collect.ImmutableSet;
-import org.opensearch.common.settings.Settings;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.ConfigConstants;
 
 public enum AuditCategory {
     BAD_HEADERS,

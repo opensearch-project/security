@@ -15,16 +15,17 @@
 
 package org.opensearch.security.configuration;
 
-import org.opensearch.security.support.ConfigConstants;
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.opensearch.OpenSearchException;
-import org.opensearch.common.settings.Settings;
-
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import org.opensearch.OpenSearchException;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.ConfigConstants;
 
 /**
  * Configuration class to store salt used for FLS anonymization

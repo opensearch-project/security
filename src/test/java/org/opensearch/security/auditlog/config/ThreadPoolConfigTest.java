@@ -15,10 +15,11 @@
 
 package org.opensearch.security.auditlog.config;
 
-import org.opensearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import org.opensearch.common.settings.Settings;
 
 import static org.junit.Assert.assertEquals;
 

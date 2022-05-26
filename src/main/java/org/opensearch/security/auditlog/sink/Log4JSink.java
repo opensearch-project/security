@@ -16,10 +16,10 @@
 package org.opensearch.security.auditlog.sink;
 
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.common.settings.Settings;
+import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 
 public final class Log4JSink extends AuditLogSink {

@@ -15,10 +15,10 @@
 
 package org.opensearch.security.ssl.rest;
 
-import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.ssl.SecurityKeyStore;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -29,11 +29,11 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.ssl.SecurityKeyStore;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 

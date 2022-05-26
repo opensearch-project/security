@@ -23,11 +23,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.common.base.Splitter;
 import org.apache.lucene.util.BytesRef;
 import org.bouncycastle.crypto.digests.Blake2bDigest;
 import org.bouncycastle.util.encoders.Hex;
-
-import com.google.common.base.Splitter;
 
 public class MaskedField {
 

@@ -34,13 +34,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.apache.http.HttpStatus;
-import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +41,13 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
+import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;

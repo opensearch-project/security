@@ -15,24 +15,42 @@
 
 package org.opensearch.security.ssl;
 
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import net.minidev.json.JSONObject;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import net.minidev.json.JSONObject;
-import org.opensearch.common.settings.Settings;
-import org.junit.Assert;
-import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
+@RunWith(Parameterized.class)
 public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
+    private final String ENDPOINT;
 
-    private final String ENDPOINT = "_opendistro/_security/api/ssl/certs";
+    public SecuritySSLCertsInfoActionTests(String endpoint){
+        ENDPOINT = endpoint;
+    }
+
+    @Parameterized.Parameters
+    public static Iterable<String> endpoints() {
+        return ImmutableList.of(
+                LEGACY_OPENDISTRO_PREFIX +  "/api/ssl/certs",
+                PLUGINS_PREFIX +  "/api/ssl/certs"
+        );
+    }
 
     private final List<Map<String, String>> NODE_CERT_DETAILS = ImmutableList.of(
         ImmutableMap.of(

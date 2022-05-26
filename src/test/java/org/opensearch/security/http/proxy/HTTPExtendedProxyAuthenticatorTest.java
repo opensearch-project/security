@@ -29,16 +29,15 @@
  */
 package org.opensearch.security.http.proxy;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.ImmutableSet;
+import org.junit.Before;
+import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionListener;
@@ -52,12 +51,13 @@ import org.opensearch.http.HttpResponse;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
-import com.google.common.collect.ImmutableSet;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class HTTPExtendedProxyAuthenticatorTest {
 

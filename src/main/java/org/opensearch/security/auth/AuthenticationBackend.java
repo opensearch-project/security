@@ -31,7 +31,6 @@
 package org.opensearch.security.auth;
 
 import org.opensearch.OpenSearchSecurityException;
-
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 

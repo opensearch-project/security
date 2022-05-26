@@ -47,8 +47,9 @@ import java.nio.file.Paths;
 import java.security.KeyStore;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentBuilder;

@@ -22,9 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.common.settings.Settings;
+import org.apache.logging.log4j.Logger;
 import org.ldaptive.ActivePassiveConnectionStrategy;
 import org.ldaptive.BindConnectionInitializer;
 import org.ldaptive.CompareRequest;
@@ -64,6 +63,8 @@ import org.ldaptive.ssl.SslConfig;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
+
+import org.opensearch.common.settings.Settings;
 
 public class LDAPConnectionFactoryFactory {
 

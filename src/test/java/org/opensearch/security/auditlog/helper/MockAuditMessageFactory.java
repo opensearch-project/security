@@ -15,19 +15,18 @@
 
 package org.opensearch.security.auditlog.helper;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.net.InetSocketAddress;
 
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.transport.TransportAddress;
-
-import org.opensearch.security.auditlog.impl.AuditMessage;
-import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.security.auditlog.impl.AuditMessage;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MockAuditMessageFactory {
 

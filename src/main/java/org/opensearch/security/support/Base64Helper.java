@@ -30,12 +30,6 @@
 
 package org.opensearch.security.support;
 
-import com.amazon.dlic.auth.ldap.LdapUser;
-import org.ldaptive.AbstractLdapBean;
-import org.ldaptive.LdapAttribute;
-import org.ldaptive.LdapEntry;
-import org.ldaptive.SearchEntry;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -58,16 +52,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.opensearch.OpenSearchException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.Strings;
-
-import org.opensearch.security.user.User;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
+import org.ldaptive.AbstractLdapBean;
+import org.ldaptive.LdapAttribute;
+import org.ldaptive.LdapEntry;
+import org.ldaptive.SearchEntry;
+
+import com.amazon.dlic.auth.ldap.LdapUser;
+
+import org.opensearch.OpenSearchException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.Strings;
+import org.opensearch.security.user.User;
 
 public class Base64Helper {
 
@@ -108,6 +107,7 @@ public class Base64Helper {
 
         private static final boolean useSafeObjectOutputStream = checkSubstitutionPermission();
 
+        @SuppressWarnings("removal")
         private static boolean checkSubstitutionPermission() {
             SecurityManager sm = System.getSecurityManager();
             if (sm != null) {
@@ -136,6 +136,7 @@ public class Base64Helper {
             }
         }
 
+        @SuppressWarnings("removal")
         private SafeObjectOutputStream(OutputStream out) throws IOException {
             super(out);
 

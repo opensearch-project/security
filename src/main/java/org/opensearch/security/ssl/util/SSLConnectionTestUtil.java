@@ -15,7 +15,6 @@
 
 package org.opensearch.security.ssl.util;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,8 +22,10 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import org.apache.logging.log4j.Logger;
+
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Utility class to test if the server supports SSL connections.

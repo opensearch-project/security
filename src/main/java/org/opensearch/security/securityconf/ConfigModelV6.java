@@ -35,8 +35,16 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.Logger;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
+import com.google.common.collect.SetMultimap;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -55,13 +63,6 @@ import org.opensearch.security.securityconf.impl.v6.RoleV6.Index;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
-import com.google.common.collect.SetMultimap;
 
 import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 

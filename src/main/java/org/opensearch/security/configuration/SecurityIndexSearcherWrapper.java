@@ -33,22 +33,22 @@ package org.opensearch.security.configuration;
 import java.io.IOException;
 import java.util.Set;
 
-import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.support.WildcardMatcher;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
+import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.index.Index;
 import org.opensearch.index.IndexService;
-import org.greenrobot.eventbus.Subscribe;
-
+import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
 public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException>  {

@@ -31,7 +31,6 @@
 package org.opensearch.security.configuration;
 
 import org.opensearch.action.get.MultiGetResponse.Failure;
-
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 public interface ConfigCallback {

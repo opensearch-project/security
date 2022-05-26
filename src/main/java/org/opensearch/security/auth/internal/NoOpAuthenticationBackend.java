@@ -33,7 +33,6 @@ package org.opensearch.security.auth.internal;
 import java.nio.file.Path;
 
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;

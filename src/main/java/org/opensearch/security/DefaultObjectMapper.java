@@ -37,10 +37,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
-import com.google.common.collect.ImmutableSet;
-import org.opensearch.SpecialPermission;
-
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -51,8 +47,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ImmutableSet;
+
+import org.opensearch.SpecialPermission;
 
 public class DefaultObjectMapper {
     public static final ObjectMapper objectMapper = new ObjectMapper();
@@ -100,6 +100,7 @@ public class DefaultObjectMapper {
         return value != null ? value : defaultValue;
     }
 
+    @SuppressWarnings("removal")
     public static <T> T readTree(JsonNode node, Class<T> clazz) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -120,6 +121,7 @@ public class DefaultObjectMapper {
         }
     }
     
+    @SuppressWarnings("removal")
     public static <T> T readValue(String string, Class<T> clazz) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -140,6 +142,7 @@ public class DefaultObjectMapper {
         }
     }
     
+    @SuppressWarnings("removal")
     public static JsonNode readTree(String string) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -160,6 +163,7 @@ public class DefaultObjectMapper {
         }
     }
 
+    @SuppressWarnings("removal")
     public static String writeValueAsString(Object value, boolean omitDefaults) throws JsonProcessingException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -181,6 +185,7 @@ public class DefaultObjectMapper {
 
     }
 
+    @SuppressWarnings("removal")
     public static <T> T readValue(String string, TypeReference<T> tr) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -202,6 +207,7 @@ public class DefaultObjectMapper {
 
     }
 
+    @SuppressWarnings("removal")
     public static <T> T readValue(String string, JavaType jt) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();

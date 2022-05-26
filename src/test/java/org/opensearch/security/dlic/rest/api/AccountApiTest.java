@@ -16,18 +16,23 @@
 package org.opensearch.security.dlic.rest.api;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.opensearch.security.securityconf.impl.CType;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 

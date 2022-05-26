@@ -18,12 +18,12 @@ package org.opensearch.security.auditlog.routing;
 import java.util.List;
 import java.util.Objects;
 
-import org.opensearch.security.auditlog.config.ThreadPoolConfig;
-import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.config.ThreadPoolConfig;
 import org.opensearch.security.auditlog.helper.MockAuditMessageFactory;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.sink.AuditLogSink;

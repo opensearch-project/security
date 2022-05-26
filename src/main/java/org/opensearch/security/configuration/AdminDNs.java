@@ -41,15 +41,14 @@ import java.util.function.Function;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 
-import org.apache.logging.log4j.Logger;
+import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.common.settings.Settings;
+import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
-
-import com.google.common.collect.ImmutableMap;
 
 public class AdminDNs {
 

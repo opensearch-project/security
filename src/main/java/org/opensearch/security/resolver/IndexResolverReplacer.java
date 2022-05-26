@@ -43,12 +43,12 @@ import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
-import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
-import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
-import org.opensearch.security.OpenSearchSecurityPlugin;
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.collections.keyvalue.MultiKey;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
@@ -58,7 +58,9 @@ import org.opensearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequ
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteRequest;
@@ -86,18 +88,15 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.index.Index;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.reindex.ReindexRequest;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.support.SnapshotRestoreHelper;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.snapshots.SnapshotInfo;
 import org.opensearch.snapshots.SnapshotUtils;
 import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.TransportRequest;
-import org.greenrobot.eventbus.Subscribe;
-
-import org.opensearch.security.support.SnapshotRestoreHelper;
-import org.opensearch.security.support.WildcardMatcher;
-
-import com.google.common.collect.ImmutableSet;
 
 import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 

@@ -17,8 +17,13 @@
 
 package org.opensearch.security.ssl.http.netty;
 
-import org.apache.logging.log4j.Logger;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.handler.codec.DecoderException;
+import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -31,11 +36,6 @@ import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
-
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.handler.codec.DecoderException;
-import io.netty.handler.ssl.SslHandler;
 
 public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTransport {
 

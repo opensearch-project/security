@@ -30,22 +30,16 @@
 
 package org.opensearch.security.rest;
 
-import static org.opensearch.rest.RestRequest.Method.GET;
-import static org.opensearch.rest.RestRequest.Method.POST;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
-import com.google.common.base.Strings;
 
-import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.securityconf.DynamicConfigFactory;
-import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.securityconf.RoleMappings;
-import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.apache.logging.log4j.Logger;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.service.ClusterService;
@@ -59,12 +53,18 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.securityconf.DynamicConfigFactory;
+import org.opensearch.security.securityconf.RoleMappings;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-import com.google.common.collect.ImmutableList;
 
+import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantInfoAction extends BaseRestHandler {

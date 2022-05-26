@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.sink.AuditLogSink;
 

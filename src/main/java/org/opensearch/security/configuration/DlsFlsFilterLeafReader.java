@@ -31,7 +31,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.opensearch.security.compliance.ComplianceConfig;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
@@ -63,6 +65,7 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
+
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.bytes.BytesArray;
@@ -76,8 +79,8 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.support.XContentMapValues;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.shard.ShardId;
-
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.compliance.FieldReadCallback;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.ConfigConstants;
@@ -85,9 +88,6 @@ import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.MapUtils;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
 
 class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
 
@@ -516,12 +516,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         }
 
         @Override
-        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
-            fieldReadCallback.stringFieldRead(fieldInfo, value);
-            delegate.stringField(fieldInfo, value);
-        }
-
-        @Override
         public void intField(final FieldInfo fieldInfo, final int value) throws IOException {
             fieldReadCallback.numericFieldRead(fieldInfo, value);
             delegate.intField(fieldInfo, value);
@@ -605,11 +599,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         }
 
         @Override
-        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
-            delegate.stringField(fieldInfo, value);
-        }
-
-        @Override
         public void intField(final FieldInfo fieldInfo, final int value) throws IOException {
             delegate.intField(fieldInfo, value);
         }
@@ -673,17 +662,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         @Override
         public int hashCode() {
             return delegate.hashCode();
-        }
-
-        @Override
-        public void stringField(final FieldInfo fieldInfo, final String value) throws IOException {
-            final Optional<MaskedField> mf = maskedFieldsMap.getMaskedField(fieldInfo.name);
-
-            if(mf.isPresent()) {
-                delegate.stringField(fieldInfo, mf.get().mask(value));
-            } else {
-                delegate.stringField(fieldInfo, value);
-            }
         }
 
         @Override

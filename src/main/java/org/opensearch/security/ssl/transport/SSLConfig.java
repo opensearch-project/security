@@ -15,12 +15,12 @@
 
 package org.opensearch.security.ssl.transport;
 
-import org.opensearch.security.support.ConfigConstants;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.common.settings.ClusterSettings;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecuritySettings;
 
 public class SSLConfig {

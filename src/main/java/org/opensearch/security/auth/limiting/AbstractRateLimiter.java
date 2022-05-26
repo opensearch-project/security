@@ -21,7 +21,6 @@ import java.net.InetAddress;
 import java.nio.file.Path;
 
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.blocking.HeapBasedClientBlockRegistry;

@@ -20,16 +20,16 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.settings.Settings;
 import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 
-import net.shibboleth.utilities.java.support.resolver.ResolverException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
 
 public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
@@ -41,6 +41,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
     }
 
     @Override
+    @SuppressWarnings("removal")
     protected byte[] fetchMetadata() throws ResolverException {
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<byte[]>() {
@@ -64,6 +65,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         return new SettingsBasedSSLConfigurator(settings, configPath, "idp").buildSSLConfig();
     }
 
+    @SuppressWarnings("removal")
     private static HttpClient createHttpClient(Settings settings, Path configPath) throws Exception {
         try {
             final SecurityManager sm = System.getSecurityManager();

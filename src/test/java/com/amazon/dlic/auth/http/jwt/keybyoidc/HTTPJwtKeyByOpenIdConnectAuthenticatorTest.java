@@ -17,15 +17,15 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.util.HashMap;
 
-import org.opensearch.common.settings.Settings;
+import com.google.common.collect.ImmutableMap;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
-import com.google.common.collect.ImmutableMap;
 
 public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 

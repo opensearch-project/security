@@ -15,35 +15,34 @@
 
 package org.opensearch.security.auditlog.impl;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.opensearch.security.auditlog.AuditTestUtils;
-import org.opensearch.security.test.AbstractSecurityUnitTest;
+import com.google.common.base.Joiner;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.Settings.Builder;
 import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.helper.MockRestRequest;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.tasks.Task;
+import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.transport.TransportRequest;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
 
-import com.google.common.base.Joiner;
-import org.junit.rules.ExpectedException;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DisabledCategoriesTest {
 
