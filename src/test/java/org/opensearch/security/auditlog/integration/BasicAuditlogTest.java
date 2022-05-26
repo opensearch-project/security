@@ -68,8 +68,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testAuditLogEnable() throws Exception {
         Settings additionalSettings = Settings.builder()
                 .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
-                .put("plugins.security.audit.config.enable_transport", true)
-                .put("plugins.security.audit.config.enable_transport", true)
                 .build();
 
         setup(additionalSettings);
@@ -97,10 +95,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testSimpleAuthenticatedSetting() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-            .put(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace(), "AUTHENTICATED")
-            .put(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace(), "AUTHENTICATED")
+            .put(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace(), "NONE")
             .build(); 
         verifyAuthenticated(settings);
     }
@@ -109,30 +104,24 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testSimpleAuthenticatedLegacySetting() throws Exception {
         final Settings settings = Settings.builder()
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "AUTHENTICATED")
-            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "AUTHENTICATED")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
             .build();
         verifyAuthenticated(settings);
     }
 
     private void verifyAuthenticated(final Settings settings) throws Exception {
         setup(settings);
-        setupStarfleetIndex();
+
 
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(
             () -> {
                 final HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
                 assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-                System.out.println(">>>RESPONSE\n\n" + response.getBody() + "\n\n>>>>>RESPONSE");
             },
-            /* expectedCount */ 1);
+            /* expectedCount*/ 1);
 
         assertThat(messages.size(), equalTo(1));
 
-        System.out.println(messages.get(0).toJson());
-        System.out.println("\n\n?????" + TestAuditlogImpl.sb.toString().toLowerCase() + "????\n\n");
         assertThat(messages.get(0).getCategory(), equalTo(AuditCategory.GRANTED_PRIVILEGES));
         assertThat(messages.get(0).getOrigin(), equalTo(Origin.REST));
         assertThat(messages.get(0).getPrivilege(), equalTo("indices:data/read/search"));
@@ -765,6 +754,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         TestAuditlogImpl.clear();
         rh.executePutRequest("/twitter", "{\"settings\":{\"index\":{\"number_of_shards\":3,\"number_of_replicas\":2}}}", encodeBasicHeader("admin", "admin"));
         String auditlogs = TestAuditlogImpl.sb.toString();
+        System.out.println("&&&& auditlogs \n\n" + auditlogs + "\n\n&&&&&");
         Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
         Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"CreateIndexRequest\","));
         Assert.assertTrue(auditlogs.contains("\"audit_request_body\" : \"{\\\"index\\\":{\\\"number_of_shards\\\":\\\"3\\\",\\\"number_of_replicas\\\":\\\"2\\\"}}\""));

@@ -236,27 +236,6 @@ public class AuditConfig {
 
         }
 
-        private static boolean getFromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
-            return settings.getAsBoolean(filterEntry.getKeyWithNamespace(), settings.getAsBoolean(filterEntry.getLegacyKeyWithNamespace(), defaultValue));
-        }
-
-        private static Set<String> getFromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
-            final List<String> defaultDetector = ImmutableList.of("__DEFAULT_DETECTION__");
-            final Set<String> stringSetOfKey = ConfigConstants.getSettingAsSet(
-                    settings,
-                    filterEntry.getKeyWithNamespace(),
-                    defaultDetector,
-                    false);
-            if (!defaultDetector.containsAll(stringSetOfKey)) {
-                return stringSetOfKey; 
-            }
-            return ConfigConstants.getSettingAsSet(
-                settings,
-                filterEntry.getLegacyKeyWithNamespace(),
-                defaultValue,
-                false);
-        }
-
         /**
          * Generate audit logging configuration from settings defined in opensearch.yml
          * @param settings settings
@@ -274,18 +253,6 @@ public class AuditConfig {
             final Set<String> ignoredAuditUsers = getFromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = getFromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
 
-            
-
-            System.err.println("FROM Filter.from(Settings)\n\n");
-            new RuntimeException().printStackTrace();
-            System.err.println("settings? " + settings);
-            System.err.println("raw rest audit enabled: " + settings.get(FilterEntries.ENABLE_REST.getKeyWithNamespace()));
-            System.err.println("raw disabled rest: " + settings.get(FilterEntries.DISABLE_REST_CATEGORIES.getKeyWithNamespace()));
-            System.err.println("disabledRestCategories: " + disabledRestCategories);
-            System.err.println("disabledTransportCategories: " + disabledTransportCategories);
-            System.err.println("ignoredAuditUsers: " + ignoredAuditUsers);
-
-
             return new Filter(isRestApiAuditEnabled,
                     isTransportAuditEnabled,
                     resolveBulkRequests,
@@ -296,6 +263,31 @@ public class AuditConfig {
                     ignoreAuditRequests,
                     disabledRestCategories,
                     disabledTransportCategories);
+        }
+        
+        private static boolean getFromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
+            return settings.getAsBoolean(filterEntry.getKeyWithNamespace(), settings.getAsBoolean(filterEntry.getLegacyKeyWithNamespace(), defaultValue));
+        }
+
+        private static Set<String> getFromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
+            final List<String> defaultDetector = ImmutableList.of("__DEFAULT_DETECTION__");
+            final Set<String> stringSetOfKey = ConfigConstants.getSettingAsSet(
+                    settings,
+                    filterEntry.getKeyWithNamespace(),
+                    defaultDetector,
+                    false);
+
+            final boolean settingWasResolved = stringSetOfKey.containsAll(defaultDetector);
+            if (settingWasResolved) {
+                return stringSetOfKey; 
+            }
+
+            // Fallback to the legacy keyname
+            return ConfigConstants.getSettingAsSet(
+                settings,
+                filterEntry.getLegacyKeyWithNamespace(),
+                defaultValue,
+                false);
         }
 
         /**

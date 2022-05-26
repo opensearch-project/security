@@ -46,8 +46,10 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         final Settings.Builder auditConfigSettings = Settings.builder();
         final Settings.Builder defaultNodeSettings = Settings.builder();
         settings.keySet().stream().forEach(key -> {
-            final boolean isAnAuditConfigSetting = key.contains("plugins.security.audit")
-                || key.contains("opendistro_security.audit");
+            final boolean isAnAuditConfigSetting = 
+                (key.contains("plugins.security.audit")
+                 || key.contains("opendistro_security.audit")) &&
+                 ! "plugins.security.audit.type".equals(key);
             if (isAnAuditConfigSetting) {
                 auditConfigSettings.put(key, settings.get(key));
             } else {
