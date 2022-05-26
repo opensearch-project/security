@@ -379,6 +379,9 @@ public class RestHelper {
 
 			// Break the path into parts, and scan into the json object
 			try (final Scanner jsonPathScanner = new Scanner(jsonDotPath).useDelimiter("\\.")) {
+				if (!jsonPathScanner.hasNext()) {
+					fail("Invalid json dot path '" + jsonDotPath + "', rewrite with '.' characters between path elements.");
+				}
 				do {
 					final String pathEntry = jsonPathScanner.next();
 					if (!currentNode.has(pathEntry)) {
