@@ -744,7 +744,6 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         TestAuditlogImpl.clear();
         rh.executePutRequest("/twitter", "{\"settings\":{\"index\":{\"number_of_shards\":3,\"number_of_replicas\":2}}}", encodeBasicHeader("admin", "admin"));
         String auditlogs = TestAuditlogImpl.sb.toString();
-        System.out.println("&&&& auditlogs \n\n" + auditlogs + "\n\n&&&&&");
         Assert.assertTrue(auditlogs.contains("\"audit_category\" : \"INDEX_EVENT\""));
         Assert.assertTrue(auditlogs.contains("\"audit_transport_request_type\" : \"CreateIndexRequest\","));
         Assert.assertTrue(auditlogs.contains("\"audit_request_body\" : \"{\\\"index\\\":{\\\"number_of_shards\\\":\\\"3\\\",\\\"number_of_replicas\\\":\\\"2\\\"}}\""));
