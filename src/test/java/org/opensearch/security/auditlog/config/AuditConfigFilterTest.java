@@ -21,10 +21,14 @@ import java.util.EnumSet;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.settings.Settings.Builder;
+import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -126,4 +130,37 @@ public class AuditConfigFilterTest {
         assertTrue(auditConfigFilter.getDisabledRestCategories().isEmpty());
         assertTrue(auditConfigFilter.getDisabledTransportCategories().isEmpty());
     }
+
+
+    @Test
+    public void testFilterEntries() {
+        assertThat(FilterEntries.ENABLE_REST.getKey(), equalTo("enable_rest"));
+        assertThat(FilterEntries.ENABLE_REST.getKeyWithNamespace(), equalTo("plugins.security.audit.config.enable_rest"));
+        assertThat(FilterEntries.ENABLE_REST.getLegacyKeyWithNamespace(), equalTo("opendistro_security.audit.enable_rest"));
+    }
+
+    @Test
+    public void getFromSettingBoolean() {
+        final FilterEntries entry = FilterEntries.ENABLE_REST;
+
+        // Use primary key
+        final Settings settings1 = Settings.builder()
+            .put(entry.getKeyWithNamespace(), false)
+            .put(entry.getLegacyKeyWithNamespace(), true)
+            .build();
+        // assertThat(AuditConfig.Filter.fromSettingBoolean(settings1, entry, true), equalTo(false));
+
+        // Use fallback key
+        final Settings settings2 = Settings.builder()
+            .put(entry.getLegacyKeyWithNamespace(), false)
+            .build();
+        // assertThat(AuditConfig.Filter.fromSettingBoolean(settings2, entry, true), equalTo(false));
+
+        // Use default
+        // assertThat(AuditConfig.Filter.fromSettingBoolean(Settings.builder().build(), entry, true), equalTo(true));
+    }
+
+    @Test
+    public void getFromSettingStringSet() {}
+
 }
