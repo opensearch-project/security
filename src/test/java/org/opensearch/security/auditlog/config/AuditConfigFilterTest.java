@@ -225,5 +225,11 @@ public class AuditConfigFilterTest {
                 .put(entry.getLegacyKeyWithNamespace(), FAILED_LOGIN.name())
                 .build();
         assertThat(parse.apply(settingMultipleValues), equalTo(ImmutableSet.of(AUTHENTICATED, BAD_HEADERS)));
+
+        final Settings settingMultipleValuesString = Settings.builder()
+                .put(entry.getKeyWithNamespace(), AUTHENTICATED.name() + "," + BAD_HEADERS.name())
+                .put(entry.getLegacyKeyWithNamespace(), FAILED_LOGIN.name())
+                .build();
+        assertThat(parse.apply(settingMultipleValues), equalTo(ImmutableSet.of(AUTHENTICATED, BAD_HEADERS)));
     }
 }

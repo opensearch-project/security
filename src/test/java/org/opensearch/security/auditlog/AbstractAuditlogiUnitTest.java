@@ -15,6 +15,7 @@
 
 package org.opensearch.security.auditlog;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,12 +23,15 @@ import org.apache.http.Header;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import static org.opensearch.security.auditlog.config.AuditConfig.DEPRECATED_KEYS;
 
 public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
 
@@ -42,17 +46,12 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
     protected final void setup(Settings settings) throws Exception {
         final Settings.Builder auditConfigSettings = Settings.builder();
         final Settings.Builder defaultNodeSettings = Settings.builder();
-        // Seperate the cluster defaults from audit settings that will be applied after the cluster is up
-        settings.keySet().stream().forEach(key -> {
-            final boolean isAuditLoaderConfigurationKey = "plugins.security.audit.type".equals(key);
-            if (isAuditLoaderConfigurationKey) {
-                defaultNodeSettings.put(key, settings.get(key));
-                return;
-            }
-
-            final boolean isAnAuditConfigSetting = key.contains("plugins.security.audit")
-                 || key.contains("opendistro_security.audit");
-            if (isAnAuditConfigSetting) {
+        // Separate the cluster defaults from audit settings that will be applied after the cluster is up
+        settings.keySet().forEach(key -> {
+            final boolean moveToAuditConfig = Arrays.stream(AuditConfig.Filter.FilterEntries.values())
+                    .anyMatch(entry -> entry.getKeyWithNamespace().equalsIgnoreCase(key) || entry.getLegacyKeyWithNamespace().equalsIgnoreCase(key))
+                    || DEPRECATED_KEYS.stream().anyMatch(key::equalsIgnoreCase);
+            if (moveToAuditConfig) {
                 auditConfigSettings.put(key, settings.get(key));
             } else {
                 defaultNodeSettings.put(key, settings.get(key));
