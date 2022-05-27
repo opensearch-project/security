@@ -131,9 +131,9 @@ public class AuditConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
+        private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
-        private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
 
         private final boolean isRestApiAuditEnabled;
         private final boolean isTransportApiAuditEnabled;
@@ -189,7 +189,7 @@ public class AuditConfig {
 
             private final String key;
             private final String legacyKeyWithNamespace;
-            private FilterEntries(final String entryKey, final String legacyKeyWithNamespace) {
+            FilterEntries(final String entryKey, final String legacyKeyWithNamespace) {
                 this.key = entryKey;
                 this.legacyKeyWithNamespace = legacyKeyWithNamespace;
             }
@@ -265,11 +265,11 @@ public class AuditConfig {
                     disabledTransportCategories);
         }
 
-        private static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
+        static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
             return settings.getAsBoolean(filterEntry.getKeyWithNamespace(), settings.getAsBoolean(filterEntry.getLegacyKeyWithNamespace(), defaultValue));
         }
 
-        private static Set<String> fromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
+        static Set<String> fromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
             final String defaultDetectorValue = "__DEFAULT_DETECTION__";
             final Set<String> stringSetOfKey = ConfigConstants.getSettingAsSet(
                     settings,
@@ -277,7 +277,7 @@ public class AuditConfig {
                     ImmutableList.of(defaultDetectorValue),
                     true);
 
-            final boolean foundDefault = stringSetOfKey.stream().anyMatch(s -> defaultDetectorValue.equals(s));
+            final boolean foundDefault = stringSetOfKey.stream().anyMatch(defaultDetectorValue::equals);
             if (!foundDefault) {
                 return stringSetOfKey; 
             }
