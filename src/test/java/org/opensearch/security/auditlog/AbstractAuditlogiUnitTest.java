@@ -22,7 +22,6 @@ import org.apache.http.Header;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.routing.AuditMessageRouter;
 import org.opensearch.security.test.DynamicSecurityConfig;
