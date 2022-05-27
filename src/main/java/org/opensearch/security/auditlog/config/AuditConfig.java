@@ -277,7 +277,6 @@ public class AuditConfig {
                     ImmutableList.of(defaultDetectorValue),
                     true);
 
-            final String 
             final boolean foundDefault = stringSetOfKey.stream().anyMatch(s -> defaultDetectorValue.equals(s));
             if (!foundDefault) {
                 return stringSetOfKey; 
