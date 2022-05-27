@@ -242,16 +242,16 @@ public class AuditConfig {
          * @return audit configuration filter
          */
         public static Filter from(Settings settings) {
-            final boolean isRestApiAuditEnabled = getFromSettingBoolean(settings, FilterEntries.ENABLE_REST, true);
-            final boolean isTransportAuditEnabled = getFromSettingBoolean(settings, FilterEntries.ENABLE_TRANSPORT, true);
-            final boolean resolveBulkRequests = getFromSettingBoolean(settings, FilterEntries.RESOLVE_BULK_REQUESTS, false);
-            final boolean logRequestBody = getFromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
-            final boolean resolveIndices = getFromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
-            final boolean excludeSensitiveHeaders = getFromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(getFromSettingStringSet(settings, FilterEntries.DISABLE_REST_CATEGORIES, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(getFromSettingStringSet(settings, FilterEntries.DISABLE_TRANSPORT_CATEGORIES, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<String> ignoredAuditUsers = getFromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
-            final Set<String> ignoreAuditRequests = getFromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
+            final boolean isRestApiAuditEnabled = fromSettingBoolean(settings, FilterEntries.ENABLE_REST, true);
+            final boolean isTransportAuditEnabled = fromSettingBoolean(settings, FilterEntries.ENABLE_TRANSPORT, true);
+            final boolean resolveBulkRequests = fromSettingBoolean(settings, FilterEntries.RESOLVE_BULK_REQUESTS, false);
+            final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
+            final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
+            final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
+            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(fromSettingStringSet(settings, FilterEntries.DISABLE_REST_CATEGORIES, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(fromSettingStringSet(settings, FilterEntries.DISABLE_TRANSPORT_CATEGORIES, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
+            final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
 
             return new Filter(isRestApiAuditEnabled,
                     isTransportAuditEnabled,
@@ -264,12 +264,12 @@ public class AuditConfig {
                     disabledRestCategories,
                     disabledTransportCategories);
         }
-        
-        private static boolean getFromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
+
+        private static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
             return settings.getAsBoolean(filterEntry.getKeyWithNamespace(), settings.getAsBoolean(filterEntry.getLegacyKeyWithNamespace(), defaultValue));
         }
 
-        private static Set<String> getFromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
+        private static Set<String> fromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
             final String defaultDetectorValue = "__DEFAULT_DETECTION__";
             final Set<String> stringSetOfKey = ConfigConstants.getSettingAsSet(
                     settings,
