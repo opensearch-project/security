@@ -270,15 +270,15 @@ public class AuditConfig {
         }
 
         private static Set<String> getFromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
-            final List<String> defaultDetector = ImmutableList.of("__DEFAULT_DETECTION__");
+            final String defaultDetectorValue = "__DEFAULT_DETECTION__";
             final Set<String> stringSetOfKey = ConfigConstants.getSettingAsSet(
                     settings,
                     filterEntry.getKeyWithNamespace(),
-                    defaultDetector,
+                    ImmutableList.of(defaultDetectorValue),
                     false);
 
-            final boolean settingWasResolved = stringSetOfKey.containsAll(defaultDetector);
-            if (settingWasResolved) {
+            final boolean foundDefault = stringSetOfKey.stream().anyMatch(s -> defaultDetectorValue.equals(s));
+            if (!foundDefault) {
                 return stringSetOfKey; 
             }
 
