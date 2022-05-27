@@ -275,8 +275,9 @@ public class AuditConfig {
                     settings,
                     filterEntry.getKeyWithNamespace(),
                     ImmutableList.of(defaultDetectorValue),
-                    false);
+                    true);
 
+            final String 
             final boolean foundDefault = stringSetOfKey.stream().anyMatch(s -> defaultDetectorValue.equals(s));
             if (!foundDefault) {
                 return stringSetOfKey; 
@@ -287,7 +288,7 @@ public class AuditConfig {
                 settings,
                 filterEntry.getLegacyKeyWithNamespace(),
                 defaultValue,
-                false);
+                true);
         }
 
         /**
