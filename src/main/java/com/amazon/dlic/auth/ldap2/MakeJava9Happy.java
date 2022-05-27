@@ -19,16 +19,17 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import org.opensearch.SpecialPermission;
+import io.netty.util.internal.PlatformDependent;
 import org.ldaptive.ssl.ThreadLocalTLSSocketFactory;
 
-import io.netty.util.internal.PlatformDependent;
+import org.opensearch.SpecialPermission;
 
 public class MakeJava9Happy {
 
     private static ClassLoader classLoader;
     private static boolean isJava9OrHigher = PlatformDependent.javaVersion() >= 9;;
 
+    @SuppressWarnings("removal")
     static ClassLoader getClassLoader() {
         if (!isJava9OrHigher) {
             return null;

@@ -17,8 +17,6 @@
 
 package org.opensearch.security.ssl.rest;
 
-import io.netty.handler.ssl.OpenSsl;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
@@ -27,8 +25,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.Logger;
+import io.netty.handler.ssl.OpenSsl;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentBuilder;
@@ -39,7 +39,6 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
-
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;

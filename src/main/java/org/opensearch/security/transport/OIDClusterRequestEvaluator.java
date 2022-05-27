@@ -34,9 +34,8 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.transport.TransportRequest;
-
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.transport.TransportRequest;
 
 /**
  * Implementation to evaluate a certificate extension with a given OID

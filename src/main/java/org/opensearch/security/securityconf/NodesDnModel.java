@@ -15,9 +15,9 @@
 
 package org.opensearch.security.securityconf;
 
-import org.opensearch.security.support.WildcardMatcher;
-
 import java.util.Map;
+
+import org.opensearch.security.support.WildcardMatcher;
 
 public abstract class NodesDnModel {
     public abstract Map<String, WildcardMatcher> getNodesDn();

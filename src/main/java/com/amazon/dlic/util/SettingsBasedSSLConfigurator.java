@@ -37,6 +37,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -45,13 +46,12 @@ import org.apache.http.ssl.PrivateKeyDetails;
 import org.apache.http.ssl.PrivateKeyStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.common.settings.Settings;
+import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
-import com.google.common.collect.ImmutableList;
 
 public class SettingsBasedSSLConfigurator {
     private static final Logger log = LogManager.getLogger(SettingsBasedSSLConfigurator.class);

@@ -15,8 +15,6 @@
 
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
-import static com.amazon.dlic.auth.http.jwt.keybyoidc.CxfTestTools.toJson;
-
 import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,6 +55,8 @@ import org.apache.http.protocol.HttpRequestHandler;
 
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
+
+import static com.amazon.dlic.auth.http.jwt.keybyoidc.CxfTestTools.toJson;
 
 class MockIpdServer implements Closeable {
 	final static String CTX_DISCOVER = "/discover";

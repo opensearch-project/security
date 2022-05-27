@@ -15,6 +15,24 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+
+import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
@@ -28,24 +46,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import org.opensearch.client.Client;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.bytes.BytesReference;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.threadpool.ThreadPool;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 

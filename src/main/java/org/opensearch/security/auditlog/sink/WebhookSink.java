@@ -39,9 +39,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
+
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
@@ -102,6 +102,7 @@ public class WebhookSink extends AuditLogSink {
 	}
 
 	@Override
+    @SuppressWarnings("removal")
 	public boolean doStore(AuditMessage msg) {
 		if (Strings.isEmpty(webhookUrl)) {
 			log.debug("Webhook URL is null");
@@ -299,6 +300,7 @@ public class WebhookSink extends AuditLogSink {
 		}
 	}
 
+    @SuppressWarnings("removal")
 	private KeyStore getEffectiveKeyStore(final Path configPath) {
 
 		return AccessController.doPrivileged(new PrivilegedAction<KeyStore>() {

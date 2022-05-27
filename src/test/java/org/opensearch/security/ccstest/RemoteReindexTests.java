@@ -30,23 +30,23 @@
 
 package org.opensearch.security.ccstest;
 
-import org.opensearch.client.Client;
-import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.apache.http.HttpStatus;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class RemoteReindexTests extends AbstractSecurityUnitTest {
     
@@ -103,19 +103,14 @@ public class RemoteReindexTests extends AbstractSecurityUnitTest {
         String reindex = "{"+
             "\"source\": {"+
                 "\"remote\": {"+
-                "\"host\": \"http://"+cl2Info.httpHost+":"+cl2Info.httpPort+"\","+
-                "\"username\": \"nagilum\","+
-                "\"password\": \"nagilum\""+
-                  "},"+
-                    "\"index\": \"twitter\","+
-                    "\"size\": 10,"+
-                    "\"query\": {"+
-                    "\"match\": {"+
-                    "\"_type\": \"_doc\""+
-                    "}"+
-                  "}"+
+                    "\"host\": \"http://"+cl2Info.httpHost+":"+cl2Info.httpPort+"\","+
+                    "\"username\": \"nagilum\","+
+                    "\"password\": \"nagilum\""+
+                "},"+
+                "\"index\": \"twitter\","+
+                "\"size\": 10"+
             "},"+
-                "\"dest\": {"+
+            "\"dest\": {"+
                 "\"index\": \"twutter\""+
             "}"+
         "}";

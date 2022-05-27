@@ -15,11 +15,11 @@
 
 package org.opensearch.security.securityconf.impl;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class NodesDn {
     @JsonProperty(value = "nodes_dn")

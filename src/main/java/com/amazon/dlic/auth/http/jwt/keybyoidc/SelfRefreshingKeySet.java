@@ -22,12 +22,11 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Strings;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-
-import com.google.common.base.Strings;
+import org.apache.logging.log4j.Logger;
 
 public class SelfRefreshingKeySet implements KeyProvider {
 	private static final Logger log = LogManager.getLogger(SelfRefreshingKeySet.class);

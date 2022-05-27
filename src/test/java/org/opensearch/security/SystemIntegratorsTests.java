@@ -30,18 +30,18 @@
 
 package org.opensearch.security;
 
+import com.google.common.collect.Lists;
 import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
-import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import com.google.common.collect.Lists;
+import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class SystemIntegratorsTests extends SingleClusterTest {
     

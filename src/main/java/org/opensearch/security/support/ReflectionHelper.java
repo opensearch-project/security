@@ -39,11 +39,11 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;

@@ -42,8 +42,11 @@ import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.logging.log4j.Logger;
+import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
@@ -85,23 +88,19 @@ import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
+import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.resolver.IndexResolverReplacer;
+import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
-import org.opensearch.tasks.Task;
-import org.opensearch.threadpool.ThreadPool;
-import org.greenrobot.eventbus.Subscribe;
-
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
-
-import com.google.common.collect.Sets;
+import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;

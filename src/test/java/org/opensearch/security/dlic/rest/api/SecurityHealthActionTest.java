@@ -15,15 +15,16 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.helper.rest.RestHelper;
+import com.google.common.collect.ImmutableList;
 import org.apache.http.HttpStatus;
-import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import com.google.common.collect.ImmutableList;
+
+import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;

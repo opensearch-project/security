@@ -34,10 +34,11 @@ package org.opensearch.security.securityconf.impl.v6;
 import java.util.Collections;
 import java.util.List;
 
-import org.opensearch.security.securityconf.RoleMappings;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.security.securityconf.Hideable;
+import org.opensearch.security.securityconf.RoleMappings;
 
 public class RoleMappingsV6 extends RoleMappings implements Hideable {
 

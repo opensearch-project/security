@@ -32,10 +32,9 @@ package org.opensearch.security.auditlog;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportRequest;
-
-import org.opensearch.security.ssl.SslExceptionHandler;
 
 public class AuditLogSslExceptionHandler implements SslExceptionHandler{
 

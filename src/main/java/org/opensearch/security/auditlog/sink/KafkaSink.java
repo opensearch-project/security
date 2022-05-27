@@ -29,9 +29,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
-
 import org.opensearch.security.auditlog.impl.AuditMessage;
 
 public class KafkaSink extends AuditLogSink {
@@ -41,6 +41,7 @@ public class KafkaSink extends AuditLogSink {
 	private Producer<Long, String> producer;
 	private String topicName;
 
+    @SuppressWarnings("removal")
 	public KafkaSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
 		super(name, settings, settingsPrefix, fallbackSink);
 

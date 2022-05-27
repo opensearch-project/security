@@ -52,6 +52,7 @@ public class ReflectiveAttributeAccessors {
             this.type = type;
         }
 
+        @SuppressWarnings("removal")
         @Override
         public R apply(O object) {
             final SecurityManager sm = System.getSecurityManager();
@@ -89,6 +90,7 @@ public class ReflectiveAttributeAccessors {
             this.type = type;
         }
 
+        @SuppressWarnings("removal")
         @Override
         public R apply(O object) {
             final SecurityManager sm = System.getSecurityManager();
@@ -128,6 +130,7 @@ public class ReflectiveAttributeAccessors {
             this.type = type;
         }
 
+        @SuppressWarnings("removal")
         @Override
         public Void apply(O object, R value) {
             final SecurityManager sm = System.getSecurityManager();

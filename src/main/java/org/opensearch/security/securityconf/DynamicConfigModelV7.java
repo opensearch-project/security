@@ -43,9 +43,13 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-
 import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthenticationBackend;
@@ -60,10 +64,6 @@ import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authz;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthzDomain;
 import org.opensearch.security.support.ReflectionHelper;
-import com.google.common.base.Strings;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 
 public class DynamicConfigModelV7 extends DynamicConfigModel {
     

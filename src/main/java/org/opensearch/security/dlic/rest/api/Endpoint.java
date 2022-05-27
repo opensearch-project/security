@@ -31,5 +31,6 @@ public enum Endpoint {
     MIGRATE,
     VALIDATE,
     WHITELIST,
+    ALLOWLIST,
     NODESDN;
 }

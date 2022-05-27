@@ -15,9 +15,11 @@
 package org.opensearch.security.ssl.transport;
 
 
-import org.opensearch.security.ssl.SecurityKeyStore;
-import org.opensearch.security.ssl.util.SSLConnectionTestUtil;
-import org.opensearch.security.ssl.util.TLSUtil;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import javax.net.ssl.SSLException;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -26,12 +28,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslHandler;
-import java.nio.charset.StandardCharsets;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import javax.net.ssl.SSLException;
-import java.util.List;
+import org.opensearch.security.ssl.SecurityKeyStore;
+import org.opensearch.security.ssl.util.SSLConnectionTestUtil;
+import org.opensearch.security.ssl.util.TLSUtil;
 
 /**
  * Modifies the current pipeline dynamically to enable TLS

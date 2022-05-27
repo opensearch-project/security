@@ -28,9 +28,15 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.http.HttpHeaders;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -39,15 +45,8 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
-
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.WeakKeyException;
 
 public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
@@ -62,6 +61,8 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
     private final String jwtUrlParameter;
     private final String rolesKey;
     private final String subjectKey;
+    private final String requireAudience;
+    private final String requireIssuer;
 
     public HTTPJwtAuthenticator(final Settings settings, final Path configPath) {
         super();
@@ -110,11 +111,23 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
+        requireAudience = settings.get("required_audience");
+        requireIssuer = settings.get("required_issuer");
+
+        if (requireAudience != null) {
+            _jwtParser.requireAudience(requireAudience);
+        }
+
+        if (requireIssuer != null) {
+            _jwtParser.requireIssuer(requireIssuer);
+        }
+
         jwtParser = _jwtParser;
     }
 
 
     @Override
+    @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 

@@ -14,14 +14,6 @@
  */
 package org.opensearch.security.support;
 
-import org.junit.Assert;
-import org.junit.Test;
-
-import org.opensearch.security.user.User;
-
-import org.opensearch.OpenSearchException;
-import org.opensearch.action.search.SearchRequest;
-
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -31,6 +23,12 @@ import java.util.HashMap;
 import java.util.regex.Pattern;
 
 import com.google.common.io.BaseEncoding;
+import org.junit.Assert;
+import org.junit.Test;
+
+import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.security.user.User;
 
 import static org.opensearch.security.support.Base64Helper.deserializeObject;
 import static org.opensearch.security.support.Base64Helper.serializeObject;

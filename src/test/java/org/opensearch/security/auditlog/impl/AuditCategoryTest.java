@@ -15,17 +15,17 @@
 
 package org.opensearch.security.auditlog.impl;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.opensearch.security.auditlog.impl.AuditCategory.AUTHENTICATED;
 import static org.opensearch.security.auditlog.impl.AuditCategory.BAD_HEADERS;

@@ -16,15 +16,12 @@
 package com.amazon.dlic.auth.ldap2;
 
 import java.io.File;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.common.settings.Settings;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -34,16 +31,18 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.ldaptive.Connection;
-import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapAttribute;
+import org.ldaptive.LdapEntry;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
+import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
+import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
 import com.amazon.dlic.auth.ldap.srv.EmbeddedLDAPServer;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;
-import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
-import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
 
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.test.helper.file.FileHelper;

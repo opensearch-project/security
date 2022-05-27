@@ -15,16 +15,17 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
-import org.opensearch.client.Client;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.junit.Assert;
+
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.search.MultiSearchResponse;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.NamedXContentRegistry;

@@ -30,8 +30,6 @@
 
 package org.opensearch.security.test.helper.rest;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -48,7 +46,6 @@ import java.util.concurrent.Future;
 import javax.net.ssl.SSLContext;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -74,11 +71,14 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class RestHelper {
 

@@ -34,7 +34,6 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-
 import org.opensearch.security.user.AuthCredentials;
 
 /**

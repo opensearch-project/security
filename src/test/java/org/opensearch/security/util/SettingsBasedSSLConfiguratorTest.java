@@ -15,9 +15,6 @@
 
 package org.opensearch.security.util;
 
-import static org.hamcrest.CoreMatchers.either;
-import static org.hamcrest.CoreMatchers.instanceOf;
-
 import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -65,7 +62,6 @@ import org.apache.http.ssl.PrivateKeyDetails;
 import org.apache.http.ssl.PrivateKeyStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,9 +69,14 @@ import org.junit.rules.ExpectedException;
 
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfig;
+
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
+
+import static org.hamcrest.CoreMatchers.either;
+import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class SettingsBasedSSLConfiguratorTest {
 

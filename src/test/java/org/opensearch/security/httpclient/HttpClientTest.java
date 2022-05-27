@@ -15,10 +15,10 @@
 
 package org.opensearch.security.httpclient;
 
-import org.opensearch.common.settings.Settings;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;

@@ -1,8 +1,5 @@
 package org.opensearch.security.ssl.util;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.opensearch.OpenSearchException;
-
 import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -11,6 +8,10 @@ import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+
+import org.apache.commons.lang3.ArrayUtils;
+
+import org.opensearch.OpenSearchException;
 
 public class CertFromKeystore {
 

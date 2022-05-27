@@ -34,6 +34,8 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Settings;
@@ -52,8 +54,6 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Mimics the behavior of system integrators that run their own plugins (i.e. server transports)

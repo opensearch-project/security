@@ -37,10 +37,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.opensearch.security.OpenSearchSecurityPlugin;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsAction;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.opensearch.action.get.GetRequest;
@@ -51,8 +52,17 @@ import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.OpenSearchSecurityPlugin;
+import org.opensearch.security.auditlog.AuditLog;
+import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.ClusterInfoHolder;
+import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.security.ssl.transport.SSLConfig;
+import org.opensearch.security.support.Base64Helper;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportException;
@@ -62,18 +72,6 @@ import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
-
-import org.opensearch.security.auditlog.AuditLog;
-import org.opensearch.security.auditlog.AuditLog.Origin;
-import org.opensearch.security.auth.BackendRegistry;
-import org.opensearch.security.ssl.SslExceptionHandler;
-import org.opensearch.security.support.Base64Helper;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
-
-import org.opensearch.security.ssl.transport.SSLConfig;
-
-import com.google.common.collect.Maps;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 

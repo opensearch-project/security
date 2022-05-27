@@ -15,6 +15,26 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.collect.ImmutableList;
+
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.inject.Inject;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
@@ -27,29 +47,10 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
-import org.opensearch.action.index.IndexResponse;
-import org.opensearch.client.Client;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.bytes.BytesReference;
-import org.opensearch.common.inject.Inject;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentBuilder;
-import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import com.google.common.collect.ImmutableList;
-
-import static org.opensearch.security.dlic.rest.support.Utils.hash;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(

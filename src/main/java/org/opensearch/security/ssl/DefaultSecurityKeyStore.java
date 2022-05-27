@@ -17,17 +17,9 @@
 
 package org.opensearch.security.ssl;
 
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
-
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -57,18 +49,16 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
-import org.opensearch.security.ssl.util.CertFileProps;
-import org.opensearch.security.ssl.util.CertFromFile;
-import org.opensearch.security.ssl.util.CertFromKeystore;
-import org.opensearch.security.ssl.util.CertFromTruststore;
-import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.ssl.util.KeystoreProps;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import io.netty.util.internal.PlatformDependent;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-
+import org.apache.logging.log4j.Logger;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Primitive;
@@ -81,6 +71,13 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.security.ssl.util.CertFileProps;
+import org.opensearch.security.ssl.util.CertFromFile;
+import org.opensearch.security.ssl.util.CertFromKeystore;
+import org.opensearch.security.ssl.util.CertFromTruststore;
+import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.ssl.util.KeystoreProps;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
 
 public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
@@ -546,6 +543,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
 
     /**
+     * If the current and new certificates are same, skip remaining checks.
      * For new X509 cert to be valid Issuer, Subject DN must be the same and
      * new certificates should expire after current ones.
      * @param currentX509Certs  Array of current x509 certificates
@@ -556,6 +554,10 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
         // First time we init certs ignore validity check
         if (currentX509Certs == null) {
+            return;
+        }
+
+        if (areSameCerts(currentX509Certs, newX509Certs)) {
             return;
         }
 
@@ -622,6 +624,32 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             });
 
         return !newCertsExpireBeforeCurrentCerts;
+    }
+
+    /**
+     * Check if new X509 certs have same signature has as the current X509 certs.
+     * @param currentX509Certs Array of current X509Certificates.
+     * @param newX509Certs Array of new X509Certificates.
+     * @return true if all of the new certificates have the same signature as currentX509 certificates.
+     * @return false if any new certificate signature is different than currentX509 certificates
+     */
+
+    private boolean areSameCerts(final X509Certificate[] currentX509Certs, final X509Certificate[] newX509Certs) {
+
+        final Function<? super X509Certificate, String> certificateSignature = cert -> {
+            final byte[] signature = cert !=null && cert.getSignature() != null ? cert.getSignature() : null;
+            return new String(signature);
+        };
+
+        final Set<String> currentCertSignatureSet = Arrays.stream(currentX509Certs)
+                .map(certificateSignature)
+                .collect(Collectors.toSet());
+
+        final Set<String> newCertSignatureSet = Arrays.stream(newX509Certs)
+                .map(certificateSignature)
+                .collect(Collectors.toSet());
+
+        return currentCertSignatureSet.equals(newCertSignatureSet);
     }
 
     public SSLEngine createHTTPSSLEngine() throws SSLException {
@@ -741,6 +769,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
     }
 
+    @SuppressWarnings("removal")
     private void initEnabledSSLCiphers() {
 
         final List<String> secureHttpSSLCiphers = SSLConfigConstants.getSecureSSLCiphers(settings, true);
@@ -901,6 +930,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
     }
 
+    @SuppressWarnings("removal")
     private SslContext buildSSLContext0(final SslContextBuilder sslContextBuilder) throws SSLException {
 
         final SecurityManager sm = System.getSecurityManager();

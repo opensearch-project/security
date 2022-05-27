@@ -33,8 +33,9 @@ package org.opensearch.security.action.configupdate;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.nodes.BaseNodeRequest;
@@ -45,13 +46,12 @@ import org.opensearch.common.inject.Provider;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.TransportService;
-
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TransportService;
 
 public class TransportConfigUpdateAction
 extends

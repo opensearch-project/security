@@ -25,7 +25,6 @@ import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 
-import org.opensearch.SpecialPermission;
 import org.ldaptive.Connection;
 import org.ldaptive.DerefAliases;
 import org.ldaptive.LdapEntry;
@@ -39,9 +38,12 @@ import org.ldaptive.SearchResult;
 import org.ldaptive.SearchScope;
 import org.ldaptive.referral.SearchReferralHandler;
 
+import org.opensearch.SpecialPermission;
+
 public class LdapHelper {
 
     private static SearchFilter ALL = new SearchFilter("(objectClass=*)");
+    @SuppressWarnings("removal")
     public static List<LdapEntry> search(final Connection conn, final String unescapedDn, SearchFilter filter,
             final SearchScope searchScope) throws LdapException {
 

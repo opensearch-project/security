@@ -16,11 +16,6 @@
 package org.opensearch.security.dlic.dlsfls;
 
 import org.apache.http.HttpStatus;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -29,6 +24,11 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.client.Client;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;

@@ -22,15 +22,21 @@ import java.security.PrivilegedExceptionAction;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
-import org.opensearch.OpenSearchParseException;
+
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.OpenSearchParseException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
@@ -39,15 +45,9 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.rest.RestHandler.DeprecatedRoute;
 import org.opensearch.rest.RestHandler.Route;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opensearch.security.DefaultObjectMapper;
-
-import com.google.common.collect.ImmutableList;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -138,6 +138,7 @@ public class Utils {
 
     }
 
+    @SuppressWarnings("removal")
     public static byte[] jsonMapToByteArray(Map<String, Object> jsonAsMap) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -164,6 +165,7 @@ public class Utils {
         }
     }
 
+    @SuppressWarnings("removal")
     public static Map<String, Object> byteArrayToMutableJsonMap(byte[] jsonBytes) throws IOException {
 
         final SecurityManager sm = System.getSecurityManager();
@@ -241,5 +243,30 @@ public class Utils {
                 r -> Arrays.stream(prefixes)
                    .map(p -> new Route(r.getMethod(), p + r.getPath())))
              .collect(ImmutableList.toImmutableList());
+    }
+
+    /**
+     * Add prefixes(_plugins...) to rest API routes
+     * @param deprecatedRoutes Routes being deprecated
+     * @return new list of API routes prefixed with _opendistro... and _plugins...
+     *Total number of routes is expanded as twice as the number of routes passed in
+     */
+    public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes){
+        return addDeprecatedRoutesPrefix(deprecatedRoutes, "/_opendistro/_security/api", "/_plugins/_security/api");
+    }
+
+    /**
+     * Add customized prefix(_opendistro... and _plugins...)to API rest routes
+     * @param deprecatedRoutes Routes being deprecated
+     * @param prefixes all api prefix
+     * @return new list of API routes prefixed with the strings listed in prefixes
+     * Total number of routes will be expanded len(prefixes) as much comparing to the list passed in
+     */
+    public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes, final String... prefixes){
+        return deprecatedRoutes.stream()
+                .flatMap(
+                        r -> Arrays.stream(prefixes)
+                                .map(p -> new DeprecatedRoute(r.getMethod(), p + r.getPath(), r.getDeprecationMessage())))
+                .collect(ImmutableList.toImmutableList());
     }
 }

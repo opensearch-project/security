@@ -15,8 +15,12 @@
 
 package org.opensearch.security.tools;
 
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.auditlog.config.AuditConfig;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.Map;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -24,16 +28,13 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.ToXContent;
 import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentType;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.Map;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.auditlog.config.AuditConfig;
 
 public class AuditConfigMigrater {
 
