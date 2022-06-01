@@ -47,7 +47,9 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -156,6 +158,13 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         SecurityDynamicConfiguration<?> mdc = SecurityDynamicConfiguration.fromNode(updatedAsJsonNode, existingConfiguration.getCType()
                                    , existingConfiguration.getVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
 
+        if (existingConfiguration.getCType().equals(CType.ACTIONGROUPS)) {
+            if(selfReferencingActionGroup(mdc, name)) {
+                badRequestResponse(channel, name + " cannot be an allowed_action of itself");
+                return;
+            }
+        }
+
         saveAnUpdateConfigs(client, request, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel){
 
             @Override
@@ -224,6 +233,15 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         SecurityDynamicConfiguration<?> mdc = SecurityDynamicConfiguration.fromNode(patchedAsJsonNode, existingConfiguration.getCType()
                                     , existingConfiguration.getVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
 
+        if (existingConfiguration.getCType().equals(CType.ACTIONGROUPS)) {
+            for (String actiongroup : mdc.getCEntries().keySet()) {
+                if(selfReferencingActionGroup(mdc, actiongroup)) {
+                    badRequestResponse(channel, actiongroup + " cannot be an allowed_action of itself");
+                    return;
+                }
+            }
+        }
+
         saveAnUpdateConfigs(client, request, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
@@ -259,5 +277,15 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         BytesReference patchedResourceAsByteReference = new BytesArray(
                 DefaultObjectMapper.objectMapper.writeValueAsString(patchedResource).getBytes(StandardCharsets.UTF_8));
         return getValidator(request, patchedResourceAsByteReference);
+    }
+
+    // Prevent the case where action group references to itself in the allowed_actions.
+    private Boolean selfReferencingActionGroup(SecurityDynamicConfiguration<?> mdc, String name) {
+        for (String allowed_action : ((ActionGroupsV7) mdc.getCEntry(name)).getAllowed_actions()) {
+            if (allowed_action.equals(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
