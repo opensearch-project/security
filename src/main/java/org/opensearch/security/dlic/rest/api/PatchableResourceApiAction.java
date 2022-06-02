@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -159,7 +160,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
                                    , existingConfiguration.getVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
 
         if (existingConfiguration.getCType().equals(CType.ACTIONGROUPS)) {
-            if(selfReferencingActionGroup(mdc, name)) {
+            if(hasActionGroupSelfReference(mdc, name)) {
                 badRequestResponse(channel, name + " cannot be an allowed_action of itself");
                 return;
             }
@@ -235,7 +236,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
         if (existingConfiguration.getCType().equals(CType.ACTIONGROUPS)) {
             for (String actiongroup : mdc.getCEntries().keySet()) {
-                if(selfReferencingActionGroup(mdc, actiongroup)) {
+                if(hasActionGroupSelfReference(mdc, actiongroup)) {
                     badRequestResponse(channel, actiongroup + " cannot be an allowed_action of itself");
                     return;
                 }
@@ -280,12 +281,8 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
     }
 
     // Prevent the case where action group references to itself in the allowed_actions.
-    private Boolean selfReferencingActionGroup(SecurityDynamicConfiguration<?> mdc, String name) {
-        for (String allowed_action : ((ActionGroupsV7) mdc.getCEntry(name)).getAllowed_actions()) {
-            if (allowed_action.equals(name)) {
-                return true;
-            }
-        }
-        return false;
+    private Boolean hasActionGroupSelfReference(SecurityDynamicConfiguration<?> mdc, String name) {
+        List<String> allowedActions = ((ActionGroupsV7) mdc.getCEntry(name)).getAllowed_actions();
+        return allowedActions.contains(name);
     }
 }

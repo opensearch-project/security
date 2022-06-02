@@ -18,6 +18,7 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
@@ -113,23 +114,20 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 		}
 
 		// Prevent the case where action group and role share a same name.
-		SecurityDynamicConfiguration<?> existingRoles = load(CType.ROLES, false);
-		for (String role : existingRoles.getCEntries().keySet()) {
-			if (role.equals(name)) {
-				badRequestResponse(channel, name + " is an existing role. A action group cannot be named with an existing role name.");
-				return;
-			}
+		SecurityDynamicConfiguration<?> existingRolesConfig = load(CType.ROLES, false);
+		Set<String> existingRoles = existingRolesConfig.getCEntries().keySet();
+		if (existingRoles.contains(name)) {
+			badRequestResponse(channel, name + " is an existing role. A action group cannot be named with an existing role name.");
+			return;
 		}
 
 		// Prevent the case where action group references to itself in the allowed_actions.
-		final SecurityDynamicConfiguration<?> existingActionGroups = load(getConfigName(), false);
-		existingActionGroups.putCObject(name, DefaultObjectMapper.readTree(content, existingActionGroups.getImplementingClass()));
-
-		for (String allowed_action : ((ActionGroupsV7) existingActionGroups.getCEntry(name)).getAllowed_actions()) {
-			if (allowed_action.equals(name)) {
-				badRequestResponse(channel, name + " cannot be an allowed_action of itself");
-				return;
-			}
+		final SecurityDynamicConfiguration<?> existingActionGroupsConfig = load(getConfigName(), false);
+		existingActionGroupsConfig.putCObject(name, DefaultObjectMapper.readTree(content, existingActionGroupsConfig.getImplementingClass()));
+		List<String> allowedActions = ((ActionGroupsV7) existingActionGroupsConfig.getCEntry(name)).getAllowed_actions();
+		if (allowedActions.contains(name)) {
+			badRequestResponse(channel, name + " cannot be an allowed_action of itself");
+			return;
 		}
 
 		super.handlePut(channel, request, client, content);
