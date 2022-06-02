@@ -281,7 +281,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
     }
 
     // Prevent the case where action group references to itself in the allowed_actions.
-    private Boolean hasActionGroupSelfReference(SecurityDynamicConfiguration<?> mdc, String name) {
+    protected Boolean hasActionGroupSelfReference(SecurityDynamicConfiguration<?> mdc, String name) {
         List<String> allowedActions = ((ActionGroupsV7) mdc.getCEntry(name)).getAllowed_actions();
         return allowedActions.contains(name);
     }
