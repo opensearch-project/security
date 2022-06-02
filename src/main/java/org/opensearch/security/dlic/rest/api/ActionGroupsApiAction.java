@@ -124,7 +124,6 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 		// Prevent the case where action group references to itself in the allowed_actions.
 		final SecurityDynamicConfiguration<?> existingActionGroupsConfig = load(getConfigName(), false);
 		existingActionGroupsConfig.putCObject(name, DefaultObjectMapper.readTree(content, existingActionGroupsConfig.getImplementingClass()));
-		List<String> allowedActions = ((ActionGroupsV7) existingActionGroupsConfig.getCEntry(name)).getAllowed_actions();
 		if (hasActionGroupSelfReference(existingActionGroupsConfig, name)) {
 			badRequestResponse(channel, name + " cannot be an allowed_action of itself");
 			return;
