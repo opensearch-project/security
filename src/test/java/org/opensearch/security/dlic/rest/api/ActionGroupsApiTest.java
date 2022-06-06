@@ -194,6 +194,18 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         Assert.assertFalse(response.getBody().contains("Resource 'GET_UT' is read-only."));
 
+        // PUT with role name
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest(ENDPOINT+"/kibana_user", FileHelper.loadFile("restapi/actiongroup_read.json"), new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("kibana_user is an existing role. A action group cannot be named with an existing role name."));
+
+        // PUT with self-referencing action groups
+        rh.sendAdminCertificate = true;
+        response = rh.executePutRequest(ENDPOINT+"/reference_itself", "{\"allowed_actions\": [\"reference_itself\"]}", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("reference_itself cannot be an allowed_action of itself"));
+
         // -- GET_UT hidden resource, must be 404 but super admin can find it
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest(ENDPOINT+"/INTERNAL", new Header[0]);
@@ -222,6 +234,17 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
         response = rh.executePatchRequest(ENDPOINT+"/GET_UT", "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        // PATCH with self-referencing action groups
+        rh.sendAdminCertificate = true;
+        response = rh.executePatchRequest(ENDPOINT+"/GET_UT", "[{ \"op\": \"add\", \"path\": \"/allowed_actions/-\", \"value\": \"GET_UT\" }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("GET_UT cannot be an allowed_action of itself"));
+
+        // bulk PATCH with self-referencing action groups
+        response = rh.executePatchRequest(ENDPOINT, "[{ \"op\": \"add\", \"path\": \"/BULKNEW1\", \"value\": {\"allowed_actions\": [\"BULKNEW1\"] } }," + "{ \"op\": \"add\", \"path\": \"/BULKNEW2\", \"value\": {\"allowed_actions\": [\"READ_UT\"] } }]", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("BULKNEW1 cannot be an allowed_action of itself"));
 
         // PATCH hidden resource, must be not found, can be found by superadmin, but fails with no path exist error
         rh.sendAdminCertificate = true;
