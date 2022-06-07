@@ -33,6 +33,8 @@ import org.mockito.Mockito;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.util.SSLConnectionTestUtil;
 
+import static org.opensearch.transport.NettyAllocator.getAllocator;
+
 public class DualModeSSLHandlerTests {
 
     public static final int TLS_MAJOR_VERSION = 3;
