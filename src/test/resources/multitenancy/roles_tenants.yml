@@ -54,3 +54,11 @@ human_resources:
   reserved: false
   hidden: false
   description: "Migrated from v6"
+tenant_parameters_substitution:
+  reserved: false
+  hidden: false
+  description: "PR#819 / Issue#817"
+tenant_parameters_substitution_1:
+  reserved: false
+  hidden: false
+  description: "PR#819 / Issue#817"

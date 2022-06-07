@@ -463,3 +463,20 @@ opendistro_security_role_starfleet_captains:
     - "command_tenant"
     allowed_actions:
     - "kibana_all_write"
+opendistro_security_role_tenant_parameters_substitution:
+  reserved: false
+  hidden: false
+  description: "PR#819 / Issue#817"
+  cluster_permissions:
+  - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+  index_permissions:
+  - index_patterns:
+    - "?kibana"
+    allowed_actions:
+    - "ALL"
+  tenant_permissions:
+  - tenant_patterns:
+    - "${attr.internal.attribute1}"
+    - "${attr.internal.attribute1}_1"
+    allowed_actions:
+    - "kibana_all_write"

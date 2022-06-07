@@ -148,3 +148,11 @@ kibanaro:
   backend_roles: []
   attributes: {}
   description: "Migrated from v6"
+user_tenant_parameters_substitution:
+  hash: "$2y$12$xgJfGiHpYOkRpF9W9dXYZOpJJ4bHz3VTwdv7ZZYTwlvx7NbH62qUi"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes:
+    attribute1: "tenant_parameters_substitution"
+  description: "PR# 819 / Issue#817"

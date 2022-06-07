@@ -38,12 +38,14 @@ import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import javax.net.ssl.SSLContext;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -72,8 +74,11 @@ import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class RestHelper {
 
@@ -356,6 +361,41 @@ public class RestHelper {
             return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
                     + ", statusReason=" + statusReason + "]";
         }
+
+		/**
+		 * Given a json path with dots delimiated returns the object at the leaf 
+		 */
+		public String findValueInJson(final String jsonDotPath) {
+			// Make sure its json / then parse it
+			if (!isJsonContentType()) {
+				fail("Response was expected to be JSON, body was: \n" + body);
+			}
+			JsonNode currentNode = null;
+			try {
+				currentNode = DefaultObjectMapper.readTree(body);
+			} catch (final Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			// Break the path into parts, and scan into the json object
+			try (final Scanner jsonPathScanner = new Scanner(jsonDotPath).useDelimiter("\\.")) {
+				if (!jsonPathScanner.hasNext()) {
+					fail("Invalid json dot path '" + jsonDotPath + "', rewrite with '.' characters between path elements.");
+				}
+				do {
+					final String pathEntry = jsonPathScanner.next();
+					if (!currentNode.has(pathEntry)) {
+						fail("Unable to resolve '" + jsonDotPath + "', on path entry '" + pathEntry + "' from available fields " + currentNode.toPrettyString());
+					}
+					currentNode = currentNode.get(pathEntry);
+				} while (jsonPathScanner.hasNext());
+
+				if (!currentNode.isValueNode()) {
+					fail("Unexpected value note, index directly to the object to reference, object\n" + currentNode.toPrettyString());
+				}
+				return currentNode.asText();
+			}
+		}
 
 		private static HttpResponse from(Future<HttpResponse> future) {
 			try {

@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
@@ -97,13 +98,13 @@ public class ConfigModelV7 extends ConfigModel {
             log.error("Cannot apply roles mapping resolution", e);
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.MAPPING_ONLY;
         }
-        
+
         agr = reloadActionGroups(actiongroups);
         securityRoles = reload(roles);
         tenantHolder = new TenantHolder(roles, tenants);
         roleMappingHolder = new RoleMappingHolder(rolemappings, dcm.getHostsResolverMode());
     }
-    
+
     public Set<String> getAllConfiguredTenantNames() {
         return Collections.unmodifiableSet(tenants.getCEntries().keySet());
     }
@@ -115,7 +116,7 @@ public class ConfigModelV7 extends ConfigModel {
     private static interface ActionGroupResolver {
         Set<String> resolvedActions(final List<String> actions);
     }
-    
+
     private ActionGroupResolver reloadActionGroups(SecurityDynamicConfiguration<ActionGroupsV7> actionGroups) {
         return new ActionGroupResolver() {
             
@@ -1014,10 +1015,6 @@ public class ConfigModelV7 extends ConfigModel {
                 );
     }
     
-    
-    
-    //#######
-    
     private class TenantHolder {
 
         private SetMultimap<String, Tuple<String, Boolean>> tenantsMM = null;
@@ -1028,7 +1025,7 @@ public class ConfigModelV7 extends ConfigModel {
             final ExecutorService execs = Executors.newFixedThreadPool(10);
 
             for(Entry<String, RoleV7> securityRole: roles.getCEntries().entrySet()) {
-                
+
                 if(securityRole.getValue() == null) {
                     continue;
                 }
@@ -1038,13 +1035,20 @@ public class ConfigModelV7 extends ConfigModel {
                     public Tuple<String, Set<Tuple<String, Boolean>>> call() throws Exception {
                         final Set<Tuple<String, Boolean>> tuples = new HashSet<>();
                         final List<RoleV7.Tenant> tenants = securityRole.getValue().getTenant_permissions();
-
                         if (tenants != null) {
                             
                             for (RoleV7.Tenant tenant : tenants) {
-                                
-                                for(String matchingTenant: WildcardMatcher.from(tenant.getTenant_patterns()).getMatchAny(definedTenants.getCEntries().keySet(), Collectors.toList())) {
+
+                                // find Wildcarded tenant patterns
+                                List<String> matchingTenants = WildcardMatcher.from(tenant.getTenant_patterns()).getMatchAny(definedTenants.getCEntries().keySet(), Collectors.toList()) ;
+                                for(String matchingTenant: matchingTenants ) {
                                     tuples.add(new Tuple<String, Boolean>(matchingTenant, agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write")));
+                                }
+                                // find parameter substitution specified tenant
+                                Pattern parameterPattern = Pattern.compile("^\\$\\{attr");
+                                List<String> matchingParameterTenantList = tenant.getTenant_patterns().stream().filter(parameterPattern.asPredicate()).collect(Collectors.toList());
+                                for(String matchingParameterTenant : matchingParameterTenantList ) {
+                                    tuples.add(new Tuple<String, Boolean>(matchingParameterTenant,agr.resolvedActions(tenant.getAllowed_actions()).contains("kibana:saved_objects/*/write"))) ;
                                 }
                             }
                         }
@@ -1096,11 +1100,22 @@ public class ConfigModelV7 extends ConfigModel {
             result.put(user.getName(), true);
 
             tenantsMM.entries().stream().filter(e -> roles.contains(e.getKey())).filter(e -> !user.getName().equals(e.getValue().v1())).forEach(e -> {
-                final String tenant = e.getValue().v1();
+
+                // replaceProperties for tenant name because
+                // at this point e.getValue().v1() can be in this form : "${attr.[internal|jwt|proxy|ldap].*}"
+                // let's substitute it with the eventual value of the user's attribute
+                final String tenant = replaceProperties(e.getValue().v1(),user);
                 final boolean rw = e.getValue().v2();
 
                 if (rw || !result.containsKey(tenant)) { //RW outperforms RO
-                    result.put(tenant, rw);
+
+                    // We want to make sure that we add a tenant that exissts
+                    // Indeed, because we don't have control over what will be
+                    // passed on as values of users' attributes, we have to make
+                    // sure that we don't allow them to select tenants that do not exist.
+                    if(ConfigModelV7.this.tenants.getCEntries().keySet().contains(tenant)) {
+                        result.put(tenant, rw);
+                    }
                 }
             });
             
