@@ -49,7 +49,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.OpenSsl;
@@ -78,6 +77,7 @@ import org.opensearch.security.ssl.util.CertFromTruststore;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.ssl.util.KeystoreProps;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.transport.NettyAllocator;
 
 public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
@@ -653,21 +653,21 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     }
 
     public SSLEngine createHTTPSSLEngine() throws SSLException {
-        final SSLEngine engine = httpSslContext.newEngine(PooledByteBufAllocator.DEFAULT);
+        final SSLEngine engine = httpSslContext.newEngine(NettyAllocator.getAllocator());
         engine.setEnabledProtocols(getEnabledSSLProtocols(this.sslHTTPProvider, true));
         return engine;
 
     }
 
     public SSLEngine createServerTransportSSLEngine() throws SSLException {
-        final SSLEngine engine = transportServerSslContext.newEngine(PooledByteBufAllocator.DEFAULT);
+        final SSLEngine engine = transportServerSslContext.newEngine(NettyAllocator.getAllocator());
         engine.setEnabledProtocols(getEnabledSSLProtocols(this.sslTransportServerProvider, false));
         return engine;
     }
 
     public SSLEngine createClientTransportSSLEngine(final String peerHost, final int peerPort) throws SSLException {
         if (peerHost != null) {
-            final SSLEngine engine = transportClientSslContext.newEngine(PooledByteBufAllocator.DEFAULT, peerHost,
+            final SSLEngine engine = transportClientSslContext.newEngine(NettyAllocator.getAllocator(), peerHost,
                 peerPort);
 
             final SSLParameters sslParams = new SSLParameters();
@@ -676,7 +676,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             engine.setEnabledProtocols(getEnabledSSLProtocols(this.sslTransportClientProvider, false));
             return engine;
         } else {
-            final SSLEngine engine = transportClientSslContext.newEngine(PooledByteBufAllocator.DEFAULT);
+            final SSLEngine engine = transportClientSslContext.newEngine(NettyAllocator.getAllocator());
             engine.setEnabledProtocols(getEnabledSSLProtocols(this.sslTransportClientProvider, false));
             return engine;
         }
