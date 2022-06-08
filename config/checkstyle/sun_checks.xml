@@ -204,4 +204,12 @@
     <property name="severity" value="warning"/>
   </module>
 
+  <!-- Checks for Headers to not contain old license text -->
+  <module name="RegexpSingleline">
+    <property name="format" value="\*( Portions)? Copyright OpenSearch Contributors"/>
+    <property name="ignoreCase" value="true"/>
+    <property name="message" value="Incorrect license header" />
+    <property name="severity" value="error"/>
+  </module>
+
 </module>
