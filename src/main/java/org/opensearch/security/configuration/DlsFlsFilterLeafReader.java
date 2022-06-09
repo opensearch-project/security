@@ -965,11 +965,6 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
                     }
 
                     @Override
-                    public long docValueCount() {
-                        return sortedSetDocValues.docValueCount();
-                    }
-
-                    @Override
                     public BytesRef lookupOrd(long ord) throws IOException {
                         return mf.mask(sortedSetDocValues.lookupOrd(ord));
                     }
