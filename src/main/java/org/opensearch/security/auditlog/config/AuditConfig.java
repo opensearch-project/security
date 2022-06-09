@@ -37,6 +37,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 
 import static org.opensearch.security.DefaultObjectMapper.getOrDefault;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT;
 
 /**
  * Class represents configuration for audit logging.
@@ -126,9 +127,9 @@ public class AuditConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Filter {
+        private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
         @VisibleForTesting
         public static final Filter DEFAULT = Filter.from(Settings.EMPTY);
-        private static Set<String> FIELDS = DefaultObjectMapper.getFields(Filter.class);
 
         private final boolean isRestApiAuditEnabled;
         private final boolean isTransportApiAuditEnabled;
@@ -170,6 +171,35 @@ public class AuditConfig {
             this.disabledTransportCategories = disabledTransportCategories;
         }
 
+        public enum FilterEntries {
+            ENABLE_REST("enable_rest", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST),
+            ENABLE_TRANSPORT("enable_transport", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT),
+            RESOLVE_BULK_REQUESTS("resolve_bulk_requests", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS),
+            LOG_REQUEST_BODY("log_request_body", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY),
+            RESOLVE_INDICES("resolve_indices", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES),
+            EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS),
+            DISABLE_REST_CATEGORIES("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES),
+            DISABLE_TRANSPORT_CATEGORIES("disabled_transport_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES),
+            IGNORE_USERS("ignore_users", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS),
+            IGNORE_REQUESTS("ignore_requests", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS);
+
+            private final String key;
+            private final String legacyKeyWithNamespace;
+            FilterEntries(final String entryKey, final String legacyKeyWithNamespace) {
+                this.key = entryKey;
+                this.legacyKeyWithNamespace = legacyKeyWithNamespace;
+            }
+            public String getKey() {
+                return this.key;
+            }
+            public String getKeyWithNamespace() {
+                return SECURITY_AUDIT_CONFIG_DEFAULT + "."+ this.key;
+            }
+            public String getLegacyKeyWithNamespace() {
+                return this.legacyKeyWithNamespace;
+            }
+        }
+
         @JsonCreator
         @VisibleForTesting
         public static Filter from(Map<String, Object> properties) throws JsonProcessingException {
@@ -177,16 +207,16 @@ public class AuditConfig {
                 throw new UnrecognizedPropertyException(null, "Unrecognized field(s) present in the input data for audit filter config", null, Filter.class, null, null);
             }
 
-            final boolean isRestApiAuditEnabled = getOrDefault(properties,"enable_rest", true);
-            final boolean isTransportAuditEnabled = getOrDefault(properties,"enable_transport", true);
-            final boolean resolveBulkRequests = getOrDefault(properties, "resolve_bulk_requests", false);
-            final boolean logRequestBody = getOrDefault(properties, "log_request_body", true);
-            final boolean resolveIndices = getOrDefault(properties, "resolve_indices", true);
-            final boolean excludeSensitiveHeaders = getOrDefault(properties, "exclude_sensitive_headers", true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(getOrDefault(properties,"disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(getOrDefault(properties, "disabled_transport_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(getOrDefault(properties, "ignore_users", DEFAULT_IGNORED_USERS));
-            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(getOrDefault(properties, "ignore_requests", Collections.emptyList()));
+            final boolean isRestApiAuditEnabled = getOrDefault(properties, FilterEntries.ENABLE_REST.getKey(), true);
+            final boolean isTransportAuditEnabled = getOrDefault(properties, FilterEntries.ENABLE_TRANSPORT.getKey(), true);
+            final boolean resolveBulkRequests = getOrDefault(properties, FilterEntries.RESOLVE_BULK_REQUESTS.getKey(), false);
+            final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
+            final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
+            final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
+            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(getOrDefault(properties, FilterEntries.DISABLE_REST_CATEGORIES.getKey(), ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(getOrDefault(properties, FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(), ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS));
+            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList()));
 
             return new Filter(
                     isRestApiAuditEnabled,
@@ -208,24 +238,16 @@ public class AuditConfig {
          * @return audit configuration filter
          */
         public static Filter from(Settings settings) {
-            final boolean isRestApiAuditEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST, true);
-            final boolean isTransportAuditEnabled = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true);
-            final boolean resolveBulkRequests = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false);
-            final boolean logRequestBody = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY, true);
-            final boolean resolveIndices = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES, true);
-            final boolean excludeSensitiveHeaders = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.from(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES);
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.from(settings, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES);
-
-            final Set<String> ignoredAuditUsers = ConfigConstants.getSettingAsSet(
-                    settings,
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
-                    DEFAULT_IGNORED_USERS,
-                    false);
-
-            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(settings.getAsList(
-                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
-                    Collections.emptyList()));
+            final boolean isRestApiAuditEnabled = fromSettingBoolean(settings, FilterEntries.ENABLE_REST, true);
+            final boolean isTransportAuditEnabled = fromSettingBoolean(settings, FilterEntries.ENABLE_TRANSPORT, true);
+            final boolean resolveBulkRequests = fromSettingBoolean(settings, FilterEntries.RESOLVE_BULK_REQUESTS, false);
+            final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
+            final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
+            final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
+            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(fromSettingStringSet(settings, FilterEntries.DISABLE_REST_CATEGORIES, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(fromSettingStringSet(settings, FilterEntries.DISABLE_TRANSPORT_CATEGORIES, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
+            final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
 
             return new Filter(isRestApiAuditEnabled,
                     isTransportAuditEnabled,
@@ -237,6 +259,31 @@ public class AuditConfig {
                     ignoreAuditRequests,
                     disabledRestCategories,
                     disabledTransportCategories);
+        }
+
+        static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
+            return settings.getAsBoolean(filterEntry.getKeyWithNamespace(), settings.getAsBoolean(filterEntry.getLegacyKeyWithNamespace(), defaultValue));
+        }
+
+        static Set<String> fromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
+            final String defaultDetectorValue = "__DEFAULT_DETECTION__";
+            final Set<String> stringSetOfKey = ConfigConstants.getSettingAsSet(
+                    settings,
+                    filterEntry.getKeyWithNamespace(),
+                    ImmutableList.of(defaultDetectorValue),
+                    true);
+
+            final boolean foundDefault = stringSetOfKey.stream().anyMatch(defaultDetectorValue::equals);
+            if (!foundDefault) {
+                return stringSetOfKey; 
+            }
+
+            // Fallback to the legacy keyname
+            return ConfigConstants.getSettingAsSet(
+                settings,
+                filterEntry.getLegacyKeyWithNamespace(),
+                defaultValue,
+                true);
         }
 
         /**

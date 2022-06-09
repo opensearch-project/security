@@ -17,9 +17,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.common.settings.Settings;
-import org.opensearch.security.support.ConfigConstants;
-
 public enum AuditCategory {
     BAD_HEADERS,
     FAILED_LOGIN,
@@ -44,9 +41,5 @@ public enum AuditCategory {
                 .map(String::toUpperCase)
                 .map(AuditCategory::valueOf)
                 .collect(ImmutableSet.toImmutableSet());
-    }
-
-    public static Set<AuditCategory> from(final Settings settings, final String key) {
-        return parse(ConfigConstants.getSettingAsSet(settings, key, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT, true));
     }
 }

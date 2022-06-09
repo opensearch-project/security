@@ -11,6 +11,7 @@
 
 package org.opensearch.security.auditlog;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -26,6 +27,8 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
+import static org.opensearch.security.auditlog.config.AuditConfig.DEPRECATED_KEYS;
+
 public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
 
     protected RestHelper rh = null;
@@ -36,20 +39,25 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         return "auditlog";
     }
 
-    protected final void setup(Settings additionalSettings) throws Exception {
-        final Settings.Builder auditSettingsBuilder = Settings.builder();
-        final Settings.Builder additionalSettingsBuilder = Settings.builder().put(additionalSettings);
-        AuditConfig.DEPRECATED_KEYS.forEach(key -> {
-            if (additionalSettingsBuilder.get(key) != null) {
-                auditSettingsBuilder.put(key, additionalSettings.get(key));
-                additionalSettingsBuilder.remove(key);
+    protected final void setup(Settings settings) throws Exception {
+        final Settings.Builder auditConfigSettings = Settings.builder();
+        final Settings.Builder defaultNodeSettings = Settings.builder();
+        // Separate the cluster defaults from audit settings that will be applied after the cluster is up
+        settings.keySet().forEach(key -> {
+            final boolean moveToAuditConfig = Arrays.stream(AuditConfig.Filter.FilterEntries.values())
+                    .anyMatch(entry -> entry.getKeyWithNamespace().equalsIgnoreCase(key) || entry.getLegacyKeyWithNamespace().equalsIgnoreCase(key))
+                    || DEPRECATED_KEYS.stream().anyMatch(key::equalsIgnoreCase);
+            if (moveToAuditConfig) {
+                auditConfigSettings.put(key, settings.get(key));
+            } else {
+                defaultNodeSettings.put(key, settings.get(key));
             }
         });
 
-        final Settings nodeSettings = defaultNodeSettings(additionalSettingsBuilder.build());
+        final Settings nodeSettings = defaultNodeSettings(defaultNodeSettings.build());
         setup(Settings.EMPTY, new DynamicSecurityConfig(), nodeSettings, init);
         rh = restHelper();
-        updateAuditConfig(auditSettingsBuilder.build());
+        updateAuditConfig(auditConfigSettings.build());
     }
 
     protected Settings defaultNodeSettings(Settings additionalSettings) {

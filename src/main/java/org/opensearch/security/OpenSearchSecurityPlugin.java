@@ -36,6 +36,7 @@ import java.security.MessageDigest;
 import java.security.PrivilegedAction;
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -118,6 +120,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.AuditLogSslExceptionHandler;
 import org.opensearch.security.auditlog.NullAuditLog;
+import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
@@ -949,6 +952,31 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true, Property.NodeScope, Property.Filtered));
     
+            final BiFunction<String, Boolean, Setting<Boolean>> boolSettingNodeScopeFiltered = (String keyWithNamespace, Boolean value) -> Setting.boolSetting(keyWithNamespace, value, Property.NodeScope, Property.Filtered);
+
+            Arrays.stream(FilterEntries.values()).map(filterEntry -> {
+                switch(filterEntry) {
+                    case DISABLE_REST_CATEGORIES:
+                    case DISABLE_TRANSPORT_CATEGORIES:
+                        return Setting.listSetting(filterEntry.getKeyWithNamespace(), disabledCategories, Function.identity(), Property.NodeScope);
+                    case IGNORE_REQUESTS:
+                        return Setting.listSetting(filterEntry.getKeyWithNamespace(), Collections.emptyList(), Function.identity(), Property.NodeScope);
+                    case IGNORE_USERS:
+                        return Setting.listSetting(filterEntry.getKeyWithNamespace(), ignoredUsers, Function.identity(), Property.NodeScope);
+                    // All boolean settings with default of true
+                    case ENABLE_REST:
+                    case ENABLE_TRANSPORT:
+                    case EXCLUDE_SENSITIVE_HEADERS:
+                    case LOG_REQUEST_BODY:
+                    case RESOLVE_INDICES:
+                        return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), true);
+                    case RESOLVE_BULK_REQUESTS:
+                        return boolSettingNodeScopeFiltered.apply(filterEntry.getKeyWithNamespace(), false);
+                    default:
+                        throw new RuntimeException("Please add support for new FilterEntries value '" + filterEntry.name() + "'");
+                }
+            }).forEach(settings::add);
+            
             
             // Security - Audit - Sink
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX, Property.NodeScope, Property.Filtered));

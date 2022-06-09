@@ -30,8 +30,10 @@ import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.compliance.ComplianceConfig;
@@ -39,6 +41,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PATCH;
@@ -75,31 +79,39 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     }
 
     @Test
-    public void testSimpleAuthenticated() throws Exception {
+    public void testSimpleAuthenticatedSetting() throws Exception {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
+            .put(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace(), "NONE")
+            .build(); 
+        verifyAuthenticated(settings);
+    }
 
-        Settings additionalSettings = Settings.builder()
-                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated")
-                .build();
+    @Test
+    public void testSimpleAuthenticatedLegacySetting() throws Exception {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+            .build();
+        verifyAuthenticated(settings);
+    }
 
-        setup(additionalSettings);
-        setupStarfleetIndex();
-        TestAuditlogImpl.clear();
+    private void verifyAuthenticated(final Settings settings) throws Exception {
+        setup(settings);
 
-        System.out.println("#### testSimpleAuthenticated");
-        HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Thread.sleep(1500);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("GRANTED_PRIVILEGES"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/read/search"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("REST"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+
+        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(
+            () -> {
+                final HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+                assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+            },
+            /* expectedCount*/ 1);
+
+        assertThat(messages.size(), equalTo(1));
+
+        assertThat(messages.get(0).getCategory(), equalTo(AuditCategory.GRANTED_PRIVILEGES));
+        assertThat(messages.get(0).getOrigin(), equalTo(Origin.REST));
+        assertThat(messages.get(0).getPrivilege(), equalTo("indices:data/read/search"));
     }
 
     @Test

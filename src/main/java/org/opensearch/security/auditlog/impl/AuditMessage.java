@@ -437,6 +437,14 @@ public final class AuditMessage {
 		return msgCategory;
 	}
 
+    public Origin getOrigin() {
+        return (Origin) this.auditInfo.get(ORIGIN);
+    }
+
+    public String getPrivilege() {
+        return (String) this.auditInfo.get(PRIVILEGE);
+    }
+
     public String getExceptionStackTrace() {
         return (String) this.auditInfo.get(EXCEPTION);
     }
