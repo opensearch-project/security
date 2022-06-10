@@ -195,11 +195,11 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 
-	protected String checkReadAccess(int status, String username, String password, String indexName, String type,
+	protected String checkReadAccess(int status, String username, String password, String indexName, String actionType,
 			int id) throws Exception {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = false;
-		String action = indexName + "/" + type + "/" + id;
+		String action = indexName + "/" + actionType + "/" + id;
 		HttpResponse response = rh.executeGetRequest(action,
 				encodeBasicHeader(username, password));
 		int returnedStatus = response.getStatusCode();
@@ -209,12 +209,12 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
 	}
 
-	protected String checkWriteAccess(int status, String username, String password, String indexName, String type,
+	protected String checkWriteAccess(int status, String username, String password, String indexName, String actionType,
 			int id) throws Exception {
 
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = false;
-		String action = indexName + "/" + type + "/" + id;
+		String action = indexName + "/" + actionType + "/" + id;
 		String payload = "{\"value\" : \"true\"}";
 		HttpResponse response = rh.executePutRequest(action, payload,
 				encodeBasicHeader(username, password));

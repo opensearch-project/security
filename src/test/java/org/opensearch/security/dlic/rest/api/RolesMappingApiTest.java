@@ -337,8 +337,6 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 		rh.sendAdminCertificate = false;
 		checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 1);
 		checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 1);
-		// ES7 only supports one doc type, so trying to create a second one leads to 400  BAD REQUEST
-		checkWriteAccess(HttpStatus.SC_BAD_REQUEST, "picard", "picard", "sf", "public", 1);
 	}
 
 	private void checkAllSfForbidden() throws Exception {
