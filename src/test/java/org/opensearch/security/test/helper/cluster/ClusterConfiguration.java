@@ -82,11 +82,11 @@ public enum ClusterConfiguration {
 		return Collections.unmodifiableList(nodeSettings);
 	}
 	
-	public  List<NodeSettings> getMasterNodeSettings() {
+	public  List<NodeSettings> getClusterManagerNodeSettings() {
         return Collections.unmodifiableList(nodeSettings.stream().filter(a->a.clusterManagerNode).collect(Collectors.toList()));
     }
 	
-	public  List<NodeSettings> getNonMasterNodeSettings() {
+	public  List<NodeSettings> getNonClusterManagerNodeSettings() {
         return Collections.unmodifiableList(nodeSettings.stream().filter(a->!a.clusterManagerNode).collect(Collectors.toList()));
     }
 	
@@ -94,7 +94,7 @@ public enum ClusterConfiguration {
         return nodeSettings.size();
     }
 	
-	public int getMasterNodes() {
+	public int getClusterManagerNodes() {
         return (int) nodeSettings.stream().filter(a->a.clusterManagerNode).count();
     }
 	

@@ -45,7 +45,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
      * @throws Exception
      */
     @Test
-    public void testPluginEnabledDataNodeWithSSlOnlyMasterNode_ReqOnSSLNode() throws Exception {
+    public void testPluginEnabledDataNodeWithSSlOnlyClusterManagerNode_ReqOnSSLNode() throws Exception {
         final Settings advSecSettings = getAdvSecSettings().build();
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
@@ -62,7 +62,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
      * @throws Exception
      */
     @Test
-    public void testPluginEnabledDataNodeWithSSlOnlyMasterNode_ReqOnAdvSecNode() throws Exception {
+    public void testPluginEnabledDataNodeWithSSlOnlyClusterManagerNode_ReqOnAdvSecNode() throws Exception {
         final Settings advSecSettings = getAdvSecSettings().build();
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
@@ -74,12 +74,12 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
     }
 
     /**
-     * 1 Master node and 1 Data node is adv sec enabled. 2 Data nodes are SSL only.
+     * 1 cluster manager node and 1 Data node is adv sec enabled. 2 Data nodes are SSL only.
      * Rest request lands on ssl only data node
      * @throws Exception
      */
     @Test
-    public void testPluginEnabledMasterNodeWithSSlOnlyDataNode_ReqOnSSLNode() throws Exception {
+    public void testPluginEnabledClusterManagerNodeWithSSlOnlyDataNode_ReqOnSSLNode() throws Exception {
         final Settings advSecSettings = getAdvSecSettings().build();
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
@@ -91,12 +91,12 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
     }
 
     /**
-     * 1 Master node and 1 Data node is adv sec enabled. 2 Data nodes are SSL only.
+     * 1 cluster manager node and 1 Data node is adv sec enabled. 2 Data nodes are SSL only.
      * Rest request lands on adv sec data node
      * @throws Exception
      */
     @Test
-    public void testPluginEnabledMasterNodeWithSSlOnlyDataNode_ReqOnAdvSecNode() throws Exception {
+    public void testPluginEnabledClusterManagerNodeWithSSlOnlyDataNode_ReqOnAdvSecNode() throws Exception {
         final Settings advSecSettings = getAdvSecSettings().build();
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
@@ -108,12 +108,12 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
     }
 
     /**
-     * 2 Data nodes are adv sec enabled. 1 Master node and 1 Data node are plugin disabled.
+     * 2 Data nodes are adv sec enabled. 1 cluster manager node and 1 Data node are plugin disabled.
      * Rest request lands on plugin disabled node
      * @throws Exception
      */
     @Test
-    public void testPluginEnabledDataNodeWithDisabledMasterNode_ReqOnDisabledNode() throws Exception {
+    public void testPluginEnabledDataNodeWithDisabledClusterManagerNode_ReqOnDisabledNode() throws Exception {
         final Settings advSecSettings = getAdvSecSettingsDualMode().build();
         final Settings disabledSettings = getDisabledSettings().build();
 
@@ -125,12 +125,12 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
     }
 
     /**
-     * 2 Data nodes are adv sec enabled. 1 Master node and 1 Data node are plugin disabled.
+     * 2 Data nodes are adv sec enabled. 1 cluster manager node and 1 Data node are plugin disabled.
      * Rest request lands on adv sec data node
      * @throws Exception
      */
     @Test
-    public void testPluginEnabledDataNodeWithDisabledMasterNode_ReqOnAdvSecNode() throws Exception {
+    public void testPluginEnabledDataNodeWithDisabledClusterManagerNode_ReqOnAdvSecNode() throws Exception {
         final Settings advSecSettings = getAdvSecSettingsDualMode().build();
         final Settings disabledSettings = getDisabledSettings().build();
 
@@ -142,12 +142,12 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
     }
 
     /**
-     * 1 Master node and 1 Data node are adv sec enabled. 2 Data nodes are plugin disabled.
+     * 1 cluster manager node and 1 Data node are adv sec enabled. 2 Data nodes are plugin disabled.
      * Rest request lands on plugin disabled node
      * @throws Exception
      */
     @Test
-    public void testPluginEnabledMasterNodeWithDisabledDataNode_ReqOnDisabledNode() throws Exception {
+    public void testPluginEnabledClusterManagerNodeWithDisabledDataNode_ReqOnDisabledNode() throws Exception {
         final Settings advSecSettings = getAdvSecSettingsDualMode().build();
         final Settings disabledSettings = getDisabledSettings().build();
 
@@ -159,12 +159,12 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
     }
 
     /**
-     * 1 Master node and 2 Data nodes are adv sec enabled. 1 Data node is plugin disabled.
+     * 1 cluster manager node and 2 Data nodes are adv sec enabled. 1 Data node is plugin disabled.
      * Rest request lands on plugin adv sec node
      * @throws Exception
      */
     @Test
-    public void testPluginEnabledMasterNodeWithDisabledDataNode_ReqOnAdvSecNode() throws Exception {
+    public void testPluginEnabledClusterManagerNodeWithDisabledDataNode_ReqOnAdvSecNode() throws Exception {
         final Settings advSecSettings = getAdvSecSettingsDualMode().build();
         final Settings disabledSettings = getDisabledSettings().build();
 

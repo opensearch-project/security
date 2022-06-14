@@ -132,29 +132,28 @@ public final class ClusterHelper {
         assert freePorts.size() == internalNodeSettings.size()*2;
         final SortedSet<Integer> tcpClusterManagerPortsOnly = new TreeSet<Integer>();
         final SortedSet<Integer> tcpAllPorts = new TreeSet<Integer>();
-        freePorts.stream().limit(clusterConfiguration.getMasterNodes()).forEach(el->tcpClusterManagerPortsOnly.add(el));
+        freePorts.stream().limit(clusterConfiguration.getClusterManagerNodes()).forEach(el->tcpClusterManagerPortsOnly.add(el));
         freePorts.stream().limit(internalNodeSettings.size()).forEach(el->tcpAllPorts.add(el));
 
-        //final Iterator<Integer> tcpPortsMasterOnlyIt = tcpClusterManagerPortsOnly.iterator();
         final Iterator<Integer> tcpPortsAllIt = tcpAllPorts.iterator();
 
         final SortedSet<Integer> httpPorts = new TreeSet<Integer>();
         freePorts.stream().skip(internalNodeSettings.size()).limit(internalNodeSettings.size()).forEach(el->httpPorts.add(el));
         final Iterator<Integer> httpPortsIt = httpPorts.iterator();
 
-        System.out.println("tcpMasterPorts: "+tcpClusterManagerPortsOnly+"/tcpAllPorts: "+tcpAllPorts+"/httpPorts: "+httpPorts+" for ("+min+"-"+max+") fork "+forkNumber);
+        System.out.println("tcpClusterManagerPorts: "+tcpClusterManagerPortsOnly+"/tcpAllPorts: "+tcpAllPorts+"/httpPorts: "+httpPorts+" for ("+min+"-"+max+") fork "+forkNumber);
 
         final CountDownLatch latch = new CountDownLatch(internalNodeSettings.size());
 
         final AtomicReference<Exception> err = new AtomicReference<Exception>();
 
-        List<NodeSettings> internalMasterNodeSettings = clusterConfiguration.getMasterNodeSettings();
-        List<NodeSettings> internalNonMasterNodeSettings = clusterConfiguration.getNonMasterNodeSettings();
+        List<NodeSettings> internalClusterManagerNodeSettings = clusterConfiguration.getClusterManagerNodeSettings();
+        List<NodeSettings> internalNonClusterManagerNodeSettings = clusterConfiguration.getNonClusterManagerNodeSettings();
 
         int nodeNumCounter = internalNodeSettings.size();
 
-        for (int i = 0; i < internalMasterNodeSettings.size(); i++) {
-            NodeSettings setting = internalMasterNodeSettings.get(i);
+        for (int i = 0; i < internalClusterManagerNodeSettings.size(); i++) {
+            NodeSettings setting = internalClusterManagerNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
             PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode,
                     getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())
@@ -179,8 +178,8 @@ public final class ClusterHelper {
             opensearchNodes.add(node);
         }
 
-        for (int i = 0; i < internalNonMasterNodeSettings.size(); i++) {
-            NodeSettings setting = internalNonMasterNodeSettings.get(i);
+        for (int i = 0; i < internalNonClusterManagerNodeSettings.size(); i++) {
+            NodeSettings setting = internalNonClusterManagerNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
             PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode,
                     getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())
@@ -293,11 +292,11 @@ public final class ClusterHelper {
 
             final List<NodeInfo> nodes = res.getNodes();
 
-            final List<NodeInfo> clusterManagerNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE)).collect(Collectors.toList());
-            final List<NodeInfo> dataNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE)).collect(Collectors.toList());
+            final List<NodeInfo> clusterManagerNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE)).collect(Collectors.toList());
+            final List<NodeInfo> dataNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE)).collect(Collectors.toList());
             // Sorting the nodes so that the node receiving the http requests is always deterministic
             dataNodes.sort(Comparator.comparing(nodeInfo -> nodeInfo.getNode().getName()));
-            final List<NodeInfo> clientNodes = nodes.stream().filter(n->!n.getNode().getRoles().contains(DiscoveryNodeRole.MASTER_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE)).collect(Collectors.toList());
+            final List<NodeInfo> clientNodes = nodes.stream().filter(n->!n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE)).collect(Collectors.toList());
 
 
             for (NodeInfo nodeInfo: clusterManagerNodes) {
@@ -352,7 +351,7 @@ public final class ClusterHelper {
 
     // @formatter:off
     private Settings.Builder getMinimumNonSecurityNodeSettingsBuilder(final int nodenum, final boolean clusterManagerNode,
-                                                                final boolean dataNode, int nodeCount, SortedSet<Integer> clusterManagerTcpPorts, /*SortedSet<Integer> nonMasterTcpPorts,*/ int tcpPort, int httpPort) {
+                                                                final boolean dataNode, int nodeCount, SortedSet<Integer> clusterManagerTcpPorts, int tcpPort, int httpPort) {
 
         return Settings.builder()
                 .put("node.name", "node_"+clustername+ "_num" + nodenum)
