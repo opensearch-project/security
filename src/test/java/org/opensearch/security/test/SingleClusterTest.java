@@ -40,7 +40,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
-    private static final int DEFAULT_MASTER_NODE_NUM = 3;
+    private static final int DEFAULT_CLUSTER_MANAGER_NODE_NUM = 3;
     private static final int DEFAULT_FIRST_DATA_NODE_NUM = 2;
 
     protected ClusterHelper clusterHelper = new ClusterHelper("utest_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
@@ -112,10 +112,10 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnly(nodeOverride), ClusterConfiguration.DEFAULT);
     }
 
-    protected void setupSslOnlyModeWithMasterNodeWithoutSSL(Settings nodeOverride) throws Exception {
+    protected void setupSslOnlyModeWithClusterManagerNodeWithoutSSL(Settings nodeOverride) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(nodeOverride,
-                DEFAULT_MASTER_NODE_NUM), ClusterConfiguration.DEFAULT_MASTER_WITHOUT_SECURITY_PLUGIN);
+                DEFAULT_CLUSTER_MANAGER_NODE_NUM), ClusterConfiguration.DEFAULT_CLUSTER_MANAGER_WITHOUT_SECURITY_PLUGIN);
     }
 
     protected void setupSslOnlyModeWithDataNodeWithoutSSL(Settings nodeOverride) throws Exception {

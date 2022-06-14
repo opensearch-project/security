@@ -90,12 +90,12 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
     }
 
     @Test
-    public void testSslOnlyModeDualModeWithNonSSLMasterNode() throws Exception {
+    public void testSslOnlyModeDualModeWithNonSSLClusterManagerNode() throws Exception {
         final Settings settings = Settings.builder()
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true)
             .build();
-        setupSslOnlyModeWithMasterNodeWithoutSSL(settings);
+        setupSslOnlyModeWithClusterManagerNodeWithoutSSL(settings);
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executeGetRequest("/_search");

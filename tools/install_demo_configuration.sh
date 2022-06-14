@@ -391,14 +391,6 @@ else
     fi
 fi
 
-#discovery.zen.minimum_master_nodes
-#if $SUDO_CMD grep --quiet -i "^discovery.zen.minimum_master_nodes" "$OPENSEARCH_CONF_FILE"; then
-#	: #already present
-#else
-#    echo "discovery.zen.minimum_master_nodes: 1" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
-#fi
-
-#node.max_local_storage_nodes
 if $SUDO_CMD grep --quiet -i "^node.max_local_storage_nodes" "$OPENSEARCH_CONF_FILE"; then
 	: #already present
 else

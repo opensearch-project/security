@@ -40,7 +40,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
     }
 
     /**
-     * 2 data nodes are adv sec enabled. 1 master node and 1 data node are SSL only.
+     * 2 data nodes are adv sec enabled. 1 cluster manager node and 1 data node are SSL only.
      * Rest request lands on SSL only data node
      * @throws Exception
      */
@@ -50,14 +50,14 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
         setupGenericNodes(Arrays.asList(sslOnlySettings, advSecSettings, advSecSettings, sslOnlySettings),
-                Arrays.asList(true, false, false, true), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(true, false, false, true), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(), null);
     }
 
     /**
-     * 2 data nodes are adv sec enabled. 1 master node and 1 data node are SSL only.
+     * 2 data nodes are adv sec enabled. 1 cluster manager node and 1 data node are SSL only.
      * Rest request lands on adv sec data node
      * @throws Exception
      */
@@ -67,7 +67,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
         setupGenericNodes(Arrays.asList(advSecSettings, sslOnlySettings, advSecSettings, sslOnlySettings),
-                Arrays.asList(false, true, false, true), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(false, true, false, true), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(), encodeBasicHeader("admin", "admin"));
@@ -84,7 +84,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
         setupGenericNodes(Arrays.asList(sslOnlySettings, sslOnlySettings, advSecSettings, advSecSettings),
-                Arrays.asList(true, true, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(true, true, false, false), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(),null);
@@ -101,7 +101,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
         setupGenericNodes(Arrays.asList(advSecSettings, sslOnlySettings, sslOnlySettings, advSecSettings),
-                Arrays.asList(false, true, true, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(false, true, true, false), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(), encodeBasicHeader("admin", "admin"));
@@ -118,7 +118,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings disabledSettings = getDisabledSettings().build();
 
         setupGenericNodes(Arrays.asList(disabledSettings, advSecSettings, advSecSettings, disabledSettings),
-                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(),null);
@@ -135,7 +135,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings disabledSettings = getDisabledSettings().build();
 
         setupGenericNodes(Arrays.asList(advSecSettings, disabledSettings, advSecSettings, disabledSettings),
-                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(), encodeBasicHeader("admin", "admin"));
@@ -152,7 +152,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings disabledSettings = getDisabledSettings().build();
 
         setupGenericNodes(Arrays.asList(disabledSettings, disabledSettings, advSecSettings, advSecSettings),
-                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(), null);
@@ -169,7 +169,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings disabledSettings = getDisabledSettings().build();
 
         setupGenericNodes(Arrays.asList(advSecSettings, disabledSettings, advSecSettings, advSecSettings),
-                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         commonTestsForAdvancedSecurityMigration(nonSslRestHelper(), encodeBasicHeader("admin", "admin"));
@@ -183,7 +183,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings sslOnlySettings = getSSLOnlyModeSettings().build();
 
         setupGenericNodes(Arrays.asList(sslOnlySettings, sslOnlySettings, advSecSettings, advSecSettings),
-                Arrays.asList(true, true, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(true, true, false, false), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
         Thread.sleep(10000);
 
         RestHelper.HttpResponse res;
@@ -201,7 +201,7 @@ public class AdvancedSecurityMigrationTests extends SingleClusterTest {
         final Settings disabledSettings = getDisabledSettings().build();
 
         setupGenericNodes(Arrays.asList(disabledSettings, disabledSettings, advSecSettings, advSecSettings),
-                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_MASTER_THREE_DATA);
+                Arrays.asList(false, false, false, false), ClusterConfiguration.ONE_CLUSTER_MANAGER_THREE_DATA);
 
         Thread.sleep(5*1000);
 
