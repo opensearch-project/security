@@ -34,9 +34,9 @@ jobs:
 
     - name: Build
       run: |
-        ./gradlew clean build -Dbuild.snapshot=false -x test
+        ./gradlew clean build -Dbuild.snapshot=false -x test -x newTest
         artifact_zip=`ls $(pwd)/build/distributions/opensearch-security-*.zip | grep -v admin-standalone`
-        ./gradlew build buildDeb buildRpm -ParchivePath=$artifact_zip -Dbuild.snapshot=false -x test
+        ./gradlew build buildDeb buildRpm -ParchivePath=$artifact_zip -Dbuild.snapshot=false -x test -x newTest
         mkdir artifacts
         cp $artifact_zip artifacts/
         cp build/distributions/*.deb artifacts/
