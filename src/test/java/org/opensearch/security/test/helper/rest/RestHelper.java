@@ -38,6 +38,8 @@ import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 
@@ -358,6 +360,16 @@ public class RestHelper {
                     + ", statusReason=" + statusReason + "]";
         }
 
+		private static void findArrayAccessor(String input) {
+			final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
+			final Matcher m = r.matcher(input);
+			if(m.find()) {
+				System.out.println("'" + input + "'\t Name was: " + m.group(1) + ",\t index position: " + m.group(2));
+			} else {
+				System.out.println("'" + input + "'\t No Match");
+			}
+		}
+
 		/**
 		 * Given a json path with dots delimiated returns the object at the leaf 
 		 */
@@ -379,11 +391,34 @@ public class RestHelper {
 					fail("Invalid json dot path '" + jsonDotPath + "', rewrite with '.' characters between path elements.");
 				}
 				do {
-					final String pathEntry = jsonPathScanner.next();
+					String pathEntry = jsonPathScanner.next();
+					// if pathEntry is an array lookup
+					int arrayEntryIdx = -1;
+
+					// Looks for an array-lookup pattern in the path
+					// e.g. root_cause[1] -> will match
+					// e.g. root_cause[2aasd] -> won't match
+					final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
+					final Matcher m = r.matcher(pathEntry);
+					if(m.find()) {
+						pathEntry = m.group(1);
+						arrayEntryIdx = Integer.parseInt(m.group(2));
+					}
+
 					if (!currentNode.has(pathEntry)) {
 						fail("Unable to resolve '" + jsonDotPath + "', on path entry '" + pathEntry + "' from available fields " + currentNode.toPrettyString());
 					}
 					currentNode = currentNode.get(pathEntry);
+
+					// if it's an Array lookup we get the requested index item
+					if (arrayEntryIdx > -1) {
+						if(!currentNode.isArray()) {
+							fail("Unable to resolve '" + jsonDotPath + "', the '" + pathEntry + "' field is not an array " + currentNode.toPrettyString());
+						} else if (!currentNode.has(arrayEntryIdx)) {
+							fail("Unable to resolve '" + jsonDotPath + "', index '" + arrayEntryIdx + "' is out of bounds for array '" + pathEntry + "' \n" + currentNode.toPrettyString());
+						}
+						currentNode = currentNode.get(arrayEntryIdx);
+					}
 				} while (jsonPathScanner.hasNext());
 
 				if (!currentNode.isValueNode()) {
