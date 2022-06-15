@@ -592,7 +592,7 @@ public class PrivilegesEvaluator {
     public static boolean isClusterPerm(String action0) {
         return  (    action0.startsWith("cluster:")
                 || action0.startsWith("indices:admin/template/")
-
+                || action0.startsWith("indices:admin/index_template/")
             || action0.startsWith(SearchScrollAction.NAME)
             || (action0.equals(BulkAction.NAME))
             || (action0.equals(MultiGetAction.NAME))

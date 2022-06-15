@@ -57,6 +57,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
 import org.opensearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.opensearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.delete.DeleteRequest;
@@ -697,6 +698,8 @@ public class IndexResolverReplacer {
             //do nothing
         } else if (request instanceof SearchScrollRequest) {
             //do nothing
+        } else if (request instanceof PutComponentTemplateAction.Request) {
+            // do nothing
         } else {
             if (isDebugEnabled) {
                 log.debug(request.getClass() + " not supported (It is likely not a indices related request)");
