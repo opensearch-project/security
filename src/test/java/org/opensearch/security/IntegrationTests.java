@@ -26,7 +26,6 @@
 
 package org.opensearch.security;
 
-import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.TreeSet;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -63,17 +62,7 @@ import static org.opensearch.security.DefaultObjectMapper.readTree;
 public class IntegrationTests extends SingleClusterTest {
 
     @Test
-    public void testSearchScroll() throws Exception {
-        
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-            
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace();
-                
-            }
-        });
-        
+    public void testSearchScroll() throws Exception {        
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();

@@ -11,6 +11,7 @@
 
 package org.opensearch.security.securityconf.impl;
 
+//CSOFF: ALL Ignoring legacy non-inclusive terms
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;

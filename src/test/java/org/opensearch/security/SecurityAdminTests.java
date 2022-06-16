@@ -56,8 +56,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("-nhnv");
         
         
@@ -89,8 +88,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("-nhnv");
 
         int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -109,8 +107,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("--diagnose");
         argsAsList.add("-nhnv");
 
@@ -129,8 +126,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("-nhnv");
 
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -159,8 +155,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        argsAsList.add("-cd");
-        argsAsList.add(new File("./legacy/securityconfig_v6").getAbsolutePath());
+        addDirectoryPath(argsAsList, new File("./legacy/securityconfig_v6").getAbsolutePath());
         argsAsList.add("-nhnv");
         
         
@@ -196,8 +191,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("-nhnv");
         
         
@@ -235,7 +229,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-f");
-        argsAsList.add(new File("./securityconfig/config.yml").getAbsolutePath());
+        argsAsList.add(new File(TEST_RESOURCE_RELATIVE_PATH + "config.yml").getAbsolutePath());
         argsAsList.add("-t");
         argsAsList.add("config");
         argsAsList.add("-nhnv");
@@ -254,7 +248,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-f");
-        argsAsList.add(new File("./securityconfig/roles_mapping.yml").getAbsolutePath());
+        argsAsList.add(new File(TEST_RESOURCE_RELATIVE_PATH + "roles_mapping.yml").getAbsolutePath());
         argsAsList.add("-t");
         argsAsList.add("rolesmapping");
         argsAsList.add("-nhnv");
@@ -273,7 +267,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-f");
-        argsAsList.add(new File("./securityconfig/tenants.yml").getAbsolutePath());
+        argsAsList.add(new File(TEST_RESOURCE_RELATIVE_PATH + "tenants.yml").getAbsolutePath());
         argsAsList.add("-t");
         argsAsList.add("tenants");
         argsAsList.add("-nhnv");
@@ -313,7 +307,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
         argsAsList.add("-f");
-        argsAsList.add(new File("./legacy/securityconfig_v6/config.yml").getAbsolutePath());
+        argsAsList.add(new File(TEST_RESOURCE_RELATIVE_PATH + "legacy/securityconfig_v6/config.yml").getAbsolutePath());
         argsAsList.add("-t");
         argsAsList.add("config");
         argsAsList.add("-nhnv");
@@ -420,8 +414,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     @Test
     public void testSecurityAdminValidateConfig() throws Exception {
         List<String> argsAsList = new ArrayList<>();
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("-vc");
         
         int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -429,7 +422,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
-        argsAsList.add(new File("src/test/resources/roles.yml").getAbsolutePath());
+        argsAsList.add(new File(PROJECT_ROOT_RELATIVE_PATH + "src/test/resources/roles.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -437,7 +430,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
-        argsAsList.add(new File("./src/main/resources/static_config/static_roles.yml").getAbsolutePath());
+        argsAsList.add(new File(PROJECT_ROOT_RELATIVE_PATH + "src/main/resources/static_config/static_roles.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -445,7 +438,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
-        argsAsList.add(new File("./src/main/resources/static_config/static_action_groups.yml").getAbsolutePath());
+        argsAsList.add(new File(PROJECT_ROOT_RELATIVE_PATH + "src/main/resources/static_config/static_action_groups.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -453,7 +446,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
-        argsAsList.add(new File("./src/main/resources/static_config/static_tenants.yml").getAbsolutePath());
+        argsAsList.add(new File(PROJECT_ROOT_RELATIVE_PATH + "src/main/resources/static_config/static_tenants.yml").getAbsolutePath());
         argsAsList.add("-vc");
         
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
@@ -461,7 +454,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-f");
-        argsAsList.add(new File("src/test/resources/roles.yml").getAbsolutePath());
+        argsAsList.add(TEST_RESOURCE_ABSOLUTE_PATH + "roles.yml");
         argsAsList.add("-vc");
         argsAsList.add("-t");
         argsAsList.add("config");
@@ -471,23 +464,21 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         argsAsList = new ArrayList<>();
         argsAsList.add("-ks");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        argsAsList.add(TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("-vc");
         
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
-        argsAsList.add("-cd");
-        argsAsList.add(new File("./legacy/securityconfig_v6").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH + "legacy/securityconfig_v6");
         argsAsList.add("-vc");
         
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
-        argsAsList.add("-cd");
-        argsAsList.add(new File("./legacy/securityconfig_v6").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH + "legacy/securityconfig_v6");
         argsAsList.add("-vc");
         argsAsList.add("6");
         
@@ -495,12 +486,16 @@ public class SecurityAdminTests extends SingleClusterTest {
         Assert.assertEquals(0, returnCode);
         
         argsAsList = new ArrayList<>();
-        argsAsList.add("-cd");
-        argsAsList.add(new File("src/test/resources/").getAbsolutePath());
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
         argsAsList.add("-vc");
         argsAsList.add("8");
         
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
+    }
+
+    private void addDirectoryPath(final List<String> args, final String path) {
+        args.add("-cd");
+        args.add(path);
     }
 }

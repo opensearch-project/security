@@ -87,7 +87,7 @@ public class SSLConnectionTestUtilTests {
         SSLConnectionTestResult result = connectionTestUtil.testConnection();
 
         verifyClientHelloSend();
-        Mockito.verifyZeroInteractions(inputStreamReader);
+        Mockito.verifyNoInteractions(inputStreamReader);
         verifyOpenSearchPingSend();
         Mockito.verify(socket, Mockito.times(2)).close();
         Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.SSL_NOT_AVAILABLE, result);
@@ -149,7 +149,7 @@ public class SSLConnectionTestUtilTests {
 
         verifyClientHelloSend();
         verifyOpenSearchPingSend();
-        Mockito.verifyZeroInteractions(inputStream);
+        Mockito.verifyNoInteractions(inputStream);
         Mockito.verify(socket, Mockito.times(2)).close();
         Assert.assertEquals("Unexpected result for testConnection invocation", SSLConnectionTestResult.OPENSEARCH_PING_FAILED, result);
     }

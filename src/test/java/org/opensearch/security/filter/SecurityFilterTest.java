@@ -36,9 +36,10 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.threadpool.ThreadPool;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -84,7 +85,7 @@ public class SecurityFilterTest {
                 mock(IndexResolverReplacer.class),
                 mock(XFFResolver.class)
         );
-        assertEquals(expected, filter.getImmutableIndicesMatcher());
+        assertThat(expected, equalTo(filter.getImmutableIndicesMatcher()));
     }
 
     @SuppressWarnings("unchecked")
@@ -117,8 +118,8 @@ public class SecurityFilterTest {
         final ArgumentCaptor<OpenSearchSecurityException> cap = ArgumentCaptor.forClass(OpenSearchSecurityException.class);
         verify(listener).onFailure(cap.capture());
 
-        assertNull(cap.getValue().getCause(), "The cause should never be included as it will leak to callers"); 
-        assertFalse(cap.getValue().getMessage().contains("ABC!"), "Make sure the cause exception wasn't toStringed in the method");
+        assertThat("The cause should never be included as it will leak to callers", cap.getValue().getCause(), notNullValue()); 
+        assertThat("Make sure the cause exception wasn't toStringed in the method", cap.getValue().getMessage(), containsString("ABC!"));
 
         verifyNoMoreInteractions(auditLog, listener);
     }

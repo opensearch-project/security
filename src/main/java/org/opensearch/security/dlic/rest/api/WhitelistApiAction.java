@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-
+//CSOFF: ALL Ignoring legacy non-inclusive terms
 package org.opensearch.security.dlic.rest.api;
 
 import java.nio.file.Path;
