@@ -40,5 +40,5 @@ public class ClusterInfo {
 	public String nodeHost;
 	public int nodePort;
 	public String clustername;
-    public List<String> tcpMasterPortsOnly;
+    public List<String> tcpClusterManagerPortsOnly;
 }

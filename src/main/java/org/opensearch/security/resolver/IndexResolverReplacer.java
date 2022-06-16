@@ -594,7 +594,7 @@ public class IndexResolverReplacer {
             }
         } else if(request instanceof RestoreSnapshotRequest) {
 
-                if(clusterInfoHolder.isLocalNodeElectedMaster() == Boolean.FALSE) {
+                if(clusterInfoHolder.isLocalNodeElectedClusterManager() == Boolean.FALSE) {
                     return true;
                 }
 

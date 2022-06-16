@@ -79,7 +79,7 @@ public class SnapshotRestoreEvaluator {
         }
 
         
-        if (clusterInfoHolder.isLocalNodeElectedMaster() == Boolean.FALSE) {
+        if (clusterInfoHolder.isLocalNodeElectedClusterManager() == Boolean.FALSE) {
             presponse.allowed = true;
             return presponse.markComplete();            
         }

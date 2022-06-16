@@ -34,16 +34,16 @@ import org.opensearch.plugins.Plugin;
 
 public class PluginAwareNode extends Node {
     
-    private final boolean masterEligible;
+    private final boolean clusterManagerEligible;
 
     @SafeVarargs
-    public PluginAwareNode(boolean masterEligible, final Settings preparedSettings, final Class<? extends Plugin>... plugins) {
+    public PluginAwareNode(boolean clusterManagerEligible, final Settings preparedSettings, final Class<? extends Plugin>... plugins) {
     	super(InternalSettingsPreparer.prepareEnvironment(preparedSettings, Collections.emptyMap(), null, () -> System.getenv("HOSTNAME")), Arrays.asList(plugins), true);
-        this.masterEligible = masterEligible;
+        this.clusterManagerEligible = clusterManagerEligible;
     }
     
 
-    public boolean isMasterEligible() {
-        return masterEligible;
+    public boolean isClusterManagerEligible() {
+        return clusterManagerEligible;
     }
 }

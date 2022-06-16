@@ -491,7 +491,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("cluster:admin/settings/update"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices.recovery.*"));
-        //may vary because we log may hit master directly or not
+        //may vary because we log may hit cluster manager directly or not
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 1);
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
