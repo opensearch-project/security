@@ -36,7 +36,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
     }
 
     public AccountApiTest(){
-        BASE_ENDPOINT = getEndpointPrefix();
+        BASE_ENDPOINT = getEndpointPrefix() + "/api/";
         ENDPOINT = getEndpointPrefix() + "/api/account";
     }
 

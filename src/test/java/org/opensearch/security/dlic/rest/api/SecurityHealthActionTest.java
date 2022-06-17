@@ -28,7 +28,7 @@ public class SecurityHealthActionTest extends AbstractRestApiUnitTest {
     }
 
     public SecurityHealthActionTest(){
-        ENDPOINT = getEndpointPrefix() + "/api/internalusers";
+        ENDPOINT = getEndpointPrefix();
     }
 
     @Test
