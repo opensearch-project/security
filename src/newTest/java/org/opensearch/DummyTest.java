@@ -10,6 +10,7 @@ public class DummyTest {
     public void test() {
         int a = 1, b = 2, expectedSum = 3;
 
+
         int actualSum = a + b;
 
         assertEquals(expectedSum, actualSum);
