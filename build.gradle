@@ -84,8 +84,8 @@ forbiddenPatterns.enabled = false
 testingConventions.enabled = false
 
 test {
-    include '**/*Tests.class'
-    maxParallelForks = 3
+    include '**/*.class'
+    maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
@@ -110,6 +110,14 @@ test {
         ]
     }
 }
+
+task copyExtraTestResources(dependsOn: testClasses) {
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/test/src/test/resources'
+    }
+}
+tasks.test.dependsOn(copyExtraTestResources)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")
@@ -307,7 +315,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.8.6'
-    testImplementation 'org.springframework:spring-beans:5.3.19'
+    testImplementation 'org.springframework:spring-beans:5.3.20'
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
 
     implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"

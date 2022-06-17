@@ -11,43 +11,32 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-@RunWith(Parameterized.class)
 public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     private String payload = "{\"hosts\":[],\"users\":[\"sarek\"]," +
             "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated " +
             "from v6\"}";
-
     private final String BASE_ENDPOINT;
-    private final String ENDPOINT;
-
-
-    public TenantInfoActionTest(String endpoint){
-        BASE_ENDPOINT = endpoint;
-        ENDPOINT = BASE_ENDPOINT + "/tenantinfo";
+    private final String ENDPOINT; 
+    protected String getEndpointPrefix() {
+        return PLUGINS_PREFIX;
     }
 
-    @Parameterized.Parameters
-    public static Iterable<String> endpoints() {
-        return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX,
-                PLUGINS_PREFIX
-        );
+    public TenantInfoActionTest(){
+        BASE_ENDPOINT = getEndpointPrefix();
+        ENDPOINT = getEndpointPrefix() + "/tenantinfo";
     }
+
     @Test
     public void testTenantInfoAPI() throws Exception {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();

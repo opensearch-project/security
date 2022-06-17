@@ -66,7 +66,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
-public abstract class CrossClusterSearchTests extends AbstractSecurityUnitTest {
+public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     
     private final ClusterHelper cl1 = new ClusterHelper("crl1_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     private final ClusterHelper cl2 = new ClusterHelper("crl2_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
@@ -75,7 +75,7 @@ public abstract class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     private RestHelper rh1;
     private RestHelper rh2;
 
-    protected abstract boolean ccsMinimizeRoundtrips();
+    protected boolean ccsMinimizeRoundtrips() { return false };
 
     private static class ClusterTransportClientSettings extends Tuple<Settings, Settings> {
 

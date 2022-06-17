@@ -33,7 +33,7 @@ import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-@RunWith(Parameterized.class)
+@RunWith(Parameterized.class) //FIXME
 public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
     private final ClusterHelper cl1 = new ClusterHelper("crl1_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
