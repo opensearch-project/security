@@ -322,7 +322,6 @@ dependencies {
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
     testImplementation 'org.apache.kafka:kafka_2.13:3.0.1'
     testImplementation 'org.apache.kafka:kafka_2.13:3.0.1:test'
-    testImplementation 'org.apache.kafka:kafka-clients:3.0.1:test'
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.8.6'
     testImplementation 'org.springframework:spring-beans:5.3.20'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
@@ -331,7 +330,9 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
     // Kafka test execution
     testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
-    testRuntimeOnly 'org.springframework:spring-core:5.3.21'
+    testRuntimeOnly ('org.springframework:spring-core:5.3.21') {
+        exclude(group:'org.springframework', module: 'spring-jcl' )
+    }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.8'
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
