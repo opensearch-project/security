@@ -75,7 +75,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     private RestHelper rh1;
     private RestHelper rh2;
 
-    protected boolean ccsMinimizeRoundtrips() { return false };
+    protected boolean ccsMinimizeRoundtrips() { return false; };
 
     private static class ClusterTransportClientSettings extends Tuple<Settings, Settings> {
 
