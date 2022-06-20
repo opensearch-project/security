@@ -38,7 +38,7 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testTenantInfoAPI() throws Exception {
+    public void testTenantInfoAPIAccess() throws Exception {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
         setup(settings);
 
@@ -54,11 +54,18 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
         rh.sendHTTPClientCredentials = true;
         response = rh.executeGetRequest(ENDPOINT);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+    }
 
+    @Test
+    public void testTenantInfoAPIUpdate() throws Exception {
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        setup(settings);
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendHTTPClientCredentials = true;
         rh.sendAdminCertificate = true;
 
         //update security config
-        response = rh.executePatchRequest(BASE_ENDPOINT + "/api/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\"," +
+        RestHelper.HttpResponse response = rh.executePatchRequest(BASE_ENDPOINT + "/api/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/kibana/opendistro_role\"," +
                 "\"value\": \"opendistro_security_internal\"}]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
