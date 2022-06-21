@@ -135,10 +135,8 @@ public class MigrateApiAction extends AbstractApiAction {
         builder.add(rolesmappingV7);
         final SecurityDynamicConfiguration<NodesDn> nodesDnV7 = Migration.migrateNodesDn(nodesDnV6);
         builder.add(nodesDnV7);
-        //CSOFF: ALL Ignoring legacy non-inclusive terms
         final SecurityDynamicConfiguration<WhitelistingSettings> whitelistingSettingV7 = Migration.migrateWhitelistingSetting(whitelistingSettingV6);
         builder.add(whitelistingSettingV7);
-        //CSON: ALL
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
         builder.add(auditConfigV7);
 

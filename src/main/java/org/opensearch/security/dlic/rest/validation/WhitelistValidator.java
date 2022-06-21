@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.validation;
 
-//CSOFF: ALL Ignoring legacy non-inclusive terms
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;

@@ -30,6 +30,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
@@ -66,7 +67,6 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         rh.sendAdminCertificate = sendAdminCertificate;
         rh.keystore = keystore;
 
-        System.out.println("#### test source includes");
         String search = "{" +
                 "   \"_source\":[" +
                 "      \"Gender\""+
@@ -80,17 +80,15 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 "   }" +
                 "}";
 
-        TestAuditlogImpl.clear();
-        HttpResponse response = rh.executePostRequest("_search?pretty", search, encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        System.out.println(response.getBody());
-        Thread.sleep(1500);
-        System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue(TestAuditlogImpl.messages.size() >= 1);
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_DOC_READ"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("Designation"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("Salary"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("Gender"));
+        final AuditMessage messsage = TestAuditlogImpl.doThenWaitForMessages(() -> {
+            HttpResponse response = rh.executePostRequest("_search?pretty", search, encodeBasicHeader("admin", "admin"));
+            Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        }, 1).get(0);
+        
+        assertThat(message.toString(), stringContains("COMPLIANCE_DOC_READ"));
+        assertThat(message.toString(), stringContains("Designation"));
+        assertThat(message.toString(), stringContains("Salary"));
+        assertThat(message.toString(), stringContains("Gender"));
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
 

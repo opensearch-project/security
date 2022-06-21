@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-//CSOFF: ALL Ignoring legacy non-inclusive terms
 import java.util.Map;
 import java.util.stream.Collectors;
 
