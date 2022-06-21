@@ -94,7 +94,7 @@ test {
     }
     retry {
         failOnPassedAfterRetry = false
-        maxRetries = 2
+        maxRetries = 5
     }
     jacoco {
         excludes = [
