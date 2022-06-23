@@ -89,7 +89,38 @@ task newTest(type: Test) {
 
     //run the newTest task after the test task
     shouldRunAfter test
+
+    jacoco {
+        destinationFile = file("$buildDir/jacoco/newTest.exe")
+        excludes = [
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
+        ]
+    }
 }
+
+task newTestJacocoTestReport (type: JacocoReport) {
+    classDirectories.from = ["$buildDir/classes/java/main", "$buildDir/resources/main"]
+    sourceDirectories.from = ["$rootProject.projectDir/src/main/java"]
+    executionData(newTest)
+    reports {
+        xml.required = true
+        xml.outputLocation = file("${jacoco.getReportsDirectory().get()}/newTest/jacocoTestReport.xml")
+        html.outputLocation = file("${jacoco.getReportsDirectory().get()}/newTest/html")
+    }
+}
+
+tasks.newTest.finalizedBy(newTestJacocoTestReport)  // report is always generated after newTests run
+tasks.newTestJacocoTestReport.dependsOn(newTest) // newTests are required to run before generating the report
 
 //run the newTest task before the check task
 check.dependsOn newTest
