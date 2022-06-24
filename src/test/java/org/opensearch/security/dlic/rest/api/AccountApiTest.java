@@ -11,13 +11,10 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
@@ -29,26 +26,18 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-@RunWith(Parameterized.class)
 public class AccountApiTest extends AbstractRestApiUnitTest {
-    private final String BASE_ENDPOINT;
-    private final String ENDPOINT;
-
-
-    public AccountApiTest(String endpoint){
-        BASE_ENDPOINT = endpoint;
-        ENDPOINT = BASE_ENDPOINT + "account";
+    private final String BASE_ENDPOINT; 
+    private final String ENDPOINT; 
+    protected String getEndpointPrefix() {
+        return PLUGINS_PREFIX;
     }
 
-    @Parameterized.Parameters
-    public static Iterable<String> endpoints() {
-        return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX + "/api/",
-                PLUGINS_PREFIX + "/api/"
-        );
+    public AccountApiTest(){
+        BASE_ENDPOINT = getEndpointPrefix() + "/api/";
+        ENDPOINT = getEndpointPrefix() + "/api/account";
     }
 
     @Test

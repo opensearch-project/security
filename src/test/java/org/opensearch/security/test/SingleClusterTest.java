@@ -26,6 +26,7 @@
 
 package org.opensearch.security.test;
 
+import java.io.File;
 import java.util.List;
 
 import org.junit.After;
@@ -39,6 +40,10 @@ import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
+
+    public static final String TEST_RESOURCE_RELATIVE_PATH = "../../resources/test/";
+    public static final String TEST_RESOURCE_ABSOLUTE_PATH = new File(TEST_RESOURCE_RELATIVE_PATH).getAbsolutePath() + "/";
+    public static final String PROJECT_ROOT_RELATIVE_PATH = "../../../";
 
     private static final int DEFAULT_CLUSTER_MANAGER_NODE_NUM = 3;
     private static final int DEFAULT_FIRST_DATA_NODE_NUM = 2;

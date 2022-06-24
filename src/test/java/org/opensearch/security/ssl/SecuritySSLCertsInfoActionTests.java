@@ -19,8 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import net.minidev.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -32,22 +30,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-@RunWith(Parameterized.class)
 public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
-    private final String ENDPOINT;
-
-    public SecuritySSLCertsInfoActionTests(String endpoint){
-        ENDPOINT = endpoint;
-    }
-
-    @Parameterized.Parameters
-    public static Iterable<String> endpoints() {
-        return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX +  "/api/ssl/certs",
-                PLUGINS_PREFIX +  "/api/ssl/certs"
-        );
-    }
-
     private final List<Map<String, String>> NODE_CERT_DETAILS = ImmutableList.of(
         ImmutableMap.of(
             "issuer_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
@@ -58,7 +41,16 @@ public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
         ));
 
     @Test
+    public void testCertInfo_Legacy_Pass() throws Exception {
+        certInfo_Pass(LEGACY_OPENDISTRO_PREFIX +  "/api/ssl/certs");
+    } 
+
+    @Test
     public void testCertInfo_Pass() throws Exception {
+        certInfo_Pass(PLUGINS_PREFIX +  "/api/ssl/certs");
+    } 
+
+    public void certInfo_Pass(final String endpoint) throws Exception {
         initTestCluster();
         final RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
@@ -66,7 +58,7 @@ public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "kirk-keystore.jks";
 
-        final RestHelper.HttpResponse transportInfoRestResponse = rh.executeGetRequest(ENDPOINT);
+        final RestHelper.HttpResponse transportInfoRestResponse = rh.executeGetRequest(endpoint);
         JSONObject expectedJsonResponse = new JSONObject();
         expectedJsonResponse.appendField("http_certificates_list", NODE_CERT_DETAILS);
         expectedJsonResponse.appendField("transport_certificates_list", NODE_CERT_DETAILS);
@@ -74,7 +66,16 @@ public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
     }
 
     @Test
+    public void testCertInfoFail_Legacy_NonAdmin() throws Exception {
+        certInfoFail_NonAdmin(LEGACY_OPENDISTRO_PREFIX +  "/api/ssl/certs");
+    } 
+
+    @Test
     public void testCertInfoFail_NonAdmin() throws Exception {
+        certInfoFail_NonAdmin(PLUGINS_PREFIX +  "/api/ssl/certs");
+    } 
+
+    public void certInfoFail_NonAdmin(final String endpoint) throws Exception {
         initTestCluster();
         final RestHelper rh = restHelper();
         rh.enableHTTPClientSSL = true;
@@ -82,7 +83,7 @@ public class SecuritySSLCertsInfoActionTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "spock-keystore.jks";
 
-        final RestHelper.HttpResponse transportInfoRestResponse = rh.executeGetRequest(ENDPOINT);
+        final RestHelper.HttpResponse transportInfoRestResponse = rh.executeGetRequest(endpoint);
         Assert.assertEquals(401, transportInfoRestResponse.getStatusCode()); // Forbidden for non-admin
         Assert.assertEquals("Unauthorized", transportInfoRestResponse.getStatusReason());
     }

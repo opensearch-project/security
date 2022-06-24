@@ -11,19 +11,15 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
@@ -40,14 +36,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 /**
  * Testing class to verify that {@link WhitelistApiAction} works correctly.
  * Check {@link SecurityRestFilter} for extra tests for whitelisting functionality.
  */
-@RunWith(Parameterized.class)
 public class WhitelistApiTest extends AbstractRestApiUnitTest {
     private RestHelper.HttpResponse response;
 
@@ -57,19 +51,13 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
      */
     private final Header adminCredsHeader = encodeBasicHeader("admin_all_access", "admin_all_access");
     private final Header nonAdminCredsHeader = encodeBasicHeader("sarek", "sarek");
-
-    private final String ENDPOINT;
-
-    public WhitelistApiTest(String endpoint){
-        ENDPOINT = endpoint;
+    private final String ENDPOINT; 
+    protected String getEndpointPrefix() {
+        return PLUGINS_PREFIX;
     }
 
-    @Parameterized.Parameters
-    public static Iterable<String> endpoints() {
-        return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX + "/api",
-                PLUGINS_PREFIX + "/api"
-        );
+    public WhitelistApiTest(){
+        ENDPOINT = getEndpointPrefix() + "/api";
     }
 
     /**

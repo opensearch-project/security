@@ -87,7 +87,6 @@ import org.apache.http.io.HttpMessageWriterFactory;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
-import org.apache.xml.security.utils.EncryptionConstants;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
@@ -516,7 +515,8 @@ class MockSamlIdpServer implements Closeable {
 
     private Encrypter getEncrypter() {
         KeyEncryptionParameters kek = new KeyEncryptionParameters();
-        kek.setAlgorithm(EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSA15);
+        // Algorithm from https://santuario.apache.org/Java/api/constant-values.html#org.apache.xml.security.utils.EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSA15
+        kek.setAlgorithm("http://www.w3.org/2001/04/xmlenc#rsa-1_5");
         kek.setEncryptionCredential(new BasicX509Credential(spSignatureCertificate));
         Encrypter encrypter = new Encrypter( new DataEncryptionParameters(),kek);
         encrypter.setKeyPlacement(Encrypter.KeyPlacement.INLINE);

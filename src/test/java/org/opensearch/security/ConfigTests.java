@@ -42,6 +42,7 @@ import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
+import org.opensearch.security.test.SingleClusterTest;
 
 public class ConfigTests {
     
@@ -76,26 +77,27 @@ public class ConfigTests {
     public void testParseSg67Config() throws Exception {
 
         check("./legacy/securityconfig_v6/action_groups.yml", CType.ACTIONGROUPS);
-        check("./securityconfig/action_groups.yml", CType.ACTIONGROUPS);
+        check("./action_groups.yml", CType.ACTIONGROUPS);
         
         check("./legacy/securityconfig_v6/config.yml", CType.CONFIG);
-        check("./securityconfig/config.yml", CType.CONFIG);
+        check("./config.yml", CType.CONFIG);
         
         check("./legacy/securityconfig_v6/roles.yml", CType.ROLES);
-        check("./securityconfig/roles.yml", CType.ROLES);
+        check("./roles.yml", CType.ROLES);
         
         check("./legacy/securityconfig_v6/internal_users.yml", CType.INTERNALUSERS);
-        check("./securityconfig/internal_users.yml", CType.INTERNALUSERS);
+        check("./internal_users.yml", CType.INTERNALUSERS);
         
         check("./legacy/securityconfig_v6/roles_mapping.yml", CType.ROLESMAPPING);
-        check("./securityconfig/roles_mapping.yml", CType.ROLESMAPPING);
+        check("./roles_mapping.yml", CType.ROLESMAPPING);
         
-        check("./securityconfig/tenants.yml", CType.TENANTS);
+        check("./tenants.yml", CType.TENANTS);
         
     }
     
     private void check(String file, CType cType) throws Exception {
-        JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(file), "UTF-8"));
+        final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
+        JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(adjustedFilePath), "UTF-8"));
         int configVersion = 1;
         System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST %%%%%%%");
         if(jsonNode.get("_meta") != null) {
@@ -116,7 +118,8 @@ public class ConfigTests {
     }
     
     private SecurityDynamicConfiguration<?> load(String file, CType cType) throws Exception {
-        JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(file), "UTF-8"));
+        final String adjustedFilePath = SingleClusterTest.TEST_RESOURCE_RELATIVE_PATH + file;
+        JsonNode jsonNode = YAML.readTree(FileUtils.readFileToString(new File(adjustedFilePath), "UTF-8"));
         int configVersion = 1;
 
         System.out.println("%%%%%%%% THIS IS A LINE OF INTEREST LOAD: CONFIG VERSION: %%%%%%%");

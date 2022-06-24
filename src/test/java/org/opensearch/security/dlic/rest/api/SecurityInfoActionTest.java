@@ -11,34 +11,24 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-@RunWith(Parameterized.class)
 public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
-    private final String ENDPOINT;
-
-    public SecurityInfoActionTest(String endpoint){
-        ENDPOINT = endpoint;
+    private final String ENDPOINT; 
+    protected String getEndpointPrefix() {
+        return PLUGINS_PREFIX;
     }
 
-    @Parameterized.Parameters
-    public static Iterable<String> endpoints() {
-        return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX +  "/authinfo",
-                PLUGINS_PREFIX +  "/authinfo"
-        );
+    public SecurityInfoActionTest(){
+        ENDPOINT = getEndpointPrefix() + "/authinfo";
     }
 
     @Test

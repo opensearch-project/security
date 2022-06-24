@@ -30,8 +30,6 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
@@ -45,31 +43,23 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.DefaultObjectMapper.readTree;
 import static org.opensearch.security.DefaultObjectMapper.writeValueAsString;
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-@RunWith(Parameterized.class)
 public class AuditApiActionTest extends AbstractRestApiUnitTest {
-
-    private final String ENDPOINT;
-    private final String CONFIG_ENDPOINT;
-
     // admin cred with roles in test yml files
     final Header adminCredsHeader = encodeBasicHeader("sarek", "sarek");
     // non-admin
     final Header nonAdminCredsHeader = encodeBasicHeader("random", "random");
 
-    public AuditApiActionTest(String endpoint){
-        ENDPOINT = endpoint;
-        CONFIG_ENDPOINT = ENDPOINT + "/config";
+    private final String ENDPOINT; 
+    private final String CONFIG_ENDPOINT;
+    protected String getEndpointPrefix() {
+        return PLUGINS_PREFIX;
     }
 
-    @Parameterized.Parameters
-    public static Iterable<String> endpoints() {
-        return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX + "/api/audit",
-                PLUGINS_PREFIX + "/api/audit"
-        );
+    public AuditApiActionTest(){
+        ENDPOINT = getEndpointPrefix() + "/api/audit";
+        CONFIG_ENDPOINT = ENDPOINT + "/config";
     }
 
     @Rule

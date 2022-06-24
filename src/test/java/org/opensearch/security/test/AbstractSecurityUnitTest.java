@@ -38,6 +38,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLContext;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import io.netty.handler.ssl.OpenSsl;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
@@ -78,7 +81,14 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.test.helper.rules.SecurityTestWatcher;
 import org.opensearch.threadpool.ThreadPool;
 
-public abstract class AbstractSecurityUnitTest {
+/*
+ * There are real thread leaks during test execution, not all threads are 
+ * properly waited on or interupted.  While this normally doesn't create test
+ * failures, retries mitigate this.  Remove this attribute to explore these
+ * issues.
+ */ 
+@ThreadLeakScope(Scope.NONE)
+public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
     protected static final AtomicLong num = new AtomicLong();
     protected static boolean withRemoteCluster;

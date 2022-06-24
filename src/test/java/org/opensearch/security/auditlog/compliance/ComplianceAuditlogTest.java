@@ -183,13 +183,12 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
                 "   }" +
                 "}"+System.lineSeparator();
 
-        TestAuditlogImpl.clear();
-        HttpResponse response = rh.executePostRequest("_msearch?pretty", search, encodeBasicHeader("admin", "admin"));
-        assertNotContains(response, "*exception*");
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Thread.sleep(1500);
+        TestAuditlogImpl.doThenWaitForMessages(() -> {
+            HttpResponse response = rh.executePostRequest("_msearch?pretty", search, encodeBasicHeader("admin", "admin"));
+            assertNotContains(response, "*exception*");
+            Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        }, 2);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue("Was "+TestAuditlogImpl.messages.size(), TestAuditlogImpl.messages.size() == 2);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_DOC_READ"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("Salary"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("Gender"));
