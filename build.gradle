@@ -9,225 +9,91 @@
  * GitHub history for details.
  */
 
-/*
- * Licensed to Elasticsearch under one or more contributor
- * license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright
- * ownership. Elasticsearch licenses this file to you under
- * the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+buildscript {
+    ext {
+        opensearch_version = System.getProperty("opensearch.version", "2.1.0-SNAPSHOT")
+        isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+        buildVersionQualifier = System.getProperty("build.version_qualifier", "")
+
+        // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
+        version_tokens = opensearch_version.tokenize('-')
+        opensearch_build = version_tokens[0] + '.0'
+        if (buildVersionQualifier) {
+            opensearch_build += "-${buildVersionQualifier}"
+        }
+        if (isSnapshot) {
+            opensearch_build += "-SNAPSHOT"
+        }
+    }
+
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+    }
+
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+    }
+}
 
 plugins {
     id 'java'
-    id 'maven-publish'
+    id 'idea'
     id 'jacoco'
+    id 'maven-publish'
+    id 'com.diffplug.spotless' version '5.11.0'
     id 'checkstyle'
-    id "com.gorylenko.gradle-git-properties" version "2.3.2"
-    id 'org.gradle.crypto.checksum' version '1.1.0'
-
-    // Plugin prints gradle task graph, use following command: ./gradlew tiTree build
-    id 'org.barfuin.gradle.taskinfo' version '1.0.5'
-
-    id "nebula.ospackage" version "9.0.0"
-    id "com.google.osdetector" version "1.7.0"
+    id 'nebula.ospackage'  version "8.3.0"
     id "org.gradle.test-retry" version "1.3.1"
-    id "com.diffplug.spotless" version "6.5.0"
-}
-import org.gradle.crypto.checksum.Checksum
-
-import java.text.SimpleDateFormat
-
-repositories {
-    mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
-    maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
 }
 
-ext {
-    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-    opensearch_version = System.getProperty("opensearch.version", "2.1.0-SNAPSHOT")
-    buildVersionQualifier = System.getProperty("build.version_qualifier", "")
-    version_tokens = opensearch_version.tokenize('-')
-    opensearch_build = version_tokens[0] + '.0'
-    if (buildVersionQualifier) {
-        opensearch_build += "-${buildVersionQualifier}"
-        opensearch_build_nosnapshot = opensearch_build
-    }
-    if (isSnapshot) {
-        opensearch_build += "-SNAPSHOT"
-    }
+allprojects {
+    group = "org.opensearch"
+    version = opensearch_build
 }
 
-configurations.all {
-    resolutionStrategy {
-        force 'commons-codec:commons-codec:1.14'
-        force 'org.apache.santuario:xmlsec:2.2.3'
-        force 'org.cryptacular:cryptacular:1.2.4'
-        force 'net.minidev:json-smart:2.4.7'
-        force 'commons-cli:commons-cli:1.3.1'
-        force 'org.apache.httpcomponents:httpcore:4.4.12'
-        force "org.apache.commons:commons-lang3:3.4"
-        force "org.springframework:spring-core:5.3.20"
-        force "com.google.guava:guava:30.0-jre"
-    }
+apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.pluginzip'
+
+licenseFile = rootProject.file('LICENSE.txt')
+noticeFile = rootProject.file('NOTICE.txt')
+
+spotless {
+  java {
+    // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
+    importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+  }
 }
-
-dependencies {
-    implementation 'jakarta.annotation:jakarta.annotation-api:1.3.5'
-    implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
-    implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
-    implementation 'com.google.guava:guava:30.0-jre'
-    implementation 'org.greenrobot:eventbus:3.2.0'
-    implementation 'commons-cli:commons-cli:1.3.1'
-    implementation 'org.bouncycastle:bcprov-jdk15on:1.67'
-    implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'org.apache.httpcomponents:httpclient-cache:4.5.13'
-    implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
-    implementation("org.apache.cxf:cxf-rt-rs-security-jose:3.4.5") {
-        exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
-    }
-    implementation 'com.github.wnameless:json-flattener:0.5.0'
-    implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.4'
-    implementation 'org.apache.kafka:kafka-clients:3.0.0'
-    implementation 'com.onelogin:java-saml:2.5.0'
-    implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
-        exclude(group: 'org.apache.velocity', module: 'velocity')
-    }
-    implementation 'commons-lang:commons-lang:2.4'
-    implementation 'commons-collections:commons-collections:3.2.2'
-    implementation 'com.jayway.jsonpath:json-path:2.4.0'
-    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
-    testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
-    testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
-    testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
-    testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
-    testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
-    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
-    testImplementation 'commons-io:commons-io:2.7'
-    testImplementation 'org.hamcrest:hamcrest-all:1.3'
-    testImplementation 'junit:junit:4.13.1'
-    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
-    testImplementation 'org.mockito:mockito-core:2.23.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test:2.8.6'
-    testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
-    testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
-    testImplementation 'org.apache.kafka:kafka_2.13:2.8.1'
-    testImplementation 'org.apache.kafka:kafka_2.13:2.8.1:test'
-    testImplementation 'org.apache.kafka:kafka-clients:2.8.1:test'
-    compileOnly "org.opensearch:opensearch:${opensearch_version}"
-}
-
-group = 'org.opensearch'
-version = opensearch_build
-
-description = 'OpenSearch Security'
-
 
 java.sourceCompatibility = JavaVersion.VERSION_11
 java.targetCompatibility = JavaVersion.VERSION_11
 
-tasks.register('testsJar', Jar) {
-    archiveClassifier = 'tests'
-    from(sourceSets.test.output)
-}
+licenseHeaders.enabled = true
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from(components.java)
-            artifact(testsJar)
-        }
-    }
-}
-
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
-
-static def getTimestamp() {
-    def df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
-    df.setTimeZone(TimeZone.getTimeZone("UTC"))
-    return df.format(new Date())
-}
-
-static def gitCommitId() {
-    def cmd = "git rev-parse HEAD"
-    def proc = cmd.execute()
-    return proc.text.trim()
-}
-
-jar {
-    manifest {
-        attributes(
-                "Manifest-Version": "1.0",
-                "Created-By": "Gradle ${gradle.gradleVersion}",
-                "Build-Jdk": "${System.properties['java.version']}",
-                "Implementation-Title": "OpenSearch Security",
-                "Implementation-Version": archiveVersion,
-                "Implementation-Vendor-Id": "org.opensearch",
-                "Implementation-URL": "https://github.com/opensearch-project/security",
-                "Build-Time": getTimestamp(),
-                "Built-By": "OpenSearch Security Plugin",
-                "git-sha1": gitCommitId()
-        )
-    }
-
-    libsDirName = '.'
-    into '', {
-        from 'NOTICE.txt', "THIRD-PARTY.txt", "LICENSE"
-    }
-    processResources {
-        exclude("KEYS")
-    }
-
-}
-
-testsJar {
-    manifest {
-        attributes(
-                "Manifest-Version": "1.0",
-                "Created-By": "Gradle ${gradle.gradleVersion}",
-                "Build-Jdk": "${System.properties['java.version']}",
-                "Implementation-Title": "OpenSearch Security",
-                "Implementation-Version": archiveVersion,
-                "Implementation-Vendor-Id": "org.opensearch",
-                "Implementation-URL": "https://github.com/opensearch-project/security",
-                "Build-Time": getTimestamp(),
-                "Built-By": "OpenSearch Security Plugin",
-                "git-sha1": gitCommitId()
-        )
-    }
-
-    libsDirName = '.'
-}
-
+// The following check that have never be enabled in security
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+loggerUsageCheck.enabled = false
+forbiddenApisMain.enabled = false
+forbiddenApisTest.enabled = false
+filepermissions.enabled = false
+forbiddenPatterns.enabled = false
+testingConventions.enabled = false
+// Conflicts between runtime kafka-clients:3.0.1 & testRuntime kafka-clients:3.0.1:test
+jarHell.enabled = false
 
 test {
-    maxParallelForks = 3
+    include '**/*.class'
+    maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
         jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
     }
     retry {
         failOnPassedAfterRetry = false
-        maxFailures = 30
         maxRetries = 5
     }
     jacoco {
@@ -247,48 +113,261 @@ test {
     }
 }
 
-gitProperties {
-    keys = [
-            'git.branch',
-            'git.build.version',
-            'git.closest.tag.commit.count',
-            'git.closest.tag.name',
-            'git.commit.id',
-            'git.commit.id.abbrev',
-            'git.commit.id.describe',
-            'git.commit.message.full',
-            'git.commit.message.short',
-            'git.commit.time',
-            'git.dirty',
-            'git.remote.origin.url',
-            'git.tags',
-            'git.total.commit.count'
-    ]
+task copyExtraTestResources(dependsOn: testClasses) {
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/test/src/test/resources'
+    }
+}
+tasks.test.dependsOn(copyExtraTestResources)
+
+jacoco {
+    reportsDirectory = file("$buildDir/reports/jacoco")
 }
 
-// copied from: org.opensearch.gradle.dependencies.CompileOnlyResolvePlugin
-project.getConfigurations().all { Configuration configuration ->
-    if (configuration.getName().equals(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME)) {
-        NamedDomainObjectProvider<Configuration> resolvableCompileOnly = project.getConfigurations().register('resolveableCompileOnly');
-        resolvableCompileOnly.configure { c ->
-            c.setCanBeResolved(true);
-            c.setCanBeConsumed(false);
-            c.extendsFrom(configuration);
-        };
+jacocoTestReport {
+    reports {
+        xml.required = true
     }
-};
+}
 
-task bundle(dependsOn: jar, type: Zip) {
-    from configurations.runtimeClasspath - project.configurations.getByName('resolveableCompileOnly')
-    from project.jar
-    from 'plugin-security.policy'
-    from 'plugin-descriptor.properties'
-    from('securityconfig') {
-        into 'config/'
+checkstyle {
+    configFile file("checkstyle/sun_checks.xml")
+}
+
+opensearchplugin {
+    name 'opensearch-security'
+    description 'Provide access control related features for OpenSearch'
+    classname 'org.opensearch.security.OpenSearchSecurityPlugin'
+}
+
+// This requires an additional Jar not published as part of build-tools
+loggerUsageCheck.enabled = false
+
+// No need to validate pom, as we do not upload to maven/sonatype
+validateNebulaPom.enabled = false
+
+publishing {
+    publications {
+        pluginZip(MavenPublication) { publication ->
+            pom {
+                name = "opensearch-security"
+                description = "Provide access control related features for OpenSearch"
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        name = "OpenSearch"
+                        url = "https://github.com/opensearch-project/security"
+                    }
+                }
+            }
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven { url "https://plugins.gradle.org/m2/" }
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+}
+
+tasks.withType(Checkstyle) {
+    showViolations true
+    reports {
+        ignoreFailures = false
+    }
+}
+
+tasks.withType(JavaCompile) {
+    configure(options) {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-Xlint:removal' << '-Werror'
+    }
+}
+
+tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
+tasks.jacocoTestReport.dependsOn(test) // tests are required to run before generating the report
+
+
+allprojects {
+    tasks.withType(Javadoc).all { enabled = false }
+}
+
+bundlePlugin {
+    from('plugin-security.policy')
+    from('config') {
+        into 'config'
     }
     from('tools') {
-        into 'tools/'
+        into 'tools'
     }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'commons-codec:commons-codec:1.14'
+        force 'org.slf4j:slf4j-api:1.7.30'
+        force 'org.scala-lang:scala-library:2.13.8'
+        force 'commons-io:commons-io:2.11.0'
+        force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
+        force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+        force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
+        force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+        force 'io.netty:netty-buffer:4.1.73.Final'
+        force 'io.netty:netty-common:4.1.73.Final'
+        force 'io.netty:netty-handler:4.1.73.Final'
+        force 'io.netty:netty-transport:4.1.73.Final'
+    }
+}
+
+dependencies {
+    implementation 'jakarta.annotation:jakarta.annotation-api:1.3.5'
+    implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
+    implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    implementation 'com.google.guava:guava:30.0-jre'
+    implementation 'org.greenrobot:eventbus:3.2.0'
+    implementation 'commons-cli:commons-cli:1.3.1'
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.67'
+    implementation 'org.ldaptive:ldaptive:1.2.3'
+    implementation 'org.apache.httpcomponents:httpclient-cache:4.5.13'
+    implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
+    implementation('org.apache.cxf:cxf-rt-rs-security-jose:3.4.5') {
+        exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
+    }
+    implementation 'com.github.wnameless:json-flattener:0.5.0'
+    implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.4'
+    implementation 'org.apache.kafka:kafka-clients:3.0.1'
+    implementation 'com.onelogin:java-saml:2.5.0'
+    implementation 'com.onelogin:java-saml-core:2.5.0'
+
+    runtimeOnly 'net.minidev:accessors-smart:2.4.7'
+
+    runtimeOnly 'org.apache.cxf:cxf-core:3.4.5'
+    implementation 'org.apache.cxf:cxf-rt-rs-json-basic:3.4.5'
+    runtimeOnly 'org.apache.cxf:cxf-rt-security:3.4.5'
+
+    runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
+    runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
+    runtimeOnly 'commons-codec:commons-codec:1.14'
+    runtimeOnly 'org.cryptacular:cryptacular:1.2.4'
+    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.3.4'
+    runtimeOnly 'com.sun.istack:istack-commons-runtime:3.0.12'
+    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.3'
+    runtimeOnly 'org.ow2.asm:asm:9.1'
+
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.14.2'
+
+    implementation 'net.shibboleth.utilities:java-support:7.5.1'
+    implementation 'org.opensaml:opensaml-core:3.4.5'
+    implementation 'org.opensaml:opensaml-security-impl:3.4.5'
+    implementation 'org.opensaml:opensaml-security-api:3.4.5'
+    implementation 'org.opensaml:opensaml-xmlsec-api:3.4.5'
+    implementation 'org.opensaml:opensaml-xmlsec-impl:3.4.5'
+    implementation 'org.opensaml:opensaml-saml-api:3.4.5'
+    implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
+        exclude(group: 'org.apache.velocity', module: 'velocity')
+    }
+    testImplementation 'org.opensaml:opensaml-messaging-impl:3.4.5'
+    implementation 'org.opensaml:opensaml-messaging-api:3.4.5'
+    runtimeOnly 'org.opensaml:opensaml-profile-api:3.4.5'
+    runtimeOnly 'org.opensaml:opensaml-soap-api:3.4.5'
+    runtimeOnly 'org.opensaml:opensaml-soap-impl:3.4.5'
+    implementation 'org.opensaml:opensaml-storage-api:3.4.5'
+    implementation 'commons-lang:commons-lang:2.4'
+    implementation 'commons-collections:commons-collections:3.2.2'
+    implementation 'com.jayway.jsonpath:json-path:2.4.0'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+    implementation 'net.minidev:json-smart:2.4.7'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
+    runtimeOnly 'com.google.guava:failureaccess:1.0.1'
+    runtimeOnly 'org.apache.commons:commons-text:1.2'
+    runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:2.3.4'
+    runtimeOnly 'com.google.j2objc:j2objc-annotations:1.3'
+    runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    runtimeOnly 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
+    runtimeOnly 'org.lz4:lz4-java:1.7.1'
+    runtimeOnly 'io.dropwizard.metrics:metrics-core:3.1.2'
+    runtimeOnly 'org.slf4j:slf4j-api:1.7.30'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.8.1'
+    runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
+    runtimeOnly 'org.glassfish.jaxb:txw2:2.3.4'
+    runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.2.6'
+    runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
+    runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
+    runtimeOnly 'com.github.luben:zstd-jni:1.5.0-2'
+    runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
+
+
+    implementation 'org.apache.commons:commons-lang3:3.4'
+    testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
+    testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
+    testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
+    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    testImplementation 'commons-io:commons-io:2.7'
+    testImplementation 'javax.servlet:servlet-api:2.5'
+    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
+    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    testImplementation 'javax.servlet:servlet-api:2.5'
+    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
+    testImplementation 'org.apache.kafka:kafka_2.13:3.0.1'
+    testImplementation 'org.apache.kafka:kafka_2.13:3.0.1:test'
+    testImplementation 'org.apache.kafka:kafka-clients:3.0.1:test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:2.8.6'
+    testImplementation 'org.springframework:spring-beans:5.3.20'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    // JUnit build requirement
+    testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
+    // Kafka test execution
+    testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
+    testRuntimeOnly ('org.springframework:spring-core:5.3.21') {
+        exclude(group:'org.springframework', module: 'spring-jcl' )
+    }
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.8'
+    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
+    testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
+    testRuntimeOnly 'org.apache.zookeeper:zookeeper:3.6.3'
+    testRuntimeOnly 'org.apache.kafka:kafka-metadata:3.0.1'
+    testRuntimeOnly 'org.apache.kafka:kafka-storage:3.0.1'
+
+
+
+    implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+
+    compileOnly "org.opensearch:opensearch:${opensearch_version}"
+}
+
+jar {
+    libsDirName = '.'
+    into '', {
+        from 'NOTICE.txt', "THIRD-PARTY.txt", "LICENSE"
+    }
+    processResources {
+        exclude("KEYS")
+    }
+}
+
+tasks.register('testsJar', Jar) {
+    archiveClassifier = 'tests'
+    from(sourceSets.test.output)
+}
+
+testsJar {
+    libsDirName = '.'
 }
 
 task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
@@ -302,10 +381,11 @@ task bundleSecurityAdminStandalone(dependsOn: jar, type: Zip) {
     from('tools') {
         into 'tools/'
     }
-    from('securityconfig') {
+    from('config') {
         into 'deps/securityconfig'
     }
 }
+
 task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
     archiveClassifier = 'securityadmin-standalone'
     archiveExtension = 'tar.gz'
@@ -319,77 +399,9 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
     from('tools') {
         into 'tools/'
     }
-    from('securityconfig') {
+    from('config') {
         into 'deps/securityconfig'
     }
-}
-
-task createPluginDescriptor() {
-    List<String> descriptorProperties = [
-        "description=Provide access control related features for OpenSearch",
-        "version=${version}",
-        "name=opensearch-security",
-        "classname=org.opensearch.security.OpenSearchSecurityPlugin",
-        "java.version=${java.targetCompatibility}",
-        "opensearch.version=${version_tokens[0]}",
-    ]
-
-    new File("plugin-descriptor.properties").text = descriptorProperties.join ("\n")
-}
-bundle.doLast() {
-    new File("plugin-descriptor.properties").delete()
-}
-
-tasks.assemble.dependsOn(bundle)
-tasks.bundle.dependsOn(createPluginDescriptor)
-
-clean {
-    delete 'data/'
-}
-
-
-task createChecksums(type: Checksum) {
-    files = bundle.outputs.files
-    outputDir = new File(project.buildDir, "distributions")
-    algorithm = Checksum.Algorithm.SHA512
-}
-tasks.assemble.finalizedBy(createChecksums)
-
-
-jacoco {
-    reportsDirectory = file("$buildDir/reports/jacoco")
-}
-jacocoTestReport {
-    reports {
-        xml.required = true
-    }
-}
-
-tasks.test.finalizedBy(jacocoTestReport)  // report is always generated after tests run
-tasks.jacocoTestReport.dependsOn(test) // tests are required to run before generating the report
-
-checkstyle {
-    configFile file("config/checkstyle/sun_checks.xml")
-}
-
-tasks.withType(Checkstyle) {
-    showViolations true
-    reports {
-        ignoreFailures = false
-    }
-}
-
-tasks.withType(JavaCompile) {
-    configure(options) {
-        options.compilerArgs << '-Xlint:removal' << '-Werror'
-    }
-}
-
-spotless {
-  java {
-    // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
-    importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
-  }
 }
 
 buildRpm {
@@ -397,32 +409,80 @@ buildRpm {
     addParentDirs = false
     archiveName "${packageName}-${version}.rpm"
 }
+
 buildDeb {
     arch = 'all'
     archiveName "${packageName}-${version}.deb"
 }
 
-allprojects {
-    // add a collection to track failedTests
-    ext.failedTests = []
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from(components.java)
+            artifact(testsJar)
+        }
+    }
+}
 
-    // add a testlistener to all tasks of type Test
-    tasks.withType(Test) {
-        afterTest { TestDescriptor descriptor, TestResult result ->
-            if(result.resultType == org.gradle.api.tasks.testing.TestResult.ResultType.FAILURE){
-                failedTests << ["${descriptor.className}::${descriptor.name}"]
-            }
+// This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
+afterEvaluate {
+    ospackage {
+        packageName = "${name}"
+        release = isSnapshot ? "0.1" : '1'
+        version = "${project.version}" - "-SNAPSHOT"
+
+        into '/usr/share/opensearch/plugins'
+        from(zipTree(bundlePlugin.archivePath)) {
+            into opensearchplugin.name
+        }
+
+        user 'root'
+        permissionGroup 'root'
+        fileMode 0644
+        dirMode 0755
+
+        requires('opensearch', versions.opensearch, EQUAL)
+        packager = 'Amazon'
+        vendor = 'Amazon'
+        os = 'LINUX'
+        prefix '/usr'
+
+        license 'ASL-2.0'
+        maintainer 'OpenSearch <opensearch@amazon.com>'
+        url 'https://opensearch.org/downloads.html'
+        summary '''
+         Security plugin for OpenSearch.
+         Reference documentation can be found at https://opensearch.org/docs/latest/.
+    '''.stripIndent().replace('\n', ' ').trim()
+    }
+
+    buildRpm {
+        arch = 'NOARCH'
+        dependsOn 'assemble'
+        finalizedBy 'renameRpm'
+        task renameRpm(type: Copy) {
+            from("$buildDir/distributions")
+            into("$buildDir/distributions")
+            include archiveName
+            rename archiveName, "${packageName}-${version}.rpm"
+            doLast { delete file("$buildDir/distributions/$archiveName") }
         }
     }
 
-    // print out tracked failed tests when the build has finished
-    gradle.buildFinished {
-        if(!failedTests.empty){
-            println "Failed tests for ${project.name}:"
-            failedTests.each { failedTest ->
-                println failedTest
-            }
-            println ""
+    buildDeb {
+        arch = 'all'
+        dependsOn 'assemble'
+        finalizedBy 'renameDeb'
+        task renameDeb(type: Copy) {
+            from("$buildDir/distributions")
+            into("$buildDir/distributions")
+            include archiveName
+            rename archiveName, "${packageName}-${version}.deb"
+            doLast { delete file("$buildDir/distributions/$archiveName") }
         }
+    }
+
+    task buildPackages(type: GradleBuild) {
+        tasks = ['build', 'buildRpm', 'buildDeb']
     }
 }

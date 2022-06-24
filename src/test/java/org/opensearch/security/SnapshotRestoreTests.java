@@ -26,16 +26,9 @@
 
 package org.opensearch.security;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 
 import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
@@ -52,18 +45,8 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-@RunWith(Parameterized.class)
 public class SnapshotRestoreTests extends SingleClusterTest {
-
-    @Parameters
-    public static Collection<ClusterConfiguration> data() {
-        return Arrays.asList(new ClusterConfiguration[] {     
-                ClusterConfiguration.DEFAULT
-           });
-    }
-    
-    @Parameter
-    public ClusterConfiguration currentClusterConfig;
+    private ClusterConfiguration currentClusterConfig = ClusterConfiguration.DEFAULT;
 
     @Test
     public void testSnapshotEnableSecurityIndexRestore() throws Exception {

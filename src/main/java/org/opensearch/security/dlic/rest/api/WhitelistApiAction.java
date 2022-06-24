@@ -9,7 +9,6 @@
  * GitHub history for details.
  */
 
-
 package org.opensearch.security.dlic.rest.api;
 
 import java.nio.file.Path;

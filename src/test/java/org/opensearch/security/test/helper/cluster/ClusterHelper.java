@@ -49,7 +49,7 @@ import org.opensearch.action.admin.cluster.node.info.NodeInfo;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.action.support.master.AcknowledgedResponse;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.node.DiscoveryNodeRole;
@@ -61,6 +61,7 @@ import org.opensearch.http.HttpInfo;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.test.NodeSettingsSupplier;
+import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration.NodeSettings;
 import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.transport.TransportInfo;
@@ -68,8 +69,23 @@ import org.opensearch.transport.TransportInfo;
 public final class ClusterHelper {
 
     static {
+        resetSystemProperties();
+    }
+    
+    /** Resets all system properties associated with a cluster */
+    public static void resetSystemProperties() {
         System.setProperty("opensearch.enforce.bootstrap.checks", "true");
-        System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
+        updateDefaultDirectory(new File( SingleClusterTest.PROJECT_ROOT_RELATIVE_PATH + "config").getAbsolutePath());
+    }
+
+    /**
+     * Update the default directory used by the security plugin
+     * NOTE: this setting is system wide, use ClusterHelper.resetSystemProperties() to restore the original state
+     * 
+     * @return the previous value if one was set, otherwise null
+     */
+    public static String updateDefaultDirectory(final String newValue) {
+        return System.setProperty("security.default_init.dir", newValue);
     }
 
     protected final Logger log = LogManager.getLogger(ClusterHelper.class);
