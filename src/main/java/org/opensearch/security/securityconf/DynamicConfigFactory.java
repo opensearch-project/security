@@ -184,7 +184,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                     " whitelist " + whitelistingSetting.getImplementingClass() + " with " + whitelistingSetting.getCEntries().size() + " entries\n" +
                     " allowlist " + allowlistingSetting.getImplementingClass() + " with " + allowlistingSetting.getCEntries().size() + " entries\n";
             log.debug(logmsg);
-            
         }
 
         final DynamicConfigModel dcm;

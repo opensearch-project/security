@@ -194,22 +194,14 @@
     <property name="format" value="whitelist"/>
     <property name="ignoreCase" value="true"/>
     <property name="message" value="Usage should be switched to an allow* based pattern" />
-    <property name="severity" value="warning"/>
+    <property name="severity" value="ignore"/>
   </module>
 
   <module name="RegexpSingleline">
     <property name="format" value="master"/>
     <property name="ignoreCase" value="true"/>
     <property name="message" value="Usage should be switched to cluster manager" />
-    <property name="severity" value="warning"/>
-  </module>
-
-  <!-- Checks for Headers to not contain old license text -->
-  <module name="RegexpSingleline">
-    <property name="format" value="\*( Portions)? Copyright OpenSearch Contributors"/>
-    <property name="ignoreCase" value="true"/>
-    <property name="message" value="Incorrect license header" />
-    <property name="severity" value="error"/>
+    <property name="severity" value="ignore"/>
   </module>
 
 </module>

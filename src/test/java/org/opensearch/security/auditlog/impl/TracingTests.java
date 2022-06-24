@@ -11,9 +11,6 @@
 
 package org.opensearch.security.auditlog.impl;
 
-import java.lang.Thread.UncaughtExceptionHandler;
-
-import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -35,7 +32,6 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-@NotThreadSafe
 public class TracingTests extends SingleClusterTest {
 
     @Override
@@ -215,16 +211,6 @@ public class TracingTests extends SingleClusterTest {
 
     @Test
     public void testHTTPSingle() throws Exception {
-
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace();
-
-            }
-        });
-
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
@@ -281,16 +267,6 @@ public class TracingTests extends SingleClusterTest {
 
     @Test
     public void testSearchScroll() throws Exception {
-
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace();
-
-            }
-        });
-
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();

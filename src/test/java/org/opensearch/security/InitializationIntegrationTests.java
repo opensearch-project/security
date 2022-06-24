@@ -54,6 +54,7 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
+import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
@@ -194,9 +195,8 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testInvalidDefaultConfig() throws Exception {
-        String defaultInitDirectory = System.getProperty("security.default_init.dir");
         try {
-            System.setProperty("security.default_init.dir", new File("./src/test/resources/invalid_config").getAbsolutePath());
+            final String defaultInitDirectory = ClusterHelper.updateDefaultDirectory(new File(TEST_RESOURCE_RELATIVE_PATH + "invalid_config").getAbsolutePath());
             final Settings settings = Settings.builder()
                     .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
                     .build();
@@ -205,17 +205,13 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             Thread.sleep(10000);
             Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
 
-            System.setProperty("security.default_init.dir", defaultInitDirectory);
+            ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
             restart(Settings.EMPTY, null, settings, false);
             rh = nonSslRestHelper();
             Thread.sleep(10000);
             Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
         } finally {
-            if (defaultInitDirectory != null) {
-                System.setProperty("security.default_init.dir", defaultInitDirectory);
-            } else {
-                System.clearProperty("security.default_init.dir");
-            }
+            ClusterHelper.resetSystemProperties();
         }
     }
 

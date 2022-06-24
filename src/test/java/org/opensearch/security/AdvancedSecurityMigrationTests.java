@@ -25,18 +25,19 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
+import org.opensearch.security.test.helper.cluster.ClusterHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
 public class AdvancedSecurityMigrationTests extends SingleClusterTest {
 
     @Before
     public void setupBefore() {
-        System.setProperty("security.default_init.dir", new File("./src/test/resources/security_passive").getAbsolutePath());
+        ClusterHelper.updateDefaultDirectory(new File(TEST_RESOURCE_RELATIVE_PATH + "security_passive").getAbsolutePath());
     }
 
     @After
     public void cleanupAfter() {
-        System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
+        ClusterHelper.resetSystemProperties();
     }
 
     /**

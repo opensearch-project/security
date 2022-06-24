@@ -14,13 +14,10 @@ package org.opensearch.security.dlic.rest.api;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.ImmutableList;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
@@ -30,26 +27,17 @@ import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-@RunWith(Parameterized.class)
 public class RolesApiTest extends AbstractRestApiUnitTest {
-
-    private final String ENDPOINT;
-
-    public RolesApiTest(String endpoint){
-        ENDPOINT = endpoint;
+    private final String ENDPOINT; 
+    protected String getEndpointPrefix() {
+        return PLUGINS_PREFIX;
     }
 
-    @Parameterized.Parameters
-    public static Iterable<String> endpoints() {
-        return ImmutableList.of(
-                LEGACY_OPENDISTRO_PREFIX + "/api",
-                PLUGINS_PREFIX + "/api"
-        );
+    public RolesApiTest(){
+        ENDPOINT = getEndpointPrefix() + "/api";
     }
-
 
     @Test
     public void testPutRole() throws Exception {
@@ -285,10 +273,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
                 FileHelper.loadFile("restapi/roles_complete_invalid.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-//		rh.sendAdminCertificate = true;
-//		response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-//				FileHelper.loadFile("restapi/roles_multiple.json"), new Header[0]);
-//		Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+//        rh.sendAdminCertificate = true;
+//        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+//                FileHelper.loadFile("restapi/roles_multiple.json"), new Header[0]);
+//        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
                 FileHelper.loadFile("restapi/roles_multiple_2.json"), new Header[0]);
