@@ -226,8 +226,8 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
         log.debug("Value for {} is {}", propName, originalPath);
 
         if (env != null && originalPath != null && originalPath.length() > 0) {
-            path = env.configDir().resolve(originalPath).toAbsolutePath().toString();
-            log.debug("Resolved {} to {} against {}", originalPath, path, env.configDir().toAbsolutePath().toString());
+            path = env.configFile().resolve(originalPath).toAbsolutePath().toString();
+            log.debug("Resolved {} to {} against {}", originalPath, path, env.configFile().toAbsolutePath().toString());
         }
 
         if (mustBeValid) {
@@ -247,7 +247,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             log.info("No config directory, key- and truststore files are resolved absolutely");
         } else {
             log.info("Config directory is {}/, from there the key- and truststore files are resolved relatively",
-                env.configDir().toAbsolutePath());
+                env.configFile().toAbsolutePath());
         }
 
 

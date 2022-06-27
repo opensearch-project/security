@@ -47,7 +47,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.1.0-SNAPSHOT")
         opensearch_group = "org.opensearch"
     }
     repositories {
@@ -73,16 +73,16 @@ dependencies {
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
 }
 
-String bwcVersion = "2.1.0.0";
+String bwcVersion = "2.0.0.0";
 String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
-String projectVersion = "3.0.0.0"
+String projectVersion = "2.1.0.0"
 
 2.times {i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-        versions = ["2.1.0","3.0.0"]
+        versions = ["2.0.0","2.1.0"]
             numberOfNodes = 3
             plugin(provider(new Callable<RegularFile>() {
                 @Override

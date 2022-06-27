@@ -560,7 +560,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     (key.contains("filepath") || key.contains("file_path"))) {
                 String value = settings.get(key);
                 if(value != null && !value.isEmpty()) {
-                    Path path = value.startsWith("/")?Paths.get(value):environment.configDir().resolve(value);
+                    Path path = value.startsWith("/")?Paths.get(value):environment.configFile().resolve(value);
                     paths.put(key, path);
                 }
             }
