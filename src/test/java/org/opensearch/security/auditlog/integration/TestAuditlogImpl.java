@@ -38,7 +38,8 @@ public class TestAuditlogImpl extends AuditLogSink {
 
     public synchronized boolean doStore(AuditMessage msg) {
         if (messagesRef.get() == null || countDownRef.get() == null) {
-            throw new RuntimeException("No message latch is waiting");
+            // Ignore any messages that are sent before TestAuditlogImpl is waiting.
+            return true;
         }
         sb.append(msg.toPrettyString()+System.lineSeparator());
         messagesRef.get().add(msg);
@@ -69,7 +70,7 @@ public class TestAuditlogImpl extends AuditLogSink {
             final int maxSecondsToWaitForMessages = 1; 
             final boolean foundAll = latch.await(maxSecondsToWaitForMessages, TimeUnit.SECONDS);
             if (!foundAll) {
-                throw new RuntimeException("Did not recieve all " + expectedCount +" audit messages after a short wait.");
+                throw new MessagesNotFoundException(expectedCount, (int)latch.getCount());
             }
             if (messages.size() != expectedCount) {
                 throw new RuntimeException("Unexpected number of messages, was expecting " + expectedCount + ", recieved " + messages.size());
@@ -80,10 +81,33 @@ public class TestAuditlogImpl extends AuditLogSink {
         return new ArrayList<>(messages);
     }
 
+    /**
+     * Perform an action and then wait until a single message has been found.
+     */
+    public static AuditMessage doThenWaitForMessage(final Runnable action) {
+        return doThenWaitForMessages(action, 1).get(0);
+    }
+
     @Override
     public boolean isHandlingBackpressure() {
         return true;
     }
 
+    public static class MessagesNotFoundException extends RuntimeException {
+        private final int expectedCount;
+        private final int missingCount;
+        public MessagesNotFoundException(final int expectedCount, final int missingCount) {
+            super("Did not recieve all " + expectedCount +" audit messages after a short wait, missing " + missingCount + " messages");
+            this.expectedCount = expectedCount;
+            this.missingCount = missingCount;
+        }
 
+        public int getExpectedCount() {
+            return expectedCount;
+        }
+
+        public int getMissingCount() {
+            return missingCount;
+        }
+    }
 }
