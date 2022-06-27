@@ -51,6 +51,6 @@ public class SamlFilesystemMetadataResolver extends FilesystemMetadataResolver {
 
     private static File getMetadataFile(String filePath, Settings settings, Path configPath) {
         Environment env = new Environment(settings, configPath);
-        return env.configDir().resolve(filePath).toAbsolutePath().toFile();
+        return env.configFile().resolve(filePath).toAbsolutePath().toFile();
     }
 }

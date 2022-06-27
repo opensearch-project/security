@@ -70,7 +70,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     public HTTPSpnegoAuthenticator(final Settings settings, final Path configPath) {
         super();
         try {
-            final Path configDir = new Environment(settings, configPath).configDir();
+            final Path configDir = new Environment(settings, configPath).configFile();
             final String krb5PathSetting = settings.get("plugins.security.kerberos.krb5_filepath");
 
             final SecurityManager sm = System.getSecurityManager();

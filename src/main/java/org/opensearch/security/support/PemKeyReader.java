@@ -325,8 +325,8 @@ public final class PemKeyReader {
         final Environment env = new Environment(settings, configPath);
         
         if(env != null && originalPath != null && originalPath.length() > 0) {
-            path = env.configDir().resolve(originalPath).toAbsolutePath().toString();
-            log.debug("Resolved {} to {} against {}", originalPath, path, env.configDir().toAbsolutePath().toString());
+            path = env.configFile().resolve(originalPath).toAbsolutePath().toString();
+            log.debug("Resolved {} to {} against {}", originalPath, path, env.configFile().toAbsolutePath().toString());
         }
         
         if(mustBeValid) {

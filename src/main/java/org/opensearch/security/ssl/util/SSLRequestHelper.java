@@ -199,7 +199,7 @@ public class SSLRequestHelper {
             final String crlFile = settings.get(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE);
 
             if(crlFile != null) {
-                final File crl = env.configDir().resolve(crlFile).toAbsolutePath().toFile();
+                final File crl = env.configFile().resolve(crlFile).toAbsolutePath().toFile();
                 try(FileInputStream crlin = new FileInputStream(crl)) {
                     crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
                 }
@@ -222,12 +222,12 @@ public class SSLRequestHelper {
                 //final String truststoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, null);
     
                 final KeyStore ts = KeyStore.getInstance(truststoreType);
-                try(FileInputStream fin = new FileInputStream(new File(env.configDir().resolve(truststore).toAbsolutePath().toString()))) {
+                try(FileInputStream fin = new FileInputStream(new File(env.configFile().resolve(truststore).toAbsolutePath().toString()))) {
                     ts.load(fin, (truststorePassword == null || truststorePassword.length() == 0) ?null:truststorePassword.toCharArray());
                 }
                 validator = new CertificateValidator(ts, crls);
             } else {
-                final File trustedCas = env.configDir().resolve(settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, "")).toAbsolutePath().toFile();
+                final File trustedCas = env.configFile().resolve(settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, "")).toAbsolutePath().toFile();
                 try(FileInputStream trin = new FileInputStream(trustedCas)) {
                     Collection<? extends Certificate> cert =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
                     validator = new CertificateValidator(cert.toArray(new X509Certificate[0]), crls);
