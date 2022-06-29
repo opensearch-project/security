@@ -14,6 +14,7 @@ package org.opensearch.security.auditlog.compliance;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
@@ -32,6 +33,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.auditlog.AuditTestUtils;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl.MessagesNotFoundException;
@@ -41,9 +43,9 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
@@ -111,10 +113,27 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
 
         // make an event happen
-        TestAuditlogImpl.doThenWaitForMessages(() -> {
-            rh.executePutRequest("emp/_doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
-        }, 7);
-        assertTrue(TestAuditlogImpl.messages.toString().contains("COMPLIANCE_DOC_WRITE"));
+        List<AuditMessage> messages;
+        try {
+            messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
+                rh.executePutRequest("emp/_doc/0?refresh", "{\"Designation\" : \"CEO\", \"Gender\" : \"female\", \"Salary\" : 100}");
+                System.out.println(rh.executeGetRequest("_cat/shards?v"));
+            }, 7);
+        }  catch (final MessagesNotFoundException ex) {
+            // indices:admin/mapping/auto_put can be logged twice, this handles if they were not found
+            assertThat("Too many missing audit log messages", ex.getMissingCount(), equalTo(2));
+            messages = ex.getFoundMessages();
+        }
+
+        messages.stream().filter(msg -> msg.getCategory().equals(AuditCategory.COMPLIANCE_DOC_WRITE))
+            .findFirst().orElseThrow(() -> new RuntimeException("Missing COMPLIANCE message"));
+
+        final List<AuditMessage> indexCreation = messages.stream().filter(msg -> "indices:admin/auto_create".equals(msg.getPrivilege())).collect(Collectors.toList());
+        assertThat(indexCreation.size(), equalTo(2));
+
+        final List<AuditMessage> mappingCreation = messages.stream().filter(msg -> "indices:admin/mapping/auto_put".equals(msg.getPrivilege())).collect(Collectors.toList());
+        assertThat(mappingCreation.size(), anyOf(equalTo(4), equalTo(2)));
+       
         // disable compliance
         auditConfig = new AuditConfig(true, AuditConfig.Filter.DEFAULT , ComplianceConfig.from(ImmutableMap.of("enabled", false, "write_watched_indices", Collections.singletonList("emp")), additionalSettings));
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));
