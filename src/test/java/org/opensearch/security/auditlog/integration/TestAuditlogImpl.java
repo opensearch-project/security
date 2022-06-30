@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.impl.AuditMessage;
@@ -67,10 +68,10 @@ public class TestAuditlogImpl extends AuditLogSink {
         
         try {
             action.run();
-            final int maxSecondsToWaitForMessages = 1; 
+            final int maxSecondsToWaitForMessages = 1;
             final boolean foundAll = latch.await(maxSecondsToWaitForMessages, TimeUnit.SECONDS);
             if (!foundAll) {
-                throw new MessagesNotFoundException(expectedCount, (int)latch.getCount());
+                throw new MessagesNotFoundException(expectedCount, messages);
             }
             if (messages.size() != expectedCount) {
                 throw new RuntimeException("Unexpected number of messages, was expecting " + expectedCount + ", recieved " + messages.size());
@@ -96,10 +97,12 @@ public class TestAuditlogImpl extends AuditLogSink {
     public static class MessagesNotFoundException extends RuntimeException {
         private final int expectedCount;
         private final int missingCount;
-        public MessagesNotFoundException(final int expectedCount, final int missingCount) {
-            super("Did not recieve all " + expectedCount +" audit messages after a short wait, missing " + missingCount + " messages");
+        private final List<AuditMessage> foundMessages;
+        public MessagesNotFoundException(final int expectedCount, List<AuditMessage> foundMessages) {
+            super(MessagesNotFoundException.createDetailMessage(expectedCount, foundMessages));
             this.expectedCount = expectedCount;
-            this.missingCount = missingCount;
+            this.missingCount = expectedCount - foundMessages.size();
+            this.foundMessages = foundMessages;
         }
 
         public int getExpectedCount() {
@@ -108,6 +111,21 @@ public class TestAuditlogImpl extends AuditLogSink {
 
         public int getMissingCount() {
             return missingCount;
+        }
+
+        public List<AuditMessage> getFoundMessages() {
+            return foundMessages;
+        }
+
+        private static String createDetailMessage(final int expectedCount, final List<AuditMessage> foundMessages) {
+            return new StringBuilder()
+                .append("Did not recieve all " + expectedCount + " audit messages after a short wait. ")
+                .append("Missing " + (expectedCount - foundMessages.size()) + " messages.")
+                .append("Messages found during this time: \n\n")
+                .append(foundMessages.stream()
+                    .map(AuditMessage::toString)
+                    .collect(Collectors.joining("\n")))
+                .toString();
         }
     }
 }
