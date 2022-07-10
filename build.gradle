@@ -337,7 +337,7 @@ dependencies {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.8'
-    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
+    testRuntimeOnly 'com.yammer.metrics:metrics-core:2.1.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly 'org.apache.zookeeper:zookeeper:3.7.1'
     testRuntimeOnly 'org.apache.kafka:kafka-metadata:3.0.1'
@@ -486,3 +486,20 @@ afterEvaluate {
         tasks = ['build', 'buildRpm', 'buildDeb']
     }
 }
+
+// versionIncrement: Task to auto increment to the next development iteration
+task versionIncrement {
+    onlyIf { System.getProperty('newVersion') }
+    doLast {
+        ext.newVersion = System.getProperty('newVersion')
+        println "Setting version to ${newVersion}."
+        // String tokenization to support -SNAPSHOT
+        ant.replaceregexp(match: opensearch_version.tokenize('-')[0], replace: newVersion.tokenize('-')[0], flags:'g', byline:true) {
+            fileset(dir: projectDir) {
+                // Include the required files that needs to be updated with new Version
+                include(name: "build.gradle")
+                include(name: "bwc-test/build.gradle")
+            }
+        }
+    }
+} 
