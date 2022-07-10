@@ -375,3 +375,19 @@ buildDeb {
     arch = 'all'
     archiveName "${packageName}-${version}.deb"
 }
+
+// versionIncrement: Task to auto increment to the next development iteration
+task versionIncrement {
+    onlyIf { System.getProperty('newVersion') }
+    doLast {
+        ext.newVersion = System.getProperty('newVersion')
+        println "Setting version to ${newVersion}."
+        // String tokenization to support -SNAPSHOT
+        ant.replaceregexp(match: opensearch_version.tokenize('-')[0], replace: newVersion.tokenize('-')[0], flags:'g', byline:true) {
+            fileset(dir: projectDir) {
+                // Include the required files that needs to be updated with new Version
+                include(name: "build.gradle")
+            }
+        }
+    }
+} 
