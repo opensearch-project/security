@@ -487,8 +487,8 @@ afterEvaluate {
     }
 }
 
-// versionIncrement: Task to auto increment to the next development iteration
-task versionIncrement {
+// updateVersion: Task to auto increment to the next development iteration
+task updateVersion {
     onlyIf { System.getProperty('newVersion') }
     doLast {
         ext.newVersion = System.getProperty('newVersion')

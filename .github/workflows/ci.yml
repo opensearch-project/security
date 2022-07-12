@@ -125,7 +125,7 @@ jobs:
 
     - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
 
-    - run: ./gradlew clean versionIncrement -DnewVersion=3.0.0-SNAPSHOT
+    - run: ./gradlew clean updateVersion -DnewVersion=3.0.0-SNAPSHOT
 
     - name: List files in the build directory if there was an error
       run: ls -al ./build/distributions/
