@@ -1,0 +1,40 @@
+name: Bulk Integration Test
+
+on: [
+  workflow_dispatch,
+  # Uncomment below to automatically run on pushes to branches
+  # push,
+  ]
+
+env:
+  GRADLE_OPTS: -Dhttp.keepAlive=false
+
+jobs:
+  bulk-integration-test-run:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [11, 17]
+        test-run: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    steps:
+    - uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - uses: actions/checkout@v2
+
+    - run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test
+
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: ${{ matrix.jdk }}-${{ matrix.test-run }}-reports
+        path: |
+          ./build/reports/
+
+    - name: check archive for debugging
+      if: always()
+      run: echo "Check the artifact ${{ matrix.jdk }}-${{ matrix.test-run }}-reports.zip for detailed test results"
