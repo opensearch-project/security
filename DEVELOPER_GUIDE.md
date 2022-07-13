@@ -6,6 +6,8 @@ So you want to contribute code to this project? Excellent! We're glad you're her
     - [Native platforms](#native-platforms)
   - [Building](#building)
   - [Using IntelliJ IDEA](#using-intellij-idea)
+  - [Running integration tests](#running-integration-tests)
+    - [Bulk test runs](#bulk-test-runs)
   - [Submitting Changes](#submitting-changes)
   - [Backports](#backports)
 
@@ -134,6 +136,13 @@ curl -XGET https://localhost:9200/_plugins/_security/authinfo -u 'admin:admin' -
 ## Using IntelliJ IDEA
 
 Launch IntelliJ IDEA, choose **Project from Existing Sources**, and select directory with Gradle build script (`build.gradle`).
+
+## Running integration tests
+
+Integration tests are automatically run on all pull requests for all supported versions of the JDK.  These must pass for the change(s) to be merged.
+
+### Bulk test runs
+To collect reliability data on test runs there is a manual GitHub action workflow called `Bulk Integration Test`.  The workflow is started for a branch on this project or in a fork by going to [GitHub action workflows](https://github.com/opensearch-project/security/actions/workflows/integration-tests.yml) and selecting `Run Workflow`.
 
 ## Submitting Changes
 
