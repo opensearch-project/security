@@ -149,6 +149,23 @@ asynchronous_search_read_access:
   cluster_permissions:
     - 'cluster:admin/opendistro/asynchronous_search/get'
 
+# Allows users to use all point in time search functionality
+point_in_time_search_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'indices:data/read/point_in_time/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:data/read/search*'
+
+# Allows users to read all active point in time search contexts
+point_in_time_search_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'indices:data/read/point_in_time/read*'
+
 # Allows user to use all index_management actions - ism policies, rollups, transforms
 index_management_full_access:
   reserved: true

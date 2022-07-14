@@ -130,6 +130,7 @@ cluster_composite_ops_ro:
   - "indices:admin/aliases/get*"
   - "indices:data/read/scroll"
   - "indices:admin/resolve/index"
+  - "indices:data/read/point_in_time/read*"
   type: "cluster"
   description: "Allow readonly bulk and m* operations"
 get:
