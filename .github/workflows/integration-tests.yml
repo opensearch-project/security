@@ -1,10 +1,6 @@
 name: Bulk Integration Test
 
-on: [
-  workflow_dispatch,
-  # Uncomment below to automatically run on pushes to branches
-  # push,
-  ]
+on: [ workflow_dispatch ]
 
 env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
