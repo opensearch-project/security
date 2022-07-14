@@ -224,6 +224,7 @@ configurations.all {
         force "io.netty:netty-common:${versions.netty}"
         force "io.netty:netty-handler:${versions.netty}"
         force "io.netty:netty-transport:${versions.netty}"
+        force "io.netty:netty-transport-native-unix-common:${versions.netty}"
     }
 }
 
