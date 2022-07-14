@@ -9,7 +9,10 @@
  * GitHub history for details.
  */
 
+import org.opensearch.gradle.test.RestIntegTestTask
+
 buildscript {
+    ext.kotlin_version = '1.7.0'
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.2.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
@@ -36,6 +39,7 @@ buildscript {
 
     dependencies {
         classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
@@ -56,7 +60,10 @@ allprojects {
 }
 
 apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'kotlin'
 apply plugin: 'opensearch.pluginzip'
+apply plugin: 'opensearch.rest-test'
+apply plugin: 'opensearch.testclusters'
 
 licenseFile = rootProject.file('LICENSE.txt')
 noticeFile = rootProject.file('NOTICE.txt')
@@ -350,6 +357,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 
 jar {
@@ -423,6 +431,18 @@ publishing {
             artifact(testsJar)
         }
     }
+}
+
+task integTestRemote(type: RestIntegTestTask) {
+    doFirst {
+        systemProperty "tests.cluster.follower.http_hosts", System.getProperty("follower.http_host")
+        systemProperty "tests.cluster.follower.transport_hosts", System.getProperty("follower.transport_host")
+        systemProperty "tests.cluster.follower.security_enabled", System.getProperty("security_enabled")
+    }
+    filter {
+        setIncludePatterns("org.opensearch.security.sanity.tests.SingleClusterSanityIT")
+    }
+    nonInputProperties.systemProperty("tests.clustername", "follower")
 }
 
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
@@ -503,4 +523,4 @@ task updateVersion {
         }
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
     }
-} 
+}
