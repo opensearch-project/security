@@ -214,9 +214,9 @@ public class Saml2SettingsProvider {
     private String buildAssertionConsumerEndpoint(String dashboardsRoot) {
 
         if (dashboardsRoot.endsWith("/")) {
-            return dashboardsRoot + "_opendistro/_security/saml/acs";
+            return dashboardsRoot + "_plugins/_security/saml/acs";
         } else {
-            return dashboardsRoot + "/_opendistro/_security/saml/acs";
+            return dashboardsRoot + "/_plugins/_security/saml/acs";
         }
     }
 
