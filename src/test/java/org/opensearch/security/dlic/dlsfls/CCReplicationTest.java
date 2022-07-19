@@ -156,24 +156,6 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
         }
     }
 
-    //Wait for the security plugin to load roles.
-    private void waitOrThrow(Client client, String index) throws Exception {
-        int failures = 0;
-        while(failures < 5) {
-            try {
-                client.execute(MockReplicationAction.INSTANCE, new MockReplicationRequest(index)).actionGet();
-                break;
-            } catch (OpenSearchSecurityException ex) {
-                if (ex.getMessage().contains("OpenSearch Security not initialized")) {
-                    Thread.sleep(500);
-                    failures++;
-                } else {
-                    throw ex;
-                }
-            }
-        }
-    }
-
     void populateData(Client tc) {
         tc.index(new IndexRequest("hr-dls").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
             .source("{\"User\": \"testuser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"HR\"}", XContentType.JSON)).actionGet();
@@ -212,7 +194,8 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
         // Set roles for the user
         MockReplicationPlugin.injectedRoles = "ccr_user|opendistro_security_human_resources_trainee";
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
-            waitOrThrow(node.client(), "hr-dls");
+            waitForInit(node.client());
+            node.client().execute(MockReplicationAction.INSTANCE, new MockReplicationRequest("hr-dls")).actionGet();
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             log.warn(ex.getMessage());
@@ -222,7 +205,8 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
         }
 
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
-            waitOrThrow(node.client(), "hr-fls");
+            waitForInit(node.client());
+            node.client().execute(MockReplicationAction.INSTANCE, new MockReplicationRequest("hr-fls")).actionGet();
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             log.warn(ex.getMessage());
@@ -232,7 +216,8 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
         }
 
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
-            waitOrThrow(node.client(), "hr-masking");
+            waitForInit(node.client());
+            node.client().execute(MockReplicationAction.INSTANCE, new MockReplicationRequest("hr-masking")).actionGet();
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             log.warn(ex.getMessage());
@@ -242,7 +227,8 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
         }
 
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
-            waitOrThrow(node.client(), "hr-normal");
+            waitForInit(node.client());
+            node.client().execute(MockReplicationAction.INSTANCE, new MockReplicationRequest("hr-normal")).actionGet();
             AcknowledgedResponse res = node.client().execute(MockReplicationAction.INSTANCE, new MockReplicationRequest("hr-normal")).actionGet();
             Assert.assertTrue(res.isAcknowledged());
         }

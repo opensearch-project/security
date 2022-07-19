@@ -34,6 +34,7 @@ import java.security.KeyStore;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLContext;
@@ -57,6 +58,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
 
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -83,7 +86,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 /*
  * There are real thread leaks during test execution, not all threads are 
- * properly waited on or interupted.  While this normally doesn't create test
+ * properly waited on or interrupted.  While this normally doesn't create test
  * failures, retries mitigate this.  Remove this attribute to explore these
  * issues.
  */ 
@@ -161,6 +164,33 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         } catch (Exception e) {
             log.error("Cannot create client", e);
             throw new RuntimeException("Cannot create client", e);
+        }
+    }
+
+    /** Wait for the security plugin to load roles. */
+    public void waitForInit(Client client) {
+        int maxRetries = 5;
+        Optional<Exception> retainedException = Optional.empty();
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                client.admin().cluster().health(new ClusterHealthRequest()).actionGet();
+                retainedException = Optional.empty();
+                return;
+            } catch (OpenSearchSecurityException ex) {
+                if(ex.getMessage().contains("OpenSearch Security not initialized")) {
+                    retainedException = Optional.of(ex);
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) { /* ignored */ }
+                } else {
+                    // plugin is initialized, but another error received.
+                    // Example could be user does not have permissions for cluster:monitor/health
+                    retainedException = Optional.empty();
+                }
+            }
+        }
+        if (retainedException.isPresent()) {
+            throw new RuntimeException(retainedException.get());
         }
     }
 
