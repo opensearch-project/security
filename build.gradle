@@ -7,7 +7,7 @@ plugins {
 buildDir = 'gradle-build'
 
 ext {
-    opendistroVersion = '1.13.1'
+    opendistroVersion = '1.13.2'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
