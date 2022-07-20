@@ -27,6 +27,8 @@ buildscript {
         if (isSnapshot) {
             opensearch_build += "-SNAPSHOT"
         }
+
+        common_utils_version = System.getProperty("common_utils.version", opensearch_build)
     }
 
     repositories {
@@ -239,6 +241,7 @@ dependencies {
     implementation 'jakarta.annotation:jakarta.annotation-api:1.3.5'
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    implementation "org.opensearch:common-utils:${common_utils_version}"
     implementation 'com.google.guava:guava:30.0-jre'
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'commons-cli:commons-cli:1.3.1'
@@ -434,16 +437,19 @@ publishing {
 }
 
 task integTestRemote(type: RestIntegTestTask) {
-    doFirst {
-        systemProperty "tests.cluster.follower.http_hosts", System.getProperty("follower.http_host")
-        systemProperty "tests.cluster.follower.transport_hosts", System.getProperty("follower.transport_host")
-        systemProperty "tests.cluster.follower.security_enabled", System.getProperty("security_enabled")
-    }
+
+    systemProperty "tests.security.manager", "false"
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
+    systemProperty "https", System.getProperty("https")
+    systemProperty "security.enabled", "true"
+
     filter {
-        setIncludePatterns("org.opensearch.security.sanity.tests.SingleClusterSanityIT")
+        setIncludePatterns("org.opensearch.security.sanity.tests.*IT")
     }
-    nonInputProperties.systemProperty("tests.clustername", "follower")
 }
+
+integTestRemote.enabled = System.getProperty("tests.rest.cluster") != null
 
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
 afterEvaluate {
