@@ -4,21 +4,21 @@ Compatible with Elasticsearch 7.10.2
 
 ### Enhancement
 
-* Allow attempt to load security config in case of plugin restart even if security index already exists ([#1154](https://github.com/opensearch-project/security/pull/1154)) (cherry picked from commit 5a81a424f4dc0dd1e72df9d8c27710e9dbcdec1b)
+* Allow attempt to load security config in case of plugin restart even if security index already exists ([#1154](https://github.com/opensearch-project/security/pull/1154))
 * Check and create multi-tenant index with alias for Update and Delete requests. Try to find a name for the multi-tenant index if index/alias with ".kibana_..._#" already exists. ([#1058](https://github.com/opensearch-project/security/pull/1058))
 
 ### New feature
 
 * Added changes to support validation of security roles for plugins ([#1367](https://github.com/opensearch-project/security/pull/1367)) ([#1442](https://github.com/opensearch-project/security/pull/1442))
 * Add support for ResolveIndexAction handling ([#1312](https://github.com/opensearch-project/security/pull/1312)) ([#1398](https://github.com/opensearch-project/security/pull/1398))
-* Introducing passive_intertransport_auth to facilitate communication between nodes with adv sec enabled and nodes without adv sec enabled.([#1156](https://github.com/opensearch-project/security/pull/1156)) (Cherry picked from commit 9adcd2010ad7d0d693704227eb7db31ae72e841d)
+* Introducing passive_intertransport_auth to facilitate communication between nodes with adv sec enabled and nodes without adv sec enabled.([#1156](https://github.com/opensearch-project/security/pull/1156))
 
 ### Bug fix
 
 * fix to include hidden indices when resolving wildcards ([#1487](https://github.com/opensearch-project/security/pull/1487))
 * Add validation for null elements in JSON array ([#1157](https://github.com/opensearch-project/security/pull/1157)) ([#1361](https://github.com/opensearch-project/security/pull/1361))
 * Return HTTP 409 (conflict) if get parallel put request ([#1158](https://github.com/opensearch-project/security/pull/1158))
-* Delay the security index initial bootstrap when the index is red ([#1153](https://github.com/opensearch-project/security/pull/1153)) (cherry picked from commit ea101e287afb85189837a6b6526f10cb9b99e4c6)
+* Delay the security index initial bootstrap when the index is red ([#1153](https://github.com/opensearch-project/security/pull/1153))
 * [Fix][Usage][Hasher] wrong file reference hash.sh ([#1093](https://github.com/opensearch-project/security/pull/1093))
 
 ### Test fix
