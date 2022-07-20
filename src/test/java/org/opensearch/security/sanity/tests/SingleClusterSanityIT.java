@@ -38,28 +38,27 @@ import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.test.rest.OpenSearchRestTestCase;
-
 @SuppressWarnings("unchecked")
-public class SingleClusterSanityIT extends OpenSearchRestTestCase {
+public class SingleClusterSanityIT extends SecurityRestTestCase {
 
-    private static final String CLUSTER_NAME = "follower"; // System.getProperty("tests.clustername");
     private static final String SECURITY_PLUGIN_NAME = "opensearch-security";
 
     @Test
     public void testSecurityPluginInstallation() throws Exception {
-        String uri = "_nodes/" + CLUSTER_NAME + "/plugins";
-        verifyPluginInstallation(uri);
+        verifyPluginInstallationOnAllNodes();
     }
 
-    private void verifyPluginInstallation(String uri) throws Exception {
-        Map<String, Map<String, Object>> responseMap = (Map<String, Map<String, Object>>) getAsMap(uri).get("nodes");
-        for (Map<String, Object> response : responseMap.values()) {
-            List<Map<String, Object>> plugins = (List<Map<String, Object>>) response.get("plugins");
+    private void verifyPluginInstallationOnAllNodes() throws Exception {
+
+        Map<String, Map<String, Object>> nodesInCluster = (Map<String, Map<String, Object>>) getAsMapByAdmin("_nodes").get("nodes");
+
+        for (Map<String, Object> node : nodesInCluster.values()) {
+
+            List<Map<String, Object>> plugins = (List<Map<String, Object>>) node.get("plugins");
             Set<Object> pluginNames = plugins.stream().map(map -> map.get("name")).collect(Collectors.toSet());
 
             Assert.assertTrue(pluginNames.contains(SECURITY_PLUGIN_NAME));
-
         }
+        Assert.assertFalse(nodesInCluster.isEmpty());
     }
 }
