@@ -52,6 +52,12 @@ import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTT
 import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;
 import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
 
+/**
+ * Overrides OpenSearchRestTestCase to fit the use-case for testing
+ * against remote cluster for Security Plugin.
+ *
+ * Modify this test class as needed
+ */
 @SuppressWarnings("unchecked")
 public class SecurityRestTestCase extends OpenSearchRestTestCase {
 
