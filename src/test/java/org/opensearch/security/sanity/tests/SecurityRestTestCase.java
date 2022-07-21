@@ -33,27 +33,24 @@ package org.opensearch.security.sanity.tests;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 
 import org.apache.http.HttpHost;
-import org.junit.Before;
-import org.opensaml.xmlsec.signature.P;
-import org.opensearch.Version;
+
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.io.PathUtils;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.commons.rest.SecureRestClientBuilder;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
-
-import static java.util.Collections.unmodifiableList;
-import static org.opensearch.commons.ConfigConstants.*;
-import org.opensearch.commons.rest.SecureRestClientBuilder;
+import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_ENABLED;
+import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
+import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;
+import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
 
 @SuppressWarnings("unchecked")
 public class SecurityRestTestCase extends OpenSearchRestTestCase {
