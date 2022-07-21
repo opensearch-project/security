@@ -450,6 +450,8 @@ task integTestRemote(type: RestIntegTestTask) {
 }
 
 integTestRemote.enabled = System.getProperty("tests.rest.cluster") != null
+// should be updated appropriately, when we add integTests in future
+integTest.enabled = false
 
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
 afterEvaluate {
