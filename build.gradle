@@ -94,7 +94,9 @@ jarHell.enabled = false
 
 test {
     include '**/*.class'
-    exclude '**/*SanityIT*'
+    filter {
+        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
+    }
     maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
     if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
