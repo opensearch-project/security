@@ -28,7 +28,7 @@ Compatible with Elasticsearch 7.10.2
 
 ### Maintenance
 
-* Upgrade CXF and jackson-binding ([#1943](https://github.com/opensearch-project/security/pull/1943))
+* Upgrade CXF ([#1943](https://github.com/opensearch-project/security/pull/1943))
 * [backport] Upgrade json-smart from 2.4.2 to 2.4.7 ([#1299](https://github.com/opensearch-project/security/pull/1299)) ([#1503](https://github.com/opensearch-project/security/pull/1503))
 * [Backport] Extended role injection support for cross cluster requests ([#1195](https://github.com/opensearch-project/security/pull/1195)) ([#1441](https://github.com/opensearch-project/security/pull/1441))
 * [Backport] Handled DLS/FLS/Field masking for Cross cluster replication ([#1436](https://github.com/opensearch-project/security/pull/1436))
