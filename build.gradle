@@ -12,7 +12,6 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
-    ext.kotlin_version = '1.7.0'
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.2.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
@@ -30,8 +29,6 @@ buildscript {
         if (isSnapshot) {
             opensearch_build += "-SNAPSHOT"
         }
-
-
     }
 
     repositories {
@@ -44,7 +41,6 @@ buildscript {
 
     dependencies {
         classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
@@ -65,7 +61,6 @@ allprojects {
 }
 
 apply plugin: 'opensearch.opensearchplugin'
-apply plugin: 'kotlin'
 apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.testclusters'
@@ -364,7 +359,6 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 
 jar {

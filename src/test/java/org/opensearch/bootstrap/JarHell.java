@@ -1,4 +1,3 @@
-package org.opensearch.bootstrap;
 /*
  * Copyright 2015-2018 _floragunn_ GmbH
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +27,8 @@ package org.opensearch.bootstrap;
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+package org.opensearch.bootstrap;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
