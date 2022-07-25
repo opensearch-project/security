@@ -60,3 +60,6 @@ jobs:
     - name: Get Docker Logs
       if: always()
       run: docker logs ops
+
+    - name: Run sanity tests
+      run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
