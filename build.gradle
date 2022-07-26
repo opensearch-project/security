@@ -21,7 +21,9 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", opensearch_build)
+        // TODO: decide whether to leave this property hardcoded or get it dynamically from core
+        common_utils_version = '2.1.0.0';
+
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
