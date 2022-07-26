@@ -37,12 +37,16 @@ import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -71,8 +75,11 @@ import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class RestHelper {
 
@@ -341,6 +348,74 @@ public class RestHelper {
             return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
                     + ", statusReason=" + statusReason + "]";
         }
+
+        private static void findArrayAccessor(String input) {
+			final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
+			final Matcher m = r.matcher(input);
+			if(m.find()) {
+				System.out.println("'" + input + "'\t Name was: " + m.group(1) + ",\t index position: " + m.group(2));
+			} else {
+				System.out.println("'" + input + "'\t No Match");
+			}
+		}
+
+		/**
+		 * Given a json path with dots delimiated returns the object at the leaf
+		 */
+		public String findValueInJson(final String jsonDotPath) {
+			// Make sure its json / then parse it
+			if (!isJsonContentType()) {
+				fail("Response was expected to be JSON, body was: \n" + body);
+			}
+			JsonNode currentNode = null;
+			try {
+				currentNode = DefaultObjectMapper.readTree(body);
+			} catch (final Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			// Break the path into parts, and scan into the json object
+			try (final Scanner jsonPathScanner = new Scanner(jsonDotPath).useDelimiter("\\.")) {
+				if (!jsonPathScanner.hasNext()) {
+					fail("Invalid json dot path '" + jsonDotPath + "', rewrite with '.' characters between path elements.");
+				}
+				do {
+					String pathEntry = jsonPathScanner.next();
+					// if pathEntry is an array lookup
+					int arrayEntryIdx = -1;
+
+					// Looks for an array-lookup pattern in the path
+					// e.g. root_cause[1] -> will match
+					// e.g. root_cause[2aasd] -> won't match
+					final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
+					final Matcher m = r.matcher(pathEntry);
+					if(m.find()) {
+						pathEntry = m.group(1);
+						arrayEntryIdx = Integer.parseInt(m.group(2));
+					}
+
+					if (!currentNode.has(pathEntry)) {
+						fail("Unable to resolve '" + jsonDotPath + "', on path entry '" + pathEntry + "' from available fields " + currentNode.toPrettyString());
+					}
+					currentNode = currentNode.get(pathEntry);
+
+					// if it's an Array lookup we get the requested index item
+					if (arrayEntryIdx > -1) {
+						if(!currentNode.isArray()) {
+							fail("Unable to resolve '" + jsonDotPath + "', the '" + pathEntry + "' field is not an array " + currentNode.toPrettyString());
+						} else if (!currentNode.has(arrayEntryIdx)) {
+							fail("Unable to resolve '" + jsonDotPath + "', index '" + arrayEntryIdx + "' is out of bounds for array '" + pathEntry + "' \n" + currentNode.toPrettyString());
+						}
+						currentNode = currentNode.get(arrayEntryIdx);
+					}
+				} while (jsonPathScanner.hasNext());
+
+				if (!currentNode.isValueNode()) {
+					fail("Unexpected value note, index directly to the object to reference, object\n" + currentNode.toPrettyString());
+				}
+				return currentNode.asText();
+			}
+		}
 
 		private static HttpResponse from(Future<HttpResponse> future) {
 			try {
