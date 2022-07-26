@@ -129,7 +129,7 @@ jobs:
         EXISTING_OS_VERSION=$(./gradlew properties | grep opensearch.version | cut -d':' -f2- | awk '{$1=$1};1' | cut -d '-' -f1 | cut -d '.' -f1)
         INCREMENT_OS_VERSION=$((++EXISTING_OS_VERSION)) 
         ./gradlew clean updateVersion -DnewVersion=$INCREMENT_OS_VERSION.0.0-SNAPSHOT
-        test `./gradlew properties | grep opensearch.version | cut -d':' -f2- | awk '{$1=$1};1'` = '$INCREMENT_OS_VERSION.0.0-SNAPSHOT'
+        test `./gradlew properties | grep opensearch.version | cut -d':' -f2- | awk '{$1=$1};1'` = $INCREMENT_OS_VERSION.0.0-SNAPSHOT
 
     - name: List files in the build directory if there was an error
       run: ls -al ./build/distributions/
