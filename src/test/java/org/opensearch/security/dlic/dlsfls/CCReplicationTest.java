@@ -158,20 +158,8 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
 
     //Wait for the security plugin to load roles.
     private void waitOrThrow(Client client, String index) throws Exception {
-        int failures = 0;
-        while(failures < 5) {
-            try {
-                client.execute(MockReplicationAction.INSTANCE, new MockReplicationRequest(index)).actionGet();
-                break;
-            } catch (OpenSearchSecurityException ex) {
-                if (ex.getMessage().contains("OpenSearch Security not initialized")) {
-                    Thread.sleep(500);
-                    failures++;
-                } else {
-                    throw ex;
-                }
-            }
-        }
+        waitForInit(client);
+        client.execute(MockReplicationAction.INSTANCE, new MockReplicationRequest(index)).actionGet();
     }
 
     void populateData(Client tc) {

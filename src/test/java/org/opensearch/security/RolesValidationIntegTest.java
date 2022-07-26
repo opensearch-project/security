@@ -20,7 +20,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -68,18 +67,6 @@ public class RolesValidationIntegTest extends SingleClusterTest {
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
             }
             return new ArrayList<>();
-        }
-    }
-
-    //Wait for the security plugin to load roles.
-    private void waitForInit(Client client) throws Exception {
-        try {
-            client.admin().cluster().health(new ClusterHealthRequest()).actionGet();
-        } catch (OpenSearchSecurityException ex) {
-            if(ex.getMessage().contains("OpenSearch Security not initialized")) {
-                Thread.sleep(500);
-                waitForInit(client);
-            }
         }
     }
 

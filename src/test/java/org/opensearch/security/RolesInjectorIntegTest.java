@@ -74,18 +74,6 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
         }
     }
 
-    //Wait for the security plugin to load roles.
-    private void waitForInit(Client client) throws Exception {
-        try {
-            client.admin().cluster().health(new ClusterHealthRequest()).actionGet();
-        } catch (OpenSearchSecurityException ex) {
-            if(ex.getMessage().contains("OpenSearch Security not initialized")) {
-                Thread.sleep(500);
-                waitForInit(client);
-            }
-        }
-    }
-
     @Test
     public void testRolesInject() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles.yml"), Settings.EMPTY);
