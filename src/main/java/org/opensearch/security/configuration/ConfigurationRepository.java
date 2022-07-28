@@ -363,13 +363,13 @@ public class ConfigurationRepository {
                 } else {
                     LOGGER.debug("security index exists and was created with ES 7 (new layout)");
                 }
-                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
+                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
 
 
             } else {
                 //wait (and use new layout)
                 LOGGER.debug("security index not exists (yet)");
-                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
+                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
             }
 
         } catch (Exception e) {
