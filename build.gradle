@@ -21,9 +21,7 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        // TODO: this property should be accessed dynamically once this issue is resolved:
-        // https://github.com/opensearch-project/common-utils/issues/205
-        common_utils_version = '2.1.0.0';
+        common_utils_version = System.getProperty("common_utils.version", opensearch_build)
 
 
         if (buildVersionQualifier) {

@@ -20,10 +20,11 @@ function usage() {
     echo -e "-v OPENSEARCH_VERSION\t, no defaults"
     echo -e "-n SNAPSHOT\t, defaults to false"
     echo -e "-m CLUSTER_NAME\t, defaults to docker-cluster"
+    echo -e "-u COMMON_UTILS_VERSION\t, defaults to 2.2.0.0"
     echo "--------------------------------------------------------------------------"
 }
 
-while getopts ":h:b:p:s:c:v:n:t:m:" arg; do
+while getopts ":h:b:p:s:c:v:n:t:m:u:" arg; do
     case $arg in
         h)
             usage
@@ -52,6 +53,9 @@ while getopts ":h:b:p:s:c:v:n:t:m:" arg; do
             ;;
         n)
             # Do nothing as we're not consuming this param.
+            ;;
+        u)
+            COMMON_UTILS_VERSION=$OPTARG
             ;;
         :)
             echo "-${OPTARG} requires an argument"
@@ -95,8 +99,12 @@ if [ -z "$CLUSTER_NAME" ]
 then
   CLUSTER_NAME="docker-cluster"
 fi
+if [ -z "$COMMON_UTILS_VERSION" ]
+then
+  COMMON_UTILS_VERSION="2.2.0.0"
+fi
 
 USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
 PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
 
-./gradlew integTestRemote -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dsecurity_enabled=$SECURITY_ENABLED -Dtests.clustername=$CLUSTER_NAME -Dhttps=true -Duser=$USERNAME -Dpassword=$PASSWORD
+./gradlew integTestRemote -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dsecurity_enabled=$SECURITY_ENABLED -Dtests.clustername=$CLUSTER_NAME -Dhttps=true -Duser=$USERNAME -Dpassword=$PASSWORD -Dcommon_utils.version=$COMMON_UTILS_VERSION
