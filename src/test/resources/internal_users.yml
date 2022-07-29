@@ -350,3 +350,9 @@ hidden_test:
   hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
   opendistro_security_roles:
   - hidden_test
+sem-user:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
+sem-user2:
+  hash: $2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m
+  #password is: nagilum
