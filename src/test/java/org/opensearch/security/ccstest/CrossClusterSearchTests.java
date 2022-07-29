@@ -982,24 +982,6 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         assertThat(ccs.getBody(), containsString("cross_cluster_two:twitter"));
     }
 
-    //Wait for the security plugin to load roles.
-    private void waitOrThrow(Client client) throws Exception {
-        int failures = 0;
-        while(failures < 5) {
-            try {
-                client.admin().cluster().health(new ClusterHealthRequest()).actionGet();
-                break;
-            } catch (OpenSearchSecurityException ex) {
-                if (ex.getMessage().contains("OpenSearch Security not initialized")) {
-                    Thread.sleep(500);
-                    failures++;
-                } else {
-                    throw ex;
-                }
-            }
-        }
-    }
-
     @Test
     public void testCcsWithRoleInjection() throws Exception {
         setupCcs(new DynamicSecurityConfig().setSecurityRoles("roles.yml"));
@@ -1041,7 +1023,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "invalid_user|invalid_role";
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
                 OpenSearchSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
-            waitOrThrow(node.client());
+            waitForInit(node.client());
             Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
             GetRequest getReq = new GetRequest("twitter", "0");
             getReq.realtime(true);
@@ -1061,7 +1043,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "valid_user|opendistro_security_all_access";
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
                 OpenSearchSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
-            waitOrThrow(node.client());
+            waitForInit(node.client());
             Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
             GetRequest getReq = new GetRequest("twitter", "0");
             getReq.realtime(true);
