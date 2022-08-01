@@ -38,7 +38,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
-import org.opensearch.test.framework.cluster.ClusterConfiguration;
+import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
@@ -55,7 +55,7 @@ public class SecurityRolesTests {
 
 	@ClassRule
 	public static LocalCluster cluster = new LocalCluster.Builder()
-			.clusterConfiguration(ClusterConfiguration.THREE_MASTERS).anonymousAuth(true)
+			.clusterConfiguration(ClusterManager.THREE_MASTERS).anonymousAuth(true)
 			.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_SR).build();
 
 	@Test

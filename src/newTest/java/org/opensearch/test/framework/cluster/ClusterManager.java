@@ -45,7 +45,7 @@ import org.opensearch.transport.Netty4Plugin;
 
 import com.google.common.collect.Lists;
 
-public enum ClusterConfiguration {
+public enum ClusterManager {
     //first one needs to be a master
     //HUGE(new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(false, true,false), new NodeSettings(false, true, false)),
 
@@ -62,7 +62,7 @@ public enum ClusterConfiguration {
 
     private List<NodeSettings> nodeSettings = new LinkedList<>();
 
-    private ClusterConfiguration(NodeSettings... settings) {
+    private ClusterManager(NodeSettings... settings) {
         nodeSettings.addAll(Arrays.asList(settings));
     }
 

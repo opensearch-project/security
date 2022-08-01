@@ -70,7 +70,7 @@ import org.opensearch.http.HttpInfo;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.framework.certificate.TestCertificates;
-import org.opensearch.test.framework.cluster.ClusterConfiguration.NodeSettings;
+import org.opensearch.test.framework.cluster.ClusterManager.NodeSettings;
 import org.opensearch.transport.BindTransportException;
 import org.opensearch.transport.TransportInfo;
 
@@ -86,7 +86,7 @@ public class LocalOpenSearchCluster {
     private static final Logger log = LogManager.getLogger(LocalOpenSearchCluster.class);
 
     private final String clusterName;
-    private final ClusterConfiguration clusterConfiguration;
+    private final ClusterManager clusterConfiguration;
     private final NodeSettingsSupplier nodeSettingsSupplier;
     private final List<Class<? extends Plugin>> additionalPlugins;
     private final List<Node> allNodes = new ArrayList<>();
@@ -102,7 +102,7 @@ public class LocalOpenSearchCluster {
     private boolean started;
     private Random random = new Random();
 
-    public LocalOpenSearchCluster(String clusterName, ClusterConfiguration clusterConfiguration, NodeSettingsSupplier nodeSettingsSupplier,
+    public LocalOpenSearchCluster(String clusterName, ClusterManager clusterConfiguration, NodeSettingsSupplier nodeSettingsSupplier,
                           List<Class<? extends Plugin>> additionalPlugins, TestCertificates testCertificates) {
         this.clusterName = clusterName;
         this.clusterConfiguration = clusterConfiguration;

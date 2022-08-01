@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
-import org.opensearch.test.framework.cluster.ClusterConfiguration;
+import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -49,7 +49,7 @@ public class GenericIntegrationTest {
 
     // build our test cluster as a ClassRule
     @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterConfiguration(ClusterConfiguration.THREE_MASTERS)
+    public static LocalCluster cluster = new LocalCluster.Builder().clusterConfiguration(ClusterManager.THREE_MASTERS)
     	.authc(AUTHC_HTTPBASIC_INTERNAL)
     	.users(INDEX_A_USER)
     	.indices(INDEX_A, INDEX_B).build();

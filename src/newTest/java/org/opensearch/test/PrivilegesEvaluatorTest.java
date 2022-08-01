@@ -21,7 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
-import org.opensearch.test.framework.cluster.ClusterConfiguration;
+import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 
@@ -47,7 +47,7 @@ public class PrivilegesEvaluatorTest {
 
 	@ClassRule
 	public static LocalCluster cluster = new LocalCluster.Builder()
-			.clusterConfiguration(ClusterConfiguration.THREE_MASTERS).authc(AUTHC_HTTPBASIC_INTERNAL)
+			.clusterConfiguration(ClusterManager.THREE_MASTERS).authc(AUTHC_HTTPBASIC_INTERNAL)
 			.users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX).build();
 
 	@Test

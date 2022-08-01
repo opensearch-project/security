@@ -66,7 +66,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     protected static final AtomicLong num = new AtomicLong();
 
     private final List<Class<? extends Plugin>> plugins;
-    private final ClusterConfiguration clusterConfiguration;
+    private final ClusterManager clusterConfiguration;
     private final TestSecurityConfig testSecurityConfig;
     private Settings nodeOverride;
     private final String clusterName;
@@ -78,7 +78,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 	private final List<TestIndex> testIndices;
 
     private LocalCluster(String clusterName, TestSecurityConfig testSgConfig, Settings nodeOverride,
-            ClusterConfiguration clusterConfiguration, List<Class<? extends Plugin>> plugins, TestCertificates testCertificates,
+            ClusterManager clusterConfiguration, List<Class<? extends Plugin>> plugins, TestCertificates testCertificates,
             List<LocalCluster> clusterDependencies, Map<String, LocalCluster> remotes, List<TestIndex> testIndices) {
         this.plugins = plugins;
         this.testCertificates = testCertificates;
@@ -221,7 +221,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         private Map<String, LocalCluster> remoteClusters = new HashMap<>();
         private List<LocalCluster> clusterDependencies = new ArrayList<>();
         private List<TestIndex> testIndices = new ArrayList<>();
-        private ClusterConfiguration clusterConfiguration = ClusterConfiguration.DEFAULT;
+        private ClusterManager clusterConfiguration = ClusterManager.DEFAULT;
         private TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
         private String clusterName = "local_cluster";
         private TestCertificates testCertificates;
@@ -238,13 +238,13 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder clusterConfiguration(ClusterConfiguration clusterConfiguration) {
+        public Builder clusterConfiguration(ClusterManager clusterConfiguration) {
             this.clusterConfiguration = clusterConfiguration;
             return this;
         }
 
         public Builder singleNode() {
-            this.clusterConfiguration = ClusterConfiguration.SINGLENODE;
+            this.clusterConfiguration = ClusterManager.SINGLENODE;
             return this;
         }
 
