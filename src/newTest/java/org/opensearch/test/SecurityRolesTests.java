@@ -41,7 +41,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.fasterxml.jackson.core.JsonPointer;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -63,18 +62,15 @@ public class SecurityRolesTests {
 			HttpResponse response = client.getAuthInfo();
 			Assert.assertEquals(response.getStatusCode(), HttpStatus.SC_OK);
 
-			// Check username
-			JsonPointer jsonPointer = JsonPointer.compile("/user_name");
-			String username = response.toJsonNode().at(jsonPointer).asText();
+			// Check username		
+			String username = response.getTextFromJsonBody("/user_name");
 			Assert.assertEquals("sr_user", username);
 
 			// Check security roles
-			jsonPointer = JsonPointer.compile("/roles/0");
-			String securityRole = response.toJsonNode().at(jsonPointer).asText();
+			String securityRole = response.getTextFromJsonBody("/roles/0");
 			Assert.assertEquals("user_sr_user__abc_ber", securityRole);
 			
-			jsonPointer = JsonPointer.compile("/roles/1");
-			securityRole = response.toJsonNode().at(jsonPointer).asText();
+			securityRole = response.getTextFromJsonBody("/roles/0");
 			Assert.assertEquals("user_sr_user__def_efg", securityRole);
 
 		}

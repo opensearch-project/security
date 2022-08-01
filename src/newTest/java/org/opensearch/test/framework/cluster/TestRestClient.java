@@ -317,10 +317,40 @@ public class TestRestClient implements AutoCloseable {
             return header == null ? Collections.emptyList() : Arrays.asList(header);
         }
 
-        public JsonNode toJsonNode() throws JsonProcessingException, IOException {
+        public String getTextFromJsonBody(String jsonPointer) {        
+            return getJsonNodeAt(jsonPointer).asText();        	
+        }
+        
+        public int getIntFromJsonBody(String jsonPointer) {        
+            return getJsonNodeAt(jsonPointer).asInt(); 	
+        }
+
+        public Boolean getBooleanFromJsonBody(String jsonPointer) {        
+            return getJsonNodeAt(jsonPointer).asBoolean();    	
+        }
+
+        public Double getDoubleFromJsonBody(String jsonPointer) {        
+            return getJsonNodeAt(jsonPointer).asDouble();	
+        }
+
+        public Long getLongFromJsonBody(String jsonPointer) {        
+            return getJsonNodeAt(jsonPointer).asLong();
+        }
+
+        private JsonNode getJsonNodeAt(String jsonPointer) {
+        	try {
+				return toJsonNode().at(jsonPointer);
+			} catch (IOException e) {
+				throw new IllegalArgumentException("Cound not convert response body to JSON node ",e);
+			}
+        }
+
+        private JsonNode toJsonNode() throws JsonProcessingException, IOException {
             return DefaultObjectMapper.objectMapper.readTree(getBody());
         }
 
+        
+        
         @Override
         public String toString() {
             return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode

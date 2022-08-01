@@ -11,6 +11,9 @@
 
 package org.opensearch.test;
 
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
+
 import org.apache.http.HttpStatus;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -26,10 +29,6 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.fasterxml.jackson.core.JsonPointer;
-
-import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.*;
-import static org.opensearch.test.framework.TestSecurityConfig.User.*;
 
 /**
  * WIP
@@ -71,8 +70,8 @@ public class GenericIntegrationTest {
             Assert.assertEquals(response.getStatusCode(), HttpStatus.SC_OK);
             
             // demo: work with JSON response body and check values
-            JsonPointer jsonPointer = JsonPointer.compile("/_source/hits/value");
-            int hits = response.toJsonNode().at(jsonPointer).asInt();
+            int hits = response.getIntFromJsonBody("/_source/hits/value");
+            Assert.assertEquals(0, hits);
             
             response = client.get("index-b/_search?pretty");
             Assert.assertEquals(response.getStatusCode(), HttpStatus.SC_FORBIDDEN);                       
