@@ -1095,7 +1095,7 @@ data_stream_1:
   reserved: true
   hidden: false
   description: "Migrated from v6 (all types mapped)"
-  cluster_permissions: []
+  cluster_permissions: [ "indices:admin/index_template/put" ]
   index_permissions:
     - index_patterns:
         - "my-data-stream*"
@@ -1137,3 +1137,25 @@ hidden_test:
     - hidden_test_not_hidden
     allowed_actions:
     - "*"
+
+sem-role:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: [ "cluster_monitor", "indices:admin/index_template/put" ]
+  index_permissions:
+    - index_patterns:
+        - "sem*"
+      allowed_actions:
+        - "*"
+
+sem-role2:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: [ "cluster_monitor" ]
+  index_permissions:
+    - index_patterns:
+        - "sem*"
+      allowed_actions:
+        - "indices:admin/index_template/put"
