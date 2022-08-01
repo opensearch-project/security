@@ -26,10 +26,13 @@
 
 package org.opensearch.test;
 
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterConfiguration;
@@ -37,9 +40,12 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.core.JsonPointer;
 
-public class SecurityRolesTests extends AbstractIntegrationTest {
+@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+public class SecurityRolesTests {
 
 	protected final static TestSecurityConfig.User USER_SR = new TestSecurityConfig.User("sr_user").roles(
 			new Role("abc_ber").indexPermissions("*").on("*").clusterPermissions("*"),

@@ -16,6 +16,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
@@ -24,7 +25,11 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.core.JsonPointer;
+
+import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.*;
+import static org.opensearch.test.framework.TestSecurityConfig.User.*;
 
 /**
  * WIP
@@ -32,7 +37,9 @@ import com.fasterxml.jackson.core.JsonPointer;
  * set up a test cluster with users, roles, indices and data, and how to
  * implement tests. One main goal here is to make tests self-contained.
  */
-public class GenericIntegrationTest extends AbstractIntegrationTest {
+@RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+public class GenericIntegrationTest {
 	    
     // define indices used in this test
     private final static TestIndex INDEX_A = TestIndex.name("index-a").build();
@@ -46,7 +53,7 @@ public class GenericIntegrationTest extends AbstractIntegrationTest {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterConfiguration(ClusterConfiguration.THREE_MASTERS)
     	.authc(AUTHC_HTTPBASIC_INTERNAL)
-    	.users(USER_ADMIN, INDEX_A_USER)
+    	.users(INDEX_A_USER)
     	.indices(INDEX_A, INDEX_B).build();
 
     @Test

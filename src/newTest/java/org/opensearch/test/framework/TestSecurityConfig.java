@@ -56,6 +56,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.NestedValueMap;
 import org.opensearch.test.framework.cluster.NestedValueMap.Path;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
@@ -244,6 +245,10 @@ public class TestSecurityConfig {
 	}
 
 	public static class User implements UserCredentialsHolder {
+
+		public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin")
+				.roles(new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*"));
+		
 		private String name;
 		private String password;
 		private Role[] roles;
@@ -411,6 +416,9 @@ public class TestSecurityConfig {
 
     public static class AuthcDomain {
 
+    	public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL = new TestSecurityConfig.AuthcDomain("basic", 0)
+    			.httpAuthenticator("basic").backend("internal");
+
         private final String id;
         private boolean enabled = true;
         private boolean transportEnabled = true;
@@ -418,7 +426,7 @@ public class TestSecurityConfig {
         private List<String> skipUsers = new ArrayList<>();
         private HttpAuthenticator httpAuthenticator;
         private AuthenticationBackend authenticationBackend;
-
+    	
         public AuthcDomain(String id, int order) {
             this.id = id;
             this.order = order;
