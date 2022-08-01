@@ -11,12 +11,12 @@
 
 package org.opensearch.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.User.USER_ADMIN;
 
 import org.apache.http.HttpStatus;
-import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,7 +26,6 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterConfiguration;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
-import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
@@ -58,28 +57,18 @@ public class GenericIntegrationTest {
     @Test
     public void testAdminUserHasAccessToAllIndices() throws Exception {
         try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-            HttpResponse response = client.get("*/_search?pretty");
-            Assert.assertEquals(response.getStatusCode(), HttpStatus.SC_OK);
+			assertThat(client.get("*/_search?pretty").getStatusCode(), equalTo(HttpStatus.SC_OK));
         }        
     }
 
     @Test
     public void testIndexAUserHasOnlyAccessToIndexA() throws Exception {
-        try (TestRestClient client = cluster.getRestClient(INDEX_A_USER)) {
-            HttpResponse response = client.get("index-a/_search?pretty");
-            Assert.assertEquals(response.getStatusCode(), HttpStatus.SC_OK);
-            
+        try (TestRestClient client = cluster.getRestClient(INDEX_A_USER)) {        	
+			assertThat(client.get("index-a/_search?pretty").getStatusCode(), equalTo(HttpStatus.SC_OK));            
             // demo: work with JSON response body and check values
-            int hits = response.getIntFromJsonBody("/_source/hits/value");
-            Assert.assertEquals(0, hits);
-            
-            response = client.get("index-b/_search?pretty");
-            Assert.assertEquals(response.getStatusCode(), HttpStatus.SC_FORBIDDEN);                       
+			assertThat(client.get("index-a/_search?pretty").getIntFromJsonBody("/_source/hits/value"), equalTo(0));            
+			assertThat(client.get("index-b/_search?pretty"), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }    
     
-    @AfterClass
-    public static void close() {
-    	cluster.close();
-    }
 }

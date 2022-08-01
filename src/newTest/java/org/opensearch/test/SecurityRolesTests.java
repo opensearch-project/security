@@ -28,6 +28,9 @@ package org.opensearch.test;
 
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
+import static org.hamcrest.MatcherAssert.assertThat; 
+import static org.hamcrest.Matchers.*;
+
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -56,22 +59,18 @@ public class SecurityRolesTests {
 			.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_SR).build();
 
 	@Test
-	public void testSecurityRolesAnon() throws Exception {
+	public void testSecurityRoles() throws Exception {
 
 		try (TestRestClient client = cluster.getRestClient(USER_SR)) {
 			HttpResponse response = client.getAuthInfo();
-			Assert.assertEquals(response.getStatusCode(), HttpStatus.SC_OK);
+			assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
 			// Check username		
-			String username = response.getTextFromJsonBody("/user_name");
-			Assert.assertEquals("sr_user", username);
-
-			// Check security roles
-			String securityRole = response.getTextFromJsonBody("/roles/0");
-			Assert.assertEquals("user_sr_user__abc_ber", securityRole);
+			assertThat(response.getTextFromJsonBody("/user_name"), equalTo("sr_user"));
 			
-			securityRole = response.getTextFromJsonBody("/roles/0");
-			Assert.assertEquals("user_sr_user__def_efg", securityRole);
+			// Check security roles
+			assertThat(response.getTextFromJsonBody("/roles/0"), equalTo("user_sr_user__abc_ber"));
+			assertThat(response.getTextFromJsonBody("/roles/1"), equalTo("user_sr_user__def_efg"));
 
 		}
 	}
