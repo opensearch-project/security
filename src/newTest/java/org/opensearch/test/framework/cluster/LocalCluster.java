@@ -330,11 +330,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder var(String name, Supplier<Object> value) {
-            testSecurityConfig.var(name, value);
-            return this;
-        }
-
         public Builder clusterName(String clusterName) {
             this.clusterName = clusterName;
             return this;

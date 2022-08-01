@@ -77,7 +77,6 @@ public class TestRestClient implements AutoCloseable {
     private static final Logger log = LogManager.getLogger(TestRestClient.class);
 
     private boolean enableHTTPClientSSL = true;
-    private boolean enableHTTPClientSSLv3Only = false;
     private boolean sendHTTPClientCertificate = false;
     private InetSocketAddress nodeHttpAddress;
     private RequestConfig requestConfig;
@@ -222,12 +221,6 @@ public class TestRestClient implements AutoCloseable {
 		final HttpClientBuilder hcb = HttpClients.custom();
 
 		String[] protocols = null;
-
-		if (enableHTTPClientSSLv3Only) {
-			protocols = new String[] { "SSLv3" };
-		} else {
-			protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-		}
 
 		final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(this.sslContext, protocols, null,
 				NoopHostnameVerifier.INSTANCE);

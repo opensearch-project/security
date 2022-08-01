@@ -70,19 +70,13 @@ public class TestSecurityConfig {
 	private NestedValueMap overrideRoleSettings;
 	private NestedValueMap overrideRoleMappingSettings;	
 	private String indexName = ".opendistro_security";
-	private Map<String, Supplier<Object>> variableSuppliers = new HashMap<>();
-
+	
 	public TestSecurityConfig() {
 
 	}
 
 	public TestSecurityConfig configIndexName(String configIndexName) {
 		this.indexName = configIndexName;
-		return this;
-	}
-
-	public TestSecurityConfig var(String name, Supplier<Object> variableSupplier) {
-		this.variableSuppliers.put(name, variableSupplier);
 		return this;
 	}
 
