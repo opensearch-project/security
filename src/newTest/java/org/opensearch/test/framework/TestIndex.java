@@ -44,11 +44,9 @@ public class TestIndex {
         
     }
 
-    public void create(Client client) {
-        if (!client.admin().indices().exists(new IndicesExistsRequest(name)).actionGet().isExists()) {
-            client.admin().indices().create(new CreateIndexRequest(name).settings(settings)).actionGet();
-        }
-    }
+	public void create(Client client) {
+		client.admin().indices().create(new CreateIndexRequest(name).settings(settings)).actionGet();
+	}
 
     public String getName() {
         return name;

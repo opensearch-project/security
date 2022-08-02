@@ -51,7 +51,7 @@ public class GenericIntegrationTest {
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterConfiguration(ClusterManager.THREE_MASTERS)
     	.authc(AUTHC_HTTPBASIC_INTERNAL)
-    	.users(INDEX_A_USER)
+    	.users(USER_ADMIN, INDEX_A_USER)
     	.indices(INDEX_A, INDEX_B).build();
 
     @Test
