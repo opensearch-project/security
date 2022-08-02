@@ -1,0 +1,22 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+movies:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_aaa"
+  and_backend_roles: []
+  description: "Movies with all fields"
+movies_no_actors:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  users:
+  - "user_bbb"
+  and_backend_roles: []
+  description: "Movies without actors"
