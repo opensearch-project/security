@@ -67,7 +67,7 @@ public class GenericIntegrationTest {
 			assertThat(client.get("index-a/_search?pretty").getStatusCode(), equalTo(HttpStatus.SC_OK));            
             // demo: work with JSON response body and check values
 			assertThat(client.get("index-a/_search?pretty").getIntFromJsonBody("/_source/hits/value"), equalTo(0));            
-			assertThat(client.get("index-b/_search?pretty"), equalTo(HttpStatus.SC_FORBIDDEN));
+			assertThat(client.get("index-b/_search?pretty").getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }    
     
