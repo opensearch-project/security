@@ -31,8 +31,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.junit.Assert;
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+
 
 @SuppressWarnings("unchecked")
 public class SingleClusterSanityIT extends SecurityRestTestCase {
@@ -53,8 +59,8 @@ public class SingleClusterSanityIT extends SecurityRestTestCase {
             List<Map<String, Object>> plugins = (List<Map<String, Object>>) node.get("plugins");
             Set<Object> pluginNames = plugins.stream().map(map -> map.get("name")).collect(Collectors.toSet());
 
-            Assert.assertTrue(pluginNames.contains(SECURITY_PLUGIN_NAME));
+            MatcherAssert.assertThat(pluginNames, contains(SECURITY_PLUGIN_NAME));
         }
-        Assert.assertFalse(nodesInCluster.isEmpty());
+        MatcherAssert.assertThat(nodesInCluster, is(not(anEmptyMap())));
     }
 }
