@@ -37,12 +37,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.rules.ExternalResource;
+
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.node.PluginAwareNode;

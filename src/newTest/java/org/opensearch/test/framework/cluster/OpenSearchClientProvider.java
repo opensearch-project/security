@@ -35,7 +35,6 @@ import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -46,6 +45,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
+
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.TestCertificates;
 

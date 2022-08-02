@@ -35,6 +35,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
+
 import org.opensearch.index.reindex.ReindexPlugin;
 import org.opensearch.join.ParentJoinPlugin;
 import org.opensearch.percolator.PercolatorPlugin;
@@ -42,8 +44,6 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.search.aggregations.matrix.MatrixAggregationPlugin;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.transport.Netty4Plugin;
-
-import com.google.common.collect.Lists;
 
 public enum ClusterManager {
     //first one needs to be a master
@@ -108,7 +108,6 @@ public enum ClusterManager {
 
         public NodeSettings(boolean masterNode, boolean dataNode, List<Class<? extends Plugin>> additionalPlugins) {
             this(masterNode, dataNode);
-
             this.plugins.addAll(additionalPlugins);
         }
 

@@ -29,7 +29,6 @@
 package org.opensearch.test.framework;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 

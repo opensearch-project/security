@@ -41,6 +41,8 @@ import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -64,13 +66,10 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.common.Strings;
 import org.opensearch.common.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Lists;
 
 public class TestRestClient implements AutoCloseable {
 	
@@ -196,20 +195,6 @@ public class TestRestClient implements AutoCloseable {
     public TestRestClient trackResources() {
         trackResources = true;
         return this;
-    }
-
-    private void cleanupResources() {
-        if (puttedResourcesList.size() > 0) {
-            log.info("Cleaning up " + puttedResourcesList);
-
-            for (String resource : Lists.reverse(puttedResourcesList)) {
-                try {
-                    delete(resource);
-                } catch (Exception e) {
-                    log.error("Error cleaning up created resources " + resource, e);
-                }
-            }
-        }
     }
 
     protected final String getHttpServerUri() {
@@ -373,11 +358,6 @@ public class TestRestClient implements AutoCloseable {
         }
     }
 
-    @Override
-    public void close() throws IOException {
-        cleanupResources();
-    }
-
     public boolean isSendHTTPClientCertificate() {
         return sendHTTPClientCertificate;
     }
@@ -385,5 +365,10 @@ public class TestRestClient implements AutoCloseable {
     public void setSendHTTPClientCertificate(boolean sendHTTPClientCertificate) {
         this.sendHTTPClientCertificate = sendHTTPClientCertificate;
     }
+
+	@Override
+	public void close() throws Exception {
+		// TODO: Is there anything to clean up here?		
+	}
 
 }
