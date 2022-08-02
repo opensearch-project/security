@@ -149,9 +149,7 @@ List<Provider<RegularFile>> plugins = [
 2.times {i ->
     task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
         exclude '**/*Test*'
-        filter {
-            excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-        }
+        exclude '**/*Sanity*'
         useCluster testClusters."${baseName}$i"
         if (System.getProperty("mixedCluster") != null) {
             filter {
@@ -181,9 +179,7 @@ List<Provider<RegularFile>> plugins = [
 // This is also used as a one third upgraded cluster for a rolling upgrade.
 task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
-    filter {
-        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-    }
+    exclude '**/*Sanity*'
     dependsOn "${baseName}#oldVersionClusterTask0"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -211,9 +207,7 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
 // This is used for rolling upgrade.
 task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
-    filter {
-        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-    }
+    exclude '**/*Sanity*'
     dependsOn "${baseName}#mixedClusterTask"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -236,9 +230,7 @@ task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTas
 // This is used for rolling upgrade.
 task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
-    filter {
-        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-    }
+    exclude '**/*Sanity*'
     dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -260,9 +252,7 @@ task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) 
 // at the same time resulting in a fully upgraded cluster.
 tasks.register("${baseName}#fullRestartClusterTask", StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
-    filter {
-        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-    }
+    exclude '**/*Sanity*'
     dependsOn "${baseName}#oldVersionClusterTask1"
     useCluster testClusters."${baseName}1"
     doFirst {
@@ -282,9 +272,7 @@ tasks.register("${baseName}#fullRestartClusterTask", StandaloneRestIntegTestTask
 // A bwc test suite which runs all the bwc tasks combined.
 task bwcTestSuite(type: StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
-    filter {
-        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-    }
+    exclude '**/*Sanity*'
     dependsOn tasks.named("${baseName}#mixedClusterTask")
     dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
     dependsOn tasks.named("${baseName}#fullRestartClusterTask")
