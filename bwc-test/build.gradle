@@ -82,7 +82,7 @@ String projectVersion = "2.2.0.0"
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-        versions = ["2.1.0","2.2.0"]
+            versions = ["2.1.0","2.2.0"]
             numberOfNodes = 3
             plugin(provider(new Callable<RegularFile>() {
                 @Override
@@ -149,8 +149,8 @@ List<Provider<RegularFile>> plugins = [
 2.times {i ->
     task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
         exclude '**/*Test*'
+        exclude '**/*Sanity*'
         useCluster testClusters."${baseName}$i"
-        exclude '**/*Test*'
         if (System.getProperty("mixedCluster") != null) {
             filter {
                 includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAMixedCluster")
@@ -179,6 +179,7 @@ List<Provider<RegularFile>> plugins = [
 // This is also used as a one third upgraded cluster for a rolling upgrade.
 task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
+    exclude '**/*Sanity*'
     dependsOn "${baseName}#oldVersionClusterTask0"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -206,6 +207,7 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
 // This is used for rolling upgrade.
 task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
+    exclude '**/*Sanity*'
     dependsOn "${baseName}#mixedClusterTask"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -228,6 +230,7 @@ task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTas
 // This is used for rolling upgrade.
 task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
+    exclude '**/*Sanity*'
     dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
     useCluster testClusters."${baseName}0"
     doFirst {
@@ -249,6 +252,7 @@ task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) 
 // at the same time resulting in a fully upgraded cluster.
 tasks.register("${baseName}#fullRestartClusterTask", StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
+    exclude '**/*Sanity*'
     dependsOn "${baseName}#oldVersionClusterTask1"
     useCluster testClusters."${baseName}1"
     doFirst {
@@ -268,6 +272,7 @@ tasks.register("${baseName}#fullRestartClusterTask", StandaloneRestIntegTestTask
 // A bwc test suite which runs all the bwc tasks combined.
 task bwcTestSuite(type: StandaloneRestIntegTestTask) {
     exclude '**/*Test*'
+    exclude '**/*Sanity*'
     dependsOn tasks.named("${baseName}#mixedClusterTask")
     dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
     dependsOn tasks.named("${baseName}#fullRestartClusterTask")
