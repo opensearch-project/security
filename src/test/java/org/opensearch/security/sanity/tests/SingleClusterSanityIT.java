@@ -11,15 +11,18 @@
 
 package org.opensearch.security.sanity.tests;
 
-import org.hamcrest.MatcherAssert;
-import org.junit.Test;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.*;
+import org.hamcrest.MatcherAssert;
+import org.junit.Test;
+
+import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 
 @SuppressWarnings("unchecked")
