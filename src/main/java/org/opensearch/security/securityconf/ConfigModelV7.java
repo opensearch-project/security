@@ -357,6 +357,7 @@ public class ConfigModelV7 extends ConfigModel {
         public EvaluatedDlsFlsConfig getDlsFls(User user, boolean dfmEmptyOverwritesAll, IndexNameExpressionResolver resolver, ClusterService cs,
                 NamedXContentRegistry namedXContentRegistry) {
 
+
             if (!containsDlsFlsConfig()) {
                 if(log.isDebugEnabled()) {
                     log.debug("No fls or dls found for {} in {} security roles", user, roles.size());
@@ -784,7 +785,7 @@ public class ConfigModelV7 extends ConfigModel {
                 resolvedIndices.addAll(Arrays.asList(resolvedIndicesFromPattern));
             }
 
-            if (appendUnresolved) {
+            if (appendUnresolved || resolvedIndices.build().isEmpty()) {
                 resolvedIndices.add(unresolved);
             }
             return resolvedIndices.build();

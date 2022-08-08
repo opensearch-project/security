@@ -103,6 +103,22 @@ public class IndexPatternTests {
         verifyNoMoreInteractions(ip);
     }
 
+    /** Verify concreteIndexNames when there are no matches */
+    @Test
+    public void testExactNameWithNoMatches() {
+        doReturn("index-17").when(ip).getUnresolvedIndexPattern(user);
+        when(clusterService.state()).thenReturn(mock(ClusterState.class));
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-17"))).thenReturn(new String[]{});
+
+        final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
+
+        assertThat(results, contains("index-17"));
+
+        verify(clusterService).state();
+        verify(ip).getUnresolvedIndexPattern(user);
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-17"));
+    }
+
     /** Verify concreteIndexNames on exact name matches */
     @Test
     public void testExactName() {
