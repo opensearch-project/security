@@ -380,8 +380,8 @@ public class LocalOpenSearchCluster {
 
         CompletableFuture<String> start() {
             CompletableFuture<String> completableFuture = new CompletableFuture<>();
-
-            this.node = new PluginAwareNode(nodeSettings.masterNode, getOpenSearchSettings(), nodeSettings.getPlugins(additionalPlugins));
+            Class<? extends Plugin>[] mergedPlugins = nodeSettings.pluginsWithAddition(additionalPlugins);
+            this.node = new PluginAwareNode(nodeSettings.masterNode, getOpenSearchSettings(), mergedPlugins);
 
             new Thread(new Runnable() {
 
