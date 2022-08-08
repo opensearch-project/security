@@ -51,6 +51,13 @@ perf_named_only:
   backend_roles: []
   attributes: {}
   description: "Migrated from v6"
+user_ccc:
+  hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  attributes: {}
+  description: "Migrated from v6"
 user_bbb:
   hash: "$2a$12$YCBrpxYyFusK609FurY5Ee3BlmuzWw0qHwpwqEyNhM2.XnQY3Bxpe"
   reserved: false
