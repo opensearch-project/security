@@ -295,21 +295,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder user(TestSecurityConfig.User user) {
-            testSecurityConfig.user(user);
-            return this;
-        }
-
-        public Builder user(String name, String password, String... sgRoles) {
-            testSecurityConfig.user(name, password, sgRoles);
-            return this;
-        }
-
-        public Builder user(String name, String password, Role... sgRoles) {
-            testSecurityConfig.user(name, password, sgRoles);
-            return this;
-        }
-
         public Builder roles(Role... roles) {
             testSecurityConfig.roles(roles);
             return this;
