@@ -87,6 +87,7 @@ kibana_server:
   - "cluster_composite_ops"
   - "indices:admin/template*"
   - "indices:data/read/scroll*"
+  - "indices:data/read/point_in_time*"
   index_permissions:
   - index_patterns:
     - ".kibana"
