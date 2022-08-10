@@ -46,7 +46,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
-import org.opensearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionRequest;
@@ -768,8 +767,6 @@ public class IndexResolverReplacer {
             //do nothing
         } else if (request instanceof SearchScrollRequest) {
             //do nothing
-        } else if (request instanceof PutComponentTemplateAction.Request) {
-            // do nothing
         } else {
             if(log.isDebugEnabled()) {
                 log.debug(request.getClass() + " not supported (It is likely not a indices related request)");
