@@ -210,8 +210,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
     private void initSecurityIndex(TestSecurityConfig testSecurityConfig) {
         log.info("Initializing OpenSearch Security index");        
-        Client client = new ContextHeaderDecoratorClient(this.getInternalNodeClient(), Map.of(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER , "true"));
-        testSecurityConfig.initIndex(client);
+        try(Client client = new ContextHeaderDecoratorClient(this.getInternalNodeClient(), Map.of(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER , "true"))) {
+            testSecurityConfig.initIndex(client);
+        }
     }
     
     public static class Builder {
