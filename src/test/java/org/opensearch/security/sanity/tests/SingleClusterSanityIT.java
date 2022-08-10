@@ -20,7 +20,7 @@ import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.anEmptyMap;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
@@ -44,7 +44,7 @@ public class SingleClusterSanityIT extends SecurityRestTestCase {
             List<Map<String, Object>> plugins = (List<Map<String, Object>>) node.get("plugins");
             Set<Object> pluginNames = plugins.stream().map(map -> map.get("name")).collect(Collectors.toSet());
 
-            MatcherAssert.assertThat(pluginNames, contains(SECURITY_PLUGIN_NAME));
+            MatcherAssert.assertThat(pluginNames, hasItem(SECURITY_PLUGIN_NAME));
         }
         MatcherAssert.assertThat(nodesInCluster, is(not(anEmptyMap())));
     }
