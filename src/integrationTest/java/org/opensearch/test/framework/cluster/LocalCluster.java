@@ -248,18 +248,15 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder nodeSettings(Object... settings) {
-            for (int i = 0; i < settings.length - 1; i += 2) {
-                String key = String.valueOf(settings[i]);
-                Object value = settings[i + 1];
-
+        public Builder nodeSettings(Map<String, Object> settings) {
+            settings.forEach((key, value) -> {
                 if (value instanceof List) {
                     List<String> values = ((List<?>) value).stream().map(String::valueOf).collect(Collectors.toList());
                     nodeOverrideSettingsBuilder.putList(key, values);
                 } else {
                     nodeOverrideSettingsBuilder.put(key, String.valueOf(value));
                 }
-            }
+            });
 
             return this;
         }
