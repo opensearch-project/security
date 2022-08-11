@@ -255,7 +255,7 @@ public class LocalOpenSearchCluster {
     private CompletableFuture<Void> startNodes(List<NodeSettings> nodeSettingList, SortedSet<Integer> transportPorts, SortedSet<Integer> httpPorts) {
         Iterator<Integer> transportPortIterator = transportPorts.iterator();
         Iterator<Integer> httpPortIterator = httpPorts.iterator();
-        List<CompletableFuture<String>> futures = new ArrayList<>();
+        List<CompletableFuture<StartStage>> futures = new ArrayList<>();
 
         for (NodeSettings nodeSettings : nodeSettingList) {
             Node node = new Node(nodeSettings, transportPortIterator.next(), httpPortIterator.next());
@@ -349,8 +349,8 @@ public class LocalOpenSearchCluster {
             return requireNonNull(type, "Node type is required.").equals(this.nodeType);
         }
 
-        CompletableFuture<String> start() {
-            CompletableFuture<String> completableFuture = new CompletableFuture<>();
+        CompletableFuture<StartStage> start() {
+            CompletableFuture<StartStage> completableFuture = new CompletableFuture<>();
             Class<? extends Plugin>[] mergedPlugins = nodeSettings.pluginsWithAddition(additionalPlugins);
             this.node = new PluginAwareNode(nodeSettings.masterNode, getOpenSearchSettings(), mergedPlugins);
 
@@ -361,7 +361,7 @@ public class LocalOpenSearchCluster {
                     try {
                         node.start();
                         running = true;
-                        completableFuture.complete("initialized");
+                        completableFuture.complete(StartStage.INITIALIZED);
                     } catch (BindTransportException | BindHttpException e) {
                         log.warn("Port collision detected for {}", this, e);
                         portCollision = true;
@@ -374,7 +374,7 @@ public class LocalOpenSearchCluster {
                         node = null;
                         PortAllocator.TCP.reserve(transportPort, httpPort);
 
-                        completableFuture.complete("retry");
+                        completableFuture.complete(StartStage.RETRY);
 
                     } catch (Throwable e) {
                         log.error("Unable to start {}", this, e);
