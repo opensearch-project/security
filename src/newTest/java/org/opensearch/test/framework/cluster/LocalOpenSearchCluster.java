@@ -43,6 +43,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.net.InetAddresses;
@@ -166,17 +167,19 @@ public class LocalOpenSearchCluster {
     }
 
     public void stop() {
+        List<CompletableFuture<Boolean>> stopFutures = new ArrayList<>();
         for (Node node : getNodesByType(CLIENT)) {
-            node.stop();
+            stopFutures.add(node.stop(2, TimeUnit.SECONDS));
         }
 
         for (Node node : getNodesByType(DATA)) {
-            node.stop();
+            stopFutures.add(node.stop(2, TimeUnit.SECONDS));
         }
 
         for (Node node : getNodesByType(MASTER)) {
-            node.stop();
+            stopFutures.add(node.stop(2, TimeUnit.SECONDS));
         }
+        CompletableFuture.allOf(stopFutures.toArray(size -> new CompletableFuture[size])).join();
     }
 
     public void destroy() {
@@ -400,21 +403,27 @@ public class LocalOpenSearchCluster {
             return node.injector().getInstance(clazz);
         }
 
-        public void stop() {
-            try {
-                log.info("Stopping {}", this);
+        public CompletableFuture<Boolean> stop(long timeout, TimeUnit timeUnit) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    log.info("Stopping {}", this);
 
-                running = false;
+                    running = false;
 
-                if (node != null) {
-                    node.close();
-                    node = null;
-                    Thread.sleep(10);
+                    if (node != null) {
+                        node.close();
+                        boolean stopped = node.awaitClose(timeout, timeUnit);
+                        node = null;
+                        return stopped;
+                    } else {
+                        return false;
+                    }
+                } catch (Throwable e) {
+                    String message = "Error while stopping " + this;
+                    log.warn(message, e);
+                    throw new RuntimeException(message, e);
                 }
-
-            } catch (Throwable e) {
-                log.warn("Error while stopping " + this, e);
-            }
+            });
         }
 
         @Override

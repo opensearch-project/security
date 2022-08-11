@@ -117,7 +117,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     protected void after() {
         if (localOpenSearchCluster != null && localOpenSearchCluster.isStarted()) {
             try {
-                Thread.sleep(1234);
                 localOpenSearchCluster.destroy();
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -131,7 +130,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     public void close() {
         if (localOpenSearchCluster != null && localOpenSearchCluster.isStarted()) {
             try {
-                Thread.sleep(100);
                 localOpenSearchCluster.destroy();
             } catch (Exception e) {
                 throw new RuntimeException(e);
