@@ -38,6 +38,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Random;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
@@ -62,8 +64,11 @@ import org.opensearch.test.framework.certificate.TestCertificates;
 import org.opensearch.test.framework.cluster.ClusterManager.NodeSettings;
 import org.opensearch.transport.BindTransportException;
 
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
-
+import static org.opensearch.test.framework.cluster.NodeType.CLIENT;
+import static org.opensearch.test.framework.cluster.NodeType.DATA;
+import static org.opensearch.test.framework.cluster.NodeType.MASTER;
 
 public class LocalOpenSearchCluster {
 
@@ -77,10 +82,7 @@ public class LocalOpenSearchCluster {
     private final ClusterManager clusterConfiguration;
     private final NodeSettingsSupplier nodeSettingsSupplier;
     private final List<Class<? extends Plugin>> additionalPlugins;
-    private final List<Node> allNodes = new ArrayList<>();
-    private final List<Node> masterNodes = new ArrayList<>();
-    private final List<Node> dataNodes = new ArrayList<>();
-    private final List<Node> clientNodes = new ArrayList<>();
+    private final List<Node> nodes = new ArrayList<>();
     private final TestCertificates testCertificates;
 
     private File clusterHomeDir;
@@ -102,6 +104,16 @@ public class LocalOpenSearchCluster {
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}        
+    }
+
+    private List<Node> getNodesByType(NodeType nodeType) {
+        return nodes.stream()
+            .filter(currentNode -> currentNode.hasAssignedType(nodeType))
+            .collect(Collectors.toList());
+    }
+
+    private long countNodesByType(NodeType nodeType) {
+        return getNodesByType(nodeType).stream().count();
     }
 
     public void start() throws Exception {
@@ -139,7 +151,7 @@ public class LocalOpenSearchCluster {
 
         log.info("Startup finished. Waiting for GREEN");
 
-        waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), allNodes.size());
+        waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), nodes.size());
 
         log.info("Started: {}", this);
 
@@ -154,25 +166,22 @@ public class LocalOpenSearchCluster {
     }
 
     public void stop() {
-
-        for (Node node : clientNodes) {
+        for (Node node : getNodesByType(CLIENT)) {
             node.stop();
         }
 
-        for (Node node : dataNodes) {
+        for (Node node : getNodesByType(DATA)) {
             node.stop();
         }
 
-        for (Node node : masterNodes) {
+        for (Node node : getNodesByType(MASTER)) {
             node.stop();
         }
     }
 
     public void destroy() {
         stop();
-        clientNodes.clear();
-        dataNodes.clear();
-        masterNodes.clear();
+        nodes.clear();
 
         try {
             FileUtils.deleteDirectory(clusterHomeDir);
@@ -182,28 +191,24 @@ public class LocalOpenSearchCluster {
     }
 
     public Node clientNode() {
-        return findRunningNode(clientNodes, dataNodes, masterNodes);
-    }
-    
-    public Node randomClientNode() {
-        return randomRunningNode(clientNodes, dataNodes, masterNodes);
+        return findRunningNode(getNodesByType(CLIENT), getNodesByType(DATA), getNodesByType(MASTER));
     }
 
     public Node masterNode() {
-        return findRunningNode(masterNodes);
+        return findRunningNode(getNodesByType(MASTER));
     }
 
-    public List<Node> getAllNodes() {
-        return Collections.unmodifiableList(allNodes);
+    public List<Node> getNodes() {
+        return Collections.unmodifiableList(nodes);
     }
 
     public Node getNodeByName(String name) {
-        return allNodes.stream().filter(node -> node.getNodeName().equals(name)).findAny().orElseThrow(() -> new RuntimeException(
-                "No such node with name: " + name + "; available: " + allNodes.stream().map(Node::getNodeName).collect(Collectors.toList())));
+        return nodes.stream().filter(node -> node.getNodeName().equals(name)).findAny().orElseThrow(() -> new RuntimeException(
+                "No such node with name: " + name + "; available: " + nodes.stream().map(Node::getNodeName).collect(Collectors.toList())));
     }
     
     private boolean isNodeFailedWithPortCollision() {
-        return allNodes.stream().anyMatch(Node::isPortCollision);
+        return nodes.stream().anyMatch(Node::isPortCollision);
     }
 
     private void retry() throws Exception {
@@ -215,10 +220,7 @@ public class LocalOpenSearchCluster {
 
         stop();
 
-        this.allNodes.clear();
-        this.masterNodes.clear();
-        this.dataNodes.clear();
-        this.clientNodes.clear();
+        this.nodes.clear();
         this.seedHosts = null;
         this.initialMasterHosts = null;
         this.clusterHomeDir = Files.createTempDirectory("local_cluster_" + clusterName + "_retry_" + retry).toFile();
@@ -245,35 +247,6 @@ public class LocalOpenSearchCluster {
         }
 
         return null;
-    }
-    
-    @SafeVarargs
-    private final Node randomRunningNode(List<Node> nodes, List<Node>... moreNodes) {
-        ArrayList<Node> runningNodes = new ArrayList<>();
-        
-        for (Node node : nodes) {
-            if (node.isRunning()) {
-                runningNodes.add(node);
-            }
-        }
-
-        if (moreNodes != null && moreNodes.length > 0) {
-            for (List<Node> nodesList : moreNodes) {
-                for (Node node : nodesList) {
-                    if (node.isRunning()) {
-                        runningNodes.add(node);
-                    }
-                }
-            }
-        }
-        
-        if (runningNodes.size() == 0) {
-            return null;
-        }
-        
-        int index = this.random.nextInt(runningNodes.size());
-        
-        return runningNodes.get(index);
     }
 
     private CompletableFuture<Void> startNodes(List<NodeSettings> nodeSettingList, SortedSet<Integer> transportPorts, SortedSet<Integer> httpPorts) {
@@ -316,8 +289,15 @@ public class LocalOpenSearchCluster {
 
     @Override
     public String toString() {
+        String masterNodes = nodeByTypeToString(MASTER);
+        String dataNodes = nodeByTypeToString(DATA);
+        String clientNodes = nodeByTypeToString(CLIENT);
         return "\nES Cluster " + clusterName + "\nmaster nodes: " + masterNodes + "\n  data nodes: " + dataNodes + "\nclient nodes: " + clientNodes
                 + "\n";
+    }
+
+    private String nodeByTypeToString(NodeType type) {
+        return getNodesByType(type).stream().map(Objects::toString).collect(Collectors.joining(", "));
     }
 
     private static List<String> toHostList(Collection<Integer> ports) {
@@ -325,24 +305,14 @@ public class LocalOpenSearchCluster {
     }
 
     private String createNextNodeName(NodeSettings nodeSettings) {
-        List<Node> nodes;
-        String nodeType;
-
-        if (nodeSettings.masterNode) {
-            nodes = this.masterNodes;
-            nodeType = "master";
-        } else if (nodeSettings.dataNode) {
-            nodes = this.dataNodes;
-            nodeType = "data";
-        } else {
-            nodes = this.clientNodes;
-            nodeType = "client";
-        }
-
-        return nodeType + "_" + nodes.size();
+        NodeType type = nodeSettings.recognizeNodeType();
+        long nodeTypeCount = countNodesByType(type);
+        String nodeType = type.name().toLowerCase(Locale.ROOT);
+        return nodeType + "_" + nodeTypeCount;
     }
 
     public class Node implements OpenSearchClientProvider {
+        private final NodeType nodeType;
         private final String nodeName;
         private final NodeSettings nodeSettings;
         private final File nodeHomeDir;
@@ -357,7 +327,7 @@ public class LocalOpenSearchCluster {
         private boolean portCollision = false;
 
         Node(NodeSettings nodeSettings, int transportPort, int httpPort) {
-            this.nodeName = createNextNodeName(nodeSettings);
+            this.nodeName = createNextNodeName(requireNonNull(nodeSettings, "Node settings are required."));
             this.nodeSettings = nodeSettings;
             this.nodeHomeDir = new File(clusterHomeDir, nodeName);
             this.dataDir = new File(this.nodeHomeDir, "data");
@@ -368,14 +338,12 @@ public class LocalOpenSearchCluster {
             this.httpAddress = new InetSocketAddress(hostAddress, httpPort);
             this.transportAddress = new InetSocketAddress(hostAddress, transportPort);
 
-            if (nodeSettings.masterNode) {
-                masterNodes.add(this);
-            } else if (nodeSettings.dataNode) {
-                dataNodes.add(this);
-            } else {
-                clientNodes.add(this);
-            }
-            allNodes.add(this);
+            this.nodeType = nodeSettings.recognizeNodeType();
+            nodes.add(this);
+        }
+
+        boolean hasAssignedType(NodeType type) {
+            return requireNonNull(type, "Node type is required.").equals(this.nodeType);
         }
 
         CompletableFuture<String> start() {

@@ -45,6 +45,9 @@ import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.transport.Netty4Plugin;
 
 import static java.util.Collections.unmodifiableList;
+import static org.opensearch.test.framework.cluster.NodeType.CLIENT;
+import static org.opensearch.test.framework.cluster.NodeType.DATA;
+import static org.opensearch.test.framework.cluster.NodeType.MASTER;
 
 public enum ClusterManager {
     //first one needs to be a master
@@ -112,6 +115,15 @@ public enum ClusterManager {
             this.masterNode = masterNode;
             this.dataNode = dataNode;
             this.plugins = mergePlugins(additionalPlugins, DEFAULT_PLUGINS);
+        }
+        NodeType recognizeNodeType() {
+            if (masterNode) {
+                return MASTER;
+            } else if (dataNode) {
+                return DATA;
+            } else {
+                return CLIENT;
+            }
         }
 
         private List<Class<? extends Plugin>> mergePlugins(Collection<Class<? extends Plugin>>...plugins) {

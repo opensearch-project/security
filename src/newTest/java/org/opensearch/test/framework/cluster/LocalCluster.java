@@ -165,15 +165,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     }
 
     public List<LocalOpenSearchCluster.Node> nodes() {
-        return this.localOpenSearchCluster.getAllNodes();
+        return this.localOpenSearchCluster.getNodes();
     }
 
     public LocalOpenSearchCluster.Node getNodeByName(String name) {
         return this.localOpenSearchCluster.getNodeByName(name);
-    }
-
-    public LocalOpenSearchCluster.Node getRandomClientNode() {
-        return this.localOpenSearchCluster.randomClientNode();
     }
 
     public boolean isStarted() {
