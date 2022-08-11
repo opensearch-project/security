@@ -120,12 +120,11 @@ public class LocalOpenSearchCluster {
     public void start() throws Exception {
         log.info("Starting {}", clusterName);
 
-        int forkNumber = getUnitTestForkNumber();
         int masterNodeCount = clusterConfiguration.getMasterNodes();
         int nonMasterNodeCount = clusterConfiguration.getDataNodes() + clusterConfiguration.getClientNodes();
 
-        SortedSet<Integer> masterNodeTransportPorts = PortAllocator.TCP.allocate(clusterName, Math.max(masterNodeCount, 4), 5000 + forkNumber * 1000 + 300);
-        SortedSet<Integer> masterNodeHttpPorts = PortAllocator.TCP.allocate(clusterName, masterNodeCount, 5000 + forkNumber * 1000 + 200);
+        SortedSet<Integer> masterNodeTransportPorts = PortAllocator.TCP.allocate(clusterName, Math.max(masterNodeCount, 4), 5000 + 42 * 1000 + 300);
+        SortedSet<Integer> masterNodeHttpPorts = PortAllocator.TCP.allocate(clusterName, masterNodeCount, 5000 + 42 * 1000 + 200);
 
         this.seedHosts = toHostList(masterNodeTransportPorts);
         this.initialMasterHosts = toHostList(masterNodeTransportPorts.stream().limit(masterNodeCount).collect(Collectors.toSet()));
@@ -135,8 +134,8 @@ public class LocalOpenSearchCluster {
         CompletableFuture<Void> masterNodeFuture = startNodes(clusterConfiguration.getMasterNodeSettings(), masterNodeTransportPorts,
                 masterNodeHttpPorts);
 
-        SortedSet<Integer> nonMasterNodeTransportPorts = PortAllocator.TCP.allocate(clusterName, nonMasterNodeCount, 5000 + forkNumber * 1000 + 310);
-        SortedSet<Integer> nonMasterNodeHttpPorts = PortAllocator.TCP.allocate(clusterName, nonMasterNodeCount, 5000 + forkNumber * 1000 + 210);
+        SortedSet<Integer> nonMasterNodeTransportPorts = PortAllocator.TCP.allocate(clusterName, nonMasterNodeCount, 5000 + 42 * 1000 + 310);
+        SortedSet<Integer> nonMasterNodeHttpPorts = PortAllocator.TCP.allocate(clusterName, nonMasterNodeCount, 5000 + 42 * 1000 + 210);
 
         CompletableFuture<Void> nonMasterNodeFuture = startNodes(clusterConfiguration.getNonMasterNodeSettings(), nonMasterNodeTransportPorts,
                 nonMasterNodeHttpPorts);
@@ -480,16 +479,6 @@ public class LocalOpenSearchCluster {
         @Override
         public TestCertificates getTestCertificates() {
             return testCertificates;
-        }
-    }
-    
-    private static int getUnitTestForkNumber() {
-        String forkno = System.getProperty("forkno");
-
-        if (forkno != null && forkno.length() > 0) {
-            return Integer.parseInt(forkno.split("_")[1]);
-        } else {
-            return 42;
         }
     }
 
