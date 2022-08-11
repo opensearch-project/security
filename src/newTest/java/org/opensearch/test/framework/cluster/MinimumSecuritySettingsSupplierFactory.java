@@ -59,20 +59,16 @@ public class MinimumSecuritySettingsSupplierFactory {
 		
 		// TODO: At the moment the test node certificates have an OID set, so we do not need to
 		// specify any node_dns here. Once we make generating and specifying  
-		try {
-			builder.put("plugins.security.ssl.transport.pemtrustedcas_filepath", testCertificates.getRootCertificate().getAbsolutePath());			
-			builder.put("plugins.security.ssl.transport.pemcert_filepath", testCertificates.getNodeCertificate(node).getAbsolutePath());
-			builder.put("plugins.security.ssl.transport.pemkey_filepath", testCertificates.getNodeKey(node).getAbsolutePath());
-						
-			builder.put("plugins.security.ssl.http.enabled", true);
-			builder.put("plugins.security.ssl.http.pemtrustedcas_filepath", testCertificates.getRootCertificate().getAbsolutePath());
-			builder.put("plugins.security.ssl.http.pemcert_filepath", testCertificates.getNodeCertificate(node).getAbsolutePath());
-			builder.put("plugins.security.ssl.http.pemkey_filepath", testCertificates.getNodeKey(node).getAbsolutePath());
+		builder.put("plugins.security.ssl.transport.pemtrustedcas_filepath", testCertificates.getRootCertificate().getAbsolutePath());
+		builder.put("plugins.security.ssl.transport.pemcert_filepath", testCertificates.getNodeCertificate(node).getAbsolutePath());
+		builder.put("plugins.security.ssl.transport.pemkey_filepath", testCertificates.getNodeKey(node).getAbsolutePath());
 
-			builder.putList("plugins.security.authcz.admin_dn", testCertificates.getAdminDNs());
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Invalid test certificates provided on local cluster start");
-		}
+		builder.put("plugins.security.ssl.http.enabled", true);
+		builder.put("plugins.security.ssl.http.pemtrustedcas_filepath", testCertificates.getRootCertificate().getAbsolutePath());
+		builder.put("plugins.security.ssl.http.pemcert_filepath", testCertificates.getNodeCertificate(node).getAbsolutePath());
+		builder.put("plugins.security.ssl.http.pemkey_filepath", testCertificates.getNodeKey(node).getAbsolutePath());
+
+		builder.putList("plugins.security.authcz.admin_dn", testCertificates.getAdminDNs());
 
 		return builder;
 

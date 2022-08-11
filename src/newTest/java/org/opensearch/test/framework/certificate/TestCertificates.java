@@ -30,34 +30,37 @@ import java.nio.file.Path;
  */
 public class TestCertificates {
 
-    public File getRootCertificate() throws IOException {
+    public File getRootCertificate() {
     	return createTempFile("root", ".cert", Certificates.ROOT_CA_CERTIFICATE);
     }
 
-    public File getNodeCertificate(int node) throws IOException {
+    public File getNodeCertificate(int node) {
     	return createTempFile("node-" + node, ".cert", Certificates.NODE_CERTIFICATE);
     }
 
-    public File getNodeKey(int node) throws IOException {
+    public File getNodeKey(int node) {
     	return createTempFile("node-" + node, ".key", Certificates.NODE_KEY);
     }
 
-    public File getAdminCertificate() throws IOException {
+    public File getAdminCertificate() {
     	return createTempFile("admin", ".cert", Certificates.ADMIN_CERTIFICATE);
     }
 
-    public File getAdminKey() throws IOException {
+    public File getAdminKey() {
     	return createTempFile("admin", ".key", Certificates.ADMIN_KEY);
     }
 
-    public String[] getAdminDNs() throws IOException {
+    public String[] getAdminDNs() {
     	return new String[] {"CN=kirk,OU=client,O=client,L=test,C=de"};
     }
 
-    private File createTempFile(String name, String suffix, String contents) throws IOException {
-    	Path path = Files.createTempFile(name, suffix);
-    	Files.writeString(path, contents);
-    	return path.toFile();
-    	
+    private File createTempFile(String name, String suffix, String contents) {
+        try {
+            Path path = Files.createTempFile(name, suffix);
+            Files.writeString(path, contents);
+            return path.toFile();
+        } catch (IOException e) {
+            throw new RuntimeException(String.format("Error while creating a temp file: %s%s", name, suffix), e);
+        }
     }
 }
