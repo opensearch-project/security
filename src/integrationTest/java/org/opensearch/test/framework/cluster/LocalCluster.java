@@ -195,7 +195,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                     index.create(client);
                 }
             }            
-            
+
         } catch (Exception e) {
             log.error("Local ES cluster start failed", e);
             throw new RuntimeException(e);
@@ -326,8 +326,10 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             try {
 
                 clusterName += "_" + num.incrementAndGet();
-
-                return new LocalCluster(clusterName, testSecurityConfig, nodeOverrideSettingsBuilder.build(), clusterConfiguration, plugins,
+                Settings settings = nodeOverrideSettingsBuilder
+                    .put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false)
+                    .build();
+                return new LocalCluster(clusterName, testSecurityConfig, settings, clusterConfiguration, plugins,
                         testCertificates, clusterDependencies, remoteClusters, testIndices);
             } catch (Exception e) {
                 log.error("Failed to build LocalCluster", e);
