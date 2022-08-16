@@ -66,7 +66,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
     protected static final AtomicLong num = new AtomicLong();
 
     private final List<Class<? extends Plugin>> plugins;
-    private final ClusterManager clusterConfiguration;
+    private final ClusterManager clusterManager;
     private final TestSecurityConfig testSecurityConfig;
     private Settings nodeOverride;
     private final String clusterName;
@@ -78,11 +78,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 	private final List<TestIndex> testIndices;
 
     private LocalCluster(String clusterName, TestSecurityConfig testSgConfig, Settings nodeOverride,
-            ClusterManager clusterConfiguration, List<Class<? extends Plugin>> plugins, TestCertificates testCertificates,
+            ClusterManager clusterManager, List<Class<? extends Plugin>> plugins, TestCertificates testCertificates,
             List<LocalCluster> clusterDependencies, Map<String, LocalCluster> remotes, List<TestIndex> testIndices) {
         this.plugins = plugins;
         this.testCertificates = testCertificates;
-        this.clusterConfiguration = clusterConfiguration;
+        this.clusterManager = clusterManager;
         this.testSecurityConfig = testSgConfig;
         this.nodeOverride = nodeOverride;
         this.clusterName = clusterName;
@@ -172,7 +172,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
     private void start() {
         try {
-        	localOpenSearchCluster = new LocalOpenSearchCluster(clusterName, clusterConfiguration,
+        	localOpenSearchCluster = new LocalOpenSearchCluster(clusterName, clusterManager,
                     minimumOpenSearchSettingsSupplierFactory.minimumOpenSearchSettings(nodeOverride), plugins, testCertificates);
 
             localOpenSearchCluster.start();
@@ -208,7 +208,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
         private Map<String, LocalCluster> remoteClusters = new HashMap<>();
         private List<LocalCluster> clusterDependencies = new ArrayList<>();
         private List<TestIndex> testIndices = new ArrayList<>();
-        private ClusterManager clusterConfiguration = ClusterManager.DEFAULT;
+        private ClusterManager clusterManager = ClusterManager.DEFAULT;
         private TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
         private String clusterName = "local_cluster";
         private TestCertificates testCertificates;
@@ -225,13 +225,13 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
             return this;
         }
 
-        public Builder clusterConfiguration(ClusterManager clusterConfiguration) {
-            this.clusterConfiguration = clusterConfiguration;
+        public Builder clusterManager(ClusterManager clusterManager) {
+            this.clusterManager = clusterManager;
             return this;
         }
 
         public Builder singleNode() {
-            this.clusterConfiguration = ClusterManager.SINGLENODE;
+            this.clusterManager = ClusterManager.SINGLENODE;
             return this;
         }
 
@@ -321,7 +321,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
                 Settings settings = nodeOverrideSettingsBuilder
                     .put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false)
                     .build();
-                return new LocalCluster(clusterName, testSecurityConfig, settings, clusterConfiguration, plugins,
+                return new LocalCluster(clusterName, testSecurityConfig, settings, clusterManager, plugins,
                         testCertificates, clusterDependencies, remoteClusters, testIndices);
             } catch (Exception e) {
                 log.error("Failed to build LocalCluster", e);

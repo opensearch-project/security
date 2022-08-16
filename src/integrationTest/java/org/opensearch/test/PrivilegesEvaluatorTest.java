@@ -47,7 +47,7 @@ public class PrivilegesEvaluatorTest {
 
 	@ClassRule
 	public static LocalCluster cluster = new LocalCluster.Builder()
-			.clusterConfiguration(ClusterManager.THREE_MASTERS).authc(AUTHC_HTTPBASIC_INTERNAL)
+			.clusterManager(ClusterManager.THREE_MASTERS).authc(AUTHC_HTTPBASIC_INTERNAL)
 			.users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX).build();
 
 	@Test

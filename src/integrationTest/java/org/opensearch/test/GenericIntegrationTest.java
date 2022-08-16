@@ -49,7 +49,7 @@ public class GenericIntegrationTest {
 
     // build our test cluster as a ClassRule
     @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterConfiguration(ClusterManager.THREE_MASTERS)
+    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_MASTERS)
     	.authc(AUTHC_HTTPBASIC_INTERNAL)
     	.users(USER_ADMIN, INDEX_A_USER)
     	.indices(INDEX_A, INDEX_B).build();

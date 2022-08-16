@@ -53,7 +53,7 @@ public class SecurityRolesTests {
 
 	@ClassRule
 	public static LocalCluster cluster = new LocalCluster.Builder()
-			.clusterConfiguration(ClusterManager.THREE_MASTERS).anonymousAuth(true)
+			.clusterManager(ClusterManager.THREE_MASTERS).anonymousAuth(true)
 			.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_SR).build();
 
 	@Test

@@ -80,7 +80,7 @@ public class LocalOpenSearchCluster {
     private static final Logger log = LogManager.getLogger(LocalOpenSearchCluster.class);
 
     private final String clusterName;
-    private final ClusterManager clusterConfiguration;
+    private final ClusterManager clusterManager;
     private final NodeSettingsSupplier nodeSettingsSupplier;
     private final List<Class<? extends Plugin>> additionalPlugins;
     private final List<Node> nodes = new ArrayList<>();
@@ -93,10 +93,10 @@ public class LocalOpenSearchCluster {
     private boolean started;
     private Random random = new Random();
 
-    public LocalOpenSearchCluster(String clusterName, ClusterManager clusterConfiguration, NodeSettingsSupplier nodeSettingsSupplier,
+    public LocalOpenSearchCluster(String clusterName, ClusterManager clusterManager, NodeSettingsSupplier nodeSettingsSupplier,
                           List<Class<? extends Plugin>> additionalPlugins, TestCertificates testCertificates) {
         this.clusterName = clusterName;
-        this.clusterConfiguration = clusterConfiguration;
+        this.clusterManager = clusterManager;
         this.nodeSettingsSupplier = nodeSettingsSupplier;
         this.additionalPlugins = additionalPlugins;
         this.testCertificates = testCertificates;
@@ -120,8 +120,8 @@ public class LocalOpenSearchCluster {
     public void start() throws Exception {
         log.info("Starting {}", clusterName);
 
-        int masterNodeCount = clusterConfiguration.getMasterNodes();
-        int nonMasterNodeCount = clusterConfiguration.getDataNodes() + clusterConfiguration.getClientNodes();
+        int masterNodeCount = clusterManager.getMasterNodes();
+        int nonMasterNodeCount = clusterManager.getDataNodes() + clusterManager.getClientNodes();
 
         SortedSet<Integer> masterNodeTransportPorts = PortAllocator.TCP.allocate(clusterName, Math.max(masterNodeCount, 4), 5000 + 42 * 1000 + 300);
         SortedSet<Integer> masterNodeHttpPorts = PortAllocator.TCP.allocate(clusterName, masterNodeCount, 5000 + 42 * 1000 + 200);
@@ -131,13 +131,15 @@ public class LocalOpenSearchCluster {
 
         started = true;
 
-        CompletableFuture<Void> masterNodeFuture = startNodes(clusterConfiguration.getMasterNodeSettings(), masterNodeTransportPorts,
+        CompletableFuture<Void> masterNodeFuture = startNodes(
+            clusterManager.getMasterNodeSettings(), masterNodeTransportPorts,
                 masterNodeHttpPorts);
 
         SortedSet<Integer> nonMasterNodeTransportPorts = PortAllocator.TCP.allocate(clusterName, nonMasterNodeCount, 5000 + 42 * 1000 + 310);
         SortedSet<Integer> nonMasterNodeHttpPorts = PortAllocator.TCP.allocate(clusterName, nonMasterNodeCount, 5000 + 42 * 1000 + 210);
 
-        CompletableFuture<Void> nonMasterNodeFuture = startNodes(clusterConfiguration.getNonMasterNodeSettings(), nonMasterNodeTransportPorts,
+        CompletableFuture<Void> nonMasterNodeFuture = startNodes(
+            clusterManager.getNonMasterNodeSettings(), nonMasterNodeTransportPorts,
                 nonMasterNodeHttpPorts);
 
         CompletableFuture.allOf(masterNodeFuture, nonMasterNodeFuture).join();
