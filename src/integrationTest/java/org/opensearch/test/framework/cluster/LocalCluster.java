@@ -115,15 +115,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
     @Override
     protected void after() {
-        if (localOpenSearchCluster != null && localOpenSearchCluster.isStarted()) {
-            try {
-                localOpenSearchCluster.destroy();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                localOpenSearchCluster = null;
-            }
-        }
+        close();
     }
 
     @Override
