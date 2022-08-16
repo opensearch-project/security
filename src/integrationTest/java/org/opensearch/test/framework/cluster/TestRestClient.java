@@ -36,9 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
@@ -82,10 +80,7 @@ public class TestRestClient implements AutoCloseable {
     private RequestConfig requestConfig;
     private List<Header> headers = new ArrayList<>();
     private Header CONTENT_TYPE_JSON = new BasicHeader("Content-Type", "application/json");
-    private boolean trackResources = false;
     private SSLContext sslContext;
-    private Set<String> puttedResourcesSet = new HashSet<>();
-    private List<String> puttedResourcesList = new ArrayList<>();
 
     public TestRestClient(InetSocketAddress nodeHttpAddress, List<Header> headers, SSLContext sslContext) {
         this.nodeHttpAddress = nodeHttpAddress;
@@ -112,15 +107,7 @@ public class TestRestClient implements AutoCloseable {
     public HttpResponse putJson(String path, String body, Header... headers) {
         HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + path);
         uriRequest.setEntity(toStringEntity(body));
-
-        HttpResponse response = executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
-
-        if (response.getStatusCode() < 400 && trackResources && !puttedResourcesSet.contains(path)) {
-            puttedResourcesSet.add(path);
-            puttedResourcesList.add(path);
-        }
-
-        return response;
+        return executeRequest(uriRequest, mergeHeaders(CONTENT_TYPE_JSON, headers));
     }
 
     private StringEntity toStringEntity(String body) {
@@ -137,14 +124,7 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse put(String path) {
         HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + path);
-        HttpResponse response = executeRequest(uriRequest);
-
-        if (response.getStatusCode() < 400 && trackResources && !puttedResourcesSet.contains(path)) {
-            puttedResourcesSet.add(path);
-            puttedResourcesList.add(path);
-        }
-
-        return response;
+        return executeRequest(uriRequest);
     }
 
     public HttpResponse delete(String path, Header... headers) {
@@ -194,11 +174,6 @@ public class TestRestClient implements AutoCloseable {
         } catch (IOException e) {
             throw new RestClientException("Error occured during HTTP request execution", e);
         }
-    }
-
-    public TestRestClient trackResources() {
-        trackResources = true;
-        return this;
     }
 
     protected final String getHttpServerUri() {
