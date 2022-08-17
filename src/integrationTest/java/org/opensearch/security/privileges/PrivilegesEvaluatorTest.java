@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.test;
+package org.opensearch.security.privileges;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.HttpStatus;

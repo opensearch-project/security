@@ -28,8 +28,6 @@
 
 package org.opensearch.test.framework.cluster;
 
-import java.io.IOException;
-
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
