@@ -46,8 +46,8 @@ import org.opensearch.transport.Netty4Plugin;
 
 import static java.util.Collections.unmodifiableList;
 import static org.opensearch.test.framework.cluster.NodeType.CLIENT;
-import static org.opensearch.test.framework.cluster.NodeType.DATA;
 import static org.opensearch.test.framework.cluster.NodeType.CLUSTER_MANAGER;
+import static org.opensearch.test.framework.cluster.NodeType.DATA;
 
 public enum ClusterManager {
     //first one needs to be a cluster manager

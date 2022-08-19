@@ -69,8 +69,8 @@ import org.opensearch.transport.BindTransportException;
 import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.opensearch.test.framework.cluster.NodeType.CLIENT;
-import static org.opensearch.test.framework.cluster.NodeType.DATA;
 import static org.opensearch.test.framework.cluster.NodeType.CLUSTER_MANAGER;
+import static org.opensearch.test.framework.cluster.NodeType.DATA;
 import static org.opensearch.test.framework.cluster.PortAllocator.TCP;
 
 public class LocalOpenSearchCluster {
@@ -173,15 +173,7 @@ public class LocalOpenSearchCluster {
 
     public void stop() {
         List<CompletableFuture<Boolean>> stopFutures = new ArrayList<>();
-        for (Node node : getNodesByType(CLIENT)) {
-            stopFutures.add(node.stop(2, TimeUnit.SECONDS));
-        }
-
-        for (Node node : getNodesByType(DATA)) {
-            stopFutures.add(node.stop(2, TimeUnit.SECONDS));
-        }
-
-        for (Node node : getNodesByType(CLUSTER_MANAGER)) {
+        for (Node node : nodes) {
             stopFutures.add(node.stop(2, TimeUnit.SECONDS));
         }
         CompletableFuture.allOf(stopFutures.toArray(size -> new CompletableFuture[size])).join();
