@@ -47,10 +47,10 @@ import org.opensearch.transport.Netty4Plugin;
 import static java.util.Collections.unmodifiableList;
 import static org.opensearch.test.framework.cluster.NodeType.CLIENT;
 import static org.opensearch.test.framework.cluster.NodeType.DATA;
-import static org.opensearch.test.framework.cluster.NodeType.MASTER;
+import static org.opensearch.test.framework.cluster.NodeType.CLUSTER_MANAGER;
 
 public enum ClusterManager {
-    //first one needs to be a master
+    //first one needs to be a cluster manager
     //HUGE(new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(false, true,false), new NodeSettings(false, true, false)),
 
     //3 nodes (1m, 2d)
@@ -62,7 +62,7 @@ public enum ClusterManager {
     //4 node (1m, 2d, 1c)
     CLIENTNODE(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, false)),
 
-    THREE_MASTERS(new NodeSettings(true, false), new NodeSettings(true, false), new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true));
+    THREE_CLUSTER_MANAGERS(new NodeSettings(true, false), new NodeSettings(true, false), new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true));
 
     private List<NodeSettings> nodeSettings = new LinkedList<>();
 
@@ -74,20 +74,20 @@ public enum ClusterManager {
         return unmodifiableList(nodeSettings);
     }
 
-    public List<NodeSettings> getMasterNodeSettings() {
-        return unmodifiableList(nodeSettings.stream().filter(a -> a.masterNode).collect(Collectors.toList()));
+    public List<NodeSettings> getClusterManagerNodeSettings() {
+        return unmodifiableList(nodeSettings.stream().filter(a -> a.clusterManagerNode).collect(Collectors.toList()));
     }
 
-    public List<NodeSettings> getNonMasterNodeSettings() {
-        return unmodifiableList(nodeSettings.stream().filter(a -> !a.masterNode).collect(Collectors.toList()));
+    public List<NodeSettings> getNonClusterManagerNodeSettings() {
+        return unmodifiableList(nodeSettings.stream().filter(a -> !a.clusterManagerNode).collect(Collectors.toList()));
     }
 
     public int getNodes() {
         return nodeSettings.size();
     }
 
-    public int getMasterNodes() {
-        return (int) nodeSettings.stream().filter(a -> a.masterNode).count();
+    public int getClusterManagerNodes() {
+        return (int) nodeSettings.stream().filter(a -> a.clusterManagerNode).count();
     }
 
     public int getDataNodes() {
@@ -95,30 +95,30 @@ public enum ClusterManager {
     }
 
     public int getClientNodes() {
-        return (int) nodeSettings.stream().filter(a -> !a.masterNode && !a.dataNode).count();
+        return (int) nodeSettings.stream().filter(a -> !a.clusterManagerNode && !a.dataNode).count();
     }
 
     public static class NodeSettings {
 
         private final static List<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(Netty4Plugin.class, OpenSearchSecurityPlugin.class,
             MatrixAggregationPlugin.class, ParentJoinPlugin.class, PercolatorPlugin.class, ReindexPlugin.class);
-        public final boolean masterNode;
+        public final boolean clusterManagerNode;
         public final boolean dataNode;
         public final List<Class<? extends Plugin>> plugins;
 
-        public NodeSettings(boolean masterNode, boolean dataNode) {
-            this(masterNode, dataNode, Collections.emptyList());
+        public NodeSettings(boolean clusterManagerNode, boolean dataNode) {
+            this(clusterManagerNode, dataNode, Collections.emptyList());
         }
 
-        public NodeSettings(boolean masterNode, boolean dataNode, List<Class<? extends Plugin>> additionalPlugins) {
+        public NodeSettings(boolean clusterManagerNode, boolean dataNode, List<Class<? extends Plugin>> additionalPlugins) {
             super();
-            this.masterNode = masterNode;
+            this.clusterManagerNode = clusterManagerNode;
             this.dataNode = dataNode;
             this.plugins = mergePlugins(additionalPlugins, DEFAULT_PLUGINS);
         }
         NodeType recognizeNodeType() {
-            if (masterNode) {
-                return MASTER;
+            if (clusterManagerNode) {
+                return CLUSTER_MANAGER;
             } else if (dataNode) {
                 return DATA;
             } else {

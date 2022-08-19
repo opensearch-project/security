@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +70,8 @@ import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 import static org.opensearch.test.framework.cluster.NodeType.CLIENT;
 import static org.opensearch.test.framework.cluster.NodeType.DATA;
-import static org.opensearch.test.framework.cluster.NodeType.MASTER;
+import static org.opensearch.test.framework.cluster.NodeType.CLUSTER_MANAGER;
+import static org.opensearch.test.framework.cluster.PortAllocator.TCP;
 
 public class LocalOpenSearchCluster {
 
@@ -88,7 +90,7 @@ public class LocalOpenSearchCluster {
 
     private File clusterHomeDir;
     private List<String> seedHosts;
-    private List<String> initialMasterHosts;
+    private List<String> initialClusterManagerHosts;
     private int retry = 0;
     private boolean started;
     private Random random = new Random();
@@ -120,32 +122,34 @@ public class LocalOpenSearchCluster {
     public void start() throws Exception {
         log.info("Starting {}", clusterName);
 
-        int masterNodeCount = clusterManager.getMasterNodes();
-        int nonMasterNodeCount = clusterManager.getDataNodes() + clusterManager.getClientNodes();
+        int clusterManagerNodeCount = clusterManager.getClusterManagerNodes();
+        int nonClusterManagerNodeCount = clusterManager.getDataNodes() + clusterManager.getClientNodes();
 
-        SortedSet<Integer> masterNodeTransportPorts = PortAllocator.TCP.allocate(clusterName, Math.max(masterNodeCount, 4), 5000 + 42 * 1000 + 300);
-        SortedSet<Integer> masterNodeHttpPorts = PortAllocator.TCP.allocate(clusterName, masterNodeCount, 5000 + 42 * 1000 + 200);
+        SortedSet<Integer> clusterManagerNodeTransportPorts = TCP.allocate(clusterName, Math.max(clusterManagerNodeCount, 4), 5000 + 42 * 1000 + 300);
+        SortedSet<Integer> clusterManagerNodeHttpPorts = TCP.allocate(clusterName, clusterManagerNodeCount, 5000 + 42 * 1000 + 200);
 
-        this.seedHosts = toHostList(masterNodeTransportPorts);
-        this.initialMasterHosts = toHostList(masterNodeTransportPorts.stream().limit(masterNodeCount).collect(Collectors.toSet()));
+        this.seedHosts = toHostList(clusterManagerNodeTransportPorts);
+        Set<Integer> clusterManagerPorts = clusterManagerNodeTransportPorts
+            .stream().limit(clusterManagerNodeCount).collect(Collectors.toSet());
+        this.initialClusterManagerHosts = toHostList(clusterManagerPorts);
 
         started = true;
 
-        CompletableFuture<Void> masterNodeFuture = startNodes(
-            clusterManager.getMasterNodeSettings(), masterNodeTransportPorts,
-                masterNodeHttpPorts);
+        CompletableFuture<Void> clusterManagerNodeFuture = startNodes(
+            clusterManager.getClusterManagerNodeSettings(), clusterManagerNodeTransportPorts,
+                clusterManagerNodeHttpPorts);
 
-        SortedSet<Integer> nonMasterNodeTransportPorts = PortAllocator.TCP.allocate(clusterName, nonMasterNodeCount, 5000 + 42 * 1000 + 310);
-        SortedSet<Integer> nonMasterNodeHttpPorts = PortAllocator.TCP.allocate(clusterName, nonMasterNodeCount, 5000 + 42 * 1000 + 210);
+        SortedSet<Integer> nonClusterManagerNodeTransportPorts = TCP.allocate(clusterName, nonClusterManagerNodeCount, 5000 + 42 * 1000 + 310);
+        SortedSet<Integer> nonClusterManagerNodeHttpPorts = TCP.allocate(clusterName, nonClusterManagerNodeCount, 5000 + 42 * 1000 + 210);
 
-        CompletableFuture<Void> nonMasterNodeFuture = startNodes(
-            clusterManager.getNonMasterNodeSettings(), nonMasterNodeTransportPorts,
-                nonMasterNodeHttpPorts);
+        CompletableFuture<Void> nonClusterManagerNodeFuture = startNodes(
+            clusterManager.getNonClusterManagerNodeSettings(), nonClusterManagerNodeTransportPorts,
+                nonClusterManagerNodeHttpPorts);
 
-        CompletableFuture.allOf(masterNodeFuture, nonMasterNodeFuture).join();
+        CompletableFuture.allOf(clusterManagerNodeFuture, nonClusterManagerNodeFuture).join();
 
         if (isNodeFailedWithPortCollision()) {
-            log.info("Detected port collision for master node. Retrying.");
+            log.info("Detected port collision for cluster manager node. Retrying.");
 
             retry();
             return;
@@ -177,7 +181,7 @@ public class LocalOpenSearchCluster {
             stopFutures.add(node.stop(2, TimeUnit.SECONDS));
         }
 
-        for (Node node : getNodesByType(MASTER)) {
+        for (Node node : getNodesByType(CLUSTER_MANAGER)) {
             stopFutures.add(node.stop(2, TimeUnit.SECONDS));
         }
         CompletableFuture.allOf(stopFutures.toArray(size -> new CompletableFuture[size])).join();
@@ -195,11 +199,11 @@ public class LocalOpenSearchCluster {
     }
 
     public Node clientNode() {
-        return findRunningNode(getNodesByType(CLIENT), getNodesByType(DATA), getNodesByType(MASTER));
+        return findRunningNode(getNodesByType(CLIENT), getNodesByType(DATA), getNodesByType(CLUSTER_MANAGER));
     }
 
-    public Node masterNode() {
-        return findRunningNode(getNodesByType(MASTER));
+    public Node clusterManagerNode() {
+        return findRunningNode(getNodesByType(CLUSTER_MANAGER));
     }
 
     public List<Node> getNodes() {
@@ -219,14 +223,14 @@ public class LocalOpenSearchCluster {
         retry++;
 
         if (retry > 10) {
-            throw new RuntimeException("Detected port collisions for master node. Giving up.");
+            throw new RuntimeException("Detected port collisions for cluster manager node. Giving up.");
         }
 
         stop();
 
         this.nodes.clear();
         this.seedHosts = null;
-        this.initialMasterHosts = null;
+        this.initialClusterManagerHosts = null;
         this.clusterHomeDir = Files.createTempDirectory("local_cluster_" + clusterName + "_retry_" + retry).toFile();
 
         start();
@@ -293,11 +297,13 @@ public class LocalOpenSearchCluster {
 
     @Override
     public String toString() {
-        String masterNodes = nodeByTypeToString(MASTER);
+        String clusterManagerNodes = nodeByTypeToString(CLUSTER_MANAGER);
         String dataNodes = nodeByTypeToString(DATA);
         String clientNodes = nodeByTypeToString(CLIENT);
-        return "\nES Cluster " + clusterName + "\nmaster nodes: " + masterNodes + "\n  data nodes: " + dataNodes + "\nclient nodes: " + clientNodes
-                + "\n";
+        return "\nES Cluster " + clusterName
+            + "\ncluster manager nodes: " + clusterManagerNodes
+            + "\n  data nodes: " + dataNodes
+            + "\nclient nodes: " + clientNodes + "\n";
     }
 
     private String nodeByTypeToString(NodeType type) {
@@ -353,7 +359,7 @@ public class LocalOpenSearchCluster {
         CompletableFuture<StartStage> start() {
             CompletableFuture<StartStage> completableFuture = new CompletableFuture<>();
             Class<? extends Plugin>[] mergedPlugins = nodeSettings.pluginsWithAddition(additionalPlugins);
-            this.node = new PluginAwareNode(nodeSettings.masterNode, getOpenSearchSettings(), mergedPlugins);
+            this.node = new PluginAwareNode(nodeSettings.clusterManagerNode, getOpenSearchSettings(), mergedPlugins);
 
             new Thread(new Runnable() {
 
@@ -373,7 +379,7 @@ public class LocalOpenSearchCluster {
                         }
 
                         node = null;
-                        PortAllocator.TCP.reserve(transportPort, httpPort);
+                        TCP.reserve(transportPort, httpPort);
 
                         completableFuture.complete(StartStage.RETRY);
 
@@ -464,9 +470,9 @@ public class LocalOpenSearchCluster {
         }
 
         private Settings getMinimalOpenSearchSettings() {
-            return Settings.builder().put("node.name", nodeName).put("node.data", nodeSettings.dataNode).put("node.master", nodeSettings.masterNode)
+            return Settings.builder().put("node.name", nodeName).put("node.data", nodeSettings.dataNode).put("node.master", nodeSettings.clusterManagerNode)
                     .put("cluster.name", clusterName).put("path.home", nodeHomeDir.toPath()).put("path.data", dataDir.toPath())
-                    .put("path.logs", logsDir.toPath()).putList("cluster.initial_master_nodes", initialMasterHosts)
+                    .put("path.logs", logsDir.toPath()).putList("cluster.initial_master_nodes", initialClusterManagerHosts)
                     .put("discovery.initial_state_timeout", "8s").putList("discovery.seed_hosts", seedHosts).put("transport.tcp.port", transportPort)
                     .put("http.port", httpPort).put("cluster.routing.allocation.disk.threshold_enabled", false)
                     .put("discovery.probe.connect_timeout", "10s").put("discovery.probe.handshake_timeout", "10s").put("http.cors.enabled", true)
