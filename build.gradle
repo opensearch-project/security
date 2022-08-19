@@ -370,7 +370,7 @@ dependencies {
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
     testImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
-    testImplementation 'commons-io:commons-io:2.7'
+    testImplementation 'commons-io:commons-io:2.11.0'
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
@@ -413,7 +413,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.7'
+    integrationTestImplementation 'commons-io:commons-io:2.11.0'
     integrationTestImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
     integrationTestImplementation 'org.hamcrest:hamcrest:2.1'
 }
