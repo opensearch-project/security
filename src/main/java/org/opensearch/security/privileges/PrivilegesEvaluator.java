@@ -188,10 +188,28 @@ public class PrivilegesEvaluator {
             joiner.add(String.join(",", user.getRoles()));
             joiner.add(String.join(",", Sets.union(user.getSecurityRoles(), mappedRoles)));
             String requestedTenant = user.getRequestedTenant();
-            if (!Strings.isNullOrEmpty(requestedTenant)) {
-                joiner.add(requestedTenant);
-            }
+            joiner.add(requestedTenant);
+            String tenantAccessToCheck = getTenancyAccess(requestedTenant, mapTenants(user, mappedRoles));
+            joiner.add(tenantAccessToCheck);
+            log.info(joiner);
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
+        }
+    }
+
+    private String getTenancyAccess(String requestedTenant, Map<String, Boolean> tenancyAccessMap) {
+        if(Strings.isNullOrEmpty(requestedTenant)) {
+            requestedTenant = "global_tenant";
+        }
+        if(requestedTenant.equals("__user__")) {
+            return "WRITE";
+        }
+        else{
+            if(!tenancyAccessMap.containsKey(requestedTenant)) {
+                return "NO";
+            }
+            else {
+                return tenancyAccessMap.get(requestedTenant) ? "WRITE" : "READ";
+            }
         }
     }
 
