@@ -116,7 +116,6 @@ cluster_composite_ops:
   - "indices:admin/aliases*"
   - "indices:data/write/reindex"
   - "cluster_composite_ops_ro"
-  - "indices:data/read/point_in_time/delete"
   type: "cluster"
   description: "Allow read/write bulk and m* operations"
 cluster_composite_ops_ro:
@@ -131,8 +130,6 @@ cluster_composite_ops_ro:
   - "indices:admin/aliases/get*"
   - "indices:data/read/scroll"
   - "indices:admin/resolve/index"
-  - "indices:data/read/point_in_time/read*"
-  - "indices:data/read/point_in_time/create"
   type: "cluster"
   description: "Allow readonly bulk and m* operations"
 get:
@@ -230,3 +227,14 @@ manage_data_streams:
   - "indices:monitor/data_stream/stats"
   type: "index"
   description: "Manage data streams"
+manage_point_in_time:
+  reserved: true
+  hidden: false
+  static: true
+  allowed_actions:
+    - "indices:data/read/point_in_time/create"
+    - "cluster:admin/point_in_time/delete"
+    - "cluster:admin/point_in_time/read*"
+    - "indices:monitor/point_in_time/segments"
+  type: "cluster"
+  description: "Manage point in time actions"
