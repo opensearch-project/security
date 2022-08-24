@@ -1,13 +1,13 @@
 /*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
+* SPDX-License-Identifier: Apache-2.0
+*
+* The OpenSearch Contributors require contributions made to
+* this file be licensed under the Apache-2.0 license or a
+* compatible open source license.
+*
+* Modifications Copyright OpenSearch Contributors. See
+* GitHub history for details.
+*/
 
 package org.opensearch.security.privileges;
 
@@ -28,10 +28,10 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
 /**
- * This is a port for the test
- * org.opensearch.security.privileges.PrivilegesEvaluatorTest to the new test
- * framework for direct comparison
- */
+* This is a port for the test
+* org.opensearch.security.privileges.PrivilegesEvaluatorTest to the new test
+* framework for direct comparison
+*/
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class PrivilegesEvaluatorTest {

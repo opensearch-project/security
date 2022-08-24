@@ -1,30 +1,30 @@
 /*
- * Copyright 2021 floragunn GmbH
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+* Copyright 2021 floragunn GmbH
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+*/
 
 /*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
+* SPDX-License-Identifier: Apache-2.0
+*
+* The OpenSearch Contributors require contributions made to
+* this file be licensed under the Apache-2.0 license or a
+* compatible open source license.
+*
+* Modifications Copyright OpenSearch Contributors. See
+* GitHub history for details.
+*/
 
 package org.opensearch.test.framework;
 
@@ -104,26 +104,26 @@ public class TestSecurityConfig {
 		return this;
 	}
 
-    public TestSecurityConfig anonymousAuth(boolean anonymousAuthEnabled) {
-        if (overrideSecurityConfigSettings == null) {
-        	overrideSecurityConfigSettings = new NestedValueMap();
-        }
+	public TestSecurityConfig anonymousAuth(boolean anonymousAuthEnabled) {
+		if (overrideSecurityConfigSettings == null) {
+			overrideSecurityConfigSettings = new NestedValueMap();
+		}
 
-        overrideSecurityConfigSettings.put(new NestedValueMap.Path("config", "dynamic", "http"),
-                NestedValueMap.of("anonymous_auth_enabled", anonymousAuthEnabled));
+		overrideSecurityConfigSettings.put(new NestedValueMap.Path("config", "dynamic", "http"),
+				NestedValueMap.of("anonymous_auth_enabled", anonymousAuthEnabled));
 
-        return this;
-    }
-    
-    public TestSecurityConfig authc(AuthcDomain authcDomain) {
-        if (overrideSecurityConfigSettings == null) {
-            overrideSecurityConfigSettings = new NestedValueMap();
-        }
+		return this;
+	}
+	
+	public TestSecurityConfig authc(AuthcDomain authcDomain) {
+		if (overrideSecurityConfigSettings == null) {
+			overrideSecurityConfigSettings = new NestedValueMap();
+		}
 
-        overrideSecurityConfigSettings.put(new NestedValueMap.Path("config", "dynamic", "authc"), authcDomain.toMap());
+		overrideSecurityConfigSettings.put(new NestedValueMap.Path("config", "dynamic", "authc"), authcDomain.toMap());
 
-        return this;
-    }
+		return this;
+	}
 
 	public TestSecurityConfig user(User user) {
 		if (user.roleNames != null) {
@@ -407,145 +407,145 @@ public class TestSecurityConfig {
 
 	}
 
-    public static class AuthcDomain {
+	public static class AuthcDomain {
 
-    	public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL = new TestSecurityConfig.AuthcDomain("basic", 0)
-    			.httpAuthenticator("basic").backend("internal");
+		public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL = new TestSecurityConfig.AuthcDomain("basic", 0)
+				.httpAuthenticator("basic").backend("internal");
 
-        private final String id;
-        private boolean enabled = true;
-        private boolean transportEnabled = true;
-        private int order;
-        private List<String> skipUsers = new ArrayList<>();
-        private HttpAuthenticator httpAuthenticator;
-        private AuthenticationBackend authenticationBackend;
-    	
-        public AuthcDomain(String id, int order) {
-            this.id = id;
-            this.order = order;
-        }
+		private final String id;
+		private boolean enabled = true;
+		private boolean transportEnabled = true;
+		private int order;
+		private List<String> skipUsers = new ArrayList<>();
+		private HttpAuthenticator httpAuthenticator;
+		private AuthenticationBackend authenticationBackend;
+		
+		public AuthcDomain(String id, int order) {
+			this.id = id;
+			this.order = order;
+		}
 
-        public AuthcDomain httpAuthenticator(String type) {
-            this.httpAuthenticator = new HttpAuthenticator(type);
-            return this;
-        }
+		public AuthcDomain httpAuthenticator(String type) {
+			this.httpAuthenticator = new HttpAuthenticator(type);
+			return this;
+		}
 
-        public AuthcDomain challengingAuthenticator(String type) {
-            this.httpAuthenticator = new HttpAuthenticator(type).challenge(true);
-            return this;
-        }
+		public AuthcDomain challengingAuthenticator(String type) {
+			this.httpAuthenticator = new HttpAuthenticator(type).challenge(true);
+			return this;
+		}
 
-        public AuthcDomain httpAuthenticator(HttpAuthenticator httpAuthenticator) {
-            this.httpAuthenticator = httpAuthenticator;
-            return this;
-        }
+		public AuthcDomain httpAuthenticator(HttpAuthenticator httpAuthenticator) {
+			this.httpAuthenticator = httpAuthenticator;
+			return this;
+		}
 
-        public AuthcDomain backend(String type) {
-            this.authenticationBackend = new AuthenticationBackend(type);
-            return this;
-        }
+		public AuthcDomain backend(String type) {
+			this.authenticationBackend = new AuthenticationBackend(type);
+			return this;
+		}
 
-        public AuthcDomain backend(AuthenticationBackend authenticationBackend) {
-            this.authenticationBackend = authenticationBackend;
-            return this;
-        }
+		public AuthcDomain backend(AuthenticationBackend authenticationBackend) {
+			this.authenticationBackend = authenticationBackend;
+			return this;
+		}
 
-        public AuthcDomain skipUsers(String... users) {
-            this.skipUsers.addAll(Arrays.asList(users));
-            return this;
-        }
+		public AuthcDomain skipUsers(String... users) {
+			this.skipUsers.addAll(Arrays.asList(users));
+			return this;
+		}
 
-        NestedValueMap toMap() {
-            NestedValueMap result = new NestedValueMap();
-            result.put(new NestedValueMap.Path(id, "http_enabled"), enabled);
-            result.put(new NestedValueMap.Path(id, "transport_enabled"), transportEnabled);
-            result.put(new NestedValueMap.Path(id, "order"), order);
+		NestedValueMap toMap() {
+			NestedValueMap result = new NestedValueMap();
+			result.put(new NestedValueMap.Path(id, "http_enabled"), enabled);
+			result.put(new NestedValueMap.Path(id, "transport_enabled"), transportEnabled);
+			result.put(new NestedValueMap.Path(id, "order"), order);
 
-            if (httpAuthenticator != null) {
-                result.put(new NestedValueMap.Path(id, "http_authenticator"), httpAuthenticator.toMap());
-            }
+			if (httpAuthenticator != null) {
+				result.put(new NestedValueMap.Path(id, "http_authenticator"), httpAuthenticator.toMap());
+			}
 
-            if (authenticationBackend != null) {
-                result.put(new NestedValueMap.Path(id, "authentication_backend"), authenticationBackend.toMap());
-            }
+			if (authenticationBackend != null) {
+				result.put(new NestedValueMap.Path(id, "authentication_backend"), authenticationBackend.toMap());
+			}
 
 
-            if (skipUsers != null && skipUsers.size() > 0) {
-                result.put(new NestedValueMap.Path(id, "skip_users"), skipUsers);
-            }
+			if (skipUsers != null && skipUsers.size() > 0) {
+				result.put(new NestedValueMap.Path(id, "skip_users"), skipUsers);
+			}
 
-            return result;
-        }
+			return result;
+		}
 
-        public static class HttpAuthenticator {
-            private final String type;
-            private boolean challenge;
-            private NestedValueMap config = new NestedValueMap();
+		public static class HttpAuthenticator {
+			private final String type;
+			private boolean challenge;
+			private NestedValueMap config = new NestedValueMap();
 
-            public HttpAuthenticator(String type) {
-                this.type = type;
-            }
+			public HttpAuthenticator(String type) {
+				this.type = type;
+			}
 
-            public HttpAuthenticator challenge(boolean challenge) {
-                this.challenge = challenge;
-                return this;
-            }
+			public HttpAuthenticator challenge(boolean challenge) {
+				this.challenge = challenge;
+				return this;
+			}
 
-            public HttpAuthenticator config(Map<String, Object> config) {
-                this.config.putAllFromAnyMap(config);
-                return this;
-            }
+			public HttpAuthenticator config(Map<String, Object> config) {
+				this.config.putAllFromAnyMap(config);
+				return this;
+			}
 
-            public HttpAuthenticator config(String key, Object value) {
-                this.config.put(Path.parse(key), value);
-                return this;
-            }
+			public HttpAuthenticator config(String key, Object value) {
+				this.config.put(Path.parse(key), value);
+				return this;
+			}
 
-            NestedValueMap toMap() {
-                NestedValueMap result = new NestedValueMap();
-                result.put("type", type);
-                result.put("challenge", challenge);
-                result.put("config", config);
-                return result;
-            }
-        }
+			NestedValueMap toMap() {
+				NestedValueMap result = new NestedValueMap();
+				result.put("type", type);
+				result.put("challenge", challenge);
+				result.put("config", config);
+				return result;
+			}
+		}
 
-        public static class AuthenticationBackend {
-            private final String type;
-            private NestedValueMap config = new NestedValueMap();
+		public static class AuthenticationBackend {
+			private final String type;
+			private NestedValueMap config = new NestedValueMap();
 
-            public AuthenticationBackend(String type) {
-                this.type = type;
-            }
+			public AuthenticationBackend(String type) {
+				this.type = type;
+			}
 
-            public AuthenticationBackend config(Map<String, Object> config) {
-                this.config.putAllFromAnyMap(config);
-                return this;
-            }
+			public AuthenticationBackend config(Map<String, Object> config) {
+				this.config.putAllFromAnyMap(config);
+				return this;
+			}
 
-            public AuthenticationBackend config(String key, Object value) {
-                this.config.put(Path.parse(key), value);
-                return this;
-            }
+			public AuthenticationBackend config(String key, Object value) {
+				this.config.put(Path.parse(key), value);
+				return this;
+			}
 
-            NestedValueMap toMap() {
-                NestedValueMap result = new NestedValueMap();
-                result.put("type", type);
-                result.put("config", config);
-                return result;
-            }
-        }
-    }
+			NestedValueMap toMap() {
+				NestedValueMap result = new NestedValueMap();
+				result.put("type", type);
+				result.put("config", config);
+				return result;
+			}
+		}
+	}
 
-    public TestSecurityConfig clone() {
-        TestSecurityConfig result = new TestSecurityConfig();
-        result.indexName = indexName;
-        result.overrideRoleSettings = overrideRoleSettings != null ? overrideRoleSettings.clone() : null;
-        result.overrideSecurityConfigSettings = overrideSecurityConfigSettings != null ? overrideSecurityConfigSettings.clone() : null;
-        result.overrideUserSettings = overrideUserSettings != null ? overrideUserSettings.clone() : null;
+	public TestSecurityConfig clone() {
+		TestSecurityConfig result = new TestSecurityConfig();
+		result.indexName = indexName;
+		result.overrideRoleSettings = overrideRoleSettings != null ? overrideRoleSettings.clone() : null;
+		result.overrideSecurityConfigSettings = overrideSecurityConfigSettings != null ? overrideSecurityConfigSettings.clone() : null;
+		result.overrideUserSettings = overrideUserSettings != null ? overrideUserSettings.clone() : null;
 
-        return result;
-    }
+		return result;
+	}
 
 	public void initIndex(Client client) {
 		Map<String, Object> settings = new HashMap<>();
@@ -554,13 +554,13 @@ public class TestSecurityConfig {
 		}
 		client.admin().indices().create(new CreateIndexRequest(indexName).settings(settings)).actionGet();
 
-        writeConfigToIndex(client, CType.CONFIG, overrideSecurityConfigSettings);
-        writeConfigToIndex(client, CType.ROLES, overrideRoleSettings);
+		writeConfigToIndex(client, CType.CONFIG, overrideSecurityConfigSettings);
+		writeConfigToIndex(client, CType.ROLES, overrideRoleSettings);
 		writeConfigToIndex(client, CType.INTERNALUSERS, overrideUserSettings);
-        writeConfigToIndex(client, CType.ROLESMAPPING, overrideRoleMappingSettings);
-        writeConfigToIndex(client, CType.ACTIONGROUPS);
-        writeConfigToIndex(client, CType.TENANTS);
-        
+		writeConfigToIndex(client, CType.ROLESMAPPING, overrideRoleMappingSettings);
+		writeConfigToIndex(client, CType.ACTIONGROUPS);
+		writeConfigToIndex(client, CType.TENANTS);
+		
 		ConfigUpdateResponse configUpdateResponse = client.execute(ConfigUpdateAction.INSTANCE,
 				new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))).actionGet();
 
@@ -580,9 +580,9 @@ public class TestSecurityConfig {
 	}
 
 
-    private void writeConfigToIndex(Client client, CType configType) {
-        writeConfigToIndex(client, configType, NestedValueMap.createNonCloningMap());
-    }
+	private void writeConfigToIndex(Client client, CType configType) {
+		writeConfigToIndex(client, configType, NestedValueMap.createNonCloningMap());
+	}
 
 	private void writeConfigToIndex(Client client, CType configType, NestedValueMap overrides) {
 		try {
