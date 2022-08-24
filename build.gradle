@@ -9,6 +9,8 @@
  * GitHub history for details.
  */
 
+
+import com.diffplug.gradle.spotless.JavaExtension
 import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
@@ -73,6 +75,12 @@ spotless {
   java {
     // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
     importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+    targetExclude('src/integrationTest/**')
+  }
+  format("integrationTest", JavaExtension) {
+      target('src/integrationTest/java/**/*.java')
+      importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+      indentWithTabs(4)
   }
 }
 
