@@ -47,7 +47,7 @@ ext {
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.4.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         opensearch_group = "org.opensearch"
     }
     repositories {

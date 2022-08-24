@@ -60,7 +60,7 @@ import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
-import org.opensearch.transport.Netty4Plugin;
+import org.opensearch.transport.Netty4ModulePlugin;
 
 @SuppressWarnings({"resource", "unchecked"})
 public class SSLTest extends SingleClusterTest {
@@ -507,7 +507,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(settings)// -----
                 .build();
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
             ClusterHealthResponse res = node.client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(15))).actionGet();
             Assert.assertFalse(res.isTimedOut());
             Assert.assertEquals(4, res.getNumberOfNodes());
@@ -698,7 +698,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(settings)// -----
                 .build();
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
             ClusterHealthResponse res = node.client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(5))).actionGet();
             Assert.assertFalse(res.isTimedOut());
             Assert.assertEquals(4, res.getNumberOfNodes());

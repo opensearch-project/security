@@ -19,7 +19,10 @@ package org.opensearch.security.ssl.http.netty;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.DecoderException;
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -72,7 +75,27 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     }
 
     protected class SSLHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
-        
+        /**
+         * Application negotiation handler to select either HTTP 1.1 or HTTP 2 protocol, based
+         * on client/server ALPN negotiations.
+         */
+        private class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
+            protected Http2OrHttpHandler() {
+                super(ApplicationProtocolNames.HTTP_1_1);
+            }
+
+            @Override
+            protected void configurePipeline(ChannelHandlerContext ctx, String protocol) throws Exception {
+                if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
+                    configureDefaultHttp2Pipeline(ctx.pipeline());
+                } else if (ApplicationProtocolNames.HTTP_1_1.equals(protocol)) {
+                    configureDefaultHttpPipeline(ctx.pipeline());
+                } else {
+                    throw new IllegalStateException("Unknown application protocol: " + protocol);
+                }
+            }
+        }
+
         protected SSLHttpChannelHandler(Netty4HttpServerTransport transport, final HttpHandlingSettings handlingSettings, final SecurityKeyStore odsks) {
             super(transport, handlingSettings);
         }
@@ -82,6 +105,11 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
             super.initChannel(ch);
             final SslHandler sslHandler = new SslHandler(SecuritySSLNettyHttpServerTransport.this.sks.createHTTPSSLEngine());
             ch.pipeline().addFirst("ssl_http", sslHandler);
+        }
+        
+        @Override
+        protected void configureDefaultPipeline(Channel ch) {
+            ch.pipeline().addLast(new Http2OrHttpHandler());
         }
     }
 }

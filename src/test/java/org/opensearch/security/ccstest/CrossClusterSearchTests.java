@@ -59,7 +59,7 @@ import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
-import org.opensearch.transport.Netty4Plugin;
+import org.opensearch.transport.Netty4ModulePlugin;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -1021,7 +1021,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         System.out.println("###################### with invalid role injection");
         //1. With invalid roles injection
         RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "invalid_user|invalid_role";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
                 OpenSearchSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
             waitForInit(node.client());
             Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
@@ -1041,7 +1041,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         System.out.println("###################### with valid role injection");
         //2. With valid roles injection
         RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "valid_user|opendistro_security_all_access";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
                 OpenSearchSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
             waitForInit(node.client());
             Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
