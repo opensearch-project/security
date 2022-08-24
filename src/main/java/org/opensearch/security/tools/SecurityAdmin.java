@@ -736,6 +736,7 @@ public class SecurityAdmin {
                 final boolean populateFileIfEmpty = true;
                 success = retrieveFile(restHighLevelClient, cd+"nodes_dn_"+date+".yml", index, "nodesdn", legacy, populateFileIfEmpty) && success;
                 success = retrieveFile(restHighLevelClient, cd+"whitelist_"+date+".yml", index, "whitelist", legacy, populateFileIfEmpty) && success;
+                success = retrieveFile(restHighLevelClient, cd+"allowlist_"+date+".yml", index, "allowlist", legacy, populateFileIfEmpty) && success;
                 return (success?0:-1);
             }
 
@@ -1195,6 +1196,7 @@ public class SecurityAdmin {
         }
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/nodes_dn.yml", index, "nodesdn", legacy, true) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath()+"/whitelist.yml", index, "whitelist", legacy, true) && success;
+        success = retrieveFile(tc, backupDir.getAbsolutePath()+"/allowlist.yml", index, "allowlist", legacy, true) && success;
         success = retrieveFile(tc, backupDir.getAbsolutePath() + "/audit.yml", index, "audit", legacy) && success;
 
         return success?0:-1;
@@ -1217,6 +1219,9 @@ public class SecurityAdmin {
         success = uploadFile(tc, cd+"whitelist.yml", index, "whitelist", legacy, resolveEnvVars) && success;
         if (new File(cd+"audit.yml").exists()) {
             success = uploadFile(tc, cd + "audit.yml", index, "audit", legacy, resolveEnvVars) && success;
+        }
+        if (new File(cd+"allowlist.yml").exists()) {
+            success = uploadFile(tc, cd + "allowlist.yml", index, "allowlist", legacy, resolveEnvVars) && success;
         }
 
         if(!success) {
