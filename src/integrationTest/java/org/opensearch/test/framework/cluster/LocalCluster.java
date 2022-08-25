@@ -51,7 +51,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
-import org.opensearch.test.framework.TestSecurityConfig.RoleMapping;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
 
@@ -186,7 +185,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 				for (TestIndex index : this.testIndices) {
 					index.create(client);
 				}
-			}            
+			}
 
 		} catch (Exception e) {
 			log.error("Local ES cluster start failed", e);
@@ -195,12 +194,12 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 	}
 
 	private void initSecurityIndex(TestSecurityConfig testSecurityConfig) {
-		log.info("Initializing OpenSearch Security index");        
+		log.info("Initializing OpenSearch Security index");
 		try(Client client = new ContextHeaderDecoratorClient(this.getInternalNodeClient(), Map.of(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER , "true"))) {
 			testSecurityConfig.initIndex(client);
 		}
 	}
-	
+
 	public static class Builder {
 
 		private final Settings.Builder nodeOverrideSettingsBuilder = Settings.builder();
@@ -212,7 +211,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		private TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
 		private String clusterName = "local_cluster";
 		private TestCertificates testCertificates;
-		
+
 		public Builder() {
 			this.testCertificates = new TestCertificates();
 		}
@@ -235,8 +234,8 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			return this;
 		}
 
-		public Builder sgConfig(TestSecurityConfig testSgConfig) {
-			this.testSecurityConfig = testSgConfig;
+		public Builder config(TestSecurityConfig testSecurityConfig) {
+			this.testSecurityConfig = testSecurityConfig;
 			return this;
 		}
 
@@ -271,7 +270,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			this.testIndices.addAll(Arrays.asList(indices));
 			return this;
 		}
-		
+
 		public Builder users(TestSecurityConfig.User... users) {
 			for (TestSecurityConfig.User user : users) {
 				testSecurityConfig.user(user);
@@ -281,16 +280,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
 		public Builder roles(Role... roles) {
 			testSecurityConfig.roles(roles);
-			return this;
-		}
-
-		public Builder roleMapping(RoleMapping... mappings) {
-			testSecurityConfig.roleMapping(mappings);
-			return this;
-		}
-
-		public Builder roleToRoleMapping(Role role, String... backendRoles) {
-			testSecurityConfig.roleToRoleMapping(role, backendRoles);
 			return this;
 		}
 
