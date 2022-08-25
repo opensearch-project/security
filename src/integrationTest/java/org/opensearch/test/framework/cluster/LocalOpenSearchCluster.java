@@ -468,6 +468,8 @@ public class LocalOpenSearchCluster {
 					.put("discovery.initial_state_timeout", "8s").putList("discovery.seed_hosts", seedHosts).put("transport.tcp.port", transportPort)
 					.put("http.port", httpPort).put("cluster.routing.allocation.disk.threshold_enabled", false)
 					.put("discovery.probe.connect_timeout", "10s").put("discovery.probe.handshake_timeout", "10s").put("http.cors.enabled", true)
+					.put("plugins.security.compliance.salt", "1234567890123456")
+					.put("plugins.security.audit.type", "noop")
 					.build();
 		}
 
