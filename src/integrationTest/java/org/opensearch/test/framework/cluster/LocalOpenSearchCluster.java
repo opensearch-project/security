@@ -47,6 +47,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.net.InetAddresses;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -270,7 +271,7 @@ public class LocalOpenSearchCluster {
 			AdminClient adminClient = client.admin();
 
 			final ClusterHealthResponse healthResponse = adminClient.cluster().prepareHealth().setWaitForStatus(status).setTimeout(timeout)
-					.setMasterNodeTimeout(timeout).setWaitForNodes("" + expectedNodeCount).execute().actionGet();
+				.setClusterManagerNodeTimeout(timeout).setWaitForNodes("" + expectedNodeCount).execute().actionGet();
 
 			if (log.isDebugEnabled()) {
 				log.debug("Current ClusterState:\n{}", Strings.toString(healthResponse));
@@ -462,15 +463,26 @@ public class LocalOpenSearchCluster {
 		}
 
 		private Settings getMinimalOpenSearchSettings() {
-			return Settings.builder().put("node.name", nodeName).put("node.data", nodeSettings.dataNode).put("node.master", nodeSettings.clusterManagerNode)
+			return Settings.builder().put("node.name", nodeName).putList("node.roles", createNodeRolesSettings())
 					.put("cluster.name", clusterName).put("path.home", nodeHomeDir.toPath()).put("path.data", dataDir.toPath())
-					.put("path.logs", logsDir.toPath()).putList("cluster.initial_master_nodes", initialClusterManagerHosts)
+					.put("path.logs", logsDir.toPath()).putList("cluster.initial_cluster_manager_nodes", initialClusterManagerHosts)
 					.put("discovery.initial_state_timeout", "8s").putList("discovery.seed_hosts", seedHosts).put("transport.tcp.port", transportPort)
 					.put("http.port", httpPort).put("cluster.routing.allocation.disk.threshold_enabled", false)
 					.put("discovery.probe.connect_timeout", "10s").put("discovery.probe.handshake_timeout", "10s").put("http.cors.enabled", true)
 					.put("plugins.security.compliance.salt", "1234567890123456")
 					.put("plugins.security.audit.type", "noop")
 					.build();
+		}
+
+		private List<String> createNodeRolesSettings() {
+			final ImmutableList.Builder<String> nodeRolesBuilder = ImmutableList.<String>builder();
+			if (nodeSettings.dataNode) {
+				nodeRolesBuilder.add("data");
+			}
+			if (nodeSettings.clusterManagerNode) {
+				nodeRolesBuilder.add("cluster_manager");
+			}
+			return nodeRolesBuilder.build();
 		}
 
 		@Override
