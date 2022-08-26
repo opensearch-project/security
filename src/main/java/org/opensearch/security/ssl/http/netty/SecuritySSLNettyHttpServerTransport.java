@@ -108,7 +108,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         }
         
         @Override
-        protected void configureDefaultPipeline(Channel ch) {
+        protected void configurePipeline(Channel ch) {
             ch.pipeline().addLast(new Http2OrHttpHandler());
         }
     }

@@ -887,24 +887,8 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                                              final X509Certificate[] _trustedCerts, final Iterable<String> ciphers, final SslProvider sslProvider,
                                              final ClientAuth authMode) throws SSLException {
 
-        final SslContextBuilder _sslContextBuilder = SslContextBuilder.forServer(_key, _cert)
-            .ciphers(Stream
-                .concat(
-                    Http2SecurityUtil.CIPHERS.stream(),
-                    StreamSupport.stream(ciphers.spliterator(), false))
-                .collect(Collectors.toSet()), SupportedCipherSuiteFilter.INSTANCE)
-            .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
-            .sessionCacheSize(0).sessionTimeout(0).sslProvider(sslProvider)
-            .applicationProtocolConfig(
-                new ApplicationProtocolConfig(
-                    Protocol.ALPN,
-                    // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
-                    SelectorFailureBehavior.NO_ADVERTISE,
-                    // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
-                    SelectedListenerFailureBehavior.ACCEPT,
-                    ApplicationProtocolNames.HTTP_2,
-                    ApplicationProtocolNames.HTTP_1_1
-                ));
+        final SslContextBuilder _sslContextBuilder = configureSSLServerContextBuilder(SslContextBuilder.forServer(_key, _cert),
+            sslProvider, ciphers, authMode);
 
         if (_trustedCerts != null && _trustedCerts.length > 0) {
             _sslContextBuilder.trustManager(_trustedCerts);
@@ -917,7 +901,19 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                                              final String pwd, final Iterable<String> ciphers, final SslProvider sslProvider, final ClientAuth authMode)
         throws SSLException {
 
-        final SslContextBuilder _sslContextBuilder = SslContextBuilder.forServer(_cert, _key, pwd)
+        final SslContextBuilder _sslContextBuilder = configureSSLServerContextBuilder(SslContextBuilder.forServer(_cert, _key, pwd),
+            sslProvider, ciphers, authMode);
+
+        if (_trustedCerts != null) {
+            _sslContextBuilder.trustManager(_trustedCerts);
+        }
+
+        return buildSSLContext0(_sslContextBuilder);
+    }
+
+    private SslContextBuilder configureSSLServerContextBuilder(final SslContextBuilder builder, final SslProvider sslProvider,
+            final Iterable<String> ciphers, final ClientAuth authMode) {
+        return builder
             .ciphers(Stream
                 .concat(
                     Http2SecurityUtil.CIPHERS.stream(),
@@ -935,11 +931,6 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     ApplicationProtocolNames.HTTP_2,
                     ApplicationProtocolNames.HTTP_1_1
                 ));
-        if (_trustedCerts != null) {
-            _sslContextBuilder.trustManager(_trustedCerts);
-        }
-
-        return buildSSLContext0(_sslContextBuilder);
     }
 
     private SslContext buildSSLClientContext(final PrivateKey _key, final X509Certificate[] _cert,
