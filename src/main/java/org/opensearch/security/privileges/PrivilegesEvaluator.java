@@ -127,6 +127,8 @@ public class PrivilegesEvaluator {
     private ConfigModel configModel;
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
+
+    private final PitAccessEvaluator pitAccessEvaluator;
     private final SecurityIndexAccessEvaluator securityIndexAccessEvaluator;
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
@@ -158,6 +160,7 @@ public class PrivilegesEvaluator {
         securityIndexAccessEvaluator = new SecurityIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
+        pitAccessEvaluator = new PitAccessEvaluator();
         this.namedXContentRegistry = namedXContentRegistry;
         this.dlsFlsEnabled = dlsFlsEnabled;
         this.dfmEmptyOverwritesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
@@ -262,9 +265,8 @@ public class PrivilegesEvaluator {
         final Resolved requestedResolved = irr.resolveRequest(request);
         presponse.resolved = requestedResolved;
 
-
-        if (isDebugEnabled) {
-            log.debug("RequestedResolved : {}", requestedResolved);
+        if (true) {
+            log.info("RequestedResolved : {}", requestedResolved);
         }
 
         // check snapshot/restore requests
@@ -282,11 +284,21 @@ public class PrivilegesEvaluator {
             return presponse;
         }
 
+        if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse) .isComplete()) {
+            return presponse;
+        }
+
+        // check access for point in time requests
+        if(pitAccessEvaluator.evaluate(request, clusterService, user, securityRoles,
+                action0, resolver, presponse).isComplete()) {
+            return presponse;
+        }
+
         final boolean dnfofEnabled = dcm.isDnfofEnabled();
 
         final boolean isTraceEnabled = log.isTraceEnabled();
-        if (isTraceEnabled) {
-            log.trace("dnfof enabled? {}", dnfofEnabled);
+        if (true) {
+            log.info("dnfof enabled? {}", dnfofEnabled);
         }
 
         presponse.evaluatedDlsFlsConfig = getSecurityRoles(mappedRoles).getDlsFls(user, dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
@@ -330,15 +342,18 @@ public class PrivilegesEvaluator {
                             && (action0.startsWith("indices:data/read/"))
                             && !requestedResolved.getAllIndices().isEmpty()
                             ) {
-
+                        log.info("HERE");
                         if(requestedResolved.getAllIndices().isEmpty()) {
                             presponse.missingPrivileges.clear();
                             presponse.allowed = true;
                             return presponse;
                         }
 
+                        log.info("reduce");
 
                         Set<String> reduced = securityRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
+
+
 
                         if(reduced.isEmpty()) {
                             presponse.allowed = false;
@@ -352,8 +367,8 @@ public class PrivilegesEvaluator {
                         }
                     }
 
-                    if (isDebugEnabled) {
-                        log.debug("Allowed because we have cluster permissions for {}", action0);
+                    if (true) {
+                        log.info("Allowed because we have cluster permissions for {}", action0);
                     }
                     presponse.allowed = true;
                     return presponse;
@@ -376,16 +391,16 @@ public class PrivilegesEvaluator {
         final Set<String> allIndexPermsRequired = evaluateAdditionalIndexPermissions(request, action0);
         final String[] allIndexPermsRequiredA = allIndexPermsRequired.toArray(new String[0]);
 
-        if (isDebugEnabled) {
-            log.debug("Requested {} from {}", allIndexPermsRequired, caller);
+        if (true) {
+            log.info("Requested {} from {}", allIndexPermsRequired, caller);
         }
 
         presponse.missingPrivileges.clear();
         presponse.missingPrivileges.addAll(allIndexPermsRequired);
 
-        if (isDebugEnabled) {
-            log.debug("Requested resolved index types: {}", requestedResolved);
-            log.debug("Security roles: {}", securityRoles.getRoleNames());
+        if (true) {
+            log.info("Requested resolved index types: {}", requestedResolved);
+            log.info("Security roles: {}", securityRoles.getRoleNames());
         }
 
         //TODO exclude Security index
@@ -394,8 +409,8 @@ public class PrivilegesEvaluator {
 
             final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
 
-            if (isDebugEnabled) {
-                log.debug("Result from privileges interceptor: {}", replaceResult);
+            if (true) {
+                log.info("Result from privileges interceptor: {}", replaceResult);
             }
 
             if (!replaceResult.continueEvaluation) {
@@ -452,8 +467,8 @@ public class PrivilegesEvaluator {
         //not bulk, mget, etc request here
         boolean permGiven = false;
 
-        if (isDebugEnabled) {
-            log.debug("Security roles: {}", securityRoles.getRoleNames());
+        if (true) {
+            log.info("Security roles: {}", securityRoles.getRoleNames());
         }
 
         if (dcm.isMultiRolespanEnabled()) {

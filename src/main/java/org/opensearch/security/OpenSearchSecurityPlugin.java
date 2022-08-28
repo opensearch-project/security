@@ -66,9 +66,11 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionResponse;
+import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.client.Client;
+import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -1160,18 +1162,26 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RepositoriesService repositoriesService;
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
+        private static PitService pitService;
+
+        private static NodeClient nodeClient;
 
         @Inject
         public GuiceHolder(final RepositoriesService repositoriesService,
-                final TransportService remoteClusterService, IndicesService indicesService) {
+                final TransportService remoteClusterService, IndicesService indicesService, PitService pitService,
+                           NodeClient nodeClient) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
+            GuiceHolder.pitService = pitService;
+            GuiceHolder.nodeClient = nodeClient;
         }
 
         public static RepositoriesService getRepositoriesService() {
             return repositoriesService;
         }
+
+        public static NodeClient getNodeClient() { return nodeClient; }
 
         public static RemoteClusterService getRemoteClusterService() {
             return remoteClusterService;
@@ -1180,6 +1190,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         public static IndicesService getIndicesService() {
             return indicesService;
         }
+
+        public static PitService getPitService() { return pitService; }
         
         @Override
         public void close() {

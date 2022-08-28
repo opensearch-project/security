@@ -33,6 +33,9 @@ buildscript {
     }
 
     repositories {
+        flatDir {
+            dirs '/Users/gbh/Documents/Dev/OpenSearch'
+        }
         mavenCentral()
         mavenLocal()
         maven { url "https://plugins.gradle.org/m2/" }

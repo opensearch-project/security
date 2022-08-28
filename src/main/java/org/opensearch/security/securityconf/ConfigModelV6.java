@@ -466,8 +466,8 @@ public class ConfigModelV6 extends ConfigModel {
             for (SecurityRole sr : roles) {
                 retVal.addAll(sr.getAllResolvedPermittedIndices(resolved, user, actions, resolver, cs));
             }
-            if (log.isDebugEnabled()) {
-                log.debug("Reduced requested resolved indices {} to permitted indices {}.", resolved, retVal.toString());
+            if (true) {
+                log.info("Reduced requested resolved indices {} to permitted indices {}.", resolved, retVal.toString());
             }
             return Collections.unmodifiableSet(retVal);
         }

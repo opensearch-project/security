@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -45,6 +46,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
 
+import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
@@ -68,7 +70,12 @@ import org.opensearch.action.get.MultiGetRequest.Item;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.main.MainRequest;
 import org.opensearch.action.search.ClearScrollRequest;
+import org.opensearch.action.search.DeletePitRequest;
+import org.opensearch.action.search.GetAllPitNodesRequest;
+import org.opensearch.action.search.GetAllPitNodesResponse;
+import org.opensearch.action.search.ListPitInfo;
 import org.opensearch.action.search.MultiSearchRequest;
+import org.opensearch.action.search.SearchContextId;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.support.IndicesOptions;
@@ -316,6 +323,8 @@ public class IndexResolverReplacer {
             final Resolved resolved = alreadyResolved.isEmpty() ? Resolved._LOCAL_ALL :
                     new Resolved(aliases.build(), allIndices.build(), originalRequested.build(), remoteIndices.build(), indicesOptions);
 
+            log.info("Finally resolved for {}: {}", name, resolved);
+
             if(log.isTraceEnabled()) {
                 log.trace("Finally resolved for {}: {}", name, resolved);
             }
@@ -346,8 +355,8 @@ public class IndexResolverReplacer {
     }
 
     public Resolved resolveRequest(final Object request) {
-        if (log.isDebugEnabled()) {
-            log.debug("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
+        if (true) {
+            log.info("Resolve aliases, indices and types from {}", request.getClass().getSimpleName());
         }
 
         final ResolvedIndicesProvider resolvedIndicesProvider = new ResolvedIndicesProvider(request);
@@ -370,11 +379,11 @@ public class IndexResolverReplacer {
         private final boolean isLocalAll;
         private final IndicesOptions indicesOptions;
         
-        private Resolved(final ImmutableSet<String> aliases,
-                         final ImmutableSet<String> allIndices,
-                         final ImmutableSet<String> originalRequested,
-                         final ImmutableSet<String> remoteIndices,
-                         IndicesOptions indicesOptions) {
+        public Resolved(final ImmutableSet<String> aliases,
+                        final ImmutableSet<String> allIndices,
+                        final ImmutableSet<String> originalRequested,
+                        final ImmutableSet<String> remoteIndices,
+                        IndicesOptions indicesOptions) {
             this.aliases = aliases;
             this.allIndices = allIndices;
             this.originalRequested = originalRequested;
@@ -536,9 +545,7 @@ public class IndexResolverReplacer {
     private boolean getOrReplaceAllIndices(final Object request, final IndicesProvider provider, boolean allowEmptyIndices) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         final boolean isTraceEnabled = log.isTraceEnabled();
-        if (isTraceEnabled) {
-            log.trace("getOrReplaceAllIndices() for "+request.getClass());
-        }
+        log.info("getOrReplaceAllIndices() for "+request.getClass());
 
         boolean result = true;
 
