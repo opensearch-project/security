@@ -413,6 +413,11 @@ data_stream_3:
   hidden: false
   users:
     - "ds3"
+point_in_time_1:
+  reserved: false
+  hidden: false
+  users:
+    - "pit-1"
 sem-role:
   reserved: false
   hidden: false

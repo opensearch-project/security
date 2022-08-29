@@ -1129,6 +1129,21 @@ data_stream_3:
       allowed_actions:
         - "DATASTREAM_ALL"
 
+point_in_time_1:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "cluster:admin/point_in_time/read_from_nodes"
+  index_permissions:
+    - index_patterns:
+        - "pit_1"
+      allowed_actions:
+        - "indices:data/read/point_in_time/create"
+        - "indices:data/read/point_in_time/delete"
+        - "indices:data/read/point_in_time/readall"
+        - "indices:monitor/point_in_time/segments"
+
 hidden_test:
   cluster_permissions:
   - SGS_CLUSTER_COMPOSITE_OPS
