@@ -42,6 +42,7 @@ import javax.net.ssl.SSLContext;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
+import com.google.common.collect.ImmutableList;
 import io.netty.handler.ssl.OpenSsl;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
@@ -192,6 +193,17 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         if (retainedException.isPresent()) {
             throw new RuntimeException(retainedException.get());
         }
+    }
+
+    public static Settings.Builder nodeRolesSettings(final Settings.Builder settingsBuilder, final boolean isClusterManager, final boolean isDataNode) {
+        final ImmutableList.Builder<String> nodeRolesBuilder = ImmutableList.<String>builder();
+        if (isDataNode) {
+            nodeRolesBuilder.add("data");
+        }
+        if (isClusterManager) {
+            nodeRolesBuilder.add("cluster_manager");
+        }
+        return settingsBuilder.putList("node.roles", nodeRolesBuilder.build());
     }
 
     protected void initialize(ClusterHelper clusterHelper, ClusterInfo clusterInfo, DynamicSecurityConfig securityConfig) throws IOException {

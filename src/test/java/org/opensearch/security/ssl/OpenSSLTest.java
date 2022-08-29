@@ -40,6 +40,7 @@ import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4Plugin;
@@ -206,11 +207,9 @@ public class OpenSSLTest extends SSLTest {
         
         RestHelper rh = nonSslRestHelper();
 
-        final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", "/tmp")
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+                .put("cluster.name", clusterInfo.clustername).put("path.home", "/tmp")
                 .put("node.name", "client_node_" + new Random().nextInt())
-                .put("node.data", false)
-                .put("node.master", false)
-                .put("node.ingest", false)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/ssl/data")
                 .put("path.logs", "./target/data/" + clusterInfo.clustername + "/ssl/logs")
                 .put("path.home", "./target")

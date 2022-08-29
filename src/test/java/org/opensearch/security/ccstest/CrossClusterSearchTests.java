@@ -1001,12 +1001,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        final Settings tcSettings = Settings.builder()
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", cl1Info.clustername)
-                .put("node.data", false)
-                .put("node.master", false)
-                .put("node.ingest", false)
                 .put("path.data", "./target/data/" + cl1Info.clustername + "/cert/data")
                 .put("path.logs", "./target/data/" + cl1Info.clustername + "/cert/logs")
                 .put("path.home", "./target")

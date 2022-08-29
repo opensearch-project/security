@@ -11,6 +11,7 @@
 
 package org.opensearch.security.dlic.dlsfls;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,12 +60,14 @@ import org.opensearch.rest.RestStatus;
 import org.opensearch.script.ScriptService;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Netty4Plugin;
 import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
+// CS-ENFORCE-SINGLE
 
 public class CCReplicationTest extends AbstractDlsFlsTest {
     public static class MockReplicationPlugin extends Plugin implements ActionPlugin {
@@ -180,14 +183,11 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
         Assert.assertEquals(clusterInfo.numNodes, clusterHelper.nodeClient().admin().cluster().health(
             new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
         Assert.assertEquals(ClusterHealthStatus.GREEN, clusterHelper.nodeClient().admin().cluster().
-            health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+        health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
 
-        final Settings tcSettings = Settings.builder()
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
             .put(minimumSecuritySettings(Settings.EMPTY).get(0))
             .put("cluster.name", clusterInfo.clustername)
-            .put("node.data", false)
-            .put("node.master", false)
-            .put("node.ingest", false)
             .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
             .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
             .put("path.home", "./target")
