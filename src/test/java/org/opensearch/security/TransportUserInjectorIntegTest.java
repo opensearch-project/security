@@ -40,7 +40,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.Netty4Plugin;
+import org.opensearch.transport.Netty4ModulePlugin;
 import org.opensearch.watcher.ResourceWatcherService;
 
 public class TransportUserInjectorIntegTest extends SingleClusterTest {
@@ -90,7 +90,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
 
 
         // 1. without user injection
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
                 OpenSearchSecurityPlugin.class, UserInjectorPlugin.class).start()) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-1")).actionGet();
@@ -101,7 +101,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
         // 2. with invalid backend roles
         UserInjectorPlugin.injectedUser = "ttt|kkk";
         Exception exception = null;
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
                 OpenSearchSecurityPlugin.class, UserInjectorPlugin.class).start()) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-2")).actionGet();
@@ -115,7 +115,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
 
         // 3. with valid backend roles for injected user
         UserInjectorPlugin.injectedUser = "injectedadmin|injecttest";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
                 OpenSearchSecurityPlugin.class, UserInjectorPlugin.class).start()) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-2")).actionGet();
@@ -146,7 +146,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .build();
 
         // 1. without user injection
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
                 OpenSearchSecurityPlugin.class, UserInjectorPlugin.class).start()) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-1")).actionGet();
@@ -155,7 +155,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
         
         // with invalid backend roles
         UserInjectorPlugin.injectedUser = "ttt|kkk";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
                 OpenSearchSecurityPlugin.class, UserInjectorPlugin.class).start()) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-2")).actionGet();
