@@ -471,6 +471,7 @@ public class LocalOpenSearchCluster {
 					.put("discovery.probe.connect_timeout", "10s").put("discovery.probe.handshake_timeout", "10s").put("http.cors.enabled", true)
 					.put("plugins.security.compliance.salt", "1234567890123456")
 					.put("plugins.security.audit.type", "noop")
+					.put("gateway.auto_import_dangling_indices", "true")
 					.build();
 		}
 

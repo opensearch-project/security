@@ -58,7 +58,6 @@ public class SecurityRolesTests {
 
 	@Test
 	public void testSecurityRoles() throws Exception {
-
 		try (TestRestClient client = cluster.getRestClient(USER_SR)) {
 			HttpResponse response = client.getAuthInfo();
 			assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));

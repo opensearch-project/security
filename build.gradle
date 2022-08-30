@@ -280,6 +280,8 @@ sourceSets {
 task integrationTest(type: Test) {
     description = 'Run integration tests.'
     group = 'verification'
+    systemProperty "org.opensearch.common.logging.NodeAndClusterIdConverter.enabled", "false"
+    systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
 
@@ -423,6 +425,8 @@ dependencies {
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
     integrationTestImplementation 'commons-io:commons-io:2.11.0'
     integrationTestImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    integrationTestImplementation 'org.apache.logging.log4j:log4j-jul:2.17.1'
+    integrationTestImplementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.17.1'
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
 }
 
