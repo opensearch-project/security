@@ -1138,11 +1138,11 @@ point_in_time_1:
   index_permissions:
     - index_patterns:
         - "pit_1"
+      dls: null
+      fls: null
+      masked_fields: null
       allowed_actions:
-        - "indices:data/read/point_in_time/create"
-        - "indices:data/read/point_in_time/delete"
-        - "indices:data/read/point_in_time/readall"
-        - "indices:monitor/point_in_time/segments"
+        - "manage_point_in_time"
 
 hidden_test:
   cluster_permissions:
