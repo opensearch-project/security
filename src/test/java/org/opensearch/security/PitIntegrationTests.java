@@ -29,6 +29,7 @@ public class PitIntegrationTests  extends SingleClusterTest {
         }
 
         RestHelper.HttpResponse resc;
+
         resc = rh.executePostRequest("/pit_1/_search/point_in_time?keep_alive=100m", "",
                 encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
@@ -37,6 +38,10 @@ public class PitIntegrationTests  extends SingleClusterTest {
                 encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
+        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "",
+                encodeBasicHeader("pit-2", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+
         resc = rh.executeGetRequest("/_search/point_in_time/all",
                 encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
@@ -56,5 +61,14 @@ public class PitIntegrationTests  extends SingleClusterTest {
         resc = rh.executePostRequest("/pit_1/_search/point_in_time?keep_alive=100m", "",
                 encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+
+        resc = rh.executeDeleteRequest("/_search/point_in_time/_all",
+                encodeBasicHeader("pit-1", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+
+        resc = rh.executeDeleteRequest("/_search/point_in_time/_all",
+                encodeBasicHeader("pit-2", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+
     }
 }

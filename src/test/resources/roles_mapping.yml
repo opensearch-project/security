@@ -418,6 +418,11 @@ point_in_time_1:
   hidden: false
   users:
     - "pit-1"
+point_in_time_2:
+  reserved: false
+  hidden: false
+  users:
+    - "pit-2"
 sem-role:
   reserved: false
   hidden: false

@@ -234,7 +234,7 @@ manage_point_in_time:
   allowed_actions:
     - "indices:data/read/point_in_time/create"
     - "indices:data/read/point_in_time/delete"
-    - "indices:data/read/point_in_time/read"
+    - "indices:data/read/point_in_time/readall"
     - "cluster:admin/point_in_time/read_from_nodes"
     - "indices:monitor/point_in_time/segments"
   type: "index"

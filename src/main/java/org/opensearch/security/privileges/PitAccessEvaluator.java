@@ -50,17 +50,14 @@ public class PitAccessEvaluator {
         if(action.startsWith("cluster:admin")) {
             return presponse;
         }
-        log.info("HERE 1 + DELETE : " + (request instanceof DeletePitRequest));
         try {
             if (request instanceof GetAllPitNodesRequest) {
-                if (((GetAllPitNodesRequest) request).getGetAllPitNodesResponse() != null
-                        && !((GetAllPitNodesRequest) request).getGetAllPitNodesResponse().getPitInfos().isEmpty()) {
+                if (((GetAllPitNodesRequest) request).getGetAllPitNodesResponse() != null) {
                     return presponse;
                 }
                 return handleGetAllPitsAccess(request, clusterService, user, securityRoles,
                         action, resolver, presponse);
             } else if (request instanceof DeletePitRequest) {
-                log.info("here");
                 DeletePitRequest deletePitRequest = (DeletePitRequest) request;
                 List<String> pitIds = deletePitRequest.getPitIds();
                 if (pitIds.size() == 1 && "_all".equals(pitIds.get(0))) {
@@ -86,6 +83,11 @@ public class PitAccessEvaluator {
                                         IndexNameExpressionResolver resolver,
                                         PrivilegesEvaluatorResponse presponse) throws InterruptedException {
         List<ListPitInfo> pitInfos = getAllPitInfos((GetAllPitNodesRequest) request);
+        // if cluster has no PITs, then allow the operation to pass with empty response
+        if(pitInfos.isEmpty()) {
+            presponse.allowed = true;
+            presponse.markComplete();
+        }
         List<String> pitIds = new ArrayList<>();
         pitIds.addAll(pitInfos.stream().map(ListPitInfo::getPitId).collect(Collectors.toList()));
         Map<String, String[]> pitToIndicesMap = OpenSearchSecurityPlugin.GuiceHolder.getPitService().getIndicesForPits(pitIds);
@@ -117,9 +119,8 @@ public class PitAccessEvaluator {
             }
         }
         if (permittedPits.size() > 0) {
-            GetAllPitNodesResponse resultResponse = ((GetAllPitNodesRequest) request).getGetAllPitNodesResponse();
-            resultResponse.clearAndSetPitInfos(permittedPits);
-            ((GetAllPitNodesRequest) request).setGetAllPitNodesResponse(resultResponse);
+            ((GetAllPitNodesRequest) request).setGetAllPitNodesResponse(new GetAllPitNodesResponse(permittedPits,
+                    ((GetAllPitNodesRequest) request).getGetAllPitNodesResponse()));
             presponse.allowed = true;
             presponse.markComplete();
         }
@@ -135,6 +136,12 @@ public class PitAccessEvaluator {
                                           PrivilegesEvaluatorResponse presponse) throws InterruptedException {
         List<String> permittedPits = new ArrayList<>();
         List<String> pitIds = getAllPitIds();
+        // allow delete pit operation if there are no pits in the cluster ( response should be empty )
+        if(pitIds.isEmpty()) {
+            deletePitRequest.clearAndSetPitIds(pitIds);
+            presponse.allowed = true;
+            presponse.markComplete();
+        }
         Map<String, String[]> pitToIndicesMap = OpenSearchSecurityPlugin.GuiceHolder.getPitService().getIndicesForPits(pitIds);
         for (String pitId : pitIds) {
             String[] indices = pitToIndicesMap.get(pitId);
@@ -208,11 +215,13 @@ public class PitAccessEvaluator {
      */
     private List<ListPitInfo> getAllPitInfos(GetAllPitNodesRequest request) throws InterruptedException {
         List<ListPitInfo> pitInfos = new ArrayList<>();
+        CountDownLatch latch = new CountDownLatch(1);
         ActionListener listener = new ActionListener<GetAllPitNodesResponse>() {
             @Override
             public void onResponse(GetAllPitNodesResponse response) {
                 pitInfos.addAll(response.getPitInfos());
                 request.setGetAllPitNodesResponse(response);
+                latch.countDown();
             }
 
             @Override
@@ -220,7 +229,6 @@ public class PitAccessEvaluator {
 
             }
         };
-        final CountDownLatch latch = new CountDownLatch(1);
         LatchedActionListener latchedActionListener = new LatchedActionListener<>(listener, latch);
 
         OpenSearchSecurityPlugin.GuiceHolder.getPitService().getAllPits(latchedActionListener);
@@ -236,11 +244,14 @@ public class PitAccessEvaluator {
      */
     private List<String> getAllPitIds() throws InterruptedException {
 
-        List<String> pitIds = new ArrayList<>();
+        List<ListPitInfo> pitInfos = new ArrayList<>();
+        CountDownLatch latch = new CountDownLatch(1);
+
         ActionListener listener = new ActionListener<GetAllPitNodesResponse>() {
             @Override
             public void onResponse(GetAllPitNodesResponse response) {
-                pitIds.addAll(response.getPitInfos().stream().map(r -> r.getPitId()).collect(Collectors.toList()));
+                pitInfos.addAll(response.getPitInfos());
+                latch.countDown();
             }
 
             @Override
@@ -248,7 +259,6 @@ public class PitAccessEvaluator {
 
             }
         };
-        final CountDownLatch latch = new CountDownLatch(1);
         LatchedActionListener latchedActionListener = new LatchedActionListener<>(listener, latch);
 
         OpenSearchSecurityPlugin.GuiceHolder.getPitService().getAllPits(latchedActionListener);
@@ -256,6 +266,6 @@ public class PitAccessEvaluator {
         if(!latch.await(15, TimeUnit.SECONDS)) {
             log.warn("Failed to get all PITs information within the timeout {}", new TimeValue(15, TimeUnit.SECONDS));
         }
-        return pitIds;
+        return pitInfos.stream().map(r -> r.getPitId()).collect(Collectors.toList());
     }
 }
