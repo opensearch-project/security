@@ -1161,6 +1161,30 @@ point_in_time_2:
       allowed_actions:
         - "manage_point_in_time"
 
+point_in_time_no_get_permission:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "cluster:admin/point_in_time/read_from_nodes"
+    - "cluster_monitor"
+
+point_in_time_index_perm_but_no_pit_perm:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "cluster:admin/point_in_time/read_from_nodes"
+    - "cluster_monitor"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "indices:data/read/point_in_time/create"
+
 hidden_test:
   cluster_permissions:
   - SGS_CLUSTER_COMPOSITE_OPS

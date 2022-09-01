@@ -423,6 +423,16 @@ point_in_time_2:
   hidden: false
   users:
     - "pit-2"
+point_in_time_no_get_permission:
+  reserved: false
+  hidden: false
+  users:
+    - "pit-no-get-permission"
+point_in_time_index_perm_but_no_pit_perm:
+  reserved: false
+  hidden: false
+  users:
+    - "pit-index-perm-no-get-permission"
 sem-role:
   reserved: false
   hidden: false
