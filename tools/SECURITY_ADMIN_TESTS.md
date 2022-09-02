@@ -74,4 +74,3 @@ Will update '/audit' with ../../../config/opensearch-security/audit.yml
 Will update '/allowlist' with ../../../config/opensearch-security/allowlist.yml
    SUCC: Configuration for 'allowlist' created or updated
 ```
-
