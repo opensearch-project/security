@@ -61,7 +61,7 @@ import org.opensearch.security.user.User;
 /**
  * This class evaluates privileges for point in time (Delete and List all) operations
  */
-public class PitAccessEvaluator {
+public class PitPrivilegesEvaluator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private boolean isDebugEnabled = log.isDebugEnabled();
@@ -69,7 +69,7 @@ public class PitAccessEvaluator {
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final ClusterService clusterService,
                                                 final User user, final SecurityRoles securityRoles, final String action,
                                                 final IndexNameExpressionResolver resolver,
-                                                boolean dnfofEnabled, final PrivilegesEvaluatorResponse presponse) {
+                                                boolean dnfOfEmptyResultsEnabled, final PrivilegesEvaluatorResponse presponse) {
 
         // Skip pit evaluation for "NodesGetAllPITs" action, since it fetches all PITs across the cluster
         // for privilege evaluation
@@ -82,26 +82,26 @@ public class PitAccessEvaluator {
                     return presponse;
                 }
                 return handleGetAllPitsAccess(request, clusterService, user, securityRoles,
-                        action, resolver, dnfofEnabled, presponse);
+                        action, resolver, dnfOfEmptyResultsEnabled, presponse);
             } else if (request instanceof DeletePitRequest) {
                 DeletePitRequest deletePitRequest = (DeletePitRequest) request;
                 List<String> pitIds = deletePitRequest.getPitIds();
                 if (pitIds.size() == 1 && "_all".equals(pitIds.get(0))) {
                     return handleDeleteAllPitAccess(deletePitRequest, clusterService, user, securityRoles,
-                            action, resolver, dnfofEnabled, presponse);
+                            action, resolver, dnfOfEmptyResultsEnabled, presponse);
                 } else {
                     return handleExplicitPitsAccess(deletePitRequest.getPitIds(), clusterService, user, securityRoles,
-                            action, resolver, dnfofEnabled, presponse);
+                            action, resolver, dnfOfEmptyResultsEnabled, presponse);
                 }
             } else if (request instanceof PitSegmentsRequest) {
                 PitSegmentsRequest pitSegmentsRequest = (PitSegmentsRequest) request;
                 List<String> pitIds = pitSegmentsRequest.getPitIds();
                 if (pitIds.size() == 1 && "_all".equals(pitIds.get(0))) {
                     return handleGetAllPitSegmentsAccess(pitSegmentsRequest, clusterService, user, securityRoles,
-                            action, resolver, dnfofEnabled, presponse);
+                            action, resolver, dnfOfEmptyResultsEnabled, presponse);
                 } else {
                     return handleExplicitPitsAccess(pitSegmentsRequest.getPitIds(), clusterService, user, securityRoles,
-                            action, resolver, dnfofEnabled, presponse);
+                            action, resolver, dnfOfEmptyResultsEnabled, presponse);
                 }
             }
         } catch(InterruptedException e) {
@@ -117,11 +117,12 @@ public class PitAccessEvaluator {
     private PrivilegesEvaluatorResponse handleGetAllPitsAccess(final ActionRequest request, final ClusterService clusterService,
                                                                final User user, SecurityRoles securityRoles, final String action,
                                                                IndexNameExpressionResolver resolver,
-                                                               boolean dnfofEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
+                                                               boolean dnfOfEmptyResultsEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
         List<ListPitInfo> pitInfos = getAllPitInfos((GetAllPitNodesRequest) request);
-        // if cluster has no PITs, then allow the operation to pass with empty response
+        // if cluster has no PITs, then allow the operation to pass with empty response if dnfOfEmptyResultsEnabled
+        // config property is true, otherwise fail the operation
         if(pitInfos.isEmpty()) {
-            if(dnfofEnabled) {
+            if(dnfOfEmptyResultsEnabled) {
                 presponse.allowed = true;
                 presponse.markComplete();
             }
@@ -172,12 +173,13 @@ public class PitAccessEvaluator {
     private PrivilegesEvaluatorResponse handleDeleteAllPitAccess(DeletePitRequest deletePitRequest, ClusterService clusterService,
                                                                  User user, SecurityRoles securityRoles, final String action,
                                                                  IndexNameExpressionResolver resolver,
-                                                                 boolean dnfofEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
+                                                                 boolean dnfOfEmptyResultsEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
         List<String> permittedPits = new ArrayList<>();
         List<String> pitIds = getAllPitIds();
-        // allow delete pit operation if there are no pits in the cluster ( response should be empty )
+        // if cluster has no PITs, then allow the operation to pass with empty response if dnfOfEmptyResultsEnabled
+        // config property is true, otherwise fail the operation
         if(pitIds.isEmpty()) {
-            if(dnfofEnabled) {
+            if(dnfOfEmptyResultsEnabled) {
                 deletePitRequest.clearAndSetPitIds(pitIds);
                 presponse.allowed = true;
                 presponse.markComplete();
@@ -216,12 +218,13 @@ public class PitAccessEvaluator {
     private PrivilegesEvaluatorResponse handleGetAllPitSegmentsAccess(PitSegmentsRequest pitSegmentsRequest, ClusterService clusterService,
                                                                       User user, SecurityRoles securityRoles, final String action,
                                                                       IndexNameExpressionResolver resolver,
-                                                                      boolean dnfofEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
+                                                                      boolean dnfOfEmptyResultsEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
         List<String> permittedPits = new ArrayList<>();
         List<String> pitIds = getAllPitIds();
-        // allow pit segments operation if there are no pits in the cluster ( response should be empty )
+        // if cluster has no PITs, then allow the operation to pass with empty response if dnfOfEmptyResultsEnabled
+        // config property is true, otherwise fail the operation
         if(pitIds.isEmpty()) {
-            if(dnfofEnabled) {
+            if(dnfOfEmptyResultsEnabled) {
                 pitSegmentsRequest.clearAndSetPitIds(pitIds);
                 presponse.allowed = true;
                 presponse.markComplete();

@@ -130,7 +130,7 @@ public class PrivilegesEvaluator {
     private final SecurityIndexAccessEvaluator securityIndexAccessEvaluator;
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
-    private final PitAccessEvaluator pitAccessEvaluator;
+    private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private final boolean dlsFlsEnabled;
     private final boolean dfmEmptyOverwritesAll;
     private DynamicConfigModel dcm;
@@ -159,7 +159,7 @@ public class PrivilegesEvaluator {
         securityIndexAccessEvaluator = new SecurityIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        pitAccessEvaluator = new PitAccessEvaluator();
+        pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
         this.namedXContentRegistry = namedXContentRegistry;
         this.dlsFlsEnabled = dlsFlsEnabled;
         this.dfmEmptyOverwritesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
@@ -285,8 +285,8 @@ public class PrivilegesEvaluator {
         }
 
         // check access for point in time requests
-        if(pitAccessEvaluator.evaluate(request, clusterService, user, securityRoles,
-                action0, resolver, dcm.isDnfofEnabled(), presponse).isComplete()) {
+        if(pitPrivilegesEvaluator.evaluate(request, clusterService, user, securityRoles,
+                action0, resolver, dcm.isDnfofForEmptyResultsEnabled(), presponse).isComplete()) {
             return presponse;
         }
 
