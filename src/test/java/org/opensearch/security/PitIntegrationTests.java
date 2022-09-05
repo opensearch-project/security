@@ -86,10 +86,10 @@ public class PitIntegrationTests  extends SingleClusterTest {
                 encodeBasicHeader("pit-2", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
-        // Delete all PITs should work since there are no PITs in the cluster
+        // Delete all PITs throws forbidden error since there are no PITs in the cluster
         resc = rh.executeDeleteRequest("/_search/point_in_time/_all",
                 encodeBasicHeader("pit-1", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, resc.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
     }
 
     @Test
@@ -132,8 +132,6 @@ public class PitIntegrationTests  extends SingleClusterTest {
                 encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
-        Thread.sleep(500);
-
         // Delete all PITs should work since there is atleast one PIT for which user has access for
         resc = rh.executeDeleteRequest("/_search/point_in_time/_all",
                 encodeBasicHeader("pit-1", "nagilum"));
@@ -165,15 +163,14 @@ public class PitIntegrationTests  extends SingleClusterTest {
                 encodeBasicHeader("pit-2", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
-        // List all PITs should work since there are no PITs in the cluster
+        // List all PITs throws forbidden error since there are no PITs in the cluster
         resc = rh.executeGetRequest("/_search/point_in_time/_all",
                 encodeBasicHeader("pit-1", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_NOT_FOUND, resc.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
-
-        // PIT segments should work since there is atleast one PIT for which user has access for
-        resc = rh.executeGetRequest("/_cat/pit_segments/_all",
-                encodeBasicHeader("pit-2", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+        // PIT segments API throws forbidden error since there are no PITs in the cluster
+        resc = rh.executeGetRequest("/_search/point_in_time/_all",
+                encodeBasicHeader("pit-1", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
     }
 }

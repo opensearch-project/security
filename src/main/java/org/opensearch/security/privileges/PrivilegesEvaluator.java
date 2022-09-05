@@ -286,7 +286,7 @@ public class PrivilegesEvaluator {
 
         // check access for point in time requests
         if(pitAccessEvaluator.evaluate(request, clusterService, user, securityRoles,
-                action0, resolver, presponse).isComplete()) {
+                action0, resolver, dcm.isDnfofEnabled(), presponse).isComplete()) {
             return presponse;
         }
 
