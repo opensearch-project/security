@@ -273,6 +273,8 @@ dependencies {
     runtimeOnly 'com.sun.istack:istack-commons-runtime:3.0.12'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.3'
     runtimeOnly 'org.ow2.asm:asm:9.1'
+    runtimeOnly "org.bouncycastle:bcprov-jdk15on:${versions.bouncycastle}"
+    runtimeOnly "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.14.2'
 
