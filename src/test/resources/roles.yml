@@ -1134,7 +1134,6 @@ point_in_time_1:
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
     - "cluster:admin/point_in_time/read_from_nodes"
-    - "cluster_monitor"
   index_permissions:
     - index_patterns:
         - "pit_1"
@@ -1150,7 +1149,6 @@ point_in_time_2:
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
     - "cluster:admin/point_in_time/read_from_nodes"
-    - "cluster_monitor"
   index_permissions:
     - index_patterns:
         - "pit_2"
