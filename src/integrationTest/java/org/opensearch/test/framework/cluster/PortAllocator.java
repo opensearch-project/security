@@ -37,7 +37,14 @@ import java.util.TreeSet;
 
 import org.opensearch.test.framework.cluster.SocketUtils.SocketType;
 
-
+/**
+ * Helper class that allows you to allocate ports. This helps with avoiding port conflicts when running tests.
+ *
+ * NOTE: This class shall be only considered as a heuristic; ports allocated by this class are just likely to be unused;
+ * however, there is no guarantee that these will be unused. Thus, you still need to be prepared for port-conflicts
+ * and retry the procedure in such a case. If you notice a port conflict, you can use the method reserve() to mark the
+ * port as used.
+ */
 public class PortAllocator {
 
 	public static final PortAllocator TCP = new PortAllocator(SocketType.TCP, Duration.ofSeconds(100));
