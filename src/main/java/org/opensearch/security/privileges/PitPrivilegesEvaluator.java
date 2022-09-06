@@ -96,16 +96,22 @@ public class PitPrivilegesEvaluator {
             pitToPitInfoMap.put(pitInfo.getPitId(), pitInfo);
         }
         List<ListPitInfo> permittedPits = new ArrayList<>();
-        for (String pitId : pitIds) {
-            String[] indices = pitToIndicesMap.get(pitId);
-            HashSet<String> indicesSet = new HashSet<>(Arrays.asList(indices));
 
-            final Set<String> allPermittedIndices = getPermittedIndices(indicesSet, clusterService, user,
-                    securityRoles, action, resolver);
+        Set<String> allPitIndices = new HashSet<>();
+        for(String[] indices: pitToIndicesMap.values()) {
+            allPitIndices.addAll(Arrays.asList(indices));
+        }
+        final Set<String> allPermittedPitIndices = getPermittedIndices(allPitIndices, clusterService, user,
+                securityRoles, action, resolver);
+
+        for (String pitId : pitIds) {
+            final String[] indices = pitToIndicesMap.get(pitId);
+            final HashSet<String> pitIndicesSet = new HashSet<>(Arrays.asList(indices));
             if(isDebugEnabled) {
                 log.debug("Evaluating PIT ID : " + pitId );
             }
-            if (allPermittedIndices.size() == indicesSet.size()) {
+
+            if (allPermittedPitIndices.containsAll(pitIndicesSet)) {
                 if(isDebugEnabled) {
                     log.debug(" Permitting PIT ID : " + pitId);
                 }
