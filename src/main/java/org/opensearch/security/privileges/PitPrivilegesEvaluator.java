@@ -78,31 +78,16 @@ public class PitPrivilegesEvaluator {
         }
         try {
             if (request instanceof GetAllPitNodesRequest) {
-                if (((GetAllPitNodesRequest) request).getGetAllPitNodesResponse() != null) {
-                    return presponse;
-                }
                 return handleGetAllPitsAccess(request, clusterService, user, securityRoles,
                         action, resolver, dnfOfEmptyResultsEnabled, presponse);
             } else if (request instanceof DeletePitRequest) {
                 DeletePitRequest deletePitRequest = (DeletePitRequest) request;
-                List<String> pitIds = deletePitRequest.getPitIds();
-                if (pitIds.size() == 1 && "_all".equals(pitIds.get(0))) {
-                    return handleDeleteAllPitAccess(deletePitRequest, clusterService, user, securityRoles,
-                            action, resolver, dnfOfEmptyResultsEnabled, presponse);
-                } else {
-                    return handleExplicitPitsAccess(deletePitRequest.getPitIds(), clusterService, user, securityRoles,
-                            action, resolver, dnfOfEmptyResultsEnabled, presponse);
-                }
+                return handleExplicitPitsAccess(deletePitRequest.getPitIds(), clusterService, user, securityRoles,
+                        action, resolver, dnfOfEmptyResultsEnabled, presponse);
             } else if (request instanceof PitSegmentsRequest) {
                 PitSegmentsRequest pitSegmentsRequest = (PitSegmentsRequest) request;
-                List<String> pitIds = pitSegmentsRequest.getPitIds();
-                if (pitIds.size() == 1 && "_all".equals(pitIds.get(0))) {
-                    return handleGetAllPitSegmentsAccess(pitSegmentsRequest, clusterService, user, securityRoles,
-                            action, resolver, dnfOfEmptyResultsEnabled, presponse);
-                } else {
-                    return handleExplicitPitsAccess(pitSegmentsRequest.getPitIds(), clusterService, user, securityRoles,
-                            action, resolver, dnfOfEmptyResultsEnabled, presponse);
-                }
+                return handleExplicitPitsAccess(pitSegmentsRequest.getPitIds(), clusterService, user, securityRoles,
+                        action, resolver, dnfOfEmptyResultsEnabled, presponse);
             }
         } catch(InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -118,7 +103,7 @@ public class PitPrivilegesEvaluator {
                                                                final User user, SecurityRoles securityRoles, final String action,
                                                                IndexNameExpressionResolver resolver,
                                                                boolean dnfOfEmptyResultsEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
-        List<ListPitInfo> pitInfos = getAllPitInfos((GetAllPitNodesRequest) request);
+        List<ListPitInfo> pitInfos = ((GetAllPitNodesRequest) request).getGetAllPitNodesResponse().getPitInfos();
         // if cluster has no PITs, then allow the operation to pass with empty response if dnfOfEmptyResultsEnabled
         // config property is true, otherwise fail the operation
         if(pitInfos.isEmpty()) {
@@ -168,102 +153,12 @@ public class PitPrivilegesEvaluator {
     }
 
     /**
-     * Handle access for 'delete all PITs' operation
-     */
-    private PrivilegesEvaluatorResponse handleDeleteAllPitAccess(DeletePitRequest deletePitRequest, ClusterService clusterService,
-                                                                 User user, SecurityRoles securityRoles, final String action,
-                                                                 IndexNameExpressionResolver resolver,
-                                                                 boolean dnfOfEmptyResultsEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
-        List<String> permittedPits = new ArrayList<>();
-        List<String> pitIds = getAllPitIds();
-        // if cluster has no PITs, then allow the operation to pass with empty response if dnfOfEmptyResultsEnabled
-        // config property is true, otherwise fail the operation
-        if(pitIds.isEmpty()) {
-            if(dnfOfEmptyResultsEnabled) {
-                deletePitRequest.clearAndSetPitIds(pitIds);
-                presponse.allowed = true;
-                presponse.markComplete();
-            }
-            return presponse;
-        }
-        Map<String, String[]> pitToIndicesMap = OpenSearchSecurityPlugin.GuiceHolder.getPitService().getIndicesForPits(pitIds);
-        for (String pitId : pitIds) {
-            String[] indices = pitToIndicesMap.get(pitId);
-            HashSet<String> indicesSet = new HashSet<>(Arrays.asList(indices));
-            Set<String> allPermittedIndices = getPermittedIndices(indicesSet, clusterService, user,
-                    securityRoles, action, resolver);
-            // user should have permissions for all indices associated with PIT, only then add PIT ID as permitted PIT
-            if(isDebugEnabled) {
-                log.debug("Evaluating PIT : " + pitId );
-            }
-            if (allPermittedIndices.size() == indicesSet.size()) {
-                if(isDebugEnabled) {
-                    log.debug(" Permitting PIT : " + pitId);
-                }
-                permittedPits.add(pitId);
-            }
-        }
-        // If there are any PITs for which the user has access to, then allow operation otherwise fail.
-        if(permittedPits.size() > 0) {
-            deletePitRequest.clearAndSetPitIds(permittedPits);
-            presponse.allowed = true;
-            presponse.markComplete();
-        }
-        return presponse;
-    }
-
-    /**
-     * Handle access for PIT segments API
-     */
-    private PrivilegesEvaluatorResponse handleGetAllPitSegmentsAccess(PitSegmentsRequest pitSegmentsRequest, ClusterService clusterService,
-                                                                      User user, SecurityRoles securityRoles, final String action,
-                                                                      IndexNameExpressionResolver resolver,
-                                                                      boolean dnfOfEmptyResultsEnabled, PrivilegesEvaluatorResponse presponse) throws InterruptedException {
-        List<String> permittedPits = new ArrayList<>();
-        List<String> pitIds = getAllPitIds();
-        // if cluster has no PITs, then allow the operation to pass with empty response if dnfOfEmptyResultsEnabled
-        // config property is true, otherwise fail the operation
-        if(pitIds.isEmpty()) {
-            if(dnfOfEmptyResultsEnabled) {
-                pitSegmentsRequest.clearAndSetPitIds(pitIds);
-                presponse.allowed = true;
-                presponse.markComplete();
-            }
-            return presponse;
-        }
-        Map<String, String[]> pitToIndicesMap = OpenSearchSecurityPlugin.GuiceHolder.getPitService().getIndicesForPits(pitIds);
-        for (String pitId : pitIds) {
-            String[] indices = pitToIndicesMap.get(pitId);
-            HashSet<String> indicesSet = new HashSet<>(Arrays.asList(indices));
-            Set<String> allPermittedIndices = getPermittedIndices(indicesSet, clusterService, user,
-                    securityRoles, action, resolver);
-            // user should have permissions for all indices associated with PIT, only then add PIT ID as permitted PIT
-            if(isDebugEnabled) {
-                log.debug("Evaluating PIT : " + pitId );
-            }
-            if (allPermittedIndices.size() == indicesSet.size()) {
-                if(isDebugEnabled) {
-                    log.debug(" Permitting PIT : " + pitId);
-                }
-                permittedPits.add(pitId);
-            }
-        }
-        // If there are any PITs for which the user has access to, then allow operation otherwise fail.
-        if(permittedPits.size() > 0) {
-            pitSegmentsRequest.clearAndSetPitIds(permittedPits);
-            presponse.allowed = true;
-            presponse.markComplete();
-        }
-        return presponse;
-    }
-
-    /**
      * Handle access for delete operation / pit segments operation where PIT IDs are explicitly passed
      */
     private PrivilegesEvaluatorResponse handleExplicitPitsAccess(List<String> pitIds, ClusterService clusterService,
-                                        User user, SecurityRoles securityRoles, final String action,
-                                        IndexNameExpressionResolver resolver,
-                                        PrivilegesEvaluatorResponse presponse) {
+                                                                 User user, SecurityRoles securityRoles, final String action,
+                                                                 IndexNameExpressionResolver resolver,
+                                                                 boolean dnfOfEmptyResultsEnabled, PrivilegesEvaluatorResponse presponse) {
         Map<String, String[]> pitToIndicesMap = OpenSearchSecurityPlugin.
                 GuiceHolder.getPitService().getIndicesForPits(pitIds);
         Set<String> pitIndices = new HashSet<>();
@@ -294,63 +189,5 @@ public class PitPrivilegesEvaluator {
                         ImmutableSet.of(), SearchRequest.DEFAULT_INDICES_OPTIONS);
         return securityRoles.reduce(pitResolved,
                 user, new String[]{action}, resolver, clusterService);
-    }
-
-    /**
-     * Get all active PITs
-     */
-    private List<ListPitInfo> getAllPitInfos(GetAllPitNodesRequest request) throws InterruptedException {
-        final List<ListPitInfo> pitInfos = new ArrayList<>();
-        final CountDownLatch latch = new CountDownLatch(1);
-        ActionListener listener = new ActionListener<GetAllPitNodesResponse>() {
-            @Override
-            public void onResponse(GetAllPitNodesResponse response) {
-                pitInfos.addAll(response.getPitInfos());
-                request.setGetAllPitNodesResponse(response);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                throw new OpenSearchException("List all PITs failed", e);
-            }
-        };
-        LatchedActionListener latchedActionListener = new LatchedActionListener<>(listener, latch);
-
-        OpenSearchSecurityPlugin.GuiceHolder.getPitService().getAllPits(latchedActionListener);
-
-        if(!latch.await(15, TimeUnit.SECONDS)) {
-            log.warn("Failed to get all PITs information within the timeout {}", new TimeValue(15, TimeUnit.SECONDS));
-        }
-        return pitInfos;
-    }
-
-    /**
-     * Get all active PIT IDs
-     */
-    private List<String> getAllPitIds() throws InterruptedException {
-
-        final List<ListPitInfo> pitInfos = new ArrayList<>();
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        ActionListener listener = new ActionListener<GetAllPitNodesResponse>() {
-            @Override
-            public void onResponse(GetAllPitNodesResponse response) {
-                pitInfos.addAll(response.getPitInfos());
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                throw new OpenSearchException("List all PITs failed", e);
-
-            }
-        };
-        LatchedActionListener latchedActionListener = new LatchedActionListener<>(listener, latch);
-
-        OpenSearchSecurityPlugin.GuiceHolder.getPitService().getAllPits(latchedActionListener);
-
-        if(!latch.await(15, TimeUnit.SECONDS)) {
-            log.warn("Failed to get all PITs information within the timeout {}", new TimeValue(15, TimeUnit.SECONDS));
-        }
-        return pitInfos.stream().map(r -> r.getPitId()).collect(Collectors.toList());
     }
 }
