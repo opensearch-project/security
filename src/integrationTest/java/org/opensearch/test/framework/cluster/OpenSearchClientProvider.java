@@ -50,12 +50,12 @@ import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
 /**
- * OpenSearchClientProvider provides methods to get a REST client for an underlying cluster or node.
- *
- * This interface is implemented by both LocalCluster and LocalOpenSearchCluster.Node. Thus, it is possible to get a
- * REST client for a whole cluster (without choosing the node it is operating on) or to get a REST client for a specific
- * node.
- */
+* OpenSearchClientProvider provides methods to get a REST client for an underlying cluster or node.
+*
+* This interface is implemented by both LocalCluster and LocalOpenSearchCluster.Node. Thus, it is possible to get a
+* REST client for a whole cluster (without choosing the node it is operating on) or to get a REST client for a specific
+* node.
+*/
 public interface OpenSearchClientProvider {
 
 	String getClusterName();
@@ -72,23 +72,23 @@ public interface OpenSearchClientProvider {
 	}
 
 	/**
-	 * Returns a REST client that sends requests with basic authentication for the specified User object. Optionally,
-	 * additional HTTP headers can be specified which will be sent with each request.
-	 *
-	 * This method should be usually preferred. The other getRestClient() methods shall be only used for specific
-	 * situations.
-	 */
+	* Returns a REST client that sends requests with basic authentication for the specified User object. Optionally,
+	* additional HTTP headers can be specified which will be sent with each request.
+	*
+	* This method should be usually preferred. The other getRestClient() methods shall be only used for specific
+	* situations.
+	*/
 	default TestRestClient getRestClient(UserCredentialsHolder user, Header... headers) {
 		return getRestClient(user.getName(), user.getPassword(), headers);
 	}
 
 	/**
-     * Returns a REST client that sends requests with basic authentication for the specified user name and password. Optionally,
-     * additional HTTP headers can be specified which will be sent with each request.
-	 *
-	 * Normally, you should use the method with the User object argument instead. Use this only if you need more
-	 * control over username and password - for example, when you want to send a wrong password.
-     */
+	* Returns a REST client that sends requests with basic authentication for the specified user name and password. Optionally,
+	* additional HTTP headers can be specified which will be sent with each request.
+	*
+	* Normally, you should use the method with the User object argument instead. Use this only if you need more
+	* control over username and password - for example, when you want to send a wrong password.
+	*/
 	default TestRestClient getRestClient(String user, String password, Header... headers) {
 		BasicHeader basicAuthHeader = getBasicAuthHeader(user, password);
 		if (headers != null && headers.length > 0) {
@@ -99,9 +99,9 @@ public interface OpenSearchClientProvider {
 	}
 
 	/**
-	 * Returns a REST client. You can specify additional HTTP headers that will be sent with each request. Use this
-	 * method to test non-basic authentication, such as JWT bearer authentication.
-	 */
+	* Returns a REST client. You can specify additional HTTP headers that will be sent with each request. Use this
+	* method to test non-basic authentication, such as JWT bearer authentication.
+	*/
 	default TestRestClient getRestClient(Header... headers) {
 		return getRestClient(Arrays.asList(headers));
 	}

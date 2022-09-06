@@ -75,11 +75,11 @@ import static org.opensearch.test.framework.cluster.NodeType.DATA;
 import static org.opensearch.test.framework.cluster.PortAllocator.TCP;
 
 /**
- * Encapsulates all the logic to start a local OpenSearch cluster - without any configuration of the security plugin.
- *
- * The security plugin configuration is the job of LocalCluster, which uses this class under the hood. Thus, test code
- * for the security plugin should always use LocalCluster.
- */
+* Encapsulates all the logic to start a local OpenSearch cluster - without any configuration of the security plugin.
+*
+* The security plugin configuration is the job of LocalCluster, which uses this class under the hood. Thus, test code
+* for the security plugin should always use LocalCluster.
+*/
 public class LocalOpenSearchCluster {
 
 	static {

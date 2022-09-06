@@ -54,13 +54,13 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
 /**
- * This class allows to you start and manage a local cluster in an integration test. In contrast to the
- * OpenSearchIntegTestCase class, this class can be used in a composite way and allows the specification
- * of the security plugin configuration.
- *
- * This class can be both used as a JUnit @ClassRule (preferred) or in a try-with-resources block. The latter way should
- * be only sparingly used, as starting a cluster is not a particularly fast operation.
- */
+* This class allows to you start and manage a local cluster in an integration test. In contrast to the
+* OpenSearchIntegTestCase class, this class can be used in a composite way and allows the specification
+* of the security plugin configuration.
+*
+* This class can be both used as a JUnit @ClassRule (preferred) or in a try-with-resources block. The latter way should
+* be only sparingly used, as starting a cluster is not a particularly fast operation.
+*/
 public class LocalCluster extends ExternalResource implements AutoCloseable, OpenSearchClientProvider {
 
 	private static final Logger log = LogManager.getLogger(LocalCluster.class);
@@ -153,24 +153,24 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 	}
 
 	/**
-	 * Returns a Client object that performs cluster-internal requests. As these requests are regard as cluster-internal,
-	 * no authentication is performed and no user-information is attached to these requests. Thus, this client should
-	 * be only used for preparing test environments, but not as a test subject.
-	 */
+	* Returns a Client object that performs cluster-internal requests. As these requests are regard as cluster-internal,
+	* no authentication is performed and no user-information is attached to these requests. Thus, this client should
+	* be only used for preparing test environments, but not as a test subject.
+	*/
 	public Client getInternalNodeClient() {
 		return localOpenSearchCluster.clientNode().getInternalNodeClient();
 	}
 
 	/**
-	 * Returns a random node of this cluster.
-	 */
+	* Returns a random node of this cluster.
+	*/
 	public PluginAwareNode node() {
 		return this.localOpenSearchCluster.clusterManagerNode().esNode();
 	}
 
 	/**
-	 * Returns all nodes of this cluster.
-	 */
+	* Returns all nodes of this cluster.
+	*/
 	public List<LocalOpenSearchCluster.Node> nodes() {
 		return this.localOpenSearchCluster.getNodes();
 	}
@@ -248,18 +248,18 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		}
 
 		/**
-		 * Starts a cluster with only one node and thus saves some resources during startup. This shall be only used
-		 * for tests where the node interactions are not relevant to the test. An example for this would be
-		 * authentication tests, as authentication is always done on the directly connected node.
-		 */
+		* Starts a cluster with only one node and thus saves some resources during startup. This shall be only used
+		* for tests where the node interactions are not relevant to the test. An example for this would be
+		* authentication tests, as authentication is always done on the directly connected node.
+		*/
 		public Builder singleNode() {
 			this.clusterManager = ClusterManager.SINGLENODE;
 			return this;
 		}
 
 		/**
-		 * Specifies the configuration of the security plugin that shall be used by this cluster.
-		 */
+		* Specifies the configuration of the security plugin that shall be used by this cluster.
+		*/
 		public Builder config(TestSecurityConfig testSecurityConfig) {
 			this.testSecurityConfig = testSecurityConfig;
 			return this;
@@ -279,8 +279,8 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		}
 
 		/**
-		 * Adds additional plugins to the cluster
-		 */
+		* Adds additional plugins to the cluster
+		*/
 		public Builder plugin(Class<? extends Plugin> plugin) {
 			this.plugins.add(plugin);
 
@@ -288,9 +288,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		}
 
 		/**
-		 * Specifies a remote cluster and its name. The remote cluster can be then used in Cross Cluster Search
-		 * operations with the specified name.
-		 */
+		* Specifies a remote cluster and its name. The remote cluster can be then used in Cross Cluster Search
+		* operations with the specified name.
+		*/
 		public Builder remote(String name, LocalCluster anotherCluster) {
 			remoteClusters.put(name, anotherCluster);
 
@@ -300,8 +300,8 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		}
 
 		/**
-		 * Specifies test indices that shall be created upon startup of the cluster.
-		 */
+		* Specifies test indices that shall be created upon startup of the cluster.
+		*/
 		public Builder indices(TestIndex... indices) {
 			this.testIndices.addAll(Arrays.asList(indices));
 			return this;

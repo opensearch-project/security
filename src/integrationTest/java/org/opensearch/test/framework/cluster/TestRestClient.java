@@ -71,12 +71,12 @@ import org.opensearch.common.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 
 /**
- * A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
- * obtained via the OpenSearchClientProvider interface, which is implemented by LocalCluster and Node.
- *
- * Usually, an instance of this class sends constant authentication headers which are defined when obtaining the
- * instance from OpenSearchClientProvider.
- */
+* A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
+* obtained via the OpenSearchClientProvider interface, which is implemented by LocalCluster and Node.
+*
+* Usually, an instance of this class sends constant authentication headers which are defined when obtaining the
+* instance from OpenSearchClientProvider.
+*/
 public class TestRestClient implements AutoCloseable {
 	
 	private static final Logger log = LogManager.getLogger(TestRestClient.class);

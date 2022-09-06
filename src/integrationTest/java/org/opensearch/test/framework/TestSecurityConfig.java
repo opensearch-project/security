@@ -62,16 +62,16 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 
 /**
- * This class allows the declarative specification of the security configuration; in particular:
- *
- * - config.yml
- * - internal_users.yml
- * - roles.yml
- * - roles_mapping.yml
- *
- * The class does the whole round-trip, i.e., the configuration is serialized to YAML/JSON and then written to
- * the configuration index of the security plugin.
- */
+* This class allows the declarative specification of the security configuration; in particular:
+*
+* - config.yml
+* - internal_users.yml
+* - roles.yml
+* - roles_mapping.yml
+*
+* The class does the whole round-trip, i.e., the configuration is serialized to YAML/JSON and then written to
+* the configuration index of the security plugin.
+*/
 public class TestSecurityConfig {
 
 	private static final Logger log = LogManager.getLogger(TestSecurityConfig.class);
