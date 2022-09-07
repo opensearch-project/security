@@ -527,7 +527,7 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-cn");
         argsAsList.add(clusterInfo.clustername);
-        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
+        addDirectoryPath(argsAsList, new File("src/test/resources/").getAbsolutePath());
         argsAsList.add("-nhnv");
 
         // Execute first time to create the index
