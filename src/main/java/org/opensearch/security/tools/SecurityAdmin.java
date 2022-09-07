@@ -713,7 +713,8 @@ public class SecurityAdmin {
 
             final boolean legacy = createLegacyMode || (indexExists
                     && securityIndex.getMappings() != null
-                    && securityIndex.getMappings().get(index) != null);
+                    && securityIndex.getMappings().get(index) != null
+                    && securityIndex.getMappings().get(index).getSourceAsMap().containsKey("security"));
             
             if(legacy) {
                 System.out.println("Legacy index '"+index+"' (ES 6) detected (or forced). You should migrate the configuration!");
