@@ -17,7 +17,9 @@
 
 package org.opensearch.security;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +29,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -492,6 +495,48 @@ public class SecurityAdminTests extends SingleClusterTest {
         
         returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
         Assert.assertNotEquals(0, returnCode);
+    }
+
+    @Test
+    public void testIsLegacySecurityIndexOnV7Index() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+                .build();
+        setup(Settings.EMPTY, null, settings, false);
+        
+        final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+        
+        List<String> argsAsList = new ArrayList<>();
+        argsAsList.add("-ts");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-ks");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-p");
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
+        argsAsList.add("-cn");
+        argsAsList.add(clusterInfo.clustername);
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
+        argsAsList.add("-nhnv");
+
+        // Execute first time to create the index
+        int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        Assert.assertEquals(0, returnCode);
+        
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        Assert.assertEquals(0, returnCode);
+
+        System.out.flush();
+        System.setOut(old);
+        String standardOut = baos.toString();
+        String legacyIndexOutput = "Legacy index '"+ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX+"' (ES 6) detected (or forced). You should migrate the configuration!";
+        Assert.assertFalse(standardOut.contains(legacyIndexOutput));
     }
 
     private void addDirectoryPath(final List<String> args, final String path) {
