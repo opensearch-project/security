@@ -372,7 +372,7 @@ public final class ClusterHelper {
     private Settings.Builder getMinimumNonSecurityNodeSettingsBuilder(final int nodenum, final boolean isClusterManagerNode,
                                                                 final boolean isDataNode, int nodeCount, SortedSet<Integer> clusterManagerTcpPorts, int tcpPort, int httpPort) {
 
-        return AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), isDataNode, isClusterManagerNode)
+        return AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), isClusterManagerNode, isDataNode)
                 .put("node.name", "node_"+clustername+ "_num" + nodenum)
                 .put("cluster.name", clustername)
                 .put("path.data", "./target/data/"+clustername+"/data")
