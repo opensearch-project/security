@@ -102,6 +102,8 @@ public class LocalOpenSearchCluster {
 	private boolean started;
 	private Random random = new Random();
 
+	private File snapshotDir;
+
 	public LocalOpenSearchCluster(String clusterName, ClusterManager clusterManager, NodeSettingsSupplier nodeSettingsSupplier,
 						List<Class<? extends Plugin>> additionalPlugins, TestCertificates testCertificates) {
 		this.clusterName = clusterName;
@@ -110,10 +112,21 @@ public class LocalOpenSearchCluster {
 		this.additionalPlugins = additionalPlugins;
 		this.testCertificates = testCertificates;
 		try {
-			this.clusterHomeDir = Files.createTempDirectory("local_cluster_" + clusterName).toFile();
+			createClusterDirectory(clusterName);
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}        
+	}
+
+	public String getSnapshotDirPath() {
+		return snapshotDir.getAbsolutePath();
+	}
+
+	private void createClusterDirectory(String clusterName) throws IOException {
+		this.clusterHomeDir = Files.createTempDirectory("local_cluster_" + clusterName).toFile();
+		log.debug("Cluster home directory '{}'.", clusterHomeDir.getAbsolutePath());
+		this.snapshotDir = new File(this.clusterHomeDir, "snapshots");
+		this.snapshotDir.mkdir();
 	}
 
 	private List<Node> getNodesByType(NodeType nodeType) {
@@ -230,8 +243,7 @@ public class LocalOpenSearchCluster {
 		this.nodes.clear();
 		this.seedHosts = null;
 		this.initialClusterManagerHosts = null;
-		this.clusterHomeDir = Files.createTempDirectory("local_cluster_" + clusterName + "_retry_" + retry).toFile();
-
+		createClusterDirectory("local_cluster_" + clusterName + "_retry_" + retry);
 		start();
 	}
 
@@ -458,13 +470,15 @@ public class LocalOpenSearchCluster {
 		}
 
 		private Settings getOpenSearchSettings() {
-			Settings settings = getMinimalOpenSearchSettings();
+			Settings settings = Settings.builder()
+				.put(getMinimalOpenSearchSettings())
+				.putList("path.repo", List.of(getSnapshotDirPath()))
+				.build();
 
 			if (nodeSettingsSupplier != null) {
 				// TODO node number
 				return Settings.builder().put(settings).put(nodeSettingsSupplier.get(0)).build();
 			}
-
 			return settings;
 		}
 
