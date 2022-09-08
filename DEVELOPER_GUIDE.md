@@ -157,7 +157,7 @@ Checkstyle enforced several rules within this codebase.  Sometimes exceptions wi
 
 *Example violation*
 ```
-[ant:checkstyle] [ERROR] /local/home/petern/git/security/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java:178: Usage should be switched to cluster manager [RegexpSingleline]
+[ant:checkstyle] [ERROR] /local/home/security/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java:178: Usage should be switched to cluster manager [RegexpSingleline]
 ```
 
 *Single Rule Suppression*
