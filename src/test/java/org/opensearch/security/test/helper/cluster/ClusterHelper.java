@@ -174,9 +174,15 @@ public final class ClusterHelper {
         for (int i = 0; i < internalClusterManagerNodeSettings.size(); i++) {
             NodeSettings setting = internalClusterManagerNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
-            PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode,
-                    getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())
-                            .put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(nodeNum)).build(), setting.getPlugins());
+            final Settings.Builder nodeSettingsBuilder = getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next());
+            final Settings settingsForNode;
+            if (nodeSettingsSupplier != null) {
+                final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
+                settingsForNode = AbstractSecurityUnitTest.mergeNodeRolesAndSettings(nodeSettingsBuilder, suppliedSettings).build();
+            } else {
+                settingsForNode = nodeSettingsBuilder.build();
+            }
+            PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode, settingsForNode, setting.getPlugins());
             System.out.println(node.settings());
 
             new Thread(new Runnable() {
@@ -200,9 +206,15 @@ public final class ClusterHelper {
         for (int i = 0; i < internalNonClusterManagerNodeSettings.size(); i++) {
             NodeSettings setting = internalNonClusterManagerNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
-            PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode,
-                    getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())
-                            .put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(nodeNum)).build(), setting.getPlugins());
+            final Settings.Builder nodeSettingsBuilder = getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next());
+            final Settings settingsForNode;
+            if (nodeSettingsSupplier != null) {
+                final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
+                settingsForNode = AbstractSecurityUnitTest.mergeNodeRolesAndSettings(nodeSettingsBuilder, suppliedSettings).build();
+            } else {
+                settingsForNode = nodeSettingsBuilder.build();
+            }
+            PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode, settingsForNode, setting.getPlugins());
             System.out.println(node.settings());
 
             new Thread(new Runnable() {

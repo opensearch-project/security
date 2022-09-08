@@ -47,7 +47,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
         System.setProperty("security.display_lic_none","true");
 
-        cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.DEFAULT);
+        cl2Info = cl2.startCluster(minimumSecuritySettings(Settings.builder().putList("node.roles", "remote_cluster_client").build()), ClusterConfiguration.DEFAULT);
         initialize(cl2, cl2Info, new DynamicSecurityConfig().setSecurityRoles(remoteRoles));
         System.out.println("### cl2 complete ###");
 
@@ -66,7 +66,8 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
 
     private Settings crossClusterNodeSettings(ClusterInfo remote) {
         Settings.Builder builder = Settings.builder()
-                .putList("cluster.remote.cross_cluster_two.seeds", remote.nodeHost+":"+remote.nodePort);
+                .putList("cluster.remote.cross_cluster_two.seeds", remote.nodeHost+":"+remote.nodePort)
+                .putList("node.roles", "remote_cluster_client");
         return builder.build();
     }
 

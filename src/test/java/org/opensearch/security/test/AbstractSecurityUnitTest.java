@@ -43,6 +43,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.netty.handler.ssl.OpenSsl;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
@@ -94,6 +95,7 @@ import org.opensearch.threadpool.ThreadPool;
 @ThreadLeakScope(Scope.NONE)
 public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
+    private static final String NODE_ROLE_KEY = "node.roles";
     protected static final AtomicLong num = new AtomicLong();
     protected static boolean withRemoteCluster;
 
@@ -203,7 +205,18 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         if (isClusterManager) {
             nodeRolesBuilder.add("cluster_manager");
         }
-        return settingsBuilder.putList("node.roles", nodeRolesBuilder.build());
+
+        final Settings nodeRoleSettings = Settings.builder().putList(NODE_ROLE_KEY, nodeRolesBuilder.build()).build();
+        return mergeNodeRolesAndSettings(settingsBuilder, nodeRoleSettings);
+    }
+
+    public static Settings.Builder mergeNodeRolesAndSettings(final Settings.Builder settingsBuilder, final Settings otherSettings) {
+        final ImmutableSet.Builder<String> originalRoles = ImmutableSet.<String>builder()
+            .addAll(settingsBuilder.build().getAsList(NODE_ROLE_KEY, ImmutableList.<String>of()))
+            .addAll(otherSettings.getAsList(NODE_ROLE_KEY, ImmutableList.<String>of()));
+
+        return settingsBuilder.put(otherSettings)
+            .putList(NODE_ROLE_KEY, originalRoles.build().asList());
     }
 
     protected void initialize(ClusterHelper clusterHelper, ClusterInfo clusterInfo, DynamicSecurityConfig securityConfig) throws IOException {
@@ -256,7 +269,6 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         }
         builder.put("cluster.routing.allocation.disk.threshold_enabled", false);
         builder.put(other);
-
         return builder;
     }
 
