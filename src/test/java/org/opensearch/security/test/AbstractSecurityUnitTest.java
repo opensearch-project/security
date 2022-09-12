@@ -71,6 +71,7 @@ import org.opensearch.client.Client;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.cluster.node.DiscoveryNodeRole;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
@@ -200,10 +201,10 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
     public static Settings.Builder nodeRolesSettings(final Settings.Builder settingsBuilder, final boolean isClusterManager, final boolean isDataNode) {
         final ImmutableList.Builder<String> nodeRolesBuilder = ImmutableList.<String>builder();
         if (isDataNode) {
-            nodeRolesBuilder.add("data");
+            nodeRolesBuilder.add(DiscoveryNodeRole.DATA_ROLE.roleName());
         }
         if (isClusterManager) {
-            nodeRolesBuilder.add("cluster_manager");
+            nodeRolesBuilder.add(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE.roleName());
         }
 
         final Settings nodeRoleSettings = Settings.builder().putList(NODE_ROLE_KEY, nodeRolesBuilder.build()).build();
