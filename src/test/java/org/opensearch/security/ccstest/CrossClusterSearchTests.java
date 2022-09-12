@@ -84,7 +84,9 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         }
 
         public ClusterTransportClientSettings(Settings clusterSettings, Settings transportSettings) {
-            super(clusterSettings, transportSettings);
+            super(Settings.builder()
+                .put(clusterSettings)
+                .putList("node.roles", "remote_cluster_client").build(), transportSettings);
         }
 
         public Settings clusterSettings() {
@@ -1001,12 +1003,10 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
                     .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
         }
 
-        final Settings tcSettings = Settings.builder()
+        final Settings.Builder clusterClientSettings = Settings.builder().putList("node.roles", "remote_cluster_client");
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(clusterClientSettings, false, false) 
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", cl1Info.clustername)
-                .put("node.data", false)
-                .put("node.master", false)
-                .put("node.ingest", false)
                 .put("path.data", "./target/data/" + cl1Info.clustername + "/cert/data")
                 .put("path.logs", "./target/data/" + cl1Info.clustername + "/cert/logs")
                 .put("path.home", "./target")

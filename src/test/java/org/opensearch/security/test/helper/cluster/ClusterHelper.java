@@ -26,6 +26,7 @@
 
 package org.opensearch.security.test.helper.cluster;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
@@ -60,11 +61,13 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.http.HttpInfo;
 import org.opensearch.node.Node;
 import org.opensearch.node.PluginAwareNode;
+import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.NodeSettingsSupplier;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration.NodeSettings;
 import org.opensearch.security.test.helper.network.SocketUtils;
 import org.opensearch.transport.TransportInfo;
+// CS-ENFORCE-SINGLE
 
 public final class ClusterHelper {
 
@@ -171,9 +174,15 @@ public final class ClusterHelper {
         for (int i = 0; i < internalClusterManagerNodeSettings.size(); i++) {
             NodeSettings setting = internalClusterManagerNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
-            PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode,
-                    getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())
-                            .put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(nodeNum)).build(), setting.getPlugins());
+            final Settings.Builder nodeSettingsBuilder = getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next());
+            final Settings settingsForNode;
+            if (nodeSettingsSupplier != null) {
+                final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
+                settingsForNode = AbstractSecurityUnitTest.mergeNodeRolesAndSettings(nodeSettingsBuilder, suppliedSettings).build();
+            } else {
+                settingsForNode = nodeSettingsBuilder.build();
+            }
+            PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode, settingsForNode, setting.getPlugins());
             System.out.println(node.settings());
 
             new Thread(new Runnable() {
@@ -197,9 +206,15 @@ public final class ClusterHelper {
         for (int i = 0; i < internalNonClusterManagerNodeSettings.size(); i++) {
             NodeSettings setting = internalNonClusterManagerNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
-            PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode,
-                    getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next())
-                            .put(nodeSettingsSupplier == null ? Settings.Builder.EMPTY_SETTINGS : nodeSettingsSupplier.get(nodeNum)).build(), setting.getPlugins());
+            final Settings.Builder nodeSettingsBuilder = getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next());
+            final Settings settingsForNode;
+            if (nodeSettingsSupplier != null) {
+                final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
+                settingsForNode = AbstractSecurityUnitTest.mergeNodeRolesAndSettings(nodeSettingsBuilder, suppliedSettings).build();
+            } else {
+                settingsForNode = nodeSettingsBuilder.build();
+            }
+            PluginAwareNode node = new PluginAwareNode(setting.clusterManagerNode, settingsForNode, setting.getPlugins());
             System.out.println(node.settings());
 
             new Thread(new Runnable() {
@@ -293,7 +308,7 @@ public final class ClusterHelper {
         try {
             log.debug("waiting for cluster state {} and {} nodes", status.name(), expectedNodeCount);
             final ClusterHealthResponse healthResponse = client.admin().cluster().prepareHealth()
-                    .setWaitForStatus(status).setTimeout(timeout).setMasterNodeTimeout(timeout).setWaitForNodes("" + expectedNodeCount).execute()
+                    .setWaitForStatus(status).setTimeout(timeout).setClusterManagerNodeTimeout(timeout).setWaitForNodes("" + expectedNodeCount).execute()
                     .actionGet();
             if (healthResponse.isTimedOut()) {
                 throw new IOException("cluster state is " + healthResponse.getStatus().name() + " with "
@@ -366,13 +381,11 @@ public final class ClusterHelper {
     }
 
     // @formatter:off
-    private Settings.Builder getMinimumNonSecurityNodeSettingsBuilder(final int nodenum, final boolean clusterManagerNode,
-                                                                final boolean dataNode, int nodeCount, SortedSet<Integer> clusterManagerTcpPorts, int tcpPort, int httpPort) {
+    private Settings.Builder getMinimumNonSecurityNodeSettingsBuilder(final int nodenum, final boolean isClusterManagerNode,
+                                                                final boolean isDataNode, int nodeCount, SortedSet<Integer> clusterManagerTcpPorts, int tcpPort, int httpPort) {
 
-        return Settings.builder()
+        return AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), isClusterManagerNode, isDataNode)
                 .put("node.name", "node_"+clustername+ "_num" + nodenum)
-                .put("node.data", dataNode)
-                .put("node.master", clusterManagerNode)
                 .put("cluster.name", clustername)
                 .put("path.data", "./target/data/"+clustername+"/data")
                 .put("path.logs", "./target/data/"+clustername+"/logs")
