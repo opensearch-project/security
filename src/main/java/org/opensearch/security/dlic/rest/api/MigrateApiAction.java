@@ -11,6 +11,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -69,6 +70,7 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
+// CS-ENFORCE-SINGLE
 
 public class MigrateApiAction extends AbstractApiAction {
     private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(

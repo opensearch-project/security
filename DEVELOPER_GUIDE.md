@@ -8,6 +8,7 @@ So you want to contribute code to this project? Excellent! We're glad you're her
   - [Using IntelliJ IDEA](#using-intellij-idea)
   - [Running integration tests](#running-integration-tests)
     - [Bulk test runs](#bulk-test-runs)
+    - [Checkstyle Violations](#checkstyle-violations)
   - [Submitting Changes](#submitting-changes)
   - [Backports](#backports)
 
@@ -145,6 +146,35 @@ Integration tests are automatically run on all pull requests for all supported v
 
 ### Bulk test runs
 To collect reliability data on test runs there is a manual GitHub action workflow called `Bulk Integration Test`.  The workflow is started for a branch on this project or in a fork by going to [GitHub action workflows](https://github.com/opensearch-project/security/actions/workflows/integration-tests.yml) and selecting `Run Workflow`.
+
+### Checkstyle Violations
+Checkstyle enforced several rules within this codebase.  Sometimes exceptions will be necessary for components that are set for deprecation but the new version is unavailable.  There are two formats of suppression that can be used when dealing with violations of this nature, one for disabling a single rule, or another for disabling all rules - its best to be as specific as possible.
+
+*Execute Checkstyle*
+```
+./gradlew checkstyleMain checkstyleTest 
+```
+
+*Example violation*
+```
+[ant:checkstyle] [ERROR] /local/home/security/src/main/java/org/opensearch/security/configuration/DlsFlsValveImpl.java:178: Usage should be switched to cluster manager [RegexpSingleline]
+```
+
+*Single Rule Suppression*
+```
+    // CS-SUPPRESS-SINGLE: RegexpSingleline See http://github/issues/1234
+    ...
+    Code that violates the rule
+    ...
+    // CS-ENFORCE-SINGLE
+```
+
+*Suppression All Checkstyle Rules*
+```
+  // CS-SUPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
+  ...
+  // CS-ENFORCE-ALL
+```
 
 ## Submitting Changes
 

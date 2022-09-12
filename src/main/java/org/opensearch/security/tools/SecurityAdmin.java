@@ -26,6 +26,7 @@
 
 package org.opensearch.security.tools;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline https://github.com/opensearch-project/OpenSearch/issues/3663
 import java.io.ByteArrayInputStream;
 import java.io.Console;
 import java.io.File;
@@ -139,6 +140,7 @@ import org.opensearch.security.support.SecurityJsonNode;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 import static org.opensearch.security.support.SecurityUtils.replaceEnvVars;
+// CS-ENFORCE-SINGLE
 
 @SuppressWarnings("deprecation")
 public class SecurityAdmin {

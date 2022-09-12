@@ -174,7 +174,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             //When we encounter a terms or sampler aggregation with masked fields activated we forcibly
             //need to switch off global ordinals because field masking can break ordering
+            // CS-SUPPRESS-SINGLE: RegexpSingleline Ignore term inside of url
             //https://www.elastic.co/guide/en/elasticsearch/reference/master/eager-global-ordinals.html#_avoiding_global_ordinal_loading
+            // CS-ENFORCE-SINGLE
             if (evaluatedDlsFlsConfig.hasFieldMasking()) {
 
                 if (searchRequest.source() != null && searchRequest.source().aggregations() != null) {
