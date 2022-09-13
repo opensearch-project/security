@@ -263,9 +263,9 @@ configurations {
 sourceSets {
     integrationTest {
         java {
+            srcDir file ('src/integrationTest/java')
             compileClasspath += sourceSets.main.output
             runtimeClasspath += sourceSets.main.output
-            srcDir file ('src/integrationTest/java')
         }
         resources {
             srcDir file('src/integrationTest/resources')
@@ -280,7 +280,6 @@ sourceSets {
 task integrationTest(type: Test) {
     description = 'Run integration tests.'
     group = 'verification'
-    systemProperty "org.opensearch.common.logging.NodeAndClusterIdConverter.enabled", "false"
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
