@@ -83,6 +83,9 @@ public final class ConfigConstants {
 
     public static final String LDAP_POOL_TYPE = "pool.type";
 
+    public static final String LDAP_LEGACY_POOL_PRUNING_PERIOD = "pruning.period";
+    public static final String LDAP_LEGACY_POOL_IDLE_TIME = "pruning.idleTime";
+
     public static final String LDAP_POOL_PRUNING_PERIOD = "pool.pruning_period";
     public static final String LDAP_POOL_IDLE_TIME = "pool.idle_time";
 
