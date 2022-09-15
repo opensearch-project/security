@@ -60,11 +60,14 @@ import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
+import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 
 public class LDAPConnectionFactoryFactory {
 
     private static final Logger log = LogManager.getLogger(LDAPConnectionFactoryFactory.class);
+    private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(LDAPConnectionFactoryFactory.class);
+
 
     private final Settings settings;
     private final SettingsBasedSSLConfigurator.SSLConfig sslConfig;
@@ -127,15 +130,27 @@ public class LDAPConnectionFactoryFactory {
         }
 
         result.setValidator(getConnectionValidator());
+
+        LDAPConnectionFactoryFactory.checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, ConfigConstants.LDAP_POOL_PRUNING_PERIOD);
+        LDAPConnectionFactoryFactory.checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, ConfigConstants.LDAP_POOL_IDLE_TIME);
           
         result.setPruneStrategy(new IdlePruneStrategy(
-            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_PRUNING_PERIOD, this.settings.getAsLong("pruning.period", 5l))),
-            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_IDLE_TIME, this.settings.getAsLong("pruning.idleTime", 10l))))
+            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_PRUNING_PERIOD, this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, 5l))),
+            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_IDLE_TIME, this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, 10l))))
         );
 
         result.initialize();
 
         return result;
+    }
+
+    /**
+     * Checks for an deprecated key found in a setting, logs that it should be replaced with the another key
+     */
+    private static void checkForDeprecatedSetting(final Settings settings, final String legacySettingKey, final String validSettingKey) {
+        if (settings.hasValue(legacySettingKey)) {
+            deprecationLogger.deprecate(legacySettingKey, "Found deprecated setting '{}', please replace with '{}'", legacySettingKey, validSettingKey);
+        }
     }
 
     private ConnectionConfig getConnectionConfig() {
