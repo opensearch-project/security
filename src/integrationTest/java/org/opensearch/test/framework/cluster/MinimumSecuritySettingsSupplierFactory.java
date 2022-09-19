@@ -54,9 +54,7 @@ public class MinimumSecuritySettingsSupplierFactory {
 	private Settings.Builder minimumOpenSearchSettingsBuilder(int node, boolean sslOnly) {
 
 		Settings.Builder builder = Settings.builder();
-		
-		// TODO: At the moment the test node certificates have an OID set, so we do not need to
-		// specify any node_dns here. Once we make generating and specifying  
+
 		builder.put("plugins.security.ssl.transport.pemtrustedcas_filepath", testCertificates.getRootCertificate().getAbsolutePath());
 		builder.put("plugins.security.ssl.transport.pemcert_filepath", testCertificates.getNodeCertificate(node).getAbsolutePath());
 		builder.put("plugins.security.ssl.transport.pemkey_filepath", testCertificates.getNodeKey(node).getAbsolutePath());

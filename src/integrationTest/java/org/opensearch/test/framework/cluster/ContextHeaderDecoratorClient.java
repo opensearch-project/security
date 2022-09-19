@@ -22,6 +22,9 @@ import org.opensearch.client.FilterClient;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 
+/**
+* The class adds provided headers into context before sending request via wrapped {@link Client}
+*/
 public class ContextHeaderDecoratorClient extends FilterClient {
 
 	private Map<String, String> headers;

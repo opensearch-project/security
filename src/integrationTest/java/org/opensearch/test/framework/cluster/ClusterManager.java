@@ -50,8 +50,6 @@ import static org.opensearch.test.framework.cluster.NodeType.CLUSTER_MANAGER;
 import static org.opensearch.test.framework.cluster.NodeType.DATA;
 
 public enum ClusterManager {
-	//first one needs to be a cluster manager
-	//HUGE(new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(false, true,false), new NodeSettings(false, true, false)),
 
 	//3 nodes (1m, 2d)
 	DEFAULT(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true)),

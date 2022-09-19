@@ -1,5 +1,3 @@
-package org.opensearch.test.framework.cluster;
-
 /*
 * Copyright 2002-2020 the original author or authors.
 *
@@ -26,6 +24,8 @@ package org.opensearch.test.framework.cluster;
 * Modifications Copyright OpenSearch Contributors. See
 * GitHub history for details.
 */
+
+package org.opensearch.test.framework.cluster;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
