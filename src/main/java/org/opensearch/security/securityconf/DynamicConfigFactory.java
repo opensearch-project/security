@@ -42,6 +42,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.EventBusBuilder;
+import org.greenrobot.eventbus.Logger.JavaLogger;
 
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
@@ -120,7 +121,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
-    private final EventBus eventBus = EVENT_BUS_BUILDER.build();
+    private final EventBus eventBus = EVENT_BUS_BUILDER.logger(new JavaLogger(DynamicConfigFactory.class.getCanonicalName())).build();
     private final Settings opensearchSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
