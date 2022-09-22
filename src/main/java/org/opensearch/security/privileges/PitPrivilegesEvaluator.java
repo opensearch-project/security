@@ -78,7 +78,7 @@ public class PitPrivilegesEvaluator {
         Set<String> allPermittedIndices = getPermittedIndices(pitIndices, clusterService, user,
                 securityRoles, action, resolver);
         // Only if user has access to all PIT's indices, allow operation, otherwise continue evaluation in PrivilegesEvaluator.
-        if(pitIndices.size() == allPermittedIndices.size()) {
+        if(allPermittedIndices.containsAll(pitIndices)) {
             presponse.allowed = true;
             presponse.markComplete();
         }
