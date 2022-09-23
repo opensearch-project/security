@@ -24,6 +24,7 @@ import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,6 +35,7 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.http.HttpChannel;
 import org.opensearch.http.HttpHandlingSettings;
+import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.http.netty4.Netty4HttpServerTransport;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -41,6 +43,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
 public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTransport {
+    static final AttributeKey<Netty4HttpChannel> HTTP_CHANNEL_KEY = AttributeKey.valueOf("opensearch-http-channel");
 
     private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
@@ -92,6 +95,19 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
                     configureDefaultHttpPipeline(ctx.pipeline());
                 } else {
                     throw new IllegalStateException("Unknown application protocol: " + protocol);
+                }
+            }
+            
+            @Override
+            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                super.exceptionCaught(ctx, cause);
+                Netty4HttpChannel channel = ctx.channel().attr(HTTP_CHANNEL_KEY).get();
+                if (channel != null) {
+                    if (cause instanceof Error) {
+                        onException(channel, new Exception(cause));
+                    } else {
+                        onException(channel, (Exception) cause);
+                    }
                 }
             }
         }
