@@ -919,7 +919,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     Http2SecurityUtil.CIPHERS.stream(),
                     StreamSupport.stream(ciphers.spliterator(), false))
                 .collect(Collectors.toSet()), SupportedCipherSuiteFilter.INSTANCE)
-            .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
+            .clientAuth(Objects.requireNonNull(authMode))
             .sessionCacheSize(0).sessionTimeout(0).sslProvider(sslProvider)
             .applicationProtocolConfig(
                 new ApplicationProtocolConfig(
