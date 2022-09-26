@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.TreeSet;
+import java.util.Arrays;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.AfterClass;
@@ -363,6 +364,31 @@ public class LdapBackendTestNewStyleConfig2 {
         Assert.assertEquals(2, user.getRoles().size());
         Assert.assertEquals("ceo", new ArrayList<>(new TreeSet<>(user.getRoles())).get(0));
         Assert.assertEquals(user.getName(), user.getUserEntry().getDn());
+    }
+
+    @Test
+    public void testLdapAuthorizationReturnAttributes() throws Exception {
+
+        final Settings settings = createBaseSettings()
+                .putList(ConfigConstants.LDAP_HOSTS, "127.0.0.1:4", "localhost:" + ldapPort)
+                .put("users.u1.search", "(uid={0})").put("users.u1.base", "ou=people,o=TEST")
+                .put("roles.g1.base", "ou=groups,o=TEST").put(ConfigConstants.LDAP_AUTHZ_ROLENAME, "cn")
+                .put("roles.g1.search", "(uniqueMember={0})")
+                .putList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, "mail", "cn", "uid")
+                .build();
+
+        final LdapUser user = (LdapUser) new LDAPAuthenticationBackend2(settings, null)
+                .authenticate(new AuthCredentials("jacksonm", "secret".getBytes(StandardCharsets.UTF_8)));
+
+        new LDAPAuthorizationBackend2(settings, null).fillRoles(user, null);
+
+        final String[] attributes = user.getUserEntry().getAttributeNames();
+
+        Assert.assertNotNull(user);
+        Assert.assertEquals(3, attributes.length);
+        Assert.assertTrue(Arrays.asList(attributes).contains("mail"));
+        Assert.assertTrue(Arrays.asList(attributes).contains("cn"));
+        Assert.assertTrue(Arrays.asList(attributes).contains("uid"));
     }
 
     @Test
