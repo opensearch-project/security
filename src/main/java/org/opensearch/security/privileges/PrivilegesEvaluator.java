@@ -286,7 +286,7 @@ public class PrivilegesEvaluator {
 
         // check access for point in time requests
         if(pitPrivilegesEvaluator.evaluate(request, clusterService, user, securityRoles,
-                action0, resolver, presponse).isComplete()) {
+                action0, resolver, presponse, irr).isComplete()) {
             return presponse;
         }
 

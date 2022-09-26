@@ -1136,6 +1136,7 @@ point_in_time_1:
   index_permissions:
     - index_patterns:
         - "pit_1"
+        - "*my-data-stream11*"
       dls: null
       fls: null
       masked_fields: null
@@ -1148,6 +1149,7 @@ point_in_time_2:
   description: "Migrated from v6 (all types mapped)"
   index_permissions:
     - index_patterns:
+        - "my-data-stream21"
         - "pit_2"
       dls: null
       fls: null
