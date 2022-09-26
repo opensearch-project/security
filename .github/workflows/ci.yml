@@ -59,8 +59,11 @@ jobs:
       run: echo "Check the artifact ${{ matrix.jdk }}-reports.zip for detailed test results"
 
   backward-compatibility:
+    ## Disable until 3.0 supports BWC https://github.com/opensearch-project/opensearch-plugins/issues/167
+    if: false
     runs-on: ubuntu-latest
     steps:
+
     - uses: actions/checkout@v2
     - uses: actions/setup-java@v1
       with:
