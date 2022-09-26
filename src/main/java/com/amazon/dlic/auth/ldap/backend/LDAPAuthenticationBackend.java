@@ -28,9 +28,9 @@ import org.apache.logging.log4j.Logger;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionConfig;
 import org.ldaptive.LdapEntry;
+import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
-import org.ldaptive.ReturnAttributes;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;

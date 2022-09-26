@@ -30,8 +30,8 @@ import org.ldaptive.Credential;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
 import org.ldaptive.Response;
-import org.ldaptive.pool.ConnectionPool;
 import org.ldaptive.ReturnAttributes;
+import org.ldaptive.pool.ConnectionPool;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;

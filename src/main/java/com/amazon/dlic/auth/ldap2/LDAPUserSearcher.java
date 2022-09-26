@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Arrays;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
@@ -26,7 +25,6 @@ import org.ldaptive.Connection;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
-import org.ldaptive.ReturnAttributes;
 
 import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.auth.ldap.util.LdapHelper;

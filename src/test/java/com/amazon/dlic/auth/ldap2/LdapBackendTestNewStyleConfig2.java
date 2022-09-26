@@ -14,8 +14,8 @@ package com.amazon.dlic.auth.ldap2;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.TreeSet;
 import java.util.Arrays;
+import java.util.TreeSet;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.AfterClass;
