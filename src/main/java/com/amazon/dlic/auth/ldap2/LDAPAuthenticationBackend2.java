@@ -30,6 +30,7 @@ import org.ldaptive.Credential;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
 import org.ldaptive.Response;
+import org.ldaptive.ReturnAttributes;
 import org.ldaptive.pool.ConnectionPool;
 
 import com.amazon.dlic.auth.ldap.LdapUser;
@@ -58,6 +59,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     private LDAPUserSearcher userSearcher;
     private final int customAttrMaxValueLen;
     private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
+    private final String[] returnAttributes;
 
     public LDAPAuthenticationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
@@ -75,6 +77,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
         }
 
         this.userSearcher = new LDAPUserSearcher(settings);
+        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
         whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
                 Collections.singletonList("*")));
@@ -119,7 +122,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             ldapConnection = connectionFactory.getConnection();
             ldapConnection.open();
 
-            LdapEntry entry = userSearcher.exists(ldapConnection, user);
+            LdapEntry entry = userSearcher.exists(ldapConnection, user, this.returnAttributes);
 
             // fake a user that no exists
             // makes guessing if a user exists or not harder when looking on the
@@ -211,7 +214,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
         try {
             ldapConnection = this.connectionFactory.getConnection();
             ldapConnection.open();
-            LdapEntry userEntry = this.userSearcher.exists(ldapConnection, userName);
+            LdapEntry userEntry = this.userSearcher.exists(ldapConnection, userName, this.returnAttributes);
             
             boolean exists = userEntry != null;
             
