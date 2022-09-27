@@ -319,7 +319,7 @@ public class SearchOperationTest {
 
 	@BeforeClass
 	public static void createTestData() {
-		try(Client client = cluster.getInternalNodeClient()){
+		try(Client client = cluster.getInternalNodeClient()) {
 			client.prepareIndex(SONG_INDEX_NAME).setId(ID_S1).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0]).get();
 			client.prepareIndex(UPDATE_DELETE_OPERATION_INDEX_NAME).setId(DOCUMENT_TO_UPDATE_ID).setRefreshPolicy(IMMEDIATE).setSource("field", "value").get();
 			client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new AliasActions(ADD).indices(SONG_INDEX_NAME).alias(SONG_LYRICS_ALIAS))).actionGet();

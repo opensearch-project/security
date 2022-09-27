@@ -98,6 +98,11 @@ public class TestSecurityConfig {
 		config.anonymousAuth(anonymousAuthEnabled);
 		return this;
 	}
+
+	public TestSecurityConfig doNotFailOnForbidden(boolean doNotFailOnForbidden) {
+		config.doNotFailOnForbidden(doNotFailOnForbidden);
+		return this;
+	}
 	
 	public TestSecurityConfig authc(AuthcDomain authcDomain) {
 		config.authc(authcDomain);
@@ -128,10 +133,18 @@ public class TestSecurityConfig {
 
 	public static class Config implements ToXContentObject {
 		private boolean anonymousAuth;
+
+		private Boolean doNotFailOnForbidden;
+
 		private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
 		public Config anonymousAuth(boolean anonymousAuth) {
 			this.anonymousAuth = anonymousAuth;
+			return this;
+		}
+
+		public Config doNotFailOnForbidden(Boolean doNotFailOnForbidden) {
+			this.doNotFailOnForbidden = doNotFailOnForbidden;
 			return this;
 		}
 
@@ -149,6 +162,9 @@ public class TestSecurityConfig {
 				xContentBuilder.startObject("http");
 				xContentBuilder.field("anonymous_auth_enabled", true);
 				xContentBuilder.endObject();
+			}
+			if(doNotFailOnForbidden != null) {
+				xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
 			}
 
 			xContentBuilder.field("authc", authcDomainMap);

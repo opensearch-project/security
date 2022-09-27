@@ -388,6 +388,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			return this;
 		}
 
+		public Builder doNotFailOnForbidden(boolean doNotFailOnForbidden) {
+			testSecurityConfig.doNotFailOnForbidden(doNotFailOnForbidden);
+			return this;
+		}
+
 		public LocalCluster build() {
 			try {
 				if(testCertificates == null){
