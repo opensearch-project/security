@@ -28,6 +28,7 @@ import org.apache.logging.log4j.Logger;
 import org.ldaptive.Connection;
 import org.ldaptive.ConnectionConfig;
 import org.ldaptive.LdapEntry;
+import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
 
@@ -57,10 +58,13 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     private final int customAttrMaxValueLen;
     private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
 
+    private final String[] returnAttributes;
+
     public LDAPAuthenticationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
         this.configPath = configPath;
         this.userBaseSettings = getUserBaseSettings(settings);
+        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
 
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
         whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
@@ -82,7 +86,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             try {
                 ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
 
-                entry = exists(user, ldapConnection, settings, userBaseSettings);
+                entry = exists(user, ldapConnection, settings, userBaseSettings, this.returnAttributes);
 
                 // fake a user that no exists
                 // makes guessing if a user exists or not harder when looking on the
@@ -156,7 +160,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
         try {
             ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
-            LdapEntry userEntry = exists(userName, ldapConnection, settings, userBaseSettings);
+            LdapEntry userEntry = exists(userName, ldapConnection, settings, userBaseSettings, this.returnAttributes);
             boolean exists = userEntry != null;
             
             if(exists) {
@@ -197,20 +201,19 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     }
 
     static LdapEntry exists(final String user, Connection ldapConnection, Settings settings,
-            List<Map.Entry<String, Settings>> userBaseSettings) throws Exception {
-
+            List<Map.Entry<String, Settings>> userBaseSettings, String[] returnAttributes) throws Exception {
         if (settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)
                 || settings.getAsBoolean(ConfigConstants.LDAP_SEARCH_ALL_BASES, false)
                 || settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
-            return existsSearchingAllBases(user, ldapConnection, userBaseSettings);
+            return existsSearchingAllBases(user, ldapConnection, userBaseSettings, returnAttributes);
         } else {
-            return existsSearchingUntilFirstHit(user, ldapConnection, userBaseSettings);
+            return existsSearchingUntilFirstHit(user, ldapConnection, userBaseSettings, returnAttributes);
         }
 
     }
 
     private static LdapEntry existsSearchingUntilFirstHit(final String user, Connection ldapConnection,
-            List<Map.Entry<String, Settings>> userBaseSettings) throws Exception {
+            List<Map.Entry<String, Settings>> userBaseSettings, final String[] returnAttributes) throws Exception {
         final String username = user;
 
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -224,7 +227,8 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             List<LdapEntry> result = LdapHelper.search(ldapConnection,
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
-                    SearchScope.SUBTREE);
+                    SearchScope.SUBTREE,
+                    returnAttributes);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {} is {}", user, entry.getKey(), result);
@@ -239,7 +243,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     }
 
     private static LdapEntry existsSearchingAllBases(final String user, Connection ldapConnection,
-            List<Map.Entry<String, Settings>> userBaseSettings) throws Exception {
+            List<Map.Entry<String, Settings>> userBaseSettings, final String[] returnAttributes) throws Exception {
         final String username = user;
         Set<LdapEntry> result = new HashSet<>();
 
@@ -254,7 +258,8 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             List<LdapEntry> foundEntries = LdapHelper.search(ldapConnection,
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
-                    SearchScope.SUBTREE);
+                    SearchScope.SUBTREE,
+                    returnAttributes);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for " + user + " in base " + entry.getKey() + ":\n" + result);

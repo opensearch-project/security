@@ -53,6 +53,7 @@ import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
 import org.ldaptive.Response;
+import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchScope;
 import org.ldaptive.control.RequestControl;
@@ -103,6 +104,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
 
+    private final String[] returnAttributes;
+
     public LDAPAuthorizationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
         this.skipUsersMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS));
@@ -111,6 +114,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         this.configPath = configPath;
         this.roleBaseSettings = getRoleSearchSettings(settings);
         this.userBaseSettings = LDAPAuthenticationBackend.getUserBaseSettings(settings);
+        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
     }
 
     @SuppressWarnings("removal")
@@ -724,7 +728,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                         log.debug("DBGTRACE (4): authenticatedUser="+authenticatedUser+" -> "+Arrays.toString(authenticatedUser.getBytes(StandardCharsets.UTF_8)));
                     }
 
-                    entry = LdapHelper.lookup(connection, authenticatedUser);
+                    entry = LdapHelper.lookup(connection, authenticatedUser, this.returnAttributes);
 
                     if (entry == null) {
                         throw new OpenSearchSecurityException("No user '" + authenticatedUser + "' found");
@@ -735,7 +739,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     if (isDebugEnabled)
                         log.debug("DBGTRACE (5): authenticatedUser="+user.getName()+" -> "+Arrays.toString(user.getName().getBytes(StandardCharsets.UTF_8)));
 
-                    entry = LDAPAuthenticationBackend.exists(user.getName(), connection, settings, userBaseSettings);
+                    entry = LDAPAuthenticationBackend.exists(user.getName(), connection, settings, userBaseSettings, this.returnAttributes);
 
                     if (isTraceEnabled) {
                         log.trace("{} is not a valid DN and was resolved to {}", authenticatedUser, entry);
@@ -848,7 +852,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     List<LdapEntry> rolesResult = LdapHelper.search(connection,
                             roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
                             f,
-                            SearchScope.SUBTREE);
+                            SearchScope.SUBTREE, this.returnAttributes);
 
                     if (isTraceEnabled) {
                         log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchSettingsEntry.getKey(), rolesResult);
@@ -966,7 +970,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString());
+        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes);
 
         if (e0.getAttribute(userRoleName) != null) {
             final Collection<String> userRoles = e0.getAttribute(userRoleName).getStringValues();
@@ -1018,7 +1022,8 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 List<LdapEntry> foundEntries = LdapHelper.search(ldapConnection,
                         roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
                         f,
-                        SearchScope.SUBTREE);
+                        SearchScope.SUBTREE,
+                        this.returnAttributes);
 
                 if (isTraceEnabled) {
                     log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchBaseSettingsEntry.getKey(), foundEntries);
@@ -1096,7 +1101,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
 
         try {
-            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString());
+            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString(), this.returnAttributes);
 
             if(roleEntry != null) {
                 final LdapAttribute roleAttribute = roleEntry.getAttribute(role);
