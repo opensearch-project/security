@@ -125,7 +125,8 @@ jobs:
 
     - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/distributions/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.zip
 
-    - env:
+    - name: Verify updateVersion gradle tasks works
+      env:
         ExpectedVersionString: "opensearch_version: 2.1.0-SNAPSHOT"
       run:  |
         ## Make sure the current doesn't match the test version
