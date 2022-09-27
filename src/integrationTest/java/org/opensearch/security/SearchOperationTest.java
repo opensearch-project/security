@@ -25,6 +25,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -34,14 +35,22 @@ import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRespon
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
+import org.opensearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
+import org.opensearch.action.admin.indices.cache.clear.ClearIndicesCacheResponse;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.open.OpenIndexRequest;
+import org.opensearch.action.admin.indices.open.OpenIndexResponse;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.opensearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.opensearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
 import org.opensearch.action.get.GetRequest;
@@ -57,13 +66,27 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
 import org.opensearch.client.ClusterAdminClient;
 import org.opensearch.client.IndicesAdminClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.core.CountRequest;
+import org.opensearch.client.indices.CloseIndexRequest;
+import org.opensearch.client.indices.CloseIndexResponse;
+import org.opensearch.client.indices.CreateIndexRequest;
+import org.opensearch.client.indices.CreateIndexResponse;
+import org.opensearch.client.indices.GetIndexRequest;
+import org.opensearch.client.indices.GetIndexResponse;
+import org.opensearch.client.indices.GetMappingsRequest;
+import org.opensearch.client.indices.GetMappingsResponse;
 import org.opensearch.client.indices.PutIndexTemplateRequest;
+import org.opensearch.client.indices.PutMappingRequest;
+import org.opensearch.client.indices.ResizeRequest;
+import org.opensearch.client.indices.ResizeResponse;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexTemplateMetadata;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.MatchQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -125,10 +148,23 @@ import static org.opensearch.test.framework.matcher.ClusterMatchers.clusterConta
 import static org.opensearch.test.framework.matcher.ClusterMatchers.clusterContainsDocument;
 import static org.opensearch.test.framework.matcher.ClusterMatchers.clusterContainsDocumentWithFieldValue;
 import static org.opensearch.test.framework.matcher.ClusterMatchers.clusterContainsSnapshotRepository;
+import static org.opensearch.test.framework.matcher.ClusterMatchers.indexExists;
+import static org.opensearch.test.framework.matcher.ClusterMatchers.indexMappingIsEqualTo;
+import static org.opensearch.test.framework.matcher.ClusterMatchers.indexSettingsContainValues;
+import static org.opensearch.test.framework.matcher.ClusterMatchers.indexStateIsEqualTo;
 import static org.opensearch.test.framework.matcher.ClusterMatchers.snapshotInClusterDoesNotExists;
+import static org.opensearch.test.framework.matcher.DeleteResponseMatchers.isSuccessfulDeleteResponse;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
 import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
 import static org.opensearch.test.framework.matcher.GetResponseMatchers.documentContainField;
+import static org.opensearch.test.framework.matcher.IndexResponseMatchers.getIndexResponseContainsIndices;
+import static org.opensearch.test.framework.matcher.IndexResponseMatchers.getMappingsResponseContainsIndices;
+import static org.opensearch.test.framework.matcher.IndexResponseMatchers.getSettingsResponseContainsIndices;
+import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSuccessfulClearIndicesCacheResponse;
+import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSuccessfulCloseIndexResponse;
+import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSuccessfulCreateIndexResponse;
+import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSuccessfulOpenIndexResponse;
+import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSuccessfulResizeResponse;
 import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.errorMessageContain;
 import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
@@ -138,6 +174,7 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numbe
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
+import static org.opensearch.test.framework.matcher.UpdateResponseMatchers.isSuccessfulUpdateResponse;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -170,6 +207,10 @@ public class SearchOperationTest {
 	public static final String UNUSED_SNAPSHOT_REPOSITORY_NAME = "unused-snapshot-repository";
 
 	public static final String RESTORED_SONG_INDEX_NAME = "restored_" + WRITE_SONG_INDEX_NAME;
+
+	public static final String UPDATE_DELETE_OPERATION_INDEX_NAME = "update_delete_index";
+
+	public static final String DOCUMENT_TO_UPDATE_ID = "doc_to_update";
 
 	public static final String ID_P4 = "4";
 	public static final String ID_S3 = "3";
@@ -219,17 +260,50 @@ public class SearchOperationTest {
 				.on(SONG_INDEX_NAME));
 
 	private Client internalClient;
+	/**
+	* User who is allowed to update and delete documents on index {@link #UPDATE_DELETE_OPERATION_INDEX_NAME}
+	*/
+	static final User UPDATE_DELETE_USER = new User("update_delete_user")
+			.roles(new Role("document-updater")
+							.clusterPermissions("indices:data/write/bulk")
+							.indexPermissions("indices:data/write/update","indices:data/write/index", "indices:data/write/bulk[s]", "indices:admin/mapping/put")
+							.on(UPDATE_DELETE_OPERATION_INDEX_NAME),
+					new Role("document-remover")
+							.indexPermissions("indices:data/write/delete")
+							.on(UPDATE_DELETE_OPERATION_INDEX_NAME))
+			;
+
+	static final String INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX = "index_operations_";
+
+	/**
+	* User who is allowed to perform index-related operations on
+	* indices with names prefixed by the {@link #INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX}
+	*/
+	static final User USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES = new User("index-operation-tester")
+			.roles(new Role("index-manager")
+					.indexPermissions(
+							"indices:admin/create", "indices:admin/get", "indices:admin/delete", "indices:admin/close",
+							"indices:admin/close*", "indices:admin/open", "indices:admin/resize", "indices:monitor/stats",
+							"indices:monitor/settings/get", "indices:admin/settings/update", "indices:admin/mapping/put",
+							"indices:admin/mappings/get", "indices:admin/cache/clear"
+					)
+					.on(INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("*")));
 
 	@ClassRule
 	public static final LocalCluster cluster = new LocalCluster.Builder()
 		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
-		.authc(AUTHC_HTTPBASIC_INTERNAL).users(ADMIN_USER, LIMITED_READ_USER, LIMITED_WRITE_USER, DOUBLE_READER_USER, REINDEXING_USER)
+		.authc(AUTHC_HTTPBASIC_INTERNAL)
+			.users(
+					ADMIN_USER, LIMITED_READ_USER, LIMITED_WRITE_USER, DOUBLE_READER_USER, REINDEXING_USER, UPDATE_DELETE_USER,
+					USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES
+			)
 		.build();
 
 	@BeforeClass
 	public static void createTestData() {
 		try(Client client = cluster.getInternalNodeClient()){
 			client.prepareIndex(SONG_INDEX_NAME).setId(ID_S1).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0]).get();
+			client.prepareIndex(UPDATE_DELETE_OPERATION_INDEX_NAME).setId(DOCUMENT_TO_UPDATE_ID).setRefreshPolicy(IMMEDIATE).setSource("field", "value").get();
 			client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new AliasActions(ADD).indices(SONG_INDEX_NAME).alias(SONG_LYRICS_ALIAS))).actionGet();
 			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(SONG_INDEX_NAME).id(ID_S2).source(SONGS[1])).actionGet();
 			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(SONG_INDEX_NAME).id(ID_S3).source(SONGS[2])).actionGet();
@@ -256,7 +330,11 @@ public class SearchOperationTest {
 	public void cleanData() throws ExecutionException, InterruptedException {
 		Stopwatch stopwatch = Stopwatch.createStarted();
 		IndicesAdminClient indices = internalClient.admin().indices();
-		for(String indexToBeDeleted : List.of(WRITE_SONG_INDEX_NAME, INDEX_NAME_SONG_TRANSCRIPTION_JAZZ, RESTORED_SONG_INDEX_NAME)) {
+		List<String> indicesToBeDeleted = List.of(
+			WRITE_SONG_INDEX_NAME, INDEX_NAME_SONG_TRANSCRIPTION_JAZZ, RESTORED_SONG_INDEX_NAME,
+			INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("*")
+		);
+		for(String indexToBeDeleted : indicesToBeDeleted) {
 			IndicesExistsRequest indicesExistsRequest = new IndicesExistsRequest(indexToBeDeleted);
 			var indicesExistsResponse = indices.exists(indicesExistsRequest).get();
 			if (indicesExistsResponse.isExists()) {
@@ -915,6 +993,56 @@ public class SearchOperationTest {
 	}
 
 	@Test
+	public void shouldUpdateDocument_positive() throws IOException {
+		String newField = "newField";
+		String newValue = "newValue";
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(UPDATE_DELETE_USER)) {
+			UpdateRequest updateRequest = new UpdateRequest(UPDATE_DELETE_OPERATION_INDEX_NAME, DOCUMENT_TO_UPDATE_ID)
+					.doc(newField, newValue).setRefreshPolicy(IMMEDIATE);
+
+			UpdateResponse response = restHighLevelClient.update(updateRequest, DEFAULT);
+
+			assertThat(response, isSuccessfulUpdateResponse());
+			assertThat(internalClient, clusterContainsDocumentWithFieldValue(UPDATE_DELETE_OPERATION_INDEX_NAME, DOCUMENT_TO_UPDATE_ID, newField, newValue));
+		}
+	}
+	@Test
+	public void shouldUpdateDocument_negative() throws IOException {
+		String newField = "newField";
+		String newValue = "newValue";
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(UPDATE_DELETE_USER)) {
+			UpdateRequest updateRequest = new UpdateRequest(PROHIBITED_SONG_INDEX_NAME, DOCUMENT_TO_UPDATE_ID).doc(newField, newValue).setRefreshPolicy(IMMEDIATE);
+
+			assertThatThrownBy(() -> restHighLevelClient.update(updateRequest, DEFAULT), statusException(FORBIDDEN));
+		}
+	}
+
+	@Test
+	public void shouldDeleteDocument_positive() throws IOException {
+		String docId = "shouldDeleteDocument_positive";
+		try(Client client = cluster.getInternalNodeClient()){
+			client.index(new IndexRequest(UPDATE_DELETE_OPERATION_INDEX_NAME).id(docId).source("field", "value").setRefreshPolicy(IMMEDIATE)).actionGet();
+			assertThat(internalClient, clusterContainsDocument(UPDATE_DELETE_OPERATION_INDEX_NAME, docId));
+		}
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(UPDATE_DELETE_USER)) {
+			DeleteRequest deleteRequest = new DeleteRequest(UPDATE_DELETE_OPERATION_INDEX_NAME, docId).setRefreshPolicy(IMMEDIATE);
+
+			DeleteResponse response = restHighLevelClient.delete(deleteRequest, DEFAULT);
+
+			assertThat(response, isSuccessfulDeleteResponse());
+			assertThat(internalClient, not(clusterContainsDocument(UPDATE_DELETE_OPERATION_INDEX_NAME, docId)));
+		}
+	}
+	@Test
+	public void shouldDeleteDocument_negative() throws IOException {
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(UPDATE_DELETE_USER)) {
+			DeleteRequest deleteRequest = new DeleteRequest(PROHIBITED_SONG_INDEX_NAME, ID_S1).setRefreshPolicy(IMMEDIATE);
+
+			assertThatThrownBy(() -> restHighLevelClient.delete(deleteRequest, DEFAULT), statusException(FORBIDDEN));
+		}
+	}
+
+	@Test
 	public void shouldCreateAlias_positive() throws IOException {
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
 			AliasActions aliasAction = new AliasActions(ADD).indices(SONG_INDEX_NAME).alias(TEMPORARY_ALIAS_NAME);
@@ -1082,9 +1210,9 @@ public class SearchOperationTest {
 
 			assertThat(response, notNullValue());
 			assertThat(response.get(), aMapWithSize(1));
-			assertThat(response.getIndices(), arrayWithSize(2));
+			assertThat(response.getIndices(), arrayWithSize(3));
 			assertThat(response.getField(FIELD_TITLE), hasKey("text"));
-			assertThat(response.getIndices(), arrayContainingInAnyOrder(SONG_INDEX_NAME, PROHIBITED_SONG_INDEX_NAME));
+			assertThat(response.getIndices(), arrayContainingInAnyOrder(SONG_INDEX_NAME, PROHIBITED_SONG_INDEX_NAME, UPDATE_DELETE_OPERATION_INDEX_NAME));
 		}
 	}
 
@@ -1343,6 +1471,530 @@ public class SearchOperationTest {
 			// 6. verify that documents does not exist
 			assertThat(internalClient, not(clusterContainsDocument(RESTORED_SONG_INDEX_NAME, "Eins")));
 			assertThat(internalClient, not(clusterContainsDocument(RESTORED_SONG_INDEX_NAME, "Zwei")));
+		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/create"
+	public void createIndex_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("create_index_positive");
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName);
+			CreateIndexResponse createIndexResponse = restHighLevelClient.indices().create(createIndexRequest, DEFAULT);
+
+			assertThat(createIndexResponse, isSuccessfulCreateIndexResponse(indexName));
+			assertThat(cluster, indexExists(indexName));
+		}
+	}
+
+	@Test
+	public void createIndex_negative() throws IOException {
+		String indexName = "create_index_negative";
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName);
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().create(createIndexRequest, DEFAULT), statusException(FORBIDDEN));
+			assertThat(cluster, not(indexExists(indexName)));
+		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/get"
+	public void checkIfIndexExists_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("index_exists_positive");
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			boolean exists = restHighLevelClient.indices().exists(new GetIndexRequest(indexName), DEFAULT);
+
+			assertThat(exists, is(false));
+		}
+	}
+
+	@Test
+	public void checkIfIndexExists_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "index_exists_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().exists(new GetIndexRequest(indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().exists(new GetIndexRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().exists(new GetIndexRequest("*"), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/delete"
+	public void deleteIndex_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("delete_index_positive");
+		IndexOperationsHelper.createIndex(cluster, indexName);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexName);
+			var response = restHighLevelClient.indices().delete(deleteIndexRequest, DEFAULT);
+
+			assertThat(response.isAcknowledged(), is(true));
+			assertThat(cluster, not(indexExists(indexName)));
+		}
+	}
+
+	@Test
+	public void deleteIndex_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "delete_index_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().delete(new DeleteIndexRequest(indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().delete(new DeleteIndexRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+					restHighLevelClient.indices().delete(new DeleteIndexRequest("*"), DEFAULT), statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/get"
+	public void getIndex_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("get_index_positive");
+		IndexOperationsHelper.createIndex(cluster, indexName);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			GetIndexRequest getIndexRequest = new GetIndexRequest(indexName);
+			GetIndexResponse response = restHighLevelClient.indices().get(getIndexRequest, DEFAULT);
+
+			assertThat(response, getIndexResponseContainsIndices(indexName));
+		}
+	}
+
+	@Test
+	public void getIndex_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "get_index_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().get(new GetIndexRequest(indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().get(new GetIndexRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().get(new GetIndexRequest("*"), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/close", "indices:admin/close*"
+	public void closeIndex_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("close_index_positive");
+		IndexOperationsHelper.createIndex(cluster, indexName);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			CloseIndexRequest closeIndexRequest = new CloseIndexRequest(indexName);
+			CloseIndexResponse response = restHighLevelClient.indices().close(closeIndexRequest, DEFAULT);
+
+			assertThat(response, isSuccessfulCloseIndexResponse());
+			assertThat(cluster, indexStateIsEqualTo(indexName, IndexMetadata.State.CLOSE));
+		}
+	}
+
+	@Test
+	public void closeIndex_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "close_index_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().close(new CloseIndexRequest(indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().close(new CloseIndexRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().close(new CloseIndexRequest("*"), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/open"
+	public void openIndex_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("open_index_positive");
+		IndexOperationsHelper.createIndex(cluster, indexName);
+		IndexOperationsHelper.closeIndex(cluster, indexName);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			OpenIndexRequest closeIndexRequest = new OpenIndexRequest(indexName);
+			OpenIndexResponse response = restHighLevelClient.indices().open(closeIndexRequest, DEFAULT);
+
+			assertThat(response, isSuccessfulOpenIndexResponse());
+			assertThat(cluster, indexStateIsEqualTo(indexName, IndexMetadata.State.OPEN));
+		}
+	}
+
+	@Test
+	public void openIndex_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "open_index_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().open(new OpenIndexRequest(indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().open(new OpenIndexRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().open(new OpenIndexRequest("*"), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	@Ignore
+	//required permissions: "indices:admin/resize", "indices:monitor/stats
+	// todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
+	public void shrinkIndex_positive() throws IOException {
+		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("shrink_index_positive_source");
+		Settings sourceIndexSettings = Settings.builder()
+				.put("index.blocks.write", true)
+				.put("index.number_of_shards", 2)
+				.build();
+		String targetIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("shrink_index_positive_target");
+		IndexOperationsHelper.createIndex(cluster, sourceIndexName, sourceIndexSettings);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+			ResizeResponse response = restHighLevelClient.indices().shrink(resizeRequest, DEFAULT);
+
+			assertThat(response, isSuccessfulResizeResponse(targetIndexName));
+			assertThat(cluster, indexExists(targetIndexName));
+		}
+	}
+
+	@Test
+	public void shrinkIndex_negative() throws IOException {
+		//user cannot access target index
+		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("shrink_index_negative_source");
+		String targetIndexName = "shrink_index_negative_target";
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().shrink(resizeRequest, DEFAULT), statusException(FORBIDDEN));
+			assertThat(cluster, not(indexExists(targetIndexName)));
+		}
+
+		//user cannot access source index
+		sourceIndexName = "shrink_index_negative_source";
+		targetIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("shrink_index_negative_target");
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().shrink(resizeRequest, DEFAULT), statusException(FORBIDDEN));
+			assertThat(cluster, not(indexExists(targetIndexName)));
+		}
+	}
+
+	@Test
+	@Ignore
+	//required permissions: "indices:admin/resize", "indices:monitor/stats
+	// todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
+	public void cloneIndex_positive() throws IOException {
+		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("clone_index_positive_source");
+		Settings sourceIndexSettings = Settings.builder()
+				.put("index.blocks.write", true)
+				.build();
+		String targetIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("clone_index_positive_target");
+		IndexOperationsHelper.createIndex(cluster, sourceIndexName, sourceIndexSettings);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+			ResizeResponse response = restHighLevelClient.indices().clone(resizeRequest, DEFAULT);
+
+			assertThat(response, isSuccessfulResizeResponse(targetIndexName));
+			assertThat(cluster, indexExists(targetIndexName));
+		}
+	}
+
+	@Test
+	public void cloneIndex_negative() throws IOException {
+		//user cannot access target index
+		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("clone_index_negative_source");
+		String targetIndexName = "clone_index_negative_target";
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().clone(resizeRequest, DEFAULT), statusException(FORBIDDEN));
+			assertThat(cluster, not(indexExists(targetIndexName)));
+		}
+
+		//user cannot access source index
+		sourceIndexName = "clone_index_negative_source";
+		targetIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("clone_index_negative_target");
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().clone(resizeRequest, DEFAULT), statusException(FORBIDDEN));
+			assertThat(cluster, not(indexExists(targetIndexName)));
+		}
+	}
+
+	@Test
+	@Ignore
+	//required permissions: "indices:admin/resize", "indices:monitor/stats
+	// todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
+	public void splitIndex_positive() throws IOException {
+		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("split_index_positive_source");
+		Settings sourceIndexSettings = Settings.builder()
+				.put("index.blocks.write", true)
+				.build();
+		String targetIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("split_index_positive_target");
+		IndexOperationsHelper.createIndex(cluster, sourceIndexName, sourceIndexSettings);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+			resizeRequest.setSettings(Settings.builder().put("index.number_of_shards", 2).build());
+			ResizeResponse response = restHighLevelClient.indices().split(resizeRequest, DEFAULT);
+
+			assertThat(response, isSuccessfulResizeResponse(targetIndexName));
+			assertThat(cluster, indexExists(targetIndexName));
+		}
+	}
+
+	@Test
+	public void splitIndex_negative() throws IOException {
+		//user cannot access target index
+		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("split_index_negative_source");
+		String targetIndexName = "split_index_negative_target";
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+			resizeRequest.setSettings(Settings.builder().put("index.number_of_shards", 2).build());
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().split(resizeRequest, DEFAULT), statusException(FORBIDDEN));
+			assertThat(cluster, not(indexExists(targetIndexName)));
+		}
+
+		//user cannot access source index
+		sourceIndexName = "split_index_negative_source";
+		targetIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("split_index_negative_target");
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ResizeRequest resizeRequest = new ResizeRequest(targetIndexName, sourceIndexName);
+			resizeRequest.setSettings(Settings.builder().put("index.number_of_shards", 2).build());
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().split(resizeRequest, DEFAULT), statusException(FORBIDDEN));
+			assertThat(cluster, not(indexExists(targetIndexName)));
+		}
+	}
+
+	@Test
+	//required permissions: "indices:monitor/settings/get"
+	public void getIndexSettings_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("get_index_settings_positive");
+		IndexOperationsHelper.createIndex(cluster, indexName);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			GetSettingsRequest getSettingsRequest = new GetSettingsRequest().indices(indexName);
+			GetSettingsResponse response = restHighLevelClient.indices().getSettings(getSettingsRequest, DEFAULT);
+
+			assertThat(response, getSettingsResponseContainsIndices(indexName));
+		}
+	}
+
+	@Test
+	public void getIndexSettings_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "get_index_settings_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().getSettings(new GetSettingsRequest().indices(indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().getSettings(new GetSettingsRequest().indices(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().getSettings(new GetSettingsRequest().indices("*"), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/settings/update"
+	public void updateIndexSettings_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("update_index_settings_positive");
+		Settings initialSettings = Settings.builder().put("index.number_of_replicas", "2").build();
+		Settings updatedSettings = Settings.builder().put("index.number_of_replicas", "4").build();
+		IndexOperationsHelper.createIndex(cluster, indexName, initialSettings);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			UpdateSettingsRequest updateSettingsRequest = new UpdateSettingsRequest(indexName)
+					.settings(updatedSettings);
+			var response = restHighLevelClient.indices().putSettings(updateSettingsRequest, DEFAULT);
+
+			assertThat(response.isAcknowledged(), is(true));
+			assertThat(cluster, indexSettingsContainValues(indexName, updatedSettings));
+		}
+	}
+
+	@Test
+	public void updateIndexSettings_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "update_index_settings_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		Settings settingsToUpdate = Settings.builder().put("index.number_of_replicas", 2).build();
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().putSettings(new UpdateSettingsRequest(indexThatUserHasNoAccessTo).settings(settingsToUpdate), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().putSettings(new UpdateSettingsRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo).settings(settingsToUpdate), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().putSettings(new UpdateSettingsRequest("*").settings(settingsToUpdate), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	//required permissions: indices:admin/mapping/put
+	public void createIndexMappings_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("create_index_mappings_positive");
+		Map<String, Object> indexMapping = Map.of("properties", Map.of("message", Map.of("type", "text")));
+		IndexOperationsHelper.createIndex(cluster, indexName);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			PutMappingRequest putMappingRequest = new PutMappingRequest(indexName).source(indexMapping);
+			var response = restHighLevelClient.indices().putMapping(putMappingRequest, DEFAULT);
+
+			assertThat(response.isAcknowledged(), is(true));
+			assertThat(cluster, indexMappingIsEqualTo(indexName, indexMapping));
+		}
+	}
+
+	@Test
+	public void createIndexMappings_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "create_index_mappings_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		Map<String, Object> indexMapping = Map.of("properties", Map.of("message", Map.of("type", "text")));
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().putMapping(new PutMappingRequest(indexThatUserHasNoAccessTo).source(indexMapping), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().putMapping(new PutMappingRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo).source(indexMapping), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().putMapping(new PutMappingRequest("*").source(indexMapping), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	//required permissions: indices:admin/mappings/get
+	public void getIndexMappings_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("get_index_mappings_positive");
+		Map<String, Object> indexMapping = Map.of("properties", Map.of("message", Map.of("type", "text")));
+		IndexOperationsHelper.createIndex(cluster, indexName);
+		IndexOperationsHelper.createMapping(cluster, indexName, indexMapping);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			GetMappingsRequest getMappingsRequest = new GetMappingsRequest().indices(indexName);
+			GetMappingsResponse response = restHighLevelClient.indices().getMapping(getMappingsRequest, DEFAULT);
+
+			assertThat(response, getMappingsResponseContainsIndices(indexName));
+		}
+	}
+
+	@Test
+	public void getIndexMappings_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "get_index_mappings_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().getMapping(new GetMappingsRequest().indices(indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().getMapping(new GetMappingsRequest().indices(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().getMapping(new GetMappingsRequest().indices("*"), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/cache/clear"
+	public void clearIndexCache_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("clear_index_cache_positive");
+		IndexOperationsHelper.createIndex(cluster, indexName);
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			ClearIndicesCacheRequest clearIndicesCacheRequest = new ClearIndicesCacheRequest(indexName);
+			ClearIndicesCacheResponse response = restHighLevelClient.indices().clearCache(clearIndicesCacheRequest, DEFAULT);
+
+			assertThat(response, isSuccessfulClearIndicesCacheResponse());
+		}
+	}
+
+	@Test
+	public void clearIndexCache_negative() throws IOException {
+		String indexThatUserHasNoAccessTo = "clear_index_cache_negative";
+		String indexThatUserHasAccessTo = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat(indexThatUserHasNoAccessTo);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().clearCache(new ClearIndicesCacheRequest(indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().clearCache(new ClearIndicesCacheRequest(indexThatUserHasAccessTo, indexThatUserHasNoAccessTo), DEFAULT),
+					statusException(FORBIDDEN)
+			);
+			assertThatThrownBy(() ->
+							restHighLevelClient.indices().clearCache(new ClearIndicesCacheRequest("*"), DEFAULT),
+					statusException(FORBIDDEN)
+			);
 		}
 	}
 }
