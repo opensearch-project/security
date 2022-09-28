@@ -53,12 +53,12 @@ class AlgorithmKit {
 	public static final String SIGNATURE_ALGORITHM_SHA_256_WITH_ECDSA = "SHA256withECDSA";
 
 	private final String signatureAlgorithmName;
-	private final Supplier<KeyPair> keyPariSupplier;
+	private final Supplier<KeyPair> keyPairSupplier;
 
-	private AlgorithmKit(String signatureAlgorithmName, Supplier<KeyPair> keyPariSupplier) {
+	private AlgorithmKit(String signatureAlgorithmName, Supplier<KeyPair> keyPairSupplier) {
 		notEmptyAlgorithmName(signatureAlgorithmName);
 		this.signatureAlgorithmName = signatureAlgorithmName;
-		this.keyPariSupplier = requireNonNull(keyPariSupplier, "Key pair supplier is required.");
+		this.keyPairSupplier = requireNonNull(keyPairSupplier, "Key pair supplier is required.");
 	}
 
 	private static void notEmptyAlgorithmName(String signatureAlgorithmName) {
@@ -114,7 +114,7 @@ class AlgorithmKit {
 	* @return new pair of keys
 	*/
 	public KeyPair generateKeyPair(){
-		return keyPariSupplier.get();
+		return keyPairSupplier.get();
 	}
 	private static Supplier<KeyPair> rsaKeyPairSupplier(Provider securityProvider, int keySize) {
 		try {
