@@ -42,6 +42,8 @@ import org.opensearch.rest.RestStatus;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.user.AuthCredentials;
 
+import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+
 public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator {
     private final static Logger log = LogManager.getLogger(AbstractHTTPJwtAuthenticator.class);
 
