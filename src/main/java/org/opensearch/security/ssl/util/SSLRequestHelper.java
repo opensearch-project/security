@@ -109,12 +109,16 @@ public class SSLRequestHelper {
             return null;
         }
 
-        final SslHandler sslhandler = (SslHandler) ((Netty4HttpChannel)request.getHttpChannel()).getNettyChannel().pipeline().get("ssl_http");
-        
+        final Netty4HttpChannel httpChannel = (Netty4HttpChannel)request.getHttpChannel();
+        SslHandler sslhandler = (SslHandler) httpChannel.getNettyChannel().pipeline().get("ssl_http");
+        if(sslhandler == null && httpChannel.inboundPipeline() != null) {
+            sslhandler = (SslHandler) httpChannel.inboundPipeline().get("ssl_http");
+        }
+
         if(sslhandler == null) {
             return null;
         }
-        
+
         final SSLEngine engine = sslhandler.engine();
         final SSLSession session = engine.getSession();
 

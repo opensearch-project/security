@@ -42,6 +42,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.crypto.Cipher;
 import javax.net.ssl.SSLContext;
@@ -49,12 +51,18 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
+import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.util.internal.PlatformDependent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -426,7 +434,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     /**
      * Initializes certs used for client https communication
      */
-        public void initHttpSSLConfig() {
+    public void initHttpSSLConfig() {
         final boolean useKeyStore = settings.hasValue(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH);
         final boolean useRawFiles = settings.hasValue(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH);
         final ClientAuth httpClientAuthMode = ClientAuth.valueOf(settings
@@ -879,10 +887,8 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                                              final X509Certificate[] _trustedCerts, final Iterable<String> ciphers, final SslProvider sslProvider,
                                              final ClientAuth authMode) throws SSLException {
 
-        final SslContextBuilder _sslContextBuilder = SslContextBuilder.forServer(_key, _cert).ciphers(ciphers)
-            .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-            .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
-            .sessionCacheSize(0).sessionTimeout(0).sslProvider(sslProvider);
+        final SslContextBuilder _sslContextBuilder = configureSSLServerContextBuilder(SslContextBuilder.forServer(_key, _cert),
+            sslProvider, ciphers, authMode);
 
         if (_trustedCerts != null && _trustedCerts.length > 0) {
             _sslContextBuilder.trustManager(_trustedCerts);
@@ -895,16 +901,36 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                                              final String pwd, final Iterable<String> ciphers, final SslProvider sslProvider, final ClientAuth authMode)
         throws SSLException {
 
-        final SslContextBuilder _sslContextBuilder = SslContextBuilder.forServer(_cert, _key, pwd).ciphers(ciphers)
-            .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-            .clientAuth(Objects.requireNonNull(authMode)) // https://github.com/netty/netty/issues/4722
-            .sessionCacheSize(0).sessionTimeout(0).sslProvider(sslProvider);
+        final SslContextBuilder _sslContextBuilder = configureSSLServerContextBuilder(SslContextBuilder.forServer(_cert, _key, pwd),
+            sslProvider, ciphers, authMode);
 
         if (_trustedCerts != null) {
             _sslContextBuilder.trustManager(_trustedCerts);
         }
 
         return buildSSLContext0(_sslContextBuilder);
+    }
+
+    private SslContextBuilder configureSSLServerContextBuilder(final SslContextBuilder builder, final SslProvider sslProvider,
+            final Iterable<String> ciphers, final ClientAuth authMode) {
+        return builder
+            .ciphers(Stream
+                .concat(
+                    Http2SecurityUtil.CIPHERS.stream(),
+                    StreamSupport.stream(ciphers.spliterator(), false))
+                .collect(Collectors.toSet()), SupportedCipherSuiteFilter.INSTANCE)
+            .clientAuth(Objects.requireNonNull(authMode))
+            .sessionCacheSize(0).sessionTimeout(0).sslProvider(sslProvider)
+            .applicationProtocolConfig(
+                new ApplicationProtocolConfig(
+                    Protocol.ALPN,
+                    // NO_ADVERTISE is currently the only mode supported by both OpenSsl and JDK providers.
+                    SelectorFailureBehavior.NO_ADVERTISE,
+                    // ACCEPT is currently the only mode supported by both OpenSsl and JDK providers.
+                    SelectedListenerFailureBehavior.ACCEPT,
+                    ApplicationProtocolNames.HTTP_2,
+                    ApplicationProtocolNames.HTTP_1_1
+                ));
     }
 
     private SslContext buildSSLClientContext(final PrivateKey _key, final X509Certificate[] _cert,
