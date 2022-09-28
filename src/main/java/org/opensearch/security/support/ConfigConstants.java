@@ -79,6 +79,8 @@ public class ConfigConstants {
     
     public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"initial_action_class_header";
 
+
+
     /**
      * Set by SSL plugin for https requests only
      */
@@ -190,6 +192,9 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_WEBHOOK_SSL_VERIFY = "webhook.ssl.verify";
     public static final String SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH = "webhook.ssl.pemtrustedcas_filepath";
     public static final String SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT = "webhook.ssl.pemtrustedcas_content";
+
+    //LDAP
+    public static final String FOLLOW_REFERRALS = "plugins.security.follow_referrals";
     
     // Log4j
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
