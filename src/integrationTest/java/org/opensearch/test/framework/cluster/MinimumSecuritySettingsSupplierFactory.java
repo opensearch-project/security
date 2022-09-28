@@ -33,6 +33,9 @@ import org.opensearch.test.framework.certificate.TestCertificates;
 
 public class MinimumSecuritySettingsSupplierFactory {
 
+	private final String PRIVATE_KEY_HTTP_PASSWORD = "aWVV63OJ4qzZyPrBwl2MFny4ZV8lQRZchjL";
+	private final String PRIVATE_KEY_TRANSPORT_PASSWORD = "iWbUv9w79sbd5tcxvSJNfHXS9GhcPCvdw9x";
+
 	private TestCertificates testCertificates;
 
 	public MinimumSecuritySettingsSupplierFactory(TestCertificates testCertificates) {
@@ -57,12 +60,14 @@ public class MinimumSecuritySettingsSupplierFactory {
 
 		builder.put("plugins.security.ssl.transport.pemtrustedcas_filepath", testCertificates.getRootCertificate().getAbsolutePath());
 		builder.put("plugins.security.ssl.transport.pemcert_filepath", testCertificates.getNodeCertificate(node).getAbsolutePath());
-		builder.put("plugins.security.ssl.transport.pemkey_filepath", testCertificates.getNodeKey(node).getAbsolutePath());
+		builder.put("plugins.security.ssl.transport.pemkey_filepath", testCertificates.getNodeKey(node, PRIVATE_KEY_TRANSPORT_PASSWORD).getAbsolutePath());
+		builder.put("plugins.security.ssl.transport.pemkey_password", PRIVATE_KEY_TRANSPORT_PASSWORD);
 
 		builder.put("plugins.security.ssl.http.enabled", true);
 		builder.put("plugins.security.ssl.http.pemtrustedcas_filepath", testCertificates.getRootCertificate().getAbsolutePath());
 		builder.put("plugins.security.ssl.http.pemcert_filepath", testCertificates.getNodeCertificate(node).getAbsolutePath());
-		builder.put("plugins.security.ssl.http.pemkey_filepath", testCertificates.getNodeKey(node).getAbsolutePath());
+		builder.put("plugins.security.ssl.http.pemkey_filepath", testCertificates.getNodeKey(node, PRIVATE_KEY_HTTP_PASSWORD).getAbsolutePath());
+		builder.put("plugins.security.ssl.http.pemkey_password", PRIVATE_KEY_HTTP_PASSWORD);
 
 		builder.putList("plugins.security.authcz.admin_dn", testCertificates.getAdminDNs());
 
