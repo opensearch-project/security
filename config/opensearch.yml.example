@@ -38,6 +38,9 @@ plugins.security.authcz.admin_dn:
 # BOTH - backend roles are mapped to Security roles mapped directly and via roles_mapping.yml in addition
 plugins.security.roles_mapping_resolution: MAPPING_ONLY
 
+# Define behavior for following referalls from LDAP reponses (default: true)
+plugins.security.FOLLOW_REFERRALS: true
+
 ############## REST Management API configuration settings ##############
 # Enable or disable role based access to the REST management API
 # Default is that no role is allowed to access the REST management API.
