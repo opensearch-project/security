@@ -24,10 +24,10 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '2.1.0.0')
-        kafka_version  = '3.2.3'
+        kafka_version  = '3.0.2'
 
         if (buildVersionQualifier) {
-            opensearch_build += "-${buildVersionQualifier}"
+            opensearch_build += "-${buildVegit rsionQualifier}"
         }
         if (isSnapshot) {
             opensearch_build += "-SNAPSHOT"
