@@ -57,10 +57,6 @@ public class LdapHelper {
                     final List<LdapEntry> entries = new ArrayList<>();
                     final SearchRequest request = new SearchRequest(baseDn, filter);
 
-                      // Check to see if follow referrals is on
-                    
-                    
-
                     request.setSearchScope(searchScope);
                     request.setDerefAliases(DerefAliases.ALWAYS);
                     request.setReturnAttributes(returnAttributes);
@@ -75,7 +71,7 @@ public class LdapHelper {
                         return entries;
                     } 
                     else{
-                        
+
                         return entries;
                     }
                 }
