@@ -650,7 +650,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         /*
          
             [admin_1, praxisrw, abcdef_2_2, kltentro, praxisro, kltentrw]
-			admin_1==.kibana_-1139640511_admin1
+			admin_1==.kibana_-1.3.640511_admin1
 			praxisrw==.kibana_-1386441176_praxisrw
 			abcdef_2_2==.kibana_-634608247_abcdef22
 			kltentro==.kibana_-2014056171_kltentro
@@ -662,7 +662,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         try (TransportClient tc = getInternalTransportClient(this.clusterInfo, Settings.EMPTY)) {
                         
             tc.index(new IndexRequest(".kibana-6").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest(".kibana_-1139640511_admin1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
+            tc.index(new IndexRequest(".kibana_-1.3.640511_admin1").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest(".kibana_-1386441176_praxisrw").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest(".kibana_-634608247_abcdef22").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest(".kibana_-12345_123456").type("doc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
@@ -687,7 +687,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         res = rh.executeGetRequest("_opendistro/_security/tenantinfo?pretty", encodeBasicHeader("kibanaserver", "kibanaserver"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\".kibana_-1139640511_admin1\" : \"admin_1\""));
+        Assert.assertTrue(res.getBody().contains("\".kibana_-1.3.640511_admin1\" : \"admin_1\""));
         Assert.assertTrue(res.getBody().contains("\".kibana_-1386441176_praxisrw\" : \"praxisrw\""));
         Assert.assertTrue(res.getBody().contains(".kibana_-2014056163_kltentrw\" : \"kltentrw\""));
         Assert.assertTrue(res.getBody().contains("\".kibana_-634608247_abcdef22\" : \"abcdef_2_2\""));

@@ -162,7 +162,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
         HttpResponse res;
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        Assert.assertFalse(res.getBody().contains("88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1e3161f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"));
+        Assert.assertFalse(res.getBody().contains("88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1.3.61f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"));
         Assert.assertFalse(res.getBody().contains("e90a2fdf7b1939ec06e294321fd7d23e1a70d8fc080a3f85d0f3bf08c205b53"));
         Assert.assertFalse(res.getBody().contains("*.*.*.*"));
         Assert.assertFalse(res.getBody().contains("430a65d4b9c51de7192e048b2639db0de5c56f1901afccc2a01ef97f6a769a38"));
@@ -179,7 +179,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
         for(int i=0;i<10;i++) {
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("user_masked_nowc", "password"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1e3161f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"));
+        Assert.assertTrue(res.getBody().contains("88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1.3.61f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"));
         Assert.assertTrue(res.getBody().contains("e90a2fdf7b1939ec06e294321fd7d23e1a70d8fc080a3f85d0f3bf08c205b53"));
         Assert.assertTrue(res.getBody().contains("*.*.*.*"));
         Assert.assertTrue(res.getBody().contains("430a65d4b9c51de7192e048b2639db0de5c56f1901afccc2a01ef97f6a769a38"));
@@ -195,7 +195,7 @@ public class CustomFieldMaskedComplexMappingTest extends AbstractDlsFlsTest{
         }
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logs/_search?pretty&size=100", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        Assert.assertFalse(res.getBody().contains("88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1e3161f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"));
+        Assert.assertFalse(res.getBody().contains("88783587fef740690c4fa39476fb86314d034fa3370e1a1fa186f6d9d4644a18ad85063c1.3.61f8929f7ca019bb8740611eaf337709113901e7c3a6b59f4166"));
         Assert.assertFalse(res.getBody().contains("e90a2fdf7b1939ec06e294321fd7d23e1a70d8fc080a3f85d0f3bf08c205b53"));
         Assert.assertFalse(res.getBody().contains("*.*.*.*"));
         Assert.assertFalse(res.getBody().contains("430a65d4b9c51de7192e048b2639db0de5c56f1901afccc2a01ef97f6a769a38"));
