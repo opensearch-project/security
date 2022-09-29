@@ -70,6 +70,7 @@ public class MinimumSecuritySettingsSupplierFactory {
 			builder.putList("plugins.security.authcz.admin_dn", testCertificates.getAdminDNs());
 			builder.put("plugins.security.compliance.salt", "1234567890123456");
 			builder.put("plugins.security.audit.type", "noop");
+			builder.put("plugins.security.background_init_if_securityindex_not_exist", "false");
 		}
 		return builder;
 

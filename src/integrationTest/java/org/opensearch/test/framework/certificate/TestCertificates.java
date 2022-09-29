@@ -73,8 +73,8 @@ public class TestCertificates {
 		this.nodeCertificates = IntStream.range(0, MAX_NUMBER_OF_NODE_CERTIFICATES)
 			.mapToObj(this::createNodeCertificate)
 			.collect(Collectors.toList());
-		this.adminCertificate = createAdminCertificate();
 		this.ldapCertificate = createLdapCertificate();
+		this.adminCertificate = createAdminCertificate(ADMIN_DN);
 		log.info("Test certificates successfully generated");
 	}
 
@@ -86,8 +86,8 @@ public class TestCertificates {
 				.issueSelfSignedCertificate(metadata);
 	}
 
-	private CertificateData createAdminCertificate() {
-		CertificateMetadata metadata = CertificateMetadata.basicMetadata(ADMIN_DN, CERTIFICATE_VALIDITY_DAYS)
+	public CertificateData createAdminCertificate(String adminDn) {
+		CertificateMetadata metadata = CertificateMetadata.basicMetadata(adminDn, CERTIFICATE_VALIDITY_DAYS)
 				.withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH);
 		return CertificatesIssuerFactory
 				.rsaBaseCertificateIssuer()
@@ -175,7 +175,6 @@ public class TestCertificates {
 	* @param privateKeyPassword is a password used to encode private key, can be <code>null</code> to retrieve unencrypted key.
 	* @return file which contains private key encoded in PEM format, defined
 	* by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
-	* @throws IOException
 	*/
 	public File getNodeKey(int node, String privateKeyPassword) {
 		CertificateData certificateData = nodeCertificates.get(node);
@@ -186,7 +185,6 @@ public class TestCertificates {
 	* Certificate which proofs admin user identity. Certificate is derived from root certificate returned by
 	* method {@link #getRootCertificate()}
 	* @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
-	* @throws IOException
 	*/
 	public File getAdminCertificate() {
 		return createTempFile("admin", CERTIFICATE_FILE_EXTENSION, adminCertificate.certificateInPemFormat());
@@ -202,9 +200,8 @@ public class TestCertificates {
 	* @param privateKeyPassword is a password used to encode private key, can be <code>null</code> to retrieve unencrypted key.
 	* @return file which contains private key encoded in PEM format, defined
 	* by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
-	* @throws IOException
 	*/
-	public File getAdminKey(String privateKeyPassword) throws IOException {
+	public File getAdminKey(String privateKeyPassword) {
 		return createTempFile("admin", KEY_FILE_EXTENSION, adminCertificate.privateKeyInPemFormat(privateKeyPassword));
 	}
 

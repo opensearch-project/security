@@ -1,0 +1,14 @@
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+new-user:
+  hash: "$2y$12$d2KAKcGE9qoywfu.c.hV/.pHigC7HTZFp2yJzBo8z2w.585t7XDWO"
+limited-user:
+  hash: "$2y$12$fOJAMx0U7e7M4OObVPzm6eUTnAyN/Gtpzfv34M6PL1bfusae43a52"
+  opendistro_security_roles:
+  - "user_limited-user__limited-role"
+admin:
+  hash: "$2y$12$53iW.RRy.uumsmU7lrlp7OUCPdxz40Z5uIJo1WcCC2GNFwEWNiTD6"
+  opendistro_security_roles:
+  - "user_admin__all_access"
