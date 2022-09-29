@@ -99,7 +99,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private final Settings settings;
     private final WildcardMatcher skipUsersMatcher;
     private final WildcardMatcher nestedRoleMatcher;
-
+    //private final boolean followReferrals;
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
@@ -112,6 +112,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         this.nestedRoleMatcher = settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false) ?
                 WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER)) : null;
         this.configPath = configPath;
+        //this.followReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true);
         this.roleBaseSettings = getRoleSearchSettings(settings);
         this.userBaseSettings = LDAPAuthenticationBackend.getUserBaseSettings(settings);
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);

@@ -164,6 +164,8 @@ public class ConfigConstants {
     
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "plugins.security.audit.config.";
 
+    
+
     // Internal / External OpenSearch
     public static final String SECURITY_AUDIT_OPENSEARCH_INDEX = "index";
     public static final String SECURITY_AUDIT_OPENSEARCH_TYPE = "type";
@@ -192,9 +194,6 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_WEBHOOK_SSL_VERIFY = "webhook.ssl.verify";
     public static final String SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH = "webhook.ssl.pemtrustedcas_filepath";
     public static final String SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT = "webhook.ssl.pemtrustedcas_content";
-
-    //LDAP
-    public static final String FOLLOW_REFERRALS = "plugins.security.follow_referrals";
     
     // Log4j
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
