@@ -54,6 +54,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
     private final Settings settings;
     private final Path configPath;
+    private final boolean followReferrals;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
     private final int customAttrMaxValueLen;
     private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
@@ -65,10 +66,12 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         this.configPath = configPath;
         this.userBaseSettings = getUserBaseSettings(settings);
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
+        this.followReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true);
 
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
         whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
                 Collections.singletonList("*")));
+        
     }
 
     @Override

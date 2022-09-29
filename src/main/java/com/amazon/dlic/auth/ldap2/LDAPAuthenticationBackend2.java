@@ -57,6 +57,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     private ConnectionFactory connectionFactory;
     private ConnectionFactory authConnectionFactory;
     private LDAPUserSearcher userSearcher;
+    //private boolean followReferrals;
     private final int customAttrMaxValueLen;
     private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
     private final String[] returnAttributes;
@@ -77,6 +78,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
         }
 
         this.userSearcher = new LDAPUserSearcher(settings);
+        //this.followReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true);
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
         whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
