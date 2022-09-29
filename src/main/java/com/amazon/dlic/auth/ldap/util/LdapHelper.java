@@ -26,7 +26,6 @@ import org.ldaptive.DerefAliases;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
 import org.ldaptive.Response;
-import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchFilter;
 import org.ldaptive.SearchOperation;
 import org.ldaptive.SearchRequest;
@@ -41,7 +40,7 @@ public class LdapHelper {
     private static SearchFilter ALL = new SearchFilter("(objectClass=*)");
     @SuppressWarnings("removal")
     public static List<LdapEntry> search(final Connection conn, final String unescapedDn, SearchFilter filter,
-            final SearchScope searchScope) throws LdapException {
+            final SearchScope searchScope, final String[] returnAttributes) throws LdapException {
 
         final SecurityManager sm = System.getSecurityManager();
 
@@ -59,7 +58,7 @@ public class LdapHelper {
                     request.setReferralHandler(new SearchReferralHandler());
                     request.setSearchScope(searchScope);
                     request.setDerefAliases(DerefAliases.ALWAYS);
-                    request.setReturnAttributes(ReturnAttributes.ALL.value());
+                    request.setReturnAttributes(returnAttributes);
                     final SearchOperation search = new SearchOperation(conn);
                     // referrals will be followed to build the response
                     final Response<SearchResult> r = search.execute(request);
@@ -81,9 +80,9 @@ public class LdapHelper {
         }
     }
 
-    public static LdapEntry lookup(final Connection conn, final String unescapedDn) throws LdapException {
+    public static LdapEntry lookup(final Connection conn, final String unescapedDn, final String[] returnAttributes) throws LdapException {
 
-        final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT);
+        final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes);
 
         if (entries.size() == 1) {
             return entries.get(0);
