@@ -27,7 +27,7 @@ buildscript {
         kafka_version  = '3.0.2'
 
         if (buildVersionQualifier) {
-            opensearch_build += "-${buildVegit rsionQualifier}"
+            opensearch_build += "-${buildVersionQualifier}"
         }
         if (isSnapshot) {
             opensearch_build += "-SNAPSHOT"
