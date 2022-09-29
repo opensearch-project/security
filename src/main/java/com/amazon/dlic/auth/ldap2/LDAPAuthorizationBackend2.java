@@ -207,7 +207,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         log.trace("{} is a valid DN", authenticatedUser);
                     }
 
-                    entry = LdapHelper.lookup(connection, authenticatedUser, this.returnAttributes);
+                    entry = LdapHelper.lookup(connection, authenticatedUser, this.returnAttributes, settings);
 
                     if (entry == null) {
                         throw new OpenSearchSecurityException("No user '" + authenticatedUser + "' found");
@@ -314,7 +314,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                             roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
                             f,
                             SearchScope.SUBTREE,
-                            this.returnAttributes);
+                            this.returnAttributes, settings);
 
                     if (isTraceEnabled) {
                         log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchSettingsEntry.getKey(), rolesResult);
@@ -430,7 +430,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes);
+        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, settings);
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (e0.getAttribute(userRoleName) != null) {
@@ -472,7 +472,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
                         f,
                         SearchScope.SUBTREE,
-                        this.returnAttributes);
+                        this.returnAttributes, settings);
 
                 if (isTraceEnabled) {
                     log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchBaseSettingsEntry.getKey(), foundEntries);
@@ -550,7 +550,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         }
 
         try {
-            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString(), this.returnAttributes);
+            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString(), this.returnAttributes, settings);
 
             if(roleEntry != null) {
                 final LdapAttribute roleAttribute = roleEntry.getAttribute(role);

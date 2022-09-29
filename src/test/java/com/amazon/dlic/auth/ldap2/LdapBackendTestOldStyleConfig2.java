@@ -454,7 +454,7 @@ public class LdapBackendTestOldStyleConfig2 {
                 .getConnection();
         try {
             con.open();
-            final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value());
+            final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), settings);
             Assert.assertEquals("cn=refsolved,ou=people,o=TEST", ref1.getDn());
         } finally {
             con.close();
