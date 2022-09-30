@@ -231,7 +231,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
                     SearchScope.SUBTREE,
-                    returnAttributes);
+                    returnAttributes, baseSettings);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {} is {}", user, entry.getKey(), result);
