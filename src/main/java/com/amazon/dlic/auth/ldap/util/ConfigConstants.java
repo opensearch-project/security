@@ -74,6 +74,7 @@ public final class ConfigConstants {
     public static final String LDAP_CUSTOM_ATTR_MAXVAL_LEN = "custom_attr_maxval_len";
     public static final String LDAP_CUSTOM_ATTR_WHITELIST = "custom_attr_whitelist";
     public static final String LDAP_CUSTOM_ATTR_ALLOWLIST = "custom_attr_allowlist";
+    public static final String LDAP_RETURN_ATTRIBUTES = "custom_return_attributes";
 
     public static final String LDAP_CONNECTION_STRATEGY = "connection_strategy";
 

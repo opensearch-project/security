@@ -60,6 +60,7 @@ import com.amazon.dlic.auth.ldap.util.ConfigConstants;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
+import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 
 import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
@@ -67,6 +68,8 @@ import static org.opensearch.security.setting.DeprecatedSettings.checkForDepreca
 public class LDAPConnectionFactoryFactory {
 
     private static final Logger log = LogManager.getLogger(LDAPConnectionFactoryFactory.class);
+    private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(LDAPConnectionFactoryFactory.class);
+
 
 
     private final Settings settings;
@@ -142,6 +145,15 @@ public class LDAPConnectionFactoryFactory {
         result.initialize();
 
         return result;
+    }
+
+    /**
+     * Checks for an deprecated key found in a setting, logs that it should be replaced with the another key
+     */
+    private static void checkForDeprecatedSetting(final Settings settings, final String legacySettingKey, final String validSettingKey) {
+        if (settings.hasValue(legacySettingKey)) {
+            deprecationLogger.deprecate(legacySettingKey, "Found deprecated setting '{}', please replace with '{}'", legacySettingKey, validSettingKey);
+        }
     }
 
     private ConnectionConfig getConnectionConfig() {

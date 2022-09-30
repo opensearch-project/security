@@ -70,19 +70,19 @@ public class LDAPUserSearcher {
         }
     }
 
-    LdapEntry exists(Connection ldapConnection, String user) throws Exception {
+    LdapEntry exists(Connection ldapConnection, String user, final String[] returnAttributes) throws Exception {
 
         if (settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)
                 || settings.getAsBoolean(ConfigConstants.LDAP_SEARCH_ALL_BASES, false)
                 || settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
-            return existsSearchingAllBases(ldapConnection, user);
+            return existsSearchingAllBases(ldapConnection, user, returnAttributes);
         } else {
-            return existsSearchingUntilFirstHit(ldapConnection, user);
+            return existsSearchingUntilFirstHit(ldapConnection, user, returnAttributes);
         }
 
     }
 
-    private LdapEntry existsSearchingUntilFirstHit(Connection ldapConnection, String user) throws Exception {
+    private LdapEntry existsSearchingUntilFirstHit(Connection ldapConnection, String user, final String[] returnAttributes) throws Exception {
         final String username = user;
         final boolean isDebugEnabled = log.isDebugEnabled();
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
@@ -95,7 +95,8 @@ public class LDAPUserSearcher {
             List<LdapEntry> result = LdapHelper.search(ldapConnection,
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
-                    SearchScope.SUBTREE);
+                    SearchScope.SUBTREE,
+                    returnAttributes);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), result);
@@ -109,7 +110,7 @@ public class LDAPUserSearcher {
         return null;
     }
 
-    private LdapEntry existsSearchingAllBases(Connection ldapConnection, String user) throws Exception {
+    private LdapEntry existsSearchingAllBases(Connection ldapConnection, String user, final String[] returnAttributes) throws Exception {
         final String username = user;
         Set<LdapEntry> result = new HashSet<>();
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -123,7 +124,8 @@ public class LDAPUserSearcher {
             List<LdapEntry> foundEntries = LdapHelper.search(ldapConnection,
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
-                    SearchScope.SUBTREE);
+                    SearchScope.SUBTREE,
+                    returnAttributes);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), result);
