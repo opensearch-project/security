@@ -341,12 +341,32 @@ public class LdapBackendTestNewStyleConfig {
 
         final Connection con = LDAPAuthorizationBackend.getConnection(settings, null);
         try {
-            final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), settings);
+            final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), true);
             Assert.assertEquals("cn=refsolved,ou=people,o=TEST", ref1.getDn());
         } finally {
             con.close();
         }
 
+    }
+
+    @Test
+    public void testLdapDontFollowReferrals() throws Exception {
+
+
+        final Settings settings = Settings.builder()
+                .putList(ConfigConstants.LDAP_HOSTS, "localhost:" + ldapPort)
+                .put(ConfigConstants.LDAP_AUTHC_USERSEARCH, "(uid={0})")
+                .put(ConfigConstants.FOLLOW_REFERRALS, false).build();
+
+
+        final Connection con = LDAPAuthorizationBackend.getConnection(settings, null);
+        try {
+            //If following is off then should fail to return the result provided by following
+            final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true));
+            Assert.assertNotEquals("cn=refsolved,ou=people,o=TEST", ref1.getDn());
+        } finally {
+            con.close();
+        }
     }
 
     @Test
