@@ -72,7 +72,7 @@ public class LdapHelper {
                         return entries;
                     } 
                     else{
-                        entries.add(new LdapEntry("cn=CouldNotFollowReferral"));
+                        entries.add(new LdapEntry("cn=couldNotFollowReferral"));
                         return entries;
                     }
                 }
