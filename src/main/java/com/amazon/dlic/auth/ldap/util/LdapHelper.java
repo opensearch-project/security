@@ -15,6 +15,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.naming.InvalidNameException;
@@ -71,7 +72,7 @@ public class LdapHelper {
                         return entries;
                     } 
                     else{
-
+                        entries.add(new LdapEntry("cn=CouldNotFollowReferral"));
                         return entries;
                     }
                 }

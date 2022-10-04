@@ -424,7 +424,7 @@ public class LdapBackendTestNewStyleConfig2 {
         try {
             //If following is off then should fail to return the result provided by following
             final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true));
-            Assert.assertNotEquals("cn=refsolved,ou=people,o=TEST", ref1.getDn());
+            Assert.assertEquals("cn=couldNotFollowReferral", ref1.getDn());
         } finally {
             con.close();
         }
