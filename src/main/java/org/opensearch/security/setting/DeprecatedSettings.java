@@ -8,6 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
+
 package org.opensearch.security.setting;
 
 import org.opensearch.common.logging.DeprecationLogger;
