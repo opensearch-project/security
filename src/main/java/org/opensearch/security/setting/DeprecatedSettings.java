@@ -10,8 +10,6 @@
  */
 package org.opensearch.security.setting;
 
-import com.google.common.annotations.VisibleForTesting;
-
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.settings.Settings;
 
