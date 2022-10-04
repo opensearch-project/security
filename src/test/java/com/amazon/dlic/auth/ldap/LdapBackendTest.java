@@ -25,7 +25,6 @@ import org.ldaptive.Connection;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.ReturnAttributes;
-import org.opensaml.security.x509.TrustedNamesCriterion;
 
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend;
 import com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend;
