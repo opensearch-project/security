@@ -24,7 +24,6 @@ import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslHandler;
-import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -43,8 +42,6 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
 public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTransport {
-    static final AttributeKey<Netty4HttpChannel> HTTP_CHANNEL_KEY = AttributeKey.valueOf("opensearch-http-channel");
-
     private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
