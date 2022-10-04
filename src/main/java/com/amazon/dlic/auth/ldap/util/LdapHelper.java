@@ -34,7 +34,7 @@ import org.ldaptive.SearchScope;
 import org.ldaptive.referral.SearchReferralHandler;
 
 import org.opensearch.SpecialPermission;
-import org.opensearch.common.settings.Settings;
+
 
 public class LdapHelper {
 
@@ -42,7 +42,7 @@ public class LdapHelper {
 
     @SuppressWarnings("removal")
     public static List<LdapEntry> search(final Connection conn, final String unescapedDn, SearchFilter filter,
-            final SearchScope searchScope, final String[] returnAttributes, Settings settings) throws LdapException {
+            final SearchScope searchScope, final String[] returnAttributes, boolean shouldFollowReferrals) throws LdapException {
 
         final SecurityManager sm = System.getSecurityManager();
 
@@ -62,7 +62,7 @@ public class LdapHelper {
                     request.setReturnAttributes(returnAttributes);
                     final SearchOperation search = new SearchOperation(conn);
 
-                    if (settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT)) {
+                    if (shouldFollowReferrals) {
                         request.setReferralHandler(new SearchReferralHandler());
                         final Response<SearchResult> r = search.execute(request);
                         // referrals will be followed to build the response
@@ -89,9 +89,9 @@ public class LdapHelper {
         }
     }
 
-    public static LdapEntry lookup(final Connection conn, final String unescapedDn, final String[] returnAttributes, Settings settings) throws LdapException {
+    public static LdapEntry lookup(final Connection conn, final String unescapedDn, final String[] returnAttributes, boolean shouldFollowReferrals) throws LdapException {
 
-        final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes, settings);
+        final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes, shouldFollowReferrals);
 
         if (entries.size() == 1) {
             return entries.get(0);

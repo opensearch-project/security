@@ -38,9 +38,6 @@ plugins.security.authcz.admin_dn:
 # BOTH - backend roles are mapped to Security roles mapped directly and via roles_mapping.yml in addition
 plugins.security.roles_mapping_resolution: MAPPING_ONLY
 
-# Define behavior for following referalls from LDAP reponses (default: true)
-plugins.security.FOLLOW_REFERRALS: true
-
 ############## REST Management API configuration settings ##############
 # Enable or disable role based access to the REST management API
 # Default is that no role is allowed to access the REST management API.
@@ -110,6 +107,9 @@ plugins.security.audit.type: internal_opensearch
 #plugins.security.audit.config.pemcert_content: <...pem base 64 content>
 #plugins.security.audit.config.pemtrustedcas_filepath: ca.pem
 #plugins.security.audit.config.pemtrustedcas_content: <...pem base 64 content>
+
+# Define behavior for following referals from LDAP reponses (default: true)
+plugins.security.follow_referrals: true
 
 # webhook settings
 #plugins.security.audit.config.webhook.url: "http://mywebhook/endpoint"

@@ -11,6 +11,7 @@
 
 package com.amazon.dlic.auth.ldap2;
 
+import java.io.ObjectInputFilter.Config;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -96,7 +97,7 @@ public class LDAPUserSearcher {
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
                     SearchScope.SUBTREE,
-                    returnAttributes, settings);
+                    returnAttributes, true);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), result);
@@ -125,7 +126,7 @@ public class LDAPUserSearcher {
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
                     SearchScope.SUBTREE,
-                    returnAttributes, settings);
+                    returnAttributes, settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true));
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), result);

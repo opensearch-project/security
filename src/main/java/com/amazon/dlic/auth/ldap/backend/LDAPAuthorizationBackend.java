@@ -99,12 +99,12 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
     private final Settings settings;
     private final WildcardMatcher skipUsersMatcher;
     private final WildcardMatcher nestedRoleMatcher;
-    //private final boolean followReferrals;
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> roleBaseSettings;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
 
     private final String[] returnAttributes;
+    private final boolean shouldFollowReferrals;
 
     public LDAPAuthorizationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
@@ -112,10 +112,11 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         this.nestedRoleMatcher = settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false) ?
                 WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER)) : null;
         this.configPath = configPath;
-        //this.followReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true);
         this.roleBaseSettings = getRoleSearchSettings(settings);
         this.userBaseSettings = LDAPAuthenticationBackend.getUserBaseSettings(settings);
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
+        this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true);
+
     }
 
     @SuppressWarnings("removal")
@@ -971,7 +972,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, settings);
+        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, shouldFollowReferrals);
 
         if (e0.getAttribute(userRoleName) != null) {
             final Collection<String> userRoles = e0.getAttribute(userRoleName).getStringValues();
@@ -1102,7 +1103,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
         }
 
         try {
-            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString(), this.returnAttributes, settings);
+            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString(), this.returnAttributes, shouldFollowReferrals);
 
             if(roleEntry != null) {
                 final LdapAttribute roleAttribute = roleEntry.getAttribute(role);
