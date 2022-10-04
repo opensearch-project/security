@@ -11,7 +11,6 @@
 
 package com.amazon.dlic.auth.ldap2;
 
-import java.io.ObjectInputFilter.Config;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
