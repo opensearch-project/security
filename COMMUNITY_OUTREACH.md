@@ -33,19 +33,13 @@ In no particular order, the needs soliciting this change include:
 
 ## Adoption
 
-It is one thing to propose a change and another to see it through. In order to ensure the _opening_ of OpenSearch Security there are several potential issues that deserve premptive addressing.
+It is one thing to propose a change and another to see it through. In order to ensure the _opening_ of OpenSearch Security there are several potential issues that deserve preemptive addressing.
 Concerns about the adoption of this proposal include:
 
-* Ensuring equitable access: We do not want to favor one group of users over another simply because they are able to attend a meeting while the latter group cannot. To this point, it is important that triaging practices continue to be made 
-  with the goal of prioritzing the issues that are most important to the largest number of users at a time and/or are the most actionable. 
-* Avoiding monopolization: Similar to the previous point, it is important that meetings do not become an opportunity for misbehavior which puts one user's personal interests above the needs of the 
-  community as a whole. While community members are encouraged to attend and advocate for issues they are passionate about, attempts to commandeer meetings or dialogue are innapropriate and may result 
-  in an indivdual being asked to leave meetings.
-* Appropriate use of time: When inviting more active contribution from more users, it is obvious that more time may be required for certain meetings. We ask that all attendees regardless of affiliation 
-  keep their points and comments succint and focused on the completion of daily tasks. The more time spent talking, the less time everyone has to contribute to the project. 
-* Question types: Again relating to the previous note, it is important that questions and comments are in-line with the explicit purpose of each meeting. If it is a "Triage Meeting," questions about implementing existing security 
-  features should be addressed in an appropriate manner either during "Office Hour" meetings by the oncall team member or through another channel such as Slack. Likewise, Slack is probably not the best place 
-  to ask about when "issue _n_" will be looked at. 
+* Ensuring equitable access: We do not want to favor one group of users over another simply because they are able to attend a meeting while the latter group cannot. To this point, it is important that triaging practices continue to be made with the goal of prioritzing the issues that are most important to the largest number of users at a time and/or are the most actionable. 
+* Avoiding monopolization: Similar to the previous point, it is important that meetings do not become an opportunity for misbehavior which puts one user's personal interests above the needs of the community as a whole. While community members are encouraged to attend and advocate for issues they are passionate about, attempts to commandeer meetings or dialogue are innapropriate and may result in an indivdual being asked to leave meetings.
+* Appropriate use of time: When inviting more active contribution from more users, it is obvious that more time may be required for certain meetings. We ask that all attendees regardless of affiliation keep their points and comments succint and focused on the completion of daily tasks. The more time spent talking, the less time everyone has to contribute to the project. 
+* Question types: Again relating to the previous note, it is important that questions and comments are in-line with the explicit purpose of each meeting. If it is a "Triage Meeting," questions about implementing existing security features should be addressed in an appropriate manner either during "Office Hour" meetings by the oncall team member or through another channel such as Slack. Likewise, Slack is probably not the best place to ask about when "issue _n_" will be looked at. 
   
   
 ## Feedback
