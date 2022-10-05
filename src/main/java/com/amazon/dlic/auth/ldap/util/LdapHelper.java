@@ -35,11 +35,9 @@ import org.ldaptive.referral.SearchReferralHandler;
 
 import org.opensearch.SpecialPermission;
 
-
 public class LdapHelper {
 
     private static SearchFilter ALL = new SearchFilter("(objectClass=*)");
-
     @SuppressWarnings("removal")
     public static List<LdapEntry> search(final Connection conn, final String unescapedDn, SearchFilter filter,
             final SearchScope searchScope, final String[] returnAttributes, boolean shouldFollowReferrals) throws LdapException {

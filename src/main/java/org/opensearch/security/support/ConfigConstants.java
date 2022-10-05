@@ -79,8 +79,6 @@ public class ConfigConstants {
     
     public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"initial_action_class_header";
 
-
-
     /**
      * Set by SSL plugin for https requests only
      */
@@ -164,7 +162,6 @@ public class ConfigConstants {
     
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "plugins.security.audit.config.";
 
-    
 
     // Internal / External OpenSearch
     public static final String SECURITY_AUDIT_OPENSEARCH_INDEX = "index";
