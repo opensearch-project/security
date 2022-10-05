@@ -12,6 +12,7 @@ package org.opensearch.security.http;
 import java.util.List;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.http.HttpHeaders;
 import org.hamcrest.Matchers;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -27,6 +28,8 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -99,7 +102,7 @@ public class BasicAuthTests {
 
 			assertThat(response, is(notNullValue()));
 			response.assertStatusCode(SC_UNAUTHORIZED);
-			response.assertThatBrowserAskUserForCredentials();
+			assertThatBrowserAskUserForCredentials(response);
 		}
 	}
 
@@ -133,5 +136,11 @@ public class BasicAuthTests {
 			assertThat(customAttributeNames, hasSize(1));
 			assertThat(customAttributeNames.get(0), Matchers.equalTo("attr.internal." + CUSTOM_ATTRIBUTE_NAME));
 		}
+	}
+
+	private void assertThatBrowserAskUserForCredentials(HttpResponse response) {
+		String reason = "Browser does not ask user for credentials";
+		assertThat(reason, response.containHeader(HttpHeaders.WWW_AUTHENTICATE), equalTo(true));
+		assertThat(response.getHeader(HttpHeaders.WWW_AUTHENTICATE).getValue(), containsStringIgnoringCase("basic"));
 	}
 }

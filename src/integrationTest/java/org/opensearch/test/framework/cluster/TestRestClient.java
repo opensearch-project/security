@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.net.ssl.SSLContext;
 
@@ -45,7 +46,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
@@ -74,10 +74,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 /**
 * A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
@@ -278,11 +275,18 @@ public class TestRestClient implements AutoCloseable {
 			return header;
 		}
 
-		public Header getHeader(String name) {
+		public Optional<Header> findHeader(String name) {
 			return Arrays.stream(header)
 				.filter(header -> requireNonNull(name, "Header name is mandatory.").equalsIgnoreCase(header.getName()))
-				.findFirst()
-				.orElse(null);
+				.findFirst();
+		}
+
+		public Header getHeader(String name) {
+			return findHeader(name).orElseThrow();
+		}
+
+		public boolean containHeader(String name) {
+			return findHeader(name).isPresent();
 		}
 
 		public int getStatusCode() {
@@ -348,17 +352,6 @@ public class TestRestClient implements AutoCloseable {
 		public void assertStatusCode(int expectedHttpStatus) {
 			String reason = format("Expected status code is '%d', but was '%d'. Response body '%s'.", expectedHttpStatus, statusCode, body);
 			assertThat(reason, statusCode, equalTo(expectedHttpStatus));
-		}
-
-		public void assertThatBrowserDoesNotAskUserForCredentials() {
-			Header header = getHeader(HttpHeaders.WWW_AUTHENTICATE);
-			assertThat(header, nullValue());
-		}
-
-		public void assertThatBrowserAskUserForCredentials() {
-			Header header = getHeader(HttpHeaders.WWW_AUTHENTICATE);
-			assertThat(header, notNullValue());
-			assertThat(header.getValue(), containsStringIgnoringCase("basic"));
 		}
 	}
 

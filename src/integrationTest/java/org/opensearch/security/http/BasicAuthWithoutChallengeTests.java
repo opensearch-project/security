@@ -10,6 +10,7 @@
 package org.opensearch.security.http;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import org.apache.http.HttpHeaders;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,6 +20,8 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -37,7 +40,12 @@ public class BasicAuthWithoutChallengeTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
-			response.assertThatBrowserDoesNotAskUserForCredentials();
+			assertThatBrowserDoesNotAskUserForCredentials(response);
 		}
+	}
+
+	private void assertThatBrowserDoesNotAskUserForCredentials(HttpResponse response) {
+		String reason = "Browser ask user for credentials what is not expected";
+		assertThat(reason, response.containHeader(HttpHeaders.WWW_AUTHENTICATE), equalTo(false));
 	}
 }
