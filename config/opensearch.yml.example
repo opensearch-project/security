@@ -108,9 +108,6 @@ plugins.security.audit.type: internal_opensearch
 #plugins.security.audit.config.pemtrustedcas_filepath: ca.pem
 #plugins.security.audit.config.pemtrustedcas_content: <...pem base 64 content>
 
-# Define behavior for following referals from LDAP reponses (default: true)
-plugins.security.follow_referrals: true
-
 # webhook settings
 #plugins.security.audit.config.webhook.url: "http://mywebhook/endpoint"
 # One of URL_PARAMETER_GET,URL_PARAMETER_POST,TEXT,JSON,SLACK

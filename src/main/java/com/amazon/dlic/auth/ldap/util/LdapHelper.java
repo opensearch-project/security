@@ -63,17 +63,19 @@ public class LdapHelper {
                     final SearchOperation search = new SearchOperation(conn);
 
                     if (shouldFollowReferrals) {
+                         // referrals will be followed to build the response
                         request.setReferralHandler(new SearchReferralHandler());
-                        final Response<SearchResult> r = search.execute(request);
-                        // referrals will be followed to build the response
-                        final org.ldaptive.SearchResult result = r.getResult();
-                        entries.addAll(result.getEntries());
-                        return entries;
-                    } 
-                    else{
-                        entries.add(new LdapEntry("cn=couldNotFollowReferral"));
-                        return entries;
                     }
+
+                    final Response<SearchResult> r = search.execute(request);
+                    final org.ldaptive.SearchResult result = r.getResult();
+                    entries.addAll(result.getEntries());
+
+                    if (entries == null) {
+                        throw new LdapException(r.getMessage(), r.getResultCode(), r.getMatchedDn(), r.getControls(), r.getReferralURLs());
+                    }
+
+                    return entries;
                 }
             });
         } catch (PrivilegedActionException e) {

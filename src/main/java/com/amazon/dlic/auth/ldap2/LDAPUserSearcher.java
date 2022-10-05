@@ -70,19 +70,19 @@ public class LDAPUserSearcher {
         }
     }
 
-    LdapEntry exists(Connection ldapConnection, String user, final String[] returnAttributes) throws Exception {
+    LdapEntry exists(Connection ldapConnection, String user, final String[] returnAttributes, final boolean shouldFollowReferrals) throws Exception {
 
         if (settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)
                 || settings.getAsBoolean(ConfigConstants.LDAP_SEARCH_ALL_BASES, false)
                 || settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
-            return existsSearchingAllBases(ldapConnection, user, returnAttributes);
+            return existsSearchingAllBases(ldapConnection, user, returnAttributes, shouldFollowReferrals);
         } else {
-            return existsSearchingUntilFirstHit(ldapConnection, user, returnAttributes);
+            return existsSearchingUntilFirstHit(ldapConnection, user, returnAttributes, shouldFollowReferrals);
         }
 
     }
 
-    private LdapEntry existsSearchingUntilFirstHit(Connection ldapConnection, String user, final String[] returnAttributes) throws Exception {
+    private LdapEntry existsSearchingUntilFirstHit(Connection ldapConnection, String user, final String[] returnAttributes, final boolean shouldFollowReferrals) throws Exception {
         final String username = user;
         final boolean isDebugEnabled = log.isDebugEnabled();
         for (Map.Entry<String, Settings> entry : userBaseSettings) {
@@ -96,7 +96,7 @@ public class LDAPUserSearcher {
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
                     SearchScope.SUBTREE,
-                    returnAttributes, true);
+                    returnAttributes, shouldFollowReferrals);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), result);
@@ -110,7 +110,7 @@ public class LDAPUserSearcher {
         return null;
     }
 
-    private LdapEntry existsSearchingAllBases(Connection ldapConnection, String user, final String[] returnAttributes) throws Exception {
+    private LdapEntry existsSearchingAllBases(Connection ldapConnection, String user, final String[] returnAttributes, final boolean shouldFollowReferrals) throws Exception {
         final String username = user;
         Set<LdapEntry> result = new HashSet<>();
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -125,7 +125,7 @@ public class LDAPUserSearcher {
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
                     SearchScope.SUBTREE,
-                    returnAttributes, settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true));
+                    returnAttributes, shouldFollowReferrals);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {}:\n{}", user, entry.getKey(), result);

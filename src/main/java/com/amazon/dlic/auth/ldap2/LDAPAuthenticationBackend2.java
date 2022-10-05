@@ -60,6 +60,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     private final int customAttrMaxValueLen;
     private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
     private final String[] returnAttributes;
+    private final boolean shouldFollowReferrals;
 
     public LDAPAuthenticationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
@@ -78,6 +79,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
         this.userSearcher = new LDAPUserSearcher(settings);
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
+        this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
         whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
                 Collections.singletonList("*")));
@@ -122,7 +124,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             ldapConnection = connectionFactory.getConnection();
             ldapConnection.open();
 
-            LdapEntry entry = userSearcher.exists(ldapConnection, user, this.returnAttributes);
+            LdapEntry entry = userSearcher.exists(ldapConnection, user, this.returnAttributes, this.shouldFollowReferrals);
 
             // fake a user that no exists
             // makes guessing if a user exists or not harder when looking on the
@@ -214,7 +216,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
         try {
             ldapConnection = this.connectionFactory.getConnection();
             ldapConnection.open();
-            LdapEntry userEntry = this.userSearcher.exists(ldapConnection, userName, this.returnAttributes);
+            LdapEntry userEntry = this.userSearcher.exists(ldapConnection, userName, this.returnAttributes, this.shouldFollowReferrals);
             
             boolean exists = userEntry != null;
             

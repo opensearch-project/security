@@ -413,7 +413,6 @@ public class LdapBackendTest {
         } finally {
             con.close();
         }
-
     }
 
     @Test
@@ -430,7 +429,7 @@ public class LdapBackendTest {
         try {
             //If following is off then should fail to return the result provided by following
             final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true));
-            Assert.assertEquals("cn=couldNotFollowReferral", ref1.getDn());
+            Assert.assertNull(ref1);
         } finally {
             con.close();
         }

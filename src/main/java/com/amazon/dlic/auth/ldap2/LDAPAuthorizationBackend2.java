@@ -216,7 +216,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                     }
 
                 } else {
-                    entry = this.userSearcher.exists(connection, user.getName(), this.returnAttributes);
+                    entry = this.userSearcher.exists(connection, user.getName(), this.returnAttributes, this.shouldFollowReferrals);
 
                     if (isTraceEnabled) {
                         log.trace("{} is not a valid DN and was resolved to {}", authenticatedUser, entry);

@@ -54,12 +54,12 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
     private final Settings settings;
     private final Path configPath;
-    private final boolean shouldFollowReferrals;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
     private final int customAttrMaxValueLen;
     private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
 
     private final String[] returnAttributes;
+    private final boolean shouldFollowReferrals;
 
     public LDAPAuthenticationBackend(final Settings settings, final Path configPath) {
         this.settings = settings;
@@ -88,7 +88,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             try {
                 ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
 
-                entry = exists(user, ldapConnection, settings, userBaseSettings, this.returnAttributes);
+                entry = exists(user, ldapConnection, settings, userBaseSettings, this.returnAttributes, this.shouldFollowReferrals);
 
                 // fake a user that no exists
                 // makes guessing if a user exists or not harder when looking on the
@@ -162,7 +162,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
         try {
             ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
-            LdapEntry userEntry = exists(userName, ldapConnection, settings, userBaseSettings, this.returnAttributes);
+            LdapEntry userEntry = exists(userName, ldapConnection, settings, userBaseSettings, this.returnAttributes, this.shouldFollowReferrals);
             boolean exists = userEntry != null;
             
             if(exists) {
@@ -203,19 +203,19 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     }
 
     static LdapEntry exists(final String user, Connection ldapConnection, Settings settings,
-            List<Map.Entry<String, Settings>> userBaseSettings, String[] returnAttributes) throws Exception {
+            List<Map.Entry<String, Settings>> userBaseSettings, String[] returnAttributes, final boolean shouldFollowReferrals) throws Exception {
         if (settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)
                 || settings.getAsBoolean(ConfigConstants.LDAP_SEARCH_ALL_BASES, false)
                 || settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
-            return existsSearchingAllBases(user, ldapConnection, userBaseSettings, returnAttributes, settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true));
+            return existsSearchingAllBases(user, ldapConnection, userBaseSettings, returnAttributes, shouldFollowReferrals);
         } else {
-            return existsSearchingUntilFirstHit(user, ldapConnection, userBaseSettings, returnAttributes);
+            return existsSearchingUntilFirstHit(user, ldapConnection, userBaseSettings, returnAttributes, shouldFollowReferrals);
         }
 
     }
 
     private static LdapEntry existsSearchingUntilFirstHit(final String user, Connection ldapConnection,
-            List<Map.Entry<String, Settings>> userBaseSettings, final String[] returnAttributes) throws Exception {
+            List<Map.Entry<String, Settings>> userBaseSettings, final String[] returnAttributes, final boolean shouldFollowReferrals) throws Exception {
         final String username = user;
 
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -230,7 +230,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                     baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
                     f,
                     SearchScope.SUBTREE,
-                    returnAttributes, true);
+                    returnAttributes, shouldFollowReferrals);
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {} is {}", user, entry.getKey(), result);

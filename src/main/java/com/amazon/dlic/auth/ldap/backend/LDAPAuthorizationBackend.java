@@ -741,7 +741,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                     if (isDebugEnabled)
                         log.debug("DBGTRACE (5): authenticatedUser="+user.getName()+" -> "+Arrays.toString(user.getName().getBytes(StandardCharsets.UTF_8)));
 
-                    entry = LDAPAuthenticationBackend.exists(user.getName(), connection, settings, userBaseSettings, this.returnAttributes);
+                    entry = LDAPAuthenticationBackend.exists(user.getName(), connection, settings, userBaseSettings, this.returnAttributes, this.shouldFollowReferrals);
 
                     if (isTraceEnabled) {
                         log.trace("{} is not a valid DN and was resolved to {}", authenticatedUser, entry);
