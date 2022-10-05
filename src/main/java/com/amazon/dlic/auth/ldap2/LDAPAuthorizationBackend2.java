@@ -92,7 +92,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         this.connectionFactory = ldapConnectionFactoryFactory.createConnectionFactory(this.connectionPool);
         this.userSearcher = new LDAPUserSearcher(settings);
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
-        this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true);
+        this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT);
     }
 
     private static List<Map.Entry<String, Settings>> getRoleSearchSettings(Settings settings) {

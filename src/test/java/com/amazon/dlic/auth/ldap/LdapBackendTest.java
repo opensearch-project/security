@@ -428,7 +428,7 @@ public class LdapBackendTest {
         final Connection con = LDAPAuthorizationBackend.getConnection(settings, null);
         try {
             //If following is off then should fail to return the result provided by following
-            final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, true));
+            final LdapEntry ref1 = LdapHelper.lookup(con, "cn=Ref1,ou=people,o=TEST", ReturnAttributes.ALL.value(), settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT));
             Assert.assertNull(ref1);
         } finally {
             con.close();
