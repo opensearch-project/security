@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.net.ssl.SSLContext;
 
@@ -69,6 +70,11 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.Strings;
 import org.opensearch.common.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
+
+import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
 * A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
@@ -269,6 +275,20 @@ public class TestRestClient implements AutoCloseable {
 			return header;
 		}
 
+		public Optional<Header> findHeader(String name) {
+			return Arrays.stream(header)
+				.filter(header -> requireNonNull(name, "Header name is mandatory.").equalsIgnoreCase(header.getName()))
+				.findFirst();
+		}
+
+		public Header getHeader(String name) {
+			return findHeader(name).orElseThrow();
+		}
+
+		public boolean containHeader(String name) {
+			return findHeader(name).isPresent();
+		}
+
 		public int getStatusCode() {
 			return statusCode;
 		}
@@ -321,6 +341,18 @@ public class TestRestClient implements AutoCloseable {
 					+ ", statusReason=" + statusReason + "]";
 		}
 
+		public <T> T getBodyAs(Class<T> authInfoClass) {
+			try {
+				return DefaultObjectMapper.readValue(getBody(), authInfoClass);
+			} catch (IOException e) {
+				throw new RuntimeException("Cannot parse response body", e);
+			}
+		}
+
+		public void assertStatusCode(int expectedHttpStatus) {
+			String reason = format("Expected status code is '%d', but was '%d'. Response body '%s'.", expectedHttpStatus, statusCode, body);
+			assertThat(reason, statusCode, equalTo(expectedHttpStatus));
+		}
 	}
 
 	@Override
