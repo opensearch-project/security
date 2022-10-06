@@ -62,6 +62,8 @@ import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
 import org.opensearch.common.settings.Settings;
 
+import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+
 public class LDAPConnectionFactoryFactory {
 
     private static final Logger log = LogManager.getLogger(LDAPConnectionFactoryFactory.class);
@@ -127,10 +129,13 @@ public class LDAPConnectionFactoryFactory {
         }
 
         result.setValidator(getConnectionValidator());
+
+        checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, ConfigConstants.LDAP_POOL_PRUNING_PERIOD);
+        checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, ConfigConstants.LDAP_POOL_IDLE_TIME);
           
         result.setPruneStrategy(new IdlePruneStrategy(
-            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_PRUNING_PERIOD, this.settings.getAsLong("pruning.period", 5l))),
-            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_IDLE_TIME, this.settings.getAsLong("pruning.idleTime", 10l))))
+            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_PRUNING_PERIOD, this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, 5l))),
+            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_IDLE_TIME, this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, 10l))))
         );
 
         result.initialize();

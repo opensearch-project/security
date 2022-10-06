@@ -31,12 +31,12 @@ public class LdapUser extends User {
     private final String originalUsername;
 
     public LdapUser(final String name, String originalUsername, final LdapEntry userEntry,
-            final AuthCredentials credentials, int customAttrMaxValueLen, WildcardMatcher whitelistedCustomLdapAttrMatcher) {
+            final AuthCredentials credentials, int customAttrMaxValueLen, WildcardMatcher allowlistedCustomLdapAttrMatcher) {
         super(name, null, credentials);
         this.originalUsername = originalUsername;
         this.userEntry = userEntry;
         Map<String, String> attributes = getCustomAttributesMap();
-        attributes.putAll(extractLdapAttributes(originalUsername, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher));
+        attributes.putAll(extractLdapAttributes(originalUsername, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
     }
 
     /**
@@ -57,7 +57,7 @@ public class LdapUser extends User {
     }
     
     public static Map<String, String> extractLdapAttributes(String originalUsername, final LdapEntry userEntry,
-            int customAttrMaxValueLen, WildcardMatcher whitelistedCustomLdapAttrMatcher) {
+            int customAttrMaxValueLen, WildcardMatcher allowlistedCustomLdapAttrMatcher) {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ldap.original.username", originalUsername);
         attributes.put("ldap.dn", userEntry.getDn());
@@ -69,7 +69,7 @@ public class LdapUser extends User {
                     // only consider attributes which are not binary and where its value is not
                     // longer than customAttrMaxValueLen characters
                     if (val != null && val.length() > 0 && val.length() <= customAttrMaxValueLen) {
-                        if (whitelistedCustomLdapAttrMatcher.test(attr.getName())) {
+                        if (allowlistedCustomLdapAttrMatcher.test(attr.getName())) {
                             attributes.put("attr.ldap." + attr.getName(), val);
                         }
                     }
