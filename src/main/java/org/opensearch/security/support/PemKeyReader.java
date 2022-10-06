@@ -274,15 +274,19 @@ public final class PemKeyReader {
             return null;
         }
         
-        CertificateFactory fact = CertificateFactory.getInstance("X.509");
         try(FileInputStream is = new FileInputStream(file)) {
-            Collection<? extends Certificate> certs = fact.generateCertificates(is);
-            X509Certificate[] x509Certs = new X509Certificate[certs.size()];
-            int i=0;
-            for(Certificate cert: certs) {
-                x509Certs[i++] = (X509Certificate) cert;
-            }
-            return x509Certs;
+        	return loadCertificatesFromStream(is);
+        }
+        
+    }
+
+    public static X509Certificate[] loadCertificatesFromFile(File file) throws Exception {
+        if(file == null) {
+            return null;
+        }
+        
+        try(FileInputStream is = new FileInputStream(file)) {
+        	return loadCertificatesFromStream(is);
         }
         
     }
@@ -325,8 +329,8 @@ public final class PemKeyReader {
         final Environment env = new Environment(settings, configPath);
         
         if(env != null && originalPath != null && originalPath.length() > 0) {
-            path = env.configFile().resolve(originalPath).toAbsolutePath().toString();
-            log.debug("Resolved {} to {} against {}", originalPath, path, env.configFile().toAbsolutePath().toString());
+            path = env.configDir().resolve(originalPath).toAbsolutePath().toString();
+            log.debug("Resolved {} to {} against {}", originalPath, path, env.configDir().toAbsolutePath().toString());
         }
         
         if(mustBeValid) {

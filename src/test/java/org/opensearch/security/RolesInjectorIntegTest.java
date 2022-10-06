@@ -49,7 +49,7 @@ import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.Netty4Plugin;
+import org.opensearch.transport.Netty4ModulePlugin;
 import org.opensearch.watcher.ResourceWatcherService;
 
 public class RolesInjectorIntegTest extends SingleClusterTest {
@@ -97,7 +97,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
                 .build();
 
         //1. Without roles injection.
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
                 OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class).start()) {
             waitForInit(node.client());
 
@@ -110,7 +110,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
         //2. With invalid roles, must throw security exception.
         RolesInjectorPlugin.injectedRoles = "invalid_user|invalid_role";
         Exception exception = null;
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class).start()) {
             waitForInit(node.client());
 
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-2")).actionGet();
@@ -124,7 +124,7 @@ public class RolesInjectorIntegTest extends SingleClusterTest {
 
         //3. With valid roles - which has permission to create index.
         RolesInjectorPlugin.injectedRoles = "valid_user|opendistro_security_all_access";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class).start()) {
+        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, RolesInjectorPlugin.class).start()) {
             waitForInit(node.client());
 
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-3")).actionGet();

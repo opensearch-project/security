@@ -127,8 +127,11 @@ public class LDAPConnectionFactoryFactory {
         }
 
         result.setValidator(getConnectionValidator());
-        result.setPruneStrategy(new IdlePruneStrategy(Duration.ofMinutes(this.settings.getAsLong("pruning.period", 5l)),
-                Duration.ofMinutes(this.settings.getAsLong("pruning.idleTime", 10l))));
+          
+        result.setPruneStrategy(new IdlePruneStrategy(
+            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_PRUNING_PERIOD, this.settings.getAsLong("pruning.period", 5l))),
+            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_IDLE_TIME, this.settings.getAsLong("pruning.idleTime", 10l))))
+        );
 
         result.initialize();
 

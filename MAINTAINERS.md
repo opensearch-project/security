@@ -4,6 +4,7 @@
 - [Practices](#practices)
   - [Reverting Commits](#reverting-commits)
     - [Performing Revert](#performing-revert)
+  - [Squashing a pull request](#squashing-a-pull-request)
 
 # OpenSearch Security Maintainers
 
@@ -30,3 +31,11 @@ Exceptional, instead of immediately reverting, if a contributor knows how and wi
 Go to the pull request of the change that was an issue, there is a `Revert` button at the bottom.  If there are no conflicts to resolve, this can be done immediately bypassing standard approval.
 
 Reverts can also be done via the command line using `git revert <commit-id>` and creating a new pull request.  If done in this way they should have references to the pull request that was reverted.
+
+## Squashing a pull request
+When a PR is going to be merged, our repositories are set to automatically squash the commits into a single commit.  This process needs human intervention to produce high quality commit messages, with the following steps to be followed as much as possible:
+
+- The commit subject is clean and conveys what is being merged
+- The commit body should include the details (if any) about the commit, typically inline with the PR description
+- The commit body should include the 'Signed-Off-By:*' for all committers involved in the change.
+- There need to be a matching 'Signed-Off-By:' line for the `This commit will be authored by *` email address otherwise backport DCO checks will fail.

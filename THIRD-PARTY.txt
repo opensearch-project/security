@@ -55,7 +55,7 @@ Lists of 69 third-party dependencies.
      (The Apache Software License, Version 2.0) server (org.elasticsearch:elasticsearch:6.2.0 - https://github.com/elastic/elasticsearch)
      (The Apache Software License, Version 2.0) cli (org.elasticsearch:elasticsearch-cli:6.2.0 - https://github.com/elastic/elasticsearch)
      (The Apache Software License, Version 2.0) elasticsearch-core (org.elasticsearch:elasticsearch-core:6.2.0 - https://github.com/elastic/elasticsearch)
-     (The Apache Software License, Version 2.0) Elastic JNA Distribution (org.elasticsearch:jna:4.5.1 - https://github.com/java-native-access/jna)
+     (The Apache Software License, Version 2.0) java native access (net.java.dev.jna:jna:5.5.0 - https://github.com/java-native-access/jna)
      (The Apache Software License, Version 2.0) Elasticsearch SecureSM (org.elasticsearch:securesm:1.2 - http://nexus.sonatype.org/oss-repository-hosting.html/securesm)
      (The Apache Software License, Version 2.0) rest (org.elasticsearch.client:elasticsearch-rest-client:6.2.0 - https://github.com/elastic/elasticsearch)
      (The Apache Software License, Version 2.0) aggs-matrix-stats (org.elasticsearch.plugin:aggs-matrix-stats-client:6.2.0 - https://github.com/elastic/elasticsearch)
