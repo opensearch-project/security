@@ -44,6 +44,8 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
+import static org.opensearch.security.setting.DeprecatedSettings.checkForDeprecatedSetting;
+
 public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
     static final int ZERO_PLACEHOLDER = 0;
@@ -56,7 +58,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     private final Path configPath;
     private final List<Map.Entry<String, Settings>> userBaseSettings;
     private final int customAttrMaxValueLen;
-    private final WildcardMatcher whitelistedCustomLdapAttrMatcher;
+    private final WildcardMatcher allowlistedCustomLdapAttrMatcher;
 
     private final String[] returnAttributes;
 
@@ -67,8 +69,10 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
 
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
+        checkForDeprecatedSetting(settings, ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST, ConfigConstants.LDAP_CUSTOM_ATTR_ALLOWLIST);
+        final List<String> customAttrAllowList = settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_ALLOWLIST, settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
                 Collections.singletonList("*")));
+        allowlistedCustomLdapAttrMatcher = WildcardMatcher.from(customAttrAllowList);
     }
 
     @Override
@@ -127,9 +131,9 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
             // by default all ldap attributes which are not binary and with a max value
             // length of 36 are included in the user object
-            // if the whitelist contains at least one value then all attributes will be
-            // additional check if whitelisted (whitelist can contain wildcard and regex)
-            return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher);
+            // if the allowlist contains at least one value then all attributes will be
+            // additional check if allowlisted (allowlist can contain wildcard and regex)
+            return new LdapUser(username, user, entry, credentials, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher);
 
         } catch (final Exception e) {
             if (log.isDebugEnabled()) {
@@ -164,7 +168,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             boolean exists = userEntry != null;
             
             if(exists) {
-                user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher));
+                user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
             }
             
             return exists;
