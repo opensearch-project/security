@@ -1,0 +1,24 @@
+name: Merge protection against deprecated branches
+
+on:
+  pull_request:
+    # Every-time a branch is deprecated it should be added here
+    branches:
+      - '1.0'
+      - '1.1'
+      - '1.2'
+      - '1.x'
+      - '2.0'
+      - '2.1'
+      - '2.2'
+
+jobs:
+  deprecated-branch-check:
+    runs-on: ubuntu-latest
+    name: Deprecated Branch Check
+    steps:
+      - name: Fail if this workflow is triggered
+        run: echo -e "\n\nThis PR was created against the branch ${GH_BRANCH##*/} that was deprecated\n\n";
+          exit 1
+        env:
+          GH_BRANCH: ${{ github.ref }}
