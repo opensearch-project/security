@@ -20,13 +20,12 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.client.Client;
-import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static java.util.Objects.requireNonNull;
 
 class ClusterContainsDocumentWithFieldValueMatcher extends TypeSafeDiagnosingMatcher<Client> {
 
-	private static final Logger log = LogManager.getLogger(LocalCluster.class);
+	private static final Logger log = LogManager.getLogger(ClusterContainsDocumentWithFieldValueMatcher.class);
 
 	private final String indexName;
 	private final String documentId;

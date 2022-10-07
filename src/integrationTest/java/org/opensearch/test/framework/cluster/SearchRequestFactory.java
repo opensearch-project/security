@@ -21,7 +21,11 @@ import org.opensearch.search.sort.SortOrder;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
-public class SearchRequestFactory {
+public final class SearchRequestFactory {
+
+	private SearchRequestFactory() {
+
+	}
 	public static SearchRequest queryStringQueryRequest(String indexName, String queryString) {
 		SearchRequest searchRequest = new SearchRequest(indexName);
 		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
