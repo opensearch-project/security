@@ -176,8 +176,12 @@ public class TestRestClient implements AutoCloseable {
 	}
 
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... requestSpecificHeaders) {
+		return executeRequest(uriRequest, null, requestSpecificHeaders);
+	}
 
-		try(CloseableHttpClient httpClient = getHTTPClient()) {
+	public HttpResponse executeRequest(HttpUriRequest uriRequest, String[] supportedCipherSuit, Header... requestSpecificHeaders) {
+
+		try(CloseableHttpClient httpClient = getHTTPClient(supportedCipherSuit)) {
 
 
 			if (requestSpecificHeaders != null && requestSpecificHeaders.length > 0) {
@@ -199,17 +203,17 @@ public class TestRestClient implements AutoCloseable {
 		}
 	}
 
-	protected final String getHttpServerUri() {
+	public final String getHttpServerUri() {
 		return "http" + (enableHTTPClientSSL ? "s" : "") + "://" + nodeHttpAddress.getHostString() + ":" + nodeHttpAddress.getPort();
 	}
 
-	protected final CloseableHttpClient getHTTPClient() {
+	protected final CloseableHttpClient getHTTPClient(String[] supportedCipherSuit) {
 
 		final HttpClientBuilder hcb = HttpClients.custom();
 
 		String[] protocols = null;
 
-		final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(this.sslContext, protocols, null,
+		final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(this.sslContext, protocols, supportedCipherSuit,
 				NoopHostnameVerifier.INSTANCE);
 
 		final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
