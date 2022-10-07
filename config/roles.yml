@@ -246,3 +246,12 @@ snapshot_management_read_access:
     - 'cluster:admin/opensearch/snapshot_management/policy/explain'
     - 'cluster:admin/repository/get'
     - 'cluster:admin/snapshot/get'
+
+# Allows user to use point in time functionality
+point_in_time_full_access:
+  reserved: true
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'manage_point_in_time'
