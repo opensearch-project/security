@@ -125,23 +125,6 @@ public class ConfigurationLoaderSecurity7 {
             public void noData(String id) {
                 CType cType = CType.fromString(id);
 
-                //when index was created with ES 6 there are no separate tenants. So we load just empty ones.
-                //when index was created with ES 7 and type not "security" (ES 6 type) there are no rolemappings anymore.
-                if(cs.state().metadata().index(securityIndex).getCreationVersion().before(LegacyESVersion.V_7_0_0)) {
-                    //created with SG 6
-                    //skip tenants
-
-                    if (isDebugEnabled) {
-                        log.debug("Skip tenants because we not yet migrated to ES 7 (index was created with ES 6)");
-                    }
-
-                    if(cType == CType.TENANTS) {
-                        rs.put(cType, SecurityDynamicConfiguration.empty());
-                        latch.countDown();
-                        return;
-                    }
-                }
-
                 // Since NODESDN is newly introduced data-type applying for existing clusters as well, we make it backward compatible by returning valid empty
                 // SecurityDynamicConfiguration.
                 // Same idea for new setting WHITELIST/ALLOWLIST
