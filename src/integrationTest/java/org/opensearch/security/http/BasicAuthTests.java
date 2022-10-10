@@ -46,7 +46,7 @@ public class BasicAuthTests {
 	public static final String INVALID_PASSWORD = "secret-password";
 
 	public static final AuthcDomain AUTHC_DOMAIN = new AuthcDomain("basic", 0)
-		.challengingAuthenticator("basic").backend("internal");
+		.httpAuthenticatorWithChallenge("basic").backend("internal");
 
 	@ClassRule
 	public static final LocalCluster cluster = new LocalCluster.Builder()
@@ -95,7 +95,7 @@ public class BasicAuthTests {
 	}
 
 	@Test
-	public void browserShouldRequestUserForCredentials() {
+	public void testBrowserShouldRequestForCredentials() {
 		try (TestRestClient client = cluster.getRestClient()) {
 
 			HttpResponse response = client.getAuthInfo();
@@ -122,7 +122,7 @@ public class BasicAuthTests {
 	}
 
 	@Test
-	public void userShouldHaveAssignedCustomAttributes() {
+	public void testUserShouldHaveAssignedCustomAttributes() {
 		try (TestRestClient client = cluster.getRestClient(SUPER_USER)) {
 
 			HttpResponse response = client.getAuthInfo();
