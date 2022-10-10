@@ -98,8 +98,6 @@ public class MigrateApiAction extends AbstractApiAction {
     @Override
     protected void handlePost(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
 
-        final Version oldestNodeVersion = cs.state().getNodes().getMinNodeVersion();
-
         final SecurityDynamicConfiguration<?> loadedConfig = load(CType.CONFIG, true);
 
         if (loadedConfig.getVersion() != 1) {
