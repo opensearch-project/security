@@ -53,6 +53,14 @@ public final class SearchRequestFactory {
 		return searchRequest;
 	}
 
+	public static SearchRequest searchAll(String...indexNames) {
+		SearchRequest searchRequest = new SearchRequest(indexNames);
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+		searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+		searchRequest.source(searchSourceBuilder);
+		return searchRequest;
+	}
+
 	public static SearchScrollRequest getSearchScrollRequest(SearchResponse searchResponse) {
 		SearchScrollRequest scrollRequest = new SearchScrollRequest(searchResponse.getScrollId());
 		scrollRequest.scroll(new TimeValue(1, MINUTES));

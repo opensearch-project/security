@@ -121,8 +121,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			for (Map.Entry<String, LocalCluster> entry : remotes.entrySet()) {
 				@SuppressWarnings("resource")
 				InetSocketAddress transportAddress = entry.getValue().localOpenSearchCluster.clusterManagerNode().getTransportAddress();
+				String key = "cluster.remote." + entry.getKey() + ".seeds";
+				String value = transportAddress.getHostString() + ":" + transportAddress.getPort();
+				log.info("Remote cluster '{}' added to configuration with the following seed '{}'", key, value);
 				nodeOverride = Settings.builder().put(nodeOverride)
-						.putList("cluster.remote." + entry.getKey() + ".seeds", transportAddress.getHostString() + ":" + transportAddress.getPort())
+						.putList(key, value)
 						.build();
 			}
 
@@ -250,7 +253,6 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		private boolean loadConfigurationIntoIndex = true;
 
 		public Builder() {
-			this.testCertificates = new TestCertificates();
 		}
 
 		public Builder dependsOn(Object object) {
@@ -367,9 +369,16 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
 			return this;
 		}
+		public Builder certificates(TestCertificates certificates) {
+			this.testCertificates = certificates;
+			return this;
+		}
 
 		public LocalCluster build() {
 			try {
+				if(testCertificates == null){
+					testCertificates = new TestCertificates();
+				}
 
 				clusterName += "_" + num.incrementAndGet();
 				Settings settings = nodeOverrideSettingsBuilder.build();

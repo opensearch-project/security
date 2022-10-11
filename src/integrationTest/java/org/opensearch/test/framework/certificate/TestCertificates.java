@@ -36,6 +36,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import static org.opensearch.test.framework.certificate.PublicKeyUsage.CLIENT_AUTH;
 import static org.opensearch.test.framework.certificate.PublicKeyUsage.CRL_SIGN;
 import static org.opensearch.test.framework.certificate.PublicKeyUsage.DIGITAL_SIGNATURE;
@@ -49,6 +52,8 @@ import static org.opensearch.test.framework.certificate.PublicKeyUsage.SERVER_AU
 * The class exposes method which can be used to write certificates and private keys in temporally files.
 */
 public class TestCertificates {
+
+	private static final Logger log = LogManager.getLogger(TestCertificates.class);
 
 	public static final Integer MAX_NUMBER_OF_NODE_CERTIFICATES = 3;
 
@@ -68,6 +73,7 @@ public class TestCertificates {
 			.mapToObj(this::createNodeCertificate)
 			.collect(Collectors.toList());
 		this.adminCertificate = createAdminCertificate();
+		log.info("Test certificates successfully generated");
 	}
 
 

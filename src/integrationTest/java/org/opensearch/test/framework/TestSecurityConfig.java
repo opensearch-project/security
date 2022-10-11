@@ -196,6 +196,10 @@ public class TestSecurityConfig {
 			return roles.stream().map(Role::getName).collect(Collectors.toSet());
 		}
 
+		public Object getAttribute(String attributeName) {
+			return attributes.get(attributeName);
+		}
+
 		@Override
 		public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
 			xContentBuilder.startObject();

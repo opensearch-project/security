@@ -31,6 +31,10 @@ class GetResponseDocumentFieldValueMatcher extends TypeSafeDiagnosingMatcher<Get
 	@Override
 	protected boolean matchesSafely(GetResponse response, Description mismatchDescription) {
 		Map<String, Object> source = response.getSource();
+		if(source == null) {
+			mismatchDescription.appendText("Source is not available in search results");
+			return false;
+		}
 		if(source.containsKey(fieldName) == false) {
 			mismatchDescription.appendText("Document does not contain field ").appendValue(fieldName);
 			return false;

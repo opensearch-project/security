@@ -31,9 +31,11 @@ package org.opensearch.test.framework.cluster;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.opensearch.index.reindex.ReindexModulePlugin;
@@ -50,17 +52,18 @@ import static org.opensearch.test.framework.cluster.NodeType.CLUSTER_MANAGER;
 import static org.opensearch.test.framework.cluster.NodeType.DATA;
 
 public enum ClusterManager {
-
 	//3 nodes (1m, 2d)
-	DEFAULT(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true)),
+	DEFAULT(new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.DATA), new NodeSettings(NodeRole.DATA)),
 
 	//1 node (1md)
-	SINGLENODE(new NodeSettings(true, true)),
+	SINGLENODE(new NodeSettings(NodeRole.CLUSTER_MANAGER, NodeRole.DATA)),
+
+	SINGLE_REMOTE_CLIENT(new NodeSettings(NodeRole.CLUSTER_MANAGER, NodeRole.DATA, NodeRole.REMOTE_CLUSTER_CLIENT)),
 
 	//4 node (1m, 2d, 1c)
-	CLIENTNODE(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, false)),
+	CLIENTNODE(new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.DATA), new NodeSettings(NodeRole.DATA), new NodeSettings()),
 
-	THREE_CLUSTER_MANAGERS(new NodeSettings(true, false), new NodeSettings(true, false), new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true));
+	THREE_CLUSTER_MANAGERS(new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.DATA), new NodeSettings(NodeRole.DATA));
 
 	private List<NodeSettings> nodeSettings = new LinkedList<>();
 
@@ -73,11 +76,11 @@ public enum ClusterManager {
 	}
 
 	public List<NodeSettings> getClusterManagerNodeSettings() {
-		return unmodifiableList(nodeSettings.stream().filter(a -> a.clusterManagerNode).collect(Collectors.toList()));
+		return unmodifiableList(nodeSettings.stream().filter(a -> a.containRole(NodeRole.CLUSTER_MANAGER)).collect(Collectors.toList()));
 	}
 
 	public List<NodeSettings> getNonClusterManagerNodeSettings() {
-		return unmodifiableList(nodeSettings.stream().filter(a -> !a.clusterManagerNode).collect(Collectors.toList()));
+		return unmodifiableList(nodeSettings.stream().filter(a -> !a.containRole(NodeRole.CLUSTER_MANAGER)).collect(Collectors.toList()));
 	}
 
 	public int getNodes() {
@@ -85,39 +88,48 @@ public enum ClusterManager {
 	}
 
 	public int getClusterManagerNodes() {
-		return (int) nodeSettings.stream().filter(a -> a.clusterManagerNode).count();
+		return (int) nodeSettings.stream().filter(a -> a.containRole(NodeRole.CLUSTER_MANAGER)).count();
 	}
 
 	public int getDataNodes() {
-		return (int) nodeSettings.stream().filter(a -> a.dataNode).count();
+		return (int) nodeSettings.stream().filter(a -> a.containRole(NodeRole.DATA)).count();
 	}
 
 	public int getClientNodes() {
-		return (int) nodeSettings.stream().filter(a -> !a.clusterManagerNode && !a.dataNode).count();
+		return (int) nodeSettings.stream().filter(a -> a.isClientNode()).count();
 	}
+
 
 	public static class NodeSettings {
 
 		private final static List<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class,
 			MatrixAggregationModulePlugin.class, ParentJoinModulePlugin.class, PercolatorModulePlugin.class, ReindexModulePlugin.class);
-		public final boolean clusterManagerNode;
-		public final boolean dataNode;
+
+		private final Set<NodeRole> roles;
 		public final List<Class<? extends Plugin>> plugins;
 
-		public NodeSettings(boolean clusterManagerNode, boolean dataNode) {
-			this(clusterManagerNode, dataNode, Collections.emptyList());
+		public NodeSettings(NodeRole...roles) {
+			this(roles.length == 0 ? Collections.emptySet() : EnumSet.copyOf(Arrays.asList(roles)), Collections.emptyList());
 		}
 
-		public NodeSettings(boolean clusterManagerNode, boolean dataNode, List<Class<? extends Plugin>> additionalPlugins) {
+		public NodeSettings(Set<NodeRole> roles, List<Class<? extends Plugin>> additionalPlugins) {
 			super();
-			this.clusterManagerNode = clusterManagerNode;
-			this.dataNode = dataNode;
+			this.roles = Objects.requireNonNull(roles, "Node roles set must not be null");
 			this.plugins = mergePlugins(additionalPlugins, DEFAULT_PLUGINS);
 		}
+
+		public boolean containRole(NodeRole nodeRole) {
+			return roles.contains(nodeRole);
+		}
+
+		public boolean isClientNode() {
+			return (roles.contains(NodeRole.DATA) == false) && (roles.contains(NodeRole.CLUSTER_MANAGER));
+		}
+
 		NodeType recognizeNodeType() {
-			if (clusterManagerNode) {
+			if (roles.contains(NodeRole.CLUSTER_MANAGER)) {
 				return CLUSTER_MANAGER;
-			} else if (dataNode) {
+			} else if (roles.contains(NodeRole.DATA)) {
 				return DATA;
 			} else {
 				return CLIENT;
