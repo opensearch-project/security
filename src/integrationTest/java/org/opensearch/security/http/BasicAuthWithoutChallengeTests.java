@@ -45,7 +45,7 @@ public class BasicAuthWithoutChallengeTests {
 	}
 
 	private void assertThatBrowserDoesNotAskUserForCredentials(HttpResponse response) {
-		String reason = "Browser ask user for credentials what is not expected";
+		String reason = "Browser asked user for credentials which is not expected";
 		assertThat(reason, response.containHeader(HttpHeaders.WWW_AUTHENTICATE), equalTo(false));
 	}
 }

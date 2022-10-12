@@ -34,7 +34,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
-import org.opensearch.action.support.nodes.BaseNodeRequest;
 import org.opensearch.action.support.nodes.TransportNodesAction;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -47,6 +46,7 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportService;
 
 public class TransportConfigUpdateAction
@@ -72,7 +72,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
         this.dynamicConfigFactory = dynamicConfigFactory;
     }
 
-    public static class NodeConfigUpdateRequest extends BaseNodeRequest {
+    public static class NodeConfigUpdateRequest extends TransportRequest {
 
         ConfigUpdateRequest request;
 

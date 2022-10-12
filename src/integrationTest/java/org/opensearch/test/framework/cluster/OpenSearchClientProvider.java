@@ -44,8 +44,18 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.http.Header;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
+import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
@@ -80,6 +90,25 @@ public interface OpenSearchClientProvider {
 	*/
 	default TestRestClient getRestClient(UserCredentialsHolder user, Header... headers) {
 		return getRestClient(user.getName(), user.getPassword(), headers);
+	}
+
+	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
+		InetSocketAddress httpAddress = getHttpAddress();
+		CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+		credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user.getName(), user.getPassword()));
+
+		RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
+			httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider).setSSLStrategy(
+				new SSLIOSessionStrategy(getSSLContext(), null, null, NoopHostnameVerifier.INSTANCE));
+
+			return httpClientBuilder;
+		};
+
+		RestClientBuilder builder = RestClient.builder(new HttpHost(httpAddress.getHostString(), httpAddress.getPort(), "https"))
+			.setHttpClientConfigCallback(configCallback);
+
+
+		return new RestHighLevelClient(builder);
 	}
 
 	/**

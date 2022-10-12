@@ -431,6 +431,9 @@ dependencies {
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
     integrationTestImplementation "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
     integrationTestImplementation "org.bouncycastle:bcutil-jdk15on:${versions.bouncycastle}"
+    integrationTestImplementation('org.awaitility:awaitility:4.2.0') {
+        exclude(group: 'org.hamcrest', module: 'hamcrest')
+    }
 }
 
 jar {
