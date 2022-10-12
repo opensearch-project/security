@@ -70,12 +70,11 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.http.HttpHost;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
@@ -1394,19 +1393,21 @@ public class SecurityAdmin {
 		String[] supportedProtocols = enabledProtocols.length > 0 ? enabledProtocols : null;
 		String[] supportedCipherSuites = enabledCiphers.length > 0 ? enabledCiphers : null;
 
-		HttpHost httpHost = new HttpHost(hostname, port, "https");
+		HttpHost httpHost = new HttpHost("https", hostname, port);
 
-		RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
-				.setHttpClientConfigCallback(
-						builder -> builder.setSSLStrategy(
-								new SSLIOSessionStrategy(
-										sslContext,
-										supportedProtocols,
-										supportedCipherSuites,
-										hnv
-								)
-						)
-				);
+		RestClientBuilder restClientBuilder = RestClient.builder(httpHost);
+                /** TODO Figure out what to replace this with in client5
+				 * .setHttpClientConfigCallback(
+				 * 		builder -> builder.setSSLStrategy(
+				 * 				new SSLIOSessionStrategy(
+				 * 						sslContext,
+				 *						supportedProtocols,
+				 *						supportedCipherSuites,
+				 *						hnv
+				 *				)
+				 *		)
+				 * );
+                 */
 		return new RestHighLevelClient(restClientBuilder);
 	}
 

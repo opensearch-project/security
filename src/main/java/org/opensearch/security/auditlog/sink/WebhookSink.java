@@ -14,27 +14,23 @@ package org.opensearch.security.auditlog.sink;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyStore;
 import java.security.PrivilegedAction;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.http.HttpStatus;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.TrustStrategy;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.ssl.TrustStrategy;
 
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
@@ -217,7 +213,7 @@ public class WebhookSink extends AuditLogSink {
 		CloseableHttpResponse serverResponse = null;
 		try {
 			serverResponse = httpClient.execute(httpGet);
-			int responseCode = serverResponse.getStatusLine().getStatusCode();
+			int responseCode = serverResponse.getCode();
 			if (responseCode != HttpStatus.SC_OK) {
 				log.error("Cannot GET to webhook URL '{}', server returned status {}", webhookUrl, responseCode);
 				return false;
@@ -269,14 +265,13 @@ public class WebhookSink extends AuditLogSink {
 
 		HttpPost postRequest = new HttpPost(url);
 
-		StringEntity input = new StringEntity(payload, StandardCharsets.UTF_8);
-		input.setContentType(webhookFormat.contentType.toString());
+		StringEntity input = new StringEntity(payload, webhookFormat.contentType);
 		postRequest.setEntity(input);
 
 		CloseableHttpResponse serverResponse = null;
 		try {
 			serverResponse = httpClient.execute(postRequest);
-			int responseCode = serverResponse.getStatusLine().getStatusCode();
+			int responseCode = serverResponse.getCode();
 			if (responseCode != HttpStatus.SC_OK) {
 				log.error("Cannot POST to webhook URL '{}', server returned status {}", webhookUrl, responseCode);
 				return false;
@@ -339,9 +334,8 @@ public class WebhookSink extends AuditLogSink {
         int timeout = 5;
 
         RequestConfig config = RequestConfig.custom()
-          .setConnectTimeout(timeout * 1000)
-          .setConnectionRequestTimeout(timeout * 1000)
-          .setSocketTimeout(timeout * 1000).build();
+          .setConnectTimeout(timeout, TimeUnit.SECONDS)
+          .setConnectionRequestTimeout(timeout, TimeUnit.SECONDS).build();
 
         final TrustStrategy trustAllStrategy = new TrustStrategy() {
             @Override
@@ -353,13 +347,16 @@ public class WebhookSink extends AuditLogSink {
 	    try {
 
 	        if(!verifySSL) {
+				/**
+				 * Removing this from the chain below until its figured out how to replace this in client5
+				 * .setSSLSocketFactory(
+	             *               new SSLConnectionSocketFactory(
+	             *                       new SSLContextBuilder()
+	             *                       .loadTrustMaterial(trustAllStrategy)
+	             *                       .build(),
+	             *                       NoopHostnameVerifier.INSTANCE))
+				 */
 	            return HttpClients.custom()
-	                    .setSSLSocketFactory(
-	                            new SSLConnectionSocketFactory(
-	                                    new SSLContextBuilder()
-	                                    .loadTrustMaterial(trustAllStrategy)
-	                                    .build(),
-	                                    NoopHostnameVerifier.INSTANCE))
 	                    .setDefaultRequestConfig(config)
 	                    .build();
 	        }
@@ -370,13 +367,15 @@ public class WebhookSink extends AuditLogSink {
                         .build();
 	        }
 
-		    return HttpClients.custom()
-		            .setSSLSocketFactory(
-		                    new SSLConnectionSocketFactory(
-		                            new SSLContextBuilder()
-		                            .loadTrustMaterial(effectiveTruststore, null)
-		                            .build(),
-		                            new DefaultHostnameVerifier()))
+			/**
+			 * .setSSLSocketFactory(
+			 * 		                    new SSLConnectionSocketFactory(
+			 * 		                            new SSLContextBuilder()
+			 * 		                            .loadTrustMaterial(effectiveTruststore, null)
+			 * 		                            .build(),
+			 * 		                            new DefaultHostnameVerifier()))
+			 */
+			return HttpClients.custom()
 		            .setDefaultRequestConfig(config)
 		            .build();
 
