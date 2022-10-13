@@ -164,9 +164,9 @@ public class TestSecurityConfig {
 		public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin")
 				.roles(new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*"));
 		
-		private String name;
+		String name;
 		private String password;
-		private List<Role> roles = new ArrayList<>();
+		List<Role> roles = new ArrayList<>();
 		private Map<String, Object> attributes = new HashMap<>();
 
 		public User(String name) {
@@ -181,8 +181,8 @@ public class TestSecurityConfig {
 
 		public User roles(Role... roles) {
 			// We scope the role names by user to keep tests free of potential side effects
-			String roleNamePrefix = "user_" + this.name + "__";
-			this.roles.addAll(Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.name)).collect(Collectors.toSet()));
+			String roleNamePrefix = "user_" + this.getName() + "__";
+			this.roles.addAll(Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet()));
 			return this;
 		}
 
@@ -222,241 +222,9 @@ public class TestSecurityConfig {
 			xContentBuilder.endObject();
 			return xContentBuilder;
 		}
-	}
 
-	public static class AuditFilters implements ToXContentObject {
-
-		private Boolean enabledRest;
-
-		private Boolean enabledTransport;
-
-		private Boolean logRequestBody;
-
-		private Boolean resolveIndices;
-
-		private Boolean resolveBulkRequests;
-
-		private Boolean excludeSensitiveHeaders;
-
-		private List<String> ignoreUsers;
-
-		private List<String> ignoreRequests;
-
-		private List<String> disabledRestCategories;
-
-		private List<String> disabledTransportCategories;
-
-		public AuditFilters(){
-			this.enabledRest = false;
-			this.enabledTransport = false;
-
-			this.logRequestBody = true;
-			this.resolveIndices = true;
-			this.resolveBulkRequests = false;
-			this.excludeSensitiveHeaders = true;
-
-			this.ignoreUsers = Collections.emptyList();
-			this.ignoreRequests = Collections.emptyList();
-			this.disabledRestCategories = Collections.emptyList();
-			this.disabledTransportCategories = Collections.emptyList();
-		}
-
-		public AuditFilters enabledRest(boolean enabled) {
-			this.enabledRest = enabled;
-			return this;
-		}
-
-		public AuditFilters enabledTransport(boolean enabled) {
-			this.enabledTransport = enabled;
-			return this;
-		}
-
-		public AuditFilters logRequestBody(boolean logRequestBody){
-			this.logRequestBody = logRequestBody;
-			return this;
-		}
-
-		public AuditFilters resolveIndices(boolean resolveIndices) {
-			this.resolveIndices = resolveIndices;
-			return this;
-		}
-
-		public AuditFilters resolveBulkRequests(boolean resolveBulkRequests) {
-			this.resolveBulkRequests = resolveBulkRequests;
-			return this;
-		}
-
-		public AuditFilters excludeSensitiveHeaders(boolean excludeSensitiveHeaders) {
-			this.excludeSensitiveHeaders = excludeSensitiveHeaders;
-			return this;
-		}
-
-		public AuditFilters ignoreUsers(List<String> ignoreUsers) {
-			this.ignoreUsers = ignoreUsers;
-			return this;
-		}
-
-		public AuditFilters ignoreRequests(List<String> ignoreRequests) {
-			this.ignoreRequests =ignoreRequests;
-			return this;
-		}
-
-		public AuditFilters disabledRestCategories(List<String> disabledRestCategories) {
-			this.disabledRestCategories = disabledRestCategories;
-			return this;
-		}
-
-		public AuditFilters disabledTransportCategories(List<String> disabledTransportCategories) {
-			this.disabledTransportCategories = disabledTransportCategories;
-			return this;
-		}
-
-		@Override
-		public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-			xContentBuilder.startObject();
-			xContentBuilder.field("enable_rest", enabledRest);
-			xContentBuilder.field("enable_transport", enabledTransport);
-			xContentBuilder.field("resolve_indices", resolveIndices);
-			xContentBuilder.field("log_request_body", logRequestBody);
-			xContentBuilder.field("resolve_bulk_requests", resolveBulkRequests);
-			xContentBuilder.field("exclude_sensitive_headers", excludeSensitiveHeaders);
-			xContentBuilder.field("ignore_users", ignoreUsers);
-			xContentBuilder.field("ignore_requests", ignoreRequests);
-			xContentBuilder.field("disabled_rest_categories", disabledRestCategories);
-			xContentBuilder.field("disabled_transport_categories", disabledTransportCategories);
-			xContentBuilder.endObject();
-			return xContentBuilder;
-		}
-	}
-
-	public static class AuditCompliance implements ToXContentObject {
-
-		private boolean enabled = false;
-
-		private Boolean writeLogDiffs;
-
-		private List<String> readIgnoreUsers;
-
-		private List<String> writeWatchedIndices;
-
-		private List<String> writeIgnoreUsers;
-
-		private Boolean readMetadataOnly;
-
-		private Boolean writeMetadataOnly;
-
-		private Boolean externalConfig;
-
-		private Boolean internalConfig;
-
-		public AuditCompliance enabled(boolean enabled) {
-			this.enabled = enabled;
-			this.writeLogDiffs = false;
-			this.readIgnoreUsers = Collections.emptyList();
-			this.writeWatchedIndices = Collections.emptyList();
-			this.writeIgnoreUsers = Collections.emptyList();
-			this.readMetadataOnly = false;
-			this.writeMetadataOnly = false;
-			this.externalConfig = false;
-			this.internalConfig = false;
-			return this;
-		}
-
-		public AuditCompliance writeLogDiffs(boolean writeLogDiffs) {
-			this.writeLogDiffs = writeLogDiffs;
-			return this;
-		}
-
-		public AuditCompliance readIgnoreUsers(List<String> list) {
-			this.readIgnoreUsers = list;
-			return this;
-		}
-
-		public AuditCompliance writeWatchedIndices(List<String> list) {
-			this.writeWatchedIndices = list;
-			return this;
-		}
-
-		public AuditCompliance writeIgnoreUsers(List<String> list) {
-			this.writeIgnoreUsers = list;
-			return this;
-		}
-
-		public AuditCompliance readMetadataOnly(boolean readMetadataOnly) {
-			this.readMetadataOnly = readMetadataOnly;
-			return this;
-		}
-
-		public AuditCompliance writeMetadataOnly(boolean writeMetadataOnly) {
-			this.writeMetadataOnly = writeMetadataOnly;
-			return this;
-		}
-
-		public AuditCompliance externalConfig(boolean externalConfig) {
-			this.externalConfig = externalConfig;
-			return this;
-		}
-
-		public AuditCompliance internalConfig(boolean internalConfig) {
-			this.internalConfig = internalConfig;
-			return this;
-		}
-
-		@Override
-		public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-			xContentBuilder.startObject();
-			xContentBuilder.field("enabled", enabled);
-			xContentBuilder.field("write_log_diffs", writeLogDiffs);
-			xContentBuilder.field("read_ignore_users", readIgnoreUsers);
-			xContentBuilder.field("write_watched_indices", writeWatchedIndices);
-			xContentBuilder.field("write_ignore_users", writeIgnoreUsers);
-			xContentBuilder.field("read_metadata_only", readMetadataOnly);
-			xContentBuilder.field("write_metadata_only", writeMetadataOnly);
-			xContentBuilder.field("external_config", externalConfig);
-			xContentBuilder.field("internal_config", internalConfig);
-			xContentBuilder.endObject();
-			return xContentBuilder;
-		}
-	}
-
-	public static class AuditConfiguration implements ToXContentObject {
-		private final boolean enabled;
-
-		private AuditFilters filters;
-
-		private AuditCompliance compliance;
-
-		public AuditConfiguration(boolean enabled) {
-			this.filters = new AuditFilters();
-			this.compliance = new AuditCompliance();
-			this.enabled = enabled;
-		}
-
-		public boolean isEnabled() {
-			return enabled;
-		}
-
-		public AuditConfiguration filters(AuditFilters filters) {
-			this.filters = filters;
-			return this;
-		}
-
-		public AuditConfiguration compliance(AuditCompliance auditCompliance) {
-			this.compliance = auditCompliance;
-			return this;
-		}
-
-		@Override
-		public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-			// json built here must be deserialized to org.opensearch.security.auditlog.config.AuditConfig
-			xContentBuilder.startObject();
-			xContentBuilder.field("enabled", enabled);
-
-			xContentBuilder.field("audit", filters);
-			xContentBuilder.field("compliance", compliance);
-
-			xContentBuilder.endObject();
-			return xContentBuilder;
+		@Override public int hashCode() {
+			return super.hashCode();
 		}
 	}
 
@@ -755,7 +523,7 @@ public class TestSecurityConfig {
 	}
 
 
-	private static String hash(final char[] clearTextPassword) {
+	static String hash(final char[] clearTextPassword) {
 		final byte[] salt = new byte[16];
 		new SecureRandom().nextBytes(salt);
 		final String hash = OpenBSDBCrypt.generate((Objects.requireNonNull(clearTextPassword)), salt, 12);
