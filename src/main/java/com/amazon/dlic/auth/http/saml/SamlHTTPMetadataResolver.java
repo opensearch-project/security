@@ -16,12 +16,13 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
+
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
 
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;

@@ -34,7 +34,6 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
 import org.apache.http.HttpConnectionFactory;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
@@ -64,6 +63,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
 import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
 
 import org.opensearch.common.settings.Settings;
@@ -74,7 +74,7 @@ import org.opensearch.security.test.helper.network.SocketUtils;
 import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
-public class SettingsBasedSSLConfiguratorTest {
+public class SettingsBasedSSLConfiguratorV4Test {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
