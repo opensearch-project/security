@@ -34,7 +34,6 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED;
@@ -85,7 +84,6 @@ public class SecurityConfigurationTests {
 			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_1, String.format(CREATE_USER_BODY,
 				ADDITIONAL_PASSWORD_1));
 
-			assertThat(httpResponse, notNullValue());
 			assertThat(httpResponse.getStatusCode(), equalTo(201));
 		}
 		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -102,7 +100,6 @@ public class SecurityConfigurationTests {
 			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_1, String.format(CREATE_USER_BODY,
 				ADDITIONAL_PASSWORD_1));
 
-			assertThat(httpResponse, notNullValue());
 			httpResponse.assertStatusCode(403);
 		}
 	}
@@ -112,7 +109,6 @@ public class SecurityConfigurationTests {
 		try(TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
 			HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
 
-			assertThat(httpResponse, notNullValue());
 			httpResponse.assertStatusCode(200);
 			assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("true"));
 		}
@@ -124,7 +120,6 @@ public class SecurityConfigurationTests {
 		try(TestRestClient client = cluster.getRestClient(testCertificates.createSelfSignedCertificate("CN=bond"))) {
 			HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
 
-			assertThat(httpResponse, notNullValue());
 			httpResponse.assertStatusCode(200);
 			assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("false"));
 		}
@@ -136,7 +131,6 @@ public class SecurityConfigurationTests {
 		try(TestRestClient client = cluster.getRestClient(testCertificates.createAdminCertificate("CN=non_admin"))) {
 			HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
 
-			assertThat(httpResponse, notNullValue());
 			httpResponse.assertStatusCode(200);
 			assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("false"));
 		}
@@ -149,7 +143,6 @@ public class SecurityConfigurationTests {
 			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_2, String.format(CREATE_USER_BODY,
 				ADDITIONAL_PASSWORD_2));
 
-			assertThat(httpResponse, notNullValue());
 			httpResponse.assertStatusCode(201);
 		}
 		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
@@ -167,7 +160,6 @@ public class SecurityConfigurationTests {
 			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_2, String.format(CREATE_USER_BODY,
 				ADDITIONAL_PASSWORD_2));
 
-			assertThat(httpResponse, notNullValue());
 			httpResponse.assertStatusCode(401);
 		}
 	}
