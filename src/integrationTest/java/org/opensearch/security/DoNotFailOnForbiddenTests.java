@@ -35,11 +35,9 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
-import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -125,11 +123,15 @@ public class DoNotFailOnForbiddenTests {
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
-			assertThat(searchResponse, searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, "1"));
-			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
+			assertThatContainOneSong(searchResponse, "1", TITLE_MAGNUM_OPUS);
 		}
+	}
+
+	private static void assertThatContainOneSong(SearchResponse searchResponse, String documentId, String title) {
+		assertThat(searchResponse, isSuccessfulSearchResponse());
+		assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
+		assertThat(searchResponse, searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, documentId));
+		assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, title));
 	}
 
 	@Test
@@ -148,10 +150,7 @@ public class DoNotFailOnForbiddenTests {
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
-			assertThat(searchResponse, searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, "1"));
-			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
+			assertThatContainOneSong(searchResponse, "1", TITLE_MAGNUM_OPUS);
 		}
 	}
 
@@ -171,10 +170,7 @@ public class DoNotFailOnForbiddenTests {
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
-			assertThat(searchResponse, searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, "1"));
-			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
+			assertThatContainOneSong(searchResponse, "1", TITLE_MAGNUM_OPUS);
 		}
 	}
 
@@ -194,10 +190,7 @@ public class DoNotFailOnForbiddenTests {
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(1));
-			assertThat(searchResponse, searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, "1"));
-			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
+			assertThatContainOneSong(searchResponse, "1", TITLE_MAGNUM_OPUS);
 		}
 	}
 
@@ -222,13 +215,8 @@ public class DoNotFailOnForbiddenTests {
 
 			MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
 
-			assertThat(response, notNullValue());
 			MultiSearchResponse.Item[] responses = response.getResponses();
 			assertThat(responses, Matchers.arrayWithSize(2));
-			assertThat(responses, arrayContaining(
-				notNullValue(),
-				notNullValue()
-			));
 			assertThat(responses[0].getFailure(), nullValue());
 			assertThat(responses[1].getFailure(), nullValue());
 
@@ -256,7 +244,6 @@ public class DoNotFailOnForbiddenTests {
 
 			FieldCapabilitiesResponse response = restHighLevelClient.fieldCaps(request, DEFAULT);
 
-			assertThat(response, notNullValue());
 			assertThat(response.get(), aMapWithSize(1));
 			assertThat(response.getIndices(), arrayWithSize(1));
 			assertThat(response.getField(FIELD_TITLE), hasKey("text"));
