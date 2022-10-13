@@ -47,6 +47,7 @@ import javax.net.ssl.TrustManagerFactory;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
@@ -129,6 +130,11 @@ public interface OpenSearchClientProvider {
 
 
 		return new RestHighLevelClient(builder);
+	}
+
+	default CloseableHttpClient getClosableHttpClient(String[] supportedCipherSuit) {
+		CloseableHttpClientFactory factory = new CloseableHttpClientFactory(getSSLContext(), null, supportedCipherSuit);
+		return factory.getHTTPClient();
 	}
 
 	/**

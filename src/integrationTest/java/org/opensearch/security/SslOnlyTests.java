@@ -24,6 +24,11 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
+/**
+* Test related to SSL-only mode of security plugin. In this mode, the security plugin is responsible only for TLS/SSL encryption.
+* Therefore, the plugin does not perform authentication and authorization. Moreover, the REST resources (e.g. /_plugins/_security/whoami,
+* /_plugins/_security/authinfo, etc.) provided by the plugin are not available.
+*/
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SslOnlyTests {
@@ -43,6 +48,8 @@ public class SslOnlyTests {
 
 			HttpResponse response = client.getAuthInfo();
 
+			// in SSL only mode the security plugin does not register a handler for resource /_plugins/_security/whoami. Therefore error
+			// response is returned.
 			response.assertStatusCode(400);
 		}
 	}
@@ -50,8 +57,12 @@ public class SslOnlyTests {
 	@Test
 	public void shouldGetIndicesWithoutAuthentication() {
 		try(TestRestClient client = cluster.getRestClient()) {
+
+			// request does not contains credential
 			HttpResponse response = client.get("/_cat/indices");
 
+			// successful response is returned because the security plugin in SSL only mode
+			// does not perform authentication and authorization
 			response.assertStatusCode(200);
 		}
 	}

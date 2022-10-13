@@ -16,10 +16,12 @@ import java.util.Map;
 import javax.net.ssl.SSLHandshakeException;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.NoHttpResponseException;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.NoHttpResponseException;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,17 +29,14 @@ import org.junit.runner.RunWith;
 import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
-import org.opensearch.test.framework.cluster.RestClientException;
-import org.opensearch.test.framework.cluster.TestRestClient;
-import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 
-import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
-import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.hasCause;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -62,31 +61,30 @@ public class TlsTests {
 
 			assertThatThrownBy(() -> httpClient.execute(request), instanceOf(NoHttpResponseException.class));
 		}
-		//TODO check if audit, audit_category = SSL_EXCEPTION
+		//TODO check if audit is created, audit_category = SSL_EXCEPTION
 	}
 
 	@Test
-	public void shouldSupportClientCipherSuite_positive(){
-		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-			HttpGet httpGet = new HttpGet(client.getHttpServerUri() + AUTH_INFO_ENDPOINT);
-			String[] ciphers = { SUPPORTED_CIPHER_SUIT };
+	public void shouldSupportClientCipherSuite_positive() throws IOException {
+		try(CloseableHttpClient client = cluster.getClosableHttpClient(new String[] { SUPPORTED_CIPHER_SUIT })) {
+			HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
+			BasicHeader header = cluster.getBasicAuthHeader(USER_ADMIN.getName(), USER_ADMIN.getPassword());
+			httpGet.addHeader(header);
 
-			HttpResponse httpResponse = client.executeRequest(httpGet, ciphers);
+			try(CloseableHttpResponse response = client.execute(httpGet)) {
 
-			httpResponse.assertStatusCode(200);
+				int responseStatusCode = response.getCode();
+				assertThat(responseStatusCode, equalTo(200));
+			}
 		}
 	}
 
 	@Test
-	public void shouldSupportClientCipherSuite_negative(){
-		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-			HttpGet httpGet = new HttpGet(client.getHttpServerUri() + AUTH_INFO_ENDPOINT);
-			String[] ciphers = { NOT_SUPPORTED_CIPHER_SUITE };
+	public void shouldSupportClientCipherSuite_negative() throws IOException {
+		try(CloseableHttpClient client = cluster.getClosableHttpClient(new String[]{ NOT_SUPPORTED_CIPHER_SUITE })) {
+			HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
 
-			assertThatThrownBy(() -> client.executeRequest(httpGet, ciphers), allOf(
-				instanceOf(RestClientException.class),
-				hasCause(SSLHandshakeException.class))
-			);
+			assertThatThrownBy(() -> client.execute(httpGet), instanceOf(SSLHandshakeException.class));
 		}
 	}
 }
