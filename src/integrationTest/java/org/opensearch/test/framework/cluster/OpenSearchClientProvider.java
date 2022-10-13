@@ -37,22 +37,29 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-
+import com.onelogin.saml2.Auth;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.nio.ssl.BasicClientTlsStrategy;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
@@ -94,17 +101,21 @@ public interface OpenSearchClientProvider {
 
 	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
 		InetSocketAddress httpAddress = getHttpAddress();
-		CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-		credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user.getName(), user.getPassword()));
-
+		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+		final HttpHost httpHost = new HttpHost(httpAddress.getHostString(), httpAddress.getPort());
+		credentialsProvider.setCredentials(new AuthScope(httpHost, null, "Basic"), new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray()));
 		RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
-			httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider).setSSLStrategy(
-				new SSLIOSessionStrategy(getSSLContext(), null, null, NoopHostnameVerifier.INSTANCE));
+			TlsStrategy tlsStrategy = new BasicClientTlsStrategy(getSSLContext());
 
+			final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+					.setTlsStrategy(tlsStrategy)
+					.build();
+
+			httpClientBuilder.setConnectionManager(cm);
 			return httpClientBuilder;
 		};
 
-		RestClientBuilder builder = RestClient.builder(new HttpHost(httpAddress.getHostString(), httpAddress.getPort(), "https"))
+		RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
 			.setHttpClientConfigCallback(configCallback);
 
 
