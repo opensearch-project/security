@@ -25,11 +25,6 @@ import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpCoreContext;
-import org.apache.http.ssl.PrivateKeyDetails;
-import org.apache.http.ssl.PrivateKeyStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -80,7 +75,7 @@ public class KeySetRetrieverTest {
                 true) {
             @Override
             protected void handleDiscoverRequest(HttpRequest request, HttpResponse response, HttpContext context)
-                    throws HttpException, IOException {
+                    throws IOException, HttpException {
 
                 MockIpdServer.SSLTestHttpServerConnection connection = (MockIpdServer.SSLTestHttpServerConnection) ((HttpCoreContext) context)
                         .getConnection();

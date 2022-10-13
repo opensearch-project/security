@@ -31,23 +31,20 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
-import org.apache.http.HttpConnectionFactory;
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
+import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
+import org.apache.hc.core5.http.impl.io.DefaultBHttpServerConnection;
+import org.apache.hc.core5.http.io.HttpConnectionFactory;
+import org.apache.hc.core5.http.io.HttpRequestHandler;
+import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.http.config.ConnectionConfig;
-import org.apache.http.config.MessageConstraints;
-import org.apache.http.entity.ContentLengthStrategy;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.ConnSupport;
-import org.apache.http.impl.DefaultBHttpServerConnection;
-import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.SSLServerSetupHandler;
-import org.apache.http.impl.bootstrap.ServerBootstrap;
-import org.apache.http.io.HttpMessageParserFactory;
-import org.apache.http.io.HttpMessageWriterFactory;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpRequestHandler;
 
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.network.SocketUtils;
@@ -75,7 +72,7 @@ class MockIpdServer implements Closeable {
 		this.jwks = jwks;
 
 		ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap().setListenerPort(port)
-				.registerHandler(CTX_DISCOVER, new HttpRequestHandler() {
+				.register(CTX_DISCOVER, new HttpRequestHandler() {
 
 					@Override
 					public void handle(HttpRequest request, HttpResponse response, HttpContext context)
@@ -84,14 +81,11 @@ class MockIpdServer implements Closeable {
 						handleDiscoverRequest(request, response, context);
 
 					}
-				}).registerHandler(CTX_KEYS, new HttpRequestHandler() {
+				}).register(CTX_KEYS, new HttpRequestHandler() {
 
 					@Override
-					public void handle(HttpRequest request, HttpResponse response, HttpContext context)
-							throws HttpException, IOException {
-
+					public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
 						handleKeysRequest(request, response, context);
-
 					}
 				});
 
