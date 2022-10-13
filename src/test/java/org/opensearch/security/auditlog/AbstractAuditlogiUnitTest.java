@@ -15,8 +15,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.http.Header;
 
+import org.apache.hc.core5.http.Header;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
