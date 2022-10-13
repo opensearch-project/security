@@ -30,7 +30,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -43,11 +42,7 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManagerFactory;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletInputStream;
@@ -87,11 +82,6 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHttpRequest;
 import org.apache.hc.core5.http.protocol.HttpContext;
 import org.apache.hc.core5.net.URIBuilder;
-import org.apache.http.HttpEntityEnclosingRequest;
-import org.apache.http.config.ConnectionConfig;
-import org.apache.http.config.MessageConstraints;
-import org.apache.http.impl.ConnSupport;
-import org.apache.http.impl.bootstrap.SSLServerSetupHandler;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
@@ -236,18 +226,9 @@ class MockSamlIdpServer implements Closeable {
                         }
                     })
                     .setConnectionFactory(new HttpConnectionFactory<DefaultBHttpServerConnection>() {
-
-                        private ConnectionConfig cconfig = ConnectionConfig.DEFAULT;
-
-                        private Http1Config http1Config = Http1Config.custom()
-                                .setBufferSize(this.cconfig.getBufferSize()).setChunkSizeHint(this.cconfig.getFragmentSizeHint()).build();
-
                         @Override
                         public DefaultBHttpServerConnection createConnection(final Socket socket) throws IOException {
-                            final SSLTestHttpServerConnection conn = new SSLTestHttpServerConnection("http",
-                                    http1Config,
-                                    ConnSupport.createDecoder(this.cconfig), ConnSupport.createEncoder(this.cconfig)
-                                    , null, null, null, null);
+                            final DefaultBHttpServerConnection conn = new DefaultBHttpServerConnection("https", Http1Config.DEFAULT);
                             conn.bind(socket);
                             return conn;
                         }
@@ -765,8 +746,8 @@ class MockSamlIdpServer implements Closeable {
 
         @Override
         public String getCharacterEncoding() {
-            if (delegate instanceof HttpEntityEnclosingRequest) {
-                return ((HttpEntityEnclosingRequest) delegate).getEntity().getContentEncoding().getValue();
+            if (delegate instanceof ClassicHttpRequest) {
+                return ((ClassicHttpRequest) delegate).getEntity().getContentEncoding();
             } else {
                 return null;
             }
@@ -774,8 +755,8 @@ class MockSamlIdpServer implements Closeable {
 
         @Override
         public int getContentLength() {
-            if (delegate instanceof HttpEntityEnclosingRequest) {
-                return (int) ((HttpEntityEnclosingRequest) delegate).getEntity().getContentLength();
+            if (delegate instanceof ClassicHttpRequest) {
+                return (int) ((ClassicHttpRequest) delegate).getEntity().getContentLength();
             } else {
                 return 0;
             }
@@ -783,8 +764,8 @@ class MockSamlIdpServer implements Closeable {
 
         @Override
         public String getContentType() {
-            if (delegate instanceof HttpEntityEnclosingRequest) {
-                return ((HttpEntityEnclosingRequest) delegate).getEntity().getContentType().getValue();
+            if (delegate instanceof ClassicHttpRequest) {
+                return ((ClassicHttpRequest) delegate).getEntity().getContentType();
             } else {
                 return null;
             }
@@ -792,8 +773,8 @@ class MockSamlIdpServer implements Closeable {
 
         @Override
         public ServletInputStream getInputStream() throws IOException {
-            if (delegate instanceof HttpEntityEnclosingRequest) {
-                final InputStream in = ((HttpEntityEnclosingRequest) delegate).getEntity().getContent();
+            if (delegate instanceof ClassicHttpRequest) {
+                final InputStream in = ((ClassicHttpRequest) delegate).getEntity().getContent();
 
                 return new ServletInputStream() {
 
@@ -875,8 +856,8 @@ class MockSamlIdpServer implements Closeable {
 
         @Override
         public BufferedReader getReader() throws IOException {
-            if (delegate instanceof HttpEntityEnclosingRequest) {
-                final InputStream in = ((HttpEntityEnclosingRequest) delegate).getEntity().getContent();
+            if (delegate instanceof ClassicHttpRequest) {
+                final InputStream in = ((ClassicHttpRequest) delegate).getEntity().getContent();
 
                 return new BufferedReader(new InputStreamReader(in));
             } else {

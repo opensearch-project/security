@@ -21,8 +21,9 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.apache.http.impl.bootstrap.HttpServer;
-import org.apache.http.impl.bootstrap.ServerBootstrap;
+import org.apache.hc.core5.http.impl.HttpProcessors;
+import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
+import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -58,7 +59,7 @@ public class SinkProviderTLSTest {
 		TestHttpHandler handler = new TestHttpHandler();
 
 		int port = findFreePort();
-		server = ServerBootstrap.bootstrap().setListenerPort(port).setServerInfo("Test/1.1").setSslContext(createSSLContext()).registerHandler("*", handler).create();
+		server = ServerBootstrap.bootstrap().setListenerPort(port).setHttpProcessor(HttpProcessors.server("Test/1.1")).setSslContext(createSSLContext()).register("*", handler).create();
 
 		server.start();
 

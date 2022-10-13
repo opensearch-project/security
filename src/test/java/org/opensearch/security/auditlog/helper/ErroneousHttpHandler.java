@@ -11,18 +11,14 @@
 
 package org.opensearch.security.auditlog.helper;
 
-import java.io.IOException;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.io.HttpRequestHandler;
+import org.apache.hc.core5.http.protocol.HttpContext;
 
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpRequestHandler;
-
-public class ErroneousHttpHandler implements HttpRequestHandler{
-
+public class ErroneousHttpHandler implements HttpRequestHandler {
 	@Override
-	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
-		response.setStatusCode(404);
+	public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) {
+		response.setCode(404);
 	}
 }
