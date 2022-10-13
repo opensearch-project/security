@@ -23,8 +23,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
-
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 
