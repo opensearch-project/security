@@ -14,8 +14,7 @@ package org.opensearch.security.multitenancy.test;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.Header;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
 import org.junit.Assert;
 import org.junit.Test;

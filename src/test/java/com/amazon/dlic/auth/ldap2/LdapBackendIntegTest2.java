@@ -11,7 +11,7 @@
 
 package com.amazon.dlic.auth.ldap2;
 
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
 import org.junit.AfterClass;
 import org.junit.Assert;

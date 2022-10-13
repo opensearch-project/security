@@ -11,8 +11,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import org.apache.http.Header;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
