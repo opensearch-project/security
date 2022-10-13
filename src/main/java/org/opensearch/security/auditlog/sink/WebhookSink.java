@@ -21,6 +21,8 @@ import java.security.PrivilegedAction;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
+
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.config.RequestConfig;
@@ -46,8 +48,6 @@ import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
-
-import javax.net.ssl.SSLContext;
 
 public class WebhookSink extends AuditLogSink {
 
