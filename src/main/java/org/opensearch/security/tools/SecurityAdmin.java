@@ -1403,9 +1403,9 @@ public class SecurityAdmin {
 		RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
 				 .setHttpClientConfigCallback(
 				 		builder -> {
-                              // TODO how to set protocols
                               TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
                                     .setSslContext(sslContext)
+                                    .setTlsVersions(supportedProtocols)
                                     .setCiphers(supportedCipherSuites)
                                     .build();
 

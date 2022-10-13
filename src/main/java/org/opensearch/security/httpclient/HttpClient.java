@@ -34,9 +34,13 @@ import javax.net.ssl.SSLParameters;
 import com.google.common.collect.Lists;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.ssl.PrivateKeyDetails;
 import org.apache.hc.core5.ssl.PrivateKeyStrategy;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -240,13 +244,17 @@ public class HttpClient implements Closeable {
             final HostnameVerifier hnv = verifyHostnames?new DefaultHostnameVerifier():NoopHostnameVerifier.INSTANCE;
 
             final SSLContext sslContext = sslContextBuilder.build();
-            // TODO how to do this with org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder
-//            httpClientBuilder.setSSLStrategy(new SSLIOSessionStrategy(
-//                    sslContext,
-//                    supportedProtocols,
-//                    supportedCipherSuites,
-//                    hnv
-//                    ));
+            TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                    .setSslContext(sslContext)
+                    .setTlsVersions(supportedProtocols)
+                    .setCiphers(supportedCipherSuites)
+                    .setHostnameVerifier(hnv)
+                    .build();
+
+            final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                    .setTlsStrategy(tlsStrategy)
+                    .build();
+            httpClientBuilder.setConnectionManager(cm);
         }
 
         if (basicCredentials != null) {

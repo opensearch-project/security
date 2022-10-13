@@ -26,10 +26,17 @@ import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
 
 import org.opensearch.common.Strings;
@@ -38,6 +45,8 @@ import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
+
+import javax.net.ssl.SSLContext;
 
 public class WebhookSink extends AuditLogSink {
 
@@ -347,15 +356,16 @@ public class WebhookSink extends AuditLogSink {
 	    try {
 
 	        if(!verifySSL) {
-				/**
-				 * Removing this from the chain below until its figured out how to replace this in client5
-				 * .setSSLSocketFactory(
-	             *               new SSLConnectionSocketFactory(
-	             *                       new SSLContextBuilder()
-	             *                       .loadTrustMaterial(trustAllStrategy)
-	             *                       .build(),
-	             *                       NoopHostnameVerifier.INSTANCE))
-				 */
+				HttpClientBuilder hcb = HttpClients.custom().setDefaultRequestConfig(config);
+				SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(trustAllStrategy).build();
+				final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, null, null,
+						NoopHostnameVerifier.INSTANCE);
+
+				final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+						.setSSLSocketFactory(sslsf)
+						.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60, TimeUnit.SECONDS).build())
+						.build();
+				hcb.setConnectionManager(cm);
 	            return HttpClients.custom()
 	                    .setDefaultRequestConfig(config)
 	                    .build();
