@@ -145,7 +145,10 @@ public class RestHelper {
 	}
 
 	public HttpResponse executeGetRequest(final String request, Header... header) {
-	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
+		String requestUri = getHttpServerUri().endsWith("/")
+				? getHttpServerUri() + request
+				: getHttpServerUri() + "/" + request;
+	    return executeRequest(new HttpGet(requestUri), header);
 	}
 
 	public HttpResponse executeGetRequest(final String request, String body, Header... header) {
@@ -156,11 +159,17 @@ public class RestHelper {
 	}
 	
 	public HttpResponse executeHeadRequest(final String request, Header... header) {
-        return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
+		String requestUri = getHttpServerUri().endsWith("/")
+				? getHttpServerUri() + request
+				: getHttpServerUri() + "/" + request;
+        return executeRequest(new HttpHead(requestUri), header);
     }
 	
 	public HttpResponse executeOptionsRequest(final String request) {
-        return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
+		String requestUri = getHttpServerUri().endsWith("/")
+				? getHttpServerUri() + request
+				: getHttpServerUri() + "/" + request;
+        return executeRequest(new HttpOptions(requestUri));
     }
 
 	public HttpResponse executePutRequest(final String request, String body, Header... header) {
@@ -172,7 +181,10 @@ public class RestHelper {
 	}
 
 	public HttpResponse executeDeleteRequest(final String request, Header... header) {
-		return executeRequest(new HttpDelete(getHttpServerUri() + "/" + request), header);
+		String requestUri = getHttpServerUri().endsWith("/")
+				? getHttpServerUri() + request
+				: getHttpServerUri() + "/" + request;
+		return executeRequest(new HttpDelete(requestUri), header);
 	}
 
 	public HttpResponse executeDeleteRequest(final String request, String body, Header... header) {
@@ -184,7 +196,10 @@ public class RestHelper {
 
 
 	public HttpResponse executePostRequest(final String request, String body, Header... header) {
-		HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + request);
+		String requestUri = getHttpServerUri().endsWith("/")
+				? getHttpServerUri() + request
+				: getHttpServerUri() + "/" + request;
+		HttpPost uriRequest = new HttpPost(requestUri);
 		if (body != null && !body.isEmpty()) {
 			uriRequest.setEntity(createStringEntity(body));
 		}
@@ -193,7 +208,10 @@ public class RestHelper {
 	}
 	
     public HttpResponse executePatchRequest(final String request, String body, Header... header) {
-        HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
+		String requestUri = getHttpServerUri().endsWith("/")
+				? getHttpServerUri() + request
+				: getHttpServerUri() + "/" + request;
+        HttpPatch uriRequest = new HttpPatch(requestUri);
         if (body != null && !body.isEmpty()) {
             uriRequest.setEntity(createStringEntity(body));
         }

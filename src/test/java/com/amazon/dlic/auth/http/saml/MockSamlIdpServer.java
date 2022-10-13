@@ -228,7 +228,7 @@ class MockSamlIdpServer implements Closeable {
                     .setConnectionFactory(new HttpConnectionFactory<DefaultBHttpServerConnection>() {
                         @Override
                         public DefaultBHttpServerConnection createConnection(final Socket socket) throws IOException {
-                            final DefaultBHttpServerConnection conn = new DefaultBHttpServerConnection("https", Http1Config.DEFAULT);
+                            final DefaultBHttpServerConnection conn = new DefaultBHttpServerConnection(ssl ? "https" : "http", Http1Config.DEFAULT);
                             conn.bind(socket);
                             return conn;
                         }
