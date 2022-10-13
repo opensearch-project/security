@@ -16,6 +16,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -56,9 +57,9 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         }
     }
 
-    private static SettingsBasedSSLConfigurator.SSLConfig getSSLConfig(Settings settings, Path configPath)
+    private static SettingsBasedSSLConfiguratorV4.SSLConfig getSSLConfig(Settings settings, Path configPath)
             throws Exception {
-        return new SettingsBasedSSLConfigurator(settings, configPath, "idp").buildSSLConfig();
+        return new SettingsBasedSSLConfiguratorV4(settings, configPath, "idp").buildSSLConfig();
     }
 
     @SuppressWarnings("removal")
@@ -91,7 +92,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
         builder.useSystemProperties();
 
-        SettingsBasedSSLConfigurator.SSLConfig sslConfig = getSSLConfig(settings, configPath);
+        SettingsBasedSSLConfiguratorV4.SSLConfig sslConfig = getSSLConfig(settings, configPath);
 
         if (sslConfig != null) {
             builder.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory());

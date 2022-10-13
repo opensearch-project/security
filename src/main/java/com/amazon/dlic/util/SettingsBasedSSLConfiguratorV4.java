@@ -11,6 +11,7 @@
 
 package com.amazon.dlic.util;
 
+import java.net.Socket;
 import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -29,18 +30,18 @@ import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
-import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
-import org.apache.hc.core5.ssl.PrivateKeyDetails;
-import org.apache.hc.core5.ssl.PrivateKeyStrategy;
-import org.apache.hc.core5.ssl.SSLContextBuilder;
-import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
+import org.apache.http.ssl.PrivateKeyDetails;
+import org.apache.http.ssl.PrivateKeyStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -48,7 +49,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
-public class SettingsBasedSSLConfigurator {
+public class SettingsBasedSSLConfiguratorV4 {
     private static final Logger log = LogManager.getLogger(SettingsBasedSSLConfigurator.class);
 
     public static final String CERT_ALIAS = "cert_alias";
@@ -92,15 +93,15 @@ public class SettingsBasedSSLConfigurator {
     private String effectiveKeyAlias;
     private List<String> effectiveTruststoreAliases;
 
-    public SettingsBasedSSLConfigurator(Settings settings, Path configPath, String settingsKeyPrefix,
-            String clientName) {
+    public SettingsBasedSSLConfiguratorV4(Settings settings, Path configPath, String settingsKeyPrefix,
+                                        String clientName) {
         this.settings = settings;
         this.configPath = configPath;
         this.settingsKeyPrefix = normalizeSettingsKeyPrefix(settingsKeyPrefix);
         this.clientName = clientName != null ? clientName : this.settingsKeyPrefix;
     }
 
-    public SettingsBasedSSLConfigurator(Settings settings, Path configPath, String settingsKeyPrefix) {
+    public SettingsBasedSSLConfiguratorV4(Settings settings, Path configPath, String settingsKeyPrefix) {
         this(settings, configPath, settingsKeyPrefix, null);
     }
 
@@ -195,7 +196,7 @@ public class SettingsBasedSSLConfigurator {
                             new PrivateKeyStrategy() {
 
                                 @Override
-                                public String chooseAlias(Map<String, PrivateKeyDetails> aliases, SSLParameters sslParameters) {
+                                public String chooseAlias(Map<String, PrivateKeyDetails> aliases, Socket socket) {
                                     if (aliases == null || aliases.isEmpty()) {
                                         return effectiveKeyAlias;
                                     }
@@ -392,9 +393,9 @@ public class SettingsBasedSSLConfigurator {
         private final String effectiveKeyAlias;
 
         public SSLConfig(SSLContext sslContext, String[] supportedProtocols, String[] supportedCipherSuites,
-                HostnameVerifier hostnameVerifier, boolean hostnameVerificationEnabled, boolean trustAll,
-                boolean startTlsEnabled, KeyStore effectiveTruststore, List<String> effectiveTruststoreAliases,
-                KeyStore effectiveKeystore, char[] effectiveKeyPassword, String effectiveKeyAlias) {
+                         HostnameVerifier hostnameVerifier, boolean hostnameVerificationEnabled, boolean trustAll,
+                         boolean startTlsEnabled, KeyStore effectiveTruststore, List<String> effectiveTruststoreAliases,
+                         KeyStore effectiveKeystore, char[] effectiveKeyPassword, String effectiveKeyAlias) {
             this.sslContext = sslContext;
             this.supportedProtocols = supportedProtocols;
             this.supportedCipherSuites = supportedCipherSuites;
@@ -429,10 +430,9 @@ public class SettingsBasedSSLConfigurator {
             return hostnameVerifier;
         }
 
-        // TODO Can this be removed?
-//        public SSLIOSessionStrategy toSSLIOSessionStrategy() {
-//            return new SSLIOSessionStrategy(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
-//        }
+        public SSLIOSessionStrategy toSSLIOSessionStrategy() {
+            return new SSLIOSessionStrategy(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
+        }
 
         public SSLConnectionSocketFactory toSSLConnectionSocketFactory() {
             return new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites,
@@ -515,7 +515,7 @@ public class SettingsBasedSSLConfigurator {
         }
 
         public SSLConfigException(String message, Throwable cause, boolean enableSuppression,
-                boolean writableStackTrace) {
+                                  boolean writableStackTrace) {
             super(message, cause, enableSuppression, writableStackTrace);
         }
 
@@ -536,7 +536,7 @@ public class SettingsBasedSSLConfigurator {
     private static class OverlyTrustfulSSLContextBuilder extends SSLContextBuilder {
         @Override
         protected void initSSLContext(SSLContext sslContext, Collection<KeyManager> keyManagers,
-                Collection<TrustManager> trustManagers, SecureRandom secureRandom) throws KeyManagementException {
+                                      Collection<TrustManager> trustManagers, SecureRandom secureRandom) throws KeyManagementException {
             sslContext.init(!keyManagers.isEmpty() ? keyManagers.toArray(new KeyManager[keyManagers.size()]) : null,
                     new TrustManager[] { new OverlyTrustfulTrustManager() }, secureRandom);
         }

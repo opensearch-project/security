@@ -27,7 +27,13 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.nio.ssl.BasicClientTlsStrategy;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -191,10 +197,13 @@ public class KeySetRetriever implements KeySetProvider {
 
 		builder.useSystemProperties();
 
-		// TODO what to replace this with?
-//		if (sslConfig != null) {
-//			builder.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory());
-//		}
+		if (sslConfig != null) {
+			final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+					.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
+					.build();
+
+			builder.setConnectionManager(cm);
+		}
 
 		return builder.build();
 	}
