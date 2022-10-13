@@ -69,11 +69,6 @@ public class LdapHelper {
                     final org.ldaptive.SearchResult result = r.getResult();
                     entries.addAll(result.getEntries());
 
-                    if (entries == null) {
-                        //Throw an exception if no entries can be found without referrals and referrals are off 
-                        throw new LdapException(r.getMessage(), r.getResultCode(), r.getMatchedDn(), r.getControls(), r.getReferralURLs());
-                    }
-
                     return entries;
                 }
             });
