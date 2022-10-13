@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import org.apache.hc.core5.http.HttpHost;
+
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
