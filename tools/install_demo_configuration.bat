@@ -1,6 +1,6 @@
 @echo off
 setlocal enableDelayedExpansion
-set SCRIPT_DIR=%~dp0
+set "SCRIPT_DIR=%~dp0"
 
 echo **************************************************************************
 echo ** This tool will be deprecated in the next major release of OpenSearch **
@@ -13,11 +13,10 @@ echo  ** Warning: Do not use on production or public reachable systems **
 
 echo.
 
-set OPTIND=1
-set assumeyes=0
-set initsecurity=0
-set cluster_mode=0
-set skip_updates=-1
+set "assumeyes=0"
+set "initsecurity=0"
+set "cluster_mode=0"
+set "skip_updates=-1"
 
 goto :GETOPTS
 
@@ -32,10 +31,10 @@ EXIT /B 0
 
 :GETOPTS
 if /I "%1" == "-h" call :show_help & exit /b 0
-if /I "%1" == "-y" set assumeyes=1
-if /I "%1" == "-i" set initsecurity=1
-if /I "%1" == "-c" set cluster_mode=1
-if /I "%1" == "-s" set skip_updates=0
+if /I "%1" == "-y" set "assumeyes=1"
+if /I "%1" == "-i" set "initsecurity=1"
+if /I "%1" == "-c" set "cluster_mode=1"
+if /I "%1" == "-s" set "skip_updates=0"
 shift
 if not "%1" == "" goto :GETOPTS
 
@@ -49,7 +48,7 @@ if %assumeyes% == 0 (
 if %initsecurity% == 0 (
     if %assumeyes% == 0 (
         set /p "response=Initialize Security Modules? [y/N] "
-        if /I "!response!" == "Y" (set initsecurity=1) ELSE (set initsecurity=0)
+        if /I "!response!" == "Y" (set "initsecurity=1") ELSE (set "initsecurity=0")
     )
 )
 
@@ -59,7 +58,7 @@ if %cluster_mode% == 0 (
         echo   - Virtual memory [vm.max_map_count]
         echo.
         set /p "response=Enable cluster mode? [y/N] "
-        if /I "!response!" == "Y" (set cluster_mode=1) ELSE (set cluster_mode=0)
+        if /I "!response!" == "Y" (set "cluster_mode=1") ELSE (set "cluster_mode=0")
     )
 )
 
@@ -69,19 +68,19 @@ if not exist %BASE_DIR% (
     exit /b 1
 )
 
-set CUR=%cd%
+set "CUR=%cd%"
 cd %BASE_DIR%
-set BASE_DIR=%cd%\
+set "BASE_DIR=%cd%\"
 cd %CUR%
 echo Basedir: %BASE_DIR%
 
-set OPENSEARCH_CONF_FILE=%BASE_DIR%config\opensearch.yml
-set OPENSEARCH_CONF_DIR=%BASE_DIR%config\
-set OPENSEARCH_BIN_DIR=%BASE_DIR%bin\
-set OPENSEARCH_PLUGINS_DIR=%BASE_DIR%plugins\
-set OPENSEARCH_MODULES_DIR=%BASE_DIR%modules\
-set OPENSEARCH_LIB_PATH=%BASE_DIR%lib\
-set OPENSEARCH_INSTALL_TYPE=.zip
+set "OPENSEARCH_CONF_FILE=%BASE_DIR%config\opensearch.yml"
+set "OPENSEARCH_CONF_DIR=%BASE_DIR%config\"
+set "OPENSEARCH_BIN_DIR=%BASE_DIR%bin\"
+set "OPENSEARCH_PLUGINS_DIR=%BASE_DIR%plugins\"
+set "OPENSEARCH_MODULES_DIR=%BASE_DIR%modules\"
+set "OPENSEARCH_LIB_PATH=%BASE_DIR%lib\"
+set "OPENSEARCH_INSTALL_TYPE=.zip"
 
 if not exist %OPENSEARCH_CONF_FILE% (
     echo Unable to determine OpenSearch config directory. Quit.
@@ -124,7 +123,7 @@ for %%F in ("%OPENSEARCH_PLUGINS_DIR%\opensearch-security\opensearch-security-*.
 set "SECURITY_JAR_VERSION="
 for /f "tokens=3 delims=[-]" %%a in ("%SECURITY_VERSION%") do set "SECURITY_JAR_VERSION=%%a"
 
-for /f "tokens=4-7 delims=[.] " %%i in ('ver') do (if %%i==Version (set OS=%%j.%%k) else (set v=%%i.%%j))
+for /f "tokens=4-7 delims=[.] " %%i in ('ver') do (if %%i==Version (set "OS=%%j.%%k") else (set v="%%i.%%j"))
 echo OpenSearch install type: %OPENSEARCH_INSTALL_TYPE% on %OS%
 echo OpenSearch config dir: %OPENSEARCH_CONF_DIR%
 echo OpenSearch config file: %OPENSEARCH_CONF_FILE%
