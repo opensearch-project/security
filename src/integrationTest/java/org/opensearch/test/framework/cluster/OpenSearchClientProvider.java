@@ -96,8 +96,7 @@ public interface OpenSearchClientProvider {
 	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
 		InetSocketAddress httpAddress = getHttpAddress();
 		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-		final HttpHost httpHost = new HttpHost(httpAddress.getHostString(), httpAddress.getPort());
-		credentialsProvider.setCredentials(new AuthScope(httpHost, null, "Basic"), new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray()));
+		credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray()));
 		RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
 			TlsStrategy tlsStrategy = new BasicClientTlsStrategy(getSSLContext());
 

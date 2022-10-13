@@ -252,8 +252,7 @@ public class RestHelper {
 			CredentialsProvider provider = new BasicCredentialsProvider();
 			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek".toCharArray());
 			BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-			final HttpHost httpHost = new HttpHost("localhost", 9200);
-			credentialsProvider.setCredentials(new AuthScope(httpHost, null, "Basic"), new UsernamePasswordCredentials("sarek", "sarek".toCharArray()));
+			credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials("sarek", "sarek".toCharArray()));
 			hcb.setDefaultCredentialsProvider(provider);
 		}
 
