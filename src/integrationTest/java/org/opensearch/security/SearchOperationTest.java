@@ -1676,6 +1676,7 @@ public class SearchOperationTest {
 	@Ignore
 	//required permissions: "indices:admin/resize", "indices:monitor/stats
 	// todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
+	//  Issue: https://github.com/opensearch-project/security/issues/2141
 	public void shrinkIndex_positive() throws IOException {
 		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("shrink_index_positive_source");
 		Settings sourceIndexSettings = Settings.builder()
@@ -1723,6 +1724,7 @@ public class SearchOperationTest {
 	@Ignore
 	//required permissions: "indices:admin/resize", "indices:monitor/stats
 	// todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
+	//  Issue: https://github.com/opensearch-project/security/issues/2141
 	public void cloneIndex_positive() throws IOException {
 		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("clone_index_positive_source");
 		Settings sourceIndexSettings = Settings.builder()
@@ -1769,6 +1771,7 @@ public class SearchOperationTest {
 	@Ignore
 	//required permissions: "indices:admin/resize", "indices:monitor/stats
 	// todo even when I assign the `indices:admin/resize` and `indices:monitor/stats` permissions to test user, this test fails.
+	//  Issue: https://github.com/opensearch-project/security/issues/2141
 	public void splitIndex_positive() throws IOException {
 		String sourceIndexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("split_index_positive_source");
 		Settings sourceIndexSettings = Settings.builder()
