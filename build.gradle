@@ -395,7 +395,7 @@ dependencies {
     testImplementation 'org.springframework:spring-beans:5.3.20'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testImplementation "org.opensearch:common-utils:${opensearch_version}"
+    testImplementation "org.opensearch:common-utils:${opensearch_build}"
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
     // Kafka test execution

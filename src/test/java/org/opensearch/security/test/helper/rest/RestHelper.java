@@ -45,6 +45,7 @@ import javax.net.ssl.SSLContext;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.CredentialsProvider;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
@@ -111,9 +112,10 @@ public class RestHelper {
 
 		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
+
 		try {
 			httpClient = getHTTPClient();
-			response = httpClient.execute(new HttpGet(getHttpServerUri() + "/" + request));
+			response = httpClient.execute(new HttpGet(getRequestUri(request)));
 
 			if (response.getCode() >= 300) {
 				throw new Exception("Statuscode " + response.getCode());
@@ -145,35 +147,26 @@ public class RestHelper {
 	}
 
 	public HttpResponse executeGetRequest(final String request, Header... header) {
-		String requestUri = getHttpServerUri().endsWith("/")
-				? getHttpServerUri() + request
-				: getHttpServerUri() + "/" + request;
-	    return executeRequest(new HttpGet(requestUri), header);
+	    return executeRequest(new HttpGet(getRequestUri(request)), header);
 	}
 
 	public HttpResponse executeGetRequest(final String request, String body, Header... header) {
-		HttpGet getRequest = new HttpGet(getHttpServerUri() + "/" + request);
+		HttpGet getRequest = new HttpGet(getRequestUri(request));
 		getRequest.setEntity(createStringEntity(body));
 		getRequest.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 		return executeRequest(getRequest, header);
 	}
 	
 	public HttpResponse executeHeadRequest(final String request, Header... header) {
-		String requestUri = getHttpServerUri().endsWith("/")
-				? getHttpServerUri() + request
-				: getHttpServerUri() + "/" + request;
-        return executeRequest(new HttpHead(requestUri), header);
+        return executeRequest(new HttpHead(getRequestUri(request)), header);
     }
 	
 	public HttpResponse executeOptionsRequest(final String request) {
-		String requestUri = getHttpServerUri().endsWith("/")
-				? getHttpServerUri() + request
-				: getHttpServerUri() + "/" + request;
-        return executeRequest(new HttpOptions(requestUri));
+        return executeRequest(new HttpOptions(getRequestUri(request)));
     }
 
 	public HttpResponse executePutRequest(final String request, String body, Header... header) {
-		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
+		HttpPut uriRequest = new HttpPut(getRequestUri(request));
 		if (body != null && !body.isEmpty()) {
 			uriRequest.setEntity(createStringEntity(body));
 		}
@@ -181,14 +174,11 @@ public class RestHelper {
 	}
 
 	public HttpResponse executeDeleteRequest(final String request, Header... header) {
-		String requestUri = getHttpServerUri().endsWith("/")
-				? getHttpServerUri() + request
-				: getHttpServerUri() + "/" + request;
-		return executeRequest(new HttpDelete(requestUri), header);
+		return executeRequest(new HttpDelete(getRequestUri(request)), header);
 	}
 
 	public HttpResponse executeDeleteRequest(final String request, String body, Header... header) {
-		HttpDelete delRequest = new HttpDelete(getHttpServerUri() + "/" + request);
+		HttpDelete delRequest = new HttpDelete(getRequestUri(request));
 		delRequest.setEntity(createStringEntity(body));
 		delRequest.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 		return executeRequest(delRequest, header);
@@ -196,10 +186,7 @@ public class RestHelper {
 
 
 	public HttpResponse executePostRequest(final String request, String body, Header... header) {
-		String requestUri = getHttpServerUri().endsWith("/")
-				? getHttpServerUri() + request
-				: getHttpServerUri() + "/" + request;
-		HttpPost uriRequest = new HttpPost(requestUri);
+		HttpPost uriRequest = new HttpPost(getRequestUri(request));
 		if (body != null && !body.isEmpty()) {
 			uriRequest.setEntity(createStringEntity(body));
 		}
@@ -208,10 +195,7 @@ public class RestHelper {
 	}
 	
     public HttpResponse executePatchRequest(final String request, String body, Header... header) {
-		String requestUri = getHttpServerUri().endsWith("/")
-				? getHttpServerUri() + request
-				: getHttpServerUri() + "/" + request;
-        HttpPatch uriRequest = new HttpPatch(requestUri);
+        HttpPatch uriRequest = new HttpPatch(getRequestUri(request));
         if (body != null && !body.isEmpty()) {
             uriRequest.setEntity(createStringEntity(body));
         }
@@ -260,6 +244,10 @@ public class RestHelper {
 		final String address = "http" + (enableHTTPClientSSL ? "s" : "") + "://" + clusterInfo.httpHost + ":" + clusterInfo.httpPort;
 		log.debug("Connect to {}", address);
 		return address;
+	}
+
+	protected final String getRequestUri(String request) {
+		return getHttpServerUri() + "/" + StringUtils.strip(request, "/");
 	}
 	
 	protected final CloseableHttpClient getHTTPClient() throws Exception {
