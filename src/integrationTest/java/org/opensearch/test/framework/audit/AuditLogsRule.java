@@ -72,10 +72,8 @@ public class AuditLogsRule implements TestRule {
 	private void assertExactly(Matcher<List<AuditMessage>> matcher) {
 		//pollDelay - initial delay before first evaluation
 		Awaitility.await("Await for audit logs")
-			.atMost(3, TimeUnit.SECONDS).pollDelay(0, TimeUnit.MICROSECONDS).until(() -> {
-				return new ArrayList<>(currentTestAuditMessages);
-
-		}, matcher);
+			.atMost(3, TimeUnit.SECONDS).pollDelay(0, TimeUnit.MICROSECONDS)
+			.until(() -> new ArrayList<>(currentTestAuditMessages), matcher);
 	}
 
 	public void assertAtLeast(long minCount, Predicate<AuditMessage> predicate) {

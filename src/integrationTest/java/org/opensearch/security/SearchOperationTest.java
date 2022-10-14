@@ -1506,8 +1506,8 @@ public class SearchOperationTest {
 		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "DeleteRepositoryRequest"));
 	}
 
-	@Test
-	public void shouldCreateSnapshot_positive() throws IOException, InterruptedException {
+	@Test //Bug which can be reproduced with the below test: https://github.com/opensearch-project/security/issues/2169
+	public void shouldCreateSnapshot_positive() throws IOException {
 		final String snapshotName = "snapshot-positive-test";
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
 			SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
