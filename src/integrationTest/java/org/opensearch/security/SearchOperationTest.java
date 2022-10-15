@@ -221,15 +221,15 @@ public class SearchOperationTest {
 	public static final String UNUSED_SNAPSHOT_REPOSITORY_NAME = "unused-snapshot-repository";
 
 	public static final String RESTORED_SONG_INDEX_NAME = "restored_" + WRITE_SONG_INDEX_NAME;
-
+	
 	public static final String UPDATE_DELETE_OPERATION_INDEX_NAME = "update_delete_index";
 
 	public static final String DOCUMENT_TO_UPDATE_ID = "doc_to_update";
 
-	public static final String ID_P4 = "4";
-	public static final String ID_S3 = "3";
-	public static final String ID_S2 = "2";
-	public static final String ID_S1 = "1";
+	private static final String ID_P4 = "4";
+	private static final String ID_S3 = "3";
+	private static final String ID_S2 = "2";
+	private static final String ID_S1 = "1";
 
 	static final User ADMIN_USER = new User("admin").roles(ALL_ACCESS);
 

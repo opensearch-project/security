@@ -35,6 +35,8 @@ import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -99,9 +101,20 @@ public interface OpenSearchClientProvider {
 	}
 
 	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
-		InetSocketAddress httpAddress = getHttpAddress();
+		
 		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
 		credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray()));
+
+		return getRestHighLevelClient(credentialsProvider, Collections.emptySet());
+	}
+
+	default RestHighLevelClient getRestHighLevelClient(Collection<? extends Header> defaultHeaders) {
+
+
+		return getRestHighLevelClient(null, defaultHeaders);
+	}
+
+	private RestHighLevelClient getRestHighLevelClient(BasicCredentialsProvider credentialsProvider, Collection<? extends Header> defaultHeaders) {
 		RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
 			TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
 				.create()
@@ -120,14 +133,17 @@ public interface OpenSearchClientProvider {
 					.setTlsStrategy(tlsStrategy)
 					.build();
 
-			httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+			if(credentialsProvider != null) {
+				httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+			}
+			httpClientBuilder.setDefaultHeaders(defaultHeaders);
 			httpClientBuilder.setConnectionManager(cm);
 			return httpClientBuilder;
 		};
 
+		InetSocketAddress httpAddress = getHttpAddress();
 		RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
 			.setHttpClientConfigCallback(configCallback);
-
 
 		return new RestHighLevelClient(builder);
 	}

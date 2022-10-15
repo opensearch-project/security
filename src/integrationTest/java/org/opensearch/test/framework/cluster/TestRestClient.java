@@ -39,6 +39,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.net.ssl.SSLContext;
 
@@ -199,7 +201,16 @@ public class TestRestClient implements AutoCloseable {
 		}
 	}
 
-	public final String getHttpServerUri() {
+	public void createRoleMapping(String backendRoleName, String roleName) {
+		requireNonNull(backendRoleName, "Backend role name is required");
+		requireNonNull(roleName, "Role name is required");
+		String path = "_plugins/_security/api/rolesmapping/" + roleName;
+		String body = String.format("{\"backend_roles\": [\"%s\"]}", backendRoleName);
+		HttpResponse response = putJson(path, body);
+		response.assertStatusCode(201);
+	}
+
+	protected final String getHttpServerUri() {
 		return "http" + (enableHTTPClientSSL ? "s" : "") + "://" + nodeHttpAddress.getHostString() + ":" + nodeHttpAddress.getPort();
 	}
 
@@ -298,6 +309,12 @@ public class TestRestClient implements AutoCloseable {
 
 		public String getTextFromJsonBody(String jsonPointer) {        
 			return getJsonNodeAt(jsonPointer).asText();        	
+		}
+
+		public List<String> getTextArrayFromJsonBody(String jsonPointer) {
+			return StreamSupport.stream(getJsonNodeAt(jsonPointer).spliterator(), false)
+				.map(JsonNode::textValue)
+				.collect(Collectors.toList());
 		}
 		
 		public int getIntFromJsonBody(String jsonPointer) {        
