@@ -45,11 +45,14 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.netty.handler.ssl.OpenSsl;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.http.Header;
-import org.apache.http.HttpHost;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.message.BasicHeader;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
@@ -155,15 +158,22 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             sslContextBuilder.loadTrustMaterial(trustStore, null);
             SSLContext sslContext = sslContextBuilder.build();
 
-            HttpHost httpHost = new HttpHost(info.httpHost, info.httpPort, "https");
+            HttpHost httpHost = new HttpHost("https", info.httpHost, info.httpPort);
 
+            final TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
+                .create()
+                .setSslContext(sslContext)
+                .setTlsVersions("TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3")
+                .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                .build();
+
+            final PoolingAsyncClientConnectionManager connectionManager = PoolingAsyncClientConnectionManagerBuilder.create()
+                .setTlsStrategy(tlsStrategy)
+                .build();
+            
             RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
                     .setHttpClientConfigCallback(
-                            builder -> builder.setSSLStrategy(
-                                    new SSLIOSessionStrategy(sslContext,
-                                            new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3"},
-                                            null,
-                                            NoopHostnameVerifier.INSTANCE)));
+                            builder -> builder.setConnectionManager(connectionManager));
             return new RestHighLevelClient(restClientBuilder);
         } catch (Exception e) {
             log.error("Cannot create client", e);

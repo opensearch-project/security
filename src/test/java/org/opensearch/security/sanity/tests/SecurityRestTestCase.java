@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 
-import org.apache.http.HttpHost;
+import org.apache.hc.core5.http.HttpHost;
 
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;

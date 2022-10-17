@@ -13,7 +13,6 @@ package org.opensearch.security.httpclient;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -28,21 +27,25 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 
 import com.google.common.collect.Lists;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpHost;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.ssl.PrivateKeyDetails;
-import org.apache.http.ssl.PrivateKeyStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.ssl.PrivateKeyDetails;
+import org.apache.hc.core5.ssl.PrivateKeyStrategy;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -153,7 +156,7 @@ public class HttpClient implements Closeable {
 
         HttpHost[] hosts = Arrays.stream(servers)
                 .map(s->s.split(":"))
-                .map(s->new HttpHost(s[0], Integer.parseInt(s[1]),ssl?"https":"http"))
+                .map(s->new HttpHost(ssl?"https":"http", s[0], Integer.parseInt(s[1])))
                 .collect(Collectors.toList()).toArray(new HttpHost[0]);
 
 
@@ -223,7 +226,7 @@ public class HttpClient implements Closeable {
                 sslContextBuilder.loadKeyMaterial(keystore, keyPassword, new PrivateKeyStrategy() {
 
                     @Override
-                    public String chooseAlias(Map<String, PrivateKeyDetails> aliases, Socket socket) {
+                    public String chooseAlias(Map<String, PrivateKeyDetails> aliases, SSLParameters sslParameters) {
                         if(aliases == null || aliases.isEmpty()) {
                             return keystoreAlias;
                         }
@@ -238,13 +241,19 @@ public class HttpClient implements Closeable {
 
             final HostnameVerifier hnv = verifyHostnames?new DefaultHostnameVerifier():NoopHostnameVerifier.INSTANCE;
 
-            final SSLContext sslContext = sslContextBuilder.build();
-            httpClientBuilder.setSSLStrategy(new SSLIOSessionStrategy(
-                    sslContext,
-                    supportedProtocols,
-                    supportedCipherSuites,
-                    hnv
-                    ));
+            final TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
+                .create()
+                .setSslContext(sslContextBuilder.build())
+                .setCiphers(supportedCipherSuites)
+                .setTlsVersions(supportedProtocols)
+                .setHostnameVerifier(hnv)
+                .build();
+
+            final PoolingAsyncClientConnectionManager connectionManager = PoolingAsyncClientConnectionManagerBuilder.create()
+                .setTlsStrategy(tlsStrategy)
+                .build();
+
+            httpClientBuilder.setConnectionManager(connectionManager);
         }
 
         if (basicCredentials != null) {
@@ -255,9 +264,9 @@ public class HttpClient implements Closeable {
         int timeout = 5;
 
         RequestConfig config = RequestConfig.custom()
-          .setConnectTimeout(timeout * 1000)
-          .setConnectionRequestTimeout(timeout * 1000)
-          .setSocketTimeout(timeout * 1000).build();
+          .setConnectTimeout(Timeout.ofSeconds(timeout))
+          .setConnectionRequestTimeout(Timeout.ofSeconds(timeout))
+          .setResponseTimeout(Timeout.ofSeconds(timeout)).build();
 
         httpClientBuilder.setDefaultRequestConfig(config);
 

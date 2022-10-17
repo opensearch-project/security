@@ -42,6 +42,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -70,12 +71,15 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
@@ -1387,26 +1391,29 @@ public class SecurityAdmin {
 															  String[] enabledProtocols,
 															  String[] enabledCiphers,
 															  String hostname,
-															  int port) {
+															  int port) throws NoSuchAlgorithmException {
 
 		final HostnameVerifier hnv = !nhnv ? new DefaultHostnameVerifier() : NoopHostnameVerifier.INSTANCE;
 
 		String[] supportedProtocols = enabledProtocols.length > 0 ? enabledProtocols : null;
 		String[] supportedCipherSuites = enabledCiphers.length > 0 ? enabledCiphers : null;
 
-		HttpHost httpHost = new HttpHost(hostname, port, "https");
+		final HttpHost httpHost = new HttpHost("https", hostname, port);
+		final TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
+			.create()
+			.setSslContext(sslContext)
+			.setCiphers(supportedCipherSuites)
+			.setTlsVersions(supportedProtocols)
+			.setHostnameVerifier(hnv)
+			.build();
+
+		final PoolingAsyncClientConnectionManager connectionManager = PoolingAsyncClientConnectionManagerBuilder.create()
+			.setTlsStrategy(tlsStrategy)
+			.build();
 
 		RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
-				.setHttpClientConfigCallback(
-						builder -> builder.setSSLStrategy(
-								new SSLIOSessionStrategy(
-										sslContext,
-										supportedProtocols,
-										supportedCipherSuites,
-										hnv
-								)
-						)
-				);
+			.setHttpClientConfigCallback(builder -> builder.setConnectionManager(connectionManager));
+
 		return new RestHighLevelClient(restClientBuilder);
 	}
 
