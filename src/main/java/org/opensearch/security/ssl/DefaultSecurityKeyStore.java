@@ -73,6 +73,7 @@ import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1String;
 import org.bouncycastle.asn1.ASN1TaggedObject;
 
+import org.bouncycastle.asn1.x500.X500Name;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -589,24 +590,28 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
      */
     private boolean hasValidDNs(final X509Certificate[] currentX509Certs, final X509Certificate[] newX509Certs) {
 
-        final Function<? super X509Certificate, String> formatDNString = cert -> {
-            final String issuerDn = cert !=null && cert.getIssuerX500Principal() != null ? cert.getIssuerX500Principal().getName() : "";
-            final String subjectDn = cert !=null && cert.getSubjectX500Principal() != null ? cert.getSubjectX500Principal().getName() : "";
-            final String san = getSubjectAlternativeNames(cert);
-            return String.format("%s/%s/%s", issuerDn, subjectDn, san);
-        };
+        if(currentX509Certs.length != newX509Certs.length) {
+            return false;
+        }
 
-        final List<String> currentCertDNList = Arrays.stream(currentX509Certs)
-            .map(formatDNString)
-            .sorted()
-            .collect(Collectors.toList());
+        for(int i = 0; i < currentX509Certs.length; i++) {
+            X509Certificate currentCert = currentX509Certs[i];
+            X509Certificate newCert = newX509Certs[i];
 
-        final List<String> newCertDNList = Arrays.stream(newX509Certs)
-            .map(formatDNString)
-            .sorted()
-            .collect(Collectors.toList());
+            X500Name currIssuerDn = currentCert != null && currentCert.getIssuerX500Principal() != null ? new X500Name(currentCert.getIssuerX500Principal().getName()) : null;
+            X500Name currSubjectDn = currentCert != null && currentCert.getIssuerX500Principal() != null ? new X500Name(currentCert.getSubjectX500Principal().getName()) : null;
 
-        return currentCertDNList.equals(newCertDNList);
+            X500Name newIssuerDn = newCert != null && newCert.getIssuerX500Principal() != null ? new X500Name(newCert.getIssuerX500Principal().getName()) : null;
+            X500Name newSubjectDn = newCert != null && newCert.getIssuerX500Principal() != null ? new X500Name(newCert.getSubjectX500Principal().getName()) : null;
+
+            final String currSan = getSubjectAlternativeNames(currentCert);
+            final String newSan = getSubjectAlternativeNames(newCert);
+
+            if (!currIssuerDn.equals(newIssuerDn) || !currSubjectDn.equals(newSubjectDn) || !currSan.equals(newSan)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
