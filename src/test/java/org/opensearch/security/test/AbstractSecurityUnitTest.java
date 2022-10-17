@@ -172,6 +172,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                                 final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(tlsStrategy)
                                         .build();
+                                builder.setConnectionManager(cm);
                                 return builder;
                             });
             return new RestHighLevelClient(restClientBuilder);
