@@ -23,6 +23,7 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
+        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
         kafka_version  = '3.0.2'
 
         if (buildVersionQualifier) {
@@ -373,7 +374,7 @@ dependencies {
 
 
     implementation 'org.apache.commons:commons-lang3:3.4'
-    testImplementation "org.opensearch:common-utils:${opensearch_build}"
+    testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
     testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
