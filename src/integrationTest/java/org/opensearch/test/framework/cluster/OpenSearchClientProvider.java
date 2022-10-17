@@ -53,8 +53,8 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.BasicClientTlsStrategy;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
-
 import org.apache.hc.core5.http2.HttpVersionPolicy;
+
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
