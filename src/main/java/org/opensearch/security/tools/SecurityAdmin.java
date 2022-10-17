@@ -77,6 +77,7 @@ import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 
@@ -1412,6 +1413,8 @@ public class SecurityAdmin {
                                     .setTlsStrategy(tlsStrategy)
                                     .build();
 
+                              // Attempt to resolve org.apache.hc.core5.http.ParseException: Invalid protocol version
+                              builder.setVersionPolicy(HttpVersionPolicy.FORCE_HTTP_1);
                               builder.setConnectionManager(cm);
                               return builder;
                         });

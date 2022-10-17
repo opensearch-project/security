@@ -53,6 +53,7 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
@@ -173,6 +174,8 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                                         .setTlsStrategy(tlsStrategy)
                                         .build();
                                 builder.setConnectionManager(cm);
+                                // Attempt to resolve org.apache.hc.core5.http.ParseException: Invalid protocol version
+                                builder.setVersionPolicy(HttpVersionPolicy.FORCE_HTTP_1);
                                 return builder;
                             });
             return new RestHighLevelClient(restClientBuilder);
