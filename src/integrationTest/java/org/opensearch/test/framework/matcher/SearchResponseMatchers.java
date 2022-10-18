@@ -75,6 +75,10 @@ public class SearchResponseMatchers {
 		return new SearchHitsContainDocumentsInAnyOrderMatcher(Arrays.asList(documentIds));
 	}
 
+	public static Matcher<SearchResponse> searchHitsDocumentsContainExactlyFieldsWithNames(String expectedIndexName, String... expectedFieldsNames) {
+		return new SearchHitsDocumentsContainExactlyFieldsWithNamesMatcher(expectedIndexName, expectedFieldsNames);
+	}
+
 	static Long readTotalHits(SearchResponse searchResponse) {
 		return Optional.ofNullable(searchResponse)
 			.map(SearchResponse::getHits)

@@ -28,4 +28,8 @@ public class GetResponseMatchers  {
 	public static Matcher<GetResponse> documentContainField(String fieldName, Object fieldValue) {
 		return new GetResponseDocumentFieldValueMatcher(fieldName, fieldValue);
 	}
+
+	public static Matcher<GetResponse> documentContainsExactlyFieldsWithNames(String... expectedFieldsNames) {
+		return new GetResponseDocumentContainsExactlyFieldsWithNamesMatcher(expectedFieldsNames);
+	}
 }
