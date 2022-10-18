@@ -254,11 +254,10 @@ public class RestHelper {
 		final HttpClientBuilder hcb = HttpClients.custom();
 
 		if (sendHTTPClientCredentials) {
-			CredentialsProvider provider = new BasicCredentialsProvider();
 			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek".toCharArray());
 			BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-			credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials("sarek", "sarek".toCharArray()));
-			hcb.setDefaultCredentialsProvider(provider);
+			credentialsProvider.setCredentials(new AuthScope(null, -1), credentials);
+			hcb.setDefaultCredentialsProvider(credentialsProvider);
 		}
 
 		if (enableHTTPClientSSL) {
