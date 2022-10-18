@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -49,11 +50,12 @@ import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBu
 import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
-import org.apache.hc.core5.http2.HttpVersionPolicy;
+import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
@@ -168,14 +170,19 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                                         .setSslContext(sslContext)
                                         .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3"})
                                         .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                                        // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                                        .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+                                            @Override
+                                            public TlsDetails create(final SSLEngine sslEngine) {
+                                                return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+                                            }
+                                        })
                                         .build();
 
                                 final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(tlsStrategy)
                                         .build();
                                 builder.setConnectionManager(cm);
-                                // Attempt to resolve org.apache.hc.core5.http.ParseException: Invalid protocol version
-                                builder.setVersionPolicy(HttpVersionPolicy.FORCE_HTTP_1);
                                 return builder;
                             });
             return new RestHighLevelClient(restClientBuilder);

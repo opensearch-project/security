@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 
 import com.google.common.collect.Lists;
@@ -39,11 +40,12 @@ import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
-import org.apache.hc.core5.http2.HttpVersionPolicy;
+import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.PrivateKeyDetails;
 import org.apache.hc.core5.ssl.PrivateKeyStrategy;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -250,13 +252,18 @@ public class HttpClient implements Closeable {
                     .setTlsVersions(supportedProtocols)
                     .setCiphers(supportedCipherSuites)
                     .setHostnameVerifier(hnv)
+                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                    .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+                        @Override
+                        public TlsDetails create(final SSLEngine sslEngine) {
+                            return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+                        }
+                    })
                     .build();
 
             final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
                     .setTlsStrategy(tlsStrategy)
                     .build();
-            // Attempt to resolve org.apache.hc.core5.http.ParseException: Invalid protocol version
-            httpClientBuilder.setVersionPolicy(HttpVersionPolicy.FORCE_HTTP_1);
             httpClientBuilder.setConnectionManager(cm);
         }
 
