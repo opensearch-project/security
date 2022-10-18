@@ -14,6 +14,7 @@ package org.opensearch.security.auditlog.sink;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyStore;
@@ -275,7 +276,7 @@ public class WebhookSink extends AuditLogSink {
 
 		HttpPost postRequest = new HttpPost(url);
 
-		StringEntity input = new StringEntity(payload, webhookFormat.contentType);
+		StringEntity input = new StringEntity(payload, webhookFormat.contentType.withCharset(StandardCharsets.UTF_8));
 		postRequest.setEntity(input);
 
 		CloseableHttpResponse serverResponse = null;
@@ -364,7 +365,7 @@ public class WebhookSink extends AuditLogSink {
 
 				final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
 						.setSSLSocketFactory(sslsf)
-						.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60, TimeUnit.SECONDS).build())
+						.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(timeout, TimeUnit.SECONDS).build())
 						.build();
 				hcb.setConnectionManager(cm);
 	            return hcb.build();
@@ -381,7 +382,7 @@ public class WebhookSink extends AuditLogSink {
 
 			final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
 					.setSSLSocketFactory(sslsf)
-					.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60, TimeUnit.SECONDS).build())
+					.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(timeout, TimeUnit.SECONDS).build())
 					.build();
 			hcb.setConnectionManager(cm);
 

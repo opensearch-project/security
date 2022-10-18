@@ -429,11 +429,6 @@ public class SettingsBasedSSLConfigurator {
             return hostnameVerifier;
         }
 
-        // TODO Can this be removed?
-//        public SSLIOSessionStrategy toSSLIOSessionStrategy() {
-//            return new SSLIOSessionStrategy(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
-//        }
-
         public SSLConnectionSocketFactory toSSLConnectionSocketFactory() {
             return new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites,
                     hostnameVerifier);

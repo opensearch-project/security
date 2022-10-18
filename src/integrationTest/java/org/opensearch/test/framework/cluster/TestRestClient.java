@@ -380,15 +380,6 @@ public class TestRestClient implements AutoCloseable {
 		this.requestConfig = requestConfig;
 	}
 
-	// TODO Can this be removed?
-//	public void setLocalAddress(InetAddress inetAddress) {
-//		if (requestConfig == null) {
-//			requestConfig = RequestConfig.custom().setLocalAddress(inetAddress).build();
-//		} else {
-//			requestConfig = RequestConfig.copy(requestConfig).setLocalAddress(inetAddress).build();
-//		}
-//	}
-
 	public boolean isSendHTTPClientCertificate() {
 		return sendHTTPClientCertificate;
 	}
