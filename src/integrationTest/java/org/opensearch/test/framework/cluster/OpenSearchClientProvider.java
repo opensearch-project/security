@@ -105,6 +105,7 @@ public interface OpenSearchClientProvider {
 					.setTlsStrategy(tlsStrategy)
 					.build();
 
+			httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
 			httpClientBuilder.setConnectionManager(cm);
 			// Attempt to resolve org.apache.hc.core5.http.ParseException: Invalid protocol version
 			httpClientBuilder.setVersionPolicy(HttpVersionPolicy.FORCE_HTTP_1);
