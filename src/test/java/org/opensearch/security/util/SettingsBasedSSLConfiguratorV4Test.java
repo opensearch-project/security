@@ -63,8 +63,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfig;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -74,7 +74,7 @@ import org.opensearch.security.test.helper.network.SocketUtils;
 import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
-public class SettingsBasedSSLConfiguratorTest {
+public class SettingsBasedSSLConfiguratorV4Test {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -93,7 +93,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .put("prefix.enable_ssl", "true").put("path.home", rootCaPemPath.getParent().toString()).build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
@@ -120,7 +120,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .put("prefix.enable_ssl", "true").put("path.home", rootCaPemPath.getParent().toString()).build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
@@ -151,7 +151,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .put("prefix.pemkey_filepath", "kirk.key").put("prefix.pemkey_password", "secret").build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
@@ -181,7 +181,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
@@ -215,7 +215,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .put("path.home", rootCaPemPath.getParent().toString()).build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
@@ -244,7 +244,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .put("path.home", rootCaPemPath.getParent().toString()).build();
             Path configPath = rootCaPemPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
@@ -271,7 +271,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .put("path.home", rootCaJksPath.getParent().toString()).build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
@@ -299,7 +299,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .put("path.home", rootCaJksPath.getParent().toString()).build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
@@ -325,7 +325,7 @@ public class SettingsBasedSSLConfiguratorTest {
                     .put("path.home", rootCaJksPath.getParent().toString()).build();
             Path configPath = rootCaJksPath.getParent();
 
-            SettingsBasedSSLConfigurator sbsc = new SettingsBasedSSLConfigurator(settings, configPath, "prefix");
+            SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
