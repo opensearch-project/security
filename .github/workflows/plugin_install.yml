@@ -94,11 +94,17 @@ jobs:
         env:
           _JAVA_OPTIONS: -Xmx4096M
 
-      - name: Move and rename security plugin for installation
+      - name: Move and rename security plugin
         run: move build/distributions/opensearch-security-2.4.0.zip opensearch-security.zip
 
+      - name: Install the plugin
+        run: |
+          cd opensearch-2.4.0
+          y | .\bin\opensearch-plugin.bat install file:..\opensearch-security.zip
+        
+
       - name: Run OpenSearch with plugin
-        run: ./bin/opensearch.bat
+        run: .\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
