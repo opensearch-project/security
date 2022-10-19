@@ -28,7 +28,6 @@ package org.opensearch.security.test.helper.rest;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.Arrays;
@@ -38,6 +37,7 @@ import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,30 +45,33 @@ import javax.net.ssl.SSLContext;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpOptions;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.config.SocketConfig;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpHead;
+import org.apache.hc.client5.http.classic.methods.HttpOptions;
+import org.apache.hc.client5.http.classic.methods.HttpPatch;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -107,12 +110,13 @@ public class RestHelper {
 
 		CloseableHttpClient httpClient = null;
 		CloseableHttpResponse response = null;
+
 		try {
 			httpClient = getHTTPClient();
-			response = httpClient.execute(new HttpGet(getHttpServerUri() + "/" + request));
+			response = httpClient.execute(new HttpGet(getRequestUri(request)));
 
-			if (response.getStatusLine().getStatusCode() >= 300) {
-				throw new Exception("Statuscode " + response.getStatusLine().getStatusCode());
+			if (response.getCode() >= 300) {
+				throw new Exception("Statuscode " + response.getCode());
 			}
 
 			return IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
@@ -141,19 +145,26 @@ public class RestHelper {
 	}
 
 	public HttpResponse executeGetRequest(final String request, Header... header) {
-	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
+	    return executeRequest(new HttpGet(getRequestUri(request)), header);
+	}
+
+	public HttpResponse executeGetRequest(final String request, String body, Header... header) {
+		HttpGet getRequest = new HttpGet(getRequestUri(request));
+		getRequest.setEntity(createStringEntity(body));
+		getRequest.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+		return executeRequest(getRequest, header);
 	}
 	
 	public HttpResponse executeHeadRequest(final String request, Header... header) {
-        return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
+        return executeRequest(new HttpHead(getRequestUri(request)), header);
     }
 	
 	public HttpResponse executeOptionsRequest(final String request) {
-        return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
+        return executeRequest(new HttpOptions(getRequestUri(request)));
     }
 
 	public HttpResponse executePutRequest(final String request, String body, Header... header) {
-		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
+		HttpPut uriRequest = new HttpPut(getRequestUri(request));
 		if (body != null && !body.isEmpty()) {
 			uriRequest.setEntity(createStringEntity(body));
 		}
@@ -161,11 +172,19 @@ public class RestHelper {
 	}
 
 	public HttpResponse executeDeleteRequest(final String request, Header... header) {
-		return executeRequest(new HttpDelete(getHttpServerUri() + "/" + request), header);
+		return executeRequest(new HttpDelete(getRequestUri(request)), header);
 	}
 
+	public HttpResponse executeDeleteRequest(final String request, String body, Header... header) {
+		HttpDelete delRequest = new HttpDelete(getRequestUri(request));
+		delRequest.setEntity(createStringEntity(body));
+		delRequest.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+		return executeRequest(delRequest, header);
+	}
+
+
 	public HttpResponse executePostRequest(final String request, String body, Header... header) {
-		HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + request);
+		HttpPost uriRequest = new HttpPost(getRequestUri(request));
 		if (body != null && !body.isEmpty()) {
 			uriRequest.setEntity(createStringEntity(body));
 		}
@@ -174,7 +193,7 @@ public class RestHelper {
 	}
 	
     public HttpResponse executePatchRequest(final String request, String body, Header... header) {
-        HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
+        HttpPatch uriRequest = new HttpPatch(getRequestUri(request));
         if (body != null && !body.isEmpty()) {
             uriRequest.setEntity(createStringEntity(body));
         }
@@ -215,12 +234,8 @@ public class RestHelper {
 		}
 	}
 
-	private StringEntity createStringEntity(String body) {
-		try {
-			return new StringEntity(body);
-		} catch (final UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
+	private HttpEntity createStringEntity(String body) {
+		return new StringEntity(body);
 	}
 	
 	protected final String getHttpServerUri() {
@@ -228,16 +243,20 @@ public class RestHelper {
 		log.debug("Connect to {}", address);
 		return address;
 	}
+
+	protected final String getRequestUri(String request) {
+		return getHttpServerUri() + "/" + StringUtils.strip(request, "/");
+	}
 	
 	protected final CloseableHttpClient getHTTPClient() throws Exception {
 
 		final HttpClientBuilder hcb = HttpClients.custom();
 
 		if (sendHTTPClientCredentials) {
-			CredentialsProvider provider = new BasicCredentialsProvider();
-			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
-			provider.setCredentials(AuthScope.ANY, credentials);
-			hcb.setDefaultCredentialsProvider(provider);
+			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek".toCharArray());
+			BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+			credentialsProvider.setCredentials(new AuthScope(null, -1), credentials);
+			hcb.setDefaultCredentialsProvider(credentialsProvider);
 		}
 
 		if (enableHTTPClientSSL) {
@@ -277,16 +296,15 @@ public class RestHelper {
 				protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
 			}
 
-			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-			        sslContext, 
-			        protocols, 
-			        null,
+			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, protocols, null,
 					NoopHostnameVerifier.INSTANCE);
 
-			hcb.setSSLSocketFactory(sslsf);
+			final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+					.setSSLSocketFactory(sslsf)
+					.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60, TimeUnit.SECONDS).build())
+					.build();
+			hcb.setConnectionManager(cm);
 		}
-
-		hcb.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60 * 1000).build());
 
 		return hcb.build();
 	}
@@ -308,9 +326,9 @@ public class RestHelper {
 			} else {
 			    this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
 			}
-			this.header = inner.getAllHeaders();
-			this.statusCode = inner.getStatusLine().getStatusCode();
-			this.statusReason = inner.getStatusLine().getReasonPhrase();
+			this.header = inner.getHeaders();
+			this.statusCode = inner.getCode();
+			this.statusReason = inner.getReasonPhrase();
 			inner.close();
 		}
 

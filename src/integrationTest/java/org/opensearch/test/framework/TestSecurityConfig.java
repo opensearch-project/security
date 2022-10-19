@@ -42,6 +42,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
@@ -336,8 +337,20 @@ public class TestSecurityConfig {
 
 	public static class AuthcDomain implements ToXContentObject {
 
+		private static String PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoqZbjLUAWc+DZTkinQAdvy1GFjPHPnxheU89hSiWoDD3NOW76H3u3T7cCDdOah2msdxSlBmCBH6wik8qLYkcV8owWukQg3PQmbEhrdPaKo0QCgomWs4nLgtmEYqcZ+QQldd82MdTlQ1QmoQmI9Uxqs1SuaKZASp3Gy19y8su5CV+FZ6BruUw9HELK055sAwl3X7j5ouabXGbcib2goBF3P52LkvbJLuWr5HDZEOeSkwIeqSeMojASM96K5SdotD+HwEyjaTjzRPL2Aa1BEQFWOQ6CFJLyLH7ZStDuPM1mJU1VxIVfMbZrhsUBjAnIhRynmWxML7YlNqkP9j6jyOIYQIDAQAB";
+
 		public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL = new TestSecurityConfig.AuthcDomain("basic", 0)
-				.httpAuthenticator("basic").backend("internal");
+				.httpAuthenticatorWithChallenge("basic").backend("internal");
+
+		public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE = new TestSecurityConfig.AuthcDomain("basic", 0)
+			.httpAuthenticator("basic").backend("internal");
+
+		public final static AuthcDomain DISABLED_AUTHC_HTTPBASIC_INTERNAL = new TestSecurityConfig
+			.AuthcDomain("basic", 0, false).httpAuthenticator("basic").backend("internal");
+
+		public final static AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig
+			.AuthcDomain("jwt", 1)
+			.jwtHttpAuthenticator("Authorization", PUBLIC_KEY).backend("noop");
 
 		private final String id;
 		private boolean enabled = true;
@@ -346,9 +359,14 @@ public class TestSecurityConfig {
 		private HttpAuthenticator httpAuthenticator;
 		private AuthenticationBackend authenticationBackend;
 		
-		public AuthcDomain(String id, int order) {
+		public AuthcDomain(String id, int order, boolean enabled) {
 			this.id = id;
 			this.order = order;
+			this.enabled = enabled;
+		}
+
+		public AuthcDomain(String id, int order) {
+			this(id, order, true);
 		}
 
 		public AuthcDomain httpAuthenticator(String type) {
@@ -356,7 +374,13 @@ public class TestSecurityConfig {
 			return this;
 		}
 
-		public AuthcDomain challengingAuthenticator(String type) {
+		public AuthcDomain jwtHttpAuthenticator(String headerName, String signingKey) {
+			this.httpAuthenticator = new HttpAuthenticator("jwt")
+				.challenge(false).config(ImmutableMap.of("jwt_header", headerName, "signing_key", signingKey));
+			return this;
+		}
+
+		public AuthcDomain httpAuthenticatorWithChallenge(String type) {
 			this.httpAuthenticator = new HttpAuthenticator(type).challenge(true);
 			return this;
 		}
@@ -516,7 +540,7 @@ public class TestSecurityConfig {
 
 			String json = Strings.toString(builder);
 
-			log.info("Writing " + configType + ":\n" + json);
+			log.info("Writing security configuration into index " + configType + ":\n" + json);
 
 			client.index(new IndexRequest(indexName).id(configType.toLCString())
 					.setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(configType.toLCString(),

@@ -98,6 +98,10 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		this.testIndices = testIndices;
 	}
 
+	public String getSnapshotDirPath() {
+		return localOpenSearchCluster.getSnapshotDirPath();
+	}
+
 	@Override
 	public void before() throws Throwable {
 		if (localOpenSearchCluster == null) {

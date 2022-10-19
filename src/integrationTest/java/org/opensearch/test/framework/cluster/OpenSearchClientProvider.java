@@ -41,11 +41,26 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.apache.http.Header;
-import org.apache.http.message.BasicHeader;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.function.Factory;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.reactor.ssl.TlsDetails;
 
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
+import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.security.support.PemKeyReader;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
@@ -80,6 +95,40 @@ public interface OpenSearchClientProvider {
 	*/
 	default TestRestClient getRestClient(UserCredentialsHolder user, Header... headers) {
 		return getRestClient(user.getName(), user.getPassword(), headers);
+	}
+
+	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
+		InetSocketAddress httpAddress = getHttpAddress();
+		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+		credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray()));
+		RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
+			TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
+				.create()
+				.setSslContext(getSSLContext())
+				.setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+				// See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+				.setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+					@Override
+					public TlsDetails create(final SSLEngine sslEngine) {
+						return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+					}
+				})
+				.build();
+
+			final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+					.setTlsStrategy(tlsStrategy)
+					.build();
+
+			httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+			httpClientBuilder.setConnectionManager(cm);
+			return httpClientBuilder;
+		};
+
+		RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
+			.setHttpClientConfigCallback(configCallback);
+
+
+		return new RestHighLevelClient(builder);
 	}
 
 	/**

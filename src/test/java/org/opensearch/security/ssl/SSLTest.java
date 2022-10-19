@@ -31,7 +31,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
 import io.netty.util.internal.PlatformDependent;
-import org.apache.http.NoHttpResponseException;
+import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.lucene.util.Constants;
 import org.junit.Assert;
 import org.junit.Assume;

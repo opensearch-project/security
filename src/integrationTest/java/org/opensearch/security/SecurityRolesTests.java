@@ -12,7 +12,7 @@
 package org.opensearch.security;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,7 +45,7 @@ public class SecurityRolesTests {
 	public void testSecurityRoles() throws Exception {
 		try (TestRestClient client = cluster.getRestClient(USER_SR)) {
 			HttpResponse response = client.getAuthInfo();
-			assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+			response.assertStatusCode(HttpStatus.SC_OK);
 
 			// Check username		
 			assertThat(response.getTextFromJsonBody("/user_name"), equalTo("sr_user"));
