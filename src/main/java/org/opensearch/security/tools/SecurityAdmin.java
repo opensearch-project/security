@@ -54,6 +54,7 @@ import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -70,12 +71,17 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.function.Factory;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.reactor.ssl.TlsDetails;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
@@ -1394,19 +1400,31 @@ public class SecurityAdmin {
 		String[] supportedProtocols = enabledProtocols.length > 0 ? enabledProtocols : null;
 		String[] supportedCipherSuites = enabledCiphers.length > 0 ? enabledCiphers : null;
 
-		HttpHost httpHost = new HttpHost(hostname, port, "https");
+		HttpHost httpHost = new HttpHost("https", hostname, port);
 
 		RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
-				.setHttpClientConfigCallback(
-						builder -> builder.setSSLStrategy(
-								new SSLIOSessionStrategy(
-										sslContext,
-										supportedProtocols,
-										supportedCipherSuites,
-										hnv
-								)
-						)
-				);
+				 .setHttpClientConfigCallback(
+				 		builder -> {
+                              TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                                    .setSslContext(sslContext)
+                                    .setTlsVersions(supportedProtocols)
+                                    .setCiphers(supportedCipherSuites)
+                                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                                    .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+                                        @Override
+                                        public TlsDetails create(final SSLEngine sslEngine) {
+                                            return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+                                        }
+                                    })
+                                    .build();
+
+                              final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                                    .setTlsStrategy(tlsStrategy)
+                                    .build();
+
+                              builder.setConnectionManager(cm);
+                              return builder;
+                        });
 		return new RestHighLevelClient(restClientBuilder);
 	}
 

@@ -12,22 +12,24 @@
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
 import org.apache.cxf.rs.security.jose.jwk.JwkUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
-import org.apache.http.client.cache.HttpCacheContext;
-import org.apache.http.client.cache.HttpCacheStorage;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.client.cache.BasicHttpCacheStorage;
-import org.apache.http.impl.client.cache.CacheConfig;
-import org.apache.http.impl.client.cache.CachingHttpClients;
+import org.apache.hc.client5.http.cache.HttpCacheContext;
+import org.apache.hc.client5.http.cache.HttpCacheStorage;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.cache.BasicHttpCacheStorage;
+import org.apache.hc.client5.http.impl.cache.CacheConfig;
+import org.apache.hc.client5.http.impl.cache.CachingHttpClients;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -70,16 +72,14 @@ public class KeySetRetriever implements KeySetProvider {
 
 			HttpGet httpGet = new HttpGet(uri);
 
-			RequestConfig requestConfig = RequestConfig.custom().setConnectionRequestTimeout(getRequestTimeoutMs())
-					.setConnectTimeout(getRequestTimeoutMs()).setSocketTimeout(getRequestTimeoutMs()).build();
+			RequestConfig requestConfig = RequestConfig.custom().setConnectionRequestTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
+					.setConnectTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS).build();
 
 			httpGet.setConfig(requestConfig);
 
 			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-				StatusLine statusLine = response.getStatusLine();
-
-				if (statusLine.getStatusCode() < 200 || statusLine.getStatusCode() >= 300) {
-					throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + statusLine);
+				if (response.getCode() < 200 || response.getCode() >= 300) {
+					throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + response.getReasonPhrase());
 				}
 
 				HttpEntity httpEntity = response.getEntity();
@@ -105,8 +105,8 @@ public class KeySetRetriever implements KeySetProvider {
 
 			HttpGet httpGet = new HttpGet(openIdConnectEndpoint);
 
-			RequestConfig requestConfig = RequestConfig.custom().setConnectionRequestTimeout(getRequestTimeoutMs())
-					.setConnectTimeout(getRequestTimeoutMs()).setSocketTimeout(getRequestTimeoutMs()).build();
+			RequestConfig requestConfig = RequestConfig.custom().setConnectionRequestTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
+					.setConnectTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS).build();
 
 			httpGet.setConfig(requestConfig);
 
@@ -121,11 +121,9 @@ public class KeySetRetriever implements KeySetProvider {
 					logCacheResponseStatus(httpContext);
 				}
 
-				StatusLine statusLine = response.getStatusLine();
-
-				if (statusLine.getStatusCode() < 200 || statusLine.getStatusCode() >= 300) {
+				if (response.getCode() < 200 || response.getCode() >= 300) {
 					throw new AuthenticatorUnavailableException(
-							"Error while getting " + openIdConnectEndpoint + ": " + statusLine);
+							"Error while getting " + openIdConnectEndpoint + ": " + response.getReasonPhrase());
 				}
 
 				HttpEntity httpEntity = response.getEntity();
@@ -196,7 +194,11 @@ public class KeySetRetriever implements KeySetProvider {
 		builder.useSystemProperties();
 
 		if (sslConfig != null) {
-			builder.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory());
+			final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+					.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
+					.build();
+
+			builder.setConnectionManager(cm);
 		}
 
 		return builder.build();
