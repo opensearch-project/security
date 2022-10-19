@@ -25,6 +25,7 @@ jobs:
           wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/$opensearch_version/latest/linux/x64/tar/builds/opensearch/dist/opensearch-min-$opensearch_version-linux-x64.tar.gz
           tar -xzf opensearch-*.tar.gz
           rm -f opensearch-*.tar.gz
+
       - name: Move and rename security plugin for installation
         run: mv build/distributions/opensearch-security-*.zip opensearch-security.zip
 
@@ -49,6 +50,7 @@ jobs:
           ENTRYPOINT /docker-host/os-ep.sh
           EOF
           docker run --name ops -d -p 9200:9200 -p 9600:9600 -i opensearch-test:latest
+
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
         with:
@@ -82,21 +84,21 @@ jobs:
 
       - name: Download OpenSearch Core
         run: |
-          curl https://ci.opensearch.org/ci/dbc/bundle-build-zhujiaxi/2.3.0-SNAPSHOT/12/windows/x64/zip/dist/opensearch/opensearch-2.3.0-SNAPSHOT-windows-x64.zip
-          tar -xzf opensearch-2.3.0.zip
-          del -f opensearch-2.3.0.zip
-      - name: Build with Gradle
+          curl https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip
+          tar -xzf opensearch-2.4.0.zip
+          del -f opensearch-2.4.0.zip
+
+      - name: Build Security Plugin with Gradle
         run:
           ./gradlew.bat assemble
         env:
           _JAVA_OPTIONS: -Xmx4096M
 
       - name: Move and rename security plugin for installation
-        run: move build/distributions/opensearch-security-2.3.0.zip opensearch-security.zip
+        run: move build/distributions/opensearch-security-2.4.0.zip opensearch-security.zip
 
       - name: Run OpenSearch with plugin
         run: ./bin/opensearch.bat
-
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
