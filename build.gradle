@@ -221,6 +221,7 @@ bundlePlugin {
     }
 }
 
+<<<<<<< HEAD
 configurations.all {
     resolutionStrategy {
         force 'commons-codec:commons-codec:1.14'
@@ -236,6 +237,46 @@ configurations.all {
         force "io.netty:netty-handler:${versions.netty}"
         force "io.netty:netty-transport:${versions.netty}"
         force "io.netty:netty-transport-native-unix-common:${versions.netty}"
+=======
+configurations {
+    all {
+        resolutionStrategy {
+            force 'commons-codec:commons-codec:1.14'
+            force 'org.slf4j:slf4j-api:1.7.30'
+            force 'org.scala-lang:scala-library:2.13.9'
+            force 'commons-io:commons-io:2.11.0'
+            force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
+            force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+            force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
+            force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+            force "io.netty:netty-buffer:${versions.netty}"
+            force "io.netty:netty-common:${versions.netty}"
+            force "io.netty:netty-handler:${versions.netty}"
+            force "io.netty:netty-transport:${versions.netty}"
+            force "io.netty:netty-transport-native-unix-common:${versions.netty}"
+        }
+    }
+
+    integrationTestImplementation.extendsFrom implementation
+    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+//create source set 'integrationTest'
+//add classes from the main source set to the compilation and runtime classpaths of the integrationTest
+sourceSets {
+    integrationTest {
+        java {
+            srcDir file ('src/integrationTest/java')
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+        }
+        resources {
+            srcDir file('src/integrationTest/resources')
+        }
+        processIntegrationTestResources {
+            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+        }
+>>>>>>> 7b81e55d (Patch bump for scala dependency (#2163))
     }
 }
 
@@ -349,7 +390,7 @@ dependencies {
     testRuntimeOnly ('org.springframework:spring-core:5.3.21') {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
-    testRuntimeOnly 'org.scala-lang:scala-library:2.13.8'
+    testRuntimeOnly 'org.scala-lang:scala-library:2.13.9'
     testRuntimeOnly 'com.yammer.metrics:metrics-core:2.2.0'
     testRuntimeOnly 'com.typesafe.scala-logging:scala-logging_3:3.9.5'
     testRuntimeOnly 'org.apache.zookeeper:zookeeper:3.7.1'
