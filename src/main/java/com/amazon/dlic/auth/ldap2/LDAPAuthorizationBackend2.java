@@ -76,6 +76,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
     private ConnectionFactory connectionFactory;
     private LDAPUserSearcher userSearcher;
     private final String[] returnAttributes;
+    private final boolean shouldFollowReferrals;
 
     public LDAPAuthorizationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
@@ -91,6 +92,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         this.connectionFactory = ldapConnectionFactoryFactory.createConnectionFactory(this.connectionPool);
         this.userSearcher = new LDAPUserSearcher(settings);
         this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
+        this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT);
     }
 
     private static List<Map.Entry<String, Settings>> getRoleSearchSettings(Settings settings) {
@@ -207,14 +209,14 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         log.trace("{} is a valid DN", authenticatedUser);
                     }
 
-                    entry = LdapHelper.lookup(connection, authenticatedUser, this.returnAttributes);
+                    entry = LdapHelper.lookup(connection, authenticatedUser, this.returnAttributes, this.shouldFollowReferrals);
 
                     if (entry == null) {
                         throw new OpenSearchSecurityException("No user '" + authenticatedUser + "' found");
                     }
 
                 } else {
-                    entry = this.userSearcher.exists(connection, user.getName(), this.returnAttributes);
+                    entry = this.userSearcher.exists(connection, user.getName(), this.returnAttributes, this.shouldFollowReferrals);
 
                     if (isTraceEnabled) {
                         log.trace("{} is not a valid DN and was resolved to {}", authenticatedUser, entry);
@@ -314,7 +316,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                             roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
                             f,
                             SearchScope.SUBTREE,
-                            this.returnAttributes);
+                            this.returnAttributes, this.shouldFollowReferrals);
 
                     if (isTraceEnabled) {
                         log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchSettingsEntry.getKey(), rolesResult);
@@ -430,7 +432,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         final Set<LdapName> result = new HashSet<>(20);
         final HashMultimap<LdapName, Map.Entry<String, Settings>> resultRoleSearchBaseKeys = HashMultimap.create();
 
-        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes);
+        final LdapEntry e0 = LdapHelper.lookup(ldapConnection, roleDn.toString(), this.returnAttributes, this.shouldFollowReferrals);
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (e0.getAttribute(userRoleName) != null) {
@@ -472,7 +474,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                         roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
                         f,
                         SearchScope.SUBTREE,
-                        this.returnAttributes);
+                        this.returnAttributes, this.shouldFollowReferrals);
 
                 if (isTraceEnabled) {
                     log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchBaseSettingsEntry.getKey(), foundEntries);
@@ -550,7 +552,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         }
 
         try {
-            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString(), this.returnAttributes);
+            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString(), this.returnAttributes, this.shouldFollowReferrals);
 
             if(roleEntry != null) {
                 final LdapAttribute roleAttribute = roleEntry.getAttribute(role);
