@@ -1128,7 +1128,7 @@ public class ConfigModelV7 extends ConfigModel {
             
             if(!result.containsKey("global_tenant") && (
                     roles.contains("kibana_user")
-                    || roles.contains("kibana_user")
+                    || roles.contains("KIBANA_USER")
                     || roles.contains("all_access")
                     || roles.contains("ALL_ACCESS")
                     )) {
