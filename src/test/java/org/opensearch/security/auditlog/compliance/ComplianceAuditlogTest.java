@@ -209,13 +209,16 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         }, 2);
 
-        assertThat(messages.get(0).getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
-        assertThat(messages.get(0).getRequestBody(), containsString("Designation"));
-        assertThat(messages.get(0).getRequestBody(), not(containsString("Salary")));
 
-        assertThat(messages.get(1).getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
-        assertThat(messages.get(1).getRequestBody(), containsString("Gender"));
-        assertThat(messages.get(1).getRequestBody(), not(containsString("Salary")));
+        final AuditMessage desginationMsg = messages.stream().filter(msg -> msg.getRequestBody().contains("Designation")).findFirst().orElseThrow();
+        assertThat(desginationMsg.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
+        assertThat(desginationMsg.getRequestBody(), containsString("Designation"));
+        assertThat(desginationMsg.getRequestBody(), not(containsString("Salary")));
+
+        final AuditMessage genderMsg = messages.stream().filter(msg -> msg.getRequestBody().contains("Gender")).findFirst().orElseThrow();
+        assertThat(genderMsg.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
+        assertThat(genderMsg.getRequestBody(), containsString("Gender"));
+        assertThat(genderMsg.getRequestBody(), not(containsString("Salary")));
 
         Assert.assertTrue(validateMsgs(messages));
     }
