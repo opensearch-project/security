@@ -86,7 +86,7 @@ jobs:
         run: |
           Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip
           tar -xzf opensearch-2.4.0.zip
-          del -f opensearch-2.4.0.zip
+          del opensearch-2.4.0.zip --force
 
       - name: Build Security Plugin with Gradle
         run:
@@ -101,7 +101,7 @@ jobs:
         run: |
           cd opensearch-2.4.0
           Echo y | .\bin\opensearch-plugin.bat install file:..\opensearch-security.zip
-          .\plugins\opensearch-secutiry\tools\install_demo_configuration.bat
+          .\plugins\opensearch-security\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
         run: Echo y | .\bin\opensearch.bat
