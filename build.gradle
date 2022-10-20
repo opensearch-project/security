@@ -164,6 +164,7 @@ publishing {
             pom {
                 name = "opensearch-security"
                 description = "Provide access control related features for OpenSearch"
+                groupId = "org.opensearch.plugin"
                 licenses {
                     license {
                         name = "The Apache License, Version 2.0"
