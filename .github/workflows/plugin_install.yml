@@ -85,7 +85,7 @@ jobs:
       - name: Download OpenSearch Core
         run: |
           Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip -Outfile opensearch-2.4.0.zip
-          tar -xzf opensearch-2.4.0.zip
+          tar -xzf opensearch-2.4.0.zip -Outfile Opensearch
           del opensearch-2.4.0.zip
           ls 
            
@@ -102,11 +102,12 @@ jobs:
 
       - name: Install the plugin
         run: |
-          Echo y | .\opensearch-2.4.0-SNAPSHOT\bin\opensearch-plugin.bat install file:.\opensearch-security.zip
-          .\opensearch-2.4.0-SNAPSHOT\bin\plugins\opensearch-security\tools\install_demo_configuration.bat
+          Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:.\opensearch-security.zip
+          ls
+          .\Opensearch\bin\plugins\opensearch-security\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
-        run: Echo y | .\opensearch-2.4.0-SNAPSHOT\bin\opensearch.bat
+        run: Echo y | .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
