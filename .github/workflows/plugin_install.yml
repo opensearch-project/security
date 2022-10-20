@@ -100,7 +100,7 @@ jobs:
 
       - name: Install the plugin
         run: |
-          Echo y | .\opensearch\opensearch-plugin.bat install file:..\opensearch-security.zip
+          Echo y | .\opensearch-plugin.bat install file:..\opensearch-security.zip
           .\plugins\opensearch-security\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
