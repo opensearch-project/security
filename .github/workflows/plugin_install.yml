@@ -101,7 +101,7 @@ jobs:
         run: |
           cd opensearch-2.4.0
           y | .\bin\opensearch-plugin.bat install file:..\opensearch-security.zip
-        
+          y | y | N | .\plugins\opensearch-secutiry\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
         run: .\bin\opensearch.bat
