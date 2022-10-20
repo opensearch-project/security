@@ -86,7 +86,7 @@ jobs:
         run: |
           Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip
           tar -xzf opensearch-2.4.0.zip
-          del opensearch-2.4.0.zip --force
+          del opensearch-2.4.0.zip 
 
       - name: Build Security Plugin with Gradle
         run:
