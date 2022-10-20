@@ -100,11 +100,11 @@ jobs:
       - name: Install the plugin
         run: |
           cd opensearch-2.4.0
-          y | .\bin\opensearch-plugin.bat install file:..\opensearch-security.zip
-          y | y | N | .\plugins\opensearch-secutiry\tools\install_demo_configuration.bat
+          Echo y | .\bin\opensearch-plugin.bat install file:..\opensearch-security.zip
+          .\plugins\opensearch-secutiry\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
-        run: .\bin\opensearch.bat
+        run: Echo y | .\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
