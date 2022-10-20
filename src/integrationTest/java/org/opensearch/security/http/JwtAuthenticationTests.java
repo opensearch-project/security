@@ -22,6 +22,7 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader ;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -36,6 +37,7 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
+import org.opensearch.test.framework.log.LogsRule;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -117,6 +119,9 @@ public class JwtAuthenticationTests {
 		.authc(JWT_AUTH_DOMAIN)
 		.build();
 
+	@Rule
+	public LogsRule logsRule = new LogsRule("com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator");
+
 	@BeforeClass
 	public static void createTestData() {
 		try (Client client = cluster.getInternalNodeClient()) {
@@ -158,6 +163,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
+			logsRule.assertThatContain("No subject found in JWT token");
 		}
 	}
 
@@ -168,6 +174,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
+			logsRule.assertThatContain("Invalid or expired JWT token.");
 		}
 	}
 
@@ -179,6 +186,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
+			logsRule.assertThatContain(String.format("No JWT token found in '%s' header header", JWT_AUTH_HEADER));
 		}
 	}
 
@@ -191,6 +199,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
+			logsRule.assertThatContain("Invalid or expired JWT token.");
 		}
 	}
 
