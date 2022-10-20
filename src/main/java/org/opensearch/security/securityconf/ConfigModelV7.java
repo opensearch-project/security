@@ -1116,11 +1116,11 @@ public class ConfigModelV7 extends ConfigModel {
 
                 if (rw || !result.containsKey(tenant)) { //RW outperforms RO
 
-                    // We want to make sure that we add a tenant that exissts
+                    // We want to make sure that we add a tenant that exists
                     // Indeed, because we don't have control over what will be
                     // passed on as values of users' attributes, we have to make
                     // sure that we don't allow them to select tenants that do not exist.
-                    if(ConfigModelV7.this.tenants.getCEntries().keySet().contains(tenant)) {
+                    if(ConfigModelV7.this.tenants.getCEntries().containsKey(tenant)) {
                         result.put(tenant, rw);
                     }
                 }
