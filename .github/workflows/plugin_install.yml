@@ -91,7 +91,7 @@ jobs:
 
       - name: Build Security Plugin with Gradle
         run:
-          ./gradlew.bat assemble
+          .\gradlew.bat assemble
         env:
           _JAVA_OPTIONS: -Xmx4096M
 
