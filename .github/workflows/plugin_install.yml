@@ -91,8 +91,7 @@ jobs:
            
 
       - name: Build Security Plugin with Gradle
-        run:
-          .\gradlew.bat assemble
+        run: .\gradlew.bat assemble
         env:
           _JAVA_OPTIONS: -Xmx4096M
 
@@ -103,11 +102,11 @@ jobs:
 
       - name: Install the plugin
         run: |
-          Echo y | .\opensearch-plugin.bat install file:..\opensearch-security.zip
-          .\plugins\opensearch-security\tools\install_demo_configuration.bat
+          Echo y | .\opensearch-2.4.0-SNAPSHOT\bin\opensearch-plugin.bat install file:.\opensearch-security.zip
+          .\opensearch-2.4.0-SNAPSHOT\bin\plugins\opensearch-security\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
-        run: Echo y | .\opensearch.bat
+        run: Echo y | .\opensearch-2.4.0-SNAPSHOT\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
