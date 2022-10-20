@@ -96,7 +96,7 @@ jobs:
           _JAVA_OPTIONS: -Xmx4096M
 
       - name: Move and rename security plugin
-        run: move build\distributions\opensearch-security-2.4.0.zip opensearch-security.zip
+        run: move build\distributions\opensearch-security-*.zip opensearch-security.zip
 
       - name: Install the plugin
         run: |
