@@ -18,15 +18,16 @@ import java.net.ServerSocket;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.bootstrap.HttpServer;
-import org.apache.http.impl.bootstrap.ServerBootstrap;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.impl.HttpProcessors;
+import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
+import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
+import org.apache.hc.core5.util.TimeValue;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -223,8 +224,8 @@ public class WebhookAuditLogTest {
 		int port = findFreePort();
 		server = ServerBootstrap.bootstrap()
 				.setListenerPort(port)
-				.setServerInfo("Test/1.1")
-				.registerHandler("*", handler)
+				.setHttpProcessor(HttpProcessors.server("Test/1.1"))
+				.register("*", handler)
 				.create();
 
 		server.start();
@@ -318,7 +319,7 @@ public class WebhookAuditLogTest {
 		Assert.assertTrue(handler.method.equals("GET"));
 		Assert.assertEquals(null, handler.body);
 		assertStringContainsAllKeysAndValues(URLDecoder.decode(handler.uri, StandardCharsets.UTF_8.displayName()));
-		server.shutdown(3l, TimeUnit.SECONDS);
+		server.awaitTermination(TimeValue.ofSeconds(3));
 	}
 
 	@Test
@@ -329,8 +330,8 @@ public class WebhookAuditLogTest {
 		int port = findFreePort();
 		server = ServerBootstrap.bootstrap()
 				.setListenerPort(port)
-				.setServerInfo("Test/1.1")
-				.registerHandler("*", handler)
+				.setHttpProcessor(HttpProcessors.server("Test/1.1"))
+				.register("*", handler)
 				.create();
 
 		server.start();
@@ -355,7 +356,7 @@ public class WebhookAuditLogTest {
 		// ... so message must be stored in fallback
 		Assert.assertEquals(1, fallback.messages.size());
 		Assert.assertEquals(msg, fallback.messages.get(0));
-		server.shutdown(3l, TimeUnit.SECONDS);
+		server.awaitTermination(TimeValue.ofSeconds(3));
 	}
 
 
@@ -366,9 +367,9 @@ public class WebhookAuditLogTest {
 		int port = findFreePort();
         server = ServerBootstrap.bootstrap()
                 .setListenerPort(port)
-                .setServerInfo("Test/1.1")
-                .setSslContext(createSSLContext())
-                .registerHandler("*", handler)
+				.setHttpProcessor(HttpProcessors.server("Test/1.1"))
+				.setSslContext(createSSLContext())
+				.register("*", handler)
                 .create();
 
         server.start();
@@ -440,7 +441,7 @@ public class WebhookAuditLogTest {
         Assert.assertNull(handler.body);
         Assert.assertNull(handler.body);
 
-        server.shutdown(3l, TimeUnit.SECONDS);
+		server.awaitTermination(TimeValue.ofSeconds(3));
     }
 
 	@Test
@@ -450,9 +451,9 @@ public class WebhookAuditLogTest {
 
         server = ServerBootstrap.bootstrap()
                 .setListenerPort(port)
-                .setServerInfo("Test/1.1")
-                .setSslContext(createSSLContext())
-                .registerHandler("*", handler)
+				.setHttpProcessor(HttpProcessors.server("Test/1.1"))
+				.setSslContext(createSSLContext())
+				.register("*", handler)
                 .create();
 
         server.start();
@@ -554,7 +555,7 @@ public class WebhookAuditLogTest {
         Assert.assertNull(handler.method);
         Assert.assertNull(handler.body);
         Assert.assertNull(handler.body);
-        server.shutdown(3l, TimeUnit.SECONDS);
+		server.awaitTermination(TimeValue.ofSeconds(3));
 	}
 
 	@Test
@@ -565,9 +566,9 @@ public class WebhookAuditLogTest {
 
         server = ServerBootstrap.bootstrap()
                 .setListenerPort(port)
-                .setServerInfo("Test/1.1")
-                .setSslContext(createSSLContext())
-                .registerHandler("*", handler)
+				.setHttpProcessor(HttpProcessors.server("Test/1.1"))
+				.setSslContext(createSSLContext())
+				.register("*", handler)
                 .create();
 
         server.start();
@@ -652,7 +653,7 @@ public class WebhookAuditLogTest {
         Assert.assertNull(handler.body);
         Assert.assertNull(handler.body);
 
-        server.shutdown(3l, TimeUnit.SECONDS);
+		server.awaitTermination(TimeValue.ofSeconds(3));
 	}
 
 	@Test
@@ -663,9 +664,9 @@ public class WebhookAuditLogTest {
 
         server = ServerBootstrap.bootstrap()
                 .setListenerPort(port)
-                .setServerInfo("Test/1.1")
-                .setSslContext(createSSLContext())
-                .registerHandler("*", handler)
+				.setHttpProcessor(HttpProcessors.server("Test/1.1"))
+				.setSslContext(createSSLContext())
+				.register("*", handler)
                 .create();
 
         server.start();
@@ -691,9 +692,7 @@ public class WebhookAuditLogTest {
         Assert.assertTrue(handler.body.contains("{"));
         assertStringContainsAllKeysAndValues(handler.body);
 
-
-
-        server.shutdown(3l, TimeUnit.SECONDS);
+		server.awaitTermination(TimeValue.ofSeconds(3));
 	}
 
 	// for TLS support on our in-memory server

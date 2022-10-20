@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 
-import org.apache.http.HttpHost;
+import org.apache.hc.core5.http.HttpHost;
 
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
@@ -82,6 +82,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
             // create client with passed user
             String userName = System.getProperty("user");
             String password = System.getProperty("password");
+
             return new SecureRestClientBuilder(hosts, isHttps(), userName, password).setSocketTimeout(60000).build();
         }
         else {
