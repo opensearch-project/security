@@ -105,7 +105,7 @@ jobs:
       - name: Install the plugin
         run: |
           cd ..
-           Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:\a\security\opensearch-security.zip        
+           'y' | .\Opensearch\bin\opensearch-plugin.bat install file:\a\security\opensearch-security.zip        
            'y', 'y', 'N' | .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
           
           
@@ -113,7 +113,7 @@ jobs:
       - name: Run OpenSearch with plugin
         run: |
           cd ..
-          Echo y | .\Opensearch\bin\opensearch.bat
+          .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
@@ -121,4 +121,11 @@ jobs:
           time: '30s'
 
       - name: Check OpenSearch Running
-        run: curl -GET https://localhost:9200 -u 'admin:admin' -k -v
+        run: |
+          $credentialBytes = [Text.Encoding]::ASCII.GetBytes("admin:admin")
+          $encodedCredentials = [Convert]::ToBase64String($credentialBytes)
+          $baseCredentials = "Basic $encodedCredentials"
+          $Headers = @{ Authorization = $baseCredentials }
+          Invoke-WebRequest -Uri 'https://localhost:9200' -Headers $Headers
+
+
