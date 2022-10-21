@@ -84,11 +84,20 @@ jobs:
 
       - name: Download OpenSearch Core
         run: |
+          Echo Base Dir
+          ls
           cd ..
+          Echo One up Dir
+          ls
           Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip -Outfile opensearch-2.4.0.zip
+          Echo After Invoke
+          ls
           tar -xzf opensearch-2.4.0.zip 
           del opensearch-2.4.0.zip
+          Echo After Unpack
+          ls
           Rename-Item opensearch-* Opensearch
+          Echo After rename
           ls 
            
 
@@ -100,14 +109,22 @@ jobs:
 
       - name: Move and rename security plugin
         run: |
+          Echo Top of sec move 
+          ls
           move build\distributions\opensearch-security-*.zip opensearch-security.zip
+          Echo After move
           ls
 
       - name: Install the plugin
         run: |
+          Echo Top of install
+          ls
           cd ..
+          Echo One dir up
+          ls
           Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:.\security\opensearch-security.zip
           cd Opensearch
+          Echo Opensearch dir
           ls
           .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
 
