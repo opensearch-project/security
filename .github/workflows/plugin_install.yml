@@ -135,7 +135,7 @@ jobs:
           cd .. 
           Echo root dir
           ls
-          Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:.\opensearch-security.zip
+          Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:opensearch-security.zip
           cd Opensearch
           Echo Opensearch dir
           ls
