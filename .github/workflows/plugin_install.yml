@@ -108,7 +108,7 @@ jobs:
       - name: Run OpenSearch with plugin
         run: |
           cd ..
-          'y' | .\Opensearch\bin\opensearch.bat
+          .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
