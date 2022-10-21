@@ -94,7 +94,7 @@ public final class PemKeyReader {
                 safeClose(in);
             }
         } catch (FileNotFoundException e) {
-            throw new KeyException("could not fine key file: " + file);
+            throw new KeyException("could not find key file: " + file);
         }
     }
 
@@ -209,6 +209,8 @@ public final class PemKeyReader {
         
         CertificateFactory fact = CertificateFactory.getInstance("X.509");
         try(FileInputStream is = new FileInputStream(file)) {
+            System.out.println("FILE IS");
+            System.out.println(file.toString());
             return (X509Certificate) fact.generateCertificate(is);
         }
     }
