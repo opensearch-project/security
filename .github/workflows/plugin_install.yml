@@ -89,8 +89,6 @@ jobs:
           tar -xzf opensearch-2.4.0.zip 
           del opensearch-2.4.0.zip
           Rename-Item opensearch-* Opensearch
-         
-           
 
       - name: Build Security Plugin with Gradle
         run: |
@@ -101,19 +99,16 @@ jobs:
       - name: Move and rename security plugin
         run: move build\distributions\opensearch-security-*.zip ..\opensearch-security.zip
 
-
       - name: Install the plugin
         run: |
           cd ..
            'y' | .\Opensearch\bin\opensearch-plugin.bat install file:\a\security\opensearch-security.zip        
            'y', 'y', 'N' | .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
-          
-          
 
       - name: Run OpenSearch with plugin
         run: |
           cd ..
-          .\Opensearch\bin\opensearch.bat
+          'y' | .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
