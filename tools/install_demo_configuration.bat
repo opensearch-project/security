@@ -83,7 +83,7 @@ set "OPENSEARCH_LIB_PATH=%BASE_DIR%lib\"
 set "OPENSEARCH_INSTALL_TYPE=.zip"
 
 if not exist %OPENSEARCH_CONF_FILE% (
-    echo Unable to determine OpenSearch config directory. Quit.
+    echo Unable to determine OpenSearch config file. Quit.
     exit /b 1
 )
 

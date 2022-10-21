@@ -108,6 +108,8 @@ jobs:
       - name: Run OpenSearch with plugin
         run: |
           cd ..
+          Echo Contents of Config
+          ls .Opensearch\config
           Echo esnode.pem
           Get-Content .\Opensearch\config\esnode.pem
           .\Opensearch\bin\opensearch.bat
