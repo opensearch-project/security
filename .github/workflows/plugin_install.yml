@@ -84,21 +84,12 @@ jobs:
 
       - name: Download OpenSearch Core
         run: |
-          Echo Base Dir
-          ls
           cd ..
-          Echo One up Dir
-          ls
           Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip -Outfile opensearch-2.4.0.zip
-          Echo After Invoke
-          ls
           tar -xzf opensearch-2.4.0.zip 
           del opensearch-2.4.0.zip
-          Echo After Unpack
-          ls
           Rename-Item opensearch-* Opensearch
-          Echo After rename
-          ls 
+         
            
 
       - name: Build Security Plugin with Gradle
@@ -108,15 +99,8 @@ jobs:
           _JAVA_OPTIONS: -Xmx4096M
 
       - name: Move and rename security plugin
-        run: |
-          Echo Top of sec move 
-          ls
-          move build\distributions\opensearch-security-*.zip ..\opensearch-security.zip
-          Echo After move
-          ls
-          cd ..
-          Echo One Dir Up 
-          ls
+        run: move build\distributions\opensearch-security-*.zip ..\opensearch-security.zip
+
 
       - name: Install the plugin
         run: |
@@ -125,8 +109,9 @@ jobs:
           .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
-        cd ..
-        run: Echo y | .\Opensearch\bin\opensearch.bat
+        run: |
+          cd ..
+          Echo y | .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
