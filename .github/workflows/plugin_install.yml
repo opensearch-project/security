@@ -84,14 +84,18 @@ jobs:
 
       - name: Download OpenSearch Core
         run: |
-          Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip -Outfile opensearch-2.4.0.zip
-          tar -xzf opensearch-2.4.0.zip -Outfile Opensearch
+          cd ..
+          Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip 
+          tar -xzf opensearch-2.4.0.zip 
           del opensearch-2.4.0.zip
+          Rename-Item opensearch-* Opensearch
           ls 
            
 
       - name: Build Security Plugin with Gradle
-        run: .\gradlew.bat assemble
+        run: |
+          cd security
+          .\gradlew.bat assemble
         env:
           _JAVA_OPTIONS: -Xmx4096M
 
@@ -102,7 +106,8 @@ jobs:
 
       - name: Install the plugin
         run: |
-          Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:.\opensearch-security.zip
+          cd ..
+          Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:.\security\opensearch-security.zip
           ls
           .\Opensearch\bin\plugins\opensearch-security\tools\install_demo_configuration.bat
 
