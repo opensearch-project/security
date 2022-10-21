@@ -127,5 +127,3 @@ jobs:
           $baseCredentials = "Basic $encodedCredentials"
           $Headers = @{ Authorization = $baseCredentials }
           Invoke-WebRequest -Uri 'https://localhost:9200' -Headers $Headers
-
-
