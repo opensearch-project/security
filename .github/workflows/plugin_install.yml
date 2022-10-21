@@ -103,7 +103,7 @@ jobs:
         run: |
           cd ..
            'y' | .\Opensearch\bin\opensearch-plugin.bat install file:\a\security\opensearch-security.zip        
-           'y', 'y', 'N' | .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
+           'y' | .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
         run: |
