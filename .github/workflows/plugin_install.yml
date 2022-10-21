@@ -125,6 +125,7 @@ jobs:
           .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
+        cd ..
         run: Echo y | .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
