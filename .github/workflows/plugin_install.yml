@@ -107,6 +107,7 @@ jobs:
         run: |
           cd ..
           Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:.\security\opensearch-security.zip
+          cd Opensearch
           ls
           .\Opensearch\bin\plugins\opensearch-security\tools\install_demo_configuration.bat
 
