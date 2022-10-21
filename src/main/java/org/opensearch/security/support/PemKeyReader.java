@@ -209,8 +209,6 @@ public final class PemKeyReader {
         
         CertificateFactory fact = CertificateFactory.getInstance("X.509");
         try(FileInputStream is = new FileInputStream(file)) {
-            System.out.println("FILE IS");
-            System.out.println(file.toString());
             return (X509Certificate) fact.generateCertificate(is);
         }
     }
