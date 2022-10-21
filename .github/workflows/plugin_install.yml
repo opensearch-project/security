@@ -108,6 +108,8 @@ jobs:
       - name: Run OpenSearch with plugin
         run: |
           cd ..
+          Echo esnode.pem
+          Get-Content .\Opensearch\config\esnode.pem
           .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
