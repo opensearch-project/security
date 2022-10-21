@@ -17,16 +17,8 @@
 
 package org.opensearch.security.securityconf;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -1125,12 +1117,12 @@ public class ConfigModelV7 extends ConfigModel {
                     }
                 }
             });
-            
+
+            Set<String> _roles = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            _roles.addAll(roles);
             if(!result.containsKey("global_tenant") && (
-                    roles.contains("kibana_user")
-                    || roles.contains("KIBANA_USER")
-                    || roles.contains("all_access")
-                    || roles.contains("ALL_ACCESS")
+                    _roles.contains("kibana_user")
+                    || _roles.contains("all_access")
                     )) {
                 result.put("global_tenant", true);
             }
