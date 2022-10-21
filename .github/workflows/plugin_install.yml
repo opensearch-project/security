@@ -111,8 +111,11 @@ jobs:
         run: |
           Echo Top of sec move 
           ls
-          move build\distributions\opensearch-security-*.zip opensearch-security.zip
+          move build\distributions\opensearch-security-*.zip ..\opensearch-security.zip
           Echo After move
+          ls
+          cd ..
+          Echo One Dir Up 
           ls
 
       - name: Install the plugin
@@ -122,7 +125,17 @@ jobs:
           cd ..
           Echo One dir up
           ls
-          Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:.\security\opensearch-security.zip
+          cd Opensearch
+          Echo OpenSearch dir
+          ls
+          cd bin 
+          Echo bin dir
+          ls
+          cd ..
+          cd .. 
+          Echo root dir
+          ls
+          Echo y | .\Opensearch\bin\opensearch-plugin.bat install file:.\opensearch-security.zip
           cd Opensearch
           Echo Opensearch dir
           ls
