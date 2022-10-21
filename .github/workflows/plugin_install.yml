@@ -109,7 +109,7 @@ jobs:
         run: |
           cd ..
           Echo Contents of Config
-          ls .Opensearch\config
+          ls .\Opensearch\config
           Echo esnode.pem
           Get-Content .\Opensearch\config\esnode.pem
           .\Opensearch\bin\opensearch.bat
