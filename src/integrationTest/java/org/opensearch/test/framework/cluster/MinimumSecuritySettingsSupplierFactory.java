@@ -29,6 +29,7 @@
 package org.opensearch.test.framework.cluster;
 
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
 public class MinimumSecuritySettingsSupplierFactory {
@@ -46,12 +47,8 @@ public class MinimumSecuritySettingsSupplierFactory {
 
 	}
 
-	public NodeSettingsSupplier minimumOpenSearchSettings(Settings other) {
-		return i -> minimumOpenSearchSettingsBuilder(i, false).put(other).build();
-	}
-
-	public NodeSettingsSupplier minimumOpenSearchSettingsSslOnly(Settings other) {
-		return i -> minimumOpenSearchSettingsBuilder(i, true).put(other).build();
+	public NodeSettingsSupplier minimumOpenSearchSettings(boolean sslOnly, Settings other) {
+		return i -> minimumOpenSearchSettingsBuilder(i, sslOnly).put(other).build();
 	}
 
 	private Settings.Builder minimumOpenSearchSettingsBuilder(int node, boolean sslOnly) {
@@ -68,9 +65,12 @@ public class MinimumSecuritySettingsSupplierFactory {
 		builder.put("plugins.security.ssl.http.pemcert_filepath", testCertificates.getNodeCertificate(node).getAbsolutePath());
 		builder.put("plugins.security.ssl.http.pemkey_filepath", testCertificates.getNodeKey(node, PRIVATE_KEY_HTTP_PASSWORD).getAbsolutePath());
 		builder.put("plugins.security.ssl.http.pemkey_password", PRIVATE_KEY_HTTP_PASSWORD);
-
-		builder.putList("plugins.security.authcz.admin_dn", testCertificates.getAdminDNs());
-
+		if(sslOnly == false) {
+			builder.put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
+			builder.putList("plugins.security.authcz.admin_dn", testCertificates.getAdminDNs());
+			builder.put("plugins.security.compliance.salt", "1234567890123456");
+			builder.put("plugins.security.audit.type", "noop");
+		}
 		return builder;
 
 	}

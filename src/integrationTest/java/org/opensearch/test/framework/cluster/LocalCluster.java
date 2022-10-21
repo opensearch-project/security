@@ -71,6 +71,8 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
 	protected static final AtomicLong num = new AtomicLong();
 
+	private boolean sslOnly = false;
+
 	private final List<Class<? extends Plugin>> plugins;
 	private final ClusterManager clusterManager;
 	private final TestSecurityConfig testSecurityConfig;
@@ -83,19 +85,24 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 	private volatile LocalOpenSearchCluster localOpenSearchCluster;
 	private final List<TestIndex> testIndices;
 
-	private LocalCluster(String clusterName, TestSecurityConfig testSgConfig, Settings nodeOverride,
+	private boolean loadConfigurationIntoIndex;
+
+	private LocalCluster(String clusterName, TestSecurityConfig testSgConfig, boolean sslOnly, Settings nodeOverride,
 			ClusterManager clusterManager, List<Class<? extends Plugin>> plugins, TestCertificates testCertificates,
-			List<LocalCluster> clusterDependencies, Map<String, LocalCluster> remotes, List<TestIndex> testIndices) {
+			List<LocalCluster> clusterDependencies, Map<String, LocalCluster> remotes, List<TestIndex> testIndices,
+		boolean loadConfigurationIntoIndex) {
 		this.plugins = plugins;
 		this.testCertificates = testCertificates;
 		this.clusterManager = clusterManager;
 		this.testSecurityConfig = testSgConfig;
+		this.sslOnly = sslOnly;
 		this.nodeOverride = nodeOverride;
 		this.clusterName = clusterName;
 		this.minimumOpenSearchSettingsSupplierFactory = new MinimumSecuritySettingsSupplierFactory(testCertificates);
 		this.remotes = remotes;
 		this.clusterDependencies = clusterDependencies;
 		this.testIndices = testIndices;
+		this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
 	}
 
 	public String getSnapshotDirPath() {
@@ -151,6 +158,10 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		return localOpenSearchCluster.clientNode().getHttpAddress();
 	}
 
+	public int getHttpPort() {
+		return getHttpAddress().getPort();
+	}
+
 	@Override
 	public InetSocketAddress getTransportAddress() {
 		return localOpenSearchCluster.clientNode().getTransportAddress();
@@ -193,13 +204,13 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
 	private void start() {
 		try {
-			localOpenSearchCluster = new LocalOpenSearchCluster(clusterName, clusterManager,
-					minimumOpenSearchSettingsSupplierFactory.minimumOpenSearchSettings(nodeOverride), plugins, testCertificates);
+			NodeSettingsSupplier nodeSettingsSupplier = minimumOpenSearchSettingsSupplierFactory.minimumOpenSearchSettings(sslOnly, nodeOverride);
+			localOpenSearchCluster = new LocalOpenSearchCluster(clusterName, clusterManager, nodeSettingsSupplier, plugins, testCertificates);
 
 			localOpenSearchCluster.start();
 
 
-			if (testSecurityConfig != null) {
+			if (loadConfigurationIntoIndex) {
 				initSecurityIndex(testSecurityConfig);
 			}
 
@@ -225,6 +236,8 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 	public static class Builder {
 
 		private final Settings.Builder nodeOverrideSettingsBuilder = Settings.builder();
+
+		private boolean sslOnly = false;
 		private final List<Class<? extends Plugin>> plugins = new ArrayList<>();
 		private Map<String, LocalCluster> remoteClusters = new HashMap<>();
 		private List<LocalCluster> clusterDependencies = new ArrayList<>();
@@ -233,6 +246,8 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		private TestSecurityConfig testSecurityConfig = new TestSecurityConfig();
 		private String clusterName = "local_cluster";
 		private TestCertificates testCertificates;
+
+		private boolean loadConfigurationIntoIndex = true;
 
 		public Builder() {
 			this.testCertificates = new TestCertificates();
@@ -266,6 +281,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		*/
 		public Builder config(TestSecurityConfig testSecurityConfig) {
 			this.testSecurityConfig = testSecurityConfig;
+			return this;
+		}
+
+		public Builder sslOnly(boolean sslOnly) {
+			this.sslOnly = sslOnly;
 			return this;
 		}
 
@@ -343,15 +363,18 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			return this;
 		}
 
+		public Builder loadConfigurationIntoIndex(boolean loadConfigurationIntoIndex) {
+			this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
+			return this;
+		}
+
 		public LocalCluster build() {
 			try {
 
 				clusterName += "_" + num.incrementAndGet();
-				Settings settings = nodeOverrideSettingsBuilder
-					.put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false)
-					.build();
-				return new LocalCluster(clusterName, testSecurityConfig, settings, clusterManager, plugins,
-						testCertificates, clusterDependencies, remoteClusters, testIndices);
+				Settings settings = nodeOverrideSettingsBuilder.build();
+				return new LocalCluster(clusterName, testSecurityConfig, sslOnly, settings, clusterManager, plugins,
+						testCertificates, clusterDependencies, remoteClusters, testIndices, loadConfigurationIntoIndex);
 			} catch (Exception e) {
 				log.error("Failed to build LocalCluster", e);
 				throw new RuntimeException(e);

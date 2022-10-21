@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
@@ -56,16 +55,9 @@ import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.io.HttpClientConnectionManager;
-import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.net.URIBuilder;
@@ -199,30 +191,13 @@ public class TestRestClient implements AutoCloseable {
 		}
 	}
 
-	protected final String getHttpServerUri() {
+	public final String getHttpServerUri() {
 		return "http" + (enableHTTPClientSSL ? "s" : "") + "://" + nodeHttpAddress.getHostString() + ":" + nodeHttpAddress.getPort();
 	}
 
 	protected final CloseableHttpClient getHTTPClient() {
-
-		final HttpClientBuilder hcb = HttpClients.custom();
-
-		String[] protocols = null;
-
-		final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(this.sslContext, protocols, null,
-				NoopHostnameVerifier.INSTANCE);
-
-		final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-				.setSSLSocketFactory(sslsf)
-				.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60, TimeUnit.SECONDS).build())
-				.build();
-		hcb.setConnectionManager(cm);
-
-		if (requestConfig != null) {
-			hcb.setDefaultRequestConfig(requestConfig);
-		}
-
-		return hcb.build();
+		var factory = new CloseableHttpClientFactory(sslContext, requestConfig, null);
+		return factory.getHTTPClient();
 	}
 
 	private Header[] mergeHeaders(Header header, Header... headers) {

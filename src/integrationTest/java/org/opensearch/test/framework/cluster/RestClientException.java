@@ -9,8 +9,8 @@
 */
 package org.opensearch.test.framework.cluster;
 
-class RestClientException extends RuntimeException {
-	public RestClientException(String message, Throwable cause) {
+public class RestClientException extends RuntimeException {
+	RestClientException(String message, Throwable cause) {
 		super(message, cause);
 	}
 }
