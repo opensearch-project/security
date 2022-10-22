@@ -102,25 +102,14 @@ jobs:
       - name: Install the plugin
         run: |
           cd ..
-          Echo Contents of Config
-          ls .\Opensearch\config
           'y' | .\Opensearch\bin\opensearch-plugin.bat install file:\a\security\opensearch-security.zip
-          Echo Contents of Config
-          ls .\Opensearch\config
           'y', 'y', 'N' | .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
 
       - name: Run OpenSearch with plugin
         run: |
           cd ..
-          Echo Contents of Config
-          ls .\Opensearch\config
-          Echo esnode.pem
-          Get-Content .\Opensearch\config\esnode.pem
-          Echo kirk.pem
-          Get-Content .\Opensearch\config\kirk.pem
-          Echo root-ca.pem
           Get-Content .\Opensearch\config\root-ca.pem
-          .\Opensearch\bin\opensearch.bat
+          start .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         uses: whatnick/wait-action@v0.1.2
