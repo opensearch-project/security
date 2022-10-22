@@ -116,6 +116,10 @@ jobs:
           ls .\Opensearch\config
           Echo esnode.pem
           Get-Content .\Opensearch\config\esnode.pem
+          Echo kirk.pem
+          Get-Content .\Opensearch\config\kirk.pem
+          Echo root-ca.pem
+          Get-Content .\Opensearch\config\root-ca.pem
           .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
