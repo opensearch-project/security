@@ -112,9 +112,7 @@ jobs:
           start .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
-        uses: whatnick/wait-action@v0.1.2
-        with:
-          time: '30s'
+        run: Start-Sleep -s 30
 
       - name: Check OpenSearch Running
         run: |
