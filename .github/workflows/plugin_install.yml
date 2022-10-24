@@ -67,6 +67,7 @@ jobs:
         run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
 
   windows-install:
+    if: ${{ false }}  # disable for now - no stable distribution for 3.0.0 yet
 
     runs-on: windows-latest
 
