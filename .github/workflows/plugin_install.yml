@@ -108,7 +108,6 @@ jobs:
       - name: Run OpenSearch with plugin
         run: |
           cd ..
-          Get-Content .\Opensearch\config\root-ca.pem
           start .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
@@ -120,4 +119,4 @@ jobs:
           $encodedCredentials = [Convert]::ToBase64String($credentialBytes)
           $baseCredentials = "Basic $encodedCredentials"
           $Headers = @{ Authorization = $baseCredentials }
-          Invoke-WebRequest -Uri 'https://localhost:9200' -Headers $Headers
+          Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200' -Headers $Headers
