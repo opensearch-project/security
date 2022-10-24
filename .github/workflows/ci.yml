@@ -8,11 +8,12 @@ env:
 jobs:
   build:
     name: build
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
         jdk: [11, 17]
+        platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
+    runs-on: ${{ matrix.platform }}
 
     steps:
 
@@ -36,10 +37,16 @@ jobs:
           ${{ runner.os }}-gradle-
 
     - name: Package
-      run: ./gradlew clean build -Dbuild.snapshot=false -x test -x integrationTest
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: clean build -Dbuild.snapshot=false -x test -x integrationTest
 
     - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test integrationTest
+      uses: gradle/gradle-build-action@v2
+      env:
+        OPENDISTRO_SECURITY_TEST_OPENSSL_OPT: false
+      with:
+        arguments: test integrationTest
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -50,13 +57,13 @@ jobs:
     - uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: ${{ matrix.jdk }}-reports
+        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
         path: |
           ./build/reports/
 
     - name: check archive for debugging
       if: always()
-      run: echo "Check the artifact ${{ matrix.jdk }}-reports.zip for detailed test results"
+      run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
   backward-compatibility:
     runs-on: ubuntu-latest
