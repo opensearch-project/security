@@ -22,7 +22,7 @@ public class ExceptionMatcherAssert {
 		void call() throws Exception;
 	}
 
-	public static  void assertThatThrownBy(ThrowingCallable throwingCallable, Matcher<? super Throwable> matcher) {
+	public static void assertThatThrownBy(ThrowingCallable throwingCallable, Matcher<? super Throwable> matcher) {
 		Throwable expectedException = catchThrowable(throwingCallable);
 		assertThat("Expected exception was not thrown", expectedException, notNullValue());
 		assertThat(expectedException, matcher);

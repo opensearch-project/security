@@ -30,4 +30,8 @@ public class OpenSearchExceptionMatchers {
 	public static Matcher<Throwable> errorMessageContain(String errorMessage) {
 		return errorMessage(containsString(errorMessage));
 	}
+
+	public static Matcher<Throwable> hasCause(Class<? extends Throwable> clazz) {
+		return new ExceptionHasCauseMatcher(clazz);
+	}
 }
