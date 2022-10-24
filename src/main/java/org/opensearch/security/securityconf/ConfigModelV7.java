@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -1116,21 +1117,21 @@ public class ConfigModelV7 extends ConfigModel {
 
                 if (rw || !result.containsKey(tenant)) { //RW outperforms RO
 
-                    // We want to make sure that we add a tenant that exissts
+                    // We want to make sure that we add a tenant that exists
                     // Indeed, because we don't have control over what will be
                     // passed on as values of users' attributes, we have to make
                     // sure that we don't allow them to select tenants that do not exist.
-                    if(ConfigModelV7.this.tenants.getCEntries().keySet().contains(tenant)) {
+                    if(ConfigModelV7.this.tenants.getCEntries().containsKey(tenant)) {
                         result.put(tenant, rw);
                     }
                 }
             });
-            
+
+            Set<String> _roles = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            _roles.addAll(roles);
             if(!result.containsKey("global_tenant") && (
-                    roles.contains("kibana_user")
-                    || roles.contains("kibana_user")
-                    || roles.contains("all_access")
-                    || roles.contains("ALL_ACCESS")
+                    _roles.contains("kibana_user")
+                    || _roles.contains("all_access")
                     )) {
                 result.put("global_tenant", true);
             }
