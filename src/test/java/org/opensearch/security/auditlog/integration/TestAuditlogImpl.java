@@ -58,28 +58,64 @@ public class TestAuditlogImpl extends AuditLogSink {
      * Perform an action and then wait until the expected number of messages have been found.
      */
     public static List<AuditMessage> doThenWaitForMessages(final Runnable action, final int expectedCount) {
-        final CountDownLatch latch = new CountDownLatch(expectedCount);
+        final List<AuditMessage> missedMessages = new ArrayList<>();
         final List<AuditMessage> messages = new ArrayList<>();
-        countDownRef.set(latch);
-        messagesRef.set(messages);
-
-        TestAuditlogImpl.sb = new StringBuffer();
-        TestAuditlogImpl.messages = messages; 
+        final CountDownLatch latch = resetAuditStorage(expectedCount, messages);
         
         try {
             action.run();
             final int maxSecondsToWaitForMessages = 1;
-            final boolean foundAll = latch.await(maxSecondsToWaitForMessages, TimeUnit.SECONDS);
-            if (!foundAll) {
+            boolean foundAll = false;
+            foundAll = latch.await(maxSecondsToWaitForMessages, TimeUnit.SECONDS);
+            // After the wait has prevent any new messages from being recieved
+            resetAuditStorage(0, missedMessages);
+            if (!foundAll || messages.size() != expectedCount) {
                 throw new MessagesNotFoundException(expectedCount, messages);
-            }
-            if (messages.size() != expectedCount) {
-                throw new RuntimeException("Unexpected number of messages, was expecting " + expectedCount + ", received " + messages.size());
             }
         } catch (final InterruptedException e) {
             throw new RuntimeException("Unexpected exception", e);
         }
+
+        // Do not check for missed messages if no messages were expected
+        if (expectedCount != 0) {
+            try {
+                Thread.sleep(100);
+                if (missedMessages.size() != 0) {
+                    final String missedMessagesErrorMessage = new StringBuilder()
+                    .append("Audit messages were missed! ")
+                    .append("Found " + (missedMessages.size()) + " messages.")
+                    .append("Messages found during this time: \n\n")
+                    .append(missedMessages.stream()
+                        .map(AuditMessage::toString)
+                        .collect(Collectors.joining("\n")))
+                    .toString();
+
+                    throw new RuntimeException(missedMessagesErrorMessage);
+                }
+            } catch (final Exception e) {
+                throw new RuntimeException("Unexpected exception", e);
+            }
+        }
+
+        // Next usage of this class might be using raw stringbuilder / list so reset before that test might run
+        resetAuditStorage(0, new ArrayList<>());
         return new ArrayList<>(messages);
+    }
+
+    /**
+     * Resets all of the mechanics for fresh messages to be captured
+     * 
+     * @param expectedMessageCount The number of messages before the latch is signalled, indicating all messages have been recieved
+     * @param message Where messages will be stored after being recieved
+     */
+    private static CountDownLatch resetAuditStorage(int expectedMessageCount, List<AuditMessage> messages) {
+        final CountDownLatch latch = new CountDownLatch(expectedMessageCount);
+        countDownRef.set(latch);
+        messagesRef.set(messages);
+
+        TestAuditlogImpl.sb = new StringBuffer();
+        TestAuditlogImpl.messages = messages;
+        return latch;
     }
 
     /**
