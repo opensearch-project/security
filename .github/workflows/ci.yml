@@ -9,7 +9,7 @@ jobs:
   build:
     name: build
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         jdk: [11, 17]
         platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
