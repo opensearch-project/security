@@ -32,4 +32,8 @@ public class GetResponseMatchers  {
 	public static Matcher<GetResponse> documentContainsExactlyFieldsWithNames(String... expectedFieldsNames) {
 		return new GetResponseDocumentContainsExactlyFieldsWithNamesMatcher(expectedFieldsNames);
 	}
+
+	public static Matcher<GetResponse> documentContainsExactlyMaskedFields(String expectedMaskValue, String... expectedMaskedFieldsNames) {
+		return new GetResponseDocumentContainsExactlyMaskedFieldsMatcher(expectedMaskValue, expectedMaskedFieldsNames);
+	}
 }

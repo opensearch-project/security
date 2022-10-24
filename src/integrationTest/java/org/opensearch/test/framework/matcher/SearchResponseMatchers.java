@@ -79,6 +79,10 @@ public class SearchResponseMatchers {
 		return new SearchHitsDocumentsContainExactlyFieldsWithNamesMatcher(expectedIndexName, expectedFieldsNames);
 	}
 
+	public static Matcher<SearchResponse> searchHitsDocumentsContainExactlyMaskedFields(String expectedIndexName, String expectedMaskValue, String... expectedMaskedFieldsNames) {
+		return new SearchHitsDocumentsContainExactlyMaskedFieldsMatcher(expectedIndexName, expectedMaskValue, expectedMaskedFieldsNames);
+	}
+
 	static Long readTotalHits(SearchResponse searchResponse) {
 		return Optional.ofNullable(searchResponse)
 			.map(SearchResponse::getHits)

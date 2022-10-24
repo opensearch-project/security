@@ -43,6 +43,6 @@ class GetResponseDocumentContainsExactlyFieldsWithNamesMatcher extends TypeSafeD
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("Documents contain exactly fields with names: ").appendValue(expectedFieldsNames);
+        description.appendText("Document contain exactly fields with names: ").appendValue(expectedFieldsNames);
     }
 }
