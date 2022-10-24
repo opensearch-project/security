@@ -358,7 +358,7 @@ public class SearchOperationTest {
 			if (indicesExistsResponse.isExists()) {
 				DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexToBeDeleted);
 				indices.delete(deleteIndexRequest).actionGet();
-				Awaitility.await().until(() -> indices.exists(indicesExistsRequest).get().isExists() == false);
+				Awaitility.await().ignoreExceptions().until(() -> indices.exists(indicesExistsRequest).get().isExists() == false);
 			}
 		}
 
@@ -1629,7 +1629,8 @@ public class SearchOperationTest {
 
 			// 7. wait until snapshot is restored
 			CountRequest countRequest = new CountRequest(RESTORED_SONG_INDEX_NAME);
-			Awaitility.await().until(() -> restHighLevelClient.count(countRequest, DEFAULT).getCount() == 2);
+			Awaitility.await().ignoreExceptions().alias("Index contains proper number of documents restored from snapshot.")
+				.until(() -> restHighLevelClient.count(countRequest, DEFAULT).getCount() == 2);
 
 			//8. verify that document are present in restored index
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(RESTORED_SONG_INDEX_NAME, "Eins", FIELD_TITLE, TITLE_MAGNUM_OPUS));
