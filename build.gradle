@@ -221,7 +221,6 @@ bundlePlugin {
     }
 }
 
-<<<<<<< HEAD
 configurations.all {
     resolutionStrategy {
         force 'commons-codec:commons-codec:1.14'
