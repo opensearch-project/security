@@ -255,3 +255,26 @@ point_in_time_full_access:
         - '*'
       allowed_actions:
         - 'manage_point_in_time'
+
+# Allows users to see security analytics detectors and others
+detectors_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/securityanalytics/alerts/get'
+    - 'cluster:admin/opendistro/securityanalytics/mapping/get'
+    - 'cluster:admin/opendistro/securityanalytics/mapping/view/get'
+    - 'cluster:admin/opendistro/securityanalytics/findings/get'
+    - 'cluster:admin/opendistro/securityanalytics/rule/get'
+    - 'cluster:admin/opendistro/securityanalytics/detector/get'
+    - 'cluster:admin/opendistro/securityanalytics/rule/search'
+    - 'cluster:admin/opendistro/securityanalytics/detector/search'
+
+# Allows users to use all security analytics functionality
+detectors_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opendistro/securityanalytics/mapping/*'
+    - 'cluster:admin/opendistro/securityanalytics/detector/*'
+    - 'cluster:admin/opendistro/securityanalytics/rule/*'
+    - 'cluster:admin/opendistro/securityanalytics/findings/*'
+    - 'cluster:admin/opendistro/securityanalytics/alerts/*'
