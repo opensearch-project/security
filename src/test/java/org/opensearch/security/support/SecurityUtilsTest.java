@@ -28,7 +28,10 @@ public class SecurityUtilsTest {
         "=ExitCode",
         "=C:",
         "ProgramFiles(x86)",
-        "INPUT_GRADLE-HOME-CACHE-CLEANUP"
+        "INPUT_GRADLE-HOME-CACHE-CLEANUP",
+        "MYENV",
+        "MYENV:",
+        "MYENV::"
     );
     private final Collection<String> namesFromThisRuntimeEnvironment = System.getenv().keySet();
 
