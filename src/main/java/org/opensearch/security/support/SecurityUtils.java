@@ -46,7 +46,7 @@ import org.opensearch.security.tools.Hasher;
 public final class SecurityUtils {
     
     protected final static Logger log = LogManager.getLogger(SecurityUtils.class);
-    private static final String ENV_PATTERN_SUFFIX = "\\.([\\w=():]+)((\\:\\-)?[\\w=():]*)\\}";
+    private static final String ENV_PATTERN_SUFFIX = "\\.([\\w=():\\-_]+)((\\:\\-)?[\\w=():\\-_]*)\\}";
     static final Pattern ENV_PATTERN = Pattern.compile("\\$\\{env" + ENV_PATTERN_SUFFIX);
     static final Pattern ENVBC_PATTERN = Pattern.compile("\\$\\{envbc" + ENV_PATTERN_SUFFIX);
     static final Pattern ENVBASE64_PATTERN = Pattern.compile("\\$\\{envbase64" + ENV_PATTERN_SUFFIX);
