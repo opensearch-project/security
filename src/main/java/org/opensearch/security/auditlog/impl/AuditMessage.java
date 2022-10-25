@@ -84,7 +84,6 @@ public final class AuditMessage {
     public static final String REMOTE_ADDRESS = "audit_request_remote_address";
 
     public static final String REST_REQUEST_PATH = "audit_rest_request_path";
-    //public static final String REST_REQUEST_BODY = "audit_rest_request_body";
     public static final String REST_REQUEST_PARAMS = "audit_rest_request_params";
     public static final String REST_REQUEST_HEADERS = "audit_rest_request_headers";
     public static final String REST_REQUEST_METHOD = "audit_rest_request_method";
@@ -447,6 +446,18 @@ public final class AuditMessage {
 
     public String getExceptionStackTrace() {
         return (String) this.auditInfo.get(EXCEPTION);
+    }
+
+    public String getRequestBody() {
+        return (String) this.auditInfo.get(REQUEST_BODY);
+    }
+
+    public String getNodeId() {
+        return (String) this.auditInfo.get(NODE_ID);
+    }
+
+    public String getDocId() {
+        return (String) this.auditInfo.get(ID);
     }
 
 	@Override
