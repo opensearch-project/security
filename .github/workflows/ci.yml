@@ -29,7 +29,8 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         arguments: |
-          clean build -Dbuild.snapshot=false
+          clean build test -Dbuild.snapshot=false
+          -x integrationTest
           -x spotlessCheck
           -x checkstyleMain
           -x checkstyleTest
@@ -52,7 +53,7 @@ jobs:
       run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
   integration-tests:
-    name: build
+    name: integration-tests
     strategy:
       fail-fast: false
       matrix:
