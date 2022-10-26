@@ -278,7 +278,7 @@ sourceSets {
     }
 }
 
-//add new task that runs integration tests, only runs when explictly called
+//add new task that runs integration tests
 task integrationTest(type: Test) {
     description = 'Run integration tests.'
     group = 'verification'
@@ -286,6 +286,8 @@ task integrationTest(type: Test) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
 
+    //run the integrationTest task after the test task
+    shouldRunAfter test
 }
 
 //run the integrationTest task before the check task
@@ -371,6 +373,7 @@ dependencies {
     runtimeOnly 'com.github.luben:zstd-jni:1.5.0-2'
     runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
+
 
     implementation 'org.apache.commons:commons-lang3:3.4'
     testImplementation "org.opensearch:common-utils:${common_utils_version}"

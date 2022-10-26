@@ -22,6 +22,7 @@ import java.util.Random;
 import java.util.Set;
 
 import io.netty.handler.ssl.OpenSsl;
+import io.netty.util.internal.PlatformDependent;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -65,10 +66,65 @@ public class OpenSSLTest extends SSLTest {
 
     @Before
     public void setup() {
-        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        Assume.assumeFalse(PlatformDependant.isWindows());
         allowOpenSSL = true;
     }
 
+    @Test
+    public void testEnsureOpenSSLAvailability() {
+        Assert.assertTrue("OpenSSL not available: "+String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
+    }
+
+    @Override
+    @Test
+    public void testHttps() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttps();
+    }
+
+    @Override
+    @Test
+    public void testHttpsAndNodeSSL() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpsAndNodeSSL();
+    }
+
+    @Override
+    @Test
+    public void testHttpPlainFail() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpPlainFail();
+    }
+
+    @Override
+    @Test
+    public void testHttpsNoEnforce() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpsNoEnforce();
+    }
+
+    @Override
+    @Test
+    public void testHttpsV3Fail() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpsV3Fail();
+    }
+
+
+    @Override
+    @Test(timeout=40000)
+    public void testNodeClientSSL() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testNodeClientSSL();
+    }
+    
+    @Override
+    @Test
+    public void testHttpsOptionalAuth() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpsOptionalAuth();
+    }
+    
     @Test
     public void testAvailCiphersOpenSSL() throws Exception {
         Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
@@ -88,6 +144,36 @@ public class OpenSSLTest extends SSLTest {
 
         System.out.println("OpenSSL secure ciphers: " + openSSLSecureCiphers);
         Assert.assertTrue(openSSLSecureCiphers.size() > 0);
+    }
+    
+    @Test
+    public void testHttpsEnforceFail() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpsEnforceFail();
+    }
+
+    @Override
+    public void testCipherAndProtocols() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testCipherAndProtocols();
+    }
+
+    @Override
+    public void testHttpsAndNodeSSLFailedCipher() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpsAndNodeSSLFailedCipher();
+    }
+    
+    @Test
+    public void testHttpsAndNodeSSLPem() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpsAndNodeSSLPKCS8Pem();
+    }
+    
+    @Test
+    public void testHttpsAndNodeSSLPemEnc() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testHttpsAndNodeSSLPemEnc();
     }
     
     @Test
@@ -135,5 +221,19 @@ public class OpenSSLTest extends SSLTest {
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"rx_count\" : 0"));
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"rx_size_in_bytes\" : 0"));
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"tx_count\" : 0"));
+    }
+
+    @Test
+    public void testTLSv12() throws Exception {
+        Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
+        super.testTLSv12();
+    }
+
+    @Test
+    public void testJava12WithOpenSslEnabled() throws Exception {
+        // If the user has Java 12 running and OpenSSL enabled, we give
+        // a warning, ignore OpenSSL and use JDK SSl instead.
+        Assume.assumeTrue(PlatformDependent.javaVersion() >= 12);
+        super.testHttps();
     }
 }
