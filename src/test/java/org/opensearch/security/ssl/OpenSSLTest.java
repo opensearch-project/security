@@ -22,7 +22,6 @@ import java.util.Random;
 import java.util.Set;
 
 import io.netty.handler.ssl.OpenSsl;
-import io.netty.util.internal.PlatformDependent;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;

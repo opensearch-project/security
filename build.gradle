@@ -120,7 +120,7 @@ test {
     }
     retry {
         failOnPassedAfterRetry = false
-        maxRetries = 5
+        // maxRetries = 5
     }
     jacoco {
         excludes = [
@@ -376,6 +376,11 @@ dependencies {
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
     runtimeOnly 'com.github.luben:zstd-jni:1.5.0-2'
     runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
+    // testRuntimeOnly 'io.netty:netty-tcnative:2.0.54.Final:windows-x86_64'
+    // runtimeOnly 'io.netty:netty-tcnative-boringssl-static:2.0.54.Final'
+    // testRuntimeOnly "io.netty:netty-all:${versions.netty}"
+    testRuntimeOnly 'io.netty:netty-tcnative-boringssl-static:2.0.54.Final:windows-x86_64'
+
 
 
     implementation 'org.apache.commons:commons-lang3:3.4'
