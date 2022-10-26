@@ -34,7 +34,7 @@ jobs:
           -x spotlessCheck
           -x checkstyleMain
           -x checkstyleTest
-          --tests com.amazon.dlic.auth.ldap.LdapBackendTest.testLdapAuthenticationSSLPEMFile
+          --tests com.amazon.dlic.auth.ldap.LdapBackendTest
 
     - name: Coverage
       uses: codecov/codecov-action@v1
