@@ -107,21 +107,38 @@ public interface OpenSearchClientProvider {
 		return getRestClient(user.getName(), user.getPassword(), null, headers);
 	}
 
+	default RestHighLevelClient getRestHighLevelClient(String username, String password, Header... headers) {
+		return getRestHighLevelClient(new UserCredentialsHolder() {
+			@Override
+			public String getName() {
+				return username;
+			}
+
+			@Override
+			public String getPassword() {
+				return password;
+			}
+		}, Arrays.asList(headers));
+	}
+
+
 	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
-		
+		return getRestHighLevelClient(user, Collections.emptySet());
+	}
+
+	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user, Collection<? extends Header> defaultHeaders) {
+
 		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
 		credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray()));
 
-		return getRestHighLevelClient(credentialsProvider, Collections.emptySet());
+		return getRestHighLevelClient(credentialsProvider, defaultHeaders);
 	}
 
 	default RestHighLevelClient getRestHighLevelClient(Collection<? extends Header> defaultHeaders) {
-
-
-		return getRestHighLevelClient(null, defaultHeaders);
+		return getRestHighLevelClient((BasicCredentialsProvider)null, defaultHeaders);
 	}
 
-	private RestHighLevelClient getRestHighLevelClient(BasicCredentialsProvider credentialsProvider, Collection<? extends Header> defaultHeaders) {
+	default RestHighLevelClient getRestHighLevelClient(BasicCredentialsProvider credentialsProvider, Collection<? extends Header> defaultHeaders) {
 		RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
 			TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
 				.create()
@@ -145,12 +162,14 @@ public interface OpenSearchClientProvider {
 			}
 			httpClientBuilder.setDefaultHeaders(defaultHeaders);
 			httpClientBuilder.setConnectionManager(cm);
+			httpClientBuilder.setDefaultHeaders(defaultHeaders);
 			return httpClientBuilder;
 		};
 
 		InetSocketAddress httpAddress = getHttpAddress();
 		RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
 			.setHttpClientConfigCallback(configCallback);
+
 
 		return new RestHighLevelClient(builder);
 	}
