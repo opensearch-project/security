@@ -309,8 +309,7 @@ public class SSLTest extends SingleClusterTest {
                 .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem"))
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0.key.pem"))
-                //.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, "changeit")
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-pkcs1.key.pem"))
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/root-ca.pem"))
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
                 .put("plugins.security.ssl.transport.resolve_hostname", false)
@@ -319,7 +318,6 @@ public class SSLTest extends SingleClusterTest {
                 .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
                 .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem"))
                 .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/node-0-pkcs1.key.pem"))
-                //.put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_PASSWORD, "changeit")
                 .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, FileHelper. getAbsoluteFilePathFromClassPath("ssl/root-ca.pem"))
                 .build();
 
@@ -330,11 +328,9 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
 
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("TLS"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").length() > 0);
         Assert.assertTrue(rh.executeSimpleRequest("_nodes/settings?pretty").contains(clusterInfo.clustername));
-        //Assert.assertTrue(!executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("null"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE"));
     }
 
