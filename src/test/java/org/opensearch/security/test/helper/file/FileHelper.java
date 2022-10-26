@@ -97,7 +97,6 @@ public class FileHelper {
 	public static final String loadFile(final String file) throws IOException {
 		final StringWriter sw = new StringWriter();
 		IOUtils.copy(FileHelper.class.getResourceAsStream("/" + file), sw, StandardCharsets.UTF_8);
-        // System.err.println("Loaded file + " + file + "\r\n\r\n" + sw.toString());
 		return sw.toString();
 	}
 	
@@ -109,8 +108,6 @@ public class FileHelper {
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
-            // Reproduction
-            System.err.println("Builder: " + file + "\r\n\r\n" + new String(BytesReference.toBytes(BytesReference.bytes(builder))));
             return BytesReference.bytes(builder);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -134,7 +131,6 @@ public class FileHelper {
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
-            System.err.println("Builder " + builder.toString());
             return BytesReference.bytes(builder);
         } catch (Exception e) {
             throw new RuntimeException(e);
