@@ -126,8 +126,13 @@ public class ConfigV7 {
     
         @Override
         public String toString() {
-            return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
-                    + authz + "]";
+            return String.format("Dynamic [filtered_alias_mode=%s, kibana=%s, http=%s, authc=%s, authz=%s]",
+                filtered_alias_mode,
+                kibana,
+                http,
+                authc,
+                authz
+            );
         }
     }
 
@@ -140,8 +145,13 @@ public class ConfigV7 {
         public String index = ".kibana";
         @Override
         public String toString() {
-            return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
-            + ", index=" + index + "]";
+            return String.format(
+                "Kibana [multitenancy_enabled=%s, server_username=%s, opendistro_role=%s, index=%s]",
+                multitenancy_enabled,
+                server_username,
+                opendistro_role,
+                index
+            );
         }
         
         
@@ -153,7 +163,11 @@ public class ConfigV7 {
         public Xff xff = new Xff();
         @Override
         public String toString() {
-            return "Http [anonymous_auth_enabled=" + anonymous_auth_enabled + ", xff=" + xff + "]";
+            return String.format(
+                "Http [anonymous_auth_enabled=%s, xff=%s]",
+                anonymous_auth_enabled,
+                xff
+            );
         }
         
         
@@ -225,7 +239,12 @@ public class ConfigV7 {
         public String remoteIpHeader="X-Forwarded-For";
         @Override
         public String toString() {
-            return "Xff [enabled=" + enabled + ", internalProxies=" + internalProxies + ", remoteIpHeader=" + remoteIpHeader+"]";
+            return String.format(
+                "Xff [enabled=%s, internalProxies=%s, remoteIpHeader=%s]",
+                enabled,
+                internalProxies,
+                remoteIpHeader
+            );
         }
         
         
@@ -287,9 +306,15 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "AuthcDomain [http_enabled=" + http_enabled + ", transport_enabled=" + transport_enabled + ", order=" + order
-                    + ", http_authenticator=" + http_authenticator + ", authentication_backend=" + authentication_backend + ", description="
-                    + description + "]";
+            return String.format("AuthcDomain [http_enabled=%s, transport_enabled=%s, order=%s"
+                    + ", http_authenticator=%s, authentication_backend=%s, description=%s]",
+                http_enabled,
+                transport_enabled,
+                order,
+                http_authenticator,
+                authentication_backend,
+                description
+            );
         }
         
         
@@ -325,7 +350,12 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "HttpAuthenticator [challenge=" + challenge + ", type=" + type + ", config=" + config + "]";
+            return String.format(
+                "HttpAuthenticator [challenge=%s, type=%s, config=%s]",
+                challenge,
+                type,
+                config
+            );
         }
         
         
@@ -363,7 +393,7 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "AuthzBackend [type=" + type + ", config=" + config + "]";
+            return String.format("AuthzBackend [type=%s, config=%s]", type, config);
         }
         
         
@@ -401,7 +431,9 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "AuthcBackend [type=" + type + ", config=" + config + "]";
+            return String.format("AuthcBackend [type=%s, config=%s]",
+                type, config
+            );
         }
         
         
@@ -423,7 +455,7 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "Authz [domains=" + domains + "]";
+            return String.format("Authz [domains=%s]", domains);
         }
         
         
@@ -450,8 +482,10 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "AuthzDomain [http_enabled=" + http_enabled + ", transport_enabled=" + transport_enabled
-                    + ", authorization_backend=" + authorization_backend + ", description=" + description + "]";
+            return String.format("AuthzDomain [http_enabled=%s, transport_enabled=%s"
+                    + ", authorization_backend=%s, description=%s]",
+                http_enabled, transport_enabled, authorization_backend, description
+                );
         }
         
         
