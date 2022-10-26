@@ -120,7 +120,7 @@ test {
     }
     retry {
         failOnPassedAfterRetry = false
-        // maxRetries = 5
+        maxRetries = 5
     }
     jacoco {
         excludes = [
@@ -278,20 +278,14 @@ sourceSets {
     }
 }
 
-//add new task that runs integration tests
+//add new task that runs integration tests, only runs when explictly called
 task integrationTest(type: Test) {
     description = 'Run integration tests.'
     group = 'verification'
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
-    retry {
-        failOnPassedAfterRetry = false
-        maxRetries = 2
-        maxFailures = 10
-    }
-    //run the integrationTest task after the test task
-    shouldRunAfter test
+
 }
 
 //run the integrationTest task before the check task
@@ -376,12 +370,6 @@ dependencies {
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
     runtimeOnly 'com.github.luben:zstd-jni:1.5.0-2'
     runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
-    // testRuntimeOnly 'io.netty:netty-tcnative:2.0.54.Final:windows-x86_64'
-    // runtimeOnly 'io.netty:netty-tcnative-boringssl-static:2.0.54.Final'
-    // testRuntimeOnly "io.netty:netty-all:${versions.netty}"
-    testRuntimeOnly 'io.netty:netty-tcnative-boringssl-static:2.0.54.Final:windows-x86_64'
-
-
 
     implementation 'org.apache.commons:commons-lang3:3.4'
     testImplementation "org.opensearch:common-utils:${common_utils_version}"

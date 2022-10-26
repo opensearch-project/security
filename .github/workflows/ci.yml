@@ -16,7 +16,6 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-
     - name: Set up JDK for build and test
       uses: actions/setup-java@v2
       with:
@@ -26,25 +25,14 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v2
 
-    - name: Cache Gradle packages
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-    - name: Package
+    - name: Clean Build and Test
       uses: gradle/gradle-build-action@v2
       with:
-        arguments: clean build -Dbuild.snapshot=false -x test -x integrationTest
-
-    - name: Test
-      uses: gradle/gradle-build-action@v2
-      with:
-        arguments: test integrationTest
+        arguments: |
+          clean build -Dbuild.snapshot=false
+          -x spotlessCheck
+          -x checkstyleMain
+          -x checkstyleTest
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -62,6 +50,34 @@ jobs:
     - name: check archive for debugging
       if: always()
       run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
+
+  integration-tests:
+    name: build
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [17]
+        platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v2
+
+    - name: Clean build and Test
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: |
+          clean integrationTest -Dbuild.snapshot=false
+          -x spotlessCheck
+          -x checkstyleMain
+          -x checkstyleTest
 
   backward-compatibility:
     runs-on: ubuntu-latest
