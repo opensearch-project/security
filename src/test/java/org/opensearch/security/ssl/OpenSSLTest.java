@@ -174,7 +174,7 @@ public class OpenSSLTest extends SSLTest {
     @Test
     public void testHttpsAndNodeSSLPem() throws Exception {
         Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
-        super.testHttpsAndNodeSSLPem();
+        super.testHttpsAndNodeSSLPKCS8Pem();
     }
     
     @Test

@@ -318,6 +318,7 @@ dependencies {
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
     runtimeOnly 'com.github.luben:zstd-jni:1.5.0-2'
     runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
+    runtimeOnly "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
 
 
     implementation 'org.apache.commons:commons-lang3:3.4'
