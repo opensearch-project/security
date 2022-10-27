@@ -70,11 +70,6 @@ public class OpenSSLTest extends SSLTest {
         allowOpenSSL = true;
     }
 
-    @Test
-    public void testEnsureOpenSSLAvailability() {
-        Assert.assertTrue("OpenSSL not available: "+String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
-    }
-
     @Override
     @Test
     public void testHttps() throws Exception {
