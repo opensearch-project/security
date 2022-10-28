@@ -52,6 +52,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
@@ -342,6 +343,7 @@ public class IntegrationTests extends SingleClusterTest {
     }
 
     @Test
+    @Ignore // https://github.com/opensearch-project/security/issues/2194
     public void testSpecialUsernames() throws Exception {
     
         setup();    
