@@ -270,7 +270,6 @@ public class IntegrationTests extends SingleClusterTest {
     }
 
     @Test
-    @Ignore // https://github.com/opensearch-project/security/issues/2194
     public void testSpecialUsernames() throws Exception {
     
         setup();    
