@@ -34,7 +34,6 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
