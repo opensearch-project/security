@@ -34,6 +34,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.message.BasicHeader;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -269,6 +270,7 @@ public class IntegrationTests extends SingleClusterTest {
     }
 
     @Test
+    @Ignore // https://github.com/opensearch-project/security/issues/2194
     public void testSpecialUsernames() throws Exception {
     
         setup();    
