@@ -2,7 +2,7 @@
 
 ## Contributing to this Project
 
-OpenSearch is a community project that is built and maintained by people just like **you**.
+    OpenSearch is a community project that is built and maintained by people just like **you**.
 [This document](https://github.com/opensearch-project/.github/blob/main/CONTRIBUTING.md) explains how you can contribute to this and related projects.
 The brief summary below outlines contribution guidelines specific to the OpenSearch-Security Repo.
 
@@ -39,6 +39,10 @@ No all are welcome and encouraged to attend. Attending the Backlog & Triage meet
 While we are always happy to help the community, the best resource for implementation questions is [the OpenSearch forum](https://forum.opensearch.org/c/security/3).
 
 There you can find answers to many common questions as well as speak with implementation experts. 
+
+### Is this where I should bring up potential security vulnerabilities?
+
+Due to the sensitive nature of security vulnerabilities, please report all potential vulnerabilities directly by by following the steps outlined on the [SECURITY.md](https://github.com/opensearch-project/security/blob/main/SECURITY.md) document.
 
 ### Who should I contact if I have further questions? 
   
