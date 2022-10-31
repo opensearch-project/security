@@ -260,21 +260,26 @@ point_in_time_full_access:
 detectors_read_access:
   reserved: true
   cluster_permissions:
-    - 'cluster:admin/opendistro/securityanalytics/alerts/get'
-    - 'cluster:admin/opendistro/securityanalytics/mapping/get'
-    - 'cluster:admin/opendistro/securityanalytics/mapping/view/get'
-    - 'cluster:admin/opendistro/securityanalytics/findings/get'
-    - 'cluster:admin/opendistro/securityanalytics/rule/get'
-    - 'cluster:admin/opendistro/securityanalytics/detector/get'
-    - 'cluster:admin/opendistro/securityanalytics/rule/search'
-    - 'cluster:admin/opendistro/securityanalytics/detector/search'
+    - 'cluster:admin/opensearch/securityanalytics/alerts/get'
+    - 'cluster:admin/opensearch/securityanalytics/detector/get'
+    - 'cluster:admin/opensearch/securityanalytics/detector/search'
+    - 'cluster:admin/opensearch/securityanalytics/findings/get'
+    - 'cluster:admin/opensearch/securityanalytics/mapping/get'
+    - 'cluster:admin/opensearch/securityanalytics/mapping/view/get'
+    - 'cluster:admin/opensearch/securityanalytics/rule/get'
+    - 'cluster:admin/opensearch/securityanalytics/rule/search'
 
 # Allows users to use all security analytics functionality
 detectors_full_access:
   reserved: true
   cluster_permissions:
-    - 'cluster:admin/opendistro/securityanalytics/mapping/*'
-    - 'cluster:admin/opendistro/securityanalytics/detector/*'
-    - 'cluster:admin/opendistro/securityanalytics/rule/*'
-    - 'cluster:admin/opendistro/securityanalytics/findings/*'
-    - 'cluster:admin/opendistro/securityanalytics/alerts/*'
+    - 'cluster:admin/opensearch/securityanalytics/alerts/*'
+    - 'cluster:admin/opensearch/securityanalytics/detector/*'
+    - 'cluster:admin/opensearch/securityanalytics/findings/*'
+    - 'cluster:admin/opensearch/securityanalytics/mapping/*'
+    - 'cluster:admin/opensearch/securityanalytics/rule/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/mapping/put'
