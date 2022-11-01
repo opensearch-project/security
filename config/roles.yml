@@ -285,3 +285,8 @@ security_analytics_full_access:
         - 'indices:admin/mapping/put'
         - 'indices:admin/mappings/get'
 
+# Allows users to view and acknowledge alerts
+security_analytics_ack_alerts:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/securityanalytics/alerts/*'
