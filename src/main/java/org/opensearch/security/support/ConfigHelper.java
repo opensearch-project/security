@@ -35,6 +35,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 
 import org.opensearch.security.securityconf.impl.Meta;
 import org.apache.logging.log4j.Logger;
@@ -96,7 +97,7 @@ public class ConfigHelper {
     public static Reader createFileOrStringReader(CType cType, int configVersion, String filepath, boolean populateEmptyIfFileMissing) throws Exception {
         Reader reader;
         if (!populateEmptyIfFileMissing || new File(filepath).exists()) {
-            reader = new FileReader(filepath);
+            reader = new FileReader(filepath, StandardCharsets.UTF_8);
         } else {
             reader = new StringReader(createEmptySdcYaml(cType, configVersion));
         }
@@ -148,7 +149,7 @@ public class ConfigHelper {
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromYamlFile(String filepath, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
-        return fromYamlReader(new FileReader(filepath), ctype, version, seqNo, primaryTerm);
+        return fromYamlReader(new FileReader(filepath, StandardCharsets.UTF_8), ctype, version, seqNo, primaryTerm);
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromYamlString(String yamlString, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
