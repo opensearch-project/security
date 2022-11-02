@@ -20,6 +20,7 @@ package org.opensearch.security.ssl;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -638,7 +639,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
         final Function<? super X509Certificate, String> certificateSignature = cert -> {
             final byte[] signature = cert !=null && cert.getSignature() != null ? cert.getSignature() : null;
-            return new String(signature);
+            return new String(signature, StandardCharsets.UTF_8);
         };
 
         final Set<String> currentCertSignatureSet = Arrays.stream(currentX509Certs)
