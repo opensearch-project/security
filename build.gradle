@@ -58,6 +58,7 @@ plugins {
     id "org.gradle.test-retry" version "1.4.1"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.13"
+    id "com.google.osdetector" version "1.7.1"
 }
 
 allprojects {
@@ -413,6 +414,11 @@ dependencies {
     testImplementation 'org.springframework:spring-beans:5.3.20'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
+    if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
+        testImplementation "io.netty:netty-tcnative-classes:2.0.54.Final"
+        testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.54.Final:${osdetector.classifier}"
+    }
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
     // Kafka test execution
