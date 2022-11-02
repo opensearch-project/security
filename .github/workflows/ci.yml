@@ -33,6 +33,7 @@ jobs:
           -x spotlessCheck
           -x checkstyleMain
           -x checkstyleTest
+          -x spotbugsMain
 
     - name: Coverage
       uses: codecov/codecov-action@v1

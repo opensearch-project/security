@@ -888,7 +888,7 @@ public class SecurityAdmin {
         }
         
         System.out.println("Will retrieve '"+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
-        try (Writer writer = new FileWriter(filepath)) {
+        try (Writer writer = new FileWriter(filepath, StandardCharsets.UTF_8)) {
 
 			final GetResponse response = restHighLevelClient.get(new GetRequest(index).id(id).refresh(true).realtime(false), RequestOptions.DEFAULT);
 

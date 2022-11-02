@@ -54,6 +54,7 @@ plugins {
     id 'checkstyle'
     id 'nebula.ospackage'  version "8.3.0"
     id "org.gradle.test-retry" version "1.3.1"
+    id "com.github.spotbugs" version "5.0.13"
 }
 
 allprojects {
@@ -74,6 +75,14 @@ spotless {
     // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
     importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
   }
+}
+
+spotbugs {
+    includeFilter = file('spotbugs-include.xml')
+}
+
+spotbugsTest {
+    enabled = false
 }
 
 java.sourceCompatibility = JavaVersion.VERSION_11
