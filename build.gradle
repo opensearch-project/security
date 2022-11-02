@@ -58,6 +58,7 @@ plugins {
     id "org.gradle.test-retry" version "1.3.1"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.13"
+    id "com.google.osdetector" version "1.7.1"
 }
 
 allprojects {
@@ -408,6 +409,11 @@ dependencies {
     testImplementation 'org.springframework:spring-beans:5.3.20'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    // Only osx-x86_64 and linux-x86_64 are available
+    if (osdetector.classifier in ["osx-x86_64", "linux-x86_64"]) {
+        testImplementation "io.netty:netty-tcnative-classes:2.0.54.Final"
+        testImplementation "io.netty:netty-tcnative:2.0.54.Final:${osdetector.classifier}"
+    }
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
     // Kafka test execution
@@ -421,9 +427,6 @@ dependencies {
     testRuntimeOnly 'org.apache.zookeeper:zookeeper:3.7.1'
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
-
-
-
     implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
