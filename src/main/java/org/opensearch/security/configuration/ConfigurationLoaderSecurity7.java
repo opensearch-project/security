@@ -31,6 +31,7 @@
 package org.opensearch.security.configuration;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -275,7 +276,7 @@ public class ConfigurationLoaderSecurity7 {
 
             parser.nextToken();
 
-            final String jsonAsString = SecurityUtils.replaceEnvVars(new String(parser.binaryValue()), settings);
+            final String jsonAsString = SecurityUtils.replaceEnvVars(new String(parser.binaryValue(), StandardCharsets.UTF_8), settings);
             final JsonNode jsonNode = DefaultObjectMapper.readTree(jsonAsString);
             int configVersion = 1;
 
