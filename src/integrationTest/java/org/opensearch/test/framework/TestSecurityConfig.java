@@ -81,8 +81,8 @@ public class TestSecurityConfig {
 	private Config config = new Config();
 	private Map<String, User> internalUsers = new LinkedHashMap<>();
 	private Map<String, Role> roles = new LinkedHashMap<>();
-
 	private AuditConfiguration auditConfiguration;
+	private Map<String, RolesMapping> rolesMapping = new LinkedHashMap<>();
 
 	private String indexName = ".opendistro_security";
 
@@ -126,6 +126,9 @@ public class TestSecurityConfig {
 
 	public TestSecurityConfig roles(Role... roles) {
 		for (Role role : roles) {
+			if(this.roles.containsKey(role.name)) {
+				throw new IllegalStateException("Role with name " + role.name + " is already defined");
+			}
 			this.roles.put(role.name, role);
 		}
 
@@ -134,6 +137,17 @@ public class TestSecurityConfig {
 
 	public TestSecurityConfig audit(AuditConfiguration auditConfiguration) {
 		this.auditConfiguration = auditConfiguration;
+		return this;
+	}
+
+	public TestSecurityConfig rolesMapping(RolesMapping...mappings) {
+		for (RolesMapping mapping : mappings) {
+			String roleName = mapping.getRoleName();
+			if(rolesMapping.containsKey(roleName)) {
+				throw new IllegalArgumentException("Role mapping " + roleName + " already exists");
+			}
+			this.rolesMapping.put(roleName, mapping);
+		}
 		return this;
 	}
 
@@ -545,7 +559,7 @@ public class TestSecurityConfig {
 		}
 		writeConfigToIndex(client, CType.ROLES, roles);
 		writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
-		writeEmptyConfigToIndex(client, CType.ROLESMAPPING);
+		writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
 		writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
 		writeEmptyConfigToIndex(client, CType.TENANTS);
 
