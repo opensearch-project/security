@@ -34,6 +34,7 @@ jobs:
           -x spotlessCheck
           -x checkstyleMain
           -x checkstyleTest
+          -x spotbugsMain
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -80,6 +81,7 @@ jobs:
           -x spotlessCheck
           -x checkstyleMain
           -x checkstyleTest
+          -x spotbugsMain
 
   backward-compatibility:
     runs-on: ubuntu-latest
