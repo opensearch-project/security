@@ -137,7 +137,7 @@ jobs:
       if: ${{ runner.os == 'Windows'}}
       run: choco install wget --no-progress 
 
-    - run: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/${{ steps.download-platform.outputs.value }}/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
+    - run: wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/${{ steps.download-platform.outputs.value }}/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
 
     - name: Copy downloaded security version to bwc-test archives
       run: mv opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0/
