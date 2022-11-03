@@ -222,10 +222,6 @@ public class TestSecurityConfig {
 			xContentBuilder.endObject();
 			return xContentBuilder;
 		}
-
-		@Override public int hashCode() {
-			return super.hashCode();
-		}
 	}
 
 	public static class Role implements ToXContentObject {
