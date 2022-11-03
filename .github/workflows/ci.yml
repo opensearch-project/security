@@ -106,7 +106,7 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v2
 
-    - name: Build and Test
+    - name: Build
       uses: gradle/gradle-build-action@v2
       with:
         arguments: |
@@ -126,17 +126,17 @@ jobs:
         cp build/distributions/opensearch-security-${{ steps.opensearch-versions.outputs.version-current }}.0.zip ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}.0
         mkdir bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0
 
-    - name: wget
-      if: runner.os == 'Windows'
-      uses: wei/wget@v1
+    - id: download-platform
+      uses: haya14busa/action-cond@v1
       with:
-        args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/windows/x64/zip/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
+        cond: ${{ runner.os == 'Windows' }}
+        if_true: 'windows/x64/zip'  # string value
+        if_false: 'linux/x64/tar' # string value
 
     - name: wget
-      if: runner.os == 'Linux'
       uses: wei/wget@v1
       with:
-        args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
+        args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/${{ steps.download-platform.outputs.value }}/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
 
     - name: Copy downloaded security version to bwc-test archives
       run: mv opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0/
