@@ -21,4 +21,3 @@ Compatible with OpenSearch 2.4.0
 * Address CVE-2022-42889 by updating commons-text ([#2177](https://github.com/opensearch-project/security/pull/2177)[#2186](https://github.com/opensearch-project/security/pull/2186))
 * Patch bump for scala dependency ([#2163](https://github.com/opensearch-project/security/pull/2163)[#2187](https://github.com/opensearch-project/security/commit/1f3de6a064696eb098749a340853c4f6af4c619f))
 * Woodstox Version Bump to 6.4.0 ([#2197](https://github.com/opensearch-project/security/pull/2197)[#2199](https://github.com/opensearch-project/security/pull/2199))
-* Increment version to 2.4.0.0 ([#2084](https://github.com/opensearch-project/security/pull/2084)[#2088](https://github.com/opensearch-project/security/pull/2088))
