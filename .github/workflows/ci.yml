@@ -84,7 +84,6 @@ jobs:
           -x checkstyleMain
           -x checkstyleTest
           -x test
-          -x integrationTest
 
 
     - name: Copy current distro into the expected folder
