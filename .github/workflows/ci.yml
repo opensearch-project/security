@@ -120,8 +120,9 @@ jobs:
 
     - name: Copy current distro into the expected folder
       run: |
+        ls build/distributions/
         cp -r build/ ./bwc-test/
-        mkdir ./bwc-test/src/test/resources/security_plugin_version_no_snapshot
+        mkdir ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}
         cp build/distributions/opensearch-security-${{ steps.opensearch-versions.outputs.version-current }}.zip ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}
         mkdir bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0
 
