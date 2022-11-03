@@ -53,24 +53,69 @@ jobs:
       run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
   backward-compatibility:
-    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [11, 17]
+        platform: ["ubuntu-latest", "windows-latest"]
+    runs-on: ${{ matrix.platform }}
+
     steps:
-    - uses: actions/checkout@v2
+
+    - id: opensearch-versions
+      run: |
+        echo "::set-output name=version-current::2.4.0"
+        echo "::set-output name=version-previous::2.3.0"
+
     - uses: actions/setup-java@v1
       with:
-        java-version: 11
-    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
-    - run: |
-        echo "Running backwards compatibility tests ..."
-        security_plugin_version_no_snapshot=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}' | sed 's/-SNAPSHOT//g')
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v2
+
+    - name: Build
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: |
+          build -Dbuild.snapshot=false
+          -x spotlessCheck
+          -x checkstyleMain
+          -x checkstyleTest
+          -x test
+          -x integrationTest
+
+
+    - name: Copy current distro into the expected folder
+      run: |
+        ls build/distributions/
         cp -r build/ ./bwc-test/
-        mkdir ./bwc-test/src/test/resources/security_plugin_version_no_snapshot
-        cp build/distributions/opensearch-security-${security_plugin_version_no_snapshot}.zip ./bwc-test/src/test/resources/${security_plugin_version_no_snapshot}
-        mkdir bwc-test/src/test/resources/2.3.0.0
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/2.3.0/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-2.3.0.0.zip
-        mv opensearch-security-2.3.0.0.zip bwc-test/src/test/resources/2.3.0.0/
-        cd bwc-test/
-        ./gradlew bwcTestSuite -Dtests.security.manager=false
+        mkdir ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}.0
+        cp build/distributions/opensearch-security-${{ steps.opensearch-versions.outputs.version-current }}.0.zip ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}.0
+        mkdir bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0
+
+    - id: download-platform
+      uses: haya14busa/action-cond@v1
+      with:
+        cond: ${{ runner.os == 'Windows' }}
+        if_true: 'windows/x64/zip'  # string value
+        if_false: 'linux/x64/tar' # string value
+
+    - id: install-wget
+      if: ${{ runner.os == 'Windows'}}
+      run: choco install wget --no-progress 
+
+    - run: wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/${{ steps.download-platform.outputs.value }}/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
+
+    - name: Copy downloaded security version to bwc-test archives
+      run: mv opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0/
+
+    - name: Run BWC tests
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: bwcTestSuite -Dtests.security.manager=false
+        build-root-directory: bwc-test
 
   code-ql:
     runs-on: ubuntu-latest
