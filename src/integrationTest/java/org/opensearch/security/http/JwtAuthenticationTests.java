@@ -39,6 +39,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.log.LogsRule;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -89,7 +90,7 @@ public class JwtAuthenticationTests {
 	public static final String QA_SONG_INDEX_NAME = String.format("song_lyrics_%s", QA_DEPARTMENT);
 
 	private static final KeyPair KEY_PAIR = Keys.keyPairFor(SignatureAlgorithm.RS256);
-	private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()));
+	private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
 
 	static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
@@ -186,7 +187,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
-			logsRule.assertThatContain(String.format("No JWT token found in '%s' header.", JWT_AUTH_HEADER));
+			logsRule.assertThatContain(String.format("No JWT token found in '%s' header header", JWT_AUTH_HEADER));
 		}
 	}
 
