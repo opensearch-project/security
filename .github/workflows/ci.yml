@@ -122,8 +122,8 @@ jobs:
       run: |
         ls build/distributions/
         cp -r build/ ./bwc-test/
-        mkdir ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}
-        cp build/distributions/opensearch-security-${{ steps.opensearch-versions.outputs.version-current }}.zip ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}
+        mkdir ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}.0
+        cp build/distributions/opensearch-security-${{ steps.opensearch-versions.outputs.version-current }}.0.zip ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}.0
         mkdir bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0
 
     - name: wget
