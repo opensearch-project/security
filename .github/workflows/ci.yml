@@ -133,10 +133,11 @@ jobs:
         if_true: 'windows/x64/zip'  # string value
         if_false: 'linux/x64/tar' # string value
 
-    - name: wget
-      uses: wei/wget@v1
-      with:
-        args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/${{ steps.download-platform.outputs.value }}/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
+    - id: install-wget
+      if: ${{ runner.os == 'Windows'}}
+      run: choco install wget --no-progress 
+
+    - run: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/${{ steps.download-platform.outputs.value }}/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
 
     - name: Copy downloaded security version to bwc-test archives
       run: mv opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0/
