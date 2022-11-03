@@ -134,7 +134,7 @@ public class JwtAuthenticationTests {
 
 	@Test
 	public void shouldAuthenticateWithJwtToken_positive() {
-		try(TestRestClient client = cluster.getRestClient(tokenFactory.validToken(USER_SUPERHERO))){
+		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken(USER_SUPERHERO))){
 
 			HttpResponse response = client.getAuthInfo();
 
@@ -146,7 +146,7 @@ public class JwtAuthenticationTests {
 
 	@Test
 	public void shouldAuthenticateWithJwtToken_positiveWithAnotherUsername() {
-		try(TestRestClient client = cluster.getRestClient(tokenFactory.validToken(USERNAME_ROOT))){
+		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken(USERNAME_ROOT))){
 
 			HttpResponse response = client.getAuthInfo();
 
@@ -158,7 +158,7 @@ public class JwtAuthenticationTests {
 
 	@Test
 	public void shouldAuthenticateWithJwtToken_failureLackingUserName() {
-		try(TestRestClient client = cluster.getRestClient(tokenFactory.tokenWithoutPreferredUsername(USER_SUPERHERO))){
+		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateTokenWithoutPreferredUsername(USER_SUPERHERO))){
 
 			HttpResponse response = client.getAuthInfo();
 
@@ -169,7 +169,7 @@ public class JwtAuthenticationTests {
 
 	@Test
 	public void shouldAuthenticateWithJwtToken_failureExpiredToken() {
-		try(TestRestClient client = cluster.getRestClient(tokenFactory.expiredToken(USER_SUPERHERO))){
+		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateExpiredToken(USER_SUPERHERO))){
 
 			HttpResponse response = client.getAuthInfo();
 
@@ -186,14 +186,14 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
-			logsRule.assertThatContain(String.format("No JWT token found in '%s' header header", JWT_AUTH_HEADER));
+			logsRule.assertThatContain(String.format("No JWT token found in '%s' header.", JWT_AUTH_HEADER));
 		}
 	}
 
 	@Test
 	public void shouldAuthenticateWithJwtToken_failureIncorrectSignature() {
 		KeyPair incorrectKeyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
-		Header header = tokenFactory.tokenSignedWithKey(incorrectKeyPair.getPrivate(), USER_SUPERHERO);
+		Header header = tokenFactory.generateTokenSignedWithKey(incorrectKeyPair.getPrivate(), USER_SUPERHERO);
 		try(TestRestClient client = cluster.getRestClient(header)){
 
 			HttpResponse response = client.getAuthInfo();
@@ -205,7 +205,7 @@ public class JwtAuthenticationTests {
 
 	@Test
 	public void shouldReadRolesFromToken_positiveFirstRoleSet() {
-		Header header = tokenFactory.validToken(USER_SUPERHERO, ROLE_ADMIN, ROLE_DEVELOPER, ROLE_QA);
+		Header header = tokenFactory.generateValidToken(USER_SUPERHERO, ROLE_ADMIN, ROLE_DEVELOPER, ROLE_QA);
 		try(TestRestClient client = cluster.getRestClient(header)){
 
 			HttpResponse response = client.getAuthInfo();
@@ -219,7 +219,7 @@ public class JwtAuthenticationTests {
 
 	@Test
 	public void shouldReadRolesFromToken_positiveSecondRoleSet() {
-		Header header = tokenFactory.validToken(USER_SUPERHERO, ROLE_CTO, ROLE_CEO, ROLE_VP);
+		Header header = tokenFactory.generateValidToken(USER_SUPERHERO, ROLE_CTO, ROLE_CEO, ROLE_VP);
 		try(TestRestClient client = cluster.getRestClient(header)){
 
 			HttpResponse response = client.getAuthInfo();
@@ -235,7 +235,7 @@ public class JwtAuthenticationTests {
 	public void shouldExposeTokenClaimsAsUserAttributes_positive() throws IOException {
 		String[] roles = { ROLE_VP };
 		Map<String, Object> additionalClaims = Map.of(CLAIM_DEPARTMENT, QA_DEPARTMENT);
-		Header header = tokenFactory.validTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
+		Header header = tokenFactory.generateValidTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
 		try(RestHighLevelClient client = cluster.getRestHighLevelClient(List.of(header))){
 			SearchRequest searchRequest = queryStringQueryRequest(QA_SONG_INDEX_NAME, QUERY_TITLE_MAGNUM_OPUS);
 
@@ -252,7 +252,7 @@ public class JwtAuthenticationTests {
 	public void shouldExposeTokenClaimsAsUserAttributes_negative() throws IOException {
 		String[] roles = { ROLE_VP };
 		Map<String, Object> additionalClaims = Map.of(CLAIM_DEPARTMENT, "department-without-access-to-qa-song-index");
-		Header header = tokenFactory.validTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
+		Header header = tokenFactory.generateValidTokenWithCustomClaims(USER_SUPERHERO, roles, additionalClaims);
 		try(RestHighLevelClient client = cluster.getRestHighLevelClient(List.of(header))){
 			SearchRequest searchRequest = queryStringQueryRequest(QA_SONG_INDEX_NAME, QUERY_TITLE_MAGNUM_OPUS);
 

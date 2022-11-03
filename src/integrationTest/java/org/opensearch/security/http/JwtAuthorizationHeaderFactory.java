@@ -43,7 +43,7 @@ class JwtAuthorizationHeaderFactory {
 		this.headerName = requireNonNull(headerName, "Header name is required");
 	}
 
-	Header validToken(String username, String...roles) {
+	Header generateValidToken(String username, String...roles) {
 		requireNonNull(username, "Username is required");
 		Date now = new Date();
 		String token = Jwts.builder()
@@ -69,7 +69,7 @@ class JwtAuthorizationHeaderFactory {
 		return builder.build();
 	}
 
-	Header validTokenWithCustomClaims(String username, String[] roles, Map<String, Object> additionalClaims) {
+	Header generateValidTokenWithCustomClaims(String username, String[] roles, Map<String, Object> additionalClaims) {
 		requireNonNull(username, "Username is required");
 		requireNonNull(additionalClaims, "Custom claims are required");
 		Map<String, Object> claims = new HashMap<>(customClaimsMap(username, roles));
@@ -91,7 +91,7 @@ class JwtAuthorizationHeaderFactory {
 		return new BasicHeader(headerName, token);
 	}
 
-	Header tokenWithoutPreferredUsername(String username) {
+	Header generateTokenWithoutPreferredUsername(String username) {
 		requireNonNull(username, "Username is required");
 		Date now = new Date();
 		String token = Jwts.builder()
@@ -104,7 +104,7 @@ class JwtAuthorizationHeaderFactory {
 		return toHeader(token);
 	}
 
-	public Header expiredToken(String username) {
+	public Header generateExpiredToken(String username) {
 		requireNonNull(username, "Username is required");
 		Date now = new Date(1000);
 		String token = Jwts.builder()
@@ -119,7 +119,7 @@ class JwtAuthorizationHeaderFactory {
 		return toHeader(token);
 	}
 
-	public Header tokenSignedWithKey(PrivateKey key, String username) {
+	public Header generateTokenSignedWithKey(PrivateKey key, String username) {
 		requireNonNull(key, "Private key is required");
 		requireNonNull(username, "Username is required");
 		Date now = new Date();
