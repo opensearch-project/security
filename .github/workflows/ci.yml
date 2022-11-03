@@ -138,16 +138,14 @@ jobs:
       with:
         args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
 
-    - name:
-      run: |
-        mv opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0/
-        cd bwc-test/
+    - name: Copy downloaded security version to bwc-test archives
+      run: mv opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0/
 
     - name: Run BWC tests
       uses: gradle/gradle-build-action@v2
       with:
-        arguments: |
-          bwcTestSuite -Dtests.security.manager=false
+        arguments: bwcTestSuite -Dtests.security.manager=false
+        build-root-directory: bwc-test
 
   code-ql:
     runs-on: ubuntu-latest
