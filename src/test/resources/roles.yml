@@ -1129,6 +1129,47 @@ data_stream_3:
       allowed_actions:
         - "DATASTREAM_ALL"
 
+point_in_time_1:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  index_permissions:
+    - index_patterns:
+        - "pit_1"
+        - "*my-data-stream11*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "manage_point_in_time"
+
+point_in_time_2:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream21"
+        - "pit_2"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "manage_point_in_time"
+
+point_in_time_all:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "manage_point_in_time"
+
 hidden_test:
   cluster_permissions:
   - SGS_CLUSTER_COMPOSITE_OPS
