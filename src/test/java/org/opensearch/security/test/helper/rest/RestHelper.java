@@ -47,6 +47,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -59,6 +60,7 @@ import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -143,6 +145,14 @@ public class RestHelper {
 	public HttpResponse executeGetRequest(final String request, Header... header) {
 	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
 	}
+
+	public HttpResponse executeGetRequest(final String request, String body, Header... header) {
+		HttpUriRequest uriRequest = RequestBuilder.get(getHttpServerUri() + "/" + request)
+				.setEntity(createStringEntity(body))
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.build();
+		return executeRequest(uriRequest, header);
+	}
 	
 	public HttpResponse executeHeadRequest(final String request, Header... header) {
         return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
@@ -163,6 +173,15 @@ public class RestHelper {
 	public HttpResponse executeDeleteRequest(final String request, Header... header) {
 		return executeRequest(new HttpDelete(getHttpServerUri() + "/" + request), header);
 	}
+
+	public HttpResponse executeDeleteRequest(final String request, String body, Header... header) {
+		HttpUriRequest uriRequest = RequestBuilder.delete(getHttpServerUri() + "/" + request)
+				.setEntity(createStringEntity(body))
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.build();
+		return executeRequest(uriRequest, header);
+	}
+
 
 	public HttpResponse executePostRequest(final String request, String body, Header... header) {
 		HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + request);

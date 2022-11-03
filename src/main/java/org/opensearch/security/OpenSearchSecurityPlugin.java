@@ -66,6 +66,7 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.Version;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionResponse;
+import org.opensearch.action.search.PitService;
 import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.client.Client;
@@ -1161,12 +1162,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
 
+        private static PitService pitService;
+
         @Inject
         public GuiceHolder(final RepositoriesService repositoriesService,
-                final TransportService remoteClusterService, IndicesService indicesService) {
+                final TransportService remoteClusterService, IndicesService indicesService, PitService pitService) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
+            GuiceHolder.pitService = pitService;
         }
 
         public static RepositoriesService getRepositoriesService() {
@@ -1180,6 +1184,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         public static IndicesService getIndicesService() {
             return indicesService;
         }
+
+        public static PitService getPitService() { return pitService; }
         
         @Override
         public void close() {

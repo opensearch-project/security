@@ -370,11 +370,11 @@ public class IndexResolverReplacer {
         private final boolean isLocalAll;
         private final IndicesOptions indicesOptions;
         
-        private Resolved(final ImmutableSet<String> aliases,
-                         final ImmutableSet<String> allIndices,
-                         final ImmutableSet<String> originalRequested,
-                         final ImmutableSet<String> remoteIndices,
-                         IndicesOptions indicesOptions) {
+        public Resolved(final ImmutableSet<String> aliases,
+                        final ImmutableSet<String> allIndices,
+                        final ImmutableSet<String> originalRequested,
+                        final ImmutableSet<String> remoteIndices,
+                        IndicesOptions indicesOptions) {
             this.aliases = aliases;
             this.allIndices = allIndices;
             this.originalRequested = originalRequested;
