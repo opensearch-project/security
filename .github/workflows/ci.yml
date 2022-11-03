@@ -122,24 +122,24 @@ jobs:
       run: |
         cp -r build/ ./bwc-test/
         mkdir ./bwc-test/src/test/resources/security_plugin_version_no_snapshot
-        cp build/distributions/opensearch-security-${{ steps.opensearch-versions.output.version-current }}.zip ./bwc-test/src/test/resources/${{ steps.opensearch-versions.output.version-current }}
-        mkdir bwc-test/src/test/resources/${{ steps.opensearch-versions.output.version-previous }}.0
+        cp build/distributions/opensearch-security-${{ steps.opensearch-versions.outputs.version-current }}.zip ./bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-current }}
+        mkdir bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0
 
     - name: wget
       if: runner.os == 'Windows'
       uses: wei/wget@v1
       with:
-        args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.output.version-previous }}/latest/windows/x64/zip/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.output.version-previous }}.0.zip
+        args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/windows/x64/zip/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
 
     - name: wget
       if: runner.os == 'Linux'
       uses: wei/wget@v1
       with:
-        args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.output.version-previous }}/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.output.version-previous }}.0.zip
+        args: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ steps.opensearch-versions.outputs.version-previous }}/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip
 
     - name:
       run: |
-        mv opensearch-security-${{ steps.opensearch-versions.output.version-previous }}.0.zip bwc-test/src/test/resources/${{ steps.opensearch-versions.output.version-previous }}.0/
+        mv opensearch-security-${{ steps.opensearch-versions.outputs.version-previous }}.0.zip bwc-test/src/test/resources/${{ steps.opensearch-versions.outputs.version-previous }}.0/
         cd bwc-test/
 
     - name: Run BWC tests
