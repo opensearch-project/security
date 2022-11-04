@@ -85,9 +85,9 @@ jobs:
       - name: Download OpenSearch Core
         run: |
           cd ..
-          Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.4.0-SNAPSHOT/opensearch-min-2.4.0-SNAPSHOT-windows-x64-latest.zip -Outfile opensearch-2.4.0.zip
-          tar -xzf opensearch-2.4.0.zip 
-          del opensearch-2.4.0.zip
+          Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.5.0-SNAPSHOT/opensearch-min-2.5.0-SNAPSHOT-windows-x64-latest.zip -Outfile opensearch-2.5.0.zip
+          tar -xzf opensearch-2.5.0.zip 
+          del opensearch-2.5.0.zip
           Rename-Item opensearch-* Opensearch
 
       - name: Build Security Plugin with Gradle
