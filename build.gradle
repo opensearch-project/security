@@ -294,7 +294,11 @@ task integrationTest(type: Test) {
     systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
-
+    retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 2
+        maxFailures = 10
+    }
     //run the integrationTest task after the test task
     shouldRunAfter test
 }

@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -95,8 +96,12 @@ import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.repositories.RepositoryMissingException;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.test.framework.AuditCompliance;
+import org.opensearch.test.framework.AuditConfiguration;
+import org.opensearch.test.framework.AuditFilters;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.TestSecurityConfig.User;
+import org.opensearch.test.framework.audit.AuditLogsRule;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
@@ -118,6 +123,10 @@ import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.Al
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.REMOVE;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
+import static org.opensearch.rest.RestRequest.Method.DELETE;
+import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.rest.RestStatus.ACCEPTED;
 import static org.opensearch.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
@@ -132,8 +141,13 @@ import static org.opensearch.security.Song.TITLE_MAGNUM_OPUS;
 import static org.opensearch.security.Song.TITLE_NEXT_SONG;
 import static org.opensearch.security.Song.TITLE_POISON;
 import static org.opensearch.security.Song.TITLE_SONG_1_PLUS_1;
+import static org.opensearch.security.auditlog.impl.AuditCategory.INDEX_EVENT;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
+import static org.opensearch.test.framework.audit.AuditMessagePredicate.auditPredicate;
+import static org.opensearch.test.framework.audit.AuditMessagePredicate.grantedPrivilege;
+import static org.opensearch.test.framework.audit.AuditMessagePredicate.missingPrivilege;
+import static org.opensearch.test.framework.audit.AuditMessagePredicate.userAuthenticated;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.getSearchScrollRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.queryStringQueryRequest;
@@ -293,11 +307,15 @@ public class SearchOperationTest {
 	public static final LocalCluster cluster = new LocalCluster.Builder()
 		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
 		.authc(AUTHC_HTTPBASIC_INTERNAL)
-			.users(
-					ADMIN_USER, LIMITED_READ_USER, LIMITED_WRITE_USER, DOUBLE_READER_USER, REINDEXING_USER, UPDATE_DELETE_USER,
-					USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES
-			)
-		.build();
+		.users(ADMIN_USER, LIMITED_READ_USER, LIMITED_WRITE_USER, DOUBLE_READER_USER, REINDEXING_USER, UPDATE_DELETE_USER,
+			USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)
+		.audit(new AuditConfiguration(true)
+			.compliance(new AuditCompliance().enabled(true))
+			.filters(new AuditFilters().enabledRest(true).enabledTransport(true))
+		).build();
+
+	@Rule
+	public AuditLogsRule auditLogsRule = new AuditLogsRule();
 
 	@BeforeClass
 	public static void createTestData() {
@@ -340,7 +358,7 @@ public class SearchOperationTest {
 			if (indicesExistsResponse.isExists()) {
 				DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexToBeDeleted);
 				indices.delete(deleteIndexRequest).actionGet();
-				Awaitility.await().until(() -> indices.exists(indicesExistsRequest).get().isExists() == false);
+				Awaitility.await().ignoreExceptions().until(() -> indices.exists(indicesExistsRequest).get().isExists() == false);
 			}
 		}
 
@@ -378,6 +396,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S1));
 			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -387,6 +407,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/prohibited_song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -401,6 +423,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S1));
 			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/song_lyrics_index_alias/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -410,6 +434,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/prohibited_song_lyrics_index_alias/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -424,6 +450,19 @@ public class SearchOperationTest {
 			assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S3));
 			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_NEXT_SONG));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(DOUBLE_READER_USER).withRestRequest(POST, "/collective-index-alias/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(DOUBLE_READER_USER, "SearchRequest"));
+	}
+
+	@Test
+	public void shouldBeAbleToSearchSongViaMultiIndexAlias_negative() throws IOException {
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
+			SearchRequest searchRequest = queryStringQueryRequest(COLLECTIVE_INDEX_ALIAS, QUERY_TITLE_POISON);
+
+			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
+		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/collective-index-alias/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -438,15 +477,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S1));
 			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
 		}
-	}
-
-	@Test
-	public void shouldBeAbleToSearchSongViaMultiIndexAlias_negative() throws IOException {
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_READ_USER)) {
-			SearchRequest searchRequest = queryStringQueryRequest(COLLECTIVE_INDEX_ALIAS, QUERY_TITLE_POISON);
-
-			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
-		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(ADMIN_USER).withRestRequest(POST, "/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(ADMIN_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -456,8 +488,9 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
-
 	@Test
 	public void shouldBeAbleToSearchSongIndexesWithAsterisk_prohibitedSongIndex_positive() throws IOException {
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(DOUBLE_READER_USER)) {
@@ -470,6 +503,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, searchHitsContainDocumentWithId(0, PROHIBITED_SONG_INDEX_NAME, ID_P4));
 			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_POISON));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(DOUBLE_READER_USER).withRestRequest(POST, "/*song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(DOUBLE_READER_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -484,6 +519,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S3));
 			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_NEXT_SONG));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(DOUBLE_READER_USER).withRestRequest(POST, "/*song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(DOUBLE_READER_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -493,6 +530,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/*song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -513,6 +552,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S1));
 			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -528,6 +569,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/prohibited_song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -542,6 +585,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S1));
 			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(ADMIN_USER).withRestRequest(POST, "/_all/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(ADMIN_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -551,6 +596,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_all/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -569,6 +616,10 @@ public class SearchOperationTest {
 			assertThat(scrollResponse, numberOfTotalHitsIsEqualTo(3));
 			assertThat(scrollResponse, numberOfHitsInPageIsEqualTo(1));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "SearchRequest"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_search/scroll"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "SearchScrollRequest"));
 	}
 
 	@Test
@@ -583,6 +634,10 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.scroll(scrollRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(DOUBLE_READER_USER).withRestRequest(POST, "/song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(DOUBLE_READER_USER, "SearchRequest"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(DOUBLE_READER_USER).withRestRequest(POST, "/_search/scroll"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(DOUBLE_READER_USER, "SearchScrollRequest"));
 	}
 
 	@Test
@@ -593,6 +648,8 @@ public class SearchOperationTest {
 			assertThat(response, containDocument(SONG_INDEX_NAME, ID_S1));
 			assertThat(response, documentContainField(FIELD_TITLE, TITLE_MAGNUM_OPUS));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(GET, "/song_lyrics/_doc/1"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "GetRequest"));
 	}
 
 	@Test
@@ -601,6 +658,8 @@ public class SearchOperationTest {
 			GetRequest getRequest = new GetRequest(PROHIBITED_SONG_INDEX_NAME, ID_P4);
 			assertThatThrownBy(() -> restHighLevelClient.get(getRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(GET, "/prohibited_song_lyrics/_doc/4"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "GetRequest"));
 	}
 
 	@Test
@@ -627,6 +686,9 @@ public class SearchOperationTest {
 				documentContainField(FIELD_TITLE, TITLE_SONG_1_PLUS_1))
 			);
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_mget"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "MultiGetRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "MultiGetShardRequest"));
 	}
 
 	@Test
@@ -637,6 +699,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.mget(request, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(DOUBLE_READER_USER).withRestRequest(POST, "/_mget"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(DOUBLE_READER_USER, "MultiGetRequest"));
 	}
 
 	@Test
@@ -658,6 +722,10 @@ public class SearchOperationTest {
 			assertThat(responses[1].getFailure().getFailure(), statusException(INTERNAL_SERVER_ERROR));
 			assertThat(responses[1].getFailure().getFailure(), errorMessageContain("security_exception"));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_mget"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "MultiGetRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "MultiGetShardRequest").withIndex(SONG_INDEX_NAME));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "MultiGetShardRequest").withIndex(PROHIBITED_SONG_INDEX_NAME));
 	}
 
 	@Test
@@ -684,6 +752,9 @@ public class SearchOperationTest {
 			assertThat(responses[1].getResponse(), searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_NEXT_SONG));
 			assertThat(responses[1].getResponse(), searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S3));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_msearch"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "MultiSearchRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -704,6 +775,10 @@ public class SearchOperationTest {
 			assertThat(responses[1].getFailure(), errorMessageContain("security_exception"));
 			assertThat(responses[1].getResponse(), nullValue());
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_msearch"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "MultiSearchRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "SearchRequest").withIndex(SONG_INDEX_NAME));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest").withIndex(PROHIBITED_SONG_INDEX_NAME));
 	}
 
 	@Test
@@ -715,6 +790,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.msearch(request, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(DOUBLE_READER_USER).withRestRequest(POST, "/_msearch"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(DOUBLE_READER_USER, "MultiSearchRequest"));
 	}
 
 	@Test
@@ -728,6 +805,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, isSuccessfulSearchResponse());
 			assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "SearchRequest").withIndex(SONG_INDEX_NAME));
 	}
 
 	@Test
@@ -737,6 +816,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/prohibited_song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest").withIndex(PROHIBITED_SONG_INDEX_NAME));
 	}
 
 	@Test
@@ -750,6 +831,8 @@ public class SearchOperationTest {
 			assertThat(searchResponse, isSuccessfulSearchResponse());
 			assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "stats"));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -759,6 +842,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.search(searchRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/prohibited_song_lyrics/_search"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -777,6 +862,11 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "one", FIELD_TITLE, TITLE_MAGNUM_OPUS));
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "two", FIELD_TITLE, TITLE_SONG_1_PLUS_1));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertAtLeast(4, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));//sometimes 4 or 6
+		auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));//sometimes 2 or 4
 	}
 
 	@Test
@@ -796,6 +886,12 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocument(WRITE_SONG_INDEX_NAME, "two"));
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "two", FIELD_TITLE, TITLE_SONG_1_PLUS_1));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "BulkShardRequest").withIndex(SONG_INDEX_NAME));
 	}
 
 	@Test
@@ -816,6 +912,9 @@ public class SearchOperationTest {
 			assertThat(internalClient, not(clusterContainsDocument(SONG_INDEX_NAME, "one")));
 			assertThat(internalClient, not(clusterContainsDocument(SONG_INDEX_NAME, "two")));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "BulkShardRequest").withIndex(SONG_INDEX_NAME));
 	}
 
 	@Test
@@ -837,6 +936,12 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "one", FIELD_TITLE, titleOne));
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "two", FIELD_TITLE, titleTwo));
 		}
+		auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
+
 	}
 
 	@Test
@@ -859,6 +964,12 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "one", FIELD_TITLE, titleOne));
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(SONG_INDEX_NAME, ID_S2, FIELD_TITLE, TITLE_SONG_1_PLUS_1));
 		}
+		auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "BulkShardRequest").withIndex(SONG_INDEX_NAME));
 	}
 
 	@Test
@@ -878,6 +989,9 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(SONG_INDEX_NAME, ID_S1, FIELD_TITLE, TITLE_MAGNUM_OPUS));
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(SONG_INDEX_NAME, ID_S2, FIELD_TITLE, TITLE_SONG_1_PLUS_1));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "BulkShardRequest"));
 	}
 
 	@Test
@@ -901,6 +1015,11 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "two", FIELD_TITLE, TITLE_SONG_1_PLUS_1));
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "four", FIELD_TITLE, TITLE_POISON));
 		}
+		auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
 	}
 
 	@Test
@@ -924,6 +1043,12 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(WRITE_SONG_INDEX_NAME, "two", FIELD_TITLE, TITLE_SONG_1_PLUS_1));
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(SONG_INDEX_NAME, ID_S3, FIELD_TITLE, TITLE_NEXT_SONG));
 		}
+		auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "BulkShardRequest"));
 	}
 
 	@Test
@@ -943,6 +1068,10 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocument(SONG_INDEX_NAME, ID_S1));
 			assertThat(internalClient, clusterContainsDocument(SONG_INDEX_NAME, ID_S3));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "BulkShardRequest"));
+
 	}
 
 	@Test
@@ -959,6 +1088,15 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocument(WRITE_SONG_INDEX_NAME, ID_S2));
 			assertThat(internalClient, clusterContainsDocument(WRITE_SONG_INDEX_NAME, ID_S3));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(REINDEXING_USER).withRestRequest(POST, "/_reindex"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "ReindexRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "SearchRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(REINDEXING_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(REINDEXING_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "SearchScrollRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(REINDEXING_USER));
+		auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "ClearScrollRequest"));
 	}
 
 	@Test
@@ -969,6 +1107,9 @@ public class SearchOperationTest {
 			assertThatThrownBy(() -> restHighLevelClient.reindex(reindexRequest, DEFAULT), statusException(FORBIDDEN));
 			assertThat(internalClient, not(clusterContainsDocument(WRITE_SONG_INDEX_NAME, ID_P4)));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(REINDEXING_USER).withRestRequest(POST, "/_reindex"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "ReindexRequest"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -981,6 +1122,12 @@ public class SearchOperationTest {
 			assertThat(internalClient, not(clusterContainsDocument(PROHIBITED_SONG_INDEX_NAME, ID_S2)));
 			assertThat(internalClient, not(clusterContainsDocument(PROHIBITED_SONG_INDEX_NAME, ID_S3)));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(REINDEXING_USER).withRestRequest(POST, "/_reindex"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "ReindexRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "SearchRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "BulkRequest"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "BulkShardRequest"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "ClearScrollRequest"));
 	}
 
 	@Test
@@ -990,6 +1137,9 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.reindex(reindexRequest, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(REINDEXING_USER).withRestRequest(POST, "/_reindex"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(REINDEXING_USER, "ReindexRequest"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(REINDEXING_USER, "SearchRequest"));
 	}
 
 	@Test
@@ -1054,6 +1204,9 @@ public class SearchOperationTest {
 			assertThat(response.isAcknowledged(), equalTo(true));
 			assertThat(internalClient, clusterContainsDocument(TEMPORARY_ALIAS_NAME, ID_S1));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_aliases"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_READ_USER, "IndicesAliasesRequest"));
+		auditLogsRule.assertExactly(2, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_READ_USER));
 	}
 
 	@Test
@@ -1066,6 +1219,8 @@ public class SearchOperationTest {
 
 			assertThat(internalClient, not(clusterContainsDocument(TEMPORARY_ALIAS_NAME, ID_P4)));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_aliases"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "IndicesAliasesRequest"));
 	}
 
 	@Test
@@ -1083,6 +1238,9 @@ public class SearchOperationTest {
 			assertThat(response.isAcknowledged(), equalTo(true));
 			assertThat(internalClient, not(clusterContainsDocument(TEMPORARY_ALIAS_NAME, ID_S1)));
 		}
+		auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_aliases"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_READ_USER, "IndicesAliasesRequest"));
+		auditLogsRule.assertExactly(4, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_READ_USER));
 	}
 
 	@Test
@@ -1095,6 +1253,8 @@ public class SearchOperationTest {
 
 			assertThat(internalClient, clusterContainsDocument(PROHIBITED_SONG_INDEX_NAME, ID_P4));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_aliases"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "IndicesAliasesRequest"));
 	}
 
 	@Test
@@ -1118,6 +1278,14 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainsDocument(ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0001, documentId));
 			assertThat(internalClient, clusterContainsDocument(ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0002, documentId));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_template/musical-index-template"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/song-transcription-jazz/_doc/0001"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutIndexTemplateRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "IndexRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactly(8, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
 	}
 
 	@Test
@@ -1131,6 +1299,8 @@ public class SearchOperationTest {
 			assertThatThrownBy(() -> restHighLevelClient.indices().putTemplate(request, DEFAULT), statusException(FORBIDDEN));
 			assertThat(internalClient, not(clusterContainTemplate(MUSICAL_INDEX_TEMPLATE )));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(PUT, "/_template/musical-index-template"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "PutIndexTemplateRequest"));
 	}
 
 	@Test
@@ -1148,6 +1318,11 @@ public class SearchOperationTest {
 			assertThat(response.isAcknowledged(), equalTo(true));
 			assertThat(internalClient, not(clusterContainTemplate(MUSICAL_INDEX_TEMPLATE)));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_template/musical-index-template"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(DELETE, "/_template/musical-index-template"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutIndexTemplateRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "DeleteIndexTemplateRequest"));
+		auditLogsRule.assertExactly(4, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
 	}
 
 	@Test
@@ -1159,6 +1334,8 @@ public class SearchOperationTest {
 
 			assertThat(internalClient, clusterContainTemplate(UNDELETABLE_TEMPLATE_NAME));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(DELETE, "/_template/undeletable-template-name"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "DeleteIndexTemplateRequest"));
 	}
 
 	@Test
@@ -1187,6 +1364,14 @@ public class SearchOperationTest {
 			assertThat(internalClient, not(clusterContainsDocument(ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0001, documentId)));
 			assertThat(internalClient, not(clusterContainsDocument(ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0002, documentId)));
 		}
+		auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_template/musical-index-template"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/song-transcription-jazz/_doc/000one"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutIndexTemplateRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "IndexRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactly(10, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
 	}
 	@Test
 	public void shouldUpdateTemplate_negative() throws IOException {
@@ -1199,6 +1384,8 @@ public class SearchOperationTest {
 			assertThat(internalClient, clusterContainTemplateWithAlias(UNDELETABLE_TEMPLATE_NAME, ALIAS_FROM_UNDELETABLE_TEMPLATE));
 			assertThat(internalClient, not(clusterContainTemplateWithAlias(UNDELETABLE_TEMPLATE_NAME, ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0003)));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(PUT, "/_template/undeletable-template-name"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "PutIndexTemplateRequest"));
 	}
 
 	@Test
@@ -1214,6 +1401,9 @@ public class SearchOperationTest {
 			assertThat(response.getField(FIELD_TITLE), hasKey("text"));
 			assertThat(response.getIndices(), arrayContainingInAnyOrder(SONG_INDEX_NAME, PROHIBITED_SONG_INDEX_NAME, UPDATE_DELETE_OPERATION_INDEX_NAME));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(ADMIN_USER).withRestRequest(GET, "/_field_caps"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(ADMIN_USER, "FieldCapabilitiesRequest"));
+		auditLogsRule.assertExactly(3, grantedPrivilege(ADMIN_USER, "FieldCapabilitiesIndexRequest"));
 	}
 
 	@Test
@@ -1223,6 +1413,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() ->  restHighLevelClient.fieldCaps(request, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(GET, "/_field_caps"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "FieldCapabilitiesRequest"));
 	}
 
 	@Test
@@ -1238,6 +1430,9 @@ public class SearchOperationTest {
 			assertThat(response.getField(FIELD_TITLE), hasKey("text"));
 			assertThat(response.getIndices(), arrayContainingInAnyOrder(SONG_INDEX_NAME));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(GET, "/song_lyrics/_field_caps"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "FieldCapabilitiesRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "FieldCapabilitiesIndexRequest"));
 	}
 
 	@Test
@@ -1247,6 +1442,8 @@ public class SearchOperationTest {
 
 			assertThatThrownBy(() -> restHighLevelClient.fieldCaps(request, DEFAULT), statusException(FORBIDDEN));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(GET, "/prohibited_song_lyrics/_field_caps"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "FieldCapabilitiesRequest"));
 	}
 
 	@Test
@@ -1261,6 +1458,8 @@ public class SearchOperationTest {
 			assertThat(response.isAcknowledged(), equalTo(true));
 			assertThat(internalClient, clusterContainsSnapshotRepository(TEST_SNAPSHOT_REPOSITORY_NAME));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
 	}
 
 	@Test
@@ -1272,6 +1471,8 @@ public class SearchOperationTest {
 			assertThatThrownBy(() -> steps.createSnapshotRepository(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotDirPath, "fs"), statusException(FORBIDDEN));
 			assertThat(internalClient, not(clusterContainsSnapshotRepository(TEST_SNAPSHOT_REPOSITORY_NAME)));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "PutRepositoryRequest"));
 	}
 
 	@Test
@@ -1287,6 +1488,10 @@ public class SearchOperationTest {
 			assertThat(response.isAcknowledged(), equalTo(true));
 			assertThat(internalClient, not(clusterContainsSnapshotRepository(TEST_SNAPSHOT_REPOSITORY_NAME)));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(DELETE, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "DeleteRepositoryRequest"));
 	}
 
 	@Test
@@ -1297,9 +1502,11 @@ public class SearchOperationTest {
 			assertThatThrownBy(() -> steps.deleteSnapshotRepository(UNUSED_SNAPSHOT_REPOSITORY_NAME), statusException(FORBIDDEN));
 			assertThat(internalClient, clusterContainsSnapshotRepository(UNUSED_SNAPSHOT_REPOSITORY_NAME));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(DELETE, "/_snapshot/unused-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "DeleteRepositoryRequest"));
 	}
 
-	@Test
+	@Test //Bug which can be reproduced with the below test: https://github.com/opensearch-project/security/issues/2169
 	public void shouldCreateSnapshot_positive() throws IOException {
 		final String snapshotName = "snapshot-positive-test";
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
@@ -1313,6 +1520,12 @@ public class SearchOperationTest {
 			steps.waitForSnapshotCreation(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName);
 			assertThat(internalClient, clusterContainSuccessSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/snapshot-positive-test"));
+		auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/snapshot-positive-test"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
+		auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
 	}
 
 	@Test
@@ -1325,6 +1538,8 @@ public class SearchOperationTest {
 
 			assertThat(internalClient, snapshotInClusterDoesNotExists(UNUSED_SNAPSHOT_REPOSITORY_NAME, snapshotName));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(PUT, "/_snapshot/unused-snapshot-repository/snapshot-negative-test"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_READ_USER, "CreateSnapshotRequest"));
 	}
 
 	@Test
@@ -1342,6 +1557,14 @@ public class SearchOperationTest {
 			assertThat(response.isAcknowledged(), equalTo(true));
 			assertThat(internalClient, snapshotInClusterDoesNotExists(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/delete-snapshot-positive"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(DELETE, "/_snapshot/test-snapshot-repository/delete-snapshot-positive"));
+		auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/delete-snapshot-positive"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "DeleteSnapshotRequest"));
+		auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
 	}
 
 	@Test
@@ -1359,6 +1582,14 @@ public class SearchOperationTest {
 
 			assertThat(internalClient, clusterContainSuccessSnapshot(TEST_SNAPSHOT_REPOSITORY_NAME, snapshotName));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/delete-snapshot-negative"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(DELETE, "/_snapshot/test-snapshot-repository/delete-snapshot-negative"));
+		auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/delete-snapshot-negative"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
+		auditLogsRule.assertExactly(1, missingPrivilege(LIMITED_READ_USER, "DeleteSnapshotRequest"));
+		auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
 	}
 
 	@Test
@@ -1398,7 +1629,8 @@ public class SearchOperationTest {
 
 			// 7. wait until snapshot is restored
 			CountRequest countRequest = new CountRequest(RESTORED_SONG_INDEX_NAME);
-			Awaitility.await().until(() -> restHighLevelClient.count(countRequest, DEFAULT).getCount() == 2);
+			Awaitility.await().ignoreExceptions().alias("Index contains proper number of documents restored from snapshot.")
+				.until(() -> restHighLevelClient.count(countRequest, DEFAULT).getCount() == 2);
 
 			//8. verify that document are present in restored index
 			assertThat(internalClient, clusterContainsDocumentWithFieldValue(RESTORED_SONG_INDEX_NAME, "Eins", FIELD_TITLE, TITLE_MAGNUM_OPUS));
@@ -1406,6 +1638,21 @@ public class SearchOperationTest {
 			assertThat(internalClient, not(clusterContainsDocument(RESTORED_SONG_INDEX_NAME, "Drei")));
 			assertThat(internalClient, not(clusterContainsDocument(RESTORED_SONG_INDEX_NAME, "Vier")));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/restore-snapshot-positive"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_snapshot/test-snapshot-repository/restore-snapshot-positive/_restore"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/restored_write_song_index/_count"));
+		auditLogsRule.assertExactly(2, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/restore-snapshot-positive"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "SearchRequest"));
+		auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
 	}
 
 	@Test
@@ -1439,6 +1686,20 @@ public class SearchOperationTest {
 			assertThat(internalClient, not(clusterContainsDocument(RESTORED_SONG_INDEX_NAME, "Eins")));
 			assertThat(internalClient, not(clusterContainsDocument(RESTORED_SONG_INDEX_NAME, "Zwei")));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index/_restore"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-index"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
+		auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
+		auditLogsRule.assertExactlyOne(missingPrivilege(LIMITED_WRITE_USER, "RestoreSnapshotRequest"));
 	}
 
 	@Test
@@ -1472,6 +1733,19 @@ public class SearchOperationTest {
 			assertThat(internalClient, not(clusterContainsDocument(RESTORED_SONG_INDEX_NAME, "Eins")));
 			assertThat(internalClient, not(clusterContainsDocument(RESTORED_SONG_INDEX_NAME, "Zwei")));
 		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(PUT, "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-operation"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(POST, "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-operation/_restore"));
+		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_WRITE_USER).withRestRequest(POST, "/_bulk"));
+		auditLogsRule.assertAtLeast(1, userAuthenticated(LIMITED_WRITE_USER).withRestRequest(GET, "/_snapshot/test-snapshot-repository/restore-snapshot-negative-forbidden-operation"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "PutRepositoryRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateSnapshotRequest"));
+		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_WRITE_USER, "BulkRequest"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(LIMITED_WRITE_USER, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(4, grantedPrivilege(LIMITED_WRITE_USER, "PutMappingRequest"));
+		auditLogsRule.assertExactly(1, missingPrivilege(LIMITED_READ_USER, "RestoreSnapshotRequest"));
+		auditLogsRule.assertAtLeast(2, grantedPrivilege(LIMITED_WRITE_USER, "GetSnapshotsRequest"));
+		auditLogsRule.assertExactly(6, auditPredicate(INDEX_EVENT).withEffectiveUser(LIMITED_WRITE_USER));
 	}
 
 	@Test

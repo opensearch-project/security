@@ -81,6 +81,8 @@ public class TestSecurityConfig {
 	private Map<String, User> internalUsers = new LinkedHashMap<>();
 	private Map<String, Role> roles = new LinkedHashMap<>();
 
+	private AuditConfiguration auditConfiguration;
+
 	private String indexName = ".opendistro_security";
 
 	public TestSecurityConfig() {
@@ -116,6 +118,11 @@ public class TestSecurityConfig {
 			this.roles.put(role.name, role);
 		}
 
+		return this;
+	}
+
+	public TestSecurityConfig audit(AuditConfiguration auditConfiguration) {
+		this.auditConfiguration = auditConfiguration;
 		return this;
 	}
 
@@ -157,9 +164,9 @@ public class TestSecurityConfig {
 		public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin")
 				.roles(new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*"));
 		
-		private String name;
+		String name;
 		private String password;
-		private List<Role> roles = new ArrayList<>();
+		List<Role> roles = new ArrayList<>();
 		private Map<String, Object> attributes = new HashMap<>();
 
 		public User(String name) {
@@ -174,8 +181,8 @@ public class TestSecurityConfig {
 
 		public User roles(Role... roles) {
 			// We scope the role names by user to keep tests free of potential side effects
-			String roleNamePrefix = "user_" + this.name + "__";
-			this.roles.addAll(Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.name)).collect(Collectors.toSet()));
+			String roleNamePrefix = "user_" + this.getName() + "__";
+			this.roles.addAll(Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet()));
 			return this;
 		}
 
@@ -494,12 +501,15 @@ public class TestSecurityConfig {
 		client.admin().indices().create(new CreateIndexRequest(indexName).settings(settings)).actionGet();
 
 		writeSingleEntryConfigToIndex(client, CType.CONFIG, config);
+		if(auditConfiguration != null) {
+			writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
+		}
 		writeConfigToIndex(client, CType.ROLES, roles);
 		writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
 		writeEmptyConfigToIndex(client, CType.ROLESMAPPING);
 		writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
 		writeEmptyConfigToIndex(client, CType.TENANTS);
-		
+
 		ConfigUpdateResponse configUpdateResponse = client.execute(ConfigUpdateAction.INSTANCE,
 				new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))).actionGet();
 
@@ -509,7 +519,7 @@ public class TestSecurityConfig {
 	}
 
 
-	private static String hash(final char[] clearTextPassword) {
+	static String hash(final char[] clearTextPassword) {
 		final byte[] salt = new byte[16];
 		new SecureRandom().nextBytes(salt);
 		final String hash = OpenBSDBCrypt.generate((Objects.requireNonNull(clearTextPassword)), salt, 12);
@@ -552,6 +562,10 @@ public class TestSecurityConfig {
 	}
 
 	private void writeSingleEntryConfigToIndex(Client client, CType configType, ToXContentObject config) {
+		writeSingleEntryConfigToIndex(client, configType, configType.toLCString(), config);
+	}
+
+	private void writeSingleEntryConfigToIndex(Client client, CType configType, String configurationRoot, ToXContentObject config) {
 		try {
 			XContentBuilder builder = XContentFactory.jsonBuilder();
 
@@ -561,13 +575,13 @@ public class TestSecurityConfig {
 			builder.field("config_version", 2);
 			builder.endObject();
 
-			builder.field(configType.toLCString(), config);
+			builder.field(configurationRoot, config);
 
 			builder.endObject();
 
 			String json = Strings.toString(builder);
 
-			log.info("Writing " + configType + ":\n" + json);
+			log.info("Writing security plugin configuration into index " + configType + ":\n" + json);
 
 			client.index(new IndexRequest(indexName).id(configType.toLCString())
 							.setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(configType.toLCString(),

@@ -48,9 +48,11 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.audit.TestRuleAuditLogSink;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
 /**
@@ -334,6 +336,18 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		public Builder users(TestSecurityConfig.User... users) {
 			for (TestSecurityConfig.User user : users) {
 				testSecurityConfig.user(user);
+			}
+			return this;
+		}
+
+		public Builder audit(AuditConfiguration auditConfiguration) {
+			if(auditConfiguration != null) {
+				testSecurityConfig.audit(auditConfiguration);
+			}
+			if(auditConfiguration.isEnabled()) {
+				nodeOverrideSettingsBuilder.put("plugins.security.audit.type", TestRuleAuditLogSink.class.getName());
+			} else {
+				nodeOverrideSettingsBuilder.put("plugins.security.audit.type","noop");
 			}
 			return this;
 		}
