@@ -428,6 +428,56 @@ point_in_time_all:
   hidden: false
   users:
     - "all-pit"
+data_stream_admin:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_admin"
+data_stream_dls_1:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_dls1"
+data_stream_dls_2:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_dls2"
+data_stream_dls_3:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_dls3"
+data_stream_fls_1:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_fls1"
+data_stream_fls_2:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_fls2"
+data_stream_fls_3:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_fls3"
+data_stream_fm_1:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_fm1"
+data_stream_fm_2:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_fm2"
+data_stream_fm_3:
+  reserved: false
+  hidden: false
+  users:
+    - "ds_fm3"
 sem-role:
   reserved: false
   hidden: false
