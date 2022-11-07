@@ -37,8 +37,7 @@ import org.opensearch.security.user.User;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -108,7 +107,7 @@ public class IndexPatternTests {
     public void testExactNameWithNoMatches() {
         doReturn("index-17").when(ip).getUnresolvedIndexPattern(user);
         when(clusterService.state()).thenReturn(mock(ClusterState.class));
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-17"))).thenReturn(new String[]{});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"))).thenReturn(new String[]{});
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -116,7 +115,7 @@ public class IndexPatternTests {
 
         verify(clusterService).state();
         verify(ip).getUnresolvedIndexPattern(user);
-        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-17"));
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"));
     }
 
     /** Verify concreteIndexNames on exact name matches */
@@ -124,7 +123,7 @@ public class IndexPatternTests {
     public void testExactName() {
         doReturn("index-17").when(ip).getUnresolvedIndexPattern(user);
         when(clusterService.state()).thenReturn(mock(ClusterState.class));
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-17"))).thenReturn(new String[]{"resolved-index-17"});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"))).thenReturn(new String[]{"resolved-index-17"});
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -132,7 +131,7 @@ public class IndexPatternTests {
 
         verify(clusterService).state();
         verify(ip).getUnresolvedIndexPattern(user);
-        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-17"));
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"));
     }
 
     /** Verify concreteIndexNames on multiple matches */
@@ -140,7 +139,7 @@ public class IndexPatternTests {
     public void testMultipleConcreteIndices() {
         doReturn("index-1*").when(ip).getUnresolvedIndexPattern(user);
         doReturn(createClusterState()).when(clusterService).state();
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -148,7 +147,7 @@ public class IndexPatternTests {
 
         verify(clusterService, times(2)).state();
         verify(ip).getUnresolvedIndexPattern(user);
-        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-1*"));
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"));
     }
 
     /** Verify concreteIndexNames when there is an alias */
@@ -157,12 +156,11 @@ public class IndexPatternTests {
         doReturn("index-1*").when(ip).getUnresolvedIndexPattern(user);
 
         doReturn(createClusterState(
-            new IndexShorthand("index-111", Type.DATA_STREAM), // Name matches/wrong type
             new IndexShorthand("index-100", Type.ALIAS), // Name and type match
             new IndexShorthand("19", Type.ALIAS) // Type matches/wrong name
             )).when(clusterService).state();
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-100"))).thenReturn(new String[]{"resolved-index-100"});
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"))).thenReturn(new String[]{"resolved-index-100"});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -170,8 +168,8 @@ public class IndexPatternTests {
 
         verify(clusterService, times(3)).state();
         verify(ip).getUnresolvedIndexPattern(user);
-        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-100"));
-        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-1*"));
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"));
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"));
     }
     
     /** Verify attemptResolveIndexNames with multiple aliases */
@@ -179,13 +177,12 @@ public class IndexPatternTests {
     public void testMultipleConcreteAliasedAndUnresolved() {
         doReturn("index-1*").when(ip).getUnresolvedIndexPattern(user);
         doReturn(createClusterState(
-            new IndexShorthand("index-111", Type.DATA_STREAM), // Name matches/wrong type
             new IndexShorthand("index-100", Type.ALIAS), // Name and type match
             new IndexShorthand("index-101", Type.ALIAS), // Name and type match
             new IndexShorthand("19", Type.ALIAS) // Type matches/wrong name
             )).when(clusterService).state();
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-100"), eq("index-101"))).thenReturn(new String[]{"resolved-index-100", "resolved-index-101"});
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"), eq("index-101"))).thenReturn(new String[]{"resolved-index-100", "resolved-index-101"});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
 
         final Set<String> results = ip.attemptResolveIndexNames(user, resolver, clusterService);
 
@@ -193,8 +190,8 @@ public class IndexPatternTests {
 
         verify(clusterService, times(3)).state();
         verify(ip).getUnresolvedIndexPattern(user);
-        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-100"), eq("index-101"));
-        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq("index-1*"));
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"), eq("index-101"));
+        verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"));
     }
 
     private ClusterState createClusterState(final IndexShorthand... indices) {
