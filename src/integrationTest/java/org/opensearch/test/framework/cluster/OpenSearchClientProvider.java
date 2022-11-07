@@ -30,17 +30,12 @@ package org.opensearch.test.framework.cluster;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -57,7 +52,6 @@ import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
 
@@ -129,9 +123,9 @@ public interface OpenSearchClientProvider {
 				})
 				.build();
 
-			final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
-					.setTlsStrategy(tlsStrategy)
-					.build();
+				final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+						.setTlsStrategy(tlsStrategy)
+						.build();
 
 			if(credentialsProvider != null) {
 				httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
@@ -149,7 +143,7 @@ public interface OpenSearchClientProvider {
 	}
 
 	default CloseableHttpClient getClosableHttpClient(String[] supportedCipherSuit) {
-		CloseableHttpClientFactory factory = new CloseableHttpClientFactory(getSSLContext(), null, supportedCipherSuit);
+		CloseableHttpClientFactory factory = new CloseableHttpClientFactory(getSSLContext(), null, null, supportedCipherSuit);
 		return factory.getHTTPClient();
 	}
 
@@ -161,12 +155,7 @@ public interface OpenSearchClientProvider {
 	* control over username and password - for example, when you want to send a wrong password.
 	*/
 	default TestRestClient getRestClient(String user, String password, Header... headers) {
-		BasicHeader basicAuthHeader = getBasicAuthHeader(user, password);
-		if (headers != null && headers.length > 0) {
-			List<Header> concatenatedHeaders = Stream.concat(Stream.of(basicAuthHeader), Stream.of(headers)).collect(Collectors.toList());
-			return getRestClient(concatenatedHeaders);
-		}
-		return getRestClient(basicAuthHeader);
+		return createGenericClientRestClient(new TestRestClientConfiguration().username(user).password(password).headers(headers));
 	}
 
 	/**
@@ -178,16 +167,11 @@ public interface OpenSearchClientProvider {
 	}
 
 	default TestRestClient getRestClient(List<Header> headers) {
-		return createGenericClientRestClient(headers);
+		return createGenericClientRestClient(new TestRestClientConfiguration().headers(headers));
 	}
 
-	default TestRestClient createGenericClientRestClient(List<Header> headers) {
-		return new TestRestClient(getHttpAddress(), headers, getSSLContext());
-	}
-
-	default BasicHeader getBasicAuthHeader(String user, String password) {
-		return new BasicHeader("Authorization",
-				"Basic " + Base64.getEncoder().encodeToString((user + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
+	default TestRestClient createGenericClientRestClient(TestRestClientConfiguration configuration) {
+		return new TestRestClient(getHttpAddress(), configuration.getHeaders(), getSSLContext(), configuration.getSourceInetAddress());
 	}
 
 	private SSLContext getSSLContext() {

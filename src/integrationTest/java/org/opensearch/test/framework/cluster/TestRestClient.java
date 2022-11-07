@@ -29,6 +29,7 @@
 package org.opensearch.test.framework.cluster;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -58,6 +59,7 @@ import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.routing.HttpRoutePlanner;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.NameValuePair;
@@ -95,10 +97,13 @@ public class TestRestClient implements AutoCloseable {
 	private Header CONTENT_TYPE_JSON = new BasicHeader("Content-Type", "application/json");
 	private SSLContext sslContext;
 
-	public TestRestClient(InetSocketAddress nodeHttpAddress, List<Header> headers, SSLContext sslContext) {
+	private final InetAddress sourceInetAddress;
+
+	public TestRestClient(InetSocketAddress nodeHttpAddress, List<Header> headers, SSLContext sslContext, InetAddress sourceInetAddress) {
 		this.nodeHttpAddress = nodeHttpAddress;
 		this.headers.addAll(headers);
 		this.sslContext = sslContext;
+		this.sourceInetAddress = sourceInetAddress;
 	}
 
 	public HttpResponse get(String path, List<NameValuePair> queryParameters, Header... headers) {
@@ -178,7 +183,6 @@ public class TestRestClient implements AutoCloseable {
 	}
 
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... requestSpecificHeaders) {
-
 		try(CloseableHttpClient httpClient = getHTTPClient()) {
 
 
@@ -215,7 +219,8 @@ public class TestRestClient implements AutoCloseable {
 	}
 
 	protected final CloseableHttpClient getHTTPClient() {
-		var factory = new CloseableHttpClientFactory(sslContext, requestConfig, null);
+		HttpRoutePlanner routePlanner = Optional.ofNullable(sourceInetAddress).map(LocalAddressRoutePlanner::new).orElse(null);
+		var factory = new CloseableHttpClientFactory(sslContext, requestConfig, routePlanner, null);
 		return factory.getHTTPClient();
 	}
 

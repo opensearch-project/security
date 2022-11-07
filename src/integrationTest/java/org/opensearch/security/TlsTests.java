@@ -21,7 +21,6 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.NoHttpResponseException;
-import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +35,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
+import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -49,7 +49,7 @@ public class TlsTests {
 	public static final String AUTH_INFO_ENDPOINT = "/_opendistro/_security/authinfo?pretty";
 
 	@ClassRule
-	public static LocalCluster cluster = new LocalCluster.Builder()
+	public static final LocalCluster cluster = new LocalCluster.Builder()
 		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
 		.nodeSettings(Map.of(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of(SUPPORTED_CIPHER_SUIT)))
 		.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_ADMIN).build();
@@ -68,8 +68,7 @@ public class TlsTests {
 	public void shouldSupportClientCipherSuite_positive() throws IOException {
 		try(CloseableHttpClient client = cluster.getClosableHttpClient(new String[] { SUPPORTED_CIPHER_SUIT })) {
 			HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
-			BasicHeader header = cluster.getBasicAuthHeader(USER_ADMIN.getName(), USER_ADMIN.getPassword());
-			httpGet.addHeader(header);
+			httpGet.addHeader(getBasicAuthHeader(USER_ADMIN.getName(), USER_ADMIN.getPassword()));
 
 			try(CloseableHttpResponse response = client.execute(httpGet)) {
 

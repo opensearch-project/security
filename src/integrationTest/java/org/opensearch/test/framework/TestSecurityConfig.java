@@ -95,6 +95,11 @@ public class TestSecurityConfig {
 		return this;
 	}
 
+	public TestSecurityConfig authFailureListeners(AuthFailureListeners listener) {
+		config.authFailureListeners(listener);
+		return this;
+	}
+
 	public TestSecurityConfig anonymousAuth(boolean anonymousAuthEnabled) {
 		config.anonymousAuth(anonymousAuthEnabled);
 		return this;
@@ -139,6 +144,8 @@ public class TestSecurityConfig {
 
 		private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
+		private AuthFailureListeners authFailureListeners;
+
 		public Config anonymousAuth(boolean anonymousAuth) {
 			this.anonymousAuth = anonymousAuth;
 			return this;
@@ -151,6 +158,11 @@ public class TestSecurityConfig {
 
 		public Config authc(AuthcDomain authcDomain) {
 			authcDomainMap.put(authcDomain.id, authcDomain);
+			return this;
+		}
+
+		public Config authFailureListeners(AuthFailureListeners authFailureListeners) {
+			this.authFailureListeners = authFailureListeners;
 			return this;
 		}
 
@@ -169,6 +181,10 @@ public class TestSecurityConfig {
 			}
 
 			xContentBuilder.field("authc", authcDomainMap);
+
+			if(authFailureListeners != null) {
+				xContentBuilder.field("auth_failure_listeners", authFailureListeners);
+			}
 
 			xContentBuilder.endObject();
 			xContentBuilder.endObject();

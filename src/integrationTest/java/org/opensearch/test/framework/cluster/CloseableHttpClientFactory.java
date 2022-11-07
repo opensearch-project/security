@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.routing.HttpRoutePlanner;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.http.io.SocketConfig;
@@ -30,11 +31,17 @@ class CloseableHttpClientFactory {
 
 	private final RequestConfig requestConfig;
 
+	private final HttpRoutePlanner routePlanner;
+
 	private final String[] supportedCipherSuit;
 
-	public CloseableHttpClientFactory(SSLContext sslContext, RequestConfig requestConfig, String[] supportedCipherSuit) {
+	public CloseableHttpClientFactory(SSLContext sslContext,
+		RequestConfig requestConfig,
+		HttpRoutePlanner routePlanner,
+		String[] supportedCipherSuit) {
 		this.sslContext = Objects.requireNonNull(sslContext, "SSL context is required.");
 		this.requestConfig = requestConfig;
+		this.routePlanner = routePlanner;
 		this.supportedCipherSuit = supportedCipherSuit;
 	}
 
@@ -50,6 +57,9 @@ class CloseableHttpClientFactory {
 			.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60, TimeUnit.SECONDS).build())
 			.build();
 		hcb.setConnectionManager(cm);
+		if(routePlanner != null) {
+			hcb.setRoutePlanner(routePlanner);
+		}
 
 		if (requestConfig != null) {
 			hcb.setDefaultRequestConfig(requestConfig);
