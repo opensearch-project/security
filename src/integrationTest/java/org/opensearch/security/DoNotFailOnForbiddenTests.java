@@ -21,6 +21,9 @@ import org.junit.runner.RunWith;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.MultiSearchResponse;
@@ -30,14 +33,19 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.test.framework.TestSecurityConfig;
+import org.opensearch.test.framework.TestSecurityConfig.User;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.matcher.GetResponseMatchers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -59,6 +67,8 @@ import static org.opensearch.test.framework.cluster.SearchRequestFactory.querySt
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchRequestWithScroll;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.statsAggregationRequest;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
+import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
+import static org.opensearch.test.framework.matcher.GetResponseMatchers.documentContainField;
 import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containNotEmptyScrollingId;
@@ -80,12 +90,17 @@ public class DoNotFailOnForbiddenTests {
 	/**
 	* Songs inaccessible for {@link #LIMITED_USER}
 	*/
-	public static final String HORRIBLE_SONGS = "horrible_songs";
+	private static final String HORRIBLE_SONGS = "horrible_songs";
 
-	public static final String BOTH_INDEX_PATTERN = "*songs";
+	private static final String BOTH_INDEX_PATTERN = "*songs";
 
-	static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
-	static final TestSecurityConfig.User LIMITED_USER = new TestSecurityConfig.User("limited_user")
+	private static final String ID_1 = "1";
+	private static final String ID_2 = "2";
+	private static final String ID_3 = "3";
+	private static final String ID_4 = "4";
+
+	private static final User ADMIN_USER = new User("admin").roles(ALL_ACCESS);
+	private static final User LIMITED_USER = new User("limited_user")
 		.roles(new TestSecurityConfig.Role("limited-role")
 			.clusterPermissions("indices:data/read/mget", "indices:data/read/msearch", "indices:data/read/scroll")
 			.indexPermissions("indices:data/read/search", "indices:data/read/mget*", "indices:data/read/field_caps", "indices:data/read/field_caps*", "indices:data/read/msearch", "indices:data/read/scroll")
@@ -102,11 +117,11 @@ public class DoNotFailOnForbiddenTests {
 	@BeforeClass
 	public static void createTestData() {
 		try(Client client = cluster.getInternalNodeClient()) {
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id("1").source(SONGS[0])).actionGet();
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id("2").source(SONGS[1])).actionGet();
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id("3").source(SONGS[2])).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_1).source(SONGS[0])).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_2).source(SONGS[1])).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_3).source(SONGS[2])).actionGet();
 
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(HORRIBLE_SONGS).id("4").source(SONGS[3])).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(HORRIBLE_SONGS).id(ID_4).source(SONGS[3])).actionGet();
 
 			client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new IndicesAliasesRequest.AliasActions(ADD).indices(
 				MARVELOUS_SONGS, HORRIBLE_SONGS).alias(BOTH_INDEX_ALIAS))).actionGet();
@@ -123,7 +138,7 @@ public class DoNotFailOnForbiddenTests {
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-			assertThatContainOneSong(searchResponse, "1", TITLE_MAGNUM_OPUS);
+			assertThatContainOneSong(searchResponse, ID_1, TITLE_MAGNUM_OPUS);
 		}
 	}
 
@@ -150,7 +165,7 @@ public class DoNotFailOnForbiddenTests {
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-			assertThatContainOneSong(searchResponse, "1", TITLE_MAGNUM_OPUS);
+			assertThatContainOneSong(searchResponse, ID_1, TITLE_MAGNUM_OPUS);
 		}
 	}
 
@@ -170,7 +185,7 @@ public class DoNotFailOnForbiddenTests {
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-			assertThatContainOneSong(searchResponse, "1", TITLE_MAGNUM_OPUS);
+			assertThatContainOneSong(searchResponse, ID_1, TITLE_MAGNUM_OPUS);
 		}
 	}
 
@@ -190,7 +205,7 @@ public class DoNotFailOnForbiddenTests {
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
-			assertThatContainOneSong(searchResponse, "1", TITLE_MAGNUM_OPUS);
+			assertThatContainOneSong(searchResponse, ID_1, TITLE_MAGNUM_OPUS);
 		}
 	}
 
@@ -203,6 +218,39 @@ public class DoNotFailOnForbiddenTests {
 
 			assertThat(searchResponse, isSuccessfulSearchResponse());
 			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(0));
+		}
+	}
+
+	@Test
+	public void shouldMGetDocument_positive() throws IOException {
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+			MultiGetRequest request = new MultiGetRequest()
+				.add(BOTH_INDEX_PATTERN, ID_1)
+				.add(BOTH_INDEX_PATTERN, ID_4);
+
+			MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
+
+			MultiGetItemResponse[] responses = response.getResponses();
+			assertThat(responses, arrayWithSize(2));
+			MultiGetItemResponse firstResult = responses[0];
+			MultiGetItemResponse secondResult = responses[1];
+			assertThat(firstResult.getFailure(), nullValue());
+			assertThat(secondResult.getFailure(), nullValue());
+			assertThat(firstResult.getResponse(), allOf(
+				containDocument(MARVELOUS_SONGS, ID_1),
+				documentContainField(FIELD_TITLE, TITLE_MAGNUM_OPUS))
+			);
+			assertThat(secondResult.getResponse(), containDocument(MARVELOUS_SONGS, ID_4));
+			assertThat(secondResult.getResponse().isExists(), is(false));
+		}
+	}
+
+	@Test
+	public void shouldMGetDocument_negative() throws IOException {
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_USER)) {
+			MultiGetRequest request = new MultiGetRequest().add(HORRIBLE_SONGS, ID_4);
+
+			assertThatThrownBy(() -> restHighLevelClient.mget(request, DEFAULT), statusException(FORBIDDEN));
 		}
 	}
 
@@ -221,9 +269,9 @@ public class DoNotFailOnForbiddenTests {
 			assertThat(responses[1].getFailure(), nullValue());
 
 			assertThat(responses[0].getResponse(), searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
-			assertThat(responses[0].getResponse(), searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, "1"));
+			assertThat(responses[0].getResponse(), searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, ID_1));
 			assertThat(responses[1].getResponse(), searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_NEXT_SONG));
-			assertThat(responses[1].getResponse(), searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, "3"));
+			assertThat(responses[1].getResponse(), searchHitsContainDocumentWithId(0, MARVELOUS_SONGS, ID_3));
 		}
 	}
 
