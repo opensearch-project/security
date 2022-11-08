@@ -1122,12 +1122,155 @@ data_stream_3:
   reserved: true
   hidden: false
   description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "DATASTREAM_ALL"
+        - "indices:data/write/index"
+        - "indices:data/write/bulk*"
+
+data_stream_4:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
   cluster_permissions: []
   index_permissions:
     - index_patterns:
         - "*"
       allowed_actions:
         - "DATASTREAM_ALL"
+
+data_stream_admin:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions:
+    - "*"
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream*"
+      allowed_actions:
+        - "*"
+
+data_stream_dls_1:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream11"
+      dls: "{\n  \"bool\": {\n \"must\": {\n \"match\": {\n \"user.id\": \"8a4f500d\"\n }\n }\n }\n}"
+      allowed_actions:
+        - "read"
+
+data_stream_dls_2:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream2*"
+      dls: "{\n  \"bool\": {\n \"must\": {\n \"match\": {\n \"user.id\": \"8a4f500d\"\n }\n }\n }\n}"
+      allowed_actions:
+        - "read"
+
+data_stream_dls_3:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream*"
+      dls: "{\n  \"bool\": {\n \"must\": {\n \"match\": {\n \"user.id\": \"8a4f500d\"\n }\n }\n }\n}"
+      allowed_actions:
+        - "read"
+
+data_stream_fls_1:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream11"
+      fls:
+        - "user.id"
+        - "message"
+      allowed_actions:
+        - "read"
+
+data_stream_fls_2:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream2*"
+      fls:
+        - "user.id"
+        - "user.name"
+      allowed_actions:
+        - "read"
+
+data_stream_fls_3:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream*"
+      fls:
+        - "~message"
+      allowed_actions:
+        - "read"
+
+data_stream_fm_1:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream11"
+      masked_fields:
+        - "message"
+      allowed_actions:
+        - "read"
+
+data_stream_fm_2:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream2*"
+      masked_fields:
+        - "message"
+      allowed_actions:
+        - "read"
+
+data_stream_fm_3:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream*"
+      masked_fields:
+        - "user.name"
+        - "message"
+      allowed_actions:
+        - "read"
 
 point_in_time_1:
   reserved: true
@@ -1151,6 +1294,20 @@ point_in_time_2:
     - index_patterns:
         - "my-data-stream21"
         - "pit_2"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "manage_point_in_time"
+
+point_in_time_3:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  index_permissions:
+    - index_patterns:
+        - "my-data-stream31"
+        - "pit_3"
       dls: null
       fls: null
       masked_fields: null
