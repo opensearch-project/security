@@ -52,6 +52,10 @@ public class ClusterMatchers {
 		return new SnapshotInClusterDoesNotExist(repositoryName, snapshotName);
 	}
 
+	public static Matcher<Client> aliasExists(String aliasName) {
+		return new AliasExistsMatcher(aliasName);
+	}
+
 	public static Matcher<LocalCluster> indexExists(String expectedIndexName) {
 		return new IndexExistsMatcher(expectedIndexName);
 	}
