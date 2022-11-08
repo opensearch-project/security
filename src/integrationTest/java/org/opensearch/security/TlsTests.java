@@ -22,19 +22,27 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.security.auditlog.impl.AuditCategory;
+import org.opensearch.test.framework.AuditCompliance;
+import org.opensearch.test.framework.AuditConfiguration;
+import org.opensearch.test.framework.AuditFilters;
 import org.opensearch.test.framework.TestSecurityConfig.User;
+import org.opensearch.test.framework.audit.AuditLogsRule;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.opensearch.security.auditlog.AuditLog.Origin.REST;
 import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
+import static org.opensearch.test.framework.audit.AuditMessagePredicate.auditPredicate;
 import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
 
@@ -52,7 +60,14 @@ public class TlsTests {
 	public static final LocalCluster cluster = new LocalCluster.Builder()
 		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
 		.nodeSettings(Map.of(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of(SUPPORTED_CIPHER_SUIT)))
-		.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_ADMIN).build();
+		.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_ADMIN)
+		.audit(new AuditConfiguration(true)
+			.compliance(new AuditCompliance().enabled(true))
+			.filters(new AuditFilters().enabledRest(true).enabledTransport(true))
+		).build();
+
+	@Rule
+	public AuditLogsRule auditLogsRule = new AuditLogsRule();
 
 	@Test
 	public void shouldCreateAuditOnIncomingNonTlsConnection() throws IOException {
@@ -61,7 +76,7 @@ public class TlsTests {
 
 			assertThatThrownBy(() -> httpClient.execute(request), instanceOf(NoHttpResponseException.class));
 		}
-		//TODO check if audit is created, audit_category = SSL_EXCEPTION
+		auditLogsRule.assertAtLeast(1, auditPredicate(AuditCategory.SSL_EXCEPTION).withLayer(REST));
 	}
 
 	@Test
