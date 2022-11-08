@@ -18,7 +18,7 @@ public class GetResponseMatchers  {
 	private GetResponseMatchers() {}
 
 	public static Matcher<GetResponse> containDocument(String indexName, String documentId) {
-		return new GetResponseDocumentIdMatcher(indexName, documentId);
+		return new GetResponseContainsDocumentWithIdMatcher(indexName, documentId);
 	}
 
 	public static Matcher<GetResponse> containOnlyDocumentId(String indexName, String documentId) {
