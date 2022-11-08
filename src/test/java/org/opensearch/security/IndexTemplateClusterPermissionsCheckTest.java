@@ -36,10 +36,10 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest{
         }
         @Test
         public void testPutIndexTemplateByNonPrivilegedUser() throws Exception {
-            String expectedFailureResponse = getFailureResponseReason("ds3");
+            String expectedFailureResponse = getFailureResponseReason("ds4");
 
             // should fail, as user `ds3` doesn't have correct permissions
-            HttpResponse response = rh.executePutRequest("/_index_template/sem1234", indexTemplateBody, encodeBasicHeader("ds3", "nagilum"));
+            HttpResponse response = rh.executePutRequest("/_index_template/sem1234", indexTemplateBody, encodeBasicHeader("ds4", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
             Assert.assertEquals(expectedFailureResponse, response.findValueInJson("error.root_cause[0].reason"));
         }

@@ -413,6 +413,11 @@ data_stream_3:
   hidden: false
   users:
     - "ds3"
+data_stream_4:
+  reserved: false
+  hidden: false
+  users:
+    - "ds4"
 point_in_time_1:
   reserved: false
   hidden: false
@@ -423,6 +428,11 @@ point_in_time_2:
   hidden: false
   users:
     - "pit-2"
+point_in_time_3:
+  reserved: false
+  hidden: false
+  users:
+    - "pit-3"
 point_in_time_all:
   reserved: false
   hidden: false
