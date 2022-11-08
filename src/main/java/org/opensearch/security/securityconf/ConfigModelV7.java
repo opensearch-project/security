@@ -359,7 +359,7 @@ public class ConfigModelV7 extends ConfigModel {
                     final Set<String> maskedFields = ip.getMaskedFields();
                     if (!maskedFields.isEmpty()) {
                         final String indexPattern = ip.getUnresolvedIndexPattern(user);
-                        Set<String> concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+                        Set<String> concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs, false);
 
                         Set<String> currentMaskedFields = maskedFieldsMap.get(indexPattern);
                         if (currentMaskedFields != null) {
@@ -397,7 +397,7 @@ public class ConfigModelV7 extends ConfigModel {
                     Set<String> concreteIndices = new HashSet<>();
 
                     if ((dls != null && dls.length() > 0) || (fls != null && fls.size() > 0)) {
-                        concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+                        concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs, false);
                     }
 
                     if (dls != null && dls.length() > 0) {
@@ -549,7 +549,7 @@ public class ConfigModelV7 extends ConfigModel {
 //                }
                 if (patternMatch) {
                     //resolved but can contain patterns for nonexistent indices
-                    final WildcardMatcher permitted = WildcardMatcher.from(p.getResolvedIndexPattern(user, resolver, cs)); //maybe they do not exist
+                    final WildcardMatcher permitted = WildcardMatcher.from(p.getResolvedIndexPattern(user, resolver, cs, true)); //maybe they do not exist
                     final Set<String> res = new HashSet<>();
                     if (!resolved.isLocalAll() && !resolved.getAllIndices().contains("*") && !resolved.getAllIndices().contains("_all")) {
                         //resolved but can contain patterns for nonexistent indices
