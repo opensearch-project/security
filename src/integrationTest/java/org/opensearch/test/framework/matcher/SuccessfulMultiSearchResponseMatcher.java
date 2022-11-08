@@ -20,6 +20,7 @@ class SuccessfulMultiSearchResponseMatcher extends TypeSafeDiagnosingMatcher<Mul
         for (MultiSearchResponse.Item itemResponse : response.getResponses()) {
             if (itemResponse.isFailure()) {
                 mismatchDescription.appendValue("Get an item failed: ").appendValue(itemResponse.getFailureMessage());
+                return false;
             }
         }
 

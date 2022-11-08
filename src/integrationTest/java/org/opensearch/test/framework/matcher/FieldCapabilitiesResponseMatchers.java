@@ -16,7 +16,7 @@ public class FieldCapabilitiesResponseMatchers {
 
     private FieldCapabilitiesResponseMatchers() {}
 
-    public static Matcher<FieldCapabilitiesResponse> containsExactlyIndices(String expectedIndices) {
+    public static Matcher<FieldCapabilitiesResponse> containsExactlyIndices(String... expectedIndices) {
         return new ContainsExactlyIndicesMatcher(expectedIndices);
     }
 

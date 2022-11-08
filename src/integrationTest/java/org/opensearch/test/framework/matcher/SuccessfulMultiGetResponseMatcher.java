@@ -22,6 +22,7 @@ class SuccessfulMultiGetResponseMatcher extends TypeSafeDiagnosingMatcher<MultiG
             if (getItemResponse.isFailed()) {
                 mismatchDescription.appendValue("Get an item from index: ").appendValue(getItemResponse.getIndex())
                         .appendText(" failed: ").appendValue(getItemResponse.getFailure().getMessage());
+                return false;
             }
         }
 
