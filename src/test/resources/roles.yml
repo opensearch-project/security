@@ -1132,6 +1132,17 @@ data_stream_3:
         - "indices:data/write/index"
         - "indices:data/write/bulk*"
 
+data_stream_4:
+  reserved: true
+  hidden: false
+  description: "Migrated from v6 (all types mapped)"
+  cluster_permissions: []
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "DATASTREAM_ALL"
+
 data_stream_admin:
   reserved: true
   hidden: false
