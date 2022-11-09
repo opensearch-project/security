@@ -68,6 +68,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
 import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
+import static org.opensearch.cluster.metadata.IndexAbstraction.Type.DATA_STREAM;
 
 public class ConfigModelV7 extends ConfigModel {
 
@@ -768,20 +769,22 @@ public class ConfigModelV7 extends ConfigModel {
             final ImmutableSet.Builder<String> resolvedIndices = new ImmutableSet.Builder<>();
 
             final WildcardMatcher matcher = WildcardMatcher.from(unresolved);
+            boolean includeDataStreams = true;
             if (!(matcher instanceof WildcardMatcher.Exact)) {
-                final String[] aliasesForPermittedPattern = cs.state().getMetadata().getIndicesLookup().entrySet().stream()
-                        .filter(e -> e.getValue().getType() == ALIAS)
+                final String[] aliasesAndDataStreamsForPermittedPattern = cs.state().getMetadata().getIndicesLookup().entrySet().stream()
+                        .filter(e -> (e.getValue().getType() == ALIAS) || (e.getValue().getType() == DATA_STREAM))
                         .filter(e -> matcher.test(e.getKey()))
                         .map(e -> e.getKey())
                         .toArray(String[]::new);
-                if (aliasesForPermittedPattern.length > 0) {
-                    final String[] resolvedAliases = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), aliasesForPermittedPattern);
-                    resolvedIndices.addAll(Arrays.asList(resolvedAliases));
+                if (aliasesAndDataStreamsForPermittedPattern.length > 0) {
+                    final String[] resolvedAliasesAndDataStreamIndices = resolver.concreteIndexNames(cs.state(),
+                            IndicesOptions.lenientExpandOpen(), includeDataStreams, aliasesAndDataStreamsForPermittedPattern);
+                    resolvedIndices.addAll(Arrays.asList(resolvedAliasesAndDataStreamIndices));
                 }
             }
 
             if (Strings.isNotBlank(unresolved)) {
-                final String[] resolvedIndicesFromPattern = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
+                final String[] resolvedIndicesFromPattern = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), includeDataStreams, unresolved);
                 resolvedIndices.addAll(Arrays.asList(resolvedIndicesFromPattern));
             }
 
