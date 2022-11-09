@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.net.ssl.SSLContext;
@@ -165,6 +166,13 @@ public class TestRestClient implements AutoCloseable {
 		HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + path);
 		uriRequest.setEntity(toStringEntity(body));
 		return executeRequest(uriRequest, CONTENT_TYPE_JSON);
+	}
+
+	public HttpResponse assignRoleToUser(String username, String roleName) {
+		Objects.requireNonNull(roleName, "Role name is required");
+		Objects.requireNonNull(username, "User name is required");
+		String body = String.format("[{\"op\":\"add\",\"path\":\"/opendistro_security_roles\",\"value\":[\"%s\"]}]", roleName);
+		return patch("_plugins/_security/api/internalusers/" + username, body);
 	}
 
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... requestSpecificHeaders) {

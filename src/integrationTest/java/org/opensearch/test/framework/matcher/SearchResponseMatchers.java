@@ -9,8 +9,11 @@
 */
 package org.opensearch.test.framework.matcher;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.Matcher;
 
 import org.opensearch.action.search.SearchResponse;
@@ -37,6 +40,11 @@ public class SearchResponseMatchers {
 		return new SearchHitContainsFieldWithValueMatcher<>(hitIndex, fieldName, expectedValue);
 	}
 
+	public static Matcher<SearchResponse> searchHitDoesNotContainField(int hitIndex, String fieldName) {
+		return new SearchHitDoesNotContainFieldMatcher(hitIndex, fieldName);
+	}
+
+
 	public static Matcher<SearchResponse> searchHitsContainDocumentWithId(int hitIndex, String indexName, String documentId) {
 		return new SearchHitsContainDocumentWithIdMatcher(hitIndex, indexName, documentId);
 	}
@@ -51,6 +59,20 @@ public class SearchResponseMatchers {
 
 	public static Matcher<SearchResponse> containAggregationWithNameAndType(String expectedAggregationName, String expectedAggregationType) {
 		return new ContainsAggregationWithNameAndTypeMatcher(expectedAggregationName, expectedAggregationType);
+	}
+
+	/**
+	* Matcher checks if search result contains all expected documents
+	*
+	* @param documentIds Pair contain index name and document id
+	* @return matcher
+	*/
+	public static Matcher<SearchResponse> searchHitsContainDocumentsInAnyOrder(List<Pair<String, String>> documentIds) {
+		return new SearchHitsContainDocumentsInAnyOrderMatcher(documentIds);
+	}
+
+	public static Matcher<SearchResponse> searchHitsContainDocumentsInAnyOrder(Pair<String, String>...documentIds) {
+		return new SearchHitsContainDocumentsInAnyOrderMatcher(Arrays.asList(documentIds));
 	}
 
 	static Long readTotalHits(SearchResponse searchResponse) {
