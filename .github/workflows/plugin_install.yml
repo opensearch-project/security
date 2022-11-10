@@ -24,7 +24,7 @@ jobs:
       - name: Run Opensearch with A Single Plugin
         uses: ./.github/actions/start-opensearch-with-one-plugin
         with:
-          opensearch-version: 2.4.0
+          opensearch-version: 3.0.0
           plugin-name: opensearch-security
           plugin-start-script: install_demo_configuration
           plugin-zip: security-plugin.zip
