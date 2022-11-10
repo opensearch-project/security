@@ -34,6 +34,14 @@ public final class SearchRequestFactory {
 		return searchRequest;
 	}
 
+	public static SearchRequest queryStringQueryRequest(String[] indicesNames, String queryString) {
+		SearchRequest searchRequest = new SearchRequest(indicesNames);
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+		searchSourceBuilder.query(QueryBuilders.queryStringQuery(queryString));
+		searchRequest.source(searchSourceBuilder);
+		return searchRequest;
+	}
+
 	public static SearchRequest queryStringQueryRequest(String queryString) {
 		SearchRequest searchRequest = new SearchRequest();
 		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
