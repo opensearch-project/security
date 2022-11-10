@@ -247,7 +247,6 @@ snapshot_management_read_access:
     - 'cluster:admin/repository/get'
     - 'cluster:admin/snapshot/get'
 
-
 # Allows user to use point in time functionality
 point_in_time_full_access:
   reserved: true
