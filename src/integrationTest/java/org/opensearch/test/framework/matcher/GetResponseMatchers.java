@@ -21,6 +21,10 @@ public class GetResponseMatchers  {
 		return new GetResponseDocumentIdMatcher(indexName, documentId);
 	}
 
+	public static Matcher<GetResponse> containOnlyDocumentId(String indexName, String documentId) {
+		return new GetResponseContainOnlyDocumentIdMatcher(indexName, documentId);
+	}
+
 	public static Matcher<GetResponse> documentContainField(String fieldName, Object fieldValue) {
 		return new GetResponseDocumentFieldValueMatcher(fieldName, fieldValue);
 	}

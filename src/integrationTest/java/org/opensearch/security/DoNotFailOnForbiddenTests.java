@@ -43,7 +43,6 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -66,6 +65,7 @@ import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchR
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.statsAggregationRequest;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
 import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
+import static org.opensearch.test.framework.matcher.GetResponseMatchers.containOnlyDocumentId;
 import static org.opensearch.test.framework.matcher.GetResponseMatchers.documentContainField;
 import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
@@ -238,8 +238,7 @@ public class DoNotFailOnForbiddenTests {
 				containDocument(MARVELOUS_SONGS, ID_1),
 				documentContainField(FIELD_TITLE, TITLE_MAGNUM_OPUS))
 			);
-			assertThat(secondResult.getResponse(), containDocument(MARVELOUS_SONGS, ID_4));
-			assertThat(secondResult.getResponse().isExists(), is(false));
+			assertThat(secondResult.getResponse(), containOnlyDocumentId(MARVELOUS_SONGS, ID_4));
 		}
 	}
 
