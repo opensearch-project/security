@@ -14,20 +14,20 @@ import java.util.Objects;
 
 public class Song {
 
-	static final String FIELD_TITLE = "title";
-	static final String FIELD_ARTIST = "artist";
-	static final String FIELD_LYRICS = "lyrics";
-	static final String FIELD_STARS = "stars";
+	public static final String FIELD_TITLE = "title";
+	public static final String FIELD_ARTIST = "artist";
+	public static final String FIELD_LYRICS = "lyrics";
+	public static final String FIELD_STARS = "stars";
 
-	static final String FIELD_GENRE = "genre";
-	static final String ARTIST_FIRST = "First artist";
-	static final String ARTIST_STRING = "String";
-	static final String ARTIST_TWINS = "Twins";
-	static final String TITLE_MAGNUM_OPUS = "Magnum Opus";
-	static final String TITLE_SONG_1_PLUS_1 = "Song 1+1";
-	static final String TITLE_NEXT_SONG = "Next song";
-	static final String ARTIST_NO = "No!";
-	static final String TITLE_POISON = "Poison";
+	public static final String FIELD_GENRE = "genre";
+	public static final String ARTIST_FIRST = "First artist";
+	public static final String ARTIST_STRING = "String";
+	public static final String ARTIST_TWINS = "Twins";
+	public static final String TITLE_MAGNUM_OPUS = "Magnum Opus";
+	public static final String TITLE_SONG_1_PLUS_1 = "Song 1+1";
+	public static final String TITLE_NEXT_SONG = "Next song";
+	public static final String ARTIST_NO = "No!";
+	public static final String TITLE_POISON = "Poison";
 
 	public static final String ARTIST_YES = "yes";
 
@@ -43,15 +43,15 @@ public class Song {
 	public static final String LYRICS_5 = "Little to little";
 	public static final String LYRICS_6 = "confidential secret classified";
 
-	static final String GENRE_ROCK = "rock";
-	static final String GENRE_JAZZ = "jazz";
-	static final String GENRE_BLUES = "blues";
+	public static final String GENRE_ROCK = "rock";
+	public static final String GENRE_JAZZ = "jazz";
+	public static final String GENRE_BLUES = "blues";
 
-	static final String QUERY_TITLE_NEXT_SONG = FIELD_TITLE + ":" + "\"" + TITLE_NEXT_SONG + "\"";
-	static final String QUERY_TITLE_POISON = FIELD_TITLE + ":" + TITLE_POISON;
-	static final String QUERY_TITLE_MAGNUM_OPUS = FIELD_TITLE + ":" + TITLE_MAGNUM_OPUS;
+	public static final String QUERY_TITLE_NEXT_SONG = FIELD_TITLE + ":" + "\"" + TITLE_NEXT_SONG + "\"";
+	public static final String QUERY_TITLE_POISON = FIELD_TITLE + ":" + TITLE_POISON;
+	public static final String QUERY_TITLE_MAGNUM_OPUS = FIELD_TITLE + ":" + TITLE_MAGNUM_OPUS;
 
-	static final Map[] SONGS = {
+	public static final Map[] SONGS = {
 		new Song(ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1,  GENRE_ROCK).asMap(),
 		new Song(ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2,  2,  GENRE_BLUES).asMap(),
 		new Song(ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3,  3, GENRE_JAZZ).asMap(),
