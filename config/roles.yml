@@ -255,3 +255,38 @@ point_in_time_full_access:
         - '*'
       allowed_actions:
         - 'manage_point_in_time'
+
+# Allows users to see security analytics detectors and others
+security_analytics_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/securityanalytics/alerts/get'
+    - 'cluster:admin/opensearch/securityanalytics/detector/get'
+    - 'cluster:admin/opensearch/securityanalytics/detector/search'
+    - 'cluster:admin/opensearch/securityanalytics/findings/get'
+    - 'cluster:admin/opensearch/securityanalytics/mapping/get'
+    - 'cluster:admin/opensearch/securityanalytics/mapping/view/get'
+    - 'cluster:admin/opensearch/securityanalytics/rule/get'
+    - 'cluster:admin/opensearch/securityanalytics/rule/search'
+
+# Allows users to use all security analytics functionality
+security_analytics_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/securityanalytics/alerts/*'
+    - 'cluster:admin/opensearch/securityanalytics/detector/*'
+    - 'cluster:admin/opensearch/securityanalytics/findings/*'
+    - 'cluster:admin/opensearch/securityanalytics/mapping/*'
+    - 'cluster:admin/opensearch/securityanalytics/rule/*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+      allowed_actions:
+        - 'indices:admin/mapping/put'
+        - 'indices:admin/mappings/get'
+
+# Allows users to view and acknowledge alerts
+security_analytics_ack_alerts:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/securityanalytics/alerts/*'

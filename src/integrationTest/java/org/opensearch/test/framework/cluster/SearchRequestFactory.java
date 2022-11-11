@@ -34,6 +34,14 @@ public final class SearchRequestFactory {
 		return searchRequest;
 	}
 
+	public static SearchRequest queryStringQueryRequest(String[] indicesNames, String queryString) {
+		SearchRequest searchRequest = new SearchRequest(indicesNames);
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+		searchSourceBuilder.query(QueryBuilders.queryStringQuery(queryString));
+		searchRequest.source(searchSourceBuilder);
+		return searchRequest;
+	}
+
 	public static SearchRequest queryStringQueryRequest(String queryString) {
 		SearchRequest searchRequest = new SearchRequest();
 		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -49,6 +57,14 @@ public final class SearchRequestFactory {
 		searchSourceBuilder.query(QueryBuilders.matchAllQuery());
 		searchSourceBuilder.sort(new FieldSortBuilder("_id").order(SortOrder.ASC));
 		searchSourceBuilder.size(pageSize);
+		searchRequest.source(searchSourceBuilder);
+		return searchRequest;
+	}
+
+	public static SearchRequest searchAll(String...indexNames) {
+		SearchRequest searchRequest = new SearchRequest(indexNames);
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+		searchSourceBuilder.query(QueryBuilders.matchAllQuery());
 		searchRequest.source(searchSourceBuilder);
 		return searchRequest;
 	}

@@ -66,21 +66,8 @@ public class OpenSSLTest extends SSLTest {
 
     @Before
     public void setup() {
+        Assume.assumeFalse(PlatformDependent.isWindows());
         allowOpenSSL = true;
-    }
-
-    @Test
-    public void testEnsureOpenSSLAvailability() {
-        //Assert.assertTrue("OpenSSL not available: "+String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
-                
-        final String openSSLOptional = System.getenv("OPENDISTRO_SECURITY_TEST_OPENSSL_OPT");
-        System.out.println("OPENDISTRO_SECURITY_TEST_OPENSSL_OPT "+openSSLOptional);
-        if(!Boolean.parseBoolean(openSSLOptional)) {
-            System.out.println("OpenSSL must be available");
-            Assert.assertTrue("OpenSSL not available: "+String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
-        } else {
-            System.out.println("OpenSSL can be available");
-        }
     }
 
     @Override
@@ -175,7 +162,7 @@ public class OpenSSLTest extends SSLTest {
     @Test
     public void testHttpsAndNodeSSLPem() throws Exception {
         Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
-        super.testHttpsAndNodeSSLPem();
+        super.testHttpsAndNodeSSLPKCS8Pem();
     }
     
     @Test

@@ -15,9 +15,9 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.http.Header;
-import org.apache.http.HttpStatus;
-import org.apache.http.message.BasicHeader;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -132,8 +132,8 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             final RuntimeException ex = Assert.assertThrows(RuntimeException.class,
                 () -> nonSslRestHelper().executeGetRequest("_search", encodeBasicHeader("admin", "admin")));
-            Assert.assertEquals("org.apache.http.NoHttpResponseException", ex.getCause().getClass().getName());
-        }, 4);
+            Assert.assertEquals("org.apache.hc.core5.http.NoHttpResponseException", ex.getCause().getClass().getName());
+        }, 2);
 
         // All of the messages should be the same as the http client is attempting multiple times.
         messages.stream().forEach((message) -> {

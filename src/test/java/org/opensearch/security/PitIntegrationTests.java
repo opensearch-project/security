@@ -13,7 +13,7 @@ package org.opensearch.security;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -229,10 +229,10 @@ public class PitIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         String pitId2 =  resc.findValueInJson("pit_id");
 
-        // since pit-2 doesn't have permission to backing data stream indices, throw security error
+        // since pit-3 doesn't have permission to backing data stream indices, throw security error
         resc = rh.executeGetRequest("/_cat/pit_segments",
                 "{\"pit_id\":\"" + pitId2 +"\"}",
-                encodeBasicHeader("pit-2", "nagilum"));
+                encodeBasicHeader("pit-3", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Delete all PITs should work for user with all index access

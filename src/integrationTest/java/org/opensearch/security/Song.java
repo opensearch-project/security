@@ -9,36 +9,77 @@
 */
 package org.opensearch.security;
 
+import java.util.Map;
+import java.util.Objects;
 
-class Song {
+public class Song {
 
-	static final String FIELD_TITLE = "title";
-	static final String FIELD_ARTIST = "artist";
-	static final String FIELD_LYRICS = "lyrics";
+	public static final String FIELD_TITLE = "title";
+	public static final String FIELD_ARTIST = "artist";
+	public static final String FIELD_LYRICS = "lyrics";
+	public static final String FIELD_STARS = "stars";
 
-	static final String FIELD_STARS = "stars";
-	static final String ARTIST_FIRST = "First artist";
-	static final String ARTIST_STRING = "String";
-	static final String ARTIST_TWINS = "Twins";
-	static final String TITLE_MAGNUM_OPUS = "Magnum Opus";
-	static final String TITLE_SONG_1_PLUS_1 = "Song 1+1";
-	static final String TITLE_NEXT_SONG = "Next song";
-	static final String ARTIST_NO = "No!";
-	static final String TITLE_POISON = "Poison";
+	public static final String FIELD_GENRE = "genre";
+	public static final String ARTIST_FIRST = "First artist";
+	public static final String ARTIST_STRING = "String";
+	public static final String ARTIST_TWINS = "Twins";
+	public static final String TITLE_MAGNUM_OPUS = "Magnum Opus";
+	public static final String TITLE_SONG_1_PLUS_1 = "Song 1+1";
+	public static final String TITLE_NEXT_SONG = "Next song";
+	public static final String ARTIST_NO = "No!";
+	public static final String TITLE_POISON = "Poison";
+
+	public static final String ARTIST_YES = "yes";
+
+	public static final String TITLE_AFFIRMATIVE = "Affirmative";
+
+	public static final String ARTIST_UNKNOWN = "unknown";
+	public static final String TITLE_CONFIDENTIAL = "confidential";
 
 	public static final String LYRICS_1 = "Very deep subject";
 	public static final String LYRICS_2 = "Once upon a time";
 	public static final String LYRICS_3 = "giant nonsense";
 	public static final String LYRICS_4 = "Much too much";
+	public static final String LYRICS_5 = "Little to little";
+	public static final String LYRICS_6 = "confidential secret classified";
 
-	static final String QUERY_TITLE_NEXT_SONG = FIELD_TITLE + ":" + "\"" + TITLE_NEXT_SONG + "\"";
-	static final String QUERY_TITLE_POISON = FIELD_TITLE + ":" + TITLE_POISON;
-	static final String QUERY_TITLE_MAGNUM_OPUS = FIELD_TITLE + ":" + TITLE_MAGNUM_OPUS;
+	public static final String GENRE_ROCK = "rock";
+	public static final String GENRE_JAZZ = "jazz";
+	public static final String GENRE_BLUES = "blues";
 
-	static final Object[][] SONGS = {
-		{FIELD_ARTIST, ARTIST_FIRST, FIELD_TITLE, TITLE_MAGNUM_OPUS ,FIELD_LYRICS, LYRICS_1, FIELD_STARS, 1},
-		{FIELD_ARTIST, ARTIST_STRING, FIELD_TITLE, TITLE_SONG_1_PLUS_1, FIELD_LYRICS, LYRICS_2, FIELD_STARS, 2},
-		{FIELD_ARTIST, ARTIST_TWINS, FIELD_TITLE, TITLE_NEXT_SONG, FIELD_LYRICS, LYRICS_3, FIELD_STARS, 3},
-		{FIELD_ARTIST, ARTIST_NO, FIELD_TITLE, TITLE_POISON, FIELD_LYRICS, LYRICS_4, FIELD_STARS, 4}
+	public static final String QUERY_TITLE_NEXT_SONG = FIELD_TITLE + ":" + "\"" + TITLE_NEXT_SONG + "\"";
+	public static final String QUERY_TITLE_POISON = FIELD_TITLE + ":" + TITLE_POISON;
+	public static final String QUERY_TITLE_MAGNUM_OPUS = FIELD_TITLE + ":" + TITLE_MAGNUM_OPUS;
+
+	public static final Map[] SONGS = {
+		new Song(ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1,  GENRE_ROCK).asMap(),
+		new Song(ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2,  2,  GENRE_BLUES).asMap(),
+		new Song(ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3,  3, GENRE_JAZZ).asMap(),
+		new Song(ARTIST_NO, TITLE_POISON, LYRICS_4,  4,  GENRE_ROCK).asMap(),
+		new Song(ARTIST_YES, TITLE_AFFIRMATIVE,LYRICS_5,  5,  GENRE_BLUES).asMap(),
+		new Song(ARTIST_UNKNOWN, TITLE_CONFIDENTIAL, LYRICS_6,  6,  GENRE_JAZZ).asMap()
 	};
+
+	private final String artist;
+	private final String title;
+	private final String lyrics;
+	private final Integer stars;
+
+	private final String genre;
+
+	public Song(String artist, String title, String lyrics, Integer stars, String genre) {
+		this.artist = Objects.requireNonNull(artist, "Artist is required");
+		this.title = Objects.requireNonNull(title, "Title is required");
+		this.lyrics = Objects.requireNonNull(lyrics, "Lyrics is required");
+		this.stars = Objects.requireNonNull(stars, "Stars field is required");
+		this.genre = Objects.requireNonNull(genre, "Genre field is required");
+	}
+
+	public Map<String, Object> asMap() {
+		return Map.of(FIELD_ARTIST, artist,
+			FIELD_TITLE, title,
+			FIELD_LYRICS, lyrics,
+			FIELD_STARS, stars,
+			FIELD_GENRE, genre);
+	}
 }

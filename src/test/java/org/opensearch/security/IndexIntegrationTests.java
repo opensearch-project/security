@@ -31,7 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -124,7 +124,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         System.out.println("############ _bulk");
         HttpResponse res = rh.executePostRequest("_bulk?refresh=true&pretty=true", bulkBody, encodeBasicHeader("worf", "worf"));
         System.out.println(res.getBody());
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"errors\" : true"));
         Assert.assertTrue(res.getBody().contains("\"status\" : 201"));
         Assert.assertTrue(res.getBody().contains("no permissions for"));

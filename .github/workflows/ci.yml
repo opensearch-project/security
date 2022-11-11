@@ -8,14 +8,14 @@ env:
 jobs:
   build:
     name: build
-    runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         jdk: [11, 17]
+        platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
+    runs-on: ${{ matrix.platform }}
 
     steps:
-
     - name: Set up JDK for build and test
       uses: actions/setup-java@v2
       with:
@@ -25,21 +25,16 @@ jobs:
     - name: Checkout security
       uses: actions/checkout@v2
 
-    - name: Cache Gradle packages
-      uses: actions/cache@v2
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
       with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-    - name: Package
-      run: ./gradlew clean build -Dbuild.snapshot=false -x test -x integrationTest
-
-    - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test integrationTest -i
+        arguments: |
+          build test -Dbuild.snapshot=false
+          -x integrationTest
+          -x spotlessCheck
+          -x checkstyleMain
+          -x checkstyleTest
+          -x spotbugsMain
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -50,13 +45,43 @@ jobs:
     - uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: ${{ matrix.jdk }}-reports
+        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
         path: |
           ./build/reports/
 
     - name: check archive for debugging
       if: always()
-      run: echo "Check the artifact ${{ matrix.jdk }}-reports.zip for detailed test results"
+      run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
+
+  integration-tests:
+    name: integration-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [17]
+        platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v2
+
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
+      continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
+      with:
+        arguments: |
+          integrationTest -Dbuild.snapshot=false
+          -x spotlessCheck
+          -x checkstyleMain
+          -x checkstyleTest
+          -x spotbugsMain
 
   backward-compatibility:
     runs-on: ubuntu-latest

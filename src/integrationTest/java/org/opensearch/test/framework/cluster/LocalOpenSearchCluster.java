@@ -370,7 +370,7 @@ public class LocalOpenSearchCluster {
 		CompletableFuture<StartStage> start() {
 			CompletableFuture<StartStage> completableFuture = new CompletableFuture<>();
 			Class<? extends Plugin>[] mergedPlugins = nodeSettings.pluginsWithAddition(additionalPlugins);
-			this.node = new PluginAwareNode(nodeSettings.clusterManagerNode, getOpenSearchSettings(), mergedPlugins);
+			this.node = new PluginAwareNode(nodeSettings.containRole(NodeRole.CLUSTER_MANAGER), getOpenSearchSettings(), mergedPlugins);
 
 			new Thread(new Runnable() {
 
@@ -489,19 +489,20 @@ public class LocalOpenSearchCluster {
 					.put("discovery.initial_state_timeout", "8s").putList("discovery.seed_hosts", seedHosts).put("transport.tcp.port", transportPort)
 					.put("http.port", httpPort).put("cluster.routing.allocation.disk.threshold_enabled", false)
 					.put("discovery.probe.connect_timeout", "10s").put("discovery.probe.handshake_timeout", "10s").put("http.cors.enabled", true)
-					.put("plugins.security.compliance.salt", "1234567890123456")
-					.put("plugins.security.audit.type", "noop")
 					.put("gateway.auto_import_dangling_indices", "true")
 					.build();
 		}
 
 		private List<String> createNodeRolesSettings() {
 			final ImmutableList.Builder<String> nodeRolesBuilder = ImmutableList.<String>builder();
-			if (nodeSettings.dataNode) {
+			if (nodeSettings.containRole(NodeRole.DATA)) {
 				nodeRolesBuilder.add("data");
 			}
-			if (nodeSettings.clusterManagerNode) {
+			if (nodeSettings.containRole(NodeRole.CLUSTER_MANAGER)) {
 				nodeRolesBuilder.add("cluster_manager");
+			}
+			if(nodeSettings.containRole(NodeRole.REMOTE_CLUSTER_CLIENT)) {
+				nodeRolesBuilder.add("remote_cluster_client");
 			}
 			return nodeRolesBuilder.build();
 		}

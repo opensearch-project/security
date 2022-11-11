@@ -22,7 +22,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.opensaml.saml.metadata.resolver.impl.HTTPMetadataResolver;
 
-import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
+import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
 
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -56,9 +56,9 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         }
     }
 
-    private static SettingsBasedSSLConfigurator.SSLConfig getSSLConfig(Settings settings, Path configPath)
+    private static SettingsBasedSSLConfiguratorV4.SSLConfig getSSLConfig(Settings settings, Path configPath)
             throws Exception {
-        return new SettingsBasedSSLConfigurator(settings, configPath, "idp").buildSSLConfig();
+        return new SettingsBasedSSLConfiguratorV4(settings, configPath, "idp").buildSSLConfig();
     }
 
     @SuppressWarnings("removal")
@@ -91,7 +91,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
         builder.useSystemProperties();
 
-        SettingsBasedSSLConfigurator.SSLConfig sslConfig = getSSLConfig(settings, configPath);
+        SettingsBasedSSLConfiguratorV4.SSLConfig sslConfig = getSSLConfig(settings, configPath);
 
         if (sslConfig != null) {
             builder.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory());

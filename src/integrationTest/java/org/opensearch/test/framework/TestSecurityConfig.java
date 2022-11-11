@@ -42,7 +42,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
@@ -61,6 +60,8 @@ import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
+
+import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
 /**
 * This class allows the declarative specification of the security configuration; in particular:
@@ -81,6 +82,8 @@ public class TestSecurityConfig {
 	private Map<String, User> internalUsers = new LinkedHashMap<>();
 	private Map<String, Role> roles = new LinkedHashMap<>();
 
+	private AuditConfiguration auditConfiguration;
+
 	private String indexName = ".opendistro_security";
 
 	public TestSecurityConfig() {
@@ -94,6 +97,11 @@ public class TestSecurityConfig {
 
 	public TestSecurityConfig anonymousAuth(boolean anonymousAuthEnabled) {
 		config.anonymousAuth(anonymousAuthEnabled);
+		return this;
+	}
+
+	public TestSecurityConfig doNotFailOnForbidden(boolean doNotFailOnForbidden) {
+		config.doNotFailOnForbidden(doNotFailOnForbidden);
 		return this;
 	}
 	
@@ -119,12 +127,25 @@ public class TestSecurityConfig {
 		return this;
 	}
 
+	public TestSecurityConfig audit(AuditConfiguration auditConfiguration) {
+		this.auditConfiguration = auditConfiguration;
+		return this;
+	}
+
 	public static class Config implements ToXContentObject {
 		private boolean anonymousAuth;
+
+		private Boolean doNotFailOnForbidden;
+
 		private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
 		public Config anonymousAuth(boolean anonymousAuth) {
 			this.anonymousAuth = anonymousAuth;
+			return this;
+		}
+
+		public Config doNotFailOnForbidden(Boolean doNotFailOnForbidden) {
+			this.doNotFailOnForbidden = doNotFailOnForbidden;
 			return this;
 		}
 
@@ -143,6 +164,9 @@ public class TestSecurityConfig {
 				xContentBuilder.field("anonymous_auth_enabled", true);
 				xContentBuilder.endObject();
 			}
+			if(doNotFailOnForbidden != null) {
+				xContentBuilder.field("do_not_fail_on_forbidden", doNotFailOnForbidden);
+			}
 
 			xContentBuilder.field("authc", authcDomainMap);
 
@@ -157,9 +181,9 @@ public class TestSecurityConfig {
 		public final static TestSecurityConfig.User USER_ADMIN = new TestSecurityConfig.User("admin")
 				.roles(new Role("allaccess").indexPermissions("*").on("*").clusterPermissions("*"));
 		
-		private String name;
+		String name;
 		private String password;
-		private List<Role> roles = new ArrayList<>();
+		List<Role> roles = new ArrayList<>();
 		private Map<String, Object> attributes = new HashMap<>();
 
 		public User(String name) {
@@ -174,8 +198,8 @@ public class TestSecurityConfig {
 
 		public User roles(Role... roles) {
 			// We scope the role names by user to keep tests free of potential side effects
-			String roleNamePrefix = "user_" + this.name + "__";
-			this.roles.addAll(Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.name)).collect(Collectors.toSet()));
+			String roleNamePrefix = "user_" + this.getName() + "__";
+			this.roles.addAll(Arrays.asList(roles).stream().map((r) -> r.clone().name(roleNamePrefix + r.getName())).collect(Collectors.toSet()));
 			return this;
 		}
 
@@ -194,6 +218,10 @@ public class TestSecurityConfig {
 
 		public Set<String> getRoleNames() {
 			return roles.stream().map(Role::getName).collect(Collectors.toSet());
+		}
+
+		public Object getAttribute(String attributeName) {
+			return attributes.get(attributeName);
 		}
 
 		@Override
@@ -339,18 +367,20 @@ public class TestSecurityConfig {
 
 		private static String PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoqZbjLUAWc+DZTkinQAdvy1GFjPHPnxheU89hSiWoDD3NOW76H3u3T7cCDdOah2msdxSlBmCBH6wik8qLYkcV8owWukQg3PQmbEhrdPaKo0QCgomWs4nLgtmEYqcZ+QQldd82MdTlQ1QmoQmI9Uxqs1SuaKZASp3Gy19y8su5CV+FZ6BruUw9HELK055sAwl3X7j5ouabXGbcib2goBF3P52LkvbJLuWr5HDZEOeSkwIeqSeMojASM96K5SdotD+HwEyjaTjzRPL2Aa1BEQFWOQ6CFJLyLH7ZStDuPM1mJU1VxIVfMbZrhsUBjAnIhRynmWxML7YlNqkP9j6jyOIYQIDAQAB";
 
-		public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL = new TestSecurityConfig.AuthcDomain("basic", 0)
+		public static final int BASIC_AUTH_DOMAIN_ORDER = 0;
+		public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL = new TestSecurityConfig.AuthcDomain("basic", BASIC_AUTH_DOMAIN_ORDER)
 				.httpAuthenticatorWithChallenge("basic").backend("internal");
 
-		public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE = new TestSecurityConfig.AuthcDomain("basic", 0)
+		public final static AuthcDomain AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE = new TestSecurityConfig.AuthcDomain("basic",
+			BASIC_AUTH_DOMAIN_ORDER)
 			.httpAuthenticator("basic").backend("internal");
 
 		public final static AuthcDomain DISABLED_AUTHC_HTTPBASIC_INTERNAL = new TestSecurityConfig
-			.AuthcDomain("basic", 0, false).httpAuthenticator("basic").backend("internal");
+			.AuthcDomain("basic", BASIC_AUTH_DOMAIN_ORDER, false).httpAuthenticator("basic").backend("internal");
 
 		public final static AuthcDomain JWT_AUTH_DOMAIN = new TestSecurityConfig
 			.AuthcDomain("jwt", 1)
-			.jwtHttpAuthenticator("Authorization", PUBLIC_KEY).backend("noop");
+			.jwtHttpAuthenticator(new JwtConfigBuilder().jwtHeader(AUTHORIZATION).signingKey(PUBLIC_KEY)).backend("noop");
 
 		private final String id;
 		private boolean enabled = true;
@@ -374,9 +404,9 @@ public class TestSecurityConfig {
 			return this;
 		}
 
-		public AuthcDomain jwtHttpAuthenticator(String headerName, String signingKey) {
+		public AuthcDomain jwtHttpAuthenticator(JwtConfigBuilder builder) {
 			this.httpAuthenticator = new HttpAuthenticator("jwt")
-				.challenge(false).config(ImmutableMap.of("jwt_header", headerName, "signing_key", signingKey));
+				.challenge(false).config(builder.build());
 			return this;
 		}
 
@@ -494,12 +524,15 @@ public class TestSecurityConfig {
 		client.admin().indices().create(new CreateIndexRequest(indexName).settings(settings)).actionGet();
 
 		writeSingleEntryConfigToIndex(client, CType.CONFIG, config);
+		if(auditConfiguration != null) {
+			writeSingleEntryConfigToIndex(client, CType.AUDIT, "config", auditConfiguration);
+		}
 		writeConfigToIndex(client, CType.ROLES, roles);
 		writeConfigToIndex(client, CType.INTERNALUSERS, internalUsers);
 		writeEmptyConfigToIndex(client, CType.ROLESMAPPING);
 		writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
 		writeEmptyConfigToIndex(client, CType.TENANTS);
-		
+
 		ConfigUpdateResponse configUpdateResponse = client.execute(ConfigUpdateAction.INSTANCE,
 				new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))).actionGet();
 
@@ -509,7 +542,7 @@ public class TestSecurityConfig {
 	}
 
 
-	private static String hash(final char[] clearTextPassword) {
+	static String hash(final char[] clearTextPassword) {
 		final byte[] salt = new byte[16];
 		new SecureRandom().nextBytes(salt);
 		final String hash = OpenBSDBCrypt.generate((Objects.requireNonNull(clearTextPassword)), salt, 12);
@@ -552,6 +585,10 @@ public class TestSecurityConfig {
 	}
 
 	private void writeSingleEntryConfigToIndex(Client client, CType configType, ToXContentObject config) {
+		writeSingleEntryConfigToIndex(client, configType, configType.toLCString(), config);
+	}
+
+	private void writeSingleEntryConfigToIndex(Client client, CType configType, String configurationRoot, ToXContentObject config) {
 		try {
 			XContentBuilder builder = XContentFactory.jsonBuilder();
 
@@ -561,13 +598,13 @@ public class TestSecurityConfig {
 			builder.field("config_version", 2);
 			builder.endObject();
 
-			builder.field(configType.toLCString(), config);
+			builder.field(configurationRoot, config);
 
 			builder.endObject();
 
 			String json = Strings.toString(builder);
 
-			log.info("Writing " + configType + ":\n" + json);
+			log.info("Writing security plugin configuration into index " + configType + ":\n" + json);
 
 			client.index(new IndexRequest(indexName).id(configType.toLCString())
 							.setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(configType.toLCString(),

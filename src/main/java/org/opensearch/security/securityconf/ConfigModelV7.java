@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -68,6 +69,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
 import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
+import static org.opensearch.cluster.metadata.IndexAbstraction.Type.DATA_STREAM;
 
 public class ConfigModelV7 extends ConfigModel {
 
@@ -768,20 +770,22 @@ public class ConfigModelV7 extends ConfigModel {
             final ImmutableSet.Builder<String> resolvedIndices = new ImmutableSet.Builder<>();
 
             final WildcardMatcher matcher = WildcardMatcher.from(unresolved);
+            boolean includeDataStreams = true;
             if (!(matcher instanceof WildcardMatcher.Exact)) {
-                final String[] aliasesForPermittedPattern = cs.state().getMetadata().getIndicesLookup().entrySet().stream()
-                        .filter(e -> e.getValue().getType() == ALIAS)
+                final String[] aliasesAndDataStreamsForPermittedPattern = cs.state().getMetadata().getIndicesLookup().entrySet().stream()
+                        .filter(e -> (e.getValue().getType() == ALIAS) || (e.getValue().getType() == DATA_STREAM))
                         .filter(e -> matcher.test(e.getKey()))
                         .map(e -> e.getKey())
                         .toArray(String[]::new);
-                if (aliasesForPermittedPattern.length > 0) {
-                    final String[] resolvedAliases = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), aliasesForPermittedPattern);
-                    resolvedIndices.addAll(Arrays.asList(resolvedAliases));
+                if (aliasesAndDataStreamsForPermittedPattern.length > 0) {
+                    final String[] resolvedAliasesAndDataStreamIndices = resolver.concreteIndexNames(cs.state(),
+                            IndicesOptions.lenientExpandOpen(), includeDataStreams, aliasesAndDataStreamsForPermittedPattern);
+                    resolvedIndices.addAll(Arrays.asList(resolvedAliasesAndDataStreamIndices));
                 }
             }
 
             if (Strings.isNotBlank(unresolved)) {
-                final String[] resolvedIndicesFromPattern = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
+                final String[] resolvedIndicesFromPattern = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), includeDataStreams, unresolved);
                 resolvedIndices.addAll(Arrays.asList(resolvedIndicesFromPattern));
             }
 
@@ -1116,21 +1120,21 @@ public class ConfigModelV7 extends ConfigModel {
 
                 if (rw || !result.containsKey(tenant)) { //RW outperforms RO
 
-                    // We want to make sure that we add a tenant that exissts
+                    // We want to make sure that we add a tenant that exists
                     // Indeed, because we don't have control over what will be
                     // passed on as values of users' attributes, we have to make
                     // sure that we don't allow them to select tenants that do not exist.
-                    if(ConfigModelV7.this.tenants.getCEntries().keySet().contains(tenant)) {
+                    if(ConfigModelV7.this.tenants.getCEntries().containsKey(tenant)) {
                         result.put(tenant, rw);
                     }
                 }
             });
-            
+
+            Set<String> _roles = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            _roles.addAll(roles);
             if(!result.containsKey("global_tenant") && (
-                    roles.contains("kibana_user")
-                    || roles.contains("kibana_user")
-                    || roles.contains("all_access")
-                    || roles.contains("ALL_ACCESS")
+                    _roles.contains("kibana_user")
+                    || _roles.contains("all_access")
                     )) {
                 result.put("global_tenant", true);
             }

@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
@@ -45,13 +46,18 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.netty.handler.ssl.OpenSsl;
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.function.Factory;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.reactor.ssl.TlsDetails;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
@@ -155,15 +161,30 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             sslContextBuilder.loadTrustMaterial(trustStore, null);
             SSLContext sslContext = sslContextBuilder.build();
 
-            HttpHost httpHost = new HttpHost(info.httpHost, info.httpPort, "https");
+            HttpHost httpHost = new HttpHost("https", info.httpHost, info.httpPort);
 
             RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
                     .setHttpClientConfigCallback(
-                            builder -> builder.setSSLStrategy(
-                                    new SSLIOSessionStrategy(sslContext,
-                                            new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3"},
-                                            null,
-                                            NoopHostnameVerifier.INSTANCE)));
+                            builder -> {
+                                TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                                        .setSslContext(sslContext)
+                                        .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3"})
+                                        .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                                        // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                                        .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+                                            @Override
+                                            public TlsDetails create(final SSLEngine sslEngine) {
+                                                return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+                                            }
+                                        })
+                                        .build();
+
+                                final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                                        .setTlsStrategy(tlsStrategy)
+                                        .build();
+                                builder.setConnectionManager(cm);
+                                return builder;
+                            });
             return new RestHighLevelClient(restClientBuilder);
         } catch (Exception e) {
             log.error("Cannot create client", e);

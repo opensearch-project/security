@@ -35,23 +35,31 @@ import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.function.Factory;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.reactor.ssl.TlsDetails;
 
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
@@ -93,22 +101,56 @@ public interface OpenSearchClientProvider {
 	}
 
 	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
-		InetSocketAddress httpAddress = getHttpAddress();
-		CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-		credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user.getName(), user.getPassword()));
+		
+		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+		credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray()));
 
+		return getRestHighLevelClient(credentialsProvider, Collections.emptySet());
+	}
+
+	default RestHighLevelClient getRestHighLevelClient(Collection<? extends Header> defaultHeaders) {
+
+
+		return getRestHighLevelClient(null, defaultHeaders);
+	}
+
+	private RestHighLevelClient getRestHighLevelClient(BasicCredentialsProvider credentialsProvider, Collection<? extends Header> defaultHeaders) {
 		RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
-			httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider).setSSLStrategy(
-				new SSLIOSessionStrategy(getSSLContext(), null, null, NoopHostnameVerifier.INSTANCE));
+			TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
+				.create()
+				.setSslContext(getSSLContext())
+				.setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+				// See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+				.setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+					@Override
+					public TlsDetails create(final SSLEngine sslEngine) {
+						return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+					}
+				})
+				.build();
 
+			final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+					.setTlsStrategy(tlsStrategy)
+					.build();
+
+			if(credentialsProvider != null) {
+				httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+			}
+			httpClientBuilder.setDefaultHeaders(defaultHeaders);
+			httpClientBuilder.setConnectionManager(cm);
 			return httpClientBuilder;
 		};
 
-		RestClientBuilder builder = RestClient.builder(new HttpHost(httpAddress.getHostString(), httpAddress.getPort(), "https"))
+		InetSocketAddress httpAddress = getHttpAddress();
+		RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
 			.setHttpClientConfigCallback(configCallback);
 
-
 		return new RestHighLevelClient(builder);
+	}
+
+	default CloseableHttpClient getClosableHttpClient(String[] supportedCipherSuit) {
+		CloseableHttpClientFactory factory = new CloseableHttpClientFactory(getSSLContext(), null, supportedCipherSuit);
+		return factory.getHTTPClient();
 	}
 
 	/**

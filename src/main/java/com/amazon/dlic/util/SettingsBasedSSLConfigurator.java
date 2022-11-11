@@ -11,7 +11,6 @@
 
 package com.amazon.dlic.util;
 
-import java.net.Socket;
 import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -30,18 +29,18 @@ import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
-import org.apache.http.ssl.PrivateKeyDetails;
-import org.apache.http.ssl.PrivateKeyStrategy;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.ssl.PrivateKeyDetails;
+import org.apache.hc.core5.ssl.PrivateKeyStrategy;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -196,7 +195,7 @@ public class SettingsBasedSSLConfigurator {
                             new PrivateKeyStrategy() {
 
                                 @Override
-                                public String chooseAlias(Map<String, PrivateKeyDetails> aliases, Socket socket) {
+                                public String chooseAlias(Map<String, PrivateKeyDetails> aliases, SSLParameters sslParameters) {
                                     if (aliases == null || aliases.isEmpty()) {
                                         return effectiveKeyAlias;
                                     }
@@ -428,10 +427,6 @@ public class SettingsBasedSSLConfigurator {
 
         public HostnameVerifier getHostnameVerifier() {
             return hostnameVerifier;
-        }
-
-        public SSLIOSessionStrategy toSSLIOSessionStrategy() {
-            return new SSLIOSessionStrategy(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
         }
 
         public SSLConnectionSocketFactory toSSLConnectionSocketFactory() {

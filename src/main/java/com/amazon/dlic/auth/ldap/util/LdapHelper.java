@@ -40,14 +40,13 @@ public class LdapHelper {
     private static SearchFilter ALL = new SearchFilter("(objectClass=*)");
     @SuppressWarnings("removal")
     public static List<LdapEntry> search(final Connection conn, final String unescapedDn, SearchFilter filter,
-            final SearchScope searchScope, final String[] returnAttributes) throws LdapException {
+            final SearchScope searchScope, final String[] returnAttributes, boolean shouldFollowReferrals) throws LdapException {
 
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
-
         try {
             final String baseDn = escapeDn(unescapedDn);
             return AccessController.doPrivileged(new PrivilegedExceptionAction<List<LdapEntry>>() {
@@ -55,15 +54,21 @@ public class LdapHelper {
                 public List<LdapEntry> run() throws Exception {
                     final List<LdapEntry> entries = new ArrayList<>();
                     final SearchRequest request = new SearchRequest(baseDn, filter);
-                    request.setReferralHandler(new SearchReferralHandler());
+
                     request.setSearchScope(searchScope);
                     request.setDerefAliases(DerefAliases.ALWAYS);
                     request.setReturnAttributes(returnAttributes);
                     final SearchOperation search = new SearchOperation(conn);
-                    // referrals will be followed to build the response
+
+                    if (shouldFollowReferrals) {
+                         // referrals will be followed to build the response
+                        request.setReferralHandler(new SearchReferralHandler());
+                    }
+
                     final Response<SearchResult> r = search.execute(request);
                     final org.ldaptive.SearchResult result = r.getResult();
                     entries.addAll(result.getEntries());
+
                     return entries;
                 }
             });
@@ -80,9 +85,9 @@ public class LdapHelper {
         }
     }
 
-    public static LdapEntry lookup(final Connection conn, final String unescapedDn, final String[] returnAttributes) throws LdapException {
+    public static LdapEntry lookup(final Connection conn, final String unescapedDn, final String[] returnAttributes, boolean shouldFollowReferrals) throws LdapException {
 
-        final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes);
+        final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes, shouldFollowReferrals);
 
         if (entries.size() == 1) {
             return entries.get(0);

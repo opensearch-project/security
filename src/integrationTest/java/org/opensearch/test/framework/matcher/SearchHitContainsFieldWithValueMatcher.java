@@ -49,7 +49,7 @@ class SearchHitContainsFieldWithValueMatcher<T> extends TypeSafeDiagnosingMatche
 			mismatchDescription.appendText("Source document is null, is fetch source option set to true?");
 			return false;
 		}
-		if(!source.containsKey(fieldName)) {
+		if(source.containsKey(fieldName) == false) {
 			mismatchDescription.appendText("Document does not contain field ").appendValue(fieldName);
 			return false;
 		}

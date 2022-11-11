@@ -36,6 +36,10 @@ class GetResponseDocumentIdMatcher extends TypeSafeDiagnosingMatcher<GetResponse
 			mismatchDescription.appendText("Document contain incorrect id which is ").appendValue(response.getId());
 			return false;
 		}
+		if(response.isExists() == false) {
+			mismatchDescription.appendText("Document does not exist or is inaccessible");
+			return false;
+		}
 		return true;
 	}
 
