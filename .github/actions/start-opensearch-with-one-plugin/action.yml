@@ -73,8 +73,7 @@ runs:
         docker build -t opensearch-test -f- . <<EOF
         FROM ubuntu:latest
         COPY --chown=1001:1001 os-ep.sh /docker-host/
-        COPY --chown=1001:1001 ${{ inputs.plugin-name }}.zip /docker-host/${{ inputs.docker-host-
-        plugin-zip }}.zip
+        COPY --chown=1001:1001 ${{ inputs.plugin-name }}.zip /docker-host/${{ inputs.docker-host-plugin-zip }}.zip
         COPY --chown=1001:1001 opensearch* /opensearch/
         RUN chmod +x /docker-host/os-ep.sh
         RUN useradd -u 1001 -s /sbin/nologin opensearch
