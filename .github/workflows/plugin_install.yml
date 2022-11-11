@@ -29,7 +29,7 @@ jobs:
           plugin-start-script: install_demo_configuration
           docker-host-plugin-zip: security-plugin.zip
 
-      - name: Run sanity tests on Linux
+      - name: Run sanity tests
         uses: gradle/gradle-build-action@v2
         with:
           arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
