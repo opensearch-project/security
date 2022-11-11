@@ -1,5 +1,5 @@
 name: 'Start OpenSearch with One Plugin'
-description: 'Downloads latest build of OpenSearch, installs a plugin, executes and script and then starts OpenSearch on localhost:9200'
+description: 'Downloads latest build of OpenSearch, installs a plugin, executes a script and then starts OpenSearch on localhost:9200'
 
 inputs:
   opensearch-version:
@@ -7,14 +7,14 @@ inputs:
     required: true
 
   plugin-name:
-    description: 'The the name of the plugin to use, such as security-dashboards-plugin'
+    description: 'The name of the plugin to use, such as opensearch-security'
     required: true
 
   plugin-start-script:
     description: 'The file name for the configuration script for the plugin such as install_demo_configurations -- may not be needed for every plugin'
     required: false
 
-  plugin-zip:
+  docker-host-plugin-zip:
     description: 'The name of the zip file for the plugin hosted on docker-host i.e. security-plugin.zip '
     required: true
 
@@ -64,16 +64,17 @@ runs:
       if: ${{ runner.os == 'Linux'}}
       run: |
         cat > os-ep.sh <<EOF
-        yes | opensearch-plugin install file:///docker-host/${{ inputs.plugin-zip }}.zip
+        yes | opensearch-plugin install file:///docker-host/${{ inputs.docker-host-plugin-zip }}.zip
         chmod +x plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
         yes | plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
         chown 1001:1001 -R /opensearch
         su -c "/opensearch/bin/opensearch" -s /bin/bash opensearch
         EOF
-        docker build -t opensearch-test:latest -f- . <<EOF
+        docker build -t opensearch-test -f- . <<EOF
         FROM ubuntu:latest
         COPY --chown=1001:1001 os-ep.sh /docker-host/
-        COPY --chown=1001:1001 ${{ inputs.plugin-name }}.zip /docker-host/${{ inputs.plugin-zip }}.zip
+        COPY --chown=1001:1001 ${{ inputs.plugin-name }}.zip /docker-host/${{ inputs.docker-host-
+        plugin-zip }}.zip
         COPY --chown=1001:1001 opensearch* /opensearch/
         RUN chmod +x /docker-host/os-ep.sh
         RUN useradd -u 1001 -s /sbin/nologin opensearch
