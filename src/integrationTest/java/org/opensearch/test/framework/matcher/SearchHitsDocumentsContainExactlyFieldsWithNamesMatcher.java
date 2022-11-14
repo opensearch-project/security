@@ -9,15 +9,16 @@
 */
 package org.opensearch.test.framework.matcher;
 
-import org.hamcrest.Description;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.SearchHits;
-
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
+
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
