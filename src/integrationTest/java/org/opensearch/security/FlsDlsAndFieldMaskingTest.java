@@ -51,18 +51,7 @@ import static org.hamcrest.Matchers.not;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
-import static org.opensearch.security.Song.ARTIST_FIRST;
-import static org.opensearch.security.Song.ARTIST_NO;
-import static org.opensearch.security.Song.ARTIST_STRING;
-import static org.opensearch.security.Song.ARTIST_TWINS;
-import static org.opensearch.security.Song.FIELD_ARTIST;
-import static org.opensearch.security.Song.FIELD_LYRICS;
-import static org.opensearch.security.Song.FIELD_STARS;
-import static org.opensearch.security.Song.FIELD_TITLE;
-import static org.opensearch.security.Song.QUERY_TITLE_MAGNUM_OPUS;
-import static org.opensearch.security.Song.QUERY_TITLE_NEXT_SONG;
-import static org.opensearch.security.Song.SONGS;
-import static org.opensearch.security.Song.TITLE_NEXT_SONG;
+import static org.opensearch.security.Song.*;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.getSearchScrollRequest;
@@ -158,7 +147,8 @@ public class FlsDlsAndFieldMaskingTest {
                             .fls(
                                     "~".concat(FIELD_ARTIST),
                                     "~".concat(FIELD_LYRICS.substring(0,3).concat("*")),
-                                    "~*".concat(FIELD_STARS.substring(FIELD_STARS.length() - 3))
+                                    "~*".concat(FIELD_STARS.substring(FIELD_STARS.length() - 3)),
+                                    "~".concat(FIELD_GENRE)
                             )
                             .on(FIRST_INDEX_NAME)
             );
