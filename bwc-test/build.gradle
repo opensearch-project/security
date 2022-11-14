@@ -84,14 +84,18 @@ String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
 String projectVersion = nextVersion
 
-def previousVersionMatcher =  previousVersion =~ /(.+?)(\.\d+)$/
-previousVersionMatcher.find()
-String previousOpenSearch  = previousVersionMatcher.group(1)
+String previousOpenSearch  = extractVersion(previousVersion);
+String nextOpenSearch  = extractVersion(nextVersion);
 
-def nextVersionMatcher =  nextVersion =~ /(.+?)(\.\d+)$/
-nextVersionMatcher.find()
-String nextOpenSearch  = nextVersionMatcher.group(1)
+println previousOpenSearch + nextOpenSearch;
 
+
+// Extracts the OpenSearch version from a plugin version string, 2.4.0.0 -> 2.4.0.
+def String extractVersion(versionStr) {
+    def versionMatcher =  versionStr =~ /(.+?)(\.\d+)$/
+    versionMatcher.find()
+    return versionMatcher.group(1)
+}
 
 2.times {i ->
     testClusters {

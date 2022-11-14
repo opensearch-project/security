@@ -14,7 +14,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-      # Configure longpath names if on Windows
     - name: Enable Longpaths if on Windows
       if: ${{ runner.os == 'Windows' }}
       run: git config --system core.longpaths true
@@ -32,13 +31,10 @@ runs:
         arguments: assemble -Dbuild.snapshot=false
         build-root-directory: ${{ inputs.plugin-branch }}
 
-    # This might not work in windows
     - id: get-opensearch-version
-      run: |
-        export extractedVersion=$(./gradlew properties -Dbuild.snapshot=false | grep ^version: | awk '{split($0, a, ": ");print a[2]}')
-        echo "::set-output name=built-version::$extractedVersion"
-      working-directory: ${{ inputs.plugin-branch }}
-      shell: bash
+      uses: peternied/get-opensearch-version@v1
+      with:
+        working-directory: ${{ inputs.plugin-branch }}
 
     - name: Copy current distro into the expected folder
       run: |

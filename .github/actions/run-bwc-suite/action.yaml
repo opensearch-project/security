@@ -1,5 +1,5 @@
-name: 'Create a backwards compatible ready build'
-description: 'Checkouts the official version of a the Security plugin and builds it so it can be used for BWC tests'
+name: 'Runs the backward bompatiblity test suite'
+description: 'Tests backwards compability between a previous and next version of this plugin'
 
 inputs:
   plugin-previous-branch:

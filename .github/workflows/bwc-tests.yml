@@ -3,8 +3,8 @@ name: Backwards Compability Suite
 on: [workflow_dispatch]
 
 jobs:
-  last-supported-major:
-    name: Make sure that the last supported major version can mov
+  last-supported-major-to-current:
+    name: Make sure that the last supported major version can move to the most current version
     runs-on: ubuntu-latest
 
     steps:
@@ -22,8 +22,8 @@ jobs:
         plugin-next-branch: "2.x"
         report-artifact-name: BWC-Last-Supported-Major
 
-  next-major:
-    name: Make sure that the current version is compatible with
+  current-to-next-unreleased-major:
+    name: Make sure that the current version is compatible with the next major version
     runs-on: ubuntu-latest
 
     steps:
