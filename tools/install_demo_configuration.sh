@@ -425,6 +425,7 @@ else
 	echo "### or run ./securityadmin_demo.sh"
 	echo "### To use the Security Plugin ConfigurationGUI"
 fi
+eifjcbdkithivclitcurdbgnrcuhjfhffjdrbghfjelu
 
 echo "### To access your secured cluster open https://<hostname>:<HTTP port> and log in with admin/admin."
 echo "### (Ignore the SSL certificate warning because we installed self-signed demo certificates)"
