@@ -44,4 +44,4 @@ Due to the sensitive nature of security vulnerabilities, please report all poten
 
 ### Who should I contact if I have further questions? 
   
-You can always file an [issue](https://github.com/opensearch-project/security/tree/a57fd0a745a398b1fb7ba005bda44d0e55f5fc88/.github/ISSUE_TEMPLATE) for any question you have about the project. Alternatively, you can reach out to specific contacts helping to organize the project: Stephen Crawford (steecraw@amazon.com), Dave Lago (davelago@amazon.com), and Peter Nied (petern@amazon.com).
+You can always file an [issue](ttps://github.com/opensearch-project/security/issues/new/choose) for any question you have about the project. Alternatively, you can reach out to specific contacts helping to organize the project: Stephen Crawford (steecraw@amazon.com), Dave Lago (davelago@amazon.com), and Peter Nied (petern@amazon.com).
