@@ -14,6 +14,10 @@ The maintainers of the OpenSearch-Security Repo seek to promote an inclusive and
 
 Attendance is not required for your issue to be triaged or addressed. All new issues are triaged weekly.
 
+### What happens if my issue does not get covered this time?
+
+Each meeting we seek to  address all new issues. However, should we run out of time before your issue is discussed, you are always welcome to attend the next meeting or to follow up on the issue post itself. 
+
 ### How do I join the Backlog & Triage meeting?
   
 Meetings are hosted regularly at 3 PM Eastern Time (Noon Pacific Time) and can be joined via the links posted on the [Upcoming Events](https://opensearch.org/events) webpage.
@@ -31,6 +35,14 @@ If you have an issue you would like to discuss but do not have the ability to at
 ### Do I need to have already contributed to the project to attend a triage meeting?
  
 No, all are welcome and encouraged to attend. Attending the Backlog & Triage meetings is a great way for a new contributor to learn about the project as well as explore different avenues of contribution. 
+
+### What if I have an issue that is almost a duplicate, should I open a new one to be triaged?
+
+You can always open an [issue](ttps://github.com/opensearch-project/security/issues/new/choose) including one that you think may be a duplicate. However, in cases where you believe there is an important distinction to be made between an existing issue and your newly created one, you are encouraged to attend the triaging meeting to explain. 
+
+### What if I have follow-up questions on an issue? 
+
+If you have an existing issue you would like to discuss, you can always comment on the issue itself. Alternatively, you are welcome to come to the triage meeting to discuss. 
 
 ### Is this meeting a good place to get help setting up security features on my OpenSearch instance?
 
