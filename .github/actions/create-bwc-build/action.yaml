@@ -38,6 +38,6 @@ runs:
 
     - name: Copy current distro into the expected folder
       run: |
-        mkdir -p ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.built-version }}
-        cp ${{ inputs.plugin-branch }}/build/distributions/opensearch-security-${{ steps.get-opensearch-version.outputs.built-version }}.zip ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.built-version }}
+        mkdir -p ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
+        cp ${{ inputs.plugin-branch }}/build/distributions/opensearch-security-${{ steps.get-opensearch-version.outputs.version }}.zip ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
       shell: bash
