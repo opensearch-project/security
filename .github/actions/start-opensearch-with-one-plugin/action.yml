@@ -66,8 +66,8 @@ runs:
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
-        'y' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin.sh install file:$pwd/${{ inputs.plugin-name }}.zip
-        'y', 'y', 'N' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.h
+        'y' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$pwd/${{ inputs.plugin-name }}.zip
+        'y', 'y', 'N' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
