@@ -32,13 +32,13 @@ runs:
     - uses: peternied/download-file@v1
       if: ${{ runner.os == 'Windows' }}
       with:
-        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/${{ runner.os }}/x64/tar/dist/opensearch/opensearch-${{ inputs.opensearch-version }}-${{ runner.os }}-x64.zip
+        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/windows/x64/tar/dist/opensearch/opensearch-${{ inputs.opensearch-version }}-windows-x64.zip
 
     # Download OpenSearch
     - uses: peternied/download-file@v1
       if: ${{ runner.os == 'Linux' }}
       with:
-        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/${{ runner.os }}/x64/tar/dist/opensearch/opensearch-${{ inputs.opensearch-version }}-${{ runner.os }}-x64.tar.gz
+        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/linux/x64/tar/dist/opensearch/opensearch-${{ inputs.opensearch-version }}-linux-x64.tar.gz
 
 
     # Extract downloaded zip
