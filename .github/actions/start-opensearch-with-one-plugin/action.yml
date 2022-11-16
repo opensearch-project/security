@@ -54,7 +54,7 @@ runs:
       if: ${{ runner.os == 'Windows' }}
       run: |
         tar -xzf opensearch-*.zip
-        del -f opensearch-*.zip
+        del opensearch-*.zip
       shell: pwsh
 
     # Move and rename the plugin for installation
