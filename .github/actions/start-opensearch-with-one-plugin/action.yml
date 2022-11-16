@@ -81,7 +81,7 @@ runs:
         echo in plugin 
         cd opensearch-plugin
         ls
-        'y' | ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin/opensearch-plugin.sh install file:$pwd/${{ inputs.plugin-name }}.zip
+        'y' | ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin.sh install file:$pwd/${{ inputs.plugin-name }}.zip
         'y', 'y', 'N' | ./opensearch-${{ inputs.opensearch-version }}/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
 
@@ -99,7 +99,7 @@ runs:
         echo in plugin 
         cd opensearch-plugin
         ls
-        'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin\opensearch-plugin.bat install file:$pwd\${{ inputs.plugin-name }}.zip
+        'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$pwd\${{ inputs.plugin-name }}.zip
         'y', 'y', 'N' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\plugins\${{ inputs.plugin-name }}\tools\${{ inputs.plugin-start-script }}.bat
       shell: pwsh
 
