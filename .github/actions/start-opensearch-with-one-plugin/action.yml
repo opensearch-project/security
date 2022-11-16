@@ -63,7 +63,7 @@ runs:
 
     # Move and rename the plugin for installation
     - name: Move and rename the plugin for installation
-      run: mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip
+      run: mv ./build/distributions/${{ inputs.plugin-name }}-*.zip $pwd/${{ inputs.plugin-name }}.zip
       shell: bash
 
     # Install the plugin, runs its start-script, and start the OpenSearch server
