@@ -72,7 +72,7 @@ runs:
       run: |
         echo in base dir linux installing plugin 
         ls
-        cd opensearch-${{ inputs.opensearch-version }
+        cd opensearch-${{ inputs.opensearch-version }}
         echo in os
         ls
         cd bin
