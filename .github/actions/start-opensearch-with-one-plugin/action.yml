@@ -72,7 +72,7 @@ runs:
       run: |
         echo in base dir linux installing plugin 
         ls
-        cd opensearch-${{ inputs.opensearch-version }}-SNAPSHOT
+        cd opensearch-${{ inputs.opensearch-version }
         echo in os
         ls
         cd bin
@@ -100,7 +100,7 @@ runs:
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
       if: ${{ runner.os == 'Linux'}}
-      run: .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch.sh
+      run: .\opensearch-${{ inputs.opensearch-version }}\bin\opensearch.sh
       shell: bash
 
     - name: Run OpenSearch with plugin on Windows
