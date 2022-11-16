@@ -30,29 +30,16 @@ runs:
 
     # Download OpenSearch
     - uses: peternied/download-file@v1
-      if: ${{ runner.os == 'Windows' }}
-      with:
-        url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
-
-    - uses: peternied/download-file@v1
       if: ${{ runner.os == 'Linux' }}
       with:
-        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/linux/x64/tar/builds/opensearch/dist/opensearch-min-${{ inputs.opensearch-version }}-linux-x64.tar.gz
+        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/${{ runner.os }}/x64/tar/dist/opensearch/opensearch-${{ inputs.opensearch-version }}-${{ runner.os }}-x64.zip
 
     # Extract downloaded zip
-    - name: Extract downloaded zip for Linux
-      if: ${{ runner.os == 'Linux' }}
+    - name: Extract downloaded zip
       run: |
-        tar -xzf opensearch-*.tar.gz
-        rm -f opensearch-*.tar.gz
+        tar -xzf opensearch-*.zip
+        rm -f opensearch-*.zip
       shell: bash
-
-    - name: Extract downloaded zip for Windows
-      if: ${{ runner.os == 'Windows' }}
-      run: |
-        tar -xzf opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
-        del opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
-      shell: pwsh
 
     # Move and rename the plugin for installation
     - name: Move and rename the plugin for installation
@@ -63,24 +50,8 @@ runs:
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
-        cat > os-ep.sh <<EOF
-        yes | opensearch-plugin install file:///docker-host/${{ inputs.docker-host-plugin-zip }}.zip
-        chmod +x plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
-        yes | plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
-        chown 1001:1001 -R /opensearch
-        su -c "/opensearch/bin/opensearch" -s /bin/bash opensearch
-        EOF
-        docker build -t opensearch-test -f- . <<EOF
-        FROM ubuntu:latest
-        COPY --chown=1001:1001 os-ep.sh /docker-host/
-        COPY --chown=1001:1001 ${{ inputs.plugin-name }}.zip /docker-host/${{ inputs.docker-host-plugin-zip }}.zip
-        COPY --chown=1001:1001 opensearch* /opensearch/
-        RUN chmod +x /docker-host/os-ep.sh
-        RUN useradd -u 1001 -s /sbin/nologin opensearch
-        ENV PATH="/opensearch/bin:${PATH}"
-        WORKDIR /opensearch/
-        ENTRYPOINT /docker-host/os-ep.sh
-        EOF
+        'y' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin.sh install file:$pwd/${{ inputs.plugin-name }}.zip
+        'y', 'y', 'N' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.h
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
@@ -93,7 +64,7 @@ runs:
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
       if: ${{ runner.os == 'Linux'}}
-      run: docker run --name ops -d -p 9200:9200 -p 9600:9600 -i opensearch-test:latest
+      run: .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch.sh
       shell: bash
 
     - name: Run OpenSearch with plugin on Windows
