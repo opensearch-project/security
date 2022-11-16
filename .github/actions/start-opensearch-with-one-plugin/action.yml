@@ -43,10 +43,19 @@ runs:
 
     # Extract downloaded zip
     - name: Extract downloaded zip
+      if: ${{ runner.os }} == 'Linux'
+      run: |
+        tar -xzf opensearch-*.tar.gz
+        rm -f opensearch-*.tar.gz
+      shell: bash
+
+    # Extract downloaded zip
+    - name: Extract downloaded zip
+      if: ${{ runner.os }} == 'Windows'
       run: |
         tar -xzf opensearch-*.zip
-        rm -f opensearch-*.zip
-      shell: bash
+        del -f opensearch-*.zip
+      shell: pwsh
 
     # Move and rename the plugin for installation
     - name: Move and rename the plugin for installation
