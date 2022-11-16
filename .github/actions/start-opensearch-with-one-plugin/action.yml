@@ -70,29 +70,14 @@ runs:
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
-        echo in base dir linux installing plugin 
-        ls
-        cd opensearch-${{ inputs.opensearch-version }}
-        echo in os
-        ls
-        cd bin
-        echo in bin
-        ls
-        'y' | ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin.sh install file:$pwd/${{ inputs.plugin-name }}.zip
+        chmod +x ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin
+        'y' | ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin install file:$pwd/${{ inputs.plugin-name }}.zip
         'y', 'y', 'N' | ./opensearch-${{ inputs.opensearch-version }}/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
       if: ${{ runner.os == 'Windows'}}
       run: |
-        echo in base dir windows installing plugin 
-        ls
-        cd opensearch-${{ inputs.opensearch-version }}-SNAPSHOT
-        echo in os
-        ls
-        cd bin
-        echo in bin
-        ls
         'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$pwd\${{ inputs.plugin-name }}.zip
         'y', 'y', 'N' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\plugins\${{ inputs.plugin-name }}\tools\${{ inputs.plugin-start-script }}.bat
       shell: pwsh
