@@ -45,6 +45,8 @@ runs:
     - name: Extract downloaded zip
       if: ${{ runner.os == 'Linux' }}
       run: |
+        echo in base dir linux 
+        ls
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
       shell: bash
@@ -53,6 +55,8 @@ runs:
     - name: Extract downloaded zip
       if: ${{ runner.os == 'Windows' }}
       run: |
+        echo in base dir Windows 
+        ls
         tar -xzf opensearch-*.zip
         del opensearch-*.zip
       shell: pwsh
@@ -66,6 +70,14 @@ runs:
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
+        echo in base dir linux installing plugin 
+        ls
+        cd opensearch-${{ inputs.opensearch-version }}-SNAPSHOT
+        echo in os
+        ls
+        cd bin
+        echo in bin
+        ls
         'y' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$pwd/${{ inputs.plugin-name }}.zip
         'y', 'y', 'N' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
@@ -73,6 +85,14 @@ runs:
     - name: Install Plugin into OpenSearch for Windows
       if: ${{ runner.os == 'Windows'}}
       run: |
+        echo in base dir windows installing plugin 
+        ls
+        cd opensearch-${{ inputs.opensearch-version }}-SNAPSHOT
+        echo in os
+        ls
+        cd bin
+        echo in bin
+        ls
         'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$pwd\${{ inputs.plugin-name }}.zip
         'y', 'y', 'N' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\plugins\${{ inputs.plugin-name }}\tools\${{ inputs.plugin-start-script }}.bat
       shell: pwsh
