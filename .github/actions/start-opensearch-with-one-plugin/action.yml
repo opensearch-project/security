@@ -43,7 +43,7 @@ runs:
 
     # Extract downloaded zip
     - name: Extract downloaded zip
-      if: ${{ runner.os }} == 'Linux'
+      if: ${{ runner.os == 'Linux' }}
       run: |
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
@@ -51,7 +51,7 @@ runs:
 
     # Extract downloaded zip
     - name: Extract downloaded zip
-      if: ${{ runner.os }} == 'Windows'
+      if: ${{ runner.os == 'Windows' }}
       run: |
         tar -xzf opensearch-*.zip
         del -f opensearch-*.zip
