@@ -57,8 +57,8 @@ runs:
       run: |
         echo in base dir Windows 
         ls
-        tar -xzf opensearch-*.zip
-        del opensearch-*.zip
+        tar -xzf opensearch-${{ inputs.opensearch-version }}-windows-x64-latest.zip
+        del opensearch-${{ inputs.opensearch-version }}-windows-x64-latest.zip
       shell: pwsh
 
     # Move and rename the plugin for installation
@@ -78,8 +78,8 @@ runs:
         cd bin
         echo in bin
         ls
-        'y' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$pwd/${{ inputs.plugin-name }}.zip
-        'y', 'y', 'N' | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
+        'y' | ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin install file:$pwd/${{ inputs.plugin-name }}.zip
+        'y', 'y', 'N' | ./opensearch-${{ inputs.opensearch-version }}/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
