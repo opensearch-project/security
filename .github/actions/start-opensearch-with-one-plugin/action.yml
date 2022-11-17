@@ -88,7 +88,9 @@ runs:
       run: |
         chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
         yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip
+        echo "Installed plugin"
         echo "yes yes no" | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
+        echo "Ran setup script"
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
