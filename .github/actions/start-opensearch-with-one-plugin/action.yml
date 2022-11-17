@@ -72,7 +72,7 @@ runs:
         cd distributions
         echo in dist
         ls
-        mv ./build/distributions/${{ inputs.plugin-name }}-${{ inputs.opensearch-version }}-SNAPSHOT.zip ./${{ inputs.plugin-name }}.zip
+        mv ./build/distributions/${{ inputs.plugin-name }}-${{ inputs.opensearch-version }}.0-SNAPSHOT.zip ./${{ inputs.plugin-name }}.zip
       shell: bash
 
     # Install the plugin, runs its start-script, and start the OpenSearch server
