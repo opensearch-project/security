@@ -39,12 +39,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.opensearch.Version;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -74,13 +76,13 @@ public class SecurityInfoAction extends BaseRestHandler {
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
-    private final Version minNodeVersion;
+    private final Supplier<DiscoveryNodes> nodesInCluster;
 
-    public SecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final Version minNodeVersion) {
+    public SecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final Supplier<DiscoveryNodes> nodesInCluster) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
-        this.minNodeVersion = minNodeVersion;
+        this.nodesInCluster = nodesInCluster;
     }
 
     @Override
@@ -96,6 +98,8 @@ public class SecurityInfoAction extends BaseRestHandler {
             public void accept(RestChannel channel) throws Exception {
                 XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
+
+                Version minNodeVersion = nodesInCluster.get().getMinNodeVersion();
                 
                 try {
 
