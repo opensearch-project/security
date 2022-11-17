@@ -26,8 +26,8 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           cat > setup.sh <<'EOF'
-          chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
-          /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip"
+          chmod +x ./opensearch-3.0.0-SNAPSHOT/bin/opensearch-plugin
+          /bin/bash -c "yes | ./opensearch-3.0.0-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/opensearch-security.zip"
           chown -R opensearch $OPENSEARCH_HOME
           chmod 0700 $OPENSEARCH_HOME/config
           chmod 0600 $OPENSEARCH_HOME/config/kirk.pem
