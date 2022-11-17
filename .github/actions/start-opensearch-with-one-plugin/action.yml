@@ -74,6 +74,9 @@ runs:
         echo in distributions 
         cd distributions 
         ls
+        echo $pwd
+        cd .. 
+        cd ..
         mv ./build/distributions/${{ inputs.plugin-name }}-${{ inputs.opensearch-version }}.0-SNAPSHOT.zip ./${{ inputs.plugin-name }}.zip
       shell: bash
 
