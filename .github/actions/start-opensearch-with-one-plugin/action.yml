@@ -14,10 +14,6 @@ inputs:
     description: 'The file name for the configuration script for the plugin such as install_demo_configurations -- may not be needed for every plugin'
     required: false
 
-  docker-host-plugin-zip:
-    description: 'The name of the zip file for the plugin hosted on docker-host i.e. security-plugin.zip '
-    required: true
-
 runs:
   using: "composite"
   steps:
@@ -82,7 +78,7 @@ runs:
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
       if: ${{ runner.os == 'Linux'}}
-      run: /bin/bash -c "./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch"
+      run: /bin/bash -c "./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch &"
       shell: bash
 
     - name: Run OpenSearch with plugin on Windows

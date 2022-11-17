@@ -28,7 +28,6 @@ jobs:
           opensearch-version: 3.0.0
           plugin-name: opensearch-security
           plugin-start-script: install_demo_configuration
-          docker-host-plugin-zip: security-plugin.zip
 
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v2
