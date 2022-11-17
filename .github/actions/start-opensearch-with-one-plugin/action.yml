@@ -82,7 +82,7 @@ runs:
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
       if: ${{ runner.os == 'Linux'}}
-      run: ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch
+      run: /bin/bash -c "./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch"
       shell: bash
 
     - name: Run OpenSearch with plugin on Windows
