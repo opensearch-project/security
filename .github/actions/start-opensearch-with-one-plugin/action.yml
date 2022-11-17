@@ -59,8 +59,8 @@ runs:
       run: |
         echo in base dir Windows 
         ls
-        tar -xzf opensearch-${{ inputs.opensearch-version }}*.zip
-        rm -f opensearch-${{ inputs.opensearch-version }}*.zip
+        tar -xzf opensearch-${{ inputs.opensearch-version }}-windows-x64.zip
+        rm -f opensearch-${{ inputs.opensearch-version }}-windows-x64.zip
         echo after extraction
         ls
       shell: bash
@@ -78,6 +78,8 @@ runs:
         cd .. 
         cd ..
         mv ./build/distributions/${{ inputs.plugin-name }}-${{ inputs.opensearch-version }}.0-SNAPSHOT.zip ./${{ inputs.plugin-name }}.zip
+        echo check if moved 
+        ls
       shell: bash
 
     # Install the plugin, runs its start-script, and start the OpenSearch server
@@ -93,7 +95,7 @@ runs:
         cd .. 
         cd ..
         chmod +x ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin
-        yes | ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin install file:$pwd/${{ inputs.plugin-name }}.zip
+        yes | ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip
         yes, yes, no | ./opensearch-${{ inputs.opensearch-version }}/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
 
