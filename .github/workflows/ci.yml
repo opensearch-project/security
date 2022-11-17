@@ -63,12 +63,13 @@ jobs:
     - run: |
         echo "Running backwards compatibility tests ..."
         security_plugin_version_no_snapshot=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}' | sed 's/-SNAPSHOT//g')
+        bwc_version=2.4.0
         cp -r build/ ./bwc-test/
         mkdir ./bwc-test/src/test/resources/security_plugin_version_no_snapshot
         cp build/distributions/opensearch-security-${security_plugin_version_no_snapshot}.zip ./bwc-test/src/test/resources/${security_plugin_version_no_snapshot}
-        mkdir bwc-test/src/test/resources/2.3.0.0
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/2.3.0/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-2.3.0.0.zip
-        mv opensearch-security-2.3.0.0.zip bwc-test/src/test/resources/2.3.0.0/
+        mkdir bwc-test/src/test/resources/${bwc_version}.0
+        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${bwc_version}/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-${bwc_version}.0.zip
+        mv opensearch-security-${bwc_version}.0.zip bwc-test/src/test/resources/${bwc_version}.0/
         cd bwc-test/
         ./gradlew bwcTestSuite -Dtests.security.manager=false
 
