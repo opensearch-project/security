@@ -94,8 +94,8 @@ runs:
         ls
         cd .. 
         cd ..
-        chmod +x ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin
-        yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip
+        chmod +x ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin.sh
+        yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin.sh install file:$(pwd)/${{ inputs.plugin-name }}.zip
         yes, yes, no | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
 
