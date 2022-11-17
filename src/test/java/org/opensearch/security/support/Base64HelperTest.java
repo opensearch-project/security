@@ -29,6 +29,7 @@ import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import com.google.common.io.BaseEncoding;
@@ -43,7 +44,7 @@ public class Base64HelperTest {
     }
 
     private static Serializable ds(Serializable s) {
-        return deserializeObject(serializeObject(s, Version.V_1_0_0));
+        return deserializeObject(serializeObject(s, false));
     }
 
     @Test
@@ -102,7 +103,7 @@ public class Base64HelperTest {
 
     @Test(expected = OpenSearchException.class)
     public void notSafeSerializable() {
-        serializeObject(new NotSafeSerializable(), Version.V_1_0_0);
+        serializeObject(new NotSafeSerializable(), false);
     }
 
     @Test(expected = OpenSearchException.class)

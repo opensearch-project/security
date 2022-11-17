@@ -59,6 +59,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -241,11 +242,11 @@ public class Base64Helper {
         }
     }
 
-    public static String serializeObject(final Serializable object, Version minNodeVersion) {
+    public static String serializeObject(final Serializable object, Boolean hasOdfeNodes) {
 
         Preconditions.checkArgument(object != null, "object must not be null");
 
-        boolean replaceWithOdfePackage = minNodeVersion.before(Version.V_1_0_0);
+        boolean replaceWithOdfePackage = hasOdfeNodes != null && hasOdfeNodes;
 
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (final ObjectOutputStream out = SafeObjectOutputStream.create(bos, replaceWithOdfePackage)) {

@@ -38,6 +38,7 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -57,6 +58,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
@@ -76,13 +78,13 @@ public class SecurityInfoAction extends BaseRestHandler {
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
-    private final Supplier<DiscoveryNodes> nodesInCluster;
+    private final ClusterInfoHolder clusterInfoHolder;
 
-    public SecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final Supplier<DiscoveryNodes> nodesInCluster) {
+    public SecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterInfoHolder clusterInfoHolder) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
-        this.nodesInCluster = nodesInCluster;
+        this.clusterInfoHolder = clusterInfoHolder;
     }
 
     @Override
@@ -99,7 +101,7 @@ public class SecurityInfoAction extends BaseRestHandler {
                 XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
 
-                Version minNodeVersion = nodesInCluster.get().getMinNodeVersion();
+                Boolean hasOdfeNodes = clusterInfoHolder.getHasOdfeNodes();
                 
                 try {
 
@@ -127,9 +129,9 @@ public class SecurityInfoAction extends BaseRestHandler {
                     
                     if(user != null && verbose) {
                         try {
-                            builder.field("size_of_user", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user, minNodeVersion).length()));
-                            builder.field("size_of_custom_attributes", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap(), minNodeVersion).getBytes(StandardCharsets.UTF_8).length));
-                            builder.field("size_of_backendroles", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable)user.getRoles(), minNodeVersion).getBytes(StandardCharsets.UTF_8).length));
+                            builder.field("size_of_user", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user, hasOdfeNodes).length()));
+                            builder.field("size_of_custom_attributes", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap(), hasOdfeNodes).getBytes(StandardCharsets.UTF_8).length));
+                            builder.field("size_of_backendroles", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable)user.getRoles(), hasOdfeNodes).getBytes(StandardCharsets.UTF_8).length));
                         } catch (Throwable e) {
                             //ignore
                         }
