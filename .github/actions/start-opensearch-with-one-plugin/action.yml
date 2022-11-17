@@ -88,9 +88,9 @@ runs:
       run: |
         chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
         echo "Installing plugin" 
-        echo "yes" | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip
+        y | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip
         echo "Installed plugin"
-        echo "yes yes no" | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
+        y y n | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
         echo "Ran setup script"
       shell: bash
 
