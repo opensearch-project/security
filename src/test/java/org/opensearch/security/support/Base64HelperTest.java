@@ -17,6 +17,7 @@ package org.opensearch.security.support;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.Version;
 import org.opensearch.security.user.User;
 
 import org.opensearch.OpenSearchException;
@@ -42,7 +43,7 @@ public class Base64HelperTest {
     }
 
     private static Serializable ds(Serializable s) {
-        return deserializeObject(serializeObject(s));
+        return deserializeObject(serializeObject(s, Version.V_1_0_0));
     }
 
     @Test
@@ -101,7 +102,7 @@ public class Base64HelperTest {
 
     @Test(expected = OpenSearchException.class)
     public void notSafeSerializable() {
-        serializeObject(new NotSafeSerializable());
+        serializeObject(new NotSafeSerializable(), Version.V_1_0_0);
     }
 
     @Test(expected = OpenSearchException.class)

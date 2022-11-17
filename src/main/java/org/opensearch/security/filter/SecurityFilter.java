@@ -389,12 +389,12 @@ public class SecurityFilter implements ActionFilter {
         
         if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request), cs.state().nodes().getMinNodeVersion());
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
             if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request), cs.state().nodes().getMinNodeVersion());
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }

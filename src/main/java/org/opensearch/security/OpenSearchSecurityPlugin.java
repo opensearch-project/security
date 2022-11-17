@@ -450,10 +450,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         if (!client && !disabled) {
 
+            Version minNodeVersion = nodesInCluster.get().getMinNodeVersion();
+
             handlers.addAll(super.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings, settingsFilter, indexNameExpressionResolver, nodesInCluster));
 
             if(!SSLConfig.isSslOnlyMode()) {
-                handlers.add(new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
+                handlers.add(new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool), minNodeVersion));
                 handlers.add(new SecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
                 handlers.add(new SecuritySSLCertsInfoAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 handlers.add(new DashboardsInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));

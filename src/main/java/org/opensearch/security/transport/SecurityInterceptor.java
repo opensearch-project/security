@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.opensearch.Version;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Logger;
@@ -212,6 +213,8 @@ public class SecurityInterceptor {
                                       final String injectedUserString, final String injectedRolesString) {
         // keep original address
 
+        Version minNodeVersion = cs.state().nodes().getMinNodeVersion();
+
         if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, origin);
         }
@@ -225,7 +228,7 @@ public class SecurityInterceptor {
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
 
             if(remoteAddressHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address(), minNodeVersion));
             }
         }
 
@@ -234,7 +237,7 @@ public class SecurityInterceptor {
 
         if(userHeader == null) {
             if(origUser != null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser, minNodeVersion));
             }
             else if(StringUtils.isNotEmpty(injectedRolesString)) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
