@@ -32,13 +32,13 @@ runs:
     - uses: peternied/download-file@v1
       if: ${{ runner.os == 'Windows' }}
       with:
-        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/windows/x64/zip/dist/opensearch/opensearch-${{ inputs.opensearch-version }}-windows-x64.zip
+        url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
 
     # Download OpenSearch
     - uses: peternied/download-file@v1
       if: ${{ runner.os == 'Linux' }}
       with:
-        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/linux/x64/tar/dist/opensearch/opensearch-${{ inputs.opensearch-version }}-linux-x64.tar.gz
+        url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-linux-x64-latest.tar.gz
 
 
     # Extract downloaded zip
@@ -59,11 +59,11 @@ runs:
       run: |
         echo in base dir Windows 
         ls
-        tar -xzf opensearch-${{ inputs.opensearch-version }}-windows-x64.zip
-        rm -f opensearch-${{ inputs.opensearch-version }}-windows-x64.zip
+        tar -xzf opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
+        del opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
         echo after extraction
         ls
-      shell: bash
+      shell: pwsh
 
     # Move and rename the plugin for installation
     - name: Move and rename the plugin for installation
@@ -77,7 +77,7 @@ runs:
         echo $pwd
         cd .. 
         cd ..
-        mv ./build/distributions/${{ inputs.plugin-name }}-${{ inputs.opensearch-version }}.0-SNAPSHOT.zip ./${{ inputs.plugin-name }}.zip
+        mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip 
         echo check if moved 
         ls
       shell: bash
@@ -95,8 +95,8 @@ runs:
         cd .. 
         cd ..
         chmod +x ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin
-        yes | ./opensearch-${{ inputs.opensearch-version }}/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip
-        yes, yes, no | ./opensearch-${{ inputs.opensearch-version }}/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
+        yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip
+        yes, yes, no | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
@@ -117,7 +117,7 @@ runs:
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
       if: ${{ runner.os == 'Linux'}}
-      run: .\opensearch-${{ inputs.opensearch-version }}\bin\opensearch.sh
+      run: .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch.sh
       shell: bash
 
     - name: Run OpenSearch with plugin on Windows
