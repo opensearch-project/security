@@ -45,41 +45,21 @@ runs:
     - name: Extract downloaded zip
       if: ${{ runner.os == 'Linux' }}
       run: |
-        echo in base dir linux 
-        ls
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
-        echo after extraction
-        ls
       shell: bash
 
     # Extract downloaded zip
     - name: Extract downloaded zip
       if: ${{ runner.os == 'Windows' }}
       run: |
-        echo in base dir Windows 
-        ls
         tar -xzf opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
         del opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
-        echo after extraction
-        ls
       shell: pwsh
 
     # Move and rename the plugin for installation
     - name: Move and rename the plugin for installation
-      run: |
-        echo in build
-        cd build
-        ls
-        echo in distributions 
-        cd distributions 
-        ls
-        echo $pwd
-        cd .. 
-        cd ..
-        mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip 
-        echo check if moved 
-        ls
+      run: mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip
       shell: bash
 
     # Install the plugin, runs its start-script, and start the OpenSearch server
@@ -87,12 +67,9 @@ runs:
       if: ${{ runner.os == 'Linux'}}
       run: |
         chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
-        echo "Installing plugin" 
         /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip"
-        echo "Installed plugin"
         chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
         /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh"
-        echo "Ran setup script"
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
@@ -122,9 +99,7 @@ runs:
     # Verify that the server is operational
     - name: Check OpenSearch Running on Linux
       if: ${{ runner.os != 'Windows'}}
-      run: |
-        docker logs ops
-        curl https://localhost:9200/_cat/plugins -u 'admin:admin' -k -v
+      run: curl https://localhost:9200/_cat/plugins -u 'admin:admin' -k -v
       shell: bash
 
     - name: Check OpenSearch Running on Windows
