@@ -10,7 +10,7 @@ inputs:
     description: 'The name of the plugin to use, such as opensearch-security'
     required: true
 
-  plugin-start-script:
+  setup-script:
     description: 'The file name for the configuration script for the plugin such as install_demo_configurations -- may not be needed for every plugin'
     required: false
 
@@ -58,22 +58,32 @@ runs:
       run: mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip
       shell: bash
 
-    # Install the plugin, runs its start-script, and start the OpenSearch server
+    # Install the plugin
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
-        chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
-        /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip"
-        chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
-        /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh"
+        chmod +x ./setup.sh
+        ./setup.sh
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
       if: ${{ runner.os == 'Windows'}}
       run: |
         'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$(pwd)\${{ inputs.plugin-name }}.zip
-        'y', 'y', 'N' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\plugins\${{ inputs.plugin-name }}\tools\${{ inputs.plugin-start-script }}.bat
       shell: pwsh
+
+    # Run any configuration scripts
+    - name: Run Setup Script for Linux
+      if: ${{ runner.os == 'Linux' }} & ${{ inputs.setup-script == true }}
+      run: | 
+        chmod +x ./setup.sh
+        ./setup.sh
+      shell: bash
+
+    - name: Run Setup Script for Windows
+      if: ${{ runner.os == 'Windows' }} & ${{ inputs.setup-script == true }}
+      run: start .\setup.bat
+      shell: bash
 
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
