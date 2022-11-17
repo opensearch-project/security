@@ -105,7 +105,13 @@ runs:
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
       if: ${{ runner.os == 'Linux'}}
-      run: ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch.sh
+      run: |
+        echo "Look into os bin"
+        cd opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin
+        ls
+        cd ..
+        cd ..
+        ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch.sh
       shell: bash
 
     - name: Run OpenSearch with plugin on Windows
