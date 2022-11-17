@@ -87,7 +87,7 @@ runs:
       if: ${{ runner.os == 'Linux'}}
       run: |
         echo in OS
-        cd opensearch-${{ inputs.opensearch-version }}
+        cd opensearch-${{ inputs.opensearch-version }}-SNAPSHOT
         ls
         echo in bin
         cd bin 
@@ -103,7 +103,7 @@ runs:
       if: ${{ runner.os == 'Windows'}}
       run: |
         echo in OS
-        cd opensearch-${{ inputs.opensearch-version }}*
+        cd opensearch-${{ inputs.opensearch-version }}-SNAPSHOT
         ls
         echo in bin
         cd bin 
