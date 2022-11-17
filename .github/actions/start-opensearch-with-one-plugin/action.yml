@@ -86,17 +86,9 @@ runs:
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
-        echo in OS
-        cd opensearch-${{ inputs.opensearch-version }}-SNAPSHOT
-        ls
-        echo in bin
-        cd bin 
-        ls
-        cd .. 
-        cd ..
         chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
         yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip
-        yes, yes, no | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
+        echo "yes yes no" | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
