@@ -90,6 +90,7 @@ runs:
         echo "Installing plugin" 
         /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip"
         echo "Installed plugin"
+        chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
         /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh"
         echo "Ran setup script"
       shell: bash
