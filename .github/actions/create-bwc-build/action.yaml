@@ -9,7 +9,7 @@ inputs:
 outputs:
   built-version:
     description: 'The version of OpenSearch that was associated with this branch'
-    value: ${{ steps.get-opensearch-version.outputs.built-version }}
+    value: ${{ steps.get-opensearch-version.outputs.version }}
 
 runs:
   using: "composite"
