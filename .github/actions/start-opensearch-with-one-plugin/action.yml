@@ -36,7 +36,6 @@ runs:
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-linux-x64-latest.tar.gz
 
-
     # Extract downloaded zip
     - name: Extract downloaded zip
       if: ${{ runner.os == 'Linux' }}
@@ -45,8 +44,8 @@ runs:
         rm -f opensearch-*.tar.gz
       shell: bash
 
-    # Extract downloaded zip
-    - name: Extract downloaded zip
+
+    - name: Extract downloaded zip for Windows
       if: ${{ runner.os == 'Windows' }}
       run: |
         tar -xzf opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
@@ -62,6 +61,7 @@ runs:
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
+
         chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
         /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/${{ inputs.plugin-name }}.zip"
         chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
