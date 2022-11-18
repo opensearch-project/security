@@ -86,8 +86,8 @@ runs:
       run: |
         echo "Running Windows Startup Script"
         cat setup.bat
-        ./setup.bat
-      shell: bash
+        start .\setup.bat
+      shell: pwsh
 
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
