@@ -85,7 +85,8 @@ runs:
       if: ${{ runner.os == 'Windows' && inputs.setup-script != '' }}
       run: |
         echo "Running Windows Startup Script"
-        .\setup.bat
+        cat setup.bat
+        setup.bat
       shell: bash
 
     # Run OpenSearch
