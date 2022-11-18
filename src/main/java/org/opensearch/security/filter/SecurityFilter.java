@@ -98,6 +98,7 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.opensearch.security.support.Base64Helper;
+import org.opensearch.security.support.Base64Helper.PackageBehavior;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SourceFieldsContext;
@@ -395,15 +396,16 @@ public class SecurityFilter implements ActionFilter {
     private void attachSourceFieldContext(ActionRequest request) {
 
         Boolean hasOdfeNodes = clusterInfoHolder.getHasOdfeNodes();
+        PackageBehavior packageBehavior = (hasOdfeNodes == null || hasOdfeNodes) ? PackageBehavior.REWRITE_AS_ODFE : PackageBehavior.NONE;
         
         if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request), hasOdfeNodes);
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request), packageBehavior);
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
             if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request), hasOdfeNodes);
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request), packageBehavior);
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }

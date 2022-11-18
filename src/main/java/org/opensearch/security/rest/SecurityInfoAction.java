@@ -38,16 +38,12 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.util.RamUsageEstimator;
-import org.opensearch.Version;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -61,6 +57,7 @@ import org.opensearch.rest.RestStatus;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.Base64Helper;
+import org.opensearch.security.support.Base64Helper.PackageBehavior;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -102,6 +99,7 @@ public class SecurityInfoAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 Boolean hasOdfeNodes = clusterInfoHolder.getHasOdfeNodes();
+                PackageBehavior packageBehavior = (hasOdfeNodes == null || hasOdfeNodes) ? PackageBehavior.REWRITE_AS_ODFE : PackageBehavior.NONE;
                 
                 try {
 
@@ -129,9 +127,9 @@ public class SecurityInfoAction extends BaseRestHandler {
                     
                     if(user != null && verbose) {
                         try {
-                            builder.field("size_of_user", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user, hasOdfeNodes).length()));
-                            builder.field("size_of_custom_attributes", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap(), hasOdfeNodes).getBytes(StandardCharsets.UTF_8).length));
-                            builder.field("size_of_backendroles", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable)user.getRoles(), hasOdfeNodes).getBytes(StandardCharsets.UTF_8).length));
+                            builder.field("size_of_user", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user, packageBehavior).length()));
+                            builder.field("size_of_custom_attributes", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap(), packageBehavior).getBytes(StandardCharsets.UTF_8).length));
+                            builder.field("size_of_backendroles", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable)user.getRoles(), packageBehavior).getBytes(StandardCharsets.UTF_8).length));
                         } catch (Throwable e) {
                             //ignore
                         }

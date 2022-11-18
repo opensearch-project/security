@@ -17,7 +17,6 @@ package org.opensearch.security.support;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.Version;
 import org.opensearch.security.user.User;
 
 import org.opensearch.OpenSearchException;
@@ -29,11 +28,11 @@ import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 import com.google.common.io.BaseEncoding;
 
+import org.opensearch.security.support.Base64Helper.PackageBehavior;
 import static org.opensearch.security.support.Base64Helper.deserializeObject;
 import static org.opensearch.security.support.Base64Helper.serializeObject;
 
@@ -44,7 +43,7 @@ public class Base64HelperTest {
     }
 
     private static Serializable ds(Serializable s) {
-        return deserializeObject(serializeObject(s, false));
+        return deserializeObject(serializeObject(s, PackageBehavior.NONE));
     }
 
     @Test
@@ -103,7 +102,7 @@ public class Base64HelperTest {
 
     @Test(expected = OpenSearchException.class)
     public void notSafeSerializable() {
-        serializeObject(new NotSafeSerializable(), false);
+        serializeObject(new NotSafeSerializable(), PackageBehavior.NONE);
     }
 
     @Test(expected = OpenSearchException.class)

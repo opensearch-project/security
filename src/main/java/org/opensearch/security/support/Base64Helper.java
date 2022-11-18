@@ -173,6 +173,10 @@ public class Base64Helper {
         }
     }
 
+    public enum PackageBehavior {
+        REWRITE_AS_ODFE, NONE
+    }
+
     private final static class SafeObjectOutputStream extends ObjectOutputStream {
 
         private static final boolean useSafeObjectOutputStream = checkSubstitutionPermission();
@@ -242,11 +246,11 @@ public class Base64Helper {
         }
     }
 
-    public static String serializeObject(final Serializable object, Boolean hasOdfeNodes) {
+    public static String serializeObject(final Serializable object, PackageBehavior packageBehavior) {
 
         Preconditions.checkArgument(object != null, "object must not be null");
 
-        boolean replaceWithOdfePackage = hasOdfeNodes != null && hasOdfeNodes;
+        boolean replaceWithOdfePackage = packageBehavior == PackageBehavior.REWRITE_AS_ODFE;
 
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (final ObjectOutputStream out = SafeObjectOutputStream.create(bos, replaceWithOdfePackage)) {
