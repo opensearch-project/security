@@ -28,17 +28,6 @@ jobs:
           cat > setup.sh <<'EOF'
           chmod +x ./opensearch-3.0.0-SNAPSHOT/bin/opensearch-plugin
           /bin/bash -c "yes | ./opensearch-3.0.0-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/opensearch-security.zip"
-          chown -R opensearch $OPENSEARCH_HOME
-          chmod 0700 $OPENSEARCH_HOME/config
-          chmod 0600 $OPENSEARCH_HOME/config/kirk.pem
-          chmod 0600 $OPENSEARCH_HOME/config/kirk-key.pem
-          chmod 0600 $OPENSEARCH_HOME/config/esnode.pem
-          chmod 0600 $OPENSEARCH_HOME/config/esnode-key.pem
-          chmod 0600 $OPENSEARCH_HOME/config/root-ca.pem
-          # echo plugins.security.unsupported.restapi.allow_securityconfig_modification: true >> $OPENSEARCH_HOME/config/opensearch.yml
-          echo plugins.security.allow_default_init_securityindex: true >> $OPENSEARCH_HOME/config/opensearch.yml
-          echo network.host: "0.0.0.0" >> $OPENSEARCH_HOME/config/opensearch.yml
-          echo discovery.type: single-node >> $OPENSEARCH_HOME/config/opensearch.yml
           EOF
 
       - name: Create Setup Script
