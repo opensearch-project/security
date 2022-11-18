@@ -35,7 +35,7 @@ jobs:
         run: |
           New-Item .\setup.bat -type file
           Set-Content .\setup.bat "call .\opensearch-3.0.0-SNAPSHOT\plugins\opensearch-security\tools\install_demo_configuration.bat" 
-        
+          Get-Content .\setup.bat
 
       - name: Run Opensearch with A Single Plugin
         uses: ./.github/actions/start-opensearch-with-one-plugin
