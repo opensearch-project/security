@@ -74,7 +74,7 @@ runs:
 
     # Run any configuration scripts
     - name: Run Setup Script for Linux
-      if: ${{ runner.os == 'Linux' }} && ${{ inputs.setup-script == true }}
+      if: ${{ runner.os == 'Linux' && inputs.setup-script == 'true' }}
       run: | 
         echo "running linux setup"
         chmod +x ./setup.sh
@@ -82,7 +82,7 @@ runs:
       shell: bash
 
     - name: Run Setup Script for Windows
-      if: ${{ runner.os == 'Windows' }} && ${{ inputs.setup-script == true }}
+      if: ${{ runner.os == 'Windows'&& inputs.setup-script == 'true' }}
       run: start .\setup.bat
       shell: bash
 
