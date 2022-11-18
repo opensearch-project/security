@@ -42,7 +42,7 @@ jobs:
         with:
           opensearch-version: 3.0.0
           plugin-name: opensearch-security
-          setup.sh: true
+          setup-script: true
 
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v2
