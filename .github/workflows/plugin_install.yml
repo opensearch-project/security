@@ -26,15 +26,15 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           cat > setup.sh <<'EOF'
-          chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
-          /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh"
+          chmod +x ./opensearch-3.0.0-SNAPSHOT/plugins/opensearch-security/tools/opensearch-security.sh
+          /bin/bash -c "yes | ./opensearch-3.0.0-SNAPSHOT/plugins/opensearch-security/tools/install_demo_configuration.sh"
           EOF
 
       - name: Create Setup Script
         if: ${{ runner.os == 'Windows' }}
         run: |
           New-Item .\setup.bat -type file
-          echo "'y', 'y', 'N' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\plugins\${{ inputs.plugin-name }}\tools\${{ inputs.plugin-start-script }}.bat" >> setup.bat
+          echo "'y', 'y', 'N' | .\opensearch-3.0.0-SNAPSHOT\plugins\opensearch-security\tools\install_demo_configuration.bat" >> setup.bat
         
 
       - name: Run Opensearch with A Single Plugin
