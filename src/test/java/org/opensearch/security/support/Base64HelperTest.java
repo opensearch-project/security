@@ -100,6 +100,11 @@ public class Base64HelperTest {
         Assert.assertEquals(list, ds(list, PackageBehavior.NONE));
     }
 
+    @Test(expected = OpenSearchException.class)
+    public void notSafeSerializable() {
+        serializeObject(new NotSafeSerializable(), PackageBehavior.NONE);
+    }
+
     @Test
     public void testStringWithRewriteOdfePackage() {
         String string = "string";
@@ -155,8 +160,8 @@ public class Base64HelperTest {
     }
 
     @Test(expected = OpenSearchException.class)
-    public void notSafeSerializable() {
-        serializeObject(new NotSafeSerializable(), PackageBehavior.NONE);
+    public void notSafeSerializableWithRewriteOdfePackage() {
+        serializeObject(new NotSafeSerializable(), PackageBehavior.REWRITE_AS_ODFE);
     }
 
     @Test(expected = OpenSearchException.class)
