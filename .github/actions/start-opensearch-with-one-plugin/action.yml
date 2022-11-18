@@ -83,10 +83,7 @@ runs:
 
     - name: Run Setup Script for Windows
       if: ${{ runner.os == 'Windows' && inputs.setup-script != '' }}
-      run: |
-        echo "Running Windows Startup Script"
-        cat setup.bat
-        start .\setup.bat
+      run: Invoke-Expression -Command 'cmd.exe /C .\setup.bat'
       shell: pwsh
 
     # Run OpenSearch
