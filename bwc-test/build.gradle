@@ -37,10 +37,7 @@ apply plugin: 'java'
 
 apply plugin: 'opensearch.testclusters'
 
-compileTestJava.enabled = false
-
 ext {
-    projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.TXT')
     noticeFile = rootProject.file('NOTICE')
 }
@@ -70,19 +67,38 @@ repositories {
 }
 
 dependencies {
+    testImplementation 'com.google.guava:guava:30.0-jre'
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
+    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
 }
 
-String bwcVersion = "2.8.0.0";
+loggerUsageCheck.enabled = false
+testingConventions.enabled = false
+validateNebulaPom.enabled = false
+
+String previousVersion = System.getProperty("bwc.version.previous", "2.8.0.0")
+String nextVersion = System.getProperty("bwc.version.next", "2.9.0.0")
+
+String bwcVersion = previousVersion
 String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
-String projectVersion = "2.9.0.0"
+String projectVersion = nextVersion
+
+String previousOpenSearch  = extractVersion(previousVersion);
+String nextOpenSearch  = extractVersion(nextVersion);
+
+// Extracts the OpenSearch version from a plugin version string, 2.4.0.0 -> 2.4.0.
+def String extractVersion(versionStr) {
+    def versionMatcher =  versionStr =~ /(.+?)(\.\d+)$/
+    versionMatcher.find()
+    return versionMatcher.group(1)
+}
 
 2.times {i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-            versions = ["2.8.0","2.9.0"]
+            versions = [previousOpenSearch, nextOpenSearch]
             numberOfNodes = 3
             plugin(provider(new Callable<RegularFile>() {
                 @Override
@@ -148,24 +164,7 @@ List<Provider<RegularFile>> plugins = [
 // Creates a test cluster with 3 nodes of the old version.
 2.times {i ->
     task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
-        exclude '**/*Test*'
-        exclude '**/*Sanity*'
         useCluster testClusters."${baseName}$i"
-        if (System.getProperty("mixedCluster") != null) {
-            filter {
-                includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAMixedCluster")
-            }
-        }
-        if (System.getProperty("rollingUpgradeCluster") != null) {
-            filter {
-                includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInARollingUpgradedCluster")
-            }
-        }
-        if (System.getProperty("fullRestartCluster") != null) {
-            filter {
-                includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAnUpgradedCluster")
-            }
-        }
         systemProperty 'tests.rest.bwcsuite', 'old_cluster'
         systemProperty 'tests.rest.bwcsuite_round', 'old'
         systemProperty 'tests.plugin_bwc_version', bwcVersion
@@ -178,22 +177,10 @@ List<Provider<RegularFile>> plugins = [
 // This results in a mixed cluster with 2 nodes on the old version and 1 upgraded node.
 // This is also used as a one third upgraded cluster for a rolling upgrade.
 task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
-    exclude '**/*Test*'
-    exclude '**/*Sanity*'
     dependsOn "${baseName}#oldVersionClusterTask0"
     useCluster testClusters."${baseName}0"
     doFirst {
         testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
-    }
-    if (System.getProperty("mixedCluster") != null) {
-        filter {
-            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAMixedCluster")
-        }
-    }
-    if (System.getProperty("rollingUpgradeCluster") != null) {
-        filter {
-            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInARollingUpgradedCluster")
-        }
     }
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'first'
@@ -206,17 +193,10 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
 // This results in a mixed cluster with 1 node on the old version and 2 upgraded nodes.
 // This is used for rolling upgrade.
 task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
-    exclude '**/*Test*'
-    exclude '**/*Sanity*'
     dependsOn "${baseName}#mixedClusterTask"
     useCluster testClusters."${baseName}0"
     doFirst {
         testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
-    }
-    if (System.getProperty("rollingUpgradeCluster") != null) {
-        filter {
-            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInARollingUpgradedCluster")
-        }
     }
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'second'
@@ -229,17 +209,10 @@ task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTas
 // This results in a fully upgraded cluster.
 // This is used for rolling upgrade.
 task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
-    exclude '**/*Test*'
-    exclude '**/*Sanity*'
     dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
     useCluster testClusters."${baseName}0"
     doFirst {
         testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
-    }
-    if (System.getProperty("rollingUpgradeCluster") != null) {
-        filter {
-            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInARollingUpgradedCluster")
-        }
     }
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'third'
@@ -251,28 +224,21 @@ task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) 
 // Upgrades all the nodes of the old cluster to new OpenSearch version with upgraded plugin version
 // at the same time resulting in a fully upgraded cluster.
 tasks.register("${baseName}#fullRestartClusterTask", StandaloneRestIntegTestTask) {
-    exclude '**/*Test*'
-    exclude '**/*Sanity*'
     dependsOn "${baseName}#oldVersionClusterTask1"
     useCluster testClusters."${baseName}1"
     doFirst {
         testClusters."${baseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
     }
-    if (System.getProperty("fullRestartCluster") != null) {
-        filter {
-            includeTest("org.opensearch.security.bwc.SecurityBackwardsCompatibilityIT", "testPluginUpgradeInAnUpgradedCluster")
-        }
-    }
     systemProperty 'tests.rest.bwcsuite', 'upgraded_cluster'
     systemProperty 'tests.plugin_bwc_version', bwcVersion
+    systemProperty 'tests.rest.bwcsuite_round', 'first'
     nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}1".allHttpSocketURI.join(",")}")
     nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}1".getName()}")
 }
 
 // A bwc test suite which runs all the bwc tasks combined.
 task bwcTestSuite(type: StandaloneRestIntegTestTask) {
-    exclude '**/*Test*'
-    exclude '**/*Sanity*'
+    exclude '**/**' // Do not run any tests as part of this aggregate task
     dependsOn tasks.named("${baseName}#mixedClusterTask")
     dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
     dependsOn tasks.named("${baseName}#fullRestartClusterTask")

@@ -105,23 +105,19 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/checkout@v2
     - uses: actions/setup-java@v1
       with:
-        java-version: 11
-    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
-    - run: |
-        echo "Running backwards compatibility tests ..."
-        security_plugin_version_no_snapshot=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}' | sed 's/-SNAPSHOT//g')
-        bwc_version=2.8.0
-        cp -r build/ ./bwc-test/
-        mkdir ./bwc-test/src/test/resources/security_plugin_version_no_snapshot
-        cp build/distributions/opensearch-security-${security_plugin_version_no_snapshot}.zip ./bwc-test/src/test/resources/${security_plugin_version_no_snapshot}
-        mkdir bwc-test/src/test/resources/${bwc_version}.0
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${bwc_version}/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-${bwc_version}.0.zip
-        mv opensearch-security-${bwc_version}.0.zip bwc-test/src/test/resources/${bwc_version}.0/
-        cd bwc-test/
-        ./gradlew bwcTestSuite -Dtests.security.manager=false
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout Security Repo
+      uses: actions/checkout@v2
+
+    - id: build-previous
+      uses: ./.github/actions/run-bwc-suite
+      with:
+        plugin-previous-branch: "2.x"
+        plugin-next-branch: "main"
+        report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
 
   code-ql:
     runs-on: ubuntu-latest
