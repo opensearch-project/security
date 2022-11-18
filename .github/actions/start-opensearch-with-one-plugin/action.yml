@@ -74,19 +74,19 @@ runs:
 
     # Run any configuration scripts
     - name: Run Setup Script for Linux
-      if: ${{ runner.os == 'Linux' && inputs.setup-script == 'true' }}
+      if: ${{ runner.os == 'Linux' && inputs.setup-script != '' }}
       run: | 
         echo "running linux setup"
-        chmod +x ./setup.sh
+        chmod +x ./setup.sh 
         ./setup.sh
       shell: bash
 
     - name: Run Setup Script for Windows
-      if: ${{ runner.os == 'Windows' && inputs.setup-script == 'true' }}
+      if: ${{ runner.os == 'Windows' && inputs.setup-script != '' }}
       run: |
         echo "Running Windows Startup Script"
-        start .\setup.bat
-      shell: pwsh
+        .\setup.bat
+      shell: bash
 
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
