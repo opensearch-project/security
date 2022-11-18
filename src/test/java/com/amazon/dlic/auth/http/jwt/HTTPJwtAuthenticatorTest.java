@@ -35,6 +35,7 @@ import org.opensearch.common.settings.Settings;
 import org.apache.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.FieldSetter;
 
@@ -468,6 +469,7 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertEquals(0, creds.getBackendRoles().size());
     }
 
+    @Ignore
     @Test
     public void testES512() throws Exception {
 
