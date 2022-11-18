@@ -26,8 +26,8 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           cat > setup.sh <<'EOF'
-          chmod +x ./opensearch-3.0.0-SNAPSHOT/bin/opensearch-plugin
-          /bin/bash -c "yes | ./opensearch-3.0.0-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/opensearch-security.zip"
+          chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
+          /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh"
           EOF
 
       - name: Create Setup Script
