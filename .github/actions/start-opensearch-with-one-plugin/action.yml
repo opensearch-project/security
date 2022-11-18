@@ -83,7 +83,7 @@ runs:
 
     - name: Run Setup Script for Windows
       if: ${{ runner.os == 'Windows' && inputs.setup-script != '' }}
-      run: call .\setup.bat
+      run: Call .\setup.bat
       shell: pwsh
 
     # Run OpenSearch
