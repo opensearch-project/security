@@ -86,7 +86,7 @@ runs:
       run: |
         echo "Running Windows Startup Script"
         cat setup.bat
-        .\setup.bat
+        ./setup.bat
       shell: bash
 
     # Run OpenSearch
