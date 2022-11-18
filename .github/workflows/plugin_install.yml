@@ -44,9 +44,9 @@ jobs:
       - name: Create Setup Script
         if: ${{ runner.os == 'Windows' }}
         run: |
-          cat > setup.bat <<'EOF'
-          'y', 'y', 'N' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\plugins\${{ inputs.plugin-name }}\tools\${{ inputs.plugin-start-script }}.bat
-          EOF
+          New-Item .\setup.bat -type file
+          echo "'y', 'y', 'N' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\plugins\${{ inputs.plugin-name }}\tools\${{ inputs.plugin-start-script }}.bat" >> setup.bat
+        
 
       - name: Run Opensearch with A Single Plugin
         uses: ./.github/actions/start-opensearch-with-one-plugin
