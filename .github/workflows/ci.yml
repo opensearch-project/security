@@ -84,24 +84,28 @@ jobs:
           -x spotbugsMain
 
   backward-compatibility:
-    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [11, 17]
+        platform: ["ubuntu-latest", "windows-latest"]
+    runs-on: ${{ matrix.platform }}
+
     steps:
-    - uses: actions/checkout@v2
     - uses: actions/setup-java@v1
       with:
-        java-version: 11
-    - run: ./gradlew clean build -Dbuild.snapshot=false -x test -x integrationTest
-    - run: |
-        echo "Running backwards compatibility tests ..."
-        security_plugin_version_no_snapshot=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}' | sed 's/-SNAPSHOT//g')
-        cp -r build/ ./bwc-test/
-        mkdir ./bwc-test/src/test/resources/security_plugin_version_no_snapshot
-        cp build/distributions/opensearch-security-${security_plugin_version_no_snapshot}.zip ./bwc-test/src/test/resources/${security_plugin_version_no_snapshot}
-        mkdir bwc-test/src/test/resources/2.4.0.0
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/2.4.0/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-2.4.0.0.zip
-        mv opensearch-security-2.4.0.0.zip bwc-test/src/test/resources/2.4.0.0/
-        cd bwc-test/
-        ./gradlew bwcTestSuite -Dtests.security.manager=false
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout Security Repo
+      uses: actions/checkout@v2
+
+    - id: build-previous
+      uses: ./.github/actions/run-bwc-suite
+      with:
+        plugin-previous-branch: "2.x"
+        plugin-next-branch: "main"
+        report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
 
   code-ql:
     runs-on: ubuntu-latest

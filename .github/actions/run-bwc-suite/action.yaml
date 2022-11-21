@@ -1,0 +1,46 @@
+name: 'Runs the backward bompatiblity test suite'
+description: 'Tests backwards compability between a previous and next version of this plugin'
+
+inputs:
+  plugin-previous-branch:
+    description: 'The branch of the plugin that should be built for the previous version, e.g "2.2", "1.x"'
+    required: true
+
+  plugin-next-branch:
+    description: 'The branch of the plugin that should be built for the next version, e.g "2.3", "main"'
+    required: true
+
+  report-artifact-name:
+    description: 'The name of the artifacts for this run, e.g. "BWC-2.1-to-2.4-results"'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+
+    - id: build-previous
+      uses: ./.github/actions/create-bwc-build
+      with:
+        plugin-branch: ${{ inputs.plugin-previous-branch }}
+
+    - id: build-next
+      uses: ./.github/actions/create-bwc-build
+      with:
+        plugin-branch: ${{ inputs.plugin-next-branch }}
+
+    - name: Run BWC tests
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: |
+          bwcTestSuite
+          -Dtests.security.manager=false
+          -Dbwc.version.previous=${{ steps.build-previous.outputs.built-version }}
+          -Dbwc.version.next=${{ steps.build-next.outputs.built-version }} -i
+        build-root-directory: bwc-test
+
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: ${{ inputs.report-artifact-name }}
+        path: |
+          ./bwc-test/build/reports/
