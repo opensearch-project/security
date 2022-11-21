@@ -13,6 +13,7 @@ jobs:
       fail-fast: true
       matrix:
         jdk: [8, 11, 14]
+        iteration: [1, 2, 3, 4, 5]
 
     steps:
 
