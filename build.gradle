@@ -73,6 +73,10 @@ configurations.all {
         force "com.fasterxml.woodstox:woodstox-core:6.4.0"
         force "org.scala-lang:scala-library:2.13.9"
         force "org.yaml:snakeyaml:1.32"
+        force "io.netty:netty-buffer:${versions.netty}"
+        force "io.netty:netty-common:${versions.netty}"
+        force "io.netty:netty-handler:${versions.netty}"
+        force "io.netty:netty-transport:${versions.netty}"
 
     }
 }
