@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import org.junit.rules.ExternalResource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 
 /**
@@ -50,10 +51,20 @@ public class LogsRule extends ExternalResource {
 	* Check if during the tests certain log message was logged
 	* @param expectedLogMessage expected log message
 	*/
-	public void assertThatContain(String expectedLogMessage) {
+	public void assertThatContainExactly(String expectedLogMessage) {
 		List<String> messages = LogCapturingAppender.getLogMessages();
 		String reason = reasonMessage(expectedLogMessage, messages);
 		assertThat(reason, messages, hasItem(expectedLogMessage));
+	}
+
+	/**
+	* Check if during the tests certain log message was logged
+	* @param messageFragment expected log message fragment
+	*/
+	public void assertThatContain(String messageFragment) {
+		List<String> messages = LogCapturingAppender.getLogMessages();
+		String reason = reasonMessage(messageFragment, messages);
+		assertThat(reason, messages, hasItem(containsString(messageFragment)));
 	}
 
 	private static String reasonMessage(String expectedLogMessage, List<String> messages) {

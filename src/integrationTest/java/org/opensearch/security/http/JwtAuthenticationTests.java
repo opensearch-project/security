@@ -164,7 +164,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
-			logsRule.assertThatContain("No subject found in JWT token");
+			logsRule.assertThatContainExactly("No subject found in JWT token");
 		}
 	}
 
@@ -175,7 +175,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
-			logsRule.assertThatContain("Invalid or expired JWT token.");
+			logsRule.assertThatContainExactly("Invalid or expired JWT token.");
 		}
 	}
 
@@ -187,7 +187,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
-			logsRule.assertThatContain(String.format("No JWT token found in '%s' header header", JWT_AUTH_HEADER));
+			logsRule.assertThatContainExactly(String.format("No JWT token found in '%s' header header", JWT_AUTH_HEADER));
 		}
 	}
 
@@ -200,7 +200,7 @@ public class JwtAuthenticationTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(401);
-			logsRule.assertThatContain("Invalid or expired JWT token.");
+			logsRule.assertThatContainExactly("Invalid or expired JWT token.");
 		}
 	}
 

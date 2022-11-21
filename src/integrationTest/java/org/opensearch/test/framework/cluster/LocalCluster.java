@@ -49,6 +49,7 @@ import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AuditConfiguration;
+import org.opensearch.test.framework.AuthFailureListeners;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
@@ -312,6 +313,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		public Builder plugin(Class<? extends Plugin> plugin) {
 			this.plugins.add(plugin);
 
+			return this;
+		}
+
+		public Builder authFailureListeners(AuthFailureListeners listener) {
+			testSecurityConfig.authFailureListeners(listener);
 			return this;
 		}
 
