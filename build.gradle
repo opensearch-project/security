@@ -83,6 +83,7 @@ configurations.all {
         force "org.apache.commons:commons-lang3:3.4"
         force "org.springframework:spring-core:5.3.20"
         force "com.google.guava:guava:30.0-jre"
+        force "com.fasterxml.woodstox:woodstox-core:6.4.0"
     }
 }
 
