@@ -1,4 +1,4 @@
-name: 'Start OpenSearch with One Plugin'
+name: 'Launch OpenSearch with a single plugin installed'
 description: 'Downloads latest build of OpenSearch, installs a plugin, executes a script and then starts OpenSearch on localhost:9200'
 
 inputs:
