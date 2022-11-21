@@ -62,8 +62,8 @@ runs:
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
-        chmod +x ./opensearch-3.0.0-SNAPSHOT/bin/opensearch-plugin
-        /bin/bash -c "yes | ./opensearch-3.0.0-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/opensearch-security.zip"
+        chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
+        /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/opensearch-security.zip"
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
@@ -118,3 +118,8 @@ runs:
         $Headers = @{ Authorization = $baseCredentials }
         Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200/_cat/plugins' -Headers $Headers;
       shell: pwsh
+
+    - name: Run sanity tests
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
