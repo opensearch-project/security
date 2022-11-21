@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -24,6 +25,7 @@ import org.opensearch.test.framework.cluster.LocalCluster;
 import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import org.opensearch.test.framework.cluster.TestRestClientConfiguration;
+import org.opensearch.test.framework.log.LogsRule;
 
 import static org.apache.hc.core5.http.HttpStatus.SC_OK;
 import static org.apache.hc.core5.http.HttpStatus.SC_UNAUTHORIZED;
@@ -59,6 +61,9 @@ public class IpBruteForceAttacksPreventionTests {
 		.clusterManager(ClusterManager.SINGLENODE).anonymousAuth(false).authFailureListeners(listener)
 		.authc(AUTHC_HTTPBASIC_INTERNAL_WITHOUT_CHALLENGE).users(USER_1, USER_2).build();
 
+	@Rule
+	public LogsRule logsRule = new LogsRule("org.opensearch.security.auth.BackendRegistry");
+
 	@Test
 	public void shouldAuthenticateUserWhenBlockadeIsNotActive() {
 		try(TestRestClient client = cluster.createGenericClientRestClient(userWithSourceIp(USER_1, CLIENT_IP_2))) {
@@ -77,6 +82,7 @@ public class IpBruteForceAttacksPreventionTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(SC_UNAUTHORIZED);
+			logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_3);
 		}
 	}
 
@@ -88,6 +94,7 @@ public class IpBruteForceAttacksPreventionTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(SC_UNAUTHORIZED);
+			logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_4);
 		}
 	}
 
@@ -120,6 +127,7 @@ public class IpBruteForceAttacksPreventionTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(SC_UNAUTHORIZED);
+			logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_8);
 		}
 	}
 
@@ -132,6 +140,7 @@ public class IpBruteForceAttacksPreventionTests {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(SC_OK);
+			logsRule.assertThatContain("Rejecting REST request because of blocked address: /" + CLIENT_IP_9);
 		}
 	}
 
