@@ -47,8 +47,8 @@ jobs:
       - name: Run Opensearch with A Single Plugin
         uses: ./.github/actions/start-opensearch-with-one-plugin
         with:
-          opensearch-version: $OPENSEARCH_VERSION
-          plugin-name: $PLUGIN_NAME
+          opensearch-version: ${{ OPENSEARCH_VERSION }}
+          plugin-name: ${{ PLUGIN_NAME }}
           setup-script: true
 
       - name: Run sanity tests
