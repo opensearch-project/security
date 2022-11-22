@@ -77,6 +77,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 
 /**
 * A OpenSearch REST client, which is tailored towards use in integration tests. Instances of this class can be
@@ -121,6 +122,15 @@ public class TestRestClient implements AutoCloseable {
 
 	public HttpResponse getAuthInfo( Header... headers) {
 		return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
+	}
+
+	public void assertCorrectCredentials(String expectedUserName) {
+		HttpResponse response = getAuthInfo();
+		assertThat(response, notNullValue());
+		response.assertStatusCode(200);
+		String username = response.getTextFromJsonBody("/user_name");
+		String message = String.format("Expected user name is '%s', but was '%s'", expectedUserName, username);
+		assertThat(message, username, equalTo(expectedUserName));
 	}
 
 	public HttpResponse head(String path, Header... headers) {
@@ -321,7 +331,7 @@ public class TestRestClient implements AutoCloseable {
 				.map(JsonNode::textValue)
 				.collect(Collectors.toList());
 		}
-		
+
 		public int getIntFromJsonBody(String jsonPointer) {        
 			return getJsonNodeAt(jsonPointer).asInt(); 	
 		}

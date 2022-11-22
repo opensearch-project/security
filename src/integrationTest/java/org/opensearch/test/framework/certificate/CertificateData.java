@@ -26,15 +26,19 @@
 
 package org.opensearch.test.framework.certificate;
 
+import java.security.Key;
 import java.security.KeyPair;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 
 /**
 * The class contains all data related to Certificate including private key which is considered to be a secret.
 */
-class CertificateData {
+public class CertificateData {
 
 	private final X509CertificateHolder certificate;
 	private final KeyPair keyPair;
@@ -53,6 +57,14 @@ class CertificateData {
 		return PemConverter.toPem(certificate);
 	}
 
+	public X509Certificate certificate() {
+		try {
+			return new JcaX509CertificateConverter().getCertificate(certificate);
+		} catch (CertificateException e) {
+			throw new RuntimeException("Cannot retrieve certificate", e);
+		}
+	}
+
 	/**
 	* It returns the private key associated with certificate encoded in PEM format. PEM format is defined by
 	* <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>.
@@ -69,5 +81,9 @@ class CertificateData {
 
 	KeyPair getKeyPair() {
 		return keyPair;
+	}
+
+	public Key getKey() {
+		return keyPair.getPrivate();
 	}
 }

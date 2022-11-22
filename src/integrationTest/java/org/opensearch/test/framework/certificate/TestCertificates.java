@@ -93,6 +93,13 @@ public class TestCertificates {
 				.issueSelfSignedCertificate(metadata);
 	}
 
+	public CertificateData createSelfSignedCertificate(String distinguishedName) {
+		CertificateMetadata metadata = CertificateMetadata.basicMetadata(distinguishedName, CERTIFICATE_VALIDITY_DAYS);
+		return CertificatesIssuerFactory
+			.rsaBaseCertificateIssuer()
+			.issueSelfSignedCertificate(metadata);
+	}
+
 	/**
 	* It returns the most trusted certificate. Certificates for nodes and users are derived from this certificate.
 	* @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
@@ -129,6 +136,15 @@ public class TestCertificates {
 		return CertificatesIssuerFactory
 				.rsaBaseCertificateIssuer()
 				.issueSignedCertificate(metadata, caCertificate);
+	}
+
+	public CertificateData issueUserCertificate(String organizationUnit, String username) {
+		String subject = String.format("DC=de,L=test,O=users,OU=%s,CN=%s", organizationUnit, username);
+		CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
+			.withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH);
+		return CertificatesIssuerFactory
+			.rsaBaseCertificateIssuer()
+			.issueSignedCertificate(metadata, caCertificate);
 	}
 
 	/**

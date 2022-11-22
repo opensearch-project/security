@@ -28,15 +28,21 @@
 
 package org.opensearch.test.framework.cluster;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
@@ -59,7 +65,10 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.security.support.PemKeyReader;
+import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
+
+import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.getBasicAuthHeader;
 
 /**
 * OpenSearchClientProvider provides methods to get a REST client for an underlying cluster or node.
@@ -90,8 +99,12 @@ public interface OpenSearchClientProvider {
 	* This method should be usually preferred. The other getRestClient() methods shall be only used for specific
 	* situations.
 	*/
+	default TestRestClient getRestClient(UserCredentialsHolder user, CertificateData useCertificateData, Header... headers) {
+		return getRestClient(user.getName(), user.getPassword(), useCertificateData, headers);
+	}
+
 	default TestRestClient getRestClient(UserCredentialsHolder user, Header... headers) {
-		return getRestClient(user.getName(), user.getPassword(), headers);
+		return getRestClient(user.getName(), user.getPassword(), null, headers);
 	}
 
 	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
@@ -157,17 +170,39 @@ public interface OpenSearchClientProvider {
 	default TestRestClient getRestClient(String user, String password, Header... headers) {
 		return createGenericClientRestClient(new TestRestClientConfiguration().username(user).password(password).headers(headers));
 	}
-
+	default TestRestClient getRestClient(String user, String password, CertificateData useCertificateData, Header... headers) {
+		Header basicAuthHeader = getBasicAuthHeader(user, password);
+		if (headers != null && headers.length > 0) {
+			List<Header> concatenatedHeaders = Stream.concat(Stream.of(basicAuthHeader), Stream.of(headers)).collect(Collectors.toList());
+			return getRestClient(concatenatedHeaders, useCertificateData);
+		}
+		return getRestClient(useCertificateData, basicAuthHeader);
+	}
 	/**
 	* Returns a REST client. You can specify additional HTTP headers that will be sent with each request. Use this
 	* method to test non-basic authentication, such as JWT bearer authentication.
 	*/
-	default TestRestClient getRestClient(Header... headers) {
-		return getRestClient(Arrays.asList(headers));
+	default TestRestClient getRestClient(CertificateData useCertificateData, Header... headers) {
+		return getRestClient(Arrays.asList(headers), useCertificateData);
 	}
+
+	default TestRestClient getRestClient(Header... headers) {
+		return getRestClient((CertificateData) null, headers);
+	}
+
 
 	default TestRestClient getRestClient(List<Header> headers) {
 		return createGenericClientRestClient(new TestRestClientConfiguration().headers(headers));
+
+	}
+
+	default TestRestClient getRestClient(List<Header> headers, CertificateData useCertificateData) {
+		return createGenericClientRestClient(headers, useCertificateData, null);
+	}
+
+	default TestRestClient createGenericClientRestClient(List<Header> headers, CertificateData useCertificateData,
+		InetAddress sourceInetAddress) {
+		return new TestRestClient(getHttpAddress(), headers, getSSLContext(useCertificateData), sourceInetAddress);
 	}
 
 	default TestRestClient createGenericClientRestClient(TestRestClientConfiguration configuration) {
@@ -175,24 +210,37 @@ public interface OpenSearchClientProvider {
 	}
 
 	private SSLContext getSSLContext() {
+		return getSSLContext(null);
+	}
+
+	private SSLContext getSSLContext(CertificateData useCertificateData) {
 		X509Certificate[] trustCertificates;
 					
 		try {
 			trustCertificates =  PemKeyReader.loadCertificatesFromFile(getTestCertificates().getRootCertificate() );
 
 			TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-			KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());           
+			KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
 
 			ks.load(null);
 			
 			for (int i = 0; i < trustCertificates.length; i++) {
 				ks.setCertificateEntry("caCert-" + i, trustCertificates[i]);	
 			}
+			KeyManager[] keyManagers = null;
+			if(useCertificateData != null) {
+				Certificate[] chainOfTrust = {useCertificateData.certificate()};
+				ks.setKeyEntry("admin-certificate", useCertificateData.getKey(), null, chainOfTrust);
+				KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+				keyManagerFactory.init(ks, null);
+				keyManagers = keyManagerFactory.getKeyManagers();
+			}
 
 			tmf.init(ks);
 
 			SSLContext sslContext = SSLContext.getInstance("TLS");
-			sslContext.init(null, tmf.getTrustManagers(), null);
+
+			sslContext.init(keyManagers, tmf.getTrustManagers(), null);
 			return sslContext;
 
 		} catch (Exception e) {
