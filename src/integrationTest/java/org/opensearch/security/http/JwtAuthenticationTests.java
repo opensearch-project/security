@@ -126,7 +126,7 @@ public class JwtAuthenticationTests {
 	@BeforeClass
 	public static void createTestData() {
 		try (Client client = cluster.getInternalNodeClient()) {
-			client.prepareIndex(QA_SONG_INDEX_NAME).setId(SONG_ID_1).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0]).get();
+			client.prepareIndex(QA_SONG_INDEX_NAME).setId(SONG_ID_1).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0].asMap()).get();
 		}
 		try(TestRestClient client = cluster.getRestClient(ADMIN_USER)){
 			client.createRoleMapping(ROLE_VP, DEPARTMENT_SONG_LISTENER_ROLE.getName());
