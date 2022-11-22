@@ -192,6 +192,18 @@ public class TestRestClient implements AutoCloseable {
 		return patch("_plugins/_security/api/internalusers/" + username, body);
 	}
 
+	public HttpResponse createRole(String roleName, ToXContentObject role) {
+		Objects.requireNonNull(roleName, "Role name is required");
+		Objects.requireNonNull(role, "Role is required");
+		return putJson("_plugins/_security/api/roles/" + roleName, role);
+	}
+
+	public HttpResponse createUser(String userName, ToXContentObject user) {
+		Objects.requireNonNull(userName, "User name is required");
+		Objects.requireNonNull(user, "User is required");
+		return putJson("_plugins/_security/api/internalusers/" + userName, user);
+	}
+
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... requestSpecificHeaders) {
 		try(CloseableHttpClient httpClient = getHTTPClient()) {
 

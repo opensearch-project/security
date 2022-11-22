@@ -29,6 +29,10 @@ public class GetResponseMatchers  {
 		return new GetResponseDocumentFieldValueMatcher(fieldName, fieldValue);
 	}
 
+	public static Matcher<GetResponse> documentDoesNotContainField(String fieldName) {
+		return new GetResponseDocumentDoesNotContainFieldMatcher(fieldName);
+	}
+
 	public static Matcher<GetResponse> documentContainsExactlyFieldsWithNames(String... expectedFieldsNames) {
 		return new GetResponseDocumentContainsExactlyFieldsWithNamesMatcher(expectedFieldsNames);
 	}

@@ -10,10 +10,15 @@
 package org.opensearch.security;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.junit.BeforeClass;
@@ -29,6 +34,8 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.get.MultiGetItemResponse;
 import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.get.MultiGetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.MultiSearchResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -36,6 +43,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.ParsedAvg;
@@ -43,12 +51,16 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
+import org.opensearch.test.framework.cluster.TestRestClient;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
@@ -57,26 +69,24 @@ import static org.opensearch.security.Song.ARTIST_NO;
 import static org.opensearch.security.Song.ARTIST_STRING;
 import static org.opensearch.security.Song.ARTIST_TWINS;
 import static org.opensearch.security.Song.FIELD_ARTIST;
-import static org.opensearch.security.Song.FIELD_GENRE;
 import static org.opensearch.security.Song.FIELD_LYRICS;
 import static org.opensearch.security.Song.FIELD_STARS;
 import static org.opensearch.security.Song.FIELD_TITLE;
-import static org.opensearch.security.Song.QUERY_TITLE_MAGNUM_OPUS;
 import static org.opensearch.security.Song.QUERY_TITLE_NEXT_SONG;
 import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.security.Song.TITLE_NEXT_SONG;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
+import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.getSearchScrollRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.queryByIdsRequest;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.queryStringQueryRequest;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.searchRequestWithScroll;
 import static org.opensearch.test.framework.matcher.FieldCapabilitiesResponseMatchers.containsExactlyIndices;
 import static org.opensearch.test.framework.matcher.FieldCapabilitiesResponseMatchers.containsFieldWithNameAndType;
 import static org.opensearch.test.framework.matcher.FieldCapabilitiesResponseMatchers.numberOfFieldsIsEqualTo;
 import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
 import static org.opensearch.test.framework.matcher.GetResponseMatchers.documentContainField;
-import static org.opensearch.test.framework.matcher.GetResponseMatchers.documentContainsExactlyFieldsWithNames;
+import static org.opensearch.test.framework.matcher.GetResponseMatchers.documentDoesNotContainField;
 import static org.opensearch.test.framework.matcher.MultiGetResponseMatchers.isSuccessfulMultiGetResponse;
 import static org.opensearch.test.framework.matcher.MultiGetResponseMatchers.numberOfGetItemResponsesIsEqualTo;
 import static org.opensearch.test.framework.matcher.MultiSearchResponseMatchers.isSuccessfulMultiSearchResponse;
@@ -86,8 +96,8 @@ import static org.opensearch.test.framework.matcher.SearchResponseMatchers.conta
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitContainsFieldWithValue;
+import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitDoesNotContainField;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsContainDocumentWithId;
-import static org.opensearch.test.framework.matcher.SearchResponseMatchers.searchHitsDocumentsContainExactlyFieldsWithNames;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -114,57 +124,7 @@ public class FlsDlsAndFieldMaskingTest {
 
 	static final String MASK_VALUE = "*";
 
-
-	/**
-	* User who is allowed to see the title and stars fields on all indices
-	*/
-	static final TestSecurityConfig.User ALL_INDICES_TITLE_STARS_READER = new TestSecurityConfig.User("title_stars_reader")
-			.roles(
-					new TestSecurityConfig.Role("title_stars_reader")
-							.clusterPermissions("cluster_composite_ops_ro")
-							.indexPermissions("read")
-							.fls(FIELD_TITLE, FIELD_STARS)
-							.on("*")
-			);
-
-	/**
-	* User who is allowed to see the title, artist and lyrics fields on index {@link #FIRST_INDEX_NAME}, and
-	* the artist field on index {@link #SECOND_INDEX_NAME}
-	*/
-	static final TestSecurityConfig.User TITLE_ARTIST_LYRICS_READER_USER = new TestSecurityConfig.User("title_artist_lyrics_reader")
-			.roles(
-					new TestSecurityConfig.Role("title_artist_lyrics_reader")
-							.clusterPermissions("cluster_composite_ops_ro")
-							.indexPermissions("read")
-							.fls(
-									FIELD_TITLE,
-									FIELD_ARTIST.substring(0,3).concat("*"),
-									"*".concat(FIELD_LYRICS.substring(FIELD_LYRICS.length() - 3))
-							)
-							.on(FIRST_INDEX_NAME),
-					new TestSecurityConfig.Role("artist_reader")
-							.clusterPermissions("cluster_composite_ops_ro")
-							.indexPermissions("read")
-							.fls(FIELD_ARTIST)
-							.on(SECOND_INDEX_NAME)
-			);
-
-	/**
-	* User who is allowed to see the title field on index {@link #FIRST_INDEX_NAME}
-	*/
-	static final TestSecurityConfig.User TITLE_READER = new TestSecurityConfig.User("title_reader")
-			.roles(
-					new TestSecurityConfig.Role("title_reader")
-							.clusterPermissions("cluster_composite_ops_ro")
-							.indexPermissions("read")
-							.fls(
-									"~".concat(FIELD_ARTIST),
-									"~".concat(FIELD_LYRICS.substring(0,3).concat("*")),
-									"~*".concat(FIELD_STARS.substring(FIELD_STARS.length() - 3)),
-									"~".concat(FIELD_GENRE)
-							)
-							.on(FIRST_INDEX_NAME)
-			);
+	static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
 	/**
 	* User who is allowed to see all fields on all indices. Values of the title and artist fields should be masked.
@@ -259,9 +219,10 @@ public class FlsDlsAndFieldMaskingTest {
 	@ClassRule
 	public static final LocalCluster cluster = new LocalCluster.Builder()
 			.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
+			.nodeSettings(Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName()  +"__" + ALL_ACCESS.getName())))
 			.authc(AUTHC_HTTPBASIC_INTERNAL)
 			.users(
-					ALL_INDICES_TITLE_STARS_READER, TITLE_ARTIST_LYRICS_READER_USER, TITLE_READER,
+					ADMIN_USER,
 					ALL_INDICES_MASKED_TITLE_ARTIST_READER, MASKED_ARTIST_LYRICS_READER,
 					ALL_INDICES_STRING_ARTIST_READER, ALL_INDICES_STARS_LESS_THAN_ZERO_READER, TWINS_FIRST_ARTIST_READER
 			)
@@ -339,26 +300,151 @@ public class FlsDlsAndFieldMaskingTest {
 	}
 
 	@Test
+	public void flsEnabledFieldsAreHiddenForNormalUsers() throws IOException {
+		String indexName = "fls_index";
+		String indexAlias = "fls_index_alias";
+		String indexFilteredAlias = "fls_index_filtered_alias";
+		TestSecurityConfig.Role userRole = new TestSecurityConfig.Role("fls_exclude_stars_reader")
+				.clusterPermissions("cluster_composite_ops_ro")
+				.indexPermissions("read")
+				.fls("~".concat(FIELD_STARS))
+				.on("*");
+		TestSecurityConfig.User user = createUserWithRole("fls_user", userRole);
+		List<String> docIds = createIndexWithDocs(indexName, SONGS[0], SONGS[1]);
+		addAliasToIndex(indexName, indexAlias);
+		addAliasToIndex(indexName, indexFilteredAlias, QueryBuilders.queryStringQuery(String.format("%s:%s", FIELD_ARTIST, SONGS[0].getArtist())));
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(user)) {
+			//search
+			SearchRequest searchRequest = new SearchRequest(indexName);
+			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+
+			//search with index pattern
+			searchRequest = new SearchRequest("*".concat(indexName));
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+
+			//search via alias
+			searchRequest = new SearchRequest(indexAlias);
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+
+			//search via filtered alias
+			searchRequest = new SearchRequest(indexFilteredAlias);
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+
+			//search via all indices alias
+			searchRequest = new SearchRequest(ALL_INDICES_ALIAS);
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+
+			//scroll
+			searchRequest = searchRequestWithScroll(indexName, 1);
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
+
+			SearchScrollRequest scrollRequest = getSearchScrollRequest(searchResponse);
+			SearchResponse scrollResponse = restHighLevelClient.scroll(scrollRequest, DEFAULT);
+
+			assertSearchHitsDoNotContainField(scrollResponse, FIELD_STARS);
+
+			//aggregate data and compute avg
+			String aggregationName = "averageStars";
+			searchRequest = averageAggregationRequest(indexName, aggregationName, FIELD_STARS);
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
+			Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
+			assertThat(actualAggregation, instanceOf(ParsedAvg.class));
+			assertThat(((ParsedAvg) actualAggregation).getValue(), is(Double.POSITIVE_INFINITY));
+
+			//get document
+			GetRequest getRequest = new GetRequest(indexName, docIds.get(0));
+			GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
+
+			assertThat(getResponse, documentDoesNotContainField(FIELD_STARS));
+
+			//multi get
+			MultiGetRequest multiGetRequest = new MultiGetRequest();
+			docIds.forEach(id -> multiGetRequest.add(new MultiGetRequest.Item(indexName, id)));
+
+			MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
+
+			List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
+					.map(MultiGetItemResponse::getResponse)
+					.collect(Collectors.toList());
+			assertThat(getResponses, everyItem(documentDoesNotContainField(FIELD_STARS)));
+
+			//multi search
+			MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
+			docIds.forEach(id -> multiSearchRequest.add(queryByIdsRequest(indexName, id)));
+			MultiSearchResponse multiSearchResponse = restHighLevelClient.msearch(multiSearchRequest, DEFAULT);
+
+			assertThat(multiSearchResponse, isSuccessfulMultiSearchResponse());
+			List<MultiSearchResponse.Item> itemResponses = List.of(multiSearchResponse.getResponses());
+			itemResponses.forEach(item -> assertSearchHitsDoNotContainField(item.getResponse(), FIELD_STARS));
+
+			//field capabilities
+			FieldCapabilitiesRequest fieldCapsRequest = new FieldCapabilitiesRequest().indices(indexAlias).fields(FIELD_TITLE, FIELD_STARS);
+			FieldCapabilitiesResponse fieldCapsResponse = restHighLevelClient.fieldCaps(fieldCapsRequest, DEFAULT);
+			assertThat(fieldCapsResponse.getField(FIELD_STARS), nullValue());
+		}
+	}
+
+	private static List<String> createIndexWithDocs(String indexName, Song... songs) {
+		try(Client client = cluster.getInternalNodeClient()){
+			return Stream.of(songs).map(song -> {
+				IndexResponse response = client.index(
+						new IndexRequest(indexName).setRefreshPolicy(IMMEDIATE).source(song.asMap())
+				).actionGet();
+				return response.getId();
+			}).collect(Collectors.toList());
+		}
+	}
+
+	private static void addAliasToIndex(String indexName, String alias) {
+		addAliasToIndex(indexName, alias, QueryBuilders.matchAllQuery());
+	}
+
+	private static void addAliasToIndex(String indexName, String alias, QueryBuilder filterQuery) {
+		try(Client client = cluster.getInternalNodeClient()){
+			client.admin().indices()
+					.aliases(new IndicesAliasesRequest().addAliasAction(new IndicesAliasesRequest.AliasActions(ADD)
+							.indices(indexName)
+							.alias(alias)
+							.filter(filterQuery)
+			)).actionGet();
+		}
+	}
+
+	private static TestSecurityConfig.User createUserWithRole(String userName, TestSecurityConfig.Role role) {
+		TestSecurityConfig.User user = new TestSecurityConfig.User(userName);
+		try(TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
+			client.createRole(role.getName(), role).assertStatusCode(201);
+			client.createUser(user.getName(), user).assertStatusCode(201);
+			client.assignRoleToUser(user.getName(), role.getName()).assertStatusCode(200);
+		}
+		return user;
+	}
+
+	private static void assertSearchHitsDoNotContainField(SearchResponse response, String excludedField) {
+		assertThat(response, isSuccessfulSearchResponse());
+		assertThat(response.getHits().getHits().length, greaterThan(0));
+		IntStream.range(0, response.getHits().getHits().length).boxed()
+				.forEach(index -> assertThat(response, searchHitDoesNotContainField(index, excludedField)));
+	}
+
+	@Test
 	public void searchForDocuments() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_ARTIST_LYRICS_READER_USER)) {
-			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE, FIELD_ARTIST, FIELD_LYRICS));
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String songId = FIRST_INDEX_ID_SONG_1;
@@ -410,26 +496,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void searchForDocumentsWithIndexPattern() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_ARTIST_LYRICS_READER_USER)) {
-			SearchRequest searchRequest = new SearchRequest("*".concat(INDEX_NAME_SUFFIX));
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE, FIELD_ARTIST, FIELD_LYRICS));
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(SECOND_INDEX_NAME, FIELD_ARTIST));
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			SearchRequest searchRequest = new SearchRequest("*".concat(FIRST_INDEX_NAME));
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String songId = FIRST_INDEX_ID_SONG_2;
@@ -482,32 +548,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void searchForDocumentsViaAlias() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_ARTIST_LYRICS_READER_USER)) {
-			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE, FIELD_ARTIST, FIELD_LYRICS));
-
-			searchRequest = new SearchRequest(SECOND_INDEX_ALIAS);
-
-			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(SECOND_INDEX_NAME, FIELD_ARTIST));
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String songId = FIRST_INDEX_ID_SONG_3;
@@ -559,25 +599,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void searchForDocumentsViaFilteredAlias() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_ARTIST_LYRICS_READER_USER)) {
-			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS_FILTERED_BY_NEXT_SONG_TITLE);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE, FIELD_ARTIST, FIELD_LYRICS));
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS_FILTERED_BY_NEXT_SONG_TITLE);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String songId = FIND_ID_OF_SONG_WITH_TITLE.apply(FIRST_INDEX_SONGS_BY_ID, TITLE_NEXT_SONG);
@@ -614,17 +635,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void searchForDocumentsViaAllIndicesAlias() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ALL_INDICES_TITLE_STARS_READER)) {
-			SearchRequest searchRequest = queryStringQueryRequest(ALL_INDICES_ALIAS, QUERY_TITLE_MAGNUM_OPUS);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE, FIELD_STARS));
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(SECOND_INDEX_NAME, FIELD_TITLE, FIELD_STARS));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ALL_INDICES_MASKED_TITLE_ARTIST_READER)) {
 			String songId = FIRST_INDEX_ID_SONG_4;
@@ -671,37 +681,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void scrollOverSearchResults() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_ARTIST_LYRICS_READER_USER)) {
-			SearchRequest searchRequest = searchRequestWithScroll(FIRST_INDEX_NAME, 2);
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, containNotEmptyScrollingId());
-
-			SearchScrollRequest scrollRequest = getSearchScrollRequest(searchResponse);
-
-			SearchResponse scrollResponse = restHighLevelClient.scroll(scrollRequest, DEFAULT);
-			assertThat(scrollResponse, isSuccessfulSearchResponse());
-			assertThat(scrollResponse, containNotEmptyScrollingId());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE, FIELD_ARTIST, FIELD_LYRICS));
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			SearchRequest searchRequest = searchRequestWithScroll(FIRST_INDEX_NAME, 2);
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, containNotEmptyScrollingId());
-
-			SearchScrollRequest scrollRequest = getSearchScrollRequest(searchResponse);
-
-			SearchResponse scrollResponse = restHighLevelClient.scroll(scrollRequest, DEFAULT);
-			assertThat(scrollResponse, isSuccessfulSearchResponse());
-			assertThat(scrollResponse, containNotEmptyScrollingId());
-			assertThat(searchResponse, searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String songId = FIRST_INDEX_SONGS_BY_ID.firstKey();
@@ -746,33 +725,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void aggregateDataAndComputeAverage() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ALL_INDICES_TITLE_STARS_READER)) {
-			String aggregationName = "averageStars";
-			SearchRequest searchRequest = averageAggregationRequest(FIRST_INDEX_NAME, aggregationName, FIELD_STARS);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
-			Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
-			assertThat(actualAggregation, instanceOf(ParsedAvg.class));
-			assertThat(((ParsedAvg) actualAggregation).getValue(), not(Double.POSITIVE_INFINITY));
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			String aggregationName = "averageStars";
-			SearchRequest searchRequest = averageAggregationRequest(FIRST_INDEX_NAME, aggregationName, FIELD_STARS);
-
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
-
-			assertThat(searchResponse, isSuccessfulSearchResponse());
-			assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
-			Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
-			assertThat(actualAggregation, instanceOf(ParsedAvg.class));
-			assertThat(((ParsedAvg) actualAggregation).getValue(), is(Double.POSITIVE_INFINITY));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String aggregationName = "averageStars";
@@ -817,21 +769,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void getDocument() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_ARTIST_LYRICS_READER_USER)) {
-			GetResponse response = restHighLevelClient.get(new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1), DEFAULT);
-
-			assertThat(response, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-			assertThat(response, documentContainsExactlyFieldsWithNames(FIELD_TITLE, FIELD_ARTIST, FIELD_LYRICS));
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			GetResponse response = restHighLevelClient.get(new GetRequest(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1), DEFAULT);
-
-			assertThat(response, containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-			assertThat(response, documentContainsExactlyFieldsWithNames(FIELD_TITLE));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String songId = FIRST_INDEX_ID_SONG_4;
@@ -873,49 +810,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void multiGetDocuments() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_ARTIST_LYRICS_READER_USER)) {
-			MultiGetRequest request = new MultiGetRequest();
-			request.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1));
-			request.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2));
-
-			MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
-
-			assertThat(response, isSuccessfulMultiGetResponse());
-			assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
-
-			MultiGetItemResponse[] responses = response.getResponses();
-			assertThat(responses[0].getResponse(), allOf(
-					containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1),
-					documentContainsExactlyFieldsWithNames(FIELD_TITLE, FIELD_ARTIST, FIELD_LYRICS))
-			);
-			assertThat(responses[1].getResponse(),  allOf(
-					containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_2),
-					documentContainsExactlyFieldsWithNames(FIELD_TITLE, FIELD_ARTIST, FIELD_LYRICS))
-			);
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			MultiGetRequest request = new MultiGetRequest();
-			request.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_3));
-			request.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_4));
-
-			MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
-
-			assertThat(response, isSuccessfulMultiGetResponse());
-			assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
-
-			MultiGetItemResponse[] responses = response.getResponses();
-			assertThat(responses[0].getResponse(), allOf(
-					containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_3),
-					documentContainsExactlyFieldsWithNames(FIELD_TITLE))
-			);
-			assertThat(responses[1].getResponse(),  allOf(
-					containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_4),
-					documentContainsExactlyFieldsWithNames(FIELD_TITLE))
-			);
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String firstSongId = FIRST_INDEX_ID_SONG_1;
@@ -973,40 +867,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void multiSearchDocuments() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(ALL_INDICES_TITLE_STARS_READER)) {
-			MultiSearchRequest request = new MultiSearchRequest();
-			request.add(queryStringQueryRequest(FIRST_INDEX_NAME, QUERY_TITLE_MAGNUM_OPUS));
-			request.add(queryStringQueryRequest(SECOND_INDEX_NAME, QUERY_TITLE_NEXT_SONG));
-
-			MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
-
-			assertThat(response, isSuccessfulMultiSearchResponse());
-			assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
-
-			MultiSearchResponse.Item[] responses = response.getResponses();
-
-			assertThat(responses[0].getResponse(), searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE, FIELD_STARS));
-			assertThat(responses[1].getResponse(), searchHitsDocumentsContainExactlyFieldsWithNames(SECOND_INDEX_NAME, FIELD_TITLE, FIELD_STARS));
-		}
-
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			MultiSearchRequest request = new MultiSearchRequest();
-			request.add(queryStringQueryRequest(FIRST_INDEX_NAME, QUERY_TITLE_MAGNUM_OPUS));
-			request.add(queryStringQueryRequest(FIRST_INDEX_NAME, QUERY_TITLE_NEXT_SONG));
-
-			MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
-
-			assertThat(response, isSuccessfulMultiSearchResponse());
-			assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
-
-			MultiSearchResponse.Item[] responses = response.getResponses();
-
-			assertThat(responses[0].getResponse(), searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE));
-			assertThat(responses[1].getResponse(), searchHitsDocumentsContainExactlyFieldsWithNames(FIRST_INDEX_NAME, FIELD_TITLE));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String firstSongId = FIRST_INDEX_ID_SONG_3;
@@ -1065,26 +925,6 @@ public class FlsDlsAndFieldMaskingTest {
 
 	@Test
 	public void getFieldCapabilities() throws IOException {
-		//FLS
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_ARTIST_LYRICS_READER_USER)) {
-			FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(FIRST_INDEX_NAME).fields(FIELD_STARS);
-
-			FieldCapabilitiesResponse response = restHighLevelClient.fieldCaps(request, DEFAULT);
-
-			assertThat(response, containsExactlyIndices(FIRST_INDEX_NAME));
-			assertThat(response, numberOfFieldsIsEqualTo(0));
-		}
-
-		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TITLE_READER)) {
-			FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(FIRST_INDEX_NAME).fields(FIELD_TITLE, FIELD_ARTIST, FIELD_STARS);
-
-			FieldCapabilitiesResponse response = restHighLevelClient.fieldCaps(request, DEFAULT);
-
-			assertThat(response, containsExactlyIndices(FIRST_INDEX_NAME));
-			assertThat(response, numberOfFieldsIsEqualTo(1));
-			assertThat(response, containsFieldWithNameAndType(FIELD_TITLE, "text"));
-		}
-
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(FIRST_INDEX_NAME).fields(FIELD_ARTIST, FIELD_TITLE, FIELD_LYRICS);
@@ -1099,7 +939,7 @@ public class FlsDlsAndFieldMaskingTest {
 
 		//DLS
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TWINS_FIRST_ARTIST_READER)) {
-			FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(FIRST_INDEX_NAME).fields(FIELD_ARTIST, FIELD_TITLE, FIELD_LYRICS);
+			FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(FIRST_INDEX_NAME).fields(FIELD_ARTIST, FIELD_TITLE, FIELD_LYRICS, FIELD_STARS);
 			FieldCapabilitiesResponse response = restHighLevelClient.fieldCaps(request, DEFAULT);
 
 			assertThat(response, containsExactlyIndices(FIRST_INDEX_NAME));
