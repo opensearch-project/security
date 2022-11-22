@@ -11,7 +11,7 @@ inputs:
     required: true
 
   setup-script:
-    description: 'The file name for the configuration script for the plugin such as install_demo_configurations -- may not be needed for every plugin'
+    description: 'An input indicating whether a setup script should be run for the plugin. Leave empty to indicate one should not be run.'
     required: true
 
 runs:
