@@ -79,7 +79,7 @@ public class UserBruteForceAttacksPreventionTests {
 	}
 
 	@Test
-	public void shouldBlockUserWhenNumberOfFailureLoginAttemptIsGraterThanLimit() {
+	public void shouldBlockUserWhenNumberOfFailureLoginAttemptIsGreaterThanLimit() {
 		authenticateUserWithIncorrectPassword(USER_3, ALLOWED_TRIES * 2);
 		try(TestRestClient client = cluster.getRestClient(USER_3)) {
 			HttpResponse response = client.getAuthInfo();
