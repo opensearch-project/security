@@ -25,27 +25,27 @@ runs:
       shell: pwsh
 
     # Download OpenSearch
-    - uses: peternied/download-file@v1
+    - name: Download OpenSearch for Windows
+      uses: peternied/download-file@v1
       if: ${{ runner.os == 'Windows' }}
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
 
-    # Download OpenSearch
-    - uses: peternied/download-file@v1
+
+    - name: Download OpenSearch for Linux
+      uses: peternied/download-file@v1
       if: ${{ runner.os == 'Linux' }}
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-linux-x64-latest.tar.gz
 
-
     # Extract downloaded zip
-    - name: Extract downloaded zip
+    - name: Extract downloaded tar
       if: ${{ runner.os == 'Linux' }}
       run: |
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
       shell: bash
 
-    # Extract downloaded zip
     - name: Extract downloaded zip
       if: ${{ runner.os == 'Windows' }}
       run: |
