@@ -114,6 +114,22 @@ It is common practice to create new transport actions to perform different tasks
 2. Register the action in the [OpenSearch Security plugin](https://github.com/opensearch-project/security). Each new action is registered in the plugin as a new permission. Usually, plugins will define different roles for their plugin (e.g., read-only access, write access). Each role will contain a set of permissions. An example of adding a new permission to the `anomaly_read_access` role for the [Anomaly Detection plugin](https://github.com/opensearch-project/anomaly-detection) can be found in [this PR](https://github.com/opensearch-project/security/pull/997/files).
 3. Register the action in the [OpenSearch Dashboards Security plugin](https://github.com/opensearch-project/security-dashboards-plugin). This plugin maintains the full list of possible permissions, so users can see all of them when creating new roles or searching permissions via Dashboards. An example of adding different permissions can be found in [this PR](https://github.com/opensearch-project/security-dashboards-plugin/pull/689/files).
 
+
+### System Index Protection
+
+The Security Plugin provides protection to system indices used by plugins. The system index names must be explicitly registered in `opensearch.yml` under the `plugins.security.system_indices.indices` setting. See below for an example setup of system index protection from the demo configuration:
+
+```
+plugins.security.system_indices.enabled: true
+plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"]
+```
+
+The demo configuration can be modified in the following files to add a new system index to the demo configuration:
+
+- https://github.com/opensearch-project/security/blob/main/tools/install_demo_configuration.sh
+- https://github.com/opensearch-project/security/blob/main/tools/install_demo_configuration.bat
+
+
 ## Contributing
 
 See [developer guide](DEVELOPER_GUIDE.md) and [how to contribute to this project](CONTRIBUTING.md).
