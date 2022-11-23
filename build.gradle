@@ -72,11 +72,6 @@ configurations.all {
         force "com.google.guava:guava:30.0-jre"
         force "com.fasterxml.woodstox:woodstox-core:6.4.0"
         force "org.scala-lang:scala-library:2.13.9"
-        force "org.yaml:snakeyaml:1.32"
-        force 'io.netty:netty-buffer:4.1.84.Final'
-        force 'io.netty:netty-common:4.1.84.Final'
-        force 'io.netty:netty-handler:4.1.84.Final'
-        force 'io.netty:netty-transport:4.1.84.Final'
     }
 }
 
