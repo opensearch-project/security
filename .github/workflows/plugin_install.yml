@@ -105,7 +105,7 @@ jobs:
       - name: Run OpenSearch with plugin
         run: |
           cd ..
-          start .\Opensearch\bin\opensearch.bat
+          .\Opensearch\bin\opensearch.bat
 
       - name: Sleep while OpenSearch finishes starting up
         run: Start-Sleep -s 30
