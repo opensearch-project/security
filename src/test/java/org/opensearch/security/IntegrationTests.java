@@ -174,12 +174,6 @@ public class IntegrationTests extends SingleClusterTest {
     }
 
     @Test
-    public void testEnsureOpenSSLAvailability() {
-        Assume.assumeTrue(allowOpenSSL);
-        Assert.assertTrue(String.valueOf(OpenSsl.unavailabilityCause()), OpenSsl.isAvailable());
-    }
-
-    @Test
     public void testMultiget() throws Exception {
     
         setup();

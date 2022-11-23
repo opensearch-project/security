@@ -25,7 +25,6 @@ import org.opensearch.common.settings.Settings;
 
 public final class SSLConfigConstants {
 
-    public static final String SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE = "plugins.security.ssl.http.enable_openssl_if_available";
     public static final String SECURITY_SSL_HTTP_ENABLED = "plugins.security.ssl.http.enabled";
     public static final boolean SECURITY_SSL_HTTP_ENABLED_DEFAULT = false;
     public static final String SECURITY_SSL_HTTP_CLIENTAUTH_MODE = "plugins.security.ssl.http.clientauth_mode";
@@ -42,7 +41,6 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH = "plugins.security.ssl.http.truststore_filepath";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD = "plugins.security.ssl.http.truststore_password";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = "plugins.security.ssl.http.truststore_type";
-    public static final String SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE = "plugins.security.ssl.transport.enable_openssl_if_available";
     public static final String SECURITY_SSL_TRANSPORT_ENABLED = "plugins.security.ssl.transport.enabled";
     public static final boolean SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT = true;
     public static final String SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION = "plugins.security.ssl.transport.enforce_hostname_verification";

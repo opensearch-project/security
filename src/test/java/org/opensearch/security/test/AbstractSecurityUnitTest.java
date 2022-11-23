@@ -272,9 +272,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
 
-        Settings.Builder builder = Settings.builder()
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL);
+        Settings.Builder builder = Settings.builder();
 
         // If custom transport settings are not defined use defaults
         if (!hasCustomTransportSettings(other)) {
