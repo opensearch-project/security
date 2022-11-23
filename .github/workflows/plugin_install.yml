@@ -63,9 +63,6 @@ jobs:
         if: always()
         run: docker logs ops
 
-      - name: Run sanity tests
-        run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
-
   windows-install:
 
     runs-on: windows-latest
@@ -92,7 +89,7 @@ jobs:
 
       - name: Build Security Plugin with Gradle
         run: |
-          .\gradlew.bat assemble
+          .\gradlew.bat assemble -x bundleSecurityAdminStandalone
         env:
           _JAVA_OPTIONS: -Xmx4096M
 
