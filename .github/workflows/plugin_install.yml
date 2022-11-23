@@ -27,7 +27,9 @@ jobs:
           rm -f opensearch-*.tar.gz
 
       - name: Move and rename security plugin for installation
-        run: mv build/distributions/opensearch-security-*.zip opensearch-security.zip
+        run: |
+          ls -latr build/distributions
+          mv build/distributions/opensearch-security-*.zip opensearch-security.zip
 
       - name: Run OpenSearch with plugin
         run: |
