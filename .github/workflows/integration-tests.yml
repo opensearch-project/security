@@ -22,7 +22,7 @@ jobs:
 
     - uses: actions/checkout@v2
 
-    - run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test
+    - run: ./gradlew test
 
     - uses: actions/upload-artifact@v3
       if: always()
