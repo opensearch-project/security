@@ -1,0 +1,31 @@
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+all_indices_no_phone:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  and_backend_roles: []
+  description: "All indices do not have phone access"
+  users:
+  - "user_ccc"
+some_indices_no_phone:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  and_backend_roles: []
+  description: "Some indices do not have phone access"
+  users:
+  - "user_bbb"
+once_indices_no_phone:
+  reserved: false
+  hidden: false
+  backend_roles: []
+  hosts: []
+  and_backend_roles: []
+  description: "One indices do not have phone access"
+  users:
+  - "user_aaa"
