@@ -17,7 +17,7 @@ jobs:
           java-version: 11
 
       - name: Build
-        run: ./gradlew clean assemble -Dbuild.snapshot=false
+        run: ./gradlew clean assemble -Dbuild.snapshot=false -x bundleSecurityAdminStandalone
 
       - name: Download OpenSearch Core
         run: |
@@ -27,9 +27,7 @@ jobs:
           rm -f opensearch-*.tar.gz
 
       - name: Move and rename security plugin for installation
-        run: |
-          ls -latr build/distributions
-          mv build/distributions/opensearch-security-*.zip opensearch-security.zip
+        run: mv build/distributions/opensearch-security-*.zip opensearch-security.zip
 
       - name: Run OpenSearch with plugin
         run: |
