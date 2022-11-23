@@ -12,7 +12,7 @@ inputs:
 
   setup-script:
     description: 'An input indicating whether a setup script should be run for the plugin. Leave empty to indicate one should not be run.'
-    required: true
+    required: false
 
 runs:
   using: "composite"
