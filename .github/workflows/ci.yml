@@ -10,7 +10,7 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         jdk: [8, 11, 14]
 
