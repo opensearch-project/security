@@ -14,6 +14,7 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -90,6 +91,12 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         if (username == null || username.length() == 0) {
             badRequestResponse(channel, "No " + getResourceName() + " specified.");
+            return;
+        }
+
+        Pattern usernamePattern = Pattern.compile("[$&+,:;=\\\\?#|/'<>^*()%!]");
+        if (usernamePattern.matcher(username).find()) {
+            badRequestResponse(channel, "Username has special characters, not permitted.");
             return;
         }
 

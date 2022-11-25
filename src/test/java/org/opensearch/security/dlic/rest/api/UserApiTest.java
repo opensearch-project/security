@@ -133,6 +133,10 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/internalusers/", "{\"hash\": \"123\"}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
+        // username has special characters
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/n@ag:ilum", "{\"hash\": \"456\"}", new Header[0]);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
         // Faulty JSON payload
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{some: \"thing\" asd  other: \"thing\"}",
                 new Header[0]);
@@ -401,7 +405,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertTrue(roles.contains("starfleet"));
         Assert.assertTrue(roles.contains("captains"));
 
-        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_CREATED);
+        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
+        addUserWithPassword("1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_CREATED);
         addUserWithPassword("abc", "abc", HttpStatus.SC_CREATED);
 
 
@@ -468,7 +473,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword("$1aAAAAAAAac", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%", "UTF-8"), "$1aAAAAAAAAC%", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;:test&~@^", "UTF-8").replace("+", "%2B"), "$1aAAAAAAAac%!=\\\"/\\\\;:test&~@^", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", HttpStatus.SC_CREATED);
+        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", HttpStatus.SC_BAD_REQUEST);
 
         response = rh.executeGetRequest(PLUGINS_PREFIX + "/api/internalusers/nothinghthere?pretty", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
