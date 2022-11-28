@@ -472,7 +472,7 @@ public class HTTPJwtAuthenticatorTest {
     public void testES512() throws Exception {
 
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC");
-        keyGen.initialize(571);
+        keyGen.initialize(521);
         KeyPair pair = keyGen.generateKeyPair();
         PrivateKey priv = pair.getPrivate();
         PublicKey pub = pair.getPublic();

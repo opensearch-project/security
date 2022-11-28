@@ -68,13 +68,11 @@ import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.support.Base64Helper;
+import org.opensearch.security.support.Base64Helper.PackageBehavior;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 
-import org.opensearch.security.OpenSearchSecurityPlugin;
-import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.ssl.transport.SSLConfig;
-import org.opensearch.security.ssl.transport.PrincipalExtractor;
 
 import com.google.common.collect.Maps;
 
@@ -212,6 +210,9 @@ public class SecurityInterceptor {
                                       final String injectedUserString, final String injectedRolesString) {
         // keep original address
 
+        Boolean hasOdfeNodes = clusterInfoHolder.getHasOdfeNodes();
+        PackageBehavior packageBehavior = (hasOdfeNodes == null || hasOdfeNodes) ? PackageBehavior.REWRITE_AS_ODFE : PackageBehavior.NONE;
+
         if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, origin);
         }
@@ -225,7 +226,7 @@ public class SecurityInterceptor {
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
 
             if(remoteAddressHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address(), packageBehavior));
             }
         }
 
@@ -234,7 +235,7 @@ public class SecurityInterceptor {
 
         if(userHeader == null) {
             if(origUser != null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser, packageBehavior));
             }
             else if(StringUtils.isNotEmpty(injectedRolesString)) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);

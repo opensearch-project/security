@@ -36,6 +36,7 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.opensearch.LegacyESVersion;
+import org.opensearch.Version;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateListener;
@@ -49,6 +50,8 @@ public class ClusterInfoHolder implements ClusterStateListener {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private volatile Boolean has6xNodes = null;
     private volatile Boolean has6xIndices = null;
+
+    private volatile Boolean hasOdfeNodes = null;
     private volatile DiscoveryNodes nodes = null;
     private volatile Boolean isLocalNodeElectedMaster = null;
     private volatile boolean initialized;
@@ -56,6 +59,13 @@ public class ClusterInfoHolder implements ClusterStateListener {
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         final boolean isTraceEnabled = log.isTraceEnabled();
+        if(hasOdfeNodes == null || event.nodesChanged()) {
+            hasOdfeNodes = Boolean.valueOf(clusterHasOdfeNodes(event.state()));
+            if (isTraceEnabled) {
+                log.trace("hasOdfeNodes: {}", hasOdfeNodes);
+            }
+        }
+
         if(has6xNodes == null || event.nodesChanged()) {
             has6xNodes = Boolean.valueOf(clusterHas6xNodes(event.state()));
             if (isTraceEnabled) {
@@ -91,6 +101,10 @@ public class ClusterInfoHolder implements ClusterStateListener {
         return has6xIndices;
     }
 
+    public Boolean getHasOdfeNodes() {
+        return hasOdfeNodes;
+    }
+
     public Boolean isLocalNodeElectedMaster() {
         return isLocalNodeElectedMaster;
     }
@@ -123,5 +137,9 @@ public class ClusterInfoHolder implements ClusterStateListener {
             }
         }
         return false;
+    }
+
+    private static boolean clusterHasOdfeNodes(ClusterState state) {
+        return state.nodes().getMinNodeVersion().before(Version.V_1_0_0);
     }
 }

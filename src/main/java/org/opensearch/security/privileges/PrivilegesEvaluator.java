@@ -270,7 +270,7 @@ public class PrivilegesEvaluator {
         // check dlsfls
         if (dlsFlsEnabled
                 //&& (action0.startsWith("indices:data/read") || action0.equals(ClusterSearchShardsAction.NAME))
-                && dlsFlsEvaluator.evaluate(request, clusterService, resolver, requestedResolved, user, securityRoles, presponse).isComplete()) {
+                && dlsFlsEvaluator.evaluate(request, clusterService, resolver, requestedResolved, user, securityRoles, presponse, clusterInfoHolder).isComplete()) {
             return presponse;
         }
 

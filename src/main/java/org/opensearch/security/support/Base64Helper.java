@@ -59,6 +59,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -66,6 +67,7 @@ import java.util.regex.Pattern;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
+import org.opensearch.Version;
 import org.opensearch.common.Strings;
 
 import org.opensearch.security.user.User;
@@ -171,11 +173,17 @@ public class Base64Helper {
         }
     }
 
+    public enum PackageBehavior {
+        REWRITE_AS_ODFE, NONE
+    }
+
     private final static class SafeObjectOutputStream extends ObjectOutputStream {
 
         private static final boolean useSafeObjectOutputStream = checkSubstitutionPermission();
 
         private final DescriptorReplacer descriptorReplacer = new DescriptorReplacer();
+
+        private boolean replaceWithOdfePackage = true;
 
         private static boolean checkSubstitutionPermission() {
             SecurityManager sm = System.getSecurityManager();
@@ -194,9 +202,9 @@ public class Base64Helper {
             return true;
         }
 
-        static ObjectOutputStream create(ByteArrayOutputStream out) throws IOException {
+        static ObjectOutputStream create(ByteArrayOutputStream out, boolean replaceWithOdfePackage) throws IOException {
             try {
-                return useSafeObjectOutputStream ? new SafeObjectOutputStream(out) : new ObjectOutputStream(out);
+                return useSafeObjectOutputStream ? new SafeObjectOutputStream(out, replaceWithOdfePackage) : new ObjectOutputStream(out);
             } catch (SecurityException e) {
                 // As we try to create SafeObjectOutputStream only when necessary permissions are granted, we should
                 // not reach here, but if we do, we can still return ObjectOutputStream after resetting ByteArrayOutputStream
@@ -205,8 +213,9 @@ public class Base64Helper {
             }
         }
 
-        private SafeObjectOutputStream(OutputStream out) throws IOException {
+        private SafeObjectOutputStream(OutputStream out, boolean replaceWithOdfePackage) throws IOException {
             super(out);
+            this.replaceWithOdfePackage = replaceWithOdfePackage;
 
             SecurityManager sm = System.getSecurityManager();
             if (sm != null) {
@@ -220,7 +229,11 @@ public class Base64Helper {
 
         @Override
         protected void writeClassDescriptor(final ObjectStreamClass desc) throws IOException {
-            super.writeClassDescriptor(descriptorReplacer.replace(desc));
+            if (replaceWithOdfePackage) {
+                super.writeClassDescriptor(descriptorReplacer.replace(desc));
+            } else {
+                super.writeClassDescriptor(desc);
+            }
         }
 
         @Override
@@ -233,12 +246,14 @@ public class Base64Helper {
         }
     }
 
-    public static String serializeObject(final Serializable object) {
+    public static String serializeObject(final Serializable object, PackageBehavior packageBehavior) {
 
         Preconditions.checkArgument(object != null, "object must not be null");
 
+        boolean replaceWithOdfePackage = packageBehavior == PackageBehavior.REWRITE_AS_ODFE;
+
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try (final ObjectOutputStream out = SafeObjectOutputStream.create(bos)) {
+        try (final ObjectOutputStream out = SafeObjectOutputStream.create(bos, replaceWithOdfePackage)) {
             out.writeObject(object);
         } catch (final Exception e) {
             throw new OpenSearchException("Instance {} of class {} is not serializable", e, object, object.getClass());
