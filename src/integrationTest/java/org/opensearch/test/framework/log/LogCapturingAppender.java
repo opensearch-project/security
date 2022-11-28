@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.Buffer;
 import org.apache.commons.collections.BufferUtils;
@@ -85,7 +86,8 @@ public class LogCapturingAppender extends AbstractAppender {
 		String loggerName = event.getLoggerName();
 		boolean loggable = activeLoggers.contains(loggerName);
 		if(loggable) {
-			messages.add(event.getMessage().getFormattedMessage());
+			event.getThrown();
+			messages.add(new LogMessage(event.getMessage().getFormattedMessage(), event.getThrown()));
 		}
 	}
 
@@ -110,8 +112,15 @@ public class LogCapturingAppender extends AbstractAppender {
 	* Is used to obtain gathered log messages
 	* @return Log messages
 	*/
-	public static List<String> getLogMessages() {
+	public static List<LogMessage> getLogMessages() {
 		return new ArrayList<>(messages);
+	}
+
+	public static List<String> getLogMessagesAsString() {
+		return getLogMessages()
+			.stream()
+			.map(LogMessage::getMessage)
+			.collect(Collectors.toList());
 	}
 
 	@Override

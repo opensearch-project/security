@@ -23,7 +23,7 @@ import static java.util.Objects.requireNonNull;
 public class RolesMapping implements ToXContentObject {
 	private String roleName;
 	private List<String> backendRoles;
-	private List<String> hosts;
+//	private List<String> hosts;
 	private List<String> users;
 
 	private boolean reserved = false;
@@ -36,16 +36,6 @@ public class RolesMapping implements ToXContentObject {
 
 	public RolesMapping backendRoles(String...backendRoles) {
 		this.backendRoles.addAll(Arrays.asList(backendRoles));
-		return this;
-	}
-
-	public RolesMapping hosts(List<String> hosts) {
-		this.hosts = hosts;
-		return this;
-	}
-
-	public RolesMapping users(List<String> users) {
-		this.users = users;
 		return this;
 	}
 

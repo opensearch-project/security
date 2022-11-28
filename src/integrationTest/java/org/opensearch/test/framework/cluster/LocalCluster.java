@@ -50,6 +50,7 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
+import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
@@ -376,6 +377,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			return this;
 		}
 
+		public Builder authz(AuthzDomain authzDomain) {
+			testSecurityConfig.authz(authzDomain);
+			return this;
+		}
+
 		public Builder clusterName(String clusterName) {
 			this.clusterName = clusterName;
 			return this;
@@ -383,6 +389,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
 		public Builder configIndexName(String configIndexName) {
 			testSecurityConfig.configIndexName(configIndexName);
+			return this;
+		}
+
+		public Builder testCertificates(TestCertificates certificates) {
+			this.testCertificates = certificates;
 			return this;
 		}
 
@@ -407,10 +418,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
 		public LocalCluster build() {
 			try {
-				if(testCertificates == null){
+				if(testCertificates == null) {
 					testCertificates = new TestCertificates();
 				}
-
 				clusterName += "_" + num.incrementAndGet();
 				Settings settings = nodeOverrideSettingsBuilder.build();
 				return new LocalCluster(clusterName, testSecurityConfig, sslOnly, settings, clusterManager, plugins,
