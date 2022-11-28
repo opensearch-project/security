@@ -1,6 +1,6 @@
 name: Bulk Integration Test
 
-on: [  ] #workflow_dispatch
+on: [ workflow_dispatch ]
 
 env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
