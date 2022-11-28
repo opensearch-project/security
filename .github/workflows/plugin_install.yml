@@ -49,7 +49,7 @@ jobs:
         with:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugin-name: ${{ env.PLUGIN_NAME }}
-          setup-script: true
+          setup-script: setup
 
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v2

@@ -11,7 +11,7 @@ inputs:
     required: true
 
   setup-script:
-    description: 'An input indicating whether a setup script should be run for the plugin. Leave empty to indicate one should not be run.'
+    description: 'The name of the setup script you want to run i.e. "setup" (do not include file extension). Leave empty to indicate one should not be run.'
     required: false
 
 runs:
@@ -77,13 +77,13 @@ runs:
       if: ${{ runner.os == 'Linux' && inputs.setup-script != '' }}
       run: | 
         echo "running linux setup"
-        chmod +x ./setup.sh 
-        ./setup.sh
+        chmod +x ./${{ inputs.setup-script }}
+        ./${{ inputs.setup-script }}.sh
       shell: bash
 
     - name: Run Setup Script for Windows
       if: ${{ runner.os == 'Windows' && inputs.setup-script != '' }}
-      run: .\setup.bat
+      run: .\${{ inputs.setup-script }}.bat
       shell: pwsh
 
     # Run OpenSearch
