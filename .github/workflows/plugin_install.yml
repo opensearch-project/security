@@ -1,0 +1,119 @@
+name: Plugin Install
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+
+  linux-install:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Build
+        run: ./gradlew clean assemble -Dbuild.snapshot=false -x bundleSecurityAdminStandalone
+
+      - name: Download OpenSearch Core
+        run: |
+          opensearch_version=`./gradlew properties -q | grep "opensearch_version:" | awk '{print $2}' | sed 's/-SNAPSHOT//g'`
+          wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/$opensearch_version/latest/linux/x64/tar/builds/opensearch/dist/opensearch-min-$opensearch_version-linux-x64.tar.gz
+          tar -xzf opensearch-*.tar.gz
+          rm -f opensearch-*.tar.gz
+
+      - name: Move and rename security plugin for installation
+        run: mv build/distributions/opensearch-security-*.zip opensearch-security.zip
+
+      - name: Run OpenSearch with plugin
+        run: |
+          cat > os-ep.sh <<EOF
+          yes | opensearch-plugin install file:///docker-host/security-plugin.zip
+          chmod +x plugins/opensearch-security/tools/install_demo_configuration.sh
+          yes | plugins/opensearch-security/tools/install_demo_configuration.sh
+          chown 1001:1001 -R /opensearch
+          su -c "/opensearch/bin/opensearch" -s /bin/bash opensearch
+          EOF
+          docker build -t opensearch-test:latest -f- . <<EOF
+          FROM ubuntu:latest
+          COPY --chown=1001:1001 os-ep.sh /docker-host/
+          COPY --chown=1001:1001 opensearch-security.zip /docker-host/security-plugin.zip
+          COPY --chown=1001:1001 opensearch* /opensearch/
+          RUN chmod +x /docker-host/os-ep.sh
+          RUN useradd -u 1001 -s /sbin/nologin opensearch
+          ENV PATH="/opensearch/bin:${PATH}"
+          WORKDIR /opensearch/
+          ENTRYPOINT /docker-host/os-ep.sh
+          EOF
+          docker run --name ops -d -p 9200:9200 -p 9600:9600 -i opensearch-test:latest
+
+      - name: Sleep while OpenSearch finishes starting up
+        uses: whatnick/wait-action@v0.1.2
+        with:
+          time: '30s'
+
+      - name: Check OpenSearch Running
+        run: curl -XGET https://localhost:9200 -u 'admin:admin' -k -v
+
+      - name: Get Docker Logs
+        if: always()
+        run: docker logs ops
+
+  windows-install:
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Enable longer filenames for Windows
+        run: git config --system core.longpaths true
+
+      - name: Checkout Plugin
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Download OpenSearch Core
+        run: |
+          cd ..
+          Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/1.3.7-SNAPSHOT/opensearch-min-1.3.7-SNAPSHOT-windows-x64-latest.zip -Outfile opensearch-1.3.7.zip
+          tar -xzf opensearch-1.3.7.zip 
+          del opensearch-1.3.7.zip
+          Rename-Item opensearch-* Opensearch
+
+      - name: Build Security Plugin with Gradle
+        run: |
+          .\gradlew.bat assemble -x bundleSecurityAdminStandalone
+        env:
+          _JAVA_OPTIONS: -Xmx4096M
+
+      - name: Move and rename security plugin
+        run: move build\distributions\opensearch-security-*.zip ..\opensearch-security.zip
+
+      - name: Install the plugin
+        run: |
+          cd ..
+          'y' | .\Opensearch\bin\opensearch-plugin.bat install file:\a\security\opensearch-security.zip
+          'y', 'y', 'N' | .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
+
+      - name: Run OpenSearch with plugin
+        run: |
+          cd ..
+          start .\Opensearch\bin\opensearch.bat
+
+      - name: Sleep while OpenSearch finishes starting up
+        run: Start-Sleep -s 30
+
+      - name: Check OpenSearch Running
+        run: |
+          $credentialBytes = [Text.Encoding]::ASCII.GetBytes("admin:admin")
+          $encodedCredentials = [Convert]::ToBase64String($credentialBytes)
+          $baseCredentials = "Basic $encodedCredentials"
+          $Headers = @{ Authorization = $baseCredentials }
+          Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200' -Headers $Headers
