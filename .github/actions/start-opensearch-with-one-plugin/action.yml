@@ -74,16 +74,16 @@ runs:
 
     # Run any configuration scripts
     - name: Run Setup Script for Linux
-      if: ${{ runner.os == 'Linux' && inputs.setup-script != '' }}
+      if: ${{ runner.os == 'Linux' && inputs.setup-script-name != '' }}
       run: | 
         echo "running linux setup"
-        chmod +x ./${{ inputs.setup-script }}.sh
-        ./${{ inputs.setup-script }}.sh
+        chmod +x ./${{ inputs.setup-script-name }}.sh
+        ./${{ inputs.setup-script-name }}.sh
       shell: bash
 
     - name: Run Setup Script for Windows
-      if: ${{ runner.os == 'Windows' && inputs.setup-script != '' }}
-      run: .\${{ inputs.setup-script }}.bat
+      if: ${{ runner.os == 'Windows' && inputs.setup-script-name != '' }}
+      run: .\${{ inputs.setup-script-name }}.bat
       shell: pwsh
 
     # Run OpenSearch
