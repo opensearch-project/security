@@ -10,7 +10,7 @@ inputs:
     description: 'The name of the plugin to use, such as opensearch-security'
     required: true
 
-  setup-script:
+  setup-script-name:
     description: 'The name of the setup script you want to run i.e. "setup" (do not include file extension). Leave empty to indicate one should not be run.'
     required: false
 
@@ -77,7 +77,7 @@ runs:
       if: ${{ runner.os == 'Linux' && inputs.setup-script != '' }}
       run: | 
         echo "running linux setup"
-        chmod +x ./${{ inputs.setup-script }}
+        chmod +x ./${{ inputs.setup-script }}.sh
         ./${{ inputs.setup-script }}.sh
       shell: bash
 
