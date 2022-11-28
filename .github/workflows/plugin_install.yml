@@ -2,14 +2,19 @@ name: Plugin Install
 
 on: [push, pull_request, workflow_dispatch]
 
+env:
+  OPENSEARCH_VERSION: 3.0.0
+  PLUGIN_NAME: opensearch-security
+
 jobs:
   plugin-install:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
         jdk: [11, 17]
     runs-on: ${{ matrix.os }}
+
     steps:
       - name: Set up JDK
         uses: actions/setup-java@v1
@@ -20,15 +25,31 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Assemble target plugin
-        run: ./gradlew assemble
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: assemble
+
+      - name: Create Setup Script
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          cat > setup.sh <<'EOF'
+          chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh 
+          /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
+          EOF
+
+      - name: Create Setup Script
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          New-Item .\setup.bat -type file
+          Set-Content .\setup.bat -Value "powershell.exe -noexit -command `"echo 'y' | .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat`""
+          Get-Content .\setup.bat
 
       - name: Run Opensearch with A Single Plugin
         uses: ./.github/actions/start-opensearch-with-one-plugin
         with:
-          opensearch-version: 3.0.0
-          plugin-name: opensearch-security
-          plugin-start-script: install_demo_configuration
-          docker-host-plugin-zip: security-plugin.zip
+          opensearch-version: ${{ env.OPENSEARCH_VERSION }}
+          plugin-name: ${{ env.PLUGIN_NAME }}
+          setup-script-name: setup
 
       - name: Run sanity tests
         uses: gradle/gradle-build-action@v2
