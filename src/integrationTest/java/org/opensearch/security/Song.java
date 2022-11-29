@@ -18,7 +18,6 @@ public class Song {
 	public static final String FIELD_ARTIST = "artist";
 	public static final String FIELD_LYRICS = "lyrics";
 	public static final String FIELD_STARS = "stars";
-
 	public static final String FIELD_GENRE = "genre";
 	public static final String ARTIST_FIRST = "First artist";
 	public static final String ARTIST_STRING = "String";

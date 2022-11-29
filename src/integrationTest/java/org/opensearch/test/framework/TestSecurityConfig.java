@@ -110,6 +110,11 @@ public class TestSecurityConfig {
 		config.doNotFailOnForbidden(doNotFailOnForbidden);
 		return this;
 	}
+
+	public TestSecurityConfig xff(XffConfig xffConfig) {
+		config.xffConfig(xffConfig);
+		return this;
+	}
 	
 	public TestSecurityConfig authc(AuthcDomain authcDomain) {
 		config.authc(authcDomain);
@@ -161,7 +166,7 @@ public class TestSecurityConfig {
 		private boolean anonymousAuth;
 
 		private Boolean doNotFailOnForbidden;
-
+		private XffConfig xffConfig;
 		private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
 		private AuthFailureListeners authFailureListeners;
@@ -174,6 +179,11 @@ public class TestSecurityConfig {
 
 		public Config doNotFailOnForbidden(Boolean doNotFailOnForbidden) {
 			this.doNotFailOnForbidden = doNotFailOnForbidden;
+			return this;
+		}
+
+		public Config xffConfig(XffConfig xffConfig) {
+			this.xffConfig = xffConfig;
 			return this;
 		}
 
@@ -197,9 +207,12 @@ public class TestSecurityConfig {
 			xContentBuilder.startObject();
 			xContentBuilder.startObject("dynamic");
 
-			if (anonymousAuth) {
+			if (anonymousAuth || (xffConfig != null)) {
 				xContentBuilder.startObject("http");
-				xContentBuilder.field("anonymous_auth_enabled", true);
+				xContentBuilder.field("anonymous_auth_enabled", anonymousAuth);
+				if(xffConfig != null) {
+					xContentBuilder.field("xff", xffConfig);
+				}
 				xContentBuilder.endObject();
 			}
 			if(doNotFailOnForbidden != null) {

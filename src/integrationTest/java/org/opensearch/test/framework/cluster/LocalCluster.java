@@ -55,6 +55,7 @@ import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.XffConfig;
 import org.opensearch.test.framework.audit.TestRuleAuditLogSink;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
@@ -399,6 +400,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
 		public Builder anonymousAuth(boolean anonAuthEnabled) {
 			testSecurityConfig.anonymousAuth(anonAuthEnabled);
+			return this;
+		}
+
+		public Builder xff(XffConfig xffConfig){
+			testSecurityConfig.xff(xffConfig);
 			return this;
 		}
 
