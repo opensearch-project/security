@@ -316,38 +316,32 @@ public class FlsDlsAndFieldMaskingTest {
 
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(user)) {
 			//search
-			SearchRequest searchRequest = new SearchRequest(indexName);
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+			SearchResponse searchResponse = restHighLevelClient.search(new SearchRequest(indexName), DEFAULT);
 
 			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
 
 			//search with index pattern
-			searchRequest = new SearchRequest("*".concat(indexName));
-			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+			searchResponse = restHighLevelClient.search(new SearchRequest("*".concat(indexName)), DEFAULT);
 
 			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
 
 			//search via alias
-			searchRequest = new SearchRequest(indexAlias);
-			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+			searchResponse = restHighLevelClient.search(new SearchRequest(indexAlias), DEFAULT);
 
 			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
 
 			//search via filtered alias
-			searchRequest = new SearchRequest(indexFilteredAlias);
-			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+			searchResponse = restHighLevelClient.search(new SearchRequest(indexFilteredAlias), DEFAULT);
 
 			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
 
 			//search via all indices alias
-			searchRequest = new SearchRequest(ALL_INDICES_ALIAS);
-			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+			searchResponse = restHighLevelClient.search(new SearchRequest(ALL_INDICES_ALIAS), DEFAULT);
 
 			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
 
 			//scroll
-			searchRequest = searchRequestWithScroll(indexName, 1);
-			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+			searchResponse = restHighLevelClient.search(searchRequestWithScroll(indexName, 1), DEFAULT);
 
 			assertSearchHitsDoNotContainField(searchResponse, FIELD_STARS);
 
@@ -358,8 +352,7 @@ public class FlsDlsAndFieldMaskingTest {
 
 			//aggregate data and compute avg
 			String aggregationName = "averageStars";
-			searchRequest = averageAggregationRequest(indexName, aggregationName, FIELD_STARS);
-			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+			searchResponse = restHighLevelClient.search(averageAggregationRequest(indexName, aggregationName, FIELD_STARS), DEFAULT);
 
 			assertThat(searchResponse, isSuccessfulSearchResponse());
 			assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
@@ -368,8 +361,7 @@ public class FlsDlsAndFieldMaskingTest {
 			assertThat(((ParsedAvg) actualAggregation).getValue(), is(Double.POSITIVE_INFINITY));
 
 			//get document
-			GetRequest getRequest = new GetRequest(indexName, docIds.get(0));
-			GetResponse getResponse = restHighLevelClient.get(getRequest, DEFAULT);
+			GetResponse getResponse = restHighLevelClient.get(new GetRequest(indexName, docIds.get(0)), DEFAULT);
 
 			assertThat(getResponse, documentDoesNotContainField(FIELD_STARS));
 
@@ -394,8 +386,9 @@ public class FlsDlsAndFieldMaskingTest {
 			itemResponses.forEach(item -> assertSearchHitsDoNotContainField(item.getResponse(), FIELD_STARS));
 
 			//field capabilities
-			FieldCapabilitiesRequest fieldCapsRequest = new FieldCapabilitiesRequest().indices(indexAlias).fields(FIELD_TITLE, FIELD_STARS);
-			FieldCapabilitiesResponse fieldCapsResponse = restHighLevelClient.fieldCaps(fieldCapsRequest, DEFAULT);
+			FieldCapabilitiesResponse fieldCapsResponse = restHighLevelClient.fieldCaps(
+					new FieldCapabilitiesRequest().indices(indexName).fields(FIELD_TITLE, FIELD_STARS), DEFAULT
+			);
 			assertThat(fieldCapsResponse.getField(FIELD_STARS), nullValue());
 		}
 	}
@@ -939,7 +932,7 @@ public class FlsDlsAndFieldMaskingTest {
 
 		//DLS
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TWINS_FIRST_ARTIST_READER)) {
-			FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(FIRST_INDEX_NAME).fields(FIELD_ARTIST, FIELD_TITLE, FIELD_LYRICS, FIELD_STARS);
+			FieldCapabilitiesRequest request = new FieldCapabilitiesRequest().indices(FIRST_INDEX_NAME).fields(FIELD_ARTIST, FIELD_TITLE, FIELD_LYRICS);
 			FieldCapabilitiesResponse response = restHighLevelClient.fieldCaps(request, DEFAULT);
 
 			assertThat(response, containsExactlyIndices(FIRST_INDEX_NAME));
