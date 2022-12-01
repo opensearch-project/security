@@ -33,8 +33,10 @@ package org.opensearch.security.tools;
 import java.io.ByteArrayInputStream;
 import java.io.Console;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.InetSocketAddress;
@@ -912,7 +914,7 @@ public class SecurityAdmin {
         }
         
         System.out.println("Will retrieve '"+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
-        try (Writer writer = new FileWriter(filepath, StandardCharsets.UTF_8)) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(filepath), StandardCharsets.UTF_8)) {
 
             final GetResponse response = tc.get(new GetRequest(index).type(type).id(id).refresh(true).realtime(false)).actionGet();
 
