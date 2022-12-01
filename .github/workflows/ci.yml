@@ -30,10 +30,8 @@ jobs:
       with:
         arguments: |
           build test -Dbuild.snapshot=false
-          -x spotlessCheck
           -x checkstyleMain
           -x checkstyleTest
-          -x spotbugsMain
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -62,5 +60,5 @@ jobs:
     - uses: github/codeql-action/init@v1
       with:
         languages: java
-    - run: ./gradlew clean build -Dbuild.snapshot=false -x test -x integrationTest
+    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
     - uses: github/codeql-action/analyze@v1
