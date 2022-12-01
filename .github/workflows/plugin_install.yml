@@ -59,8 +59,3 @@ jobs:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugin-name: ${{ env.PLUGIN_NAME }}
           setup-script-name: setup
-
-      - name: Run sanity tests
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
