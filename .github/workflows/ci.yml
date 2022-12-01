@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [8, 11, 14]
-        platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        jdk: [8, 11]
+        platform: ["ubuntu-latest", "windows-latest"]
     runs-on: ${{ matrix.platform }}
 
     steps:
