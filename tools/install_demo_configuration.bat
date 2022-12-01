@@ -324,7 +324,7 @@ echo plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml
 	if %cluster_mode% == 1 (
         echo network.host: 0.0.0.0 >> "%OPENSEARCH_CONF_FILE%"
         echo node.name: smoketestnode >> "%OPENSEARCH_CONF_FILE%"
-        echo cluster.initial_master_nodes: smoketestnode >> "%OPENSEARCH_CONF_FILE%"
+        echo cluster.initial_cluster_manager_nodes: smoketestnode >> "%OPENSEARCH_CONF_FILE%"
     )
 )
 
@@ -343,14 +343,14 @@ echo. > securityadmin_demo.bat
 echo %OPENSEARCH_PLUGINS_DIR%opensearch-security\tools\securityadmin.bat -cd %OPENSEARCH_CONF_DIR%opensearch-security -icl -key %OPENSEARCH_CONF_DIR%kirk-key.pem -cert %OPENSEARCH_CONF_DIR%kirk.pem -cacert %OPENSEARCH_CONF_DIR%root-ca.pem -nhnv >> securityadmin_demo.bat
 
 if %initsecurity% == 0 (
-	echo ### After the whole cluster is up execute: 
+	echo ### After the whole cluster is up execute:
 	type securityadmin_demo.bat
 	echo ### or run ./securityadmin_demo.bat
     echo ### After that you can also use the Security Plugin ConfigurationGUI
 ) else (
     echo ### OpenSearch Security will be automatically initialized.
-    echo ### If you like to change the runtime configuration 
-    echo ### change the files in ../../../config/opensearch-security and execute: 
+    echo ### If you like to change the runtime configuration
+    echo ### change the files in ../../../config/opensearch-security and execute:
 	type securityadmin_demo.bat
 	echo ### or run ./securityadmin_demo.bat
 	echo ### To use the Security Plugin ConfigurationGUI
