@@ -375,7 +375,7 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         // Significant Text Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
-        String query3 = "{\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\",\"min_doc_count\":0}}}}";
+        String query3 = "{\"size\":100,\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\",\"min_doc_count\":0}}}}";
         HttpResponse response5 = rh.executePostRequest("logs*/_search", query3, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response5.getStatusCode());
@@ -386,7 +386,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(response5.getBody(), response5.getBody().contains("\"termX\":\"E\""));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
-        String query4 = "{\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\"}}}}";
+        String query4 = "{\"size\":100,\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\"}}}}";
 
         HttpResponse response6 = rh.executePostRequest("logs*/_search", query4, encodeBasicHeader("dept_manager", "password"));
 
@@ -419,7 +419,7 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         // Histogram Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
-        String query5 = "{\"aggs\":{\"amount\":{\"histogram\":{\"field\":\"amount\",\"interval\":1,\"min_doc_count\":0}}}}";
+        String query5 = "{\"size\":100,\"aggs\":{\"amount\":{\"histogram\":{\"field\":\"amount\",\"interval\":1,\"min_doc_count\":0}}}}";
 
         HttpResponse response9 = rh.executePostRequest("logs*/_search", query5, encodeBasicHeader("dept_manager", "password"));
 
@@ -431,7 +431,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(response9.getBody(), response9.getBody().contains("\"termX\":\"E\""));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
-        String query6 = "{\"aggs\":{\"amount\":{\"histogram\":{\"field\":\"amount\",\"interval\":1}}}}";
+        String query6 = "{\"size\":100,\"aggs\":{\"amount\":{\"histogram\":{\"field\":\"amount\",\"interval\":1}}}}";
 
         HttpResponse response10 = rh.executePostRequest("logs*/_search", query6, encodeBasicHeader("dept_manager", "password"));
 
@@ -465,7 +465,7 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         // Date Histogram Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
-        String query7 = "{\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\",\"min_doc_count\":0}}}}";
+        String query7 = "{\"size\":100,\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\",\"min_doc_count\":0}}}}";
 
         HttpResponse response13 = rh.executePostRequest("logs*/_search", query7, encodeBasicHeader("dept_manager", "password"));
 
@@ -477,7 +477,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(response13.getBody(), response13.getBody().contains("\"termX\":\"E\""));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
-        String query8 = "{\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\"}}}}";
+        String query8 = "{\"size\":100,\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\"}}}}";
 
         HttpResponse response14 = rh.executePostRequest("logs*/_search", query8, encodeBasicHeader("dept_manager", "password"));
 
