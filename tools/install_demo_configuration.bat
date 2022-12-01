@@ -324,7 +324,7 @@ echo plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml
 	if %cluster_mode% == 1 (
         echo network.host: 0.0.0.0 >> "%OPENSEARCH_CONF_FILE%"
         echo node.name: smoketestnode >> "%OPENSEARCH_CONF_FILE%"
-        echo cluster.initial_cluster_manager_nodes: smoketestnode >> "%OPENSEARCH_CONF_FILE%"
+        echo cluster.initial_master_nodes: smoketestnode >> "%OPENSEARCH_CONF_FILE%"
     )
 )
 
