@@ -10,9 +10,10 @@
  */
 package org.opensearch.security.support;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -24,7 +25,7 @@ import static org.opensearch.security.support.SecurityUtils.ENV_PATTERN;
 
 public class SecurityUtilsTest {
 
-    private final Collection<String> interestingEnvKeyNames = List.of(
+    private final Collection<String> interestingEnvKeyNames = Arrays.asList(
         "=ExitCode",
         "=C:",
         "ProgramFiles(x86)",
@@ -37,22 +38,26 @@ public class SecurityUtilsTest {
 
     @Test
     public void checkInterestingNamesForEnvPattern() {
-        checkKeysWithPredicate(interestingEnvKeyNames, "env", ENV_PATTERN.asMatchPredicate());
+        checkKeysWithPredicate(interestingEnvKeyNames, "env", asMatchPredicate(ENV_PATTERN));
     }
 
     @Test
     public void checkRuntimeKeyNamesForEnvPattern() {
-        checkKeysWithPredicate(namesFromThisRuntimeEnvironment, "env", ENV_PATTERN.asMatchPredicate());
+        checkKeysWithPredicate(namesFromThisRuntimeEnvironment, "env", asMatchPredicate(ENV_PATTERN));
     }
 
     @Test
     public void checkInterestingNamesForEnvbcPattern() {
-        checkKeysWithPredicate(interestingEnvKeyNames, "envbc", ENVBC_PATTERN.asMatchPredicate());
+        checkKeysWithPredicate(interestingEnvKeyNames, "envbc", asMatchPredicate(ENVBC_PATTERN));
     }
 
     @Test
     public void checkInterestingNamesForEnvBase64Pattern() {
-        checkKeysWithPredicate(interestingEnvKeyNames, "envbase64", ENVBASE64_PATTERN.asMatchPredicate());
+        checkKeysWithPredicate(interestingEnvKeyNames, "envbase64", asMatchPredicate(ENVBASE64_PATTERN));
+    }
+
+    private Predicate<String> asMatchPredicate(final Pattern p) {
+        return (String s) -> p.matcher(s).matches();
     }
 
     private void checkKeysWithPredicate(Collection<String> keys, String predicateName, Predicate<String> predicate) {
