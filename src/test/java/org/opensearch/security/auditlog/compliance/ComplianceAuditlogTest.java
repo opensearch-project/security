@@ -11,7 +11,7 @@
 
 package org.opensearch.security.auditlog.compliance;
 
-import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,13 +23,8 @@ import org.opensearch.client.transport.TransportClient;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
 import org.opensearch.security.auditlog.AuditTestUtils;
@@ -212,12 +207,12 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         }, 2);
 
 
-        final AuditMessage desginationMsg = messages.stream().filter(msg -> msg.getRequestBody().contains("Designation")).findFirst().orElseThrow();
+        final AuditMessage desginationMsg = messages.stream().filter(msg -> msg.getRequestBody().contains("Designation")).findFirst().get();
         assertThat(desginationMsg.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
         assertThat(desginationMsg.getRequestBody(), containsString("Designation"));
         assertThat(desginationMsg.getRequestBody(), not(containsString("Salary")));
 
-        final AuditMessage genderMsg = messages.stream().filter(msg -> msg.getRequestBody().contains("Gender")).findFirst().orElseThrow();
+        final AuditMessage genderMsg = messages.stream().filter(msg -> msg.getRequestBody().contains("Gender")).findFirst().get();
         assertThat(genderMsg.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
         assertThat(genderMsg.getRequestBody(), containsString("Gender"));
         assertThat(genderMsg.getRequestBody(), not(containsString("Salary")));
@@ -242,7 +237,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
 
-        final List<String> expectedDocumentsTypes = List.of("config", "actiongroups", "internalusers", "roles", "rolesmapping", "tenants", "audit");
+        final List<String> expectedDocumentsTypes = Arrays.asList("config", "actiongroups", "internalusers", "roles", "rolesmapping", "tenants", "audit");
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try (TransportClient tc = getInternalTransportClient()) {
                 for(IndexRequest ir: new DynamicSecurityConfig().setSecurityRoles("roles_2.yml").getDynamicConfig(getResourceFolder())) {
@@ -263,7 +258,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             final List<AuditMessage> messagesByDocId = e.getValue();
             assertThat("Doc " + docId + " should have a write config message",
                 messagesByDocId.stream().map(AuditMessage::getCategory).collect(Collectors.toList()),
-                equalTo(List.of(AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE))
+                equalTo(Arrays.asList(AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE))
             );
         });
 
