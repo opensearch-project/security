@@ -1,29 +1,26 @@
 /*
- * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  *
- *  Licensed under the Apache License, Version 2.0 (the "License").
- *  You may not use this file except in compliance with the License.
- *  A copy of the License is located at
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  or in the "license" file accompanying this file. This file is distributed
- *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *  express or implied. See the License for the specific language governing
- *  permissions and limitations under the License.
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
  */
 
 package org.opensearch.security.auditlog.integration;
 
-import org.opensearch.security.auditlog.AuditTestUtils;
-import org.opensearch.security.auditlog.config.AuditConfig;
-import org.opensearch.security.auditlog.impl.AuditCategory;
-import org.opensearch.security.compliance.ComplianceConfig;
+import java.util.Collections;
+import java.util.List;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.http.Header;
 import org.apache.http.HttpStatus;
-import org.apache.http.NoHttpResponseException;
 import org.apache.http.message.BasicHeader;
+import org.junit.Assert;
+import org.junit.Test;
+
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -32,24 +29,25 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.transport.TransportClient;
+import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentType;
-import org.junit.Assert;
-import org.junit.Test;
-
 import org.opensearch.security.auditlog.AbstractAuditlogiUnitTest;
+import org.opensearch.security.auditlog.AuditLog.Origin;
+import org.opensearch.security.auditlog.AuditTestUtils;
+import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
+import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-
-import static org.opensearch.rest.RestRequest.Method.GET;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
+import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PATCH;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
@@ -85,30 +83,29 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     @Test
     public void testSimpleAuthenticated() throws Exception {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+            .build();
+        verifyAuthenticated(settings);
+    }
 
-        Settings additionalSettings = Settings.builder()
-                .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "authenticated")
-                .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated")
-                .build();
+    private void verifyAuthenticated(final Settings settings) throws Exception {
+        setup(settings);
 
-        setup(additionalSettings);
-        setupStarfleetIndex();
-        TestAuditlogImpl.clear();
 
-        System.out.println("#### testSimpleAuthenticated");
-        HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Thread.sleep(1500);
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
-        System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("GRANTED_PRIVILEGES"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/read/search"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("REST"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().toLowerCase().contains("authorization"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(
+            () -> {
+                final HttpResponse response = rh.executeGetRequest("_search", encodeBasicHeader("admin", "admin"));
+                assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+            },
+            /* expectedCount*/ 1);
+
+        assertThat(messages.size(), equalTo(1));
+
+        assertThat(messages.get(0).getCategory(), equalTo(AuditCategory.GRANTED_PRIVILEGES));
+        assertThat(messages.get(0).getOrigin(), equalTo(Origin.REST));
+        assertThat(messages.get(0).getPrivilege(), equalTo("indices:data/read/search"));
     }
 
     @Test
@@ -400,7 +397,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
     public void testSecurityIndexAttempt() throws Exception {
 
-        HttpResponse response = rh.executePutRequest(".opendistro_security/config/0", "{}", encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("admin", "admin"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("MISSING_PRIVILEGES"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("OPENDISTRO_SECURITY_INDEX_ATTEMPT"));
@@ -464,15 +461,15 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         System.out.println("#### testBulkAuth");
         String bulkBody =
-                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
-                "{ \"index\" : { \"_index\" : \"worf\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"worf\", \"_id\" : \"2\" } }"+System.lineSeparator()+
                 "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
 
-                "{ \"update\" : {\"_id\" : \"1\", \"_type\" : \"type1\", \"_index\" : \"test\"} }"+System.lineSeparator()+
+                "{ \"update\" : {\"_id\" : \"1\", \"_index\" : \"test\"} }"+System.lineSeparator()+
                 "{ \"doc\" : {\"field\" : \"valuex\"} }"+System.lineSeparator()+
-                "{ \"delete\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
-                "{ \"create\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"delete\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"create\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value3x\" }"+System.lineSeparator();
 
 
@@ -494,15 +491,15 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
     public void testBulkNonAuth() throws Exception {
 
         String bulkBody =
-                "{ \"index\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value1\" }" +System.lineSeparator()+
-                "{ \"index\" : { \"_index\" : \"worf\", \"_type\" : \"type1\", \"_id\" : \"2\" } }"+System.lineSeparator()+
+                "{ \"index\" : { \"_index\" : \"worf\", \"_id\" : \"2\" } }"+System.lineSeparator()+
                 "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
 
-                "{ \"update\" : {\"_id\" : \"1\", \"_type\" : \"type1\", \"_index\" : \"test\"} }"+System.lineSeparator()+
+                "{ \"update\" : {\"_id\" : \"1\", \"_index\" : \"test\"} }"+System.lineSeparator()+
                 "{ \"doc\" : {\"field\" : \"valuex\"} }"+System.lineSeparator()+
-                "{ \"delete\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
-                "{ \"create\" : { \"_index\" : \"test\", \"_type\" : \"type1\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"delete\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
+                "{ \"create\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
                 "{ \"field1\" : \"value3x\" }"+System.lineSeparator();
 
         HttpResponse response = rh.executePostRequest("_bulk", bulkBody, encodeBasicHeader("worf", "worf"));
@@ -526,10 +523,10 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         String json =
         "{"+
             "\"persistent\" : {"+
-                "\"discovery.zen.minimum_master_nodes\" : 1"+
+                "\"indices.recovery.*\" : null"+
             "},"+
             "\"transient\" : {"+
-                "\"discovery.zen.minimum_master_nodes\" : 1"+
+                "\"indices.recovery.*\" : null"+
              "}"+
         "}";
 
@@ -538,8 +535,8 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         System.out.println(TestAuditlogImpl.sb.toString());
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("AUTHENTICATED"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("cluster:admin/settings/update"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("discovery.zen.minimum_master_nodes"));
-        //may vary because we log may hit master directly or not
+        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices.recovery.*"));
+        //may vary because we log may hit cluster manager directly or not
         Assert.assertTrue(TestAuditlogImpl.messages.size() > 1);
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
