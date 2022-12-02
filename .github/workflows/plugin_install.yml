@@ -32,15 +32,6 @@ jobs:
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
         run: |
-          echo at $(pwd)
-          ls
-          cd build
-          echo at $(pwd) 
-          ls
-          cd distributions
-          echo at $(pwd)
-          ls
-          cd ../..
           cat > setup.sh <<'EOF'
           chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh 
           /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
