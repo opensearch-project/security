@@ -53,11 +53,6 @@ runs:
         del opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
       shell: pwsh
 
-    # Move and rename the plugin for installation
-    - name: Move and rename the plugin for installation
-      run: mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip
-      shell: bash
-
     # Install the plugin
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
@@ -118,8 +113,3 @@ runs:
         $Headers = @{ Authorization = $baseCredentials }
         Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200/_cat/plugins' -Headers $Headers;
       shell: pwsh
-
-    - name: Run sanity tests
-      uses: gradle/gradle-build-action@v2
-      with:
-        arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin

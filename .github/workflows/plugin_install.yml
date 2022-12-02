@@ -29,6 +29,11 @@ jobs:
         with:
           arguments: assemble
 
+      # Move and rename the plugin for installation
+      - name: Move and rename the plugin for installation
+        run: mv ./build/distributions/${{ env.PLUGIN_NAME }}-*.zip ${{ env.PLUGIN_NAME }}.zip
+        shell: bash
+
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
         run: |
