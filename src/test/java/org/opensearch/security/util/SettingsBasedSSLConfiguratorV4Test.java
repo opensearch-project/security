@@ -66,6 +66,7 @@ import org.junit.rules.ExpectedException;
 import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4;
 import com.amazon.dlic.util.SettingsBasedSSLConfiguratorV4.SSLConfig;
 
+import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -73,6 +74,7 @@ import org.opensearch.security.test.helper.network.SocketUtils;
 
 import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
 public class SettingsBasedSSLConfiguratorV4Test {
 
@@ -90,7 +92,9 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             Settings settings = Settings.builder()
                     .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true").put("path.home", rootCaPemPath.getParent().toString()).build();
+                    .put("prefix.enable_ssl", "true")
+                    .put("path.home", rootCaPemPath.getParent().toString())
+                    .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
@@ -117,7 +121,9 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             Settings settings = Settings.builder()
                     .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true").put("path.home", rootCaPemPath.getParent().toString()).build();
+                    .put("prefix.enable_ssl", "true")
+                    .put("path.home", rootCaPemPath.getParent().toString())
+                    .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
@@ -146,9 +152,13 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             Settings settings = Settings.builder()
                     .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true").put("path.home", rootCaPemPath.getParent().toString())
-                    .put("prefix.enable_ssl_client_auth", "true").put("prefix.pemcert_filepath", "kirk.pem")
-                    .put("prefix.pemkey_filepath", "kirk.key").put("prefix.pemkey_password", "secret").build();
+                    .put("prefix.enable_ssl", "true")
+                    .put("path.home", rootCaPemPath.getParent().toString())
+                    .put("prefix.enable_ssl_client_auth", "true")
+                    .put("prefix.pemcert_filepath", "kirk.pem")
+                    .put("prefix.pemkey_filepath", "kirk.key")
+                    .put("prefix.pemkey_password", "secret")
+                    .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
@@ -175,9 +185,12 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             Settings settings = Settings.builder()
                     .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true").put("path.home", rootCaPemPath.getParent().toString())
-                    .put("prefix.enable_ssl_client_auth", "true").put("prefix.pemcert_filepath", "wrong-kirk.pem")
-                    .put("prefix.pemkey_filepath", "wrong-kirk.key").put("prefix.pemkey_password", "G0CVtComen4a")
+                    .put("prefix.enable_ssl", "true")
+                    .put("path.home", rootCaPemPath.getParent().toString())
+                    .put("prefix.enable_ssl_client_auth", "true")
+                    .put("prefix.pemcert_filepath", "wrong-kirk.pem")
+                    .put("prefix.pemkey_filepath", "wrong-kirk.key")
+                    .put("prefix.pemkey_password", "G0CVtComen4a")
                     .build();
             Path configPath = rootCaPemPath.getParent();
 
@@ -211,8 +224,10 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             Settings settings = Settings.builder()
                     .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true").put("prefix.verify_hostnames", "true")
-                    .put("path.home", rootCaPemPath.getParent().toString()).build();
+                    .put("prefix.enable_ssl", "true")
+                    .put("prefix.verify_hostnames", "true")
+                    .put("path.home", rootCaPemPath.getParent().toString())
+                    .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
@@ -240,8 +255,10 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
             Settings settings = Settings.builder()
                     .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true").put("prefix.verify_hostnames", "false")
-                    .put("path.home", rootCaPemPath.getParent().toString()).build();
+                    .put("prefix.enable_ssl", "true")
+                    .put("prefix.verify_hostnames", "false")
+                    .put("path.home", rootCaPemPath.getParent().toString())
+                    .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
@@ -265,10 +282,14 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 "sslConfigurator/jks/node1-keystore.jks", "secret", false)) {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/truststore.jks");
 
+            MockSecureSettings mockSecureSettings = new MockSecureSettings();
+            mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "secret");
             Settings settings = Settings.builder()
                     .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, rootCaJksPath.getFileName().toString())
-                    .put("plugins.security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
-                    .put("path.home", rootCaJksPath.getParent().toString()).build();
+                    .put("prefix.enable_ssl", "true")
+                    .put("path.home", rootCaJksPath.getParent().toString())
+                    .setSecureSettings(mockSecureSettings)
+                    .build();
             Path configPath = rootCaJksPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
@@ -293,10 +314,14 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 "sslConfigurator/jks/node1-keystore.jks", "secret", false)) {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/other-root-ca.jks");
 
+            MockSecureSettings mockSecureSettings = new MockSecureSettings();
+            mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "secret");
             Settings settings = Settings.builder()
                     .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, rootCaJksPath.getFileName().toString())
-                    .put("plugins.security.ssl.transport.truststore_password", "secret").put("prefix.enable_ssl", "true")
-                    .put("path.home", rootCaJksPath.getParent().toString()).build();
+                    .put("prefix.enable_ssl", "true")
+                    .put("path.home", rootCaJksPath.getParent().toString())
+                    .setSecureSettings(mockSecureSettings)
+                    .build();
             Path configPath = rootCaJksPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
@@ -321,8 +346,11 @@ public class SettingsBasedSSLConfiguratorV4Test {
                 "sslConfigurator/jks/node1-keystore.jks", "secret", false)) {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/other-root-ca.jks");
 
-            Settings settings = Settings.builder().put("prefix.enable_ssl", "true").put("prefix.trust_all", "true")
-                    .put("path.home", rootCaJksPath.getParent().toString()).build();
+            Settings settings = Settings.builder()
+                    .put("prefix.enable_ssl", "true")
+                    .put("prefix.trust_all", "true")
+                    .put("path.home", rootCaJksPath.getParent().toString())
+                    .build();
             Path configPath = rootCaJksPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");

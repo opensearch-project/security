@@ -50,6 +50,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.PrincipalExtractor.Type;
 
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD;
+
 public class SSLRequestHelper {
 
     private static final Logger log = LogManager.getLogger(SSLRequestHelper.class);
@@ -222,7 +224,7 @@ public class SSLRequestHelper {
             
             if(truststore != null) {
                 final String truststoreType = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, "JKS");
-                final String truststorePassword = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD, "changeit");
+                final String truststorePassword = SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings);
                 //final String truststoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, null);
     
                 final KeyStore ts = KeyStore.getInstance(truststoreType);
