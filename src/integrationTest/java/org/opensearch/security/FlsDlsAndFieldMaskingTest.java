@@ -358,7 +358,7 @@ public class FlsDlsAndFieldMaskingTest {
 			assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
 			Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
 			assertThat(actualAggregation, instanceOf(ParsedAvg.class));
-			assertThat(((ParsedAvg) actualAggregation).getValue(), is(Double.POSITIVE_INFINITY));
+			assertThat(((ParsedAvg) actualAggregation).getValue(), is(Double.POSITIVE_INFINITY)); //user cannot see the STARS field
 
 			//get document
 			GetResponse getResponse = restHighLevelClient.get(new GetRequest(indexName, docIds.get(0)), DEFAULT);
@@ -721,6 +721,10 @@ public class FlsDlsAndFieldMaskingTest {
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
 			String aggregationName = "averageStars";
+			Double expectedValue = FIRST_INDEX_SONGS_BY_ID.values()
+					.stream()
+					.mapToDouble(Song::getStars)
+					.average().orElseThrow(() -> new RuntimeException("Cannot compute average stars - list of docs is empty"));
 			SearchRequest searchRequest = averageAggregationRequest(FIRST_INDEX_NAME, aggregationName, FIELD_STARS);
 
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
@@ -729,7 +733,7 @@ public class FlsDlsAndFieldMaskingTest {
 			assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
 			Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
 			assertThat(actualAggregation, instanceOf(ParsedAvg.class));
-			assertThat(((ParsedAvg) actualAggregation).getValue(), not(Double.POSITIVE_INFINITY));
+			assertThat(((ParsedAvg) actualAggregation).getValue(), is(expectedValue));
 		}
 
 		//DLS
