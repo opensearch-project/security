@@ -121,6 +121,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.ADD;
 import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.REMOVE;
+import static org.opensearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions.Type.REMOVE_INDEX;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -156,6 +157,7 @@ import static org.opensearch.test.framework.cluster.SearchRequestFactory.statsAg
 import static org.opensearch.test.framework.matcher.BulkResponseMatchers.bulkResponseContainExceptions;
 import static org.opensearch.test.framework.matcher.BulkResponseMatchers.failureBulkResponse;
 import static org.opensearch.test.framework.matcher.BulkResponseMatchers.successBulkResponse;
+import static org.opensearch.test.framework.matcher.ClusterMatchers.aliasExists;
 import static org.opensearch.test.framework.matcher.ClusterMatchers.clusterContainSuccessSnapshot;
 import static org.opensearch.test.framework.matcher.ClusterMatchers.clusterContainTemplate;
 import static org.opensearch.test.framework.matcher.ClusterMatchers.clusterContainTemplateWithAlias;
@@ -211,6 +213,8 @@ public class SearchOperationTest {
 	public static final String INDEX_NAME_SONG_TRANSCRIPTION_JAZZ = "song-transcription-jazz";
 
 	public static final String MUSICAL_INDEX_TEMPLATE = "musical-index-template";
+	public static final String ALIAS_CREATE_INDEX_WITH_ALIAS_POSITIVE = "alias_create_index_with_alias_positive";
+	public static final String ALIAS_CREATE_INDEX_WITH_ALIAS_NEGATIVE = "alias_create_index_with_alias_negative";
 
 	public static final String UNDELETABLE_TEMPLATE_NAME = "undeletable-template-name";
 
@@ -299,16 +303,19 @@ public class SearchOperationTest {
 							"indices:admin/create", "indices:admin/get", "indices:admin/delete", "indices:admin/close",
 							"indices:admin/close*", "indices:admin/open", "indices:admin/resize", "indices:monitor/stats",
 							"indices:monitor/settings/get", "indices:admin/settings/update", "indices:admin/mapping/put",
-							"indices:admin/mappings/get", "indices:admin/cache/clear"
+							"indices:admin/mappings/get", "indices:admin/cache/clear", "indices:admin/aliases"
 					)
 					.on(INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("*")));
+
+	private static User USER_ALLOWED_TO_CREATE_INDEX = new User("user-allowed-to-create-index")
+		.roles(new Role("create-index-role").indexPermissions("indices:admin/create").on("*"));
 
 	@ClassRule
 	public static final LocalCluster cluster = new LocalCluster.Builder()
 		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
 		.authc(AUTHC_HTTPBASIC_INTERNAL)
 		.users(ADMIN_USER, LIMITED_READ_USER, LIMITED_WRITE_USER, DOUBLE_READER_USER, REINDEXING_USER, UPDATE_DELETE_USER,
-			USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)
+			USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES, USER_ALLOWED_TO_CREATE_INDEX)
 		.audit(new AuditConfiguration(true)
 			.compliance(new AuditCompliance().enabled(true))
 			.filters(new AuditFilters().enabledRest(true).enabledTransport(true))
@@ -362,7 +369,9 @@ public class SearchOperationTest {
 			}
 		}
 
-		for(String aliasToBeDeleted : List.of(TEMPORARY_ALIAS_NAME, ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0001, ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0002)) {
+		List<String> aliasesToBeDeleted = List.of(TEMPORARY_ALIAS_NAME, ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0001,
+			ALIAS_USED_IN_MUSICAL_INDEX_TEMPLATE_0002, ALIAS_CREATE_INDEX_WITH_ALIAS_POSITIVE, ALIAS_CREATE_INDEX_WITH_ALIAS_NEGATIVE);
+		for(String aliasToBeDeleted : aliasesToBeDeleted) {
 			if(indices.exists(new IndicesExistsRequest(aliasToBeDeleted)).get().isExists()) {
 				AliasActions aliasAction = new AliasActions(AliasActions.Type.REMOVE).indices(SONG_INDEX_NAME).alias(aliasToBeDeleted);
 				internalClient.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(aliasAction)).get();
@@ -1839,6 +1848,34 @@ public class SearchOperationTest {
 	}
 
 	@Test
+	//required permissions: indices:admin/aliases, indices:admin/delete
+	public void shouldDeleteIndexByAliasRequest_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("delete_index_by_alias_request_positive");
+		IndexOperationsHelper.createIndex(cluster, indexName);
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			IndicesAliasesRequest request = new IndicesAliasesRequest().addAliasAction(new AliasActions(REMOVE_INDEX).indices(indexName));
+
+			var response = restHighLevelClient.indices().updateAliases(request, DEFAULT);
+
+			assertThat(response.isAcknowledged(), is(true));
+			assertThat(cluster, not(indexExists(indexName)));
+		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES).withRestRequest(POST, "/_aliases"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES, "IndicesAliasesRequest"));
+		auditLogsRule.assertExactly(2, auditPredicate(INDEX_EVENT).withEffectiveUser(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES));
+	}
+
+	@Test
+	public void shouldDeleteIndexByAliasRequest_negative() throws IOException {
+		String indexName = "delete_index_by_alias_request_negative";
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			IndicesAliasesRequest request = new IndicesAliasesRequest().addAliasAction(new AliasActions(REMOVE_INDEX).indices(indexName));
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().updateAliases(request, DEFAULT), statusException(FORBIDDEN));
+		}
+	}
+
+	@Test
 	//required permissions: "indices:admin/get"
 	public void getIndex_positive() throws IOException {
 		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("get_index_positive");
@@ -2273,5 +2310,39 @@ public class SearchOperationTest {
 					statusException(FORBIDDEN)
 			);
 		}
+	}
+
+	@Test
+	//required permissions: "indices:admin/create", "indices:admin/aliases"
+	public void shouldCreateIndexWithAlias_positive() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("create_index_with_alias_positive");
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES)) {
+			CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName)
+				.alias(new Alias(ALIAS_CREATE_INDEX_WITH_ALIAS_POSITIVE));
+
+			CreateIndexResponse createIndexResponse = restHighLevelClient.indices().create(createIndexRequest, DEFAULT);
+
+			assertThat(createIndexResponse, isSuccessfulCreateIndexResponse(indexName));
+			assertThat(cluster, indexExists(indexName));
+			assertThat(internalClient, aliasExists(ALIAS_CREATE_INDEX_WITH_ALIAS_POSITIVE));
+		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES).withRestRequest(PUT, "/index_operations_create_index_with_alias_positive"));
+		auditLogsRule.assertExactly(2, grantedPrivilege(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES, "CreateIndexRequest"));
+		auditLogsRule.assertExactly(2, auditPredicate(INDEX_EVENT).withEffectiveUser(USER_ALLOWED_TO_PERFORM_INDEX_OPERATIONS_ON_SELECTED_INDICES));
+	}
+
+	@Test
+	public void shouldCreateIndexWithAlias_negative() throws IOException {
+		String indexName = INDICES_ON_WHICH_USER_CAN_PERFORM_INDEX_OPERATIONS_PREFIX.concat("create_index_with_alias_negative");
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(USER_ALLOWED_TO_CREATE_INDEX)) {
+			CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName)
+				.alias(new Alias(ALIAS_CREATE_INDEX_WITH_ALIAS_NEGATIVE));
+
+			assertThatThrownBy(() -> restHighLevelClient.indices().create(createIndexRequest, DEFAULT), statusException(FORBIDDEN));
+
+			assertThat(internalClient, not(aliasExists(ALIAS_CREATE_INDEX_WITH_ALIAS_NEGATIVE)));
+		}
+		auditLogsRule.assertExactlyOne(userAuthenticated(USER_ALLOWED_TO_CREATE_INDEX).withRestRequest(PUT, "/index_operations_create_index_with_alias_negative"));
+		auditLogsRule.assertExactlyOne(missingPrivilege(USER_ALLOWED_TO_CREATE_INDEX, "CreateIndexRequest"));
 	}
 }

@@ -262,6 +262,7 @@ configurations {
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
+            force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
         }
     }
 
@@ -450,6 +451,7 @@ dependencies {
     integrationTestImplementation('org.awaitility:awaitility:4.2.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
+    integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
 }
 
 jar {

@@ -20,44 +20,72 @@ import org.opensearch.test.framework.TestSecurityConfig.Role;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+* The class represents mapping between backend roles {@link #backendRoles} to OpenSearch role defined by field {@link #roleName}. The
+* class provides convenient builder-like methods and can be serialized to JSON. Serialization to JSON is required to store the class
+* in an OpenSearch index which contains Security plugin configuration.
+*/
 public class RolesMapping implements ToXContentObject {
+
+	/**
+	* OpenSearch role name
+	*/
 	private String roleName;
+
+	/**
+	* Backend role names
+	*/
 	private List<String> backendRoles;
-	private List<String> hosts;
-	private List<String> users;
 
 	private boolean reserved = false;
 
+	/**
+	* Creates roles mapping to OpenSearch role defined by parameter <code>role</code>
+	* @param role OpenSearch role, must not be <code>null</code>.
+	*/
 	public RolesMapping(Role role) {
 		requireNonNull(role);
 		this.roleName = requireNonNull(role.getName());
 		this.backendRoles = new ArrayList<>();
 	}
 
+
+	/**
+	* Defines backend role names
+	* @param backendRoles backend roles names
+	* @return current {@link RolesMapping} instance
+	*/
 	public RolesMapping backendRoles(String...backendRoles) {
 		this.backendRoles.addAll(Arrays.asList(backendRoles));
 		return this;
 	}
 
-	public RolesMapping hosts(List<String> hosts) {
-		this.hosts = hosts;
-		return this;
-	}
-
-	public RolesMapping users(List<String> users) {
-		this.users = users;
-		return this;
-	}
-
+	/**
+	* Determines if role is reserved
+	* @param reserved <code>true</code> for reserved roles
+	* @return current {@link RolesMapping} instance
+	*/
 	public RolesMapping reserved(boolean reserved) {
 		this.reserved = reserved;
 		return this;
 	}
 
+
+	/**
+	* Returns OpenSearch role name
+	* @return role name
+	*/
 	public String getRoleName() {
 		return roleName;
 	}
 
+	/**
+	* Controls serialization to JSON
+	* @param xContentBuilder must not be <code>null</code>
+	* @param params not used parameter, but required by the interface {@link ToXContentObject}
+	* @return builder form parameter <code>xContentBuilder</code>
+	* @throws IOException denotes error during serialization to JSON
+	*/
 	@Override
 	public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
 		xContentBuilder.startObject();

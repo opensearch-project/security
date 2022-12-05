@@ -1,4 +1,4 @@
-name: 'Start OpenSearch with One Plugin'
+name: 'Launch OpenSearch with a single plugin installed'
 description: 'Downloads latest build of OpenSearch, installs a plugin, executes a script and then starts OpenSearch on localhost:9200'
 
 inputs:
@@ -10,13 +10,9 @@ inputs:
     description: 'The name of the plugin to use, such as opensearch-security'
     required: true
 
-  plugin-start-script:
-    description: 'The file name for the configuration script for the plugin such as install_demo_configurations -- may not be needed for every plugin'
+  setup-script-name:
+    description: 'The name of the setup script you want to run i.e. "setup" (do not include file extension). Leave empty to indicate one should not be run.'
     required: false
-
-  docker-host-plugin-zip:
-    description: 'The name of the zip file for the plugin hosted on docker-host i.e. security-plugin.zip '
-    required: true
 
 runs:
   using: "composite"
@@ -29,71 +25,66 @@ runs:
       shell: pwsh
 
     # Download OpenSearch
-    - uses: peternied/download-file@v1
+    - name: Download OpenSearch for Windows
+      uses: peternied/download-file@v2
       if: ${{ runner.os == 'Windows' }}
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
 
-    - uses: peternied/download-file@v1
+
+    - name: Download OpenSearch for Linux
+      uses: peternied/download-file@v2
       if: ${{ runner.os == 'Linux' }}
       with:
-        url: https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${{ inputs.opensearch-version }}/latest/linux/x64/tar/builds/opensearch/dist/opensearch-min-${{ inputs.opensearch-version }}-linux-x64.tar.gz
+        url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-linux-x64-latest.tar.gz
 
     # Extract downloaded zip
-    - name: Extract downloaded zip for Linux
+    - name: Extract downloaded tar
       if: ${{ runner.os == 'Linux' }}
       run: |
         tar -xzf opensearch-*.tar.gz
         rm -f opensearch-*.tar.gz
       shell: bash
 
-    - name: Extract downloaded zip for Windows
+    - name: Extract downloaded zip
       if: ${{ runner.os == 'Windows' }}
       run: |
         tar -xzf opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
         del opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
       shell: pwsh
 
-    # Move and rename the plugin for installation
-    - name: Move and rename the plugin for installation
-      run: mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip
-      shell: bash
-
-    # Install the plugin, runs its start-script, and start the OpenSearch server
+    # Install the plugin
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
       run: |
-        cat > os-ep.sh <<EOF
-        yes | opensearch-plugin install file:///docker-host/${{ inputs.docker-host-plugin-zip }}.zip
-        chmod +x plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
-        yes | plugins/${{ inputs.plugin-name }}/tools/${{ inputs.plugin-start-script }}.sh
-        chown 1001:1001 -R /opensearch
-        su -c "/opensearch/bin/opensearch" -s /bin/bash opensearch
-        EOF
-        docker build -t opensearch-test -f- . <<EOF
-        FROM ubuntu:latest
-        COPY --chown=1001:1001 os-ep.sh /docker-host/
-        COPY --chown=1001:1001 ${{ inputs.plugin-name }}.zip /docker-host/${{ inputs.docker-host-plugin-zip }}.zip
-        COPY --chown=1001:1001 opensearch* /opensearch/
-        RUN chmod +x /docker-host/os-ep.sh
-        RUN useradd -u 1001 -s /sbin/nologin opensearch
-        ENV PATH="/opensearch/bin:${PATH}"
-        WORKDIR /opensearch/
-        ENTRYPOINT /docker-host/os-ep.sh
-        EOF
+        chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
+        /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/opensearch-security.zip"
       shell: bash
 
     - name: Install Plugin into OpenSearch for Windows
       if: ${{ runner.os == 'Windows'}}
       run: |
-        'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$pwd\${{ inputs.plugin-name }}.zip
-        'y', 'y', 'N' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\plugins\${{ inputs.plugin-name }}\tools\${{ inputs.plugin-start-script }}.bat
+        'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$(pwd)\${{ inputs.plugin-name }}.zip
+      shell: pwsh
+
+    # Run any configuration scripts
+    - name: Run Setup Script for Linux
+      if: ${{ runner.os == 'Linux' && inputs.setup-script-name != '' }}
+      run: | 
+        echo "running linux setup"
+        chmod +x ./${{ inputs.setup-script-name }}.sh
+        ./${{ inputs.setup-script-name }}.sh
+      shell: bash
+
+    - name: Run Setup Script for Windows
+      if: ${{ runner.os == 'Windows' && inputs.setup-script-name != '' }}
+      run: .\${{ inputs.setup-script-name }}.bat
       shell: pwsh
 
     # Run OpenSearch
     - name: Run OpenSearch with plugin on Linux
       if: ${{ runner.os == 'Linux'}}
-      run: docker run --name ops -d -p 9200:9200 -p 9600:9600 -i opensearch-test:latest
+      run: /bin/bash -c "./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch &"
       shell: bash
 
     - name: Run OpenSearch with plugin on Windows
@@ -110,9 +101,7 @@ runs:
     # Verify that the server is operational
     - name: Check OpenSearch Running on Linux
       if: ${{ runner.os != 'Windows'}}
-      run: |
-        docker logs ops
-        curl https://localhost:9200/_cat/plugins -u 'admin:admin' -k -v
+      run: curl https://localhost:9200/_cat/plugins -u 'admin:admin' -k -v
       shell: bash
 
     - name: Check OpenSearch Running on Windows

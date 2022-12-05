@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -109,9 +110,19 @@ public class TestSecurityConfig {
 		config.doNotFailOnForbidden(doNotFailOnForbidden);
 		return this;
 	}
+
+	public TestSecurityConfig xff(XffConfig xffConfig) {
+		config.xffConfig(xffConfig);
+		return this;
+	}
 	
 	public TestSecurityConfig authc(AuthcDomain authcDomain) {
 		config.authc(authcDomain);
+		return this;
+	}
+
+	public TestSecurityConfig authz(AuthzDomain authzDomain) {
+		config.authz(authzDomain);
 		return this;
 	}
 	public TestSecurityConfig user(User user) {
@@ -155,10 +166,11 @@ public class TestSecurityConfig {
 		private boolean anonymousAuth;
 
 		private Boolean doNotFailOnForbidden;
-
+		private XffConfig xffConfig;
 		private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
 		private AuthFailureListeners authFailureListeners;
+		private Map<String, AuthzDomain> authzDomainMap = new LinkedHashMap<>();
 
 		public Config anonymousAuth(boolean anonymousAuth) {
 			this.anonymousAuth = anonymousAuth;
@@ -167,6 +179,11 @@ public class TestSecurityConfig {
 
 		public Config doNotFailOnForbidden(Boolean doNotFailOnForbidden) {
 			this.doNotFailOnForbidden = doNotFailOnForbidden;
+			return this;
+		}
+
+		public Config xffConfig(XffConfig xffConfig) {
+			this.xffConfig = xffConfig;
 			return this;
 		}
 
@@ -180,14 +197,22 @@ public class TestSecurityConfig {
 			return this;
 		}
 
+		public Config authz(AuthzDomain authzDomain) {
+			authzDomainMap.put(authzDomain.getId(), authzDomain);
+			return this;
+		}
+
 		@Override
 		public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
 			xContentBuilder.startObject();
 			xContentBuilder.startObject("dynamic");
 
-			if (anonymousAuth) {
+			if (anonymousAuth || (xffConfig != null)) {
 				xContentBuilder.startObject("http");
-				xContentBuilder.field("anonymous_auth_enabled", true);
+				xContentBuilder.field("anonymous_auth_enabled", anonymousAuth);
+				if(xffConfig != null) {
+					xContentBuilder.field("xff", xffConfig);
+				}
 				xContentBuilder.endObject();
 			}
 			if(doNotFailOnForbidden != null) {
@@ -195,6 +220,9 @@ public class TestSecurityConfig {
 			}
 
 			xContentBuilder.field("authc", authcDomainMap);
+			if(authzDomainMap.isEmpty() == false) {
+				xContentBuilder.field("authz", authzDomainMap);
+			}
 
 			if(authFailureListeners != null) {
 				xContentBuilder.field("auth_failure_listeners", authFailureListeners);
@@ -522,14 +550,20 @@ public class TestSecurityConfig {
 
 		public static class AuthenticationBackend implements ToXContentObject {
 			private final String type;
-			private Map<String, Object> config = new HashMap();
+			private Supplier<Map<String, Object>> config = () -> new HashMap();
 
 			public AuthenticationBackend(String type) {
 				this.type = type;
 			}
 
 			public AuthenticationBackend config(Map<String, Object> config) {
-				this.config.putAll(config);
+				Map<String, Object> configCopy = new HashMap<>(config);
+				this.config = () -> configCopy;
+				return this;
+			}
+
+			public AuthenticationBackend config(Supplier<Map<String, Object>> configSupplier) {
+				this.config = configSupplier;
 				return this;
 			}
 
@@ -538,7 +572,7 @@ public class TestSecurityConfig {
 				xContentBuilder.startObject();
 
 				xContentBuilder.field("type", type);
-				xContentBuilder.field("config", config);
+				xContentBuilder.field("config", config.get());
 
 				xContentBuilder.endObject();
 				return xContentBuilder;

@@ -50,10 +50,12 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
+import org.opensearch.test.framework.AuthzDomain;
 import org.opensearch.test.framework.RolesMapping;
 import org.opensearch.test.framework.TestIndex;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
+import org.opensearch.test.framework.XffConfig;
 import org.opensearch.test.framework.audit.TestRuleAuditLogSink;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
@@ -376,6 +378,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			return this;
 		}
 
+		public Builder authz(AuthzDomain authzDomain) {
+			testSecurityConfig.authz(authzDomain);
+			return this;
+		}
+
 		public Builder clusterName(String clusterName) {
 			this.clusterName = clusterName;
 			return this;
@@ -386,8 +393,18 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			return this;
 		}
 
+		public Builder testCertificates(TestCertificates certificates) {
+			this.testCertificates = certificates;
+			return this;
+		}
+
 		public Builder anonymousAuth(boolean anonAuthEnabled) {
 			testSecurityConfig.anonymousAuth(anonAuthEnabled);
+			return this;
+		}
+
+		public Builder xff(XffConfig xffConfig){
+			testSecurityConfig.xff(xffConfig);
 			return this;
 		}
 
@@ -407,10 +424,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
 		public LocalCluster build() {
 			try {
-				if(testCertificates == null){
+				if(testCertificates == null) {
 					testCertificates = new TestCertificates();
 				}
-
 				clusterName += "_" + num.incrementAndGet();
 				Settings settings = nodeOverrideSettingsBuilder.build();
 				return new LocalCluster(clusterName, testSecurityConfig, sslOnly, settings, clusterManager, plugins,
