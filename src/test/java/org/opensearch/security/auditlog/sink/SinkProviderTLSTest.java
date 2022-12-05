@@ -15,9 +15,11 @@
 
 package org.opensearch.security.auditlog.sink;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -65,7 +67,8 @@ public class SinkProviderTLSTest {
 
 		server.start();
 
-		Builder builder = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/sink/configuration_tls.yml"));
+		final byte[] configAsBytes = getConfigurationAsString(port).getBytes(StandardCharsets.UTF_8);
+		Builder builder = Settings.builder().loadFromStream("configuration_tls.yml", new ByteArrayInputStream(configAsBytes), false);
 		builder.put("path.home", "/");
 
 		// replace some values with absolute paths for unit tests
@@ -151,4 +154,50 @@ public class SinkProviderTLSTest {
             throw new RuntimeException("Failed to find free port", e);
         }
     }
+
+	private String getConfigurationAsString(final int port) {
+		return "plugins.security.ssl.transport.enabled: true\n" +
+"plugins.security.ssl.transport.keystore_filepath: \"transport.keystore_filepath\"\n" +
+"plugins.security.ssl.transport.truststore_filepath: \"transport.truststore_filepath\"\n" +
+"plugins.security.ssl.transport.enforce_hostname_verification: true\n" +
+"plugins.security.ssl.transport.resolve_hostname: true\n" +
+"plugins.security.ssl.transport.enable_openssl_if_available: true\n" +
+"plugins.security.ssl.http.enabled: true\n" +
+"plugins.security.ssl.http.keystore_filepath: \"http.keystore_filepath\"\n" +
+"plugins.security.ssl.http.truststore_filepath: \"http.truststore_filepath\"\n" +
+"plugins.security.ssl.http.enable_openssl_if_available: true\n" +
+"plugins.security.ssl.http.clientauth_mode: OPTIONAL\n" +
+"\n" +
+"plugins.security:\n" +
+"  audit:\n" +
+"    type: webhook\n" +
+"    config:\n" +
+"      webhook:\n" +
+"        url: https://localhost:" + port + "\n" +
+"        format: JSON\n" +
+"        ssl:\n" +
+"          verify: true\n" +
+"          pemtrustedcas_filepath: dyn\n" +
+"    endpoints:\n" +
+"      endpoint1:\n" +
+"        type: webhook\n" +
+"        config:\n" +
+"          webhook:\n" +
+"            url: https://localhost:" + port + "\n" +
+"            format: JSON\n" +
+"            ssl:\n" +
+"              verify: true\n" +
+"              pemtrustedcas_filepath: dyn\n" +
+"      endpoint2:\n" +
+"        type: webhook\n" +
+"        config:\n" +
+"          webhook:\n" +
+"            url: https://localhost:" + port + "\n" +
+"            format: JSON\n" +
+"            ssl:\n" +
+"              verify: true\n" +
+"              pemtrustedcas_content: dyn\n" +
+"      fallback:\n" +
+"        type: org.opensearch.security.auditlog.helper.LoggingSink";
+	}
 }
