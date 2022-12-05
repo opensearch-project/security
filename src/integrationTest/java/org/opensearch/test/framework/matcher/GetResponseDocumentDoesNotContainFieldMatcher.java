@@ -9,11 +9,12 @@
 */
 package org.opensearch.test.framework.matcher;
 
+import java.util.Map;
+
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.opensearch.action.get.GetResponse;
 
-import java.util.Map;
+import org.opensearch.action.get.GetResponse;
 
 import static java.util.Objects.requireNonNull;
 
