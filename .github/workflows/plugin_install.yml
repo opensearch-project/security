@@ -39,7 +39,7 @@ jobs:
         run: |
           cat > setup.sh <<'EOF'
           chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh 
-          /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
+          /bin/bash -c "./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh -y"
           EOF
 
       - name: Create Setup Script
