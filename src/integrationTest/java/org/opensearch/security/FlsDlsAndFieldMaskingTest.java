@@ -366,24 +366,28 @@ public class FlsDlsAndFieldMaskingTest {
 			assertThat(getResponse, documentDoesNotContainField(FIELD_STARS));
 
 			//multi get
-			MultiGetRequest multiGetRequest = new MultiGetRequest();
-			docIds.forEach(id -> multiGetRequest.add(new MultiGetRequest.Item(indexName, id)));
+			for (String index: List.of(indexName, indexAlias)) {
+				MultiGetRequest multiGetRequest = new MultiGetRequest();
+				docIds.forEach(id -> multiGetRequest.add(new MultiGetRequest.Item(index, id)));
 
-			MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
+				MultiGetResponse multiGetResponse = restHighLevelClient.mget(multiGetRequest, DEFAULT);
 
-			List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
-					.map(MultiGetItemResponse::getResponse)
-					.collect(Collectors.toList());
-			assertThat(getResponses, everyItem(documentDoesNotContainField(FIELD_STARS)));
+				List<GetResponse> getResponses = Arrays.stream(multiGetResponse.getResponses())
+						.map(MultiGetItemResponse::getResponse)
+						.collect(Collectors.toList());
+				assertThat(getResponses, everyItem(documentDoesNotContainField(FIELD_STARS)));
+			}
 
 			//multi search
-			MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
-			docIds.forEach(id -> multiSearchRequest.add(queryByIdsRequest(indexName, id)));
-			MultiSearchResponse multiSearchResponse = restHighLevelClient.msearch(multiSearchRequest, DEFAULT);
+			for (String index: List.of(indexName, indexAlias)) {
+				MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
+				docIds.forEach(id -> multiSearchRequest.add(queryByIdsRequest(index, id)));
+				MultiSearchResponse multiSearchResponse = restHighLevelClient.msearch(multiSearchRequest, DEFAULT);
 
-			assertThat(multiSearchResponse, isSuccessfulMultiSearchResponse());
-			List<MultiSearchResponse.Item> itemResponses = List.of(multiSearchResponse.getResponses());
-			itemResponses.forEach(item -> assertSearchHitsDoNotContainField(item.getResponse(), FIELD_STARS));
+				assertThat(multiSearchResponse, isSuccessfulMultiSearchResponse());
+				List<MultiSearchResponse.Item> itemResponses = List.of(multiSearchResponse.getResponses());
+				itemResponses.forEach(item -> assertSearchHitsDoNotContainField(item.getResponse(), FIELD_STARS));
+			}
 
 			//field capabilities
 			FieldCapabilitiesResponse fieldCapsResponse = restHighLevelClient.fieldCaps(
@@ -809,56 +813,66 @@ public class FlsDlsAndFieldMaskingTest {
 	public void multiGetDocuments() throws IOException {
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
+			List<List<String>> indicesToCheck = List.of(
+					List.of(FIRST_INDEX_NAME, SECOND_INDEX_NAME),
+					List.of(FIRST_INDEX_ALIAS, SECOND_INDEX_ALIAS)
+			);
 			String firstSongId = FIRST_INDEX_ID_SONG_1;
 			Song firstSong = FIRST_INDEX_SONGS_BY_ID.get(firstSongId);
 			String secondSongId = SECOND_INDEX_ID_SONG_2;
 			Song secondSong = SECOND_INDEX_SONGS_BY_ID.get(secondSongId);
 
-			MultiGetRequest request = new MultiGetRequest();
-			request.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, firstSongId));
-			request.add(new MultiGetRequest.Item(SECOND_INDEX_NAME, secondSongId));
-			MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
+			for (List<String> indices : indicesToCheck) {
+				MultiGetRequest request = new MultiGetRequest();
+				request.add(new MultiGetRequest.Item(indices.get(0), firstSongId));
+				request.add(new MultiGetRequest.Item(indices.get(1), secondSongId));
+				MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
 
-			assertThat(response, isSuccessfulMultiGetResponse());
-			assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
+				assertThat(response, isSuccessfulMultiGetResponse());
+				assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
 
-			MultiGetItemResponse[] responses = response.getResponses();
-			assertThat(responses[0].getResponse(), allOf(
-					containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1),
-					documentContainField(FIELD_TITLE, firstSong.getTitle()),
-					documentContainField(FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(firstSong.getLyrics())),
-					documentContainField(FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(firstSong.getArtist())),
-					documentContainField(FIELD_STARS, firstSong.getStars())
-			));
-			assertThat(responses[1].getResponse(), allOf(
-					containDocument(SECOND_INDEX_NAME, secondSongId),
-					documentContainField(FIELD_TITLE, secondSong.getTitle()),
-					documentContainField(FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(secondSong.getLyrics())),
-					documentContainField(FIELD_ARTIST, secondSong.getArtist()),
-					documentContainField(FIELD_STARS, secondSong.getStars())
-			));
+				MultiGetItemResponse[] responses = response.getResponses();
+				assertThat(responses[0].getResponse(), allOf(
+						containDocument(FIRST_INDEX_NAME, FIRST_INDEX_ID_SONG_1),
+						documentContainField(FIELD_TITLE, firstSong.getTitle()),
+						documentContainField(FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(firstSong.getLyrics())),
+						documentContainField(FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(firstSong.getArtist())),
+						documentContainField(FIELD_STARS, firstSong.getStars())
+				));
+				assertThat(responses[1].getResponse(), allOf(
+						containDocument(SECOND_INDEX_NAME, secondSongId),
+						documentContainField(FIELD_TITLE, secondSong.getTitle()),
+						documentContainField(FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(secondSong.getLyrics())),
+						documentContainField(FIELD_ARTIST, secondSong.getArtist()),
+						documentContainField(FIELD_STARS, secondSong.getStars())
+				));
+			}
 		}
 
 		//DLS
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TWINS_FIRST_ARTIST_READER)) {
+			List<String> indicesToCheck = List.of(FIRST_INDEX_NAME, FIRST_INDEX_ALIAS);
 			String firstSongId = FIND_ID_OF_SONG_WITH_ARTIST.apply(FIRST_INDEX_SONGS_BY_ID, ARTIST_NO);
 			String secondSongId = FIND_ID_OF_SONG_WITH_ARTIST.apply(FIRST_INDEX_SONGS_BY_ID, ARTIST_STRING);
-			MultiGetRequest request = new MultiGetRequest();
-			request.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, firstSongId));
-			request.add(new MultiGetRequest.Item(FIRST_INDEX_NAME, secondSongId));
 
-			MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
+			for(String index : indicesToCheck) {
+				MultiGetRequest request = new MultiGetRequest();
+				request.add(new MultiGetRequest.Item(index, firstSongId));
+				request.add(new MultiGetRequest.Item(index, secondSongId));
 
-			assertThat(response, isSuccessfulMultiGetResponse());
-			assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
+				MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
 
-			MultiGetItemResponse[] responses = response.getResponses();
-			assertThat(responses[0].getResponse(), allOf(
-					not(containDocument(FIRST_INDEX_NAME, firstSongId)))
-			);
-			assertThat(responses[1].getResponse(), allOf(
-					not(containDocument(FIRST_INDEX_NAME, secondSongId)))
-			);
+				assertThat(response, isSuccessfulMultiGetResponse());
+				assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
+
+				MultiGetItemResponse[] responses = response.getResponses();
+				assertThat(responses[0].getResponse(), allOf(
+						not(containDocument(FIRST_INDEX_NAME, firstSongId)))
+				);
+				assertThat(responses[1].getResponse(), allOf(
+						not(containDocument(FIRST_INDEX_NAME, secondSongId)))
+				);
+			}
 		}
 	}
 
@@ -866,57 +880,68 @@ public class FlsDlsAndFieldMaskingTest {
 	public void multiSearchDocuments() throws IOException {
 		//FIELD MASKING
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(MASKED_ARTIST_LYRICS_READER)) {
+			List<List<String>> indicesToCheck = List.of(
+					List.of(FIRST_INDEX_NAME, SECOND_INDEX_NAME),
+					List.of(FIRST_INDEX_ALIAS, SECOND_INDEX_ALIAS)
+			);
 			String firstSongId = FIRST_INDEX_ID_SONG_3;
 			Song firstSong = FIRST_INDEX_SONGS_BY_ID.get(firstSongId);
 			String secondSongId = SECOND_INDEX_ID_SONG_4;
 			Song secondSong = SECOND_INDEX_SONGS_BY_ID.get(secondSongId);
 
-			MultiSearchRequest request = new MultiSearchRequest();
-			request.add(queryByIdsRequest(FIRST_INDEX_NAME, firstSongId));
-			request.add(queryByIdsRequest(SECOND_INDEX_NAME, secondSongId));
-			MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
+			for (List<String> indices : indicesToCheck) {
+				MultiSearchRequest request = new MultiSearchRequest();
+				request.add(queryByIdsRequest(indices.get(0), firstSongId));
+				request.add(queryByIdsRequest(indices.get(1), secondSongId));
+				MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
 
-			assertThat(response, isSuccessfulMultiSearchResponse());
-			assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
+				assertThat(response, isSuccessfulMultiSearchResponse());
+				assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
 
-			MultiSearchResponse.Item[] responses = response.getResponses();
+				MultiSearchResponse.Item[] responses = response.getResponses();
 
-			assertThat(responses[0].getResponse(), allOf(
-					searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, firstSongId),
-					searchHitContainsFieldWithValue(0, FIELD_TITLE, firstSong.getTitle()),
-					searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(firstSong.getLyrics())),
-					searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(firstSong.getArtist())),
-					searchHitContainsFieldWithValue(0, FIELD_STARS, firstSong.getStars())
-			));
-			assertThat(responses[1].getResponse(), allOf(
-					searchHitsContainDocumentWithId(0, SECOND_INDEX_NAME, secondSongId),
-					searchHitContainsFieldWithValue(0, FIELD_TITLE, secondSong.getTitle()),
-					searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(secondSong.getLyrics())),
-					searchHitContainsFieldWithValue(0, FIELD_ARTIST, secondSong.getArtist()),
-					searchHitContainsFieldWithValue(0, FIELD_STARS, secondSong.getStars())
-			));
+				assertThat(responses[0].getResponse(), allOf(
+						searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, firstSongId),
+						searchHitContainsFieldWithValue(0, FIELD_TITLE, firstSong.getTitle()),
+						searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(firstSong.getLyrics())),
+						searchHitContainsFieldWithValue(0, FIELD_ARTIST, VALUE_TO_MASKED_VALUE.apply(firstSong.getArtist())),
+						searchHitContainsFieldWithValue(0, FIELD_STARS, firstSong.getStars())
+				));
+				assertThat(responses[1].getResponse(), allOf(
+						searchHitsContainDocumentWithId(0, SECOND_INDEX_NAME, secondSongId),
+						searchHitContainsFieldWithValue(0, FIELD_TITLE, secondSong.getTitle()),
+						searchHitContainsFieldWithValue(0, FIELD_LYRICS, VALUE_TO_MASKED_VALUE.apply(secondSong.getLyrics())),
+						searchHitContainsFieldWithValue(0, FIELD_ARTIST, secondSong.getArtist()),
+						searchHitContainsFieldWithValue(0, FIELD_STARS, secondSong.getStars())
+				));
+			}
 		}
 
 		//DLS
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(TWINS_FIRST_ARTIST_READER)) {
+			List<List<String>> indicesToCheck = List.of(
+					List.of(FIRST_INDEX_NAME, SECOND_INDEX_NAME),
+					List.of(FIRST_INDEX_ALIAS, SECOND_INDEX_ALIAS)
+			);
 			String firstSongId = FIND_ID_OF_SONG_WITH_ARTIST.apply(FIRST_INDEX_SONGS_BY_ID, ARTIST_TWINS);
 			String secondSongId = FIND_ID_OF_SONG_WITH_ARTIST.apply(SECOND_INDEX_SONGS_BY_ID, ARTIST_FIRST);
 
-			MultiSearchRequest request = new MultiSearchRequest();
-			request.add(new SearchRequest(FIRST_INDEX_NAME));
-			request.add(new SearchRequest(SECOND_INDEX_NAME));
+			for (List<String> indices : indicesToCheck) {
+				MultiSearchRequest request = new MultiSearchRequest();
+				indices.forEach(index -> request.add(new SearchRequest(index)));
 
-			MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
+				MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
 
-			assertThat(response, isSuccessfulMultiSearchResponse());
-			assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
+				assertThat(response, isSuccessfulMultiSearchResponse());
+				assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
 
-			MultiSearchResponse.Item[] responses = response.getResponses();
+				MultiSearchResponse.Item[] responses = response.getResponses();
 
-			assertThat(responses[0].getResponse(), searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, firstSongId));
-			assertThat(responses[0].getResponse(), searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_TWINS));
-			assertThat(responses[1].getResponse(), searchHitsContainDocumentWithId(0, SECOND_INDEX_NAME, secondSongId));
-			assertThat(responses[1].getResponse(), searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_FIRST));
+				assertThat(responses[0].getResponse(), searchHitsContainDocumentWithId(0, FIRST_INDEX_NAME, firstSongId));
+				assertThat(responses[0].getResponse(), searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_TWINS));
+				assertThat(responses[1].getResponse(), searchHitsContainDocumentWithId(0, SECOND_INDEX_NAME, secondSongId));
+				assertThat(responses[1].getResponse(), searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_FIRST));
+			}
 		}
 	}
 
