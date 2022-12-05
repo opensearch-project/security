@@ -32,7 +32,8 @@ public class SecurityUtilsTest {
         "INPUT_GRADLE-HOME-CACHE-CLEANUP",
         "MYENV",
         "MYENV:",
-        "MYENV::"
+        "MYENV::",
+        "JAVA_HOME_14.0.2_x64"
     );
     private final Collection<String> namesFromThisRuntimeEnvironment = System.getenv().keySet();
 
