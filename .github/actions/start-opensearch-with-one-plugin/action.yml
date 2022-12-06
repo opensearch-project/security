@@ -11,7 +11,7 @@ inputs:
     required: true
 
   setup-script-name:
-    description: 'The name of the setup script you want to run i.e. "setup" (do not include file extension). Leave this field empty to indicate that no script should be run.'
+    description: 'The name of the setup script you want to run i.e. "setup" (do not include file extension). Leave this field empty to indicate no script should be run.'
     required: false
 
 runs:
