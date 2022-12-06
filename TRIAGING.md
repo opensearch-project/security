@@ -1,6 +1,6 @@
 <img src="https://opensearch.org/assets/img/opensearch-logo-themed.svg" height="64px">
 
-The maintainers of the OpenSearch-Security Repo seek to promote an inclusive and engaged community of contributors. In order to facilitate this, weekly triage meetings are open-to-all and attendance is encouraged for anyone who hopes to contribute, discuss an issue, or learn more about the project.
+The maintainers of the OpenSearch-Security Repo seek to promote an inclusive and engaged community of contributors. In order to facilitate this, weekly triage meetings are open-to-all and attendance is encouraged for anyone who hopes to contribute, discuss an issue, or learn more about the project. To learn more about contributing to the OpenSearch-security Repo visit the [Contributing](./CONTRIBUTING.md) documentation.
 
 ### Do I need to attend for my issue to be addressed/triaged?
 
@@ -23,9 +23,9 @@ If you have an issue you'd like to bring forth please consider getting a link to
 Meetings are lightly structured as follows: 
 
 1. Announcements: If there are any announcements to be made they will happen at the start of the meeting. 
-2. Review of new issues: The meetings always start with reviewing all [untriaged](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Auntriaged) issues. We will also provide an opportunity for any issues introduced since the last meeting but already triaged to be discussed. 
-3. Sprint backlog review: Next, we will review persisting issues in the [sprint backlog](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3A%22sprint+backlog%22), checking to see that issues have not gone stale or been addressed. 
-4. Backlog review: Finally, any remaining time will be spent reviewing the [backlog](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Atriaged+-label%3A%22sprint+backlog%22). 
+2. Review of new issues: The meetings always start with reviewing all untriaged issues for the [security](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Auntriaged) repo and [security-dashboards](https://github.com/opensearch-project/security-dashboards-plugin/issues?q=is%3Aissue+is%3Aopen+-label%3Atriaged) repo. We will also provide an opportunity for any issues introduced since the last meeting but already triaged to be discussed. 
+3. Sprint backlog review: Next, we will review persisting issues in the sprint backlog for the [security](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3A%22sprint+backlog%22) repo and [security-dashboards](https://github.com/opensearch-project/security-dashboards-plugin/issues?q=is%3Aopen+is%3Aissue+label%3A%22sprint+backlog%22) repo, checking to see that issues have not gone stale or been addressed. 
+4. Backlog review: Finally, any remaining time will be spent reviewing the [security](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Atriaged+-label%3A%22sprint+backlog%22) repo and [security-dashboards](https://github.com/opensearch-project/security-dashboards-plugin/issues?q=is%3Aopen+is%3Aissue+label%3Atriaged+-label%3A%22sprint+backlog%22+) repo. 
 
 There is no specific ordering within each category.
 
@@ -48,6 +48,10 @@ If you have an existing issue you would like to discuss, you can always comment 
 While we are always happy to help the community, the best resource for implementation questions is [the OpenSearch forum](https://forum.opensearch.org/c/security/3).
 
 There you can find answers to many common questions as well as speak with implementation experts.
+
+### What if my issue is critical to OpenSearch operations, do I have to wait for the weekly meeting for it to be addressed?
+
+All new issues for the [security](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Auntriaged) repo and [security-dashboards](https://github.com/opensearch-project/security-dashboards-plugin/issues?q=is%3Aissue+is%3Aopen+-label%3Atriaged) repo are reviewed daily to check for critical issues which require immediate triaging. If an issue relates to a severe concern for OpenSearch operation, it will be triaged by a maintainer mid-week. You can still come to discuss an issue at the following meeting even if it has already been triaged during the week. 
 
 ### Is this where I should bring up potential security vulnerabilities?
 
