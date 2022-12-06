@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest] #windows-latest does not currently have a min distribution
+        os: [ubuntu-latest, windows-latest]
         jdk: [8, 11, 14]
     runs-on: ${{ matrix.os }}
 
