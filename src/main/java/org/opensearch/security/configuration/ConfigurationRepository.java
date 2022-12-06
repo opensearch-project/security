@@ -159,16 +159,16 @@ public class ConfigurationRepository {
 
                     while(!dynamicConfigFactory.isInitialized()) {
                         try {
-                            LOGGER.debug("Try to load config ...");
+                            LOGGER.info("Try to load config ...");
                             reloadConfiguration(Arrays.asList(CType.values()));
                             break;
                         } catch (Exception e) {
-                            LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
+                            LOGGER.info("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
                             try {
                                 Thread.sleep(3000);
                             } catch (InterruptedException e1) {
                                 Thread.currentThread().interrupt();
-                                LOGGER.debug("Thread was interrupted so we cancel initialization");
+                                LOGGER.info("Thread was interrupted so we cancel initialization");
                                 break;
                             }
                         }
