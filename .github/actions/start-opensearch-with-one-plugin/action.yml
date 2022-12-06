@@ -96,7 +96,7 @@ runs:
     - name: Sleep while OpenSearch starts
       uses: peternied/action-sleep@v1
       with:
-        seconds: 30
+        seconds: 45
 
     # Verify that the server is operational
     - name: Check OpenSearch Running on Linux
