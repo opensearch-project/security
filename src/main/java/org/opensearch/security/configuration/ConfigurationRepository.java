@@ -228,11 +228,11 @@ public class ConfigurationRepository {
                     .waitForActiveShards(1)
                     .waitForYellowStatus()).actionGet();
         } catch (Exception e) {
-            LOGGER.debug("Caught a {} but we just try again ...", e.toString());
+            LOGGER.info("Caught a {} but we just try again ...", e.toString());
         }
 
         while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-            LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", securityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+            LOGGER.info("index '{}' not healthy yet, we try again ... (Reason: {})", securityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -242,7 +242,7 @@ public class ConfigurationRepository {
             try {
                 response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex).waitForYellowStatus()).actionGet();
             } catch (Exception e) {
-                LOGGER.debug("Caught again a {} but we just try again ...", e.toString());
+                LOGGER.info("Caught again a {} but we just try again ...", e.toString());
             }
         }
     }
@@ -327,7 +327,7 @@ public class ConfigurationRepository {
     private synchronized void notifyAboutChanges(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig) {
         for (ConfigurationChangeListener listener : configurationChangedListener) {
             try {
-                LOGGER.debug("Notify {} listener about change configuration with type {}", listener);
+                LOGGER.info("Notify {} listener about change configuration with type {}", listener);
                 listener.onChange(typeToConfig);
             } catch (Exception e) {
                 LOGGER.error("{} listener errored: "+e, listener, e);
@@ -359,16 +359,16 @@ public class ConfigurationRepository {
 
             if (securityMetadata != null && mappingMetadata != null) {
                 if("security".equals(mappingMetadata.type())) {
-                    LOGGER.debug("security index exists and was created before ES 7 (legacy layout)");
+                    LOGGER.info("security index exists and was created before ES 7 (legacy layout)");
                 } else {
-                    LOGGER.debug("security index exists and was created with ES 7 (new layout)");
+                    LOGGER.info("security index exists and was created with ES 7 (new layout)");
                 }
                 retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
 
 
             } else {
                 //wait (and use new layout)
-                LOGGER.debug("security index not exists (yet)");
+                LOGGER.info("security index not exists (yet)");
                 retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
             }
 
