@@ -18,6 +18,7 @@ package com.amazon.dlic.auth.http.saml;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -155,7 +156,7 @@ class AuthTokenProcessorHandler {
             SettingsException {
         if (token_log.isDebugEnabled()) {
             try {
-                token_log.debug("SAMLResponse for {}\n{}", samlRequestId, new String(Util.base64decoder(samlResponseBase64), "UTF-8"));
+                token_log.debug("SAMLResponse for {}\n{}", samlRequestId, new String(Util.base64decoder(samlResponseBase64), StandardCharsets.UTF_8));
             } catch (Exception e) {
                 token_log.warn(
                         "SAMLResponse for {} cannot be decoded from base64\n{}",

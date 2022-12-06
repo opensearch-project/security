@@ -20,6 +20,7 @@ package org.opensearch.security.auth.limiting;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import org.opensearch.security.util.ratetracking.HeapBasedRateTracker;
@@ -39,6 +40,7 @@ public class HeapBasedRateTrackerTest {
     }
     
     @Test
+    @Ignore // https://github.com/opensearch-project/security/issues/2193
     public void expiryTest() throws Exception {   
         HeapBasedRateTracker<String> tracker = new HeapBasedRateTracker<>(100, 5, 100_000);
         
@@ -78,6 +80,7 @@ public class HeapBasedRateTrackerTest {
     }
     
     @Test
+    @Ignore // https://github.com/opensearch-project/security/issues/2193
     public void maxTwoTriesTest() throws Exception {   
         HeapBasedRateTracker<String> tracker = new HeapBasedRateTracker<>(100, 2, 100_000);
         
