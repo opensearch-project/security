@@ -89,7 +89,7 @@ runs:
 
     - name: Run OpenSearch with plugin on Windows
       if: ${{ runner.os == 'Windows'}}
-      run: start .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch.bat
+      run: start .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch.bat &
       shell: pwsh
 
     # Give the OpenSearch process some time to boot up before sending any requires, might need to increase the default time!
