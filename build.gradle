@@ -86,6 +86,7 @@ configurations.all {
         force "com.google.guava:guava:30.0-jre"
         force "com.fasterxml.woodstox:woodstox-core:6.4.0"
         force "org.scala-lang:scala-library:2.13.9"
+        force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
     }
 }
 
