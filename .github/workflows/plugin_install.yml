@@ -2,121 +2,56 @@ name: Plugin Install
 
 on: [push, pull_request, workflow_dispatch]
 
+env:
+  OPENSEARCH_VERSION: 2.5.0
+  PLUGIN_NAME: opensearch-security
+
 jobs:
-
-  linux-install:
-
-    runs-on: ubuntu-latest
+  plugin-install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        jdk: [11, 17]
+    runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
-
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
-          java-version: 11
+          java-version: ${{ matrix.jdk }}
 
-      - name: Build
-        run: ./gradlew clean assemble -Dbuild.snapshot=false
-
-      - name: Download OpenSearch Core
-        run: |
-          opensearch_version=`./gradlew properties -q | grep "opensearch_version:" | awk '{print $2}' | sed 's/-SNAPSHOT//g'`
-          wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/$opensearch_version/latest/linux/x64/tar/builds/opensearch/dist/opensearch-min-$opensearch_version-linux-x64.tar.gz
-          tar -xzf opensearch-*.tar.gz
-          rm -f opensearch-*.tar.gz
-
-      - name: Move and rename security plugin for installation
-        run: mv build/distributions/opensearch-security-*.zip opensearch-security.zip
-
-      - name: Run OpenSearch with plugin
-        run: |
-          cat > os-ep.sh <<EOF
-          yes | opensearch-plugin install file:///docker-host/security-plugin.zip
-          chmod +x plugins/opensearch-security/tools/install_demo_configuration.sh
-          yes | plugins/opensearch-security/tools/install_demo_configuration.sh
-          chown 1001:1001 -R /opensearch
-          su -c "/opensearch/bin/opensearch" -s /bin/bash opensearch
-          EOF
-          docker build -t opensearch-test:latest -f- . <<EOF
-          FROM ubuntu:latest
-          COPY --chown=1001:1001 os-ep.sh /docker-host/
-          COPY --chown=1001:1001 opensearch-security.zip /docker-host/security-plugin.zip
-          COPY --chown=1001:1001 opensearch* /opensearch/
-          RUN chmod +x /docker-host/os-ep.sh
-          RUN useradd -u 1001 -s /sbin/nologin opensearch
-          ENV PATH="/opensearch/bin:${PATH}"
-          WORKDIR /opensearch/
-          ENTRYPOINT /docker-host/os-ep.sh
-          EOF
-          docker run --name ops -d -p 9200:9200 -p 9600:9600 -i opensearch-test:latest
-
-      - name: Sleep while OpenSearch finishes starting up
-        uses: whatnick/wait-action@v0.1.2
-        with:
-          time: '30s'
-
-      - name: Check OpenSearch Running
-        run: curl -XGET https://localhost:9200 -u 'admin:admin' -k -v
-
-      - name: Get Docker Logs
-        if: always()
-        run: docker logs ops
-
-      - name: Run sanity tests
-        run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
-
-  windows-install:
-
-    runs-on: windows-latest
-
-    steps:
-      - name: Enable longer filenames for Windows
-        run: git config --system core.longpaths true
-
-      - name: Checkout Plugin
+      - name: Checkout Branch
         uses: actions/checkout@v2
 
-      - name: Set up JDK
-        uses: actions/setup-java@v1
+      - name: Assemble target plugin
+        uses: gradle/gradle-build-action@v2
         with:
-          java-version: 11
+          arguments: assemble
 
-      - name: Download OpenSearch Core
+      - name: Create Setup Script
+        if: ${{ runner.os == 'Linux' }}
         run: |
-          cd ..
-          Invoke-WebRequest https://artifacts.opensearch.org/snapshots/core/opensearch/2.5.0-SNAPSHOT/opensearch-min-2.5.0-SNAPSHOT-windows-x64-latest.zip -Outfile opensearch-2.5.0.zip
-          tar -xzf opensearch-2.5.0.zip 
-          del opensearch-2.5.0.zip
-          Rename-Item opensearch-* Opensearch
+          cat > setup.sh <<'EOF'
+          chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh 
+          /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
+          EOF
 
-      - name: Build Security Plugin with Gradle
+      - name: Create Setup Script
+        if: ${{ runner.os == 'Windows' }}
         run: |
-          .\gradlew.bat assemble
-        env:
-          _JAVA_OPTIONS: -Xmx4096M
+          New-Item .\setup.bat -type file
+          Set-Content .\setup.bat -Value "powershell.exe -noexit -command `"echo 'y' | .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat`""
+          Get-Content .\setup.bat
 
-      - name: Move and rename security plugin
-        run: move build\distributions\opensearch-security-*.zip ..\opensearch-security.zip
+      - name: Run Opensearch with A Single Plugin
+        uses: ./.github/actions/start-opensearch-with-one-plugin
+        with:
+          opensearch-version: ${{ env.OPENSEARCH_VERSION }}
+          plugin-name: ${{ env.PLUGIN_NAME }}
+          setup-script-name: setup
 
-      - name: Install the plugin
-        run: |
-          cd ..
-          'y' | .\Opensearch\bin\opensearch-plugin.bat install file:\a\security\opensearch-security.zip
-          'y', 'y', 'N' | .\Opensearch\plugins\opensearch-security\tools\install_demo_configuration.bat
-
-      - name: Run OpenSearch with plugin
-        run: |
-          cd ..
-          start .\Opensearch\bin\opensearch.bat
-
-      - name: Sleep while OpenSearch finishes starting up
-        run: Start-Sleep -s 30
-
-      - name: Check OpenSearch Running
-        run: |
-          $credentialBytes = [Text.Encoding]::ASCII.GetBytes("admin:admin")
-          $encodedCredentials = [Convert]::ToBase64String($credentialBytes)
-          $baseCredentials = "Basic $encodedCredentials"
-          $Headers = @{ Authorization = $baseCredentials }
-          Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200' -Headers $Headers
+      - name: Run sanity tests
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
