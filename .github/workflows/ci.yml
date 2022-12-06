@@ -1,6 +1,6 @@
 name: CI
 
-on: [push, pull_request]
+on: [] #push, pull_request
 
 env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [11, 17]
-        platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        platform: ["ubuntu-latest", "windows-latest"]
     runs-on: ${{ matrix.platform }}
 
     steps:
