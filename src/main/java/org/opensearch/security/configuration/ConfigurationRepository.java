@@ -90,7 +90,7 @@ public class ConfigurationRepository {
     private DynamicConfigFactory dynamicConfigFactory;
     private static final int DEFAULT_CONFIG_VERSION = 2;
     private final Thread bgThread;
-    private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
+    private final AtomicBoolean installDefaultConfig = new AtomicBoolean(true);
     private final boolean acceptInvalid;
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
@@ -127,9 +127,9 @@ public class ConfigurationRepository {
                                 try(StoredContext ctx = threadContext.stashContext()) {
                                     threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                                    System.out.println("ABOUT TO HIT CREATE SEC IF ABSENT");
+                                    LOGGER.info("ABOUT TO HIT CREATE SEC IF ABSENT");
                                     createSecurityIndexIfAbsent();
-                                    System.out.println("SHOULD WAIT FOR AT LEAST YELLOW");
+                                    LOGGER.info("SHOULD WAIT FOR AT LEAST YELLOW");
                                     waitForSecurityIndexToBeAtLeastYellow();
 
                                     ConfigHelper.uploadFile(client, cd+"config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
@@ -203,7 +203,7 @@ public class ConfigurationRepository {
 
     private boolean createSecurityIndexIfAbsent() {
 
-        System.out.println("SHOULD CREATE SECURITY INDEX HERE");
+        LOGGER.info("SHOULD CREATE SECURITY INDEX HERE");
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of(
                     "index.number_of_shards", 1,
@@ -225,7 +225,7 @@ public class ConfigurationRepository {
     }
 
     private void waitForSecurityIndexToBeAtLeastYellow() {
-        System.out.println("IN WAIT FOR AT LEAST YELLOW");
+        LOGGER.info("IN WAIT FOR AT LEAST YELLOW");
         LOGGER.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
         ClusterHealthResponse response = null;
         try {
@@ -310,7 +310,7 @@ public class ConfigurationRepository {
                     LOCK.unlock();
                 }
             } else {
-                throw new ConfigUpdateAlreadyInProgressException("A config update is already imn progress");
+                throw new ConfigUpdateAlreadyInProgressException("A config update is already in progress");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
