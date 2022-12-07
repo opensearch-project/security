@@ -126,9 +126,7 @@ public class ConfigurationRepository {
                                 try(StoredContext ctx = threadContext.stashContext()) {
                                     threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                                    LOGGER.info("ABOUT TO HIT CREATE SEC IF ABSENT");
                                     createSecurityIndexIfAbsent();
-                                    LOGGER.info("SHOULD WAIT FOR AT LEAST YELLOW");
                                     waitForSecurityIndexToBeAtLeastYellow();
 
                                     ConfigHelper.uploadFile(client, cd+"config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
