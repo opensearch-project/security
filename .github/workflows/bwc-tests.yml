@@ -1,4 +1,4 @@
-name: Backwards Compability Suite
+name: Backwards Compatibility Suite
 
 on: [workflow_dispatch]
 
