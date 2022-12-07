@@ -90,7 +90,7 @@ public class ConfigurationRepository {
     private DynamicConfigFactory dynamicConfigFactory;
     private static final int DEFAULT_CONFIG_VERSION = 2;
     private final Thread bgThread;
-    private final AtomicBoolean installDefaultConfig = new AtomicBoolean(true);
+    private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
     private final boolean acceptInvalid;
 
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
@@ -114,7 +114,6 @@ public class ConfigurationRepository {
             public void run() {
                 try {
                     LOGGER.info("Background init thread started. Install default config?: "+installDefaultConfig.get());
-
 
                     if(installDefaultConfig.get()) {
 
@@ -203,7 +202,6 @@ public class ConfigurationRepository {
 
     private boolean createSecurityIndexIfAbsent() {
 
-        LOGGER.info("SHOULD CREATE SECURITY INDEX HERE");
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of(
                     "index.number_of_shards", 1,
@@ -225,7 +223,6 @@ public class ConfigurationRepository {
     }
 
     private void waitForSecurityIndexToBeAtLeastYellow() {
-        LOGGER.info("IN WAIT FOR AT LEAST YELLOW");
         LOGGER.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
         ClusterHealthResponse response = null;
         try {
@@ -254,11 +251,11 @@ public class ConfigurationRepository {
 
     public void initOnNodeStart() {
         try {
-            if (settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
+            if (settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)) {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
                 installDefaultConfig.set(true);
                 bgThread.start();
-            } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
+            } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false)){
                 LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
                         securityIndex);
                 bgThread.start();
