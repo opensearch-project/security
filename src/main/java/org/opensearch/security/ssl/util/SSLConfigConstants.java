@@ -32,15 +32,11 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_HTTP_KEYSTORE_ALIAS = "plugins.security.ssl.http.keystore_alias";
     public static final String SECURITY_SSL_HTTP_KEYSTORE_FILEPATH = "plugins.security.ssl.http.keystore_filepath";
     public static final String SECURITY_SSL_HTTP_PEMKEY_FILEPATH = "plugins.security.ssl.http.pemkey_filepath";
-    public static final String SECURITY_SSL_HTTP_PEMKEY_PASSWORD = "plugins.security.ssl.http.pemkey_password";
     public static final String SECURITY_SSL_HTTP_PEMCERT_FILEPATH = "plugins.security.ssl.http.pemcert_filepath";
     public static final String SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH = "plugins.security.ssl.http.pemtrustedcas_filepath";
-    public static final String SECURITY_SSL_HTTP_KEYSTORE_PASSWORD = "plugins.security.ssl.http.keystore_password";
-    public static final String SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD = "plugins.security.ssl.http.keystore_keypassword";
     public static final String SECURITY_SSL_HTTP_KEYSTORE_TYPE = "plugins.security.ssl.http.keystore_type";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS = "plugins.security.ssl.http.truststore_alias";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH = "plugins.security.ssl.http.truststore_filepath";
-    public static final String SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD = "plugins.security.ssl.http.truststore_password";
     public static final String SECURITY_SSL_HTTP_TRUSTSTORE_TYPE = "plugins.security.ssl.http.truststore_type";
     public static final String SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE = "plugins.security.ssl.transport.enable_openssl_if_available";
     public static final String SECURITY_SSL_TRANSPORT_ENABLED = "plugins.security.ssl.transport.enabled";
@@ -54,25 +50,17 @@ public final class SSLConfigConstants {
 
     public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH = "plugins.security.ssl.transport.keystore_filepath";
     public static final String SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH = "plugins.security.ssl.transport.pemkey_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD = "plugins.security.ssl.transport.pemkey_password";
     public static final String SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH = "plugins.security.ssl.transport.pemcert_filepath";
 
     public static final String SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH = "plugins.security.ssl.transport.pemtrustedcas_filepath";
     public static final String SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED = "plugins.security.ssl.transport.extended_key_usage_enabled";
     public static final boolean SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT = false;
     public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH = "plugins.security.ssl.transport.server.pemkey_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD = "plugins.security.ssl.transport.server.pemkey_password";
     public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH = "plugins.security.ssl.transport.server.pemcert_filepath";
     public static final String SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH = "plugins.security.ssl.transport.server.pemtrustedcas_filepath";
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH = "plugins.security.ssl.transport.client.pemkey_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD = "plugins.security.ssl.transport.client.pemkey_password";
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH = "plugins.security.ssl.transport.client.pemcert_filepath";
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH = "plugins.security.ssl.transport.client.pemtrustedcas_filepath";
-
-    public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD = "plugins.security.ssl.transport.keystore_password";
-    public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD = "plugins.security.ssl.transport.keystore_keypassword";
-    public static final String SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD = "plugins.security.ssl.transport.server.keystore_keypassword";
-    public static final String SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD = "plugins.security.ssl.transport.client.keystore_keypassword";
 
     public static final String SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE = "plugins.security.ssl.transport.keystore_type";
 
@@ -81,7 +69,6 @@ public final class SSLConfigConstants {
     public static final String SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS = "plugins.security.ssl.transport.client.truststore_alias";
 
     public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH = "plugins.security.ssl.transport.truststore_filepath";
-    public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD = "plugins.security.ssl.transport.truststore_password";
     public static final String SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE = "plugins.security.ssl.transport.truststore_type";
     public static final String SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS = "plugins.security.ssl.transport.enabled_ciphers";
     public static final String SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS = "plugins.security.ssl.transport.enabled_protocols";
