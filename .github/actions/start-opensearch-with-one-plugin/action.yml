@@ -26,14 +26,14 @@ runs:
 
     # Download OpenSearch
     - name: Download OpenSearch for Windows
-      uses: peternied/download-file@v1
+      uses: peternied/download-file@v2
       if: ${{ runner.os == 'Windows' }}
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
 
 
     - name: Download OpenSearch for Linux
-      uses: peternied/download-file@v1
+      uses: peternied/download-file@v2
       if: ${{ runner.os == 'Linux' }}
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-linux-x64-latest.tar.gz
@@ -119,7 +119,6 @@ runs:
         Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200/_cat/plugins' -Headers $Headers;
       shell: pwsh
 
-    - name: Run sanity tests
-      uses: gradle/gradle-build-action@v2
-      with:
-        arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
+    - if: always()
+      run: cat ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/logs/opensearch.log
+      shell: bash
