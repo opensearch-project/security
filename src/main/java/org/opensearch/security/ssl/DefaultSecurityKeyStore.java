@@ -313,8 +313,8 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
             final String keystoreFilePath = resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, true);
             final String keystoreType = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, DEFAULT_STORE_TYPE);
-            final String keystorePassword = settings.get(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
+            final String keystorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(
+                settings,
                 SSLConfigConstants.DEFAULT_STORE_PASSWORD
             );
 
@@ -327,10 +327,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             }
 
             final String truststoreType = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, DEFAULT_STORE_TYPE);
-            final String truststorePassword = settings.get(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD,
-                SSLConfigConstants.DEFAULT_STORE_PASSWORD
-            );
+            final String truststorePassword = SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings);
 
             KeystoreProps keystoreProps = new KeystoreProps(keystoreFilePath, keystoreType, keystorePassword);
 
@@ -349,12 +346,12 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     );
                     final String keystoreServerAlias = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS, null);
                     final String keystoreClientAlias = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS, null);
-                    final String serverKeyPassword = settings.get(
-                        SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD,
+                    final String serverKeyPassword = SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_KEYPASSWORD.getSetting(
+                        settings,
                         keystorePassword
                     );
-                    final String clientKeyPassword = settings.get(
-                        SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD,
+                    final String clientKeyPassword = SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_KEYPASSWORD.getSetting(
+                        settings,
                         keystorePassword
                     );
 
@@ -390,10 +387,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     // when alias is null, we take first entry in the store
                     final String truststoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, null);
                     final String keystoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, null);
-                    final String keyPassword = settings.get(
-                        SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD,
-                        keystorePassword
-                    );
+                    final String keyPassword = SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD.getSetting(settings, keystorePassword);
 
                     certFromKeystore = new CertFromKeystore(keystoreProps, keystoreAlias, keyPassword);
                     certFromTruststore = new CertFromTruststore(truststoreProps, truststoreAlias);
@@ -429,14 +423,14 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH, true),
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH, true),
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH, true),
-                        settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD)
+                        SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_PASSWORD.getSetting(settings)
                     );
 
                     CertFileProps serverCertProps = new CertFileProps(
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH, true),
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH, true),
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH, true),
-                        settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD)
+                        SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_PASSWORD.getSetting(settings)
                     );
 
                     certFromFile = new CertFromFile(clientCertProps, serverCertProps);
@@ -445,7 +439,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, true),
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, true),
                         resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, true),
-                        settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD)
+                        SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD.getSetting(settings)
                     );
                     certFromFile = new CertFromFile(certProps);
                 }
@@ -500,12 +494,12 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
             final String keystoreFilePath = resolve(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, true);
             final String keystoreType = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_TYPE, DEFAULT_STORE_TYPE);
-            final String keystorePassword = settings.get(
-                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD,
+            final String keystorePassword = SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.getSetting(
+                settings,
                 SSLConfigConstants.DEFAULT_STORE_PASSWORD
             );
 
-            final String keyPassword = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, keystorePassword);
+            final String keyPassword = SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.getSetting(settings, keystorePassword);
 
             final String keystoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, null);
 
@@ -539,10 +533,8 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     final String truststoreFilePath = resolve(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, true);
 
                     final String truststoreType = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, DEFAULT_STORE_TYPE);
-                    final String truststorePassword = settings.get(
-                        SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD,
-                        SSLConfigConstants.DEFAULT_STORE_PASSWORD
-                    );
+                    final String truststorePassword = SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings);
+
                     final String truststoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, null);
 
                     KeystoreProps truststoreProps = new KeystoreProps(truststoreFilePath, truststoreType, truststorePassword);
@@ -577,7 +569,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     resolve(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, true),
                     resolve(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, true),
                     trustedCas,
-                    settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_PASSWORD)
+                    SECURITY_SSL_HTTP_PEMKEY_PASSWORD.getSetting(settings)
                 );
                 CertFromFile certFromFile = new CertFromFile(certFileProps);
 
@@ -586,7 +578,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
                     certFromFile.getServerPemKey(),
                     certFromFile.getServerPemCert(),
                     certFromFile.getServerTrustedCas(),
-                    settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_PASSWORD),
+                    SECURITY_SSL_HTTP_PEMKEY_PASSWORD.getSetting(settings),
                     getEnabledSSLCiphers(this.sslHTTPProvider, true),
                     sslHTTPProvider,
                     httpClientAuthMode

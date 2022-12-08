@@ -83,6 +83,9 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+
 public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
     private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
@@ -580,7 +583,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
             } else {
                 final KeyStore trustStore = PemKeyReader.loadKeyStore(
                     PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, !trustAll),
-                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                    SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
                     settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
                 );
 
@@ -594,11 +597,11 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                         configPath,
                         enableClientAuth
                     ),
-                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                    SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
                     settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE)
                 );
-                final String keyStorePassword = settings.get(
-                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
+                final String keyStorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(
+                    settings,
                     SSLConfigConstants.DEFAULT_STORE_PASSWORD
                 );
 

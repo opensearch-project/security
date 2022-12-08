@@ -52,7 +52,7 @@ import org.opensearch.security.support.PemKeyReader;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
 import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
 
-public class SettingsBasedSSLConfigurator {
+public class SettingsBasedSSLConfiguratorV4 {
     private static final Logger log = LogManager.getLogger(SettingsBasedSSLConfigurator.class);
 
     public static final String CERT_ALIAS = "cert_alias";
@@ -96,14 +96,14 @@ public class SettingsBasedSSLConfigurator {
     private String effectiveKeyAlias;
     private List<String> effectiveTruststoreAliases;
 
-    public SettingsBasedSSLConfigurator(Settings settings, Path configPath, String settingsKeyPrefix, String clientName) {
+    public SettingsBasedSSLConfiguratorV4(Settings settings, Path configPath, String settingsKeyPrefix, String clientName) {
         this.settings = settings;
         this.configPath = configPath;
         this.settingsKeyPrefix = normalizeSettingsKeyPrefix(settingsKeyPrefix);
         this.clientName = clientName != null ? clientName : this.settingsKeyPrefix;
     }
 
-    public SettingsBasedSSLConfigurator(Settings settings, Path configPath, String settingsKeyPrefix) {
+    public SettingsBasedSSLConfiguratorV4(Settings settings, Path configPath, String settingsKeyPrefix) {
         this(settings, configPath, settingsKeyPrefix, null);
     }
 

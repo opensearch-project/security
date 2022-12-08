@@ -47,6 +47,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
+import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
@@ -62,6 +63,13 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4Plugin;
 
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+
 @SuppressWarnings({ "resource", "unchecked" })
 public class SSLTest extends SingleClusterTest {
 
@@ -74,18 +82,24 @@ public class SSLTest extends SingleClusterTest {
     public void testHttps() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-            .put("plugins.security.ssl.http.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
-            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
+            .putList(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.1", "TLSv1.2")
-            .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             .build();
 
         setupSslOnlyMode(settings);
@@ -120,19 +134,25 @@ public class SSLTest extends SingleClusterTest {
         System.out.println("allowOpenSSL: " + allowOpenSSL);
 
         Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             // WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
-            .put("plugins.security.ssl.http.enabled_ciphers", "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
             // WEAK and insecure protocol, do NOT use this, its here for unittesting only!!!
-            .put("plugins.security.ssl.http.enabled_protocols", "SSLv3")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "SSLv3")
             .put("client.type", "node")
             .put("path.home", ".")
             .build();
@@ -154,12 +174,12 @@ public class SSLTest extends SingleClusterTest {
             }
 
             settings = Settings.builder()
-                .put("plugins.security.ssl.transport.enabled", true)
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
                 .put(ConfigConstants.SECURITY_SSL_ONLY, true)
                 .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
                 .put(
-                    "plugins.security.ssl.transport.keystore_filepath",
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
                     FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
                 )
                 .put(
@@ -167,9 +187,9 @@ public class SSLTest extends SingleClusterTest {
                     FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
                 )
                 // WEAK and insecure cipher, do NOT use this, its here for unittesting only!!!
-                .put("plugins.security.ssl.transport.enabled_ciphers", "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
                 // WEAK and insecure protocol, do NOT use this, its here for unittesting only!!!
-                .put("plugins.security.ssl.transport.enabled_protocols", "SSLv3")
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "SSLv3")
                 .put("client.type", "node")
                 .put("path.home", ".")
                 .build();
@@ -230,14 +250,20 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsOptionalAuth() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             .build();
 
         setupSslOnlyMode(settings);
@@ -260,24 +286,33 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsAndNodeSSL() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
 
             .build();
 
@@ -306,7 +341,7 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsAndNodeSSLPKCS8Pem() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -318,19 +353,17 @@ public class SSLTest extends SingleClusterTest {
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.key.pem")
             )
-            // .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, "changeit")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.key.pem"))
-            // .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_PASSWORD, "changeit")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
@@ -358,7 +391,7 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsAndNodeSSLPKCS1Pem() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -374,11 +407,11 @@ public class SSLTest extends SingleClusterTest {
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem"))
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH,
@@ -407,9 +440,12 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testHttpsAndNodeSSLPemEnc() throws Exception {
+        final MockSecureSettings mockSecureSettings = new MockSecureSettings();
+        mockSecureSettings.setString(SECURITY_SSL_HTTP_PEMKEY_PASSWORD.propertyName, "changeit");
+        mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD.propertyName, "changeit");
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -421,26 +457,25 @@ public class SSLTest extends SingleClusterTest {
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.key")
             )
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, "changeit")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
             )
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.key"))
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_PASSWORD, "changeit")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
             )
+            .setSecureSettings(mockSecureSettings)
             .build();
 
         setupSslOnlyMode(settings);
@@ -461,29 +496,88 @@ public class SSLTest extends SingleClusterTest {
     }
 
     @Test
+    public void testSSLPemEncWithInsecureSettings() throws Exception {
+        final Settings settings = Settings.builder()
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
+            .put(ConfigConstants.SECURITY_SSL_ONLY, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.key")
+            )
+            // legacy insecure passwords
+            .put(SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD.insecurePropertyName, "changeit")
+            .put(SECURITY_SSL_HTTP_PEMKEY_PASSWORD.insecurePropertyName, "changeit")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
+            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
+
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.crt.pem")
+            )
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/pem/node-4.key"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
+            )
+            .build();
+
+        setupSslOnlyMode(settings);
+
+        RestHelper rh = restHelper();
+        rh.enableHTTPClientSSL = true;
+        rh.trustHTTPServerCertificate = true;
+        rh.sendAdminCertificate = true;
+
+        Assert.assertTrue(
+            rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE")
+        );
+    }
+
+    @Test
     public void testHttpsAndNodeSSLFailedCipher() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
 
-            .put("plugins.security.ssl.transport.enabled_ciphers", "INVALID_CIPHER")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, "INVALID_CIPHER")
 
             .build();
 
@@ -503,15 +597,21 @@ public class SSLTest extends SingleClusterTest {
         thrown.expect(NoHttpResponseException.class);
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "OPTIONAL")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "OPTIONAL")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             .build();
 
         setupSslOnlyMode(settings);
@@ -532,15 +632,21 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsNoEnforce() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "NONE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "NONE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             .build();
 
         setupSslOnlyMode(settings);
@@ -561,15 +667,21 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsEnforceFail() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             .build();
 
         setupSslOnlyMode(settings);
@@ -596,15 +708,21 @@ public class SSLTest extends SingleClusterTest {
         thrown.expect(SSLHandshakeException.class);
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "NONE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "NONE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             .build();
 
         setupSslOnlyMode(settings);
@@ -623,18 +741,21 @@ public class SSLTest extends SingleClusterTest {
     public void testNodeClientSSL() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
             .build();
 
         setupSslOnlyMode(settings);
@@ -704,23 +825,32 @@ public class SSLTest extends SingleClusterTest {
     public void testCustomPrincipalExtractor() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
-            .put("plugins.security.ssl.transport.principal_extractor_class", "org.opensearch.security.ssl.TestPrincipalExtractor")
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, "org.opensearch.security.ssl.TestPrincipalExtractor")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             .build();
 
         setupSslOnlyMode(settings);
@@ -771,7 +901,7 @@ public class SSLTest extends SingleClusterTest {
     public void testCRLPem() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -783,19 +913,17 @@ public class SSLTest extends SingleClusterTest {
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.key.pem")
             )
-            // .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_PASSWORD, "changeit")
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.key.pem"))
-            // .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_PASSWORD, "changeit")
             .put(
                 SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/chain-ca.pem")
@@ -818,15 +946,21 @@ public class SSLTest extends SingleClusterTest {
     public void testCRL() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, false)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, true)
             .put(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE, FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, CertificateValidatorTest.CRL_DATE.getTime())
@@ -850,18 +984,21 @@ public class SSLTest extends SingleClusterTest {
         Assume.assumeTrue(!allowOpenSSL && PlatformDependent.javaVersion() >= 11);
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")
             .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_AES_128_GCM_SHA256")
             .build();
@@ -902,20 +1039,29 @@ public class SSLTest extends SingleClusterTest {
     public void testTLSv12() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, "TLSv1.2")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .build();
@@ -931,29 +1077,39 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testHttpsAndNodeSSLKeyPass() throws Exception {
+        final MockSecureSettings mockSecureSettings = new MockSecureSettings();
+        mockSecureSettings.setString(SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.propertyName, "changeit");
+        mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD.propertyName, "changeit");
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD, "changeit")
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, "changeit")
-
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
+            .setSecureSettings(mockSecureSettings)
             .build();
 
         setupSslOnlyMode(settings);
@@ -979,9 +1135,13 @@ public class SSLTest extends SingleClusterTest {
 
     @Test
     public void testHttpsAndNodeSSLKeyStoreExtendedUsageEnabled() throws Exception {
+        final MockSecureSettings mockSecureSettings = new MockSecureSettings();
+        mockSecureSettings.setString(SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.propertyName, "changeit");
+        mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.propertyName, "changeit");
+        mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "changeit");
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -993,24 +1153,29 @@ public class SSLTest extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS, "root-ca")
 
             .put(
-                "plugins.security.ssl.transport.keystore_filepath",
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/node-0-keystore.jks")
             )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks")
             )
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, "changeit")
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, "changeit")
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, "changeit")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
+            .setSecureSettings(mockSecureSettings)
 
             .build();
 
@@ -1037,29 +1202,39 @@ public class SSLTest extends SingleClusterTest {
 
     @Test(expected = IllegalStateException.class)
     public void testHttpsAndNodeSSLKeyPassFail() throws Exception {
+        final MockSecureSettings mockSecureSettings = new MockSecureSettings();
+        mockSecureSettings.setString(SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.propertyName, "wrongpass");
+        mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD.propertyName, "wrongpass");
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_ALIAS, "node-0")
-            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
             .put(
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
             )
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_KEYPASSWORD, "wrongpass")
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, "wrongpass")
-
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
+            .setSecureSettings(mockSecureSettings)
             .build();
 
         setupSslOnlyMode(settings);
@@ -1077,7 +1252,7 @@ public class SSLTest extends SingleClusterTest {
     public void testHttpsAndNodeSSLPemExtendedUsageEnabled() throws Exception {
 
         final Settings settings = Settings.builder()
-            .put("plugins.security.ssl.transport.enabled", true)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(ConfigConstants.SECURITY_SSL_ONLY, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
@@ -1106,11 +1281,11 @@ public class SSLTest extends SingleClusterTest {
                 SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH,
                 FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/root-ca.pem")
             )
-            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
 
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.clientauth_mode", "REQUIRE")
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem"))
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.key.pem"))
             .put(
