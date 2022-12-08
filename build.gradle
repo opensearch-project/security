@@ -122,6 +122,7 @@ test {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
+        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
     }
     maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
@@ -149,13 +150,37 @@ test {
     }
 }
 
+//add new task that runs OpenSSL tests
+task opensslTest(type: Test) {
+    include '**/OpenSSL*.class'
+    retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 5
+    }
+    jacoco {
+        excludes = [
+            "com.sun.jndi.dns.*",
+            "com.sun.security.sasl.gsskerb.*",
+            "java.sql.*",
+            "javax.script.*",
+            "org.jcp.xml.dsig.internal.dom.*",
+            "sun.nio.cs.ext.*",
+            "sun.security.ec.*",
+            "sun.security.jgss.*",
+            "sun.security.pkcs11.*",
+            "sun.security.smartcardio.*",
+            "sun.util.resources.provider.*"
+        ]
+    }
+}
+
 task copyExtraTestResources(dependsOn: testClasses) {
     copy {
         from 'src/test/resources'
         into 'build/testrun/test/src/test/resources'
     }
 }
-tasks.test.dependsOn(copyExtraTestResources)
+tasks.test.dependsOn(copyExtraTestResources, opensslTest)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")
