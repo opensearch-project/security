@@ -53,6 +53,11 @@ runs:
         del opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
       shell: pwsh
 
+    # Move and rename the plugin for installation
+    - name: Move and rename the plugin for installation
+      run: mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip
+      shell: bash
+
     # Install the plugin
     - name: Install Plugin into OpenSearch for Linux
       if: ${{ runner.os == 'Linux'}}
