@@ -118,3 +118,7 @@ runs:
         $Headers = @{ Authorization = $baseCredentials }
         Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200/_cat/plugins' -Headers $Headers;
       shell: pwsh
+
+    - if: always()
+      run: cat ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/logs/opensearch.log
+      shell: bash
