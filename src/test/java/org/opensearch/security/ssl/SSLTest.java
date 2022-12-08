@@ -417,7 +417,6 @@ public class SSLTest extends SingleClusterTest {
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
 
-        System.out.println(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty"));
         Assert.assertTrue(rh.executeSimpleRequest("_opendistro/_security/sslinfo?pretty").contains("CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE"));
     }
 
