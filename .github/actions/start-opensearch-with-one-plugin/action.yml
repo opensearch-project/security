@@ -1,0 +1,124 @@
+name: 'Launch OpenSearch with a single plugin installed'
+description: 'Downloads latest build of OpenSearch, installs a plugin, executes a script and then starts OpenSearch on localhost:9200'
+
+inputs:
+  opensearch-version:
+    description: 'The version of OpenSearch that should be used, e.g "3.0.0"'
+    required: true
+
+  plugin-name:
+    description: 'The name of the plugin to use, such as opensearch-security'
+    required: true
+
+  setup-script-name:
+    description: 'The name of the setup script you want to run i.e. "setup" (do not include file extension). Leave empty to indicate one should not be run.'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+
+    # Configure longpath names if on Windows
+    - name: Enable Longpaths if on Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: git config --system core.longpaths true
+      shell: pwsh
+
+    # Download OpenSearch
+    - name: Download OpenSearch for Windows
+      uses: peternied/download-file@v2
+      if: ${{ runner.os == 'Windows' }}
+      with:
+        url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
+
+
+    - name: Download OpenSearch for Linux
+      uses: peternied/download-file@v2
+      if: ${{ runner.os == 'Linux' }}
+      with:
+        url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-linux-x64-latest.tar.gz
+
+    # Extract downloaded zip
+    - name: Extract downloaded tar
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        tar -xzf opensearch-*.tar.gz
+        rm -f opensearch-*.tar.gz
+      shell: bash
+
+    - name: Extract downloaded zip
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        tar -xzf opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
+        del opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
+      shell: pwsh
+
+    # Move and rename the plugin for installation
+    - name: Move and rename the plugin for installation
+      run: mv ./build/distributions/${{ inputs.plugin-name }}-*.zip ${{ inputs.plugin-name }}.zip
+      shell: bash
+
+    # Install the plugin
+    - name: Install Plugin into OpenSearch for Linux
+      if: ${{ runner.os == 'Linux'}}
+      run: |
+        chmod +x ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin
+        /bin/bash -c "yes | ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch-plugin install file:$(pwd)/opensearch-security.zip"
+      shell: bash
+
+    - name: Install Plugin into OpenSearch for Windows
+      if: ${{ runner.os == 'Windows'}}
+      run: |
+        'y' | .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch-plugin.bat install file:$(pwd)\${{ inputs.plugin-name }}.zip
+      shell: pwsh
+
+    # Run any configuration scripts
+    - name: Run Setup Script for Linux
+      if: ${{ runner.os == 'Linux' && inputs.setup-script-name != '' }}
+      run: |
+        echo "running linux setup"
+        chmod +x ./${{ inputs.setup-script-name }}.sh
+        ./${{ inputs.setup-script-name }}.sh
+      shell: bash
+
+    - name: Run Setup Script for Windows
+      if: ${{ runner.os == 'Windows' && inputs.setup-script-name != '' }}
+      run: .\${{ inputs.setup-script-name }}.bat
+      shell: pwsh
+
+    # Run OpenSearch
+    - name: Run OpenSearch with plugin on Linux
+      if: ${{ runner.os == 'Linux'}}
+      run: /bin/bash -c "./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/bin/opensearch &"
+      shell: bash
+
+    - name: Run OpenSearch with plugin on Windows
+      if: ${{ runner.os == 'Windows'}}
+      run: start .\opensearch-${{ inputs.opensearch-version }}-SNAPSHOT\bin\opensearch.bat
+      shell: pwsh
+
+    # Give the OpenSearch process some time to boot up before sending any requires, might need to increase the default time!
+    - name: Sleep while OpenSearch starts
+      uses: peternied/action-sleep@v1
+      with:
+        seconds: 30
+
+    # Verify that the server is operational
+    - name: Check OpenSearch Running on Linux
+      if: ${{ runner.os != 'Windows'}}
+      run: curl https://localhost:9200/_cat/plugins -u 'admin:admin' -k -v
+      shell: bash
+
+    - name: Check OpenSearch Running on Windows
+      if: ${{ runner.os == 'Windows'}}
+      run: |
+        $credentialBytes = [Text.Encoding]::ASCII.GetBytes("admin:admin")
+        $encodedCredentials = [Convert]::ToBase64String($credentialBytes)
+        $baseCredentials = "Basic $encodedCredentials"
+        $Headers = @{ Authorization = $baseCredentials }
+        Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200/_cat/plugins' -Headers $Headers;
+      shell: pwsh
+
+    - if: always()
+      run: cat ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/logs/opensearch.log
+      shell: bash
