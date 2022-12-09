@@ -14,7 +14,7 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -50,6 +50,10 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
+    static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
+        ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
+    );
+
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user/"),
@@ -94,9 +98,10 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             return;
         }
 
-        Pattern usernamePattern = Pattern.compile("[$&+,:;=\\\\?#|/'<>^*()%!]");
-        if (usernamePattern.matcher(username).find()) {
-            badRequestResponse(channel, "Username has special characters, not permitted.");
+        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(username::contains).collect(Collectors.toList());
+        if (!foundRestrictedContents.isEmpty()) {
+            final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
+            badRequestResponse(channel, "Username has restricted characters " + restrictedContents + " that are not permitted.");
             return;
         }
 

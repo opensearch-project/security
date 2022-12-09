@@ -29,6 +29,11 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
+
 
 public class UserApiTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT; 
@@ -132,10 +137,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // no username given
         response = rh.executePutRequest(ENDPOINT + "/internalusers/", "{\"hash\": \"123\"}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
-
-        // username has special characters
-        response = rh.executePutRequest(ENDPOINT + "/internalusers/n@ag:ilum", "{\"hash\": \"456\"}", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // Faulty JSON payload
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{some: \"thing\" asd  other: \"thing\"}",
@@ -405,8 +406,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertTrue(roles.contains("starfleet"));
         Assert.assertTrue(roles.contains("captains"));
 
-        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_CREATED);
+        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_CREATED);
         addUserWithPassword("abc", "abc", HttpStatus.SC_CREATED);
 
 
@@ -629,7 +629,24 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // Patch multiple hidden users
         response = rh.executePatchRequest(ENDPOINT + "/internalusers", "[{ \"op\": \"add\", \"path\": \"/hide/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
+    }
 
+    @Test
+    public void restrictedUsernameContents() throws Exception {
+        setup();
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        RESTRICTED_FROM_USERNAME.stream().forEach(restrictedTerm -> {
+            final String username = "nag" + restrictedTerm + "ilum";
+            final String url = ENDPOINT + "/internalusers/" + username;
+            final String bodyWithDefaultPasswordHash = "{\"hash\": \"456\"}";
+            final HttpResponse response = rh.executePutRequest(url, bodyWithDefaultPasswordHash);
+
+            assertThat("Expected " + username + " to be rejected", response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
+            assertThat(response.getBody(), containsString(restrictedTerm));
+        });
     }
 
     @Test
