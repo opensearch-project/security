@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        jdk: [8, 11, 14]
+        jdk: [11, 17]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -28,6 +28,11 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: assemble
+
+      # Move and rename the plugin for installation
+      - name: Move and rename the plugin for installation
+        run: mv ./build/distributions/${{ env.PLUGIN_NAME }}-*.zip ${{ env.PLUGIN_NAME }}.zip
+        shell: bash
 
       - name: Create Setup Script
         if: ${{ runner.os == 'Linux' }}
@@ -50,3 +55,8 @@ jobs:
           opensearch-version: ${{ env.OPENSEARCH_VERSION }}
           plugin-name: ${{ env.PLUGIN_NAME }}
           setup-script-name: setup
+
+      - name: Run sanity tests
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
