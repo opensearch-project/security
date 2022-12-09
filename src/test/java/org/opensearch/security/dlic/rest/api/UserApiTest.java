@@ -656,8 +656,13 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             final String username = "nag" + restrictedTerm + "ilum";
             final String url = ENDPOINT + "/internalusers/" + username;
             final String bodyWithDefaultPasswordHash = "{\"hash\": \"456\"}";
-            final HttpResponse response = rh.executePutRequest(url, bodyWithDefaultPasswordHash);
-
+            HttpResponse response = null;
+            try {
+                response = rh.executePutRequest(url, bodyWithDefaultPasswordHash);
+            } catch (final Exception e) {
+                Assert.fail("Unexpected exception " + e);
+            }
+            Assert.assertNotNull("Should have a non-null response object", response);
             assertThat("Expected " + username + " to be rejected", response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
             assertThat(response.getBody(), containsString(restrictedTerm));
         });
