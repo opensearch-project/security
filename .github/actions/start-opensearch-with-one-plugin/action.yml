@@ -31,7 +31,6 @@ runs:
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
 
-
     - name: Download OpenSearch for Linux
       uses: peternied/download-file@v2
       if: ${{ runner.os == 'Linux' }}
