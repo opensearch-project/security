@@ -29,7 +29,7 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         arguments: |
-          build test -Dbuild.snapshot=false
+          build test --refresh-dependencies -Dbuild.snapshot=false
           -x integrationTest
           -x spotlessCheck
           -x checkstyleMain
