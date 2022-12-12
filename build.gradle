@@ -426,10 +426,6 @@ dependencies {
     testRuntimeOnly "org.apache.kafka:kafka-metadata:${kafka_version}"
     testRuntimeOnly "org.apache.kafka:kafka-storage:${kafka_version}"
 
-
-
-    implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
-
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
     //integration test framework:
