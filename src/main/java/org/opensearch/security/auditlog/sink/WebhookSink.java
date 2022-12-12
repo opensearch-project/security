@@ -50,6 +50,8 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+
 public class WebhookSink extends AuditLogSink {
 
 	/* HttpClient is thread safe */
@@ -328,7 +330,7 @@ public class WebhookSink extends AuditLogSink {
 
 					} else {
 					    return PemKeyReader.loadKeyStore(PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, false)
-			                    , settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, SSLConfigConstants.DEFAULT_STORE_PASSWORD)
+			                    , SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings)
 			                    , settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
 					}
 				} catch(Exception ex) {
