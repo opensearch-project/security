@@ -11,7 +11,7 @@ inputs:
     required: true
 
   setup-script-name:
-    description: 'The name of the setup script you want to run i.e. "setup" (do not include file extension). Leave this field empty to indicate no script should be run.'
+    description: 'The name of the setup script you want to run i.e. "setup" (do not include file extension). Leave empty to indicate one should not be run.'
     required: false
 
 runs:
@@ -26,14 +26,13 @@ runs:
 
     # Download OpenSearch
     - name: Download OpenSearch for Windows
-      uses: peternied/download-file@v1
+      uses: peternied/download-file@v2
       if: ${{ runner.os == 'Windows' }}
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
 
-
     - name: Download OpenSearch for Linux
-      uses: peternied/download-file@v1
+      uses: peternied/download-file@v2
       if: ${{ runner.os == 'Linux' }}
       with:
         url: https://artifacts.opensearch.org/snapshots/core/opensearch/${{ inputs.opensearch-version }}-SNAPSHOT/opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-linux-x64-latest.tar.gz
@@ -52,11 +51,6 @@ runs:
         tar -xzf opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
         del opensearch-min-${{ inputs.opensearch-version }}-SNAPSHOT-windows-x64-latest.zip
       shell: pwsh
-
-    # Move and rename the plugin for installation
-    - name: Move and rename the plugin for installation
-      run: mv ./build/distributions/${{ inputs.plugin-name }}-*-SNAPSHOT.zip ${{ inputs.plugin-name }}.zip
-      shell: bash
 
     # Install the plugin
     - name: Install Plugin into OpenSearch for Linux
@@ -118,3 +112,7 @@ runs:
         $Headers = @{ Authorization = $baseCredentials }
         Invoke-WebRequest -SkipCertificateCheck -Uri 'https://localhost:9200/_cat/plugins' -Headers $Headers;
       shell: pwsh
+
+    - if: always()
+      run: cat ./opensearch-${{ inputs.opensearch-version }}-SNAPSHOT/logs/opensearch.log
+      shell: bash
