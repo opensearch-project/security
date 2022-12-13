@@ -28,7 +28,6 @@
 
 package org.opensearch.test.framework.cluster;
 
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +38,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.rules.ExternalResource;
@@ -47,6 +47,10 @@ import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.security.action.configupdate.ConfigUpdateAction;
+import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
+import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
+import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.test.framework.AuditConfiguration;
 import org.opensearch.test.framework.AuthFailureListeners;
@@ -57,6 +61,7 @@ import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.XffConfig;
 import org.opensearch.test.framework.audit.TestRuleAuditLogSink;
+import org.opensearch.test.framework.certificate.CertificateData;
 import org.opensearch.test.framework.certificate.TestCertificates;
 
 /**
@@ -71,13 +76,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 
 	private static final Logger log = LogManager.getLogger(LocalCluster.class);
 
-	static {
-		System.setProperty("security.default_init.dir", new File("./securityconfig").getAbsolutePath());
-	}
+	public static final String INIT_CONFIGURATION_DIR = "security.default_init.dir";
 
 	protected static final AtomicLong num = new AtomicLong();
 
-	private boolean sslOnly = false;
+	private boolean sslOnly;
 
 	private final List<Class<? extends Plugin>> plugins;
 	private final ClusterManager clusterManager;
@@ -96,7 +99,7 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 	private LocalCluster(String clusterName, TestSecurityConfig testSgConfig, boolean sslOnly, Settings nodeOverride,
 			ClusterManager clusterManager, List<Class<? extends Plugin>> plugins, TestCertificates testCertificates,
 			List<LocalCluster> clusterDependencies, Map<String, LocalCluster> remotes, List<TestIndex> testIndices,
-		boolean loadConfigurationIntoIndex) {
+		boolean loadConfigurationIntoIndex, String defaultConfigurationInitDirectory) {
 		this.plugins = plugins;
 		this.testCertificates = testCertificates;
 		this.clusterManager = clusterManager;
@@ -109,6 +112,9 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		this.clusterDependencies = clusterDependencies;
 		this.testIndices = testIndices;
 		this.loadConfigurationIntoIndex = loadConfigurationIntoIndex;
+		if(StringUtils.isNoneBlank(defaultConfigurationInitDirectory)) {
+			System.setProperty(INIT_CONFIGURATION_DIR, defaultConfigurationInitDirectory);
+		}
 	}
 
 	public String getSnapshotDirPath() {
@@ -134,13 +140,13 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 						.putList(key, value)
 						.build();
 			}
-
 			start();
 		}
 	}
 
 	@Override
 	protected void after() {
+		System.clearProperty(INIT_CONFIGURATION_DIR);
 		close();
 	}
 
@@ -207,6 +213,10 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		return localOpenSearchCluster != null;
 	}
 
+	public List<TestSecurityConfig.User> getConfiguredUsers() {
+		return testSecurityConfig.getUsers();
+	}
+
 	public Random getRandom() {
 		return localOpenSearchCluster.getRandom();
 	}
@@ -239,7 +249,26 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		log.info("Initializing OpenSearch Security index");
 		try(Client client = new ContextHeaderDecoratorClient(this.getInternalNodeClient(), Map.of(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER , "true"))) {
 			testSecurityConfig.initIndex(client);
+			triggerConfigurationReload(client);
 		}
+	}
+
+	public void updateUserConfiguration(List<TestSecurityConfig.User> users) {
+		try(Client client = new ContextHeaderDecoratorClient(this.getInternalNodeClient(), Map.of(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER , "true"))) {
+			testSecurityConfig.updateInternalUsersConfiguration(client, users);
+			triggerConfigurationReload(client);
+		}
+	}
+
+	private static void triggerConfigurationReload(Client client) {
+		ConfigUpdateResponse configUpdateResponse = client.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))).actionGet();
+		if (configUpdateResponse.hasFailures()) {
+			throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
+		}
+	}
+
+	public CertificateData getAdminCertificate() {
+		return testCertificates.getAdminCertificateData();
 	}
 
 	public static class Builder {
@@ -257,6 +286,8 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		private TestCertificates testCertificates;
 
 		private boolean loadConfigurationIntoIndex = true;
+
+		private String defaultConfigurationInitDirectory = null;
 
 		public Builder() {
 		}
@@ -352,15 +383,19 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 		}
 
 		public Builder audit(AuditConfiguration auditConfiguration) {
-			if(auditConfiguration != null) {
+			if (auditConfiguration != null) {
 				testSecurityConfig.audit(auditConfiguration);
 			}
-			if(auditConfiguration.isEnabled()) {
+			if (auditConfiguration.isEnabled()) {
 				nodeOverrideSettingsBuilder.put("plugins.security.audit.type", TestRuleAuditLogSink.class.getName());
 			} else {
-				nodeOverrideSettingsBuilder.put("plugins.security.audit.type","noop");
+				nodeOverrideSettingsBuilder.put("plugins.security.audit.type", "noop");
 			}
 			return this;
+		}
+
+		public List<TestSecurityConfig.User> getUsers() {
+			return testSecurityConfig.getUsers();
 		}
 
 		public Builder roles(Role... roles) {
@@ -422,6 +457,11 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 			return this;
 		}
 
+		public Builder defaultConfigurationInitDirectory(String defaultConfigurationInitDirectory){
+			this.defaultConfigurationInitDirectory = defaultConfigurationInitDirectory;
+			return this;
+		}
+
 		public LocalCluster build() {
 			try {
 				if(testCertificates == null) {
@@ -429,8 +469,8 @@ public class LocalCluster extends ExternalResource implements AutoCloseable, Ope
 				}
 				clusterName += "_" + num.incrementAndGet();
 				Settings settings = nodeOverrideSettingsBuilder.build();
-				return new LocalCluster(clusterName, testSecurityConfig, sslOnly, settings, clusterManager, plugins,
-						testCertificates, clusterDependencies, remoteClusters, testIndices, loadConfigurationIntoIndex);
+				return new LocalCluster(clusterName, testSecurityConfig, sslOnly, settings, clusterManager, plugins, testCertificates,
+					clusterDependencies, remoteClusters, testIndices, loadConfigurationIntoIndex, defaultConfigurationInitDirectory);
 			} catch (Exception e) {
 				log.error("Failed to build LocalCluster", e);
 				throw new RuntimeException(e);

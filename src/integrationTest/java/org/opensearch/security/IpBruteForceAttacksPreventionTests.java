@@ -120,7 +120,7 @@ public class IpBruteForceAttacksPreventionTests {
 	}
 
 	@Test
-	public void shouldBlockIpWhenFailureAuthenticationCountIsGraterThanAllowedTries() {
+	public void shouldBlockIpWhenFailureAuthenticationCountIsGreaterThanAllowedTries() {
 		authenticateUserWithIncorrectPassword(CLIENT_IP_8, USER_1, ALLOWED_TRIES * 2);
 		try(TestRestClient client = cluster.createGenericClientRestClient(userWithSourceIp(USER_1, CLIENT_IP_8))) {
 
