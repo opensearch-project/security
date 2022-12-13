@@ -29,6 +29,7 @@
 package org.opensearch.test.framework;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -49,20 +50,18 @@ import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.Strings;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.ToXContentObject;
 import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.security.action.configupdate.ConfigUpdateAction;
-import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
-import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.test.framework.cluster.OpenSearchClientProvider.UserCredentialsHolder;
 
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
+import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 
 /**
 * This class allows the declarative specification of the security configuration; in particular:
@@ -133,6 +132,10 @@ public class TestSecurityConfig {
 		}
 
 		return this;
+	}
+
+	public List<User> getUsers() {
+		return new ArrayList<>(internalUsers.values());
 	}
 
 	public TestSecurityConfig roles(Role... roles) {
@@ -596,13 +599,14 @@ public class TestSecurityConfig {
 		writeConfigToIndex(client, CType.ROLESMAPPING, rolesMapping);
 		writeEmptyConfigToIndex(client, CType.ACTIONGROUPS);
 		writeEmptyConfigToIndex(client, CType.TENANTS);
+	}
 
-		ConfigUpdateResponse configUpdateResponse = client.execute(ConfigUpdateAction.INSTANCE,
-				new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))).actionGet();
-
-		if (configUpdateResponse.hasFailures()) {
-			throw new RuntimeException("ConfigUpdateResponse produced failures: " + configUpdateResponse.failures());
+	public void updateInternalUsersConfiguration(Client client, List<User> users) {
+		Map<String,ToXContentObject> userMap = new HashMap<>();
+		for(User user : users) {
+			userMap.put(user.getName(), user);
 		}
+		updateConfigInIndex(client, CType.INTERNALUSERS, userMap);
 	}
 
 
@@ -621,31 +625,52 @@ public class TestSecurityConfig {
 
 	private void writeConfigToIndex(Client client, CType configType, Map<String, ? extends ToXContentObject> config) {
 		try {
-			XContentBuilder builder = XContentFactory.jsonBuilder();
-
-			builder.startObject();
-			builder.startObject("_meta");
-			builder.field("type", configType.toLCString());
-			builder.field("config_version", 2);
-			builder.endObject();
-
-			for (Map.Entry<String, ? extends ToXContentObject> entry : config.entrySet()) {
-				builder.field(entry.getKey(), entry.getValue());
-			}
-
-			builder.endObject();
-
-			String json = Strings.toString(builder);
+			String json = configToJson(configType, config);
 
 			log.info("Writing security configuration into index " + configType + ":\n" + json);
 
+			BytesReference bytesReference = toByteReference(json);
 			client.index(new IndexRequest(indexName).id(configType.toLCString())
-					.setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(configType.toLCString(),
-							BytesReference.fromByteBuffer(ByteBuffer.wrap(json.getBytes("utf-8")))))
+					.setRefreshPolicy(IMMEDIATE).source(configType.toLCString(), bytesReference))
 					.actionGet();
 		} catch (Exception e) {
 			throw new RuntimeException("Error while initializing config for " + indexName, e);
 		}
+	}
+
+	private static BytesReference toByteReference(String string) throws UnsupportedEncodingException {
+		return BytesReference.fromByteBuffer(ByteBuffer.wrap(string.getBytes("utf-8")));
+	}
+
+	private void updateConfigInIndex(Client client, CType configType, Map<String, ? extends ToXContentObject> config) {
+		try {
+			String json = configToJson(configType, config);
+			BytesReference bytesReference = toByteReference(json);
+			log.info("Update configuration of type '{}' in index '{}', new value '{}'.", configType, indexName, json);
+			UpdateRequest upsert = new UpdateRequest(indexName, configType.toLCString()).doc(configType.toLCString(), bytesReference)
+				.setRefreshPolicy(IMMEDIATE);
+			client.update(upsert).actionGet();
+		}  catch (Exception e) {
+			throw new RuntimeException("Error while updating config for " + indexName, e);
+		}
+	}
+
+	private static String configToJson(CType configType, Map<String, ? extends ToXContentObject> config) throws IOException {
+		XContentBuilder builder = XContentFactory.jsonBuilder();
+
+		builder.startObject();
+		builder.startObject("_meta");
+		builder.field("type", configType.toLCString());
+		builder.field("config_version", 2);
+		builder.endObject();
+
+		for (Map.Entry<String, ? extends ToXContentObject> entry : config.entrySet()) {
+			builder.field(entry.getKey(), entry.getValue());
+		}
+
+		builder.endObject();
+
+		return Strings.toString(builder);
 	}
 
 	private void writeSingleEntryConfigToIndex(Client client, CType configType, ToXContentObject config) {
@@ -671,8 +696,7 @@ public class TestSecurityConfig {
 			log.info("Writing security plugin configuration into index " + configType + ":\n" + json);
 
 			client.index(new IndexRequest(indexName).id(configType.toLCString())
-							.setRefreshPolicy(RefreshPolicy.IMMEDIATE).source(configType.toLCString(),
-									BytesReference.fromByteBuffer(ByteBuffer.wrap(json.getBytes("utf-8")))))
+							.setRefreshPolicy(IMMEDIATE).source(configType.toLCString(), toByteReference(json)))
 					.actionGet();
 		} catch (Exception e) {
 			throw new RuntimeException("Error while initializing config for " + indexName, e);
