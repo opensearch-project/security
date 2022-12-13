@@ -14,6 +14,12 @@ package org.opensearch.security.dlic.rest.api;
 import java.net.URLEncoder;
 import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
+
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
@@ -468,7 +474,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword("$1aAAAAAAAac", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%", "UTF-8"), "$1aAAAAAAAAC%", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;:test&~@^", "UTF-8").replace("+", "%2B"), "$1aAAAAAAAac%!=\\\"/\\\\;:test&~@^", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", HttpStatus.SC_CREATED);
+        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", HttpStatus.SC_BAD_REQUEST);
 
         response = rh.executeGetRequest(PLUGINS_PREFIX + "/api/internalusers/nothinghthere?pretty", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
@@ -625,6 +631,30 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePatchRequest(ENDPOINT + "/internalusers", "[{ \"op\": \"add\", \"path\": \"/hide/description\", \"value\": \"foo\" }]", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
+    }
+
+
+    @Test
+    public void restrictedUsernameContents() throws Exception {
+        setup();
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        RESTRICTED_FROM_USERNAME.stream().forEach(restrictedTerm -> {
+            final String username = "nag" + restrictedTerm + "ilum";
+            final String url = ENDPOINT + "/internalusers/" + username;
+            final String bodyWithDefaultPasswordHash = "{\"hash\": \"456\"}";
+            HttpResponse response = null;
+            try {
+                response = rh.executePutRequest(url, bodyWithDefaultPasswordHash);
+            } catch (final Exception e) {
+                Assert.fail("Unexpected exception " + e);
+            }
+            Assert.assertNotNull("Should have a non-null response object", response);
+            assertThat("Expected " + username + " to be rejected", response.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
+            assertThat(response.getBody(), containsString(restrictedTerm));
+        });
     }
 
     @Test
