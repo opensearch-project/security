@@ -102,7 +102,7 @@ dependencies {
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'org.apache.httpcomponents:httpclient-cache:4.5.13'
     implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
-    implementation("org.apache.cxf:cxf-rt-rs-security-jose:3.4.5") {
+    implementation("org.apache.cxf:cxf-rt-rs-security-jose:3.5.5") {
         exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
     }
     implementation 'com.github.wnameless:json-flattener:0.5.0'
