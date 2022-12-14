@@ -332,7 +332,7 @@ dependencies {
 
     runtimeOnly 'net.minidev:accessors-smart:2.4.7'
 
-    runtimeOnly 'org.apache.cxf:cxf-core:3.4.5'
+    runtimeOnly 'org.apache.cxf:cxf-core:3.5.5'
     implementation 'org.apache.cxf:cxf-rt-rs-json-basic:3.4.5'
     runtimeOnly 'org.apache.cxf:cxf-rt-security:3.4.5'
 
