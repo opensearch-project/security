@@ -16,12 +16,12 @@ import org.opensearch.action.get.GetResponse;
 
 import static java.util.Objects.requireNonNull;
 
-class GetResponseDocumentIdMatcher extends TypeSafeDiagnosingMatcher<GetResponse> {
+class GetResponseContainsDocumentWithIdMatcher extends TypeSafeDiagnosingMatcher<GetResponse> {
 
 	private final String indexName;
 	private final String documentId;
 
-	public GetResponseDocumentIdMatcher(String indexName, String documentId) {
+	public GetResponseContainsDocumentWithIdMatcher(String indexName, String documentId) {
 		this.indexName = requireNonNull(indexName, "Index name is required");
 		this.documentId = requireNonNull(documentId, "Document id is required");
 	}
@@ -38,6 +38,10 @@ class GetResponseDocumentIdMatcher extends TypeSafeDiagnosingMatcher<GetResponse
 		}
 		if(response.isExists() == false) {
 			mismatchDescription.appendText("Document does not exist or is inaccessible");
+			return false;
+		}
+		if(response.isSourceEmpty()) {
+			mismatchDescription.appendText("Document source is empty");
 			return false;
 		}
 		return true;

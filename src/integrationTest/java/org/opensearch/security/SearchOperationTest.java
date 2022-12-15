@@ -19,8 +19,6 @@ import com.google.common.base.Stopwatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.awaitility.Awaitility;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -106,14 +104,10 @@ import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -171,6 +165,9 @@ import static org.opensearch.test.framework.matcher.ClusterMatchers.indexStateIs
 import static org.opensearch.test.framework.matcher.ClusterMatchers.snapshotInClusterDoesNotExists;
 import static org.opensearch.test.framework.matcher.DeleteResponseMatchers.isSuccessfulDeleteResponse;
 import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.assertThatThrownBy;
+import static org.opensearch.test.framework.matcher.FieldCapabilitiesResponseMatchers.containsExactlyIndices;
+import static org.opensearch.test.framework.matcher.FieldCapabilitiesResponseMatchers.containsFieldWithNameAndType;
+import static org.opensearch.test.framework.matcher.FieldCapabilitiesResponseMatchers.numberOfFieldsIsEqualTo;
 import static org.opensearch.test.framework.matcher.GetResponseMatchers.containDocument;
 import static org.opensearch.test.framework.matcher.GetResponseMatchers.documentContainField;
 import static org.opensearch.test.framework.matcher.IndexResponseMatchers.getIndexResponseContainsIndices;
@@ -181,6 +178,10 @@ import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSucc
 import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSuccessfulCreateIndexResponse;
 import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSuccessfulOpenIndexResponse;
 import static org.opensearch.test.framework.matcher.IndexResponseMatchers.isSuccessfulResizeResponse;
+import static org.opensearch.test.framework.matcher.MultiGetResponseMatchers.isSuccessfulMultiGetResponse;
+import static org.opensearch.test.framework.matcher.MultiGetResponseMatchers.numberOfGetItemResponsesIsEqualTo;
+import static org.opensearch.test.framework.matcher.MultiSearchResponseMatchers.isSuccessfulMultiSearchResponse;
+import static org.opensearch.test.framework.matcher.MultiSearchResponseMatchers.numberOfSearchItemResponsesIsEqualTo;
 import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.errorMessageContain;
 import static org.opensearch.test.framework.matcher.OpenSearchExceptionMatchers.statusException;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
@@ -225,7 +226,7 @@ public class SearchOperationTest {
 	public static final String UNUSED_SNAPSHOT_REPOSITORY_NAME = "unused-snapshot-repository";
 
 	public static final String RESTORED_SONG_INDEX_NAME = "restored_" + WRITE_SONG_INDEX_NAME;
-	
+
 	public static final String UPDATE_DELETE_OPERATION_INDEX_NAME = "update_delete_index";
 
 	public static final String DOCUMENT_TO_UPDATE_ID = "doc_to_update";
@@ -327,13 +328,13 @@ public class SearchOperationTest {
 	@BeforeClass
 	public static void createTestData() {
 		try(Client client = cluster.getInternalNodeClient()) {
-			client.prepareIndex(SONG_INDEX_NAME).setId(ID_S1).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0]).get();
+			client.prepareIndex(SONG_INDEX_NAME).setId(ID_S1).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0].asMap()).get();
 			client.prepareIndex(UPDATE_DELETE_OPERATION_INDEX_NAME).setId(DOCUMENT_TO_UPDATE_ID).setRefreshPolicy(IMMEDIATE).setSource("field", "value").get();
 			client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new AliasActions(ADD).indices(SONG_INDEX_NAME).alias(SONG_LYRICS_ALIAS))).actionGet();
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(SONG_INDEX_NAME).id(ID_S2).source(SONGS[1])).actionGet();
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(SONG_INDEX_NAME).id(ID_S3).source(SONGS[2])).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(SONG_INDEX_NAME).id(ID_S2).source(SONGS[1].asMap())).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(SONG_INDEX_NAME).id(ID_S3).source(SONGS[2].asMap())).actionGet();
 
-			client.prepareIndex(PROHIBITED_SONG_INDEX_NAME).setId(ID_P4).setSource(SONGS[3]).setRefreshPolicy(IMMEDIATE).get();
+			client.prepareIndex(PROHIBITED_SONG_INDEX_NAME).setId(ID_P4).setSource(SONGS[3].asMap()).setRefreshPolicy(IMMEDIATE).get();
 			client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new AliasActions(ADD).indices(PROHIBITED_SONG_INDEX_NAME).alias(PROHIBITED_SONG_ALIAS))).actionGet();
 
 			client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new AliasActions(ADD).indices(SONG_INDEX_NAME, PROHIBITED_SONG_INDEX_NAME).alias(COLLECTIVE_INDEX_ALIAS))).actionGet();
@@ -681,11 +682,10 @@ public class SearchOperationTest {
 			MultiGetResponse response = restHighLevelClient.mget(request, DEFAULT);
 
 			assertThat(response, is(notNullValue()));
-			MultiGetItemResponse[] responses = response.getResponses();
-			assertThat(responses, arrayWithSize(2));
-			Matcher<MultiGetItemResponse> withNullFailureProperty = hasProperty("failure", nullValue());
-			assertThat(responses, arrayContaining(withNullFailureProperty, withNullFailureProperty));
+			assertThat(response, isSuccessfulMultiGetResponse());
+			assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
 
+			MultiGetItemResponse[] responses = response.getResponses();
 			assertThat(responses[0].getResponse(), allOf(
 				containDocument(SONG_INDEX_NAME, ID_S1),
 				documentContainField(FIELD_TITLE, TITLE_MAGNUM_OPUS))
@@ -722,8 +722,10 @@ public class SearchOperationTest {
 			MultiGetResponse response =  restHighLevelClient.mget(request, DEFAULT);
 
 			assertThat(request, notNullValue());
+			assertThat(response, not(isSuccessfulMultiGetResponse()));
+			assertThat(response, numberOfGetItemResponsesIsEqualTo(2));
+
 			MultiGetItemResponse[] responses = response.getResponses();
-			assertThat(responses, arrayWithSize(2));
 			assertThat(responses, arrayContaining(
 				hasProperty("failure", nullValue()),
 				hasProperty("failure", notNullValue())
@@ -747,14 +749,10 @@ public class SearchOperationTest {
 			MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
 
 			assertThat(response, notNullValue());
+			assertThat(response, isSuccessfulMultiSearchResponse());
+			assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
+
 			MultiSearchResponse.Item[] responses = response.getResponses();
-			assertThat(responses, Matchers.arrayWithSize(2));
-			assertThat(responses, arrayContaining(
-				notNullValue(),
-				notNullValue()
-			));
-			assertThat(responses[0].getFailure(), nullValue());
-			assertThat(responses[1].getFailure(), nullValue());
 
 			assertThat(responses[0].getResponse(), searchHitContainsFieldWithValue(0, FIELD_TITLE, TITLE_MAGNUM_OPUS));
 			assertThat(responses[0].getResponse(), searchHitsContainDocumentWithId(0, SONG_INDEX_NAME, ID_S1));
@@ -776,9 +774,10 @@ public class SearchOperationTest {
 			MultiSearchResponse response = restHighLevelClient.msearch(request, DEFAULT);
 
 			assertThat(response, notNullValue());
+			assertThat(response, not(isSuccessfulMultiSearchResponse()));
+			assertThat(response, numberOfSearchItemResponsesIsEqualTo(2));
+
 			MultiSearchResponse.Item[] responses = response.getResponses();
-			assertThat(responses, Matchers.arrayWithSize(2));
-			assertThat(responses, arrayContaining(notNullValue(), notNullValue()));
 			assertThat(responses[0].getFailure(), nullValue());
 			assertThat(responses[1].getFailure(), statusException(INTERNAL_SERVER_ERROR));
 			assertThat(responses[1].getFailure(), errorMessageContain("security_exception"));
@@ -859,8 +858,8 @@ public class SearchOperationTest {
 	public void shouldIndexDocumentInBulkRequest_positive() throws IOException {
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
 			BulkRequest bulkRequest = new BulkRequest();
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1].asMap()));
 			bulkRequest.setRefreshPolicy(IMMEDIATE);
 
 			BulkResponse response = restHighLevelClient.bulk(bulkRequest, DEFAULT);
@@ -882,8 +881,8 @@ public class SearchOperationTest {
 	public void shouldIndexDocumentInBulkRequest_partiallyPositive() throws IOException {
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
 			BulkRequest bulkRequest = new BulkRequest();
-			bulkRequest.add(new IndexRequest(SONG_INDEX_NAME).id("one").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1]));
+			bulkRequest.add(new IndexRequest(SONG_INDEX_NAME).id("one").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1].asMap()));
 			bulkRequest.setRefreshPolicy(IMMEDIATE);
 
 			BulkResponse response = restHighLevelClient.bulk(bulkRequest, DEFAULT);
@@ -907,8 +906,8 @@ public class SearchOperationTest {
 	public void shouldIndexDocumentInBulkRequest_negative() throws IOException {
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
 			BulkRequest bulkRequest = new BulkRequest();
-			bulkRequest.add(new IndexRequest(SONG_INDEX_NAME).id("one").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(SONG_INDEX_NAME).id("two").source(SONGS[1]));
+			bulkRequest.add(new IndexRequest(SONG_INDEX_NAME).id("one").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(SONG_INDEX_NAME).id("two").source(SONGS[1].asMap()));
 			bulkRequest.setRefreshPolicy(IMMEDIATE);
 
 			BulkResponse response = restHighLevelClient.bulk(bulkRequest, DEFAULT);
@@ -932,8 +931,8 @@ public class SearchOperationTest {
 			final String titleOne = "shape of my mind";
 			final String titleTwo = "forgiven";
 			BulkRequest bulkRequest = new BulkRequest().setRefreshPolicy(IMMEDIATE);
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1].asMap()));
 			restHighLevelClient.bulk(bulkRequest, DEFAULT);
 			bulkRequest = new BulkRequest().setRefreshPolicy(IMMEDIATE);
 			bulkRequest.add(new UpdateRequest(WRITE_SONG_INDEX_NAME, "one").doc(Map.of(FIELD_TITLE, titleOne)));
@@ -958,7 +957,7 @@ public class SearchOperationTest {
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
 			final String titleOne = "shape of my mind";
 			BulkRequest bulkRequest = new BulkRequest().setRefreshPolicy(IMMEDIATE);
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0].asMap()));
 			restHighLevelClient.bulk(bulkRequest, DEFAULT);
 			bulkRequest = new BulkRequest().setRefreshPolicy(IMMEDIATE);
 			bulkRequest.add(new UpdateRequest(WRITE_SONG_INDEX_NAME, "one").doc(Map.of(FIELD_TITLE, titleOne)));
@@ -1007,10 +1006,10 @@ public class SearchOperationTest {
 	public void shouldDeleteDocumentInBulk_positive() throws IOException {
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
 			BulkRequest bulkRequest = new BulkRequest().setRefreshPolicy(IMMEDIATE);
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("three").source(SONGS[2]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("four").source(SONGS[3]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("three").source(SONGS[2].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("four").source(SONGS[3].asMap()));
 			assertThat(restHighLevelClient.bulk(bulkRequest, DEFAULT), successBulkResponse());
 			bulkRequest = new BulkRequest().setRefreshPolicy(IMMEDIATE);
 			bulkRequest.add(new DeleteRequest(WRITE_SONG_INDEX_NAME, "one"));
@@ -1035,8 +1034,8 @@ public class SearchOperationTest {
 	public void shouldDeleteDocumentInBulk_partiallyPositive() throws IOException {
 		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(LIMITED_WRITE_USER)) {
 			BulkRequest bulkRequest = new BulkRequest().setRefreshPolicy(IMMEDIATE);
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("one").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("two").source(SONGS[1].asMap()));
 			assertThat(restHighLevelClient.bulk(bulkRequest, DEFAULT), successBulkResponse());
 			bulkRequest = new BulkRequest().setRefreshPolicy(IMMEDIATE);
 			bulkRequest.add(new DeleteRequest(WRITE_SONG_INDEX_NAME, "one"));
@@ -1280,7 +1279,7 @@ public class SearchOperationTest {
 			assertThat(response.isAcknowledged(), equalTo(true));
 			assertThat(internalClient, clusterContainTemplate(MUSICAL_INDEX_TEMPLATE ));
 			String documentId = "0001";
-			IndexRequest indexRequest = new IndexRequest(INDEX_NAME_SONG_TRANSCRIPTION_JAZZ).id(documentId).source(SONGS[0])
+			IndexRequest indexRequest = new IndexRequest(INDEX_NAME_SONG_TRANSCRIPTION_JAZZ).id(documentId).source(SONGS[0].asMap())
 				.setRefreshPolicy(IMMEDIATE);
 			restHighLevelClient.index(indexRequest, DEFAULT);
 			assertThat(internalClient, clusterContainsDocument(INDEX_NAME_SONG_TRANSCRIPTION_JAZZ, documentId));
@@ -1365,7 +1364,7 @@ public class SearchOperationTest {
 			assertThat(response, notNullValue());
 			assertThat(response.isAcknowledged(), equalTo(true));
 			String documentId = "000one";
-			IndexRequest indexRequest = new IndexRequest(INDEX_NAME_SONG_TRANSCRIPTION_JAZZ).id(documentId).source(SONGS[0])
+			IndexRequest indexRequest = new IndexRequest(INDEX_NAME_SONG_TRANSCRIPTION_JAZZ).id(documentId).source(SONGS[0].asMap())
 				.setRefreshPolicy(IMMEDIATE);
 			restHighLevelClient.index(indexRequest, DEFAULT);
 			assertThat(internalClient, clusterContainTemplate(MUSICAL_INDEX_TEMPLATE));
@@ -1405,10 +1404,9 @@ public class SearchOperationTest {
 			FieldCapabilitiesResponse response = restHighLevelClient.fieldCaps(request, DEFAULT);
 
 			assertThat(response, notNullValue());
-			assertThat(response.get(), aMapWithSize(1));
-			assertThat(response.getIndices(), arrayWithSize(3));
-			assertThat(response.getField(FIELD_TITLE), hasKey("text"));
-			assertThat(response.getIndices(), arrayContainingInAnyOrder(SONG_INDEX_NAME, PROHIBITED_SONG_INDEX_NAME, UPDATE_DELETE_OPERATION_INDEX_NAME));
+			assertThat(response, containsExactlyIndices(SONG_INDEX_NAME, PROHIBITED_SONG_INDEX_NAME, UPDATE_DELETE_OPERATION_INDEX_NAME));
+			assertThat(response, numberOfFieldsIsEqualTo(1));
+			assertThat(response, containsFieldWithNameAndType(FIELD_TITLE, "text"));
 		}
 		auditLogsRule.assertExactlyOne(userAuthenticated(ADMIN_USER).withRestRequest(GET, "/_field_caps"));
 		auditLogsRule.assertExactlyOne(grantedPrivilege(ADMIN_USER, "FieldCapabilitiesRequest"));
@@ -1434,10 +1432,9 @@ public class SearchOperationTest {
 			FieldCapabilitiesResponse response = restHighLevelClient.fieldCaps(request, DEFAULT);
 
 			assertThat(response, notNullValue());
-			assertThat(response.get(), aMapWithSize(1));
-			assertThat(response.getIndices(), arrayWithSize(1));
-			assertThat(response.getField(FIELD_TITLE), hasKey("text"));
-			assertThat(response.getIndices(), arrayContainingInAnyOrder(SONG_INDEX_NAME));
+			assertThat(response, containsExactlyIndices(SONG_INDEX_NAME));
+			assertThat(response, numberOfFieldsIsEqualTo(1));
+			assertThat(response, containsFieldWithNameAndType(FIELD_TITLE, "text"));
 		}
 		auditLogsRule.assertExactlyOne(userAuthenticated(LIMITED_READ_USER).withRestRequest(GET, "/song_lyrics/_field_caps"));
 		auditLogsRule.assertExactlyOne(grantedPrivilege(LIMITED_READ_USER, "FieldCapabilitiesRequest"));
@@ -1608,8 +1605,8 @@ public class SearchOperationTest {
 			SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
 			// 1. create some documents
 			BulkRequest bulkRequest = new BulkRequest();
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Eins").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Zwei").source(SONGS[1]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Eins").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Zwei").source(SONGS[1].asMap()));
 			bulkRequest.setRefreshPolicy(IMMEDIATE);
 			restHighLevelClient.bulk(bulkRequest, DEFAULT);
 
@@ -1624,8 +1621,8 @@ public class SearchOperationTest {
 
 			// 5. introduce some changes
 			bulkRequest = new BulkRequest();
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Drei").source(SONGS[2]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Vier").source(SONGS[3]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Drei").source(SONGS[2].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Vier").source(SONGS[3].asMap()));
 			bulkRequest.add(new DeleteRequest(WRITE_SONG_INDEX_NAME, "Eins"));
 			bulkRequest.setRefreshPolicy(IMMEDIATE);
 			restHighLevelClient.bulk(bulkRequest, DEFAULT);
@@ -1672,8 +1669,8 @@ public class SearchOperationTest {
 			SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
 			// 1. create some documents
 			BulkRequest bulkRequest = new BulkRequest();
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Eins").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Zwei").source(SONGS[1]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Eins").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Zwei").source(SONGS[1].asMap()));
 			bulkRequest.setRefreshPolicy(IMMEDIATE);
 			restHighLevelClient.bulk(bulkRequest, DEFAULT);
 
@@ -1718,8 +1715,8 @@ public class SearchOperationTest {
 			SnapshotSteps steps = new SnapshotSteps(restHighLevelClient);
 			// 1. create some documents
 			BulkRequest bulkRequest = new BulkRequest();
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Eins").source(SONGS[0]));
-			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Zwei").source(SONGS[1]));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Eins").source(SONGS[0].asMap()));
+			bulkRequest.add(new IndexRequest(WRITE_SONG_INDEX_NAME).id("Zwei").source(SONGS[1].asMap()));
 			bulkRequest.setRefreshPolicy(IMMEDIATE);
 			restHighLevelClient.bulk(bulkRequest, DEFAULT);
 

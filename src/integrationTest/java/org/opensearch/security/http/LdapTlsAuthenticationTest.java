@@ -174,9 +174,9 @@ public class LdapTlsAuthenticationTest {
 	@BeforeClass
 	public static void createTestData() {
 		try(Client client = cluster.getInternalNodeClient()){
-			client.prepareIndex(SONG_INDEX_NAME).setId(SONG_ID_1).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0]).get();
-			client.prepareIndex(PERSONAL_INDEX_NAME_SPOCK).setId(SONG_ID_2).setRefreshPolicy(IMMEDIATE).setSource(SONGS[1]).get();
-			client.prepareIndex(PERSONAL_INDEX_NAME_KIRK).setId(SONG_ID_3).setRefreshPolicy(IMMEDIATE).setSource(SONGS[2]).get();
+			client.prepareIndex(SONG_INDEX_NAME).setId(SONG_ID_1).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0].asMap()).get();
+			client.prepareIndex(PERSONAL_INDEX_NAME_SPOCK).setId(SONG_ID_2).setRefreshPolicy(IMMEDIATE).setSource(SONGS[1].asMap()).get();
+			client.prepareIndex(PERSONAL_INDEX_NAME_KIRK).setId(SONG_ID_3).setRefreshPolicy(IMMEDIATE).setSource(SONGS[2].asMap()).get();
 		}
 	}
 

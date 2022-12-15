@@ -26,6 +26,15 @@ public final class SearchRequestFactory {
 	private SearchRequestFactory() {
 
 	}
+
+	public static SearchRequest queryByIdsRequest(String indexName, String... ids) {
+		SearchRequest searchRequest = new SearchRequest(indexName);
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+		searchSourceBuilder.query(QueryBuilders.idsQuery().addIds(ids));
+		searchRequest.source(searchSourceBuilder);
+		return searchRequest;
+	}
+
 	public static SearchRequest queryStringQueryRequest(String indexName, String queryString) {
 		SearchRequest searchRequest = new SearchRequest(indexName);
 		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
