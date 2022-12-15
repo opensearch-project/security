@@ -58,6 +58,7 @@ plugins {
     id "org.gradle.test-retry" version "1.4.1"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.13"
+    id "com.google.osdetector" version "1.7.1"
 }
 
 allprojects {
@@ -121,6 +122,7 @@ test {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
+        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
     }
     maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
@@ -148,13 +150,37 @@ test {
     }
 }
 
+//add new task that runs OpenSSL tests
+task opensslTest(type: Test) {
+    include '**/OpenSSL*.class'
+    retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 5
+    }
+    jacoco {
+        excludes = [
+            "com.sun.jndi.dns.*",
+            "com.sun.security.sasl.gsskerb.*",
+            "java.sql.*",
+            "javax.script.*",
+            "org.jcp.xml.dsig.internal.dom.*",
+            "sun.nio.cs.ext.*",
+            "sun.security.ec.*",
+            "sun.security.jgss.*",
+            "sun.security.pkcs11.*",
+            "sun.security.smartcardio.*",
+            "sun.util.resources.provider.*"
+        ]
+    }
+}
+
 task copyExtraTestResources(dependsOn: testClasses) {
     copy {
         from 'src/test/resources'
         into 'build/testrun/test/src/test/resources'
     }
 }
-tasks.test.dependsOn(copyExtraTestResources)
+tasks.test.dependsOn(copyExtraTestResources, opensslTest)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")
@@ -413,6 +439,11 @@ dependencies {
     testImplementation 'org.springframework:spring-beans:5.3.20'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
+    if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
+        testImplementation "io.netty:netty-tcnative-classes:2.0.54.Final"
+        testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.54.Final:${osdetector.classifier}"
+    }
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
     // Kafka test execution
