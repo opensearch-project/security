@@ -261,7 +261,7 @@ dependencies {
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'org.apache.httpcomponents:httpclient-cache:4.5.13'
     implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
-    implementation('org.apache.cxf:cxf-rt-rs-security-jose:3.4.5') {
+    implementation('org.apache.cxf:cxf-rt-rs-security-jose:3.5.5') {
         exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
     }
     implementation 'com.github.wnameless:json-flattener:0.5.0'
@@ -272,9 +272,9 @@ dependencies {
 
     runtimeOnly 'net.minidev:accessors-smart:2.4.7'
 
-    runtimeOnly 'org.apache.cxf:cxf-core:3.4.5'
-    implementation 'org.apache.cxf:cxf-rt-rs-json-basic:3.4.5'
-    runtimeOnly 'org.apache.cxf:cxf-rt-security:3.4.5'
+    runtimeOnly 'org.apache.cxf:cxf-core:3.5.5'
+    implementation 'org.apache.cxf:cxf-rt-rs-json-basic:3.5.5'
+    runtimeOnly 'org.apache.cxf:cxf-rt-security:3.5.5'
 
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
