@@ -52,6 +52,9 @@ jobs:
     - name: Test
       run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test -i
 
+    - name: Run sanity tests
+      run: ./gradlew integTestRemote -Dtests.rest.cluster=localhost:9200 -Dtests.cluster=localhost:9200 -Dtests.clustername="opensearch" -Dhttps=true -Duser=admin -Dpassword=admin
+
     - name: Coverage
       uses: codecov/codecov-action@v1
       with:
