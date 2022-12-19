@@ -155,14 +155,14 @@ public class CrossClusterSearchTests {
 	@BeforeClass
 	public static void createTestData() {
 		try(Client client = remoteCluster.getInternalNodeClient()){
-			client.prepareIndex(SONG_INDEX_NAME).setId(SONG_ID_1R).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0]).get();
-			client.prepareIndex(SONG_INDEX_NAME).setId(SONG_ID_6R).setRefreshPolicy(IMMEDIATE).setSource(SONGS[5]).get();
-			client.prepareIndex(PROHIBITED_SONG_INDEX_NAME).setId(SONG_ID_3R).setRefreshPolicy(IMMEDIATE).setSource(SONGS[1]).get();
-			client.prepareIndex(LIMITED_USER_INDEX_NAME).setId(SONG_ID_5R).setRefreshPolicy(IMMEDIATE).setSource(SONGS[4]).get();
+			client.prepareIndex(SONG_INDEX_NAME).setId(SONG_ID_1R).setRefreshPolicy(IMMEDIATE).setSource(SONGS[0].asMap()).get();
+			client.prepareIndex(SONG_INDEX_NAME).setId(SONG_ID_6R).setRefreshPolicy(IMMEDIATE).setSource(SONGS[5].asMap()).get();
+			client.prepareIndex(PROHIBITED_SONG_INDEX_NAME).setId(SONG_ID_3R).setRefreshPolicy(IMMEDIATE).setSource(SONGS[1].asMap()).get();
+			client.prepareIndex(LIMITED_USER_INDEX_NAME).setId(SONG_ID_5R).setRefreshPolicy(IMMEDIATE).setSource(SONGS[4].asMap()).get();
 		}
 		try(Client client = cluster.getInternalNodeClient()){
-			client.prepareIndex(SONG_INDEX_NAME).setId(SONG_ID_2L).setRefreshPolicy(IMMEDIATE).setSource(SONGS[2]).get();
-			client.prepareIndex(PROHIBITED_SONG_INDEX_NAME).setId(SONG_ID_4L).setRefreshPolicy(IMMEDIATE).setSource(SONGS[3]).get();
+			client.prepareIndex(SONG_INDEX_NAME).setId(SONG_ID_2L).setRefreshPolicy(IMMEDIATE).setSource(SONGS[2].asMap()).get();
+			client.prepareIndex(PROHIBITED_SONG_INDEX_NAME).setId(SONG_ID_4L).setRefreshPolicy(IMMEDIATE).setSource(SONGS[3].asMap()).get();
 		}
 		try(TestRestClient client = cluster.getRestClient(ADMIN_USER)) {
 			client.assignRoleToUser(LIMITED_USER.getName(), LIMITED_ROLE.getName()).assertStatusCode(200);

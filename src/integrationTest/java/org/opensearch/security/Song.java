@@ -50,20 +50,19 @@ public class Song {
 	public static final String QUERY_TITLE_POISON = FIELD_TITLE + ":" + TITLE_POISON;
 	public static final String QUERY_TITLE_MAGNUM_OPUS = FIELD_TITLE + ":" + TITLE_MAGNUM_OPUS;
 
-	public static final Map[] SONGS = {
-		new Song(ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1,  GENRE_ROCK).asMap(),
-		new Song(ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2,  2,  GENRE_BLUES).asMap(),
-		new Song(ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3,  3, GENRE_JAZZ).asMap(),
-		new Song(ARTIST_NO, TITLE_POISON, LYRICS_4,  4,  GENRE_ROCK).asMap(),
-		new Song(ARTIST_YES, TITLE_AFFIRMATIVE,LYRICS_5,  5,  GENRE_BLUES).asMap(),
-		new Song(ARTIST_UNKNOWN, TITLE_CONFIDENTIAL, LYRICS_6,  6,  GENRE_JAZZ).asMap()
+	public static final Song[] SONGS = {
+		new Song(ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1,  GENRE_ROCK),
+		new Song(ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2,  2,  GENRE_BLUES),
+		new Song(ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3,  3, GENRE_JAZZ),
+		new Song(ARTIST_NO, TITLE_POISON, LYRICS_4,  4,  GENRE_ROCK),
+		new Song(ARTIST_YES, TITLE_AFFIRMATIVE,LYRICS_5,  5,  GENRE_BLUES),
+		new Song(ARTIST_UNKNOWN, TITLE_CONFIDENTIAL, LYRICS_6,  6,  GENRE_JAZZ)
 	};
 
 	private final String artist;
 	private final String title;
 	private final String lyrics;
 	private final Integer stars;
-
 	private final String genre;
 
 	public Song(String artist, String title, String lyrics, Integer stars, String genre) {
@@ -72,6 +71,26 @@ public class Song {
 		this.lyrics = Objects.requireNonNull(lyrics, "Lyrics is required");
 		this.stars = Objects.requireNonNull(stars, "Stars field is required");
 		this.genre = Objects.requireNonNull(genre, "Genre field is required");
+	}
+
+	public String getArtist() {
+		return artist;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public String getLyrics() {
+		return lyrics;
+	}
+
+	public Integer getStars() {
+		return stars;
+	}
+
+	public String getGenre() {
+		return genre;
 	}
 
 	public Map<String, Object> asMap() {

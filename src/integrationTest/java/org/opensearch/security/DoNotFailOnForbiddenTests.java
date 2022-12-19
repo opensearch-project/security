@@ -115,11 +115,11 @@ public class DoNotFailOnForbiddenTests {
 	@BeforeClass
 	public static void createTestData() {
 		try(Client client = cluster.getInternalNodeClient()) {
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_1).source(SONGS[0])).actionGet();
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_2).source(SONGS[1])).actionGet();
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_3).source(SONGS[2])).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_1).source(SONGS[0].asMap())).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_2).source(SONGS[1].asMap())).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(MARVELOUS_SONGS).id(ID_3).source(SONGS[2].asMap())).actionGet();
 
-			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(HORRIBLE_SONGS).id(ID_4).source(SONGS[3])).actionGet();
+			client.index(new IndexRequest().setRefreshPolicy(IMMEDIATE).index(HORRIBLE_SONGS).id(ID_4).source(SONGS[3].asMap())).actionGet();
 
 			client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new IndicesAliasesRequest.AliasActions(ADD).indices(
 				MARVELOUS_SONGS, HORRIBLE_SONGS).alias(BOTH_INDEX_ALIAS))).actionGet();

@@ -66,7 +66,6 @@ public class OpenSSLTest extends SSLTest {
 
     @Before
     public void setup() {
-        Assume.assumeFalse(PlatformDependent.isWindows());
         allowOpenSSL = true;
     }
 
