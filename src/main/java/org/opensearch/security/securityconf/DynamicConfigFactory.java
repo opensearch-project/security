@@ -145,16 +145,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             log.info("Static resources will not be loaded.");
         }
         
-        if(opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
-            try {
-                loadStaticConfig();
-            } catch (IOException e) {
-                throw new StaticResourceException("Unable to load static resources due to "+e, e);
-            }
-        } else {
-            log.info("Static resources will not be loaded.");
-        }
-        
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);
     }
