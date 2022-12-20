@@ -20,7 +20,7 @@ If you have an issue you'd like to bring forth please consider getting a link to
 
 ### Is there an agenda for each week?
 
-Meetings are structured as follows: 
+Meetings are lightly structured as follows: 
 
 1. Announcements: If there are any announcements to be made they will happen at the start of the meeting. 
 2. Review of new issues: The meetings always start with reviewing all untriaged issues for the [security](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Auntriaged) repo and [security-dashboards](https://github.com/opensearch-project/security-dashboards-plugin/issues?q=is%3Aissue+is%3Aopen+-label%3Atriaged) repo. We will also provide an opportunity for any issues introduced since the last meeting but already triaged to be discussed. 
