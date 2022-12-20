@@ -307,6 +307,7 @@ security_analytics_full_access:
       allowed_actions:
         - 'indices:admin/mapping/put'
         - 'indices:admin/mappings/get'
+        - 'indices:data/read/search"'
 
 # Allows users to view and acknowledge alerts
 security_analytics_ack_alerts:
