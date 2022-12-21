@@ -104,7 +104,7 @@ jobs:
       uses: ./.github/actions/run-bwc-suite
       with:
         plugin-previous-branch: "2.x"
-        plugin-next-branch: "this"
+        plugin-next-branch: "current_branch"
         report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
 
   code-ql:
