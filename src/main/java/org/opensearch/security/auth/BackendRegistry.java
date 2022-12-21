@@ -267,7 +267,7 @@ public class BackendRegistry {
 
                 if(authDomain.isChallenge() && httpAuthenticator.reRequestAuthentication(channel, null)) {
                     auditLog.logFailedLogin("<NONE>", false, null, request);
-                    log.trace("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
+                    log.warn("No 'Authorization' header, send 401 and 'WWW-Authenticate Basic'");
                     return false;
                 } else {
                     //no reRequest possible
