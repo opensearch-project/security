@@ -100,7 +100,7 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-        Assert.assertEquals(res.getHeaders().toString(), 1, res.getHeaders().size());
+        Assert.assertEquals(res.getHeaders().toString(), 2, res.getHeaders().size());
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));

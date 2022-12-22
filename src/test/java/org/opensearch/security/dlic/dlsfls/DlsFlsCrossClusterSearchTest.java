@@ -125,7 +125,8 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         Assert.assertTrue(ccs.getBody().contains("salary1"));
         Assert.assertFalse(ccs.getBody().contains("secret1"));
         Assert.assertFalse(ccs.getBody().contains("AnotherSecredField"));
-        Assert.assertFalse(ccs.getBody().contains("xxx1"));        Assert.assertEquals(ccs.getHeaders().toString(), 1, ccs.getHeaders().size());
+        Assert.assertFalse(ccs.getBody().contains("xxx1"));
+        Assert.assertEquals(ccs.getHeaders().toString(), 2, ccs.getHeaders().size());
     }
 
     @Test
@@ -183,7 +184,7 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         Assert.assertTrue(ccs.getBody().contains("__fn__crl2"));
         Assert.assertFalse(ccs.getBody().contains("secret1"));
         Assert.assertFalse(ccs.getBody().contains("AnotherSecredField"));
-        Assert.assertEquals(ccs.getHeaders().toString(), 1, ccs.getHeaders().size());
+        Assert.assertEquals(ccs.getHeaders().toString(), 2, ccs.getHeaders().size());
     }
 
     @Test
@@ -265,6 +266,6 @@ public class DlsFlsCrossClusterSearchTest extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("secret1"));
         Assert.assertFalse(ccs.getBody().contains("AnotherSecredField"));
         Assert.assertTrue(ccs.getBody().contains("someoneelse"));
-        Assert.assertEquals(ccs.getHeaders().toString(), 1, ccs.getHeaders().size());
+        Assert.assertEquals(ccs.getHeaders().toString(), 2, ccs.getHeaders().size());
     }
 }

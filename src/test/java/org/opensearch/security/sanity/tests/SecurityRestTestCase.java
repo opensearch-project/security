@@ -77,14 +77,20 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
                 // create adminDN (super-admin) client
                 File file = new File(getClass().getClassLoader().getResource(CERT_FILE_DIRECTORY).getFile());
                 Path configPath = PathUtils.get(file.toURI()).getParent().toAbsolutePath();
-                return new SecureRestClientBuilder(settings, configPath).setSocketTimeout(60000).build();
+                return new SecureRestClientBuilder(settings, configPath)
+                        .setSocketTimeout(60000)
+                        .setConnectionRequestTimeout(180000)
+                        .build();
             }
 
             // create client with passed user
             String userName = System.getProperty("user");
             String password = System.getProperty("password");
 
-            return new SecureRestClientBuilder(hosts, isHttps(), userName, password).setSocketTimeout(60000).build();
+            return new SecureRestClientBuilder(hosts, isHttps(), userName, password)
+                    .setSocketTimeout(60000)
+                    .setConnectionRequestTimeout(180000)
+                    .build();
         }
         else {
             RestClientBuilder builder = RestClient.builder(hosts);

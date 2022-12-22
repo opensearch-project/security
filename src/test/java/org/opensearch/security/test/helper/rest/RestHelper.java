@@ -28,24 +28,27 @@ package org.opensearch.security.test.helper.rest;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
@@ -56,22 +59,32 @@ import org.apache.hc.client5.http.classic.methods.HttpPatch;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.nio.AsyncClientConnectionManager;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.function.Factory;
+import org.apache.hc.core5.http.ConnectionClosedException;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.http.HttpVersion;
+import org.apache.hc.core5.http.NoHttpResponseException;
+import org.apache.hc.core5.http.ProtocolVersion;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -108,24 +121,50 @@ public class RestHelper {
 	}
 	public String executeSimpleRequest(final String request) throws Exception {
 
-		CloseableHttpClient httpClient = null;
-		CloseableHttpResponse response = null;
+		CloseableHttpAsyncClient httpClient = null;
 
 		try {
 			httpClient = getHTTPClient();
-			response = httpClient.execute(new HttpGet(getRequestUri(request)));
+			httpClient.start();
 
+			final CompletableFuture<SimpleHttpResponse> future = new CompletableFuture<>();
+			final SimpleHttpRequest simpleRequest = SimpleRequestBuilder.copy(new HttpGet(getRequestUri(request))).build();
+			httpClient.execute(simpleRequest, new FutureCallback<SimpleHttpResponse>() {
+				@Override
+				public void completed(SimpleHttpResponse result) {
+					future.complete(result);
+				}
+
+				@Override
+				public void failed(Exception ex) {
+					future.completeExceptionally(ex);
+				}
+
+				@Override
+				public void cancelled() {
+					future.cancel(true);
+				}
+			});
+
+			final SimpleHttpResponse response = future.join();
 			if (response.getCode() >= 300) {
 				throw new Exception("Statuscode " + response.getCode());
 			}
 
-			return IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-		} finally {
-
-			if (response != null) {
-				response.close();
+			if (enableHTTPClientSSL && !response.getVersion().equals(HttpVersion.HTTP_2)) {
+				throw new IllegalStateException("HTTP/2 expected for HTTPS communication but " + response.getVersion() + " was used");
 			}
 
+			return response.getBodyText();
+		} catch (final CompletionException e) {
+			final Throwable cause = e.getCause();
+			// Make it compatible with DefaultHttpResponseParser::createConnectionClosedException()
+			if (cause instanceof ConnectionClosedException) {
+				throw new NoHttpResponseException(cause.getMessage(), cause);
+			} else {
+				throw (Exception)cause;
+			}
+		} finally {
 			if (httpClient != null) {
 				httpClient.close();
 			}
@@ -145,7 +184,7 @@ public class RestHelper {
 	}
 
 	public HttpResponse executeGetRequest(final String request, Header... header) {
-	    return executeRequest(new HttpGet(getRequestUri(request)), header);
+		return executeRequest(new HttpGet(getRequestUri(request)), header);
 	}
 
 	public HttpResponse executeGetRequest(final String request, String body, Header... header) {
@@ -156,12 +195,12 @@ public class RestHelper {
 	}
 	
 	public HttpResponse executeHeadRequest(final String request, Header... header) {
-        return executeRequest(new HttpHead(getRequestUri(request)), header);
-    }
+		return executeRequest(new HttpHead(getRequestUri(request)), header);
+	}
 	
 	public HttpResponse executeOptionsRequest(final String request) {
-        return executeRequest(new HttpOptions(getRequestUri(request)));
-    }
+		return executeRequest(new HttpOptions(getRequestUri(request)));
+	}
 
 	public HttpResponse executePutRequest(final String request, String body, Header... header) {
 		HttpPut uriRequest = new HttpPut(getRequestUri(request));
@@ -192,20 +231,21 @@ public class RestHelper {
 		return executeRequest(uriRequest, header);
 	}
 	
-    public HttpResponse executePatchRequest(final String request, String body, Header... header) {
-        HttpPatch uriRequest = new HttpPatch(getRequestUri(request));
-        if (body != null && !body.isEmpty()) {
-            uriRequest.setEntity(createStringEntity(body));
-        }
-        return executeRequest(uriRequest, header);
-    }	
+	public HttpResponse executePatchRequest(final String request, String body, Header... header) {
+		HttpPatch uriRequest = new HttpPatch(getRequestUri(request));
+		if (body != null && !body.isEmpty()) {
+			uriRequest.setEntity(createStringEntity(body));
+		}
+		return executeRequest(uriRequest, header);
+	}	
 	
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) {
 
-		CloseableHttpClient httpClient = null;
+		CloseableHttpAsyncClient httpClient = null;
 		try {
 
 			httpClient = getHTTPClient();
+			httpClient.start();
 
 			if (header != null && header.length > 0) {
 				for (int i = 0; i < header.length; i++) {
@@ -215,11 +255,49 @@ public class RestHelper {
 			}
 
 			if (!uriRequest.containsHeader("Content-Type")) {
-			    uriRequest.addHeader("Content-Type","application/json");
+				uriRequest.addHeader("Content-Type","application/json");
 			}
-			HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
+			
+			final CompletableFuture<SimpleHttpResponse> future = new CompletableFuture<>();
+			final SimpleHttpRequest simpleRequest = SimpleRequestBuilder.copy(uriRequest).build();
+			if (uriRequest.getEntity() != null) {
+				simpleRequest.setBody(EntityUtils.toByteArray(uriRequest.getEntity()),
+					ContentType.parse(uriRequest.getEntity().getContentType()));
+			}
+			httpClient.execute(simpleRequest, new FutureCallback<SimpleHttpResponse>() {
+				@Override
+				public void completed(SimpleHttpResponse result) {
+					future.complete(result);
+				}
+
+				@Override
+				public void failed(Exception ex) {
+					future.completeExceptionally(ex);
+				}
+
+				@Override
+				public void cancelled() {
+					future.cancel(true);
+				}
+			});
+
+			final HttpResponse res = new HttpResponse(future.join());
+			if (enableHTTPClientSSL && !res.getProtocolVersion().equals(HttpVersion.HTTP_2)) {
+				throw new IllegalStateException("HTTP/2 expected for HTTPS communication but " + res.getProtocolVersion() + " was used");
+			}
+			
 			log.debug(res.getBody());
 			return res;
+		} catch (final CompletionException e) {
+			final Throwable cause = e.getCause();
+			// Make it compatible with DefaultHttpResponseParser::createConnectionClosedException()
+			if (cause instanceof ConnectionClosedException) {
+				throw new RuntimeException(new NoHttpResponseException(cause.getMessage(), cause));
+			} else if (cause instanceof RuntimeException) {
+				throw (RuntimeException)cause;
+			} else {
+				throw new RuntimeException(cause);
+			}
 		} catch (final Exception e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -248,9 +326,9 @@ public class RestHelper {
 		return getHttpServerUri() + "/" + StringUtils.strip(request, "/");
 	}
 	
-	protected final CloseableHttpClient getHTTPClient() throws Exception {
+	protected final CloseableHttpAsyncClient getHTTPClient() throws Exception {
 
-		final HttpClientBuilder hcb = HttpClients.custom();
+		final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom();
 
 		if (sendHTTPClientCredentials) {
 			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek".toCharArray());
@@ -264,11 +342,11 @@ public class RestHelper {
 			log.debug("Configure HTTP client with SSL");
 			
 			if(prefix != null && !keystore.contains("/")) {
-			    keystore = prefix+"/"+keystore;
+				keystore = prefix+"/"+keystore;
 			}
 			
-            final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
-                        
+			final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
+						
 			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
 			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
 					"changeit".toCharArray());
@@ -296,40 +374,54 @@ public class RestHelper {
 				protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
 			}
 
-			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, protocols, null,
-					NoopHostnameVerifier.INSTANCE);
-
-			final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-					.setSSLSocketFactory(sslsf)
-					.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60, TimeUnit.SECONDS).build())
+			final TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
+					.create()
+					.setSslContext(sslContext)
+					.setTlsVersions(protocols)
+					.setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+					// See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+					.setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+						@Override
+						public TlsDetails create(final SSLEngine sslEngine) {
+							return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+						}
+					})
 					.build();
+
+			final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+					.setTlsStrategy(tlsStrategy)
+					.build();
+
 			hcb.setConnectionManager(cm);
 		}
 
-		return hcb.build();
+		final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
+				.setResponseTimeout(Timeout.ofSeconds(60));
+
+		return hcb.setDefaultRequestConfig(requestConfigBuilder.build()).disableAutomaticRetries().build();
 	}
 
 	
 	public static class HttpResponse {
-		private final CloseableHttpResponse inner;
+		private final SimpleHttpResponse inner;
 		private final String body;
 		private final Header[] header;
 		private final int statusCode;
 		private final String statusReason;
+		private final ProtocolVersion protocolVersion;
 
-		public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
+		public HttpResponse(SimpleHttpResponse inner) throws IllegalStateException, IOException {
 			super();
 			this.inner = inner;
-			final HttpEntity entity = inner.getEntity();
-			if(entity == null) { //head request does not have a entity
-			    this.body = "";
+			if(inner.getBody() == null) { //head request does not have a entity
+				this.body = "";
 			} else {
-			    this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
+				this.body = inner.getBodyText();
 			}
 			this.header = inner.getHeaders();
 			this.statusCode = inner.getCode();
 			this.statusReason = inner.getReasonPhrase();
-			inner.close();
+			this.protocolVersion = inner.getVersion();
 		}
 
 		public String getContentType() {
@@ -348,7 +440,7 @@ public class RestHelper {
 			return ct.contains("application/json");
 		}
 
-		public CloseableHttpResponse getInner() {
+		public SimpleHttpResponse getInner() {
 			return inner;
 		}
 
@@ -372,20 +464,14 @@ public class RestHelper {
 			return header==null?Collections.emptyList():Arrays.asList(header);
 		}
 
-        @Override
-        public String toString() {
-            return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
-                    + ", statusReason=" + statusReason + "]";
-        }
+		public ProtocolVersion getProtocolVersion() {
+			return protocolVersion;
+		}
 
-		private static void findArrayAccessor(String input) {
-			final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
-			final Matcher m = r.matcher(input);
-			if(m.find()) {
-				System.out.println("'" + input + "'\t Name was: " + m.group(1) + ",\t index position: " + m.group(2));
-			} else {
-				System.out.println("'" + input + "'\t No Match");
-			}
+		@Override
+		public String toString() {
+			return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
+					+ ", statusReason=" + statusReason + "]";
 		}
 
 		/**
