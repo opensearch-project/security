@@ -19,7 +19,14 @@ runs:
       run: git config --system core.longpaths true
       shell: pwsh
 
+    - name: Checkout Branch from Fork
+      if: ${{ inputs.plugin-branch == 'current_branch' }}
+      uses: actions/checkout@v2
+      with:
+        path: ${{ inputs.plugin-branch }}
+
     - uses: actions/checkout@v3
+      if: ${{ inputs.plugin-branch != 'current_branch' }}
       with:
         repository: opensearch-project/security
         ref: ${{ inputs.plugin-branch }}
