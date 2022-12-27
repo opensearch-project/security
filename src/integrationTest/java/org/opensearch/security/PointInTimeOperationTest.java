@@ -302,7 +302,7 @@ public class PointInTimeOperationTest {
 
 	@Test
 	public void listPitSegments_positive() throws IOException {
-		try (TestRestClient restClient = cluster.getRestClient(POINT_IN_TIME_USER)) {
+		try (TestRestClient restClient = cluster.getRestClient(LIMITED_POINT_IN_TIME_USER)) {
 			String existingPitId = createPitForIndices(FIRST_SONG_INDEX);
 			String body = String.format("{\"pit_id\":[\"%s\"]}", existingPitId);
 			HttpResponse response = restClient.getWithJsonBody("/_cat/pit_segments", body);
