@@ -55,6 +55,7 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
+import org.apache.hc.core5.http2.HttpVersionPolicy;
 import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
@@ -144,6 +145,10 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
     }
 
     protected RestHighLevelClient getRestClient(ClusterInfo info, String keyStoreName, String trustStoreName) {
+        return getRestClient(info, keyStoreName, trustStoreName, null);
+    }
+
+    protected RestHighLevelClient getRestClient(ClusterInfo info, String keyStoreName, String trustStoreName, HttpVersionPolicy httpVersionPolicy) {
         final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
 
         try {
@@ -183,6 +188,9 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                                         .setTlsStrategy(tlsStrategy)
                                         .build();
                                 builder.setConnectionManager(cm);
+                                if (httpVersionPolicy != null) {
+                                    builder.setVersionPolicy(httpVersionPolicy);
+                                }
                                 return builder;
                             });
             return new RestHighLevelClient(restClientBuilder);
