@@ -120,6 +120,16 @@ public class TestRestClient implements AutoCloseable {
 		return get(path, Collections.emptyList(), headers);
 	}
 
+	public HttpResponse getWithJsonBody(String path, String body, Header... headers) {
+		try {
+			HttpGet httpGet = new HttpGet( new URIBuilder(getHttpServerUri()).setPath(path).build());
+			httpGet.setEntity(toStringEntity(body));
+			return executeRequest(httpGet, mergeHeaders(CONTENT_TYPE_JSON, headers));
+		} catch (URISyntaxException ex) {
+			throw new RuntimeException("Incorrect URI syntax", ex);
+		}
+	}
+
 	public HttpResponse getAuthInfo( Header... headers) {
 		return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
 	}
