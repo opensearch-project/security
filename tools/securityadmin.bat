@@ -1,16 +1,19 @@
 @echo off
-set SCRIPT_DIR=%~dp0
+set DIR=%~dp0
 
 echo "**************************************************************************"
 echo "** This tool will be deprecated in the next major release of OpenSearch **"
 echo "** https://github.com/opensearch-project/security/issues/1755           **"
 echo "**************************************************************************"
 
-rem comparing to empty string makes this equivalent to bash -v check on env var
-if not "%OPENSEARCH_JAVA_HOME%" == "" (
+if defined OPENSEARCH_JAVA_HOME (
   set BIN_PATH="%OPENSEARCH_JAVA_HOME%\bin\java.exe"
-) else (
+) else if defined JAVA_HOME (
   set BIN_PATH="%JAVA_HOME%\bin\java.exe"
+) else (
+  echo Unable to find java runtime
+  echo OPENSEARCH_JAVA_HOME or JAVA_HOME must be defined
+  exit /b 1
 )
 
-%BIN_PATH% -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "%SCRIPT_DIR%\..\..\opendistro_security-ssl\*;%SCRIPT_DIR%\..\deps\*;%SCRIPT_DIR%\..\*;%SCRIPT_DIR%\..\..\..\lib\*" org.opensearch.security.tools.SecurityAdmin %* 2> nul
+%BIN_PATH% -Dorg.apache.logging.log4j.simplelog.StatusLogger.level=OFF -cp "%DIR%\..\*;%DIR%\..\..\..\lib\*;%DIR%\..\deps\*" org.opensearch.security.tools.SecurityAdmin %* 2> nul
