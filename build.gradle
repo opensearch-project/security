@@ -647,5 +647,10 @@ task updateVersion {
             }
         }
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
+        ant.replaceregexp(match: 'OPENSEARCH_VERSION: .*', replace: 'OPENSEARCH_VERSION: ' + newVersion, flags:'g', byline:true){
+            fileset(dir: projectDir) {
+                include(name: ".github/workflows/plugin_install.yml")
+            }
+        }
     }
 }
