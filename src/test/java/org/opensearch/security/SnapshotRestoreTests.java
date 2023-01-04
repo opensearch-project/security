@@ -289,14 +289,16 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         //        assertIndexNameFiltering(new String[] { "foo", "bar", "baz" }, new String[] { "-bar", "b*" }, new String[] { "baz" });
         //        assertIndexNameFiltering(new String[] { "foo", "bar", "baz" }, new String[] { "b*", "-bar" }, new String[] { "baz" });
 
+        //Configure settings
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
+                .put("plugins.security.check_snapshot_restore_write_privileges", false)
                 .build();
 
-        // setup(settings, currentClusterConfig);
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
+        setup(settings, currentClusterConfig);
 
         try (Client tc = getClient()) {
+
             tc.index(new IndexRequest("foo").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("bar").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("baz").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -321,10 +323,9 @@ public class SnapshotRestoreTests extends SingleClusterTest {
                         "\"include_global_state\": false"+
                         "}";
 
-
         //Check that both requests are accepted
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest1.hashCode()+"/_restore?wait_for_completion=true&pretty","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", encodeBasicHeader("snapresuser", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest2.hashCode()+"/_restore?wait_for_completion=true&pretty","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", encodeBasicHeader("snapresuser", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest1.hashCode()+"/_restore?wait_for_completion=true&pretty","", encodeBasicHeader("snapresuser", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest2.hashCode()+"/_restore?wait_for_completion=true&pretty","", encodeBasicHeader("snapresuser", "nagilum")).getStatusCode());
 
         //Check that both requests are equal
         Assert.assertEquals(rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest1.hashCode()+"/_restore?wait_for_completion=true&pretty","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", encodeBasicHeader("snapresuser", "nagilum")), rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest2.hashCode()+"/_restore?wait_for_completion=true&pretty","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", encodeBasicHeader("snapresuser", "nagilum")));
