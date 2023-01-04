@@ -35,8 +35,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.util.Strings;
+
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -64,10 +66,11 @@ import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
 
 import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
+import static org.opensearch.cluster.metadata.IndexAbstraction.Type.DATA_STREAM;
 
 public class ConfigModelV7 extends ConfigModel {
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private ConfigConstants.RolesMappingResolution rolesMappingResolution;
     private ActionGroupResolver agr = null;
     private SecurityRoles securityRoles = null;
@@ -285,7 +288,7 @@ public class ConfigModelV7 extends ConfigModel {
 
     public static class SecurityRoles implements org.opensearch.security.securityconf.SecurityRoles {
 
-        protected final Logger log = LoggerFactory.getLogger(this.getClass());
+        protected final Logger log = LogManager.getLogger(this.getClass());
 
         final Set<SecurityRole> roles;
 
@@ -357,7 +360,7 @@ public class ConfigModelV7 extends ConfigModel {
                     final Set<String> maskedFields = ip.getMaskedFields();
                     if (!maskedFields.isEmpty()) {
                         final String indexPattern = ip.getUnresolvedIndexPattern(user);
-                        Set<String> concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+                        Set<String> concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs, false);
 
                         Set<String> currentMaskedFields = maskedFieldsMap.get(indexPattern);
                         if (currentMaskedFields != null) {
@@ -395,7 +398,7 @@ public class ConfigModelV7 extends ConfigModel {
                     Set<String> concreteIndices = new HashSet<>();
 
                     if ((dls != null && dls.length() > 0) || (fls != null && fls.size() > 0)) {
-                        concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs);
+                        concreteIndices = ip.getResolvedIndexPattern(user, resolver, cs, false);
                     }
 
                     if (dls != null && dls.length() > 0) {
@@ -547,7 +550,7 @@ public class ConfigModelV7 extends ConfigModel {
 //                }
                 if (patternMatch) {
                     //resolved but can contain patterns for nonexistent indices
-                    final WildcardMatcher permitted = WildcardMatcher.from(p.getResolvedIndexPattern(user, resolver, cs)); //maybe they do not exist
+                    final WildcardMatcher permitted = WildcardMatcher.from(p.getResolvedIndexPattern(user, resolver, cs, true)); //maybe they do not exist
                     final Set<String> res = new HashSet<>();
                     if (!resolved.isLocalAll() && !resolved.getAllIndices().contains("*") && !resolved.getAllIndices().contains("_all")) {
                         //resolved but can contain patterns for nonexistent indices
@@ -739,33 +742,44 @@ public class ConfigModelV7 extends ConfigModel {
             return replaceProperties(indexPattern, user);
         }
 
-        private Set<String> getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
-            String unresolved = getUnresolvedIndexPattern(user);
-            WildcardMatcher matcher = WildcardMatcher.from(unresolved);
-            String[] resolved = null;
+        /** Finds the indices accessible to the user and resolves them to concrete names */
+        public Set<String> concreteIndexNames(final User user, final IndexNameExpressionResolver resolver, final ClusterService cs) {
+            return getResolvedIndexPattern(user, resolver, cs, false);
+        }
+
+        /** Finds the indices accessible to the user and attempts to resolve them to names, also includes any unresolved names */
+        public Set<String> attemptResolveIndexNames(final User user, final IndexNameExpressionResolver resolver, final ClusterService cs) {
+            return getResolvedIndexPattern(user, resolver, cs, true);
+        }
+
+        public Set<String> getResolvedIndexPattern(final User user, final IndexNameExpressionResolver resolver, final ClusterService cs, final boolean appendUnresolved) {
+            final String unresolved = getUnresolvedIndexPattern(user);
+            final ImmutableSet.Builder<String> resolvedIndices = new ImmutableSet.Builder<>();
+
+            final WildcardMatcher matcher = WildcardMatcher.from(unresolved);
+            boolean includeDataStreams = true;
             if (!(matcher instanceof WildcardMatcher.Exact)) {
-                final String[] aliasesForPermittedPattern = cs.state().getMetadata().getIndicesLookup().entrySet().stream()
-                        .filter(e -> e.getValue().getType() == ALIAS)
+                final String[] aliasesAndDataStreamsForPermittedPattern = cs.state().getMetadata().getIndicesLookup().entrySet().stream()
+                        .filter(e -> (e.getValue().getType() == ALIAS) || (e.getValue().getType() == DATA_STREAM))
                         .filter(e -> matcher.test(e.getKey()))
                         .map(e -> e.getKey())
                         .toArray(String[]::new);
-
-                if (aliasesForPermittedPattern.length > 0) {
-                    resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), aliasesForPermittedPattern);
+                if (aliasesAndDataStreamsForPermittedPattern.length > 0) {
+                    final String[] resolvedAliasesAndDataStreamIndices = resolver.concreteIndexNames(cs.state(),
+                            IndicesOptions.lenientExpandOpen(), includeDataStreams, aliasesAndDataStreamsForPermittedPattern);
+                    resolvedIndices.addAll(Arrays.asList(resolvedAliasesAndDataStreamIndices));
                 }
             }
 
-            if (resolved == null && !unresolved.isEmpty()) {
-                resolved = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), unresolved);
+            if (Strings.isNotBlank(unresolved)) {
+                final String[] resolvedIndicesFromPattern = resolver.concreteIndexNames(cs.state(), IndicesOptions.lenientExpandOpen(), includeDataStreams, unresolved);
+                resolvedIndices.addAll(Arrays.asList(resolvedIndicesFromPattern));
             }
-            if (resolved == null || resolved.length == 0) {
-                return ImmutableSet.of(unresolved);
-            } else {
-                return ImmutableSet.<String>builder()
-                        .addAll(Arrays.asList(resolved))
-                        .add(unresolved)
-                        .build();
+
+            if (appendUnresolved || resolvedIndices.build().isEmpty()) {
+                resolvedIndices.add(unresolved);
             }
+            return resolvedIndices.build();
         }
 
         public String getDlsQuery(User user) {
@@ -957,12 +971,12 @@ public class ConfigModelV7 extends ConfigModel {
             indexMatcherAndPermissions = ipatterns
                     .stream()
                     .filter(indexPattern -> "*".equals(indexPattern.getUnresolvedIndexPattern(user)))
-                    .map(p -> new IndexMatcherAndPermissions(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
+                    .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.perms))
                     .toArray(IndexMatcherAndPermissions[]::new);
         } else {
             indexMatcherAndPermissions = ipatterns
                     .stream()
-                    .map(p -> new IndexMatcherAndPermissions(p.getResolvedIndexPattern(user, resolver, cs), p.perms))
+                    .map(p -> new IndexMatcherAndPermissions(p.attemptResolveIndexNames(user, resolver, cs), p.perms))
                     .toArray(IndexMatcherAndPermissions[]::new);
         }
         return resolvedRequestedIndices

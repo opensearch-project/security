@@ -19,6 +19,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
@@ -88,7 +89,8 @@ public class SecurityFilterTest {
                 mock(ClusterService.class),
                 mock(CompatConfig.class),
                 mock(IndexResolverReplacer.class),
-                mock(BackendRegistry.class)
+                mock(BackendRegistry.class),
+                mock(ClusterInfoHolder.class)
         );
         assertEquals(expected, filter.getImmutableIndicesMatcher());
     }
@@ -112,7 +114,8 @@ public class SecurityFilterTest {
             mock(ClusterService.class),
             mock(CompatConfig.class),
             mock(IndexResolverReplacer.class),
-            mock(BackendRegistry.class)
+            mock(BackendRegistry.class),
+            mock(ClusterInfoHolder.class)
         );
 
         // Act

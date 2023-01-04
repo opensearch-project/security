@@ -40,8 +40,8 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Set;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
@@ -54,8 +54,10 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.Base64Helper;
+import org.opensearch.security.support.Base64Helper.PackageBehavior;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -69,14 +71,17 @@ public class SecurityInfoAction extends BaseRestHandler {
             new Route(POST, "/authinfo")
     ),"/_opendistro/_security", "/_plugins/_security");
 
-    private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
-    public SecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
+    private final ClusterInfoHolder clusterInfoHolder;
+
+    public SecurityInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterInfoHolder clusterInfoHolder) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
+        this.clusterInfoHolder = clusterInfoHolder;
     }
 
     @Override
@@ -92,6 +97,9 @@ public class SecurityInfoAction extends BaseRestHandler {
             public void accept(RestChannel channel) throws Exception {
                 XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
+
+                Boolean hasOdfeNodes = clusterInfoHolder.getHasOdfeNodes();
+                PackageBehavior packageBehavior = (hasOdfeNodes == null || hasOdfeNodes) ? PackageBehavior.REWRITE_AS_ODFE : PackageBehavior.NONE;
                 
                 try {
 
@@ -119,9 +127,9 @@ public class SecurityInfoAction extends BaseRestHandler {
                     
                     if(user != null && verbose) {
                         try {
-                            builder.field("size_of_user", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user).length()));
-                            builder.field("size_of_custom_attributes", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap()).getBytes(StandardCharsets.UTF_8).length));
-                            builder.field("size_of_backendroles", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable)user.getRoles()).getBytes(StandardCharsets.UTF_8).length));
+                            builder.field("size_of_user", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user, packageBehavior).length()));
+                            builder.field("size_of_custom_attributes", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable) user.getCustomAttributesMap(), packageBehavior).getBytes(StandardCharsets.UTF_8).length));
+                            builder.field("size_of_backendroles", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject((Serializable)user.getRoles(), packageBehavior).getBytes(StandardCharsets.UTF_8).length));
                         } catch (Throwable e) {
                             //ignore
                         }

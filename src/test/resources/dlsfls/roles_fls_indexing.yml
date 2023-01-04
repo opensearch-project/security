@@ -1,0 +1,39 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+all_indices_no_phone:
+  cluster_permissions:
+  - "*"
+  index_permissions:
+  - index_patterns:
+    - "*"
+    dls: ""
+    fls:
+    - "~phone-all"
+    allowed_actions:
+    - "ALL"
+some_indices_no_phone:
+  index_permissions:
+  - index_patterns:
+    - "*pages*"
+    fls:
+    - "~phone-some"
+    allowed_actions:
+    - "ALL"
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "read"
+once_indices_no_phone:
+  index_permissions:
+  - index_patterns:
+    - "yellow-pages"
+    fls:
+    - "~phone-one"
+    allowed_actions:
+    - "ALL"
+  - index_patterns:
+    - "*"
+    allowed_actions:
+    - "read"

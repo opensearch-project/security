@@ -1,0 +1,56 @@
+name: Plugin Install
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  OPENSEARCH_VERSION: 1.3.7
+  PLUGIN_NAME: opensearch-security
+
+jobs:
+  plugin-install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        jdk: [8, 11, 14]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.jdk }}
+
+      - name: Checkout Branch
+        uses: actions/checkout@v2
+
+      - name: Assemble target plugin
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: assemble
+
+      # Move and rename the plugin for installation
+      - name: Move and rename the plugin for installation
+        run: mv ./build/distributions/${{ env.PLUGIN_NAME }}-*-SNAPSHOT.zip ${{ env.PLUGIN_NAME }}.zip
+        shell: bash
+
+      - name: Create Setup Script
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          cat > setup.sh <<'EOF'
+          chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh 
+          /bin/bash -c "./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh -y"
+          EOF
+
+      - name: Create Setup Script
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          New-Item .\setup.bat -type file
+          Set-Content .\setup.bat -Value "powershell.exe .\opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT\plugins\${{ env.PLUGIN_NAME }}\tools\install_demo_configuration.bat -y"
+
+      - name: Run Opensearch with A Single Plugin
+        uses: ./.github/actions/start-opensearch-with-one-plugin
+        with:
+          opensearch-version: ${{ env.OPENSEARCH_VERSION }}
+          plugin-name: ${{ env.PLUGIN_NAME }}
+          setup-script-name: setup

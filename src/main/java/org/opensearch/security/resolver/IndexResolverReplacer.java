@@ -48,8 +48,8 @@ import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.collections.keyvalue.MultiKey;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.IndicesRequest;
@@ -105,7 +105,7 @@ import static org.opensearch.cluster.metadata.IndexAbstraction.Type.ALIAS;
 public class IndexResolverReplacer {
 
     private static final Set<String> NULL_SET = new HashSet<>(Collections.singleton(null));
-    private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private final Logger log = LogManager.getLogger(this.getClass());
     private final IndexNameExpressionResolver resolver;
     private final ClusterService clusterService;
     private final ClusterInfoHolder clusterInfoHolder;
