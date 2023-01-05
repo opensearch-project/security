@@ -142,6 +142,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
 
                 if (firstChar == '!' || firstChar == '~') {
                     excludesSet.add(incExc.substring(1));
+                    excludesSet.add(incExc.substring(1) + KEYWORD);
                 } else {
                     includesSet.add(incExc);
                 }
