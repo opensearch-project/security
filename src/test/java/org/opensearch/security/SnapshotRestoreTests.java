@@ -26,13 +26,16 @@
 
 package org.opensearch.security;
 
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
@@ -44,6 +47,9 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.rest.RestHelper;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class SnapshotRestoreTests extends SingleClusterTest {
     private ClusterConfiguration currentClusterConfig = ClusterConfiguration.DEFAULT;
@@ -187,7 +193,6 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertFalse(cur.hasFailures());
             Assert.assertEquals(currentClusterConfig.getNodes(), cur.getNodes().size());
-            System.out.println(cur.getNodesMap());
         }
 
         RestHelper rh = nonSslRestHelper();
@@ -285,9 +290,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     @Test
     public void testSnapshotRestoreSpecialIndicesPatterns() throws Exception {
 
-        // TODO: This should compare the results of restoring snapshots to match core tests of:
-        //        assertIndexNameFiltering(new String[] { "foo", "bar", "baz" }, new String[] { "-bar", "b*" }, new String[] { "baz" });
-        //        assertIndexNameFiltering(new String[] { "foo", "bar", "baz" }, new String[] { "b*", "-bar" }, new String[] { "baz" });
+        final List<String> listOfIndexesToTest = Arrays.asList("foo", "bar", "baz");
 
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
@@ -296,25 +299,24 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
 
         try (Client tc = getClient()) {
-            tc.index(new IndexRequest("foo").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("bar").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("baz").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-
-            tc.admin().cluster().putRepository(new PutRepositoryRequest("all").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/all"))).actionGet();
-            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("all", "all_1").indices("-.opendistro_security").includeGlobalState(false).waitForCompletion(true)).actionGet(); // "foo, bar, baz" does not work inside the indices field
-
-
+            for (String index : listOfIndexesToTest) {
+                tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
+                tc.index(new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).id("document1").source("{ \"foo\": \"bar\" }", XContentType.JSON)).actionGet();
+            }
         }
+
+       try (Client tc = getClient()) {
+            tc.admin().cluster().putRepository(new PutRepositoryRequest("all").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/all"))).actionGet();
+            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("all", "all_1").indices(listOfIndexesToTest).includeGlobalState(false).waitForCompletion(true)).actionGet();
+       }
 
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        System.out.println("Successfully Checked for Indices: " + rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getBody());
-        Assert.assertEquals("baz", rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"include_global_state\": false, \"indices\": \"-bar, b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", encodeBasicHeader("nagilum", "nagilum")).getBody());
-        System.out.println("Successfully Restored -bar, b*");
-        Assert.assertEquals("baz", rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"include_global_state\": false, \"indices\": \"b*, -bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"again_restored_index_$1\" }", encodeBasicHeader("nagilum", "nagilum")).getBody());
-        System.out.println("Successfully Restored b*, -bar");
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"include_global_state\": false, \"indices\": \"-bar, b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$2\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"include_global_state\": false, \"indices\": \"b*, -bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"again_restored_index_$3\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
     }
 
     @Test
