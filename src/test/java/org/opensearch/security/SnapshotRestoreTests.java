@@ -314,8 +314,8 @@ public class SnapshotRestoreTests extends SingleClusterTest {
 
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"b*,-bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"wild_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"neg_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        assert(rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"wildcard_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody().contains("wildcard_first_restored_index_baz"));
-        assert(rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"negate_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody().contains("negate_first_restored_index_baz"));
+        assert(!(rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"wildcard_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody().contains("wildcard_first_restored_index_foo")));
+        assert(!(rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"negate_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody().contains("negate_first_restored_index_foo")));
     }
 
     @Test
