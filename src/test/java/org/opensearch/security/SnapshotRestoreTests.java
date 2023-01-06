@@ -61,7 +61,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
 
         try (Client tc = getClient()) {
             tc.index(new IndexRequest("vulcangov").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-x
+
             tc.admin().cluster().putRepository(new PutRepositoryRequest("vulcangov").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/vulcangov"))).actionGet();
             tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("vulcangov", "vulcangov_1").indices("vulcangov").includeGlobalState(true).waitForCompletion(true)).actionGet();
 
@@ -289,59 +289,32 @@ x
         //        assertIndexNameFiltering(new String[] { "foo", "bar", "baz" }, new String[] { "-bar", "b*" }, new String[] { "baz" });
         //        assertIndexNameFiltering(new String[] { "foo", "bar", "baz" }, new String[] { "b*", "-bar" }, new String[] { "baz" });
 
-        //Configure settings
         final Settings settings = Settings.builder()
                 .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("plugins.security.check_snapshot_restore_write_privileges", false)
                 .build();
 
-        setup(settings, currentClusterConfig);
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityActionGroups("action_groups_packaged.yml"), settings, true, currentClusterConfig);
 
         try (Client tc = getClient()) {
-
             tc.index(new IndexRequest("foo").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("bar").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("baz").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
 
             tc.admin().cluster().putRepository(new PutRepositoryRequest("all").type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/all"))).actionGet();
-            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("all", "all_1").indices("*").includeGlobalState(false).waitForCompletion(true)).actionGet();
+            tc.admin().cluster().createSnapshot(new CreateSnapshotRequest("all", "all_1").indices("-.opendistro_security").includeGlobalState(false).waitForCompletion(true)).actionGet(); // "foo, bar, baz" does not work inside the indices field
+
+
         }
 
         RestHelper rh = nonSslRestHelper();
 
-        String restoreSnapshotRequest0 =
-                "{"+
-                        "\"indices\": \"b*\","+
-                        "\"ignore_unavailable\": false,"+
-                        "\"include_global_state\": false"+
-                        "}";
-
-
-        String restoreSnapshotRequest1 =
-                "{"+
-                        "\"indices\": \"-bar, b*\","+ // Should be "indices" : "-bar, b*"
-                        "\"ignore_unavailable\": false,"+
-                        "\"include_global_state\": false"+
-                        "}";
-
-        String restoreSnapshotRequest2 =
-                "{"+
-                        "\"indices\": \"b*, -bar\","+ // Should be "indices" : "b*, -bar"
-                        "\"ignore_unavailable\": false,"+
-                        "\"include_global_state\": false"+
-                        "}";
-
-        // Try to restore all indices
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        System.out.println("Successfully Restored All Indices");
-        //Check that both requests are accepted
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest0.hashCode()+"/_restore?wait_for_completion=true&pretty","", encodeBasicHeader("snapresuser", "nagilum")).getStatusCode());
-        System.out.println("Successfully Restored b*");
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest1.hashCode()+"/_restore?wait_for_completion=true&pretty","", encodeBasicHeader("snapresuser", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest2.hashCode()+"/_restore?wait_for_completion=true&pretty","", encodeBasicHeader("snapresuser", "nagilum")).getStatusCode());
-
-        //Check that both requests are equal
-        // Assert.assertEquals(rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest1.hashCode()+"/_restore?wait_for_completion=true&pretty","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", encodeBasicHeader("snapresuser", "nagilum")), rh.executePostRequest("_snapshot/all_1/"+restoreSnapshotRequest2.hashCode()+"/_restore?wait_for_completion=true&pretty","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", encodeBasicHeader("snapresuser", "nagilum")));
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        System.out.println("Successfully Checked for Indices: " + rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getBody());
+        Assert.assertEquals("baz", rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"include_global_state\": false, \"indices\": \"-bar, b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\" }", encodeBasicHeader("nagilum", "nagilum")).getBody());
+        System.out.println("Successfully Restored -bar, b*");
+        Assert.assertEquals("baz", rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"include_global_state\": false, \"indices\": \"b*, -bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"again_restored_index_$1\" }", encodeBasicHeader("nagilum", "nagilum")).getBody());
+        System.out.println("Successfully Restored b*, -bar");
     }
 
     @Test
