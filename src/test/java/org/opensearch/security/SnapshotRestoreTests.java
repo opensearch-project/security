@@ -314,8 +314,14 @@ public class SnapshotRestoreTests extends SingleClusterTest {
 
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"b*,-bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"wild_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"neg_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        assert(!(rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"wildcard_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody().contains("wildcard_first_restored_index_foo")));
-        assert(!(rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"negate_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody().contains("negate_first_restored_index_foo")));
+        String wild_first_body = rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"b*,-bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"wild_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody();
+        assert(!wild_first_body.contains("wild_first_restored_index_foo"));
+        assert(!wild_first_body.contains("wild_first_restored_index_bar"));
+        assert(wild_first_body.contains("wild_first_restored_index_baz"));
+        String neg_first_body = rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"negate_first_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody();
+        assert(!neg_first_body.contains("negate_first_restored_index_foo"));
+        assert(!neg_first_body.contains("negate_first_restored_index_bar"));
+        assert(neg_first_body.contains("negate_first_restored_index_baz"));
     }
 
     @Test
