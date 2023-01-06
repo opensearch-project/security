@@ -216,10 +216,6 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             roles = ((Collection<String>) rolesObject).toArray(new String[0]);
         }
 
-        for (int i = 0; i < roles.length; i++) {
-            roles[i] = roles[i].trim();
-        }
-
         return roles;
     }
 
