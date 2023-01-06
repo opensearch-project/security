@@ -535,6 +535,7 @@ task updateVersion {
             fileset(dir: projectDir) {
                 // Include the required files that needs to be updated with new Version
                 include(name: "bwc-test/build.gradle")
+                include(name: ".github/workflows/plugin_install.yml")
             }
         }
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
