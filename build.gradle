@@ -644,13 +644,9 @@ task updateVersion {
             fileset(dir: projectDir) {
                 // Include the required files that needs to be updated with new Version
                 include(name: "bwc-test/build.gradle")
-            }
-        }
-        ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
-        ant.replaceregexp(match: 'OPENSEARCH_VERSION: .*', replace: 'OPENSEARCH_VERSION: ' + newVersion, flags:'g', byline:true){
-            fileset(dir: projectDir) {
                 include(name: ".github/workflows/plugin_install.yml")
             }
         }
+        ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
     }
 }
