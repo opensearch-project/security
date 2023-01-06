@@ -1,0 +1,18 @@
+---
+_meta:
+  type: "roles"
+  config_version: 2
+movies:
+  index_permissions:
+  - index_patterns:
+    - "movies*"
+    allowed_actions:
+    - "read"
+movies_no_actors:
+  index_permissions:
+  - index_patterns:
+    - "movies*"
+    fls:
+    - "~actors"
+    allowed_actions:
+    - "read"
