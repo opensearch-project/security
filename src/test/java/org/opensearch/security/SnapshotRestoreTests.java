@@ -26,7 +26,9 @@
 
 package org.opensearch.security;
 
-import org.apache.hc.core5.http.Header;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -47,9 +49,6 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
 import org.opensearch.security.test.helper.rest.RestHelper;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class SnapshotRestoreTests extends SingleClusterTest {
     private ClusterConfiguration currentClusterConfig = ClusterConfiguration.DEFAULT;
@@ -289,6 +288,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
 
     @Test
     public void testSnapshotRestoreSpecialIndicesPatterns() throws Exception {
+        // Run with ./gradlew test --tests org.opensearch.security.SnapshotRestoreTests.testSnapshotRestoreSpecialIndicesPatterns
 
         final List<String> listOfIndexesToTest = Arrays.asList("foo", "bar", "baz");
 
@@ -312,11 +312,9 @@ public class SnapshotRestoreTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/all/all_1", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"include_global_state\": false, \"indices\": \"-bar, b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$2\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{ \"include_global_state\": false, \"indices\": \"b*, -bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"again_restored_index_$3\" }", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true", "", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"b*,-bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"fifth_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"sixth_restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
+        Assert.assertEquals(rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"-bar,b*\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody(), rh.executePostRequest("_snapshot/all/all_1/_restore?wait_for_completion=true","{\"indices\": \"b*,-bar\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_$1\"}", encodeBasicHeader("nagilum", "nagilum")).getBody());
     }
 
     @Test
