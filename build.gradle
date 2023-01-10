@@ -143,7 +143,8 @@ dependencies {
 }
 
 configurations.runtimeClasspath {
-    // jackson-dataformat-* is already included in OpenSearch
+    // jackson-* is already included in OpenSearch
+    exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
     exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-cbor'
     exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-smile'
     exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-yaml'
