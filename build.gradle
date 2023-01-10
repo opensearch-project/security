@@ -142,6 +142,11 @@ dependencies {
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 }
 
+configurations.runtimeClasspath {
+    // jackson-dataformat-cbor is already included in OpenSearch
+    exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-cbor'
+}
+
 group = 'org.opensearch'
 version = opensearch_build
 description = 'OpenSearch Security'
