@@ -28,6 +28,7 @@ import io.netty.handler.ssl.SslProvider;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -66,8 +67,8 @@ import org.opensearch.security.ssl.util.KeystoreProps;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 
 import io.netty.util.internal.PlatformDependent;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -100,7 +101,7 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     }
 
     private final Settings settings;
-    private final Logger log = LoggerFactory.getLogger(this.getClass());
+    private final Logger log = LogManager.getLogger(this.getClass());
     public final SslProvider sslHTTPProvider;
     public final SslProvider sslTransportServerProvider;
     public final SslProvider sslTransportClientProvider;

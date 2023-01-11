@@ -34,8 +34,8 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.SpecialPermission;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkShardRequest;
@@ -80,7 +80,7 @@ import com.google.common.io.BaseEncoding;
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
 public abstract class AbstractAuditLog implements AuditLog {
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
 
     private final ThreadPool threadPool;
     private final IndexNameExpressionResolver resolver;
@@ -454,7 +454,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, originalResult.internalSourceRef(), XContentType.JSON)) {
                         Object base64 = parser.map().values().iterator().next();
                         if(base64 instanceof String) {
-                            originalSource = (new String(BaseEncoding.base64().decode((String) base64)));
+                            originalSource = (new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8));
                         } else {
                             originalSource = XContentHelper.convertToJson(originalResult.internalSourceRef(), false, XContentType.JSON);
                         }
@@ -465,7 +465,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                     try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, currentIndex.source(), XContentType.JSON)) {
                         Object base64 = parser.map().values().iterator().next();
                         if(base64 instanceof String) {
-                            currentSource = (new String(BaseEncoding.base64().decode((String) base64)));
+                            currentSource = new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8);
                         } else {
                             currentSource = XContentHelper.convertToJson(currentIndex.source(), false, XContentType.JSON);
                         }
@@ -492,7 +492,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                 try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, currentIndex.source(), XContentType.JSON)) {
                    Object base64 = parser.map().values().iterator().next();
                    if(base64 instanceof String) {
-                       msg.addSecurityConfigContentToRequestBody(new String(BaseEncoding.base64().decode((String) base64)), id);
+                       msg.addSecurityConfigContentToRequestBody(new String(BaseEncoding.base64().decode((String) base64), StandardCharsets.UTF_8), id);
                    } else {
                        msg.addSecurityConfigTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()), id);
                    }

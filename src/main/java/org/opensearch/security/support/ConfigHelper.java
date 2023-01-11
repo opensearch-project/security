@@ -31,14 +31,17 @@
 package org.opensearch.security.support;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 
 import org.opensearch.security.securityconf.impl.Meta;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.action.DocWriteRequest.OpType;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
@@ -59,7 +62,7 @@ import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTE
 
 public class ConfigHelper {
     
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigHelper.class);
+    private static final Logger LOGGER = LogManager.getLogger(ConfigHelper.class);
 
     public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion) throws Exception {
         uploadFile(tc, filepath, index, cType, configVersion, false);
@@ -96,7 +99,7 @@ public class ConfigHelper {
     public static Reader createFileOrStringReader(CType cType, int configVersion, String filepath, boolean populateEmptyIfFileMissing) throws Exception {
         Reader reader;
         if (!populateEmptyIfFileMissing || new File(filepath).exists()) {
-            reader = new FileReader(filepath);
+            reader = new InputStreamReader(new FileInputStream(filepath), StandardCharsets.UTF_8);
         } else {
             reader = new StringReader(createEmptySdcYaml(cType, configVersion));
         }
@@ -148,7 +151,7 @@ public class ConfigHelper {
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromYamlFile(String filepath, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
-        return fromYamlReader(new FileReader(filepath), ctype, version, seqNo, primaryTerm);
+        return fromYamlReader(new InputStreamReader(new FileInputStream(filepath), StandardCharsets.UTF_8), ctype, version, seqNo, primaryTerm);
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromYamlString(String yamlString, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {

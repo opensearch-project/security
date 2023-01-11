@@ -31,18 +31,22 @@
 package org.opensearch.security.filter;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.kafka.common.Cluster;
+import org.opensearch.Version;
 import org.opensearch.security.auth.RolesInjector;
+import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.support.WildcardMatcher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.opensearch.security.auth.BackendRegistry;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
@@ -94,6 +98,7 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 
 import org.opensearch.security.support.Base64Helper;
+import org.opensearch.security.support.Base64Helper.PackageBehavior;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.SourceFieldsContext;
@@ -104,7 +109,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.traceAction;
 
 public class SecurityFilter implements ActionFilter {
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evalp;
     private final AdminDNs adminDns;
     private DlsFlsRequestValve dlsFlsValve;
@@ -118,9 +123,11 @@ public class SecurityFilter implements ActionFilter {
     private final Client client;
     private final BackendRegistry backendRegistry;
 
+    private final ClusterInfoHolder clusterInfoHolder;
+
     public SecurityFilter(final Client client, final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
                           DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry) {
+                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, BackendRegistry backendRegistry, ClusterInfoHolder cih) {
         this.client = client;
         this.evalp = evalp;
         this.adminDns = adminDns;
@@ -133,6 +140,7 @@ public class SecurityFilter implements ActionFilter {
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         this.rolesInjector = new RolesInjector(auditLog);
         this.backendRegistry = backendRegistry;
+        this.clusterInfoHolder = cih;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -386,15 +394,18 @@ public class SecurityFilter implements ActionFilter {
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
+
+        Boolean hasOdfeNodes = clusterInfoHolder.getHasOdfeNodes();
+        PackageBehavior packageBehavior = (hasOdfeNodes == null || hasOdfeNodes) ? PackageBehavior.REWRITE_AS_ODFE : PackageBehavior.NONE;
         
         if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request), packageBehavior);
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
             if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
-                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
+                final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request), packageBehavior);
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }

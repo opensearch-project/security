@@ -41,18 +41,19 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.common.settings.Settings;
 
 import org.opensearch.security.tools.Hasher;
 
 public final class SecurityUtils {
     
-    protected final static Logger log = LoggerFactory.getLogger(SecurityUtils.class);
-    private static final Pattern ENV_PATTERN = Pattern.compile("\\$\\{env\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
-    private static final Pattern ENVBC_PATTERN = Pattern.compile("\\$\\{envbc\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
-    private static final Pattern ENVBASE64_PATTERN = Pattern.compile("\\$\\{envbase64\\.([\\w]+)((\\:\\-)?[\\w]*)\\}");
+    protected final static Logger log = LogManager.getLogger(SecurityUtils.class);
+    private static final String ENV_PATTERN_SUFFIX = "\\.([\\w=():\\-_.]+?)(\\:\\-[\\w=():\\-_.]*)?\\}";
+    static final Pattern ENV_PATTERN = Pattern.compile("\\$\\{env" + ENV_PATTERN_SUFFIX);
+    static final Pattern ENVBC_PATTERN = Pattern.compile("\\$\\{envbc" + ENV_PATTERN_SUFFIX);
+    static final Pattern ENVBASE64_PATTERN = Pattern.compile("\\$\\{envbase64" + ENV_PATTERN_SUFFIX);
     public static Locale EN_Locale = forEN();
 
 

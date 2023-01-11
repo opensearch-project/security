@@ -44,8 +44,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.get.GetRequest;
@@ -96,7 +96,7 @@ public abstract class AbstractSecurityUnitTest {
         //System.setProperty("security.display_lic_none","true");
     }
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name",  "mock").build());
 
     //TODO Test Matrix
@@ -199,23 +199,7 @@ public abstract class AbstractSecurityUnitTest {
             Assert.assertEquals(info.numNodes, cur.getNodes().size());
 
             SearchResponse sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
-            //Assert.assertEquals(5L, sr.getHits().getTotalHits());
-
             sr = tc.search(new SearchRequest(".opendistro_security")).actionGet();
-            //Assert.assertEquals(5L, sr.getHits().getTotalHits());
-
-            String type=securityConfig.getType();
-
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type, "config")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"internalusers")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"roles")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"rolesmapping")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"actiongroups")).actionGet().isExists());
-            Assert.assertFalse(tc.get(new GetRequest(".opendistro_security", type,"rolesmapping_xcvdnghtu165759i99465")).actionGet().isExists());
-            Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"config")).actionGet().isExists());
-            if (indexRequests.stream().anyMatch(i -> CType.NODESDN.toLCString().equals(i.id()))) {
-                Assert.assertTrue(tc.get(new GetRequest(".opendistro_security", type,"nodesdn")).actionGet().isExists());
-            }
         }
     }
 

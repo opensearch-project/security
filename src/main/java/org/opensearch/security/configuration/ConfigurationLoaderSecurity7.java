@@ -31,6 +31,7 @@
 package org.opensearch.security.configuration;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,8 +43,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.support.ConfigHelper;
 import org.opensearch.security.support.SecurityUtils;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.LegacyESVersion;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.get.GetResponse;
@@ -71,7 +72,7 @@ import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTE
 
 public class ConfigurationLoaderSecurity7 {
 
-    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    protected final Logger log = LogManager.getLogger(this.getClass());
     private final Client client;
     private final String securityIndex;
     private final ClusterService cs;
@@ -275,7 +276,7 @@ public class ConfigurationLoaderSecurity7 {
 
             parser.nextToken();
 
-            final String jsonAsString = SecurityUtils.replaceEnvVars(new String(parser.binaryValue()), settings);
+            final String jsonAsString = SecurityUtils.replaceEnvVars(new String(parser.binaryValue(), StandardCharsets.UTF_8), settings);
             final JsonNode jsonNode = DefaultObjectMapper.readTree(jsonAsString);
             int configVersion = 1;
 

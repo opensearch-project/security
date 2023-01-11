@@ -61,6 +61,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4Plugin;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -522,6 +523,7 @@ public class SSLTest extends SingleClusterTest {
     }
 
     @Test
+    @Ignore // Has an external dependency that is flaky, not used in main
     public void testTransportClientSSLExternalContext() throws Exception {
 
         final Settings settings = Settings.builder().put("plugins.security.ssl.transport.enabled", true)

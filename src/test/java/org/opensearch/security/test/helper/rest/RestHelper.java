@@ -32,6 +32,7 @@ package org.opensearch.security.test.helper.rest;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.Arrays;
@@ -72,8 +73,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
@@ -83,7 +84,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 public class RestHelper {
 
-	protected final Logger log = LoggerFactory.getLogger(RestHelper.class);
+	protected final Logger log = LogManager.getLogger(RestHelper.class);
 	
 	public boolean enableHTTPClientSSL = true;
 	public boolean enableHTTPClientSSLv3Only = false;
@@ -143,48 +144,48 @@ public class RestHelper {
 				.toArray(s -> new HttpResponse[s]);
 	}
 
-	public HttpResponse executeGetRequest(final String request, Header... header) throws Exception {
+	public HttpResponse executeGetRequest(final String request, Header... header) {
 	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
 	}
 	
-	public HttpResponse executeHeadRequest(final String request, Header... header) throws Exception {
+	public HttpResponse executeHeadRequest(final String request, Header... header) {
         return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
     }
 	
-	public HttpResponse executeOptionsRequest(final String request) throws Exception {
+	public HttpResponse executeOptionsRequest(final String request) {
         return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
     }
 
-	public HttpResponse executePutRequest(final String request, String body, Header... header) throws Exception {
+	public HttpResponse executePutRequest(final String request, String body, Header... header) {
 		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
 		if (body != null && !body.isEmpty()) {
-			uriRequest.setEntity(new StringEntity(body));
+			uriRequest.setEntity(createStringEntity(body));
 		}
 		return executeRequest(uriRequest, header);
 	}
 
-	public HttpResponse executeDeleteRequest(final String request, Header... header) throws Exception {
+	public HttpResponse executeDeleteRequest(final String request, Header... header) {
 		return executeRequest(new HttpDelete(getHttpServerUri() + "/" + request), header);
 	}
 
-	public HttpResponse executePostRequest(final String request, String body, Header... header) throws Exception {
+	public HttpResponse executePostRequest(final String request, String body, Header... header) {
 		HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + request);
 		if (body != null && !body.isEmpty()) {
-			uriRequest.setEntity(new StringEntity(body));
+			uriRequest.setEntity(createStringEntity(body));
 		}
 
 		return executeRequest(uriRequest, header);
 	}
 	
-    public HttpResponse executePatchRequest(final String request, String body, Header... header) throws Exception {
+    public HttpResponse executePatchRequest(final String request, String body, Header... header) {
         HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
         if (body != null && !body.isEmpty()) {
-            uriRequest.setEntity(new StringEntity(body));
+            uriRequest.setEntity(createStringEntity(body));
         }
         return executeRequest(uriRequest, header);
     }	
 	
-	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) throws Exception {
+	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) {
 
 		CloseableHttpClient httpClient = null;
 		try {
@@ -204,11 +205,25 @@ public class RestHelper {
 			HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
 			log.debug(res.getBody());
 			return res;
+		} catch (final Exception e) {
+			throw new RuntimeException(e);
 		} finally {
 
 			if (httpClient != null) {
-				httpClient.close();
+				try {
+					httpClient.close();
+				} catch (final Exception e) {
+					throw new RuntimeException(e);
+				}
 			}
+		}
+	}
+
+	private StringEntity createStringEntity(String body) {
+		try {
+			return new StringEntity(body);
+		} catch (final UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	

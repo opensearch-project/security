@@ -8,52 +8,108 @@ env:
 jobs:
   build:
     name: build
-    runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         jdk: [8, 11, 14]
+        platform: ["ubuntu-latest", "windows-latest"]
+    runs-on: ${{ matrix.platform }}
 
     steps:
 
-    - name: Set up JDK
+    - name: Set up JDK for build and test on 8 and 11
+      if: matrix.jdk != '14'
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Set up JDK for build and test on 14
+      if: matrix.jdk == '14'
       uses: actions/setup-java@v1
       with:
+        distribution: temurin
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
       uses: actions/checkout@v2
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
       with:
-        languages: java
-
-    - name: Cache Gradle packages
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-
-    - name: Checkstyle
-      run: ./gradlew clean checkstyleMain checkstyleTest
-
-    - name: Package
-      run: ./gradlew clean build -Dbuild.snapshot=false -x test
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
-
-    - name: Test
-      run: OPENDISTRO_SECURITY_TEST_OPENSSL_OPT=true ./gradlew test -i
+        arguments: |
+          build test -Dbuild.snapshot=false
+          -x checkstyleMain
+          -x checkstyleTest
 
     - name: Coverage
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./build/jacoco/test/jacocoTestReport.xml
+        files: ./build/reports/jacoco/test/jacocoTestReport.xml
+
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+        path: |
+          ./build/reports/
+
+    - name: check archive for debugging
+      if: always()
+      run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
+
+  code-ql:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 11
+    - uses: github/codeql-action/init@v1
+      with:
+        languages: java
+    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
+    - uses: github/codeql-action/analyze@v1
+
+  build-artifact-names:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 11
+
+    - run: |
+        security_plugin_version=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}')
+        security_plugin_version_no_snapshot=$(echo $security_plugin_version | sed 's/-SNAPSHOT//g')
+        security_plugin_version_only_number=$(echo $security_plugin_version_no_snapshot | cut -d- -f1)
+        test_qualifier=alpha2
+        echo "SECURITY_PLUGIN_VERSION=$security_plugin_version" >> $GITHUB_ENV
+        echo "SECURITY_PLUGIN_VERSION_NO_SNAPSHOT=$security_plugin_version_no_snapshot" >> $GITHUB_ENV
+        echo "SECURITY_PLUGIN_VERSION_ONLY_NUMBER=$security_plugin_version_only_number" >> $GITHUB_ENV
+        echo "TEST_QUALIFIER=$test_qualifier" >> $GITHUB_ENV
+    - run: |
+        echo ${{ env.SECURITY_PLUGIN_VERSION }}
+        echo ${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}
+        echo ${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}
+        echo ${{ env.TEST_QUALIFIER }}
+    - run: ./gradlew clean assemble && test -s ./build/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION }}.jar
+
+    - run: ./gradlew clean assemble -Dbuild.snapshot=false && test -s ./build/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_NO_SNAPSHOT }}.jar
+
+    - run: ./gradlew clean assemble -Dbuild.snapshot=false -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}.jar
+
+    - run: ./gradlew clean assemble -Dbuild.version_qualifier=${{ env.TEST_QUALIFIER }} && test -s ./build/opensearch-security-${{ env.SECURITY_PLUGIN_VERSION_ONLY_NUMBER }}-${{ env.TEST_QUALIFIER }}-SNAPSHOT.jar
+
+    - run:  |
+        ## EXISTING_OS_VERSION outputs the major version, example as 2
+        EXISTING_OS_VERSION=$(./gradlew properties | grep opensearch.version | cut -d':' -f2- | awk '{$1=$1};1' | cut -d '-' -f1 | cut -d '.' -f1)
+        ## INCREMENT_OS_VERSION in an increment of 1, example if EXISTING_OS_VERSION is 2, INCREMENT_OS_VERSION is 3
+        INCREMENT_OS_VERSION=$((++EXISTING_OS_VERSION))
+        ./gradlew clean updateVersion -DnewVersion=$INCREMENT_OS_VERSION.0.0-SNAPSHOT
+        test `./gradlew properties | grep opensearch.version | cut -d':' -f2- | awk '{$1=$1};1'` = $INCREMENT_OS_VERSION.0.0-SNAPSHOT
+    - name: List files in the build directory if there was an error
+      run: ls -al ./build/
+      if: failure()

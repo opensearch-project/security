@@ -18,6 +18,7 @@ package com.amazon.dlic.auth.http.saml;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -40,8 +41,8 @@ import org.apache.cxf.rs.security.jose.jwt.JoseJwtProducer;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.bytes.BytesReference;
@@ -68,8 +69,8 @@ import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.util.Util;
 
 class AuthTokenProcessorHandler {
-    private static final Logger log = LoggerFactory.getLogger(AuthTokenProcessorHandler.class);
-    private static final Logger token_log = LoggerFactory.getLogger("com.amazon.dlic.auth.http.saml.Token");
+    private static final Logger log = LogManager.getLogger(AuthTokenProcessorHandler.class);
+    private static final Logger token_log = LogManager.getLogger("com.amazon.dlic.auth.http.saml.Token");
     private static final Pattern EXPIRY_SETTINGS_PATTERN = Pattern.compile("\\s*(\\w+)\\s*(?:\\+\\s*(\\w+))?\\s*");
 
     private Saml2SettingsProvider saml2SettingsProvider;
@@ -155,7 +156,7 @@ class AuthTokenProcessorHandler {
             SettingsException {
         if (token_log.isDebugEnabled()) {
             try {
-                token_log.debug("SAMLResponse for {}\n{}", samlRequestId, new String(Util.base64decoder(samlResponseBase64), "UTF-8"));
+                token_log.debug("SAMLResponse for {}\n{}", samlRequestId, new String(Util.base64decoder(samlResponseBase64), StandardCharsets.UTF_8));
             } catch (Exception e) {
                 token_log.warn(
                         "SAMLResponse for {} cannot be decoded from base64\n{}",
