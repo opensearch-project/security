@@ -97,11 +97,6 @@ if [ "$cluster_mode" == 0 ] && [ "$assumeyes" == 0 ]; then
 	esac
 fi
 
-if [ "$assumeyes" == 1 ]; then
-  cluster_mode=1
-  initsecurity=1
-fi
-
 set -e
 BASE_DIR="$DIR/../../.."
 if [ -d "$BASE_DIR" ]; then
