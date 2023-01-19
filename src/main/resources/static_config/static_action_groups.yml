@@ -209,6 +209,7 @@ cluster_manage_index_templates:
   allowed_actions:
   - "indices:admin/template/*"
   - "indices:admin/index_template/*"
+  - "cluster:admin/component_template/*"
   type: "cluster"
   description: "Manage index templates"
 cluster_manage_pipelines:
