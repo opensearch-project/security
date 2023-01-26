@@ -71,6 +71,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.Strings;
 import org.opensearch.common.xcontent.ToXContentObject;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
 
 import static java.lang.String.format;
@@ -162,7 +163,7 @@ public class TestRestClient implements AutoCloseable {
 	}
 
 	public HttpResponse putJson(String path, ToXContentObject body) {
-		return putJson(path, Strings.toString(body));
+		return putJson(path, Strings.toString(XContentType.JSON, body));
 	}
 
 	public HttpResponse put(String path) {
@@ -181,7 +182,7 @@ public class TestRestClient implements AutoCloseable {
 	}
 
 	public HttpResponse postJson(String path, ToXContentObject body) {
-		return postJson(path, Strings.toString(body));
+		return postJson(path, Strings.toString(XContentType.JSON, body));
 	}
 
 	public HttpResponse post(String path) {

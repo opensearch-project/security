@@ -60,6 +60,7 @@ import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.http.BindHttpException;
 import org.opensearch.node.PluginAwareNode;
 import org.opensearch.plugins.Plugin;
@@ -292,7 +293,7 @@ public class LocalOpenSearchCluster {
 				.setClusterManagerNodeTimeout(timeout).setWaitForNodes("" + expectedNodeCount).execute().actionGet();
 
 			if (log.isDebugEnabled()) {
-				log.debug("Current ClusterState:\n{}", Strings.toString(healthResponse));
+				log.debug("Current ClusterState:\n{}", Strings.toString(XContentType.JSON,healthResponse));
 			}
 
 			if (healthResponse.isTimedOut()) {
