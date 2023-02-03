@@ -395,10 +395,10 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
         }
 
         @Override
-        public void visitDocument(final int docID, StoredFieldVisitor visitor) throws IOException {
+        public void document(final int docID, StoredFieldVisitor visitor) throws IOException {
             visitor = getDlsFlsVisitor(visitor);
             try {
-                in.visitDocument(docID, visitor);
+                in.document(docID, visitor);
             } finally {
                 finishVisitor(visitor);
             }
