@@ -58,6 +58,6 @@ public class DeprecatedSettingsTest {
 
         checkForDeprecatedSetting(settings, "legacyKey", "properKey");
 
-        verify(logger).deprecate(eq("legacyKey"), anyString(), any());
+        verify(logger).deprecate(eq("legacyKey"), anyString(), any(), any());
     }
 }
