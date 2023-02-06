@@ -34,6 +34,7 @@ import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidat
 import org.opensearch.security.dlic.rest.validation.NoOpValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -51,6 +52,13 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
                                     ThreadPool threadPool, AuditLog auditLog) {
 		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
 				auditLog);
+	}
+
+	@Override
+	protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+											 final Object content,
+											 final String resourceName) {
+		return true;
 	}
 
 	@Override
