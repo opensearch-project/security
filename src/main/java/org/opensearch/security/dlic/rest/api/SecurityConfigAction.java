@@ -75,6 +75,13 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
+    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+                                             final Object content,
+                                             final String resourceName) {
+        return true;
+    }
+
+    @Override
     protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
 

@@ -92,6 +92,13 @@ public class MigrateApiAction extends AbstractApiAction {
         return Endpoint.MIGRATE;
     }
 
+    @Override
+    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+                                             final Object content,
+                                             final String resourceName) {
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     protected void handlePost(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
