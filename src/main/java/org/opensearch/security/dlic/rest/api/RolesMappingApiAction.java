@@ -68,11 +68,18 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 			return;
 		}
 
+		final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
 		final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(getConfigName(), false);
 		final boolean rolesMappingExists = rolesMappingConfiguration.exists(name);
 
 		if (!isValidRolesMapping(channel, name)) return;
 
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(rolesConfiguration.getCEntry(name))) {
+			if (!isSuperAdmin()) {
+				forbidden(channel, "No permissions");
+				return;
+			}
+		}
 		rolesMappingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, rolesMappingConfiguration.getImplementingClass()));
 
 		saveAnUpdateConfigs(client, request, getConfigName(), rolesMappingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
@@ -87,6 +94,26 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 
 			}
 		});
+	}
+
+	@Override
+	protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory, final Object content, final String resourceName) throws IOException {
+		final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(rolesConfiguration.getCEntry(resourceName))) {
+			return isSuperAdmin();
+		} else {
+			return true;
+		}
+	}
+
+	@Override
+	protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
+		final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(rolesConfiguration.getCEntry(name))) {
+			return !isSuperAdmin();
+		} else {
+			return super.isReadOnly(existingConfiguration, name);
+		}
 	}
 
 	@Override

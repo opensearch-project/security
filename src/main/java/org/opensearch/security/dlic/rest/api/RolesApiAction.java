@@ -11,6 +11,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -31,6 +32,7 @@ import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidat
 import org.opensearch.security.dlic.rest.validation.RolesValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -75,6 +77,24 @@ public class RolesApiAction extends PatchableResourceApiAction {
 	@Override
     protected CType getConfigName() {
         return CType.ROLES;
+	}
+
+	@Override
+	protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfiguration, final Object content, final String resourceName) throws IOException {
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(content)) {
+			return isSuperAdmin();
+		} else {
+			return true;
+		}
+	}
+
+	@Override
+	protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(existingConfiguration.getCEntry(name))) {
+			return !isSuperAdmin();
+		} else {
+			return super.isReadOnly(existingConfiguration, name);
+		}
 	}
 
 }

@@ -118,12 +118,35 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 
 		// Prevent the case where action group references to itself in the allowed_actions.
 		final SecurityDynamicConfiguration<?> existingActionGroupsConfig = load(getConfigName(), false);
-		existingActionGroupsConfig.putCObject(name, DefaultObjectMapper.readTree(content, existingActionGroupsConfig.getImplementingClass()));
+		final Object actionGroup = DefaultObjectMapper.readTree(content, existingActionGroupsConfig.getImplementingClass());
+		existingActionGroupsConfig.putCObject(name, actionGroup);
 		if (hasActionGroupSelfReference(existingActionGroupsConfig, name)) {
 			badRequestResponse(channel, name + " cannot be an allowed_action of itself");
 			return;
 		}
-
+		// prevent creation of groups for REST admin api
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(actionGroup)) {
+			forbidden(channel, "Not allowed");
+			return;
+		}
 		super.handlePut(channel, request, client, content);
+	}
+
+	@Override
+	protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfiguration,
+											 final Object content,
+											 final String resourceName) throws IOException {
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(content)) {
+			return false;
+		}
+		return true;
+	}
+
+	@Override
+	protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(existingConfiguration.getCEntry(name))) {
+			return true;
+		}
+		return super.isReadOnly(existingConfiguration, name);
 	}
 }

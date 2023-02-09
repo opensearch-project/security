@@ -79,6 +79,13 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
+    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+                                             final Object content,
+                                             final String resourceName) {
+        return true;
+    }
+
+    @Override
     public List<Route> routes() {
         return routes;
     }
