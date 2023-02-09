@@ -185,6 +185,16 @@ opendistro_security_test:
   hosts: []
   users:
   - "test"
+  - "rest_api_admin_user"
+  - "rest_api_admin_nodesdn"
+  - "rest_api_admin_allowlist"
+  - "rest_api_admin_roles"
+  - "rest_api_admin_rolesmapping"
+  - "rest_api_admin_actiongroups"
+  - "rest_api_admin_internalusers"
+  - "rest_api_admin_tenants"
+  - "rest_api_admin_ssl_info"
+  - "rest_api_admin_ssl_reloadcerts"
   and_backend_roles: []
   description: "Migrated from v6"
 opendistro_security_role_starfleet_captains:
@@ -206,3 +216,47 @@ opendistro_security_role_host2:
   - "opendistro_security_host_localhost"
   and_backend_roles: []
   description: "Migrated from v6"
+rest_api_admin_full_access:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_user]
+rest_api_admin_actiongroups_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_actiongroups]
+rest_api_admin_allowlist_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_allowlist]
+rest_api_admin_audit_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_audit]
+rest_api_admin_internalusers_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_internalusers]
+rest_api_admin_nodesdn_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_nodesdn]
+rest_api_admin_roles_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_roles]
+rest_api_admin_rolesmapping_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_rolesmapping]
+rest_api_admin_ssl_info_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_ssl_info]
+rest_api_admin_ssl_reloadcerts_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_ssl_reloadcerts]
+rest_api_admin_tenants_only:
+  reserved: false
+  hidden: true
+  users: [rest_api_admin_tenants]
