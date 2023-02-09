@@ -156,8 +156,6 @@ import org.opensearch.security.setting.TransportPassiveAuthSetting;
 import org.opensearch.security.ssl.OpenSearchSecuritySSLPlugin;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.http.netty.ValidatingDispatcher;
-import org.opensearch.security.ssl.rest.SecuritySSLCertsInfoAction;
-import org.opensearch.security.ssl.rest.SecuritySSLReloadCertsAction;
 import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
@@ -466,18 +464,25 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             if(!SSLConfig.isSslOnlyMode()) {
                 handlers.add(new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new SecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
-                handlers.add(new SecuritySSLCertsInfoAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 handlers.add(new DashboardsInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
-				Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
-                handlers.add(new SecurityConfigUpdateAction(settings, restController,Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                handlers.add(new SecurityWhoAmIAction(settings ,restController,Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                if (sslCertReloadEnabled) {
-                    handlers.add(new SecuritySSLReloadCertsAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
-                }
-                final Collection<RestHandler> apiHandlers = SecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog));
-                handlers.addAll(apiHandlers);
-                log.debug("Added {} management rest handler(s)", apiHandlers.size());
+                        Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
+                handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.addAll(
+                        SecurityRestApiActions.getHandler(
+                                settings,
+                                configPath,
+                                restController,
+                                localClient,
+                                adminDns,
+                                cr, cs, principalExtractor,
+                                evaluator,
+                                threadPool,
+                                Objects.requireNonNull(auditLog), sks,
+                                sslCertReloadEnabled)
+                );
+                log.debug("Added {} rest handler(s)", handlers.size());
             }
         }
 

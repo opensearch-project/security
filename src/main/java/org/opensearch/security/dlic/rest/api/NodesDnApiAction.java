@@ -78,6 +78,13 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     @Override
+    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+                                             final Object content,
+                                             final String resourceName) {
+        return true;
+    }
+
+    @Override
     public List<Route> routes() {
         if (settings.getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false)) {
             return routes;

@@ -29,12 +29,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.ToXContent;
 import org.opensearch.common.xcontent.XContentHelper;
@@ -44,6 +47,8 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.rest.RestHandler.DeprecatedRoute;
 import org.opensearch.rest.RestHandler.Route;
 import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.user.User;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.THROW_UNSUPPORTED_OPERATION;
 
@@ -265,4 +270,11 @@ public class Utils {
                                 .map(p -> new DeprecatedRoute(r.getMethod(), p + r.getPath(), r.getDeprecationMessage())))
                 .collect(ImmutableList.toImmutableList());
     }
+
+    public static Pair<User, TransportAddress> userAndRemoteAddressFrom(final ThreadContext threadContext) {
+        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+        return Pair.of(user, remoteAddress);
+    }
+
 }

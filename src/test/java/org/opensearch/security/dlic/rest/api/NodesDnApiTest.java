@@ -181,6 +181,85 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
         }
     }
 
+
+    @Test
+    public void testNodesDnApiWithPermissions() throws Exception {
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
+                .build();
+        setupWithRestRoles(settings);
+        final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
+        final Header restApiNodesDnHeader = encodeBasicHeader("rest_api_admin_nodesdn", "rest_api_admin_nodesdn");
+        final Header restApiUserHeader = encodeBasicHeader("test", "test");
+        //full access admin
+        {
+            rh.sendAdminCertificate = false;
+            response = rh.executeGetRequest(
+                    ENDPOINT + "/nodesdn", restApiAdminHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            response = rh.executePutRequest(
+                    ENDPOINT + "/nodesdn/c1", "{\"nodes_dn\": [\"cn=popeye\"]}",
+                    restApiAdminHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
+
+            response = rh.executePatchRequest(
+                    ENDPOINT + "/nodesdn/c1",
+                    "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]",
+                    restApiAdminHeader
+            );
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            response = rh.executeDeleteRequest(ENDPOINT + "/nodesdn/c1", restApiAdminHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
+        //NodesDN only
+        {
+            rh.sendAdminCertificate = false;
+            response = rh.executeGetRequest(ENDPOINT + "/nodesdn", restApiNodesDnHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            response = rh.executePutRequest(
+                    ENDPOINT + "/nodesdn/c1", "{\"nodes_dn\": [\"cn=popeye\"]}",
+                    restApiNodesDnHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
+
+            response = rh.executePatchRequest(
+                    ENDPOINT + "/nodesdn/c1",
+                    "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]",
+                    restApiNodesDnHeader
+            );
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            response = rh.executeDeleteRequest(ENDPOINT + "/nodesdn/c1", restApiNodesDnHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+
+            response = rh.executeGetRequest(ENDPOINT + "/actiongroups", restApiNodesDnHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
+        //rest api user
+        {
+            rh.sendAdminCertificate = false;
+            response = rh.executeGetRequest(ENDPOINT + "/nodesdn", restApiUserHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+            response = rh.executePutRequest(
+                    ENDPOINT + "/nodesdn/c1", "{\"nodes_dn\": [\"cn=popeye\"]}",
+                    restApiUserHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+            response = rh.executePatchRequest(
+                    ENDPOINT + "/nodesdn/c1",
+                    "[{ \"op\": \"add\", \"path\": \"/nodes_dn/-\", \"value\": \"bluto\" }]",
+                    restApiUserHeader
+            );
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+
+            response = rh.executeDeleteRequest(ENDPOINT + "/nodesdn/c1", restApiUserHeader);
+            assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
+
+    }
+
     @Test
     public void testNodesDnApiAuditComplianceLogging() throws Exception {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
