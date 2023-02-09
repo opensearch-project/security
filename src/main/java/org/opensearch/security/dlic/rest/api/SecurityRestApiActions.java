@@ -26,15 +26,26 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
+import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
 public class SecurityRestApiActions {
 
-    public static Collection<RestHandler> getHandler(Settings settings, Path configPath, RestController controller, Client client,
-                                                     AdminDNs adminDns, ConfigurationRepository cr, ClusterService cs, PrincipalExtractor principalExtractor,
-                                                     final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
-        final List<RestHandler> handlers = new ArrayList<RestHandler>(15);
+    public static Collection<RestHandler> getHandler(final Settings settings,
+                                                     final Path configPath,
+                                                     final RestController controller,
+                                                     final Client client,
+                                                     final AdminDNs adminDns,
+                                                     final ConfigurationRepository cr,
+                                                     final ClusterService cs,
+                                                     final PrincipalExtractor principalExtractor,
+                                                     final PrivilegesEvaluator evaluator,
+                                                     final ThreadPool threadPool,
+                                                     final AuditLog auditLog,
+                                                     final SecurityKeyStore securityKeyStore,
+                                                     final boolean certificatesReloadEnabled) {
+        final List<RestHandler> handlers = new ArrayList<RestHandler>(16);
         handlers.add(new InternalUsersApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
         handlers.add(new RolesMappingApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
         handlers.add(new RolesApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
@@ -51,6 +62,7 @@ public class SecurityRestApiActions {
         handlers.add(new WhitelistApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
         handlers.add(new AllowlistApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
         handlers.add(new AuditApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
+        handlers.add(new SecuritySSLCertsAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog, securityKeyStore, certificatesReloadEnabled));
         return Collections.unmodifiableCollection(handlers);
     }
 

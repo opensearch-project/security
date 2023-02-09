@@ -16,10 +16,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Assert;
@@ -90,18 +94,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 				.put("plugins.security.ssl.http.truststore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"));
 
-		builder.put("plugins.security.restapi.roles_enabled.0", "opendistro_security_role_klingons");
-		builder.put("plugins.security.restapi.roles_enabled.1", "opendistro_security_role_vulcans");
-		builder.put("plugins.security.restapi.roles_enabled.2", "opendistro_security_test");
-
-		builder.put("plugins.security.restapi.endpoints_disabled.global.CACHE.0", "*");
-
-		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.conFiGuration.0", "*");
-		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.wRongType.0", "WRONGType");
-		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.0", "PUT");
-		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.1", "DELETE");
-
-		builder.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_vulcans.CONFIG.0", "*");
+		builder.put(rolesSettings());
 
 		if (null != nodeOverride) {
 			builder.put(nodeOverride);
@@ -112,6 +105,20 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		rh.keystore = "restapi/kirk-keystore.jks";
 
 		AuditTestUtils.updateAuditConfig(rh, nodeOverride != null ? nodeOverride : Settings.EMPTY);
+	}
+
+	protected Settings rolesSettings() {
+		return Settings.builder()
+				.put("plugins.security.restapi.roles_enabled.0", "opendistro_security_role_klingons")
+				.put("plugins.security.restapi.roles_enabled.1", "opendistro_security_role_vulcans")
+				.put("plugins.security.restapi.roles_enabled.2", "opendistro_security_test")
+				.put("plugins.security.restapi.endpoints_disabled.global.CACHE.0", "*")
+				.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.conFiGuration.0", "*")
+				.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.wRongType.0", "WRONGType")
+				.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.0", "PUT")
+				.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_klingons.ROLESMAPPING.1", "DELETE")
+				.put("plugins.security.restapi.endpoints_disabled.opendistro_security_role_vulcans.CONFIG.0", "*")
+				.build();
 	}
 
 	protected void deleteUser(String username) throws Exception {
@@ -197,30 +204,23 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
 	protected String checkReadAccess(int status, String username, String password, String indexName, String actionType,
 			int id) throws Exception {
-		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = false;
 		String action = indexName + "/" + actionType + "/" + id;
-		HttpResponse response = rh.executeGetRequest(action,
-				encodeBasicHeader(username, password));
+		HttpResponse response = rh.executeGetRequest(action, encodeBasicHeader(username, password));
 		int returnedStatus = response.getStatusCode();
 		Assert.assertEquals(status, returnedStatus);
-		rh.sendAdminCertificate = sendAdminCertificate;
 		return response.getBody();
 
 	}
 
 	protected String checkWriteAccess(int status, String username, String password, String indexName, String actionType,
 			int id) throws Exception {
-
-		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = false;
 		String action = indexName + "/" + actionType + "/" + id;
 		String payload = "{\"value\" : \"true\"}";
-		HttpResponse response = rh.executePutRequest(action, payload,
-				encodeBasicHeader(username, password));
+		HttpResponse response = rh.executePutRequest(action, payload, encodeBasicHeader(username, password));
 		int returnedStatus = response.getStatusCode();
 		Assert.assertEquals(status, returnedStatus);
-		rh.sendAdminCertificate = sendAdminCertificate;
 		return response.getBody();
 	}
 
@@ -259,5 +259,28 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
 	protected static Collection<Class<? extends Plugin>> asCollection(Class<? extends Plugin>... plugins) {
 		return Arrays.asList(plugins);
+	}
+
+	String createRestAdminPermissionsPayload(String... additionPerms) throws JsonProcessingException {
+		final ObjectNode rootNode = (ObjectNode) DefaultObjectMapper.objectMapper.createObjectNode();
+		rootNode.set("cluster_permissions", clusterPermissionsForRestAdmin(additionPerms));
+		return DefaultObjectMapper.objectMapper.writeValueAsString(rootNode);
+	}
+
+	ArrayNode clusterPermissionsForRestAdmin(String... additionPerms) {
+		final ArrayNode permissionsArray = (ArrayNode) DefaultObjectMapper.objectMapper.createArrayNode();
+		for (final Map.Entry<Endpoint, RestApiAdminPrivilegesEvaluator.PermissionBuilder> entry : RestApiAdminPrivilegesEvaluator.ENDPOINTS_WITH_PERMISSIONS.entrySet()) {
+			if (entry.getKey() == Endpoint.SSL) {
+				permissionsArray
+						.add(entry.getValue().build("certs"))
+						.add(entry.getValue().build("reloadcerts"));
+			} else {
+				permissionsArray.add(entry.getValue().build());
+			}
+		}
+		if (additionPerms.length != 0) {
+			Stream.of(additionPerms).forEach(permissionsArray::add);
+		}
+		return permissionsArray;
 	}
 }
