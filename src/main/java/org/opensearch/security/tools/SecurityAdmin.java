@@ -114,6 +114,7 @@ import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.MediaType;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -945,11 +946,11 @@ public class SecurityAdmin {
         return false;
     }
 
-    private static BytesReference readXContent(final String content, final XContentType xContentType) throws IOException {
+    private static BytesReference readXContent(final String content, final MediaType mediaType) throws IOException {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
+            parser = XContentFactory.xContent(mediaType).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
