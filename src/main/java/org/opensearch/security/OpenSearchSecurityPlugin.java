@@ -647,6 +647,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     }
 
     @Override
+    public Collection<String> getTaskHeaders() {
+        return List.of(ConfigConstants.OPENDISTRO_SECURITY_USER_NAME_THREAD_CONTEXT_HEADER);
+    }
+
+    @Override
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
 

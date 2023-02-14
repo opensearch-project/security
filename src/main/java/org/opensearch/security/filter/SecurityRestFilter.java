@@ -38,6 +38,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
@@ -123,6 +124,9 @@ public class SecurityRestFilter {
                 org.apache.logging.log4j.ThreadContext.clearAll();
                 if (!checkAndAuthenticateRequest(request, channel, client)) {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                    if (user != null && Strings.hasText(user.getName())) {
+                        threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_NAME_THREAD_CONTEXT_HEADER, user.getName());
+                    }
                     if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
                         original.handleRequest(request, channel, client);
                     }
