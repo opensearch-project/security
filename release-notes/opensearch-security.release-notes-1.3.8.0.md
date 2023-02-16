@@ -11,4 +11,3 @@ Compatible with OpenSearch 1.3.8
 ### Maintenance
 
 * Update `cxf-core` to 3.5.5 ([#2349](https://github.com/opensearch-project/security/pull/2349))
-
