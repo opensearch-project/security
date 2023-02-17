@@ -36,6 +36,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.securityconf.TenancyConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -74,10 +75,11 @@ public class PrivilegesInterceptor {
     }
 
     public ReplaceResult replaceDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
+                                                final TenancyConfigModel tenancyconfig,
                                                 final Resolved requestedResolved, final Map<String, Boolean> tenants) {
         throw new RuntimeException("not implemented");
     }
-    
+
     protected final ThreadContext getThreadContext() {
         return threadPool.getThreadContext();
     }

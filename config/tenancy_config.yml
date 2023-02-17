@@ -1,0 +1,8 @@
+_meta:
+  type: "tenancyconfig"
+  config_version: 2
+
+tenancy_config:
+  multitenancy_enabled: true
+  private_tenant_enabled: true
+  default_tenant: ""

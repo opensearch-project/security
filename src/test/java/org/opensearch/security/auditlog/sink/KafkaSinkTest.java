@@ -54,7 +54,7 @@ public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
     public void testKafka() throws Exception {
         String configYml = FileHelper.loadFile("auditlog/endpoints/sink/configuration_kafka.yml");
         configYml = configYml.replace("_RPLC_BOOTSTRAP_SERVERS_",embeddedKafka.getEmbeddedKafka().getBrokersAsString());
-        Settings.Builder settingsBuilder = Settings.builder().loadFromSource(configYml, YamlXContent.yamlXContent.type());
+        Settings.Builder settingsBuilder = Settings.builder().loadFromSource(configYml, YamlXContent.yamlXContent.mediaType());
         try(KafkaConsumer<Long, String> consumer = createConsumer()) {
             consumer.subscribe(Arrays.asList("compliance"));
 

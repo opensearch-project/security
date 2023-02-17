@@ -109,20 +109,21 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		try {
 			// validate additional settings, if any
 			AbstractConfigurationValidator validator = getValidator(request, request.content());
-			if (!validator.validate()) {
+			if (validator!= null && !validator.validate()) {
 				request.params().clear();
 				badRequestResponse(channel, validator);
 				return;
 			}
+			JsonNode jsonNode = validator == null ? null : validator.getContentAsNode();
 			switch (request.method()) {
 				case DELETE:
-					handleDelete(channel,request, client, validator.getContentAsNode()); break;
+					handleDelete(channel,request, client, jsonNode); break;
 				case POST:
-					handlePost(channel,request, client, validator.getContentAsNode());break;
+					handlePost(channel,request, client, jsonNode);break;
 				case PUT:
-					handlePut(channel,request, client, validator.getContentAsNode());break;
+					handlePut(channel,request, client, jsonNode);break;
 				case GET:
-					handleGet(channel,request, client, validator.getContentAsNode());break;
+					handleGet(channel,request, client, jsonNode);break;
 				default:
 					throw new IllegalArgumentException(request.method() + " not supported");
 			}
@@ -481,6 +482,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		try {
 			final XContentBuilder builder = channel.newBuilder();
 			builder.startObject();
+			builder.endObject();
 			channel.sendResponse(
 					new BytesRestResponse(RestStatus.OK, builder));
 		} catch (IOException e) {

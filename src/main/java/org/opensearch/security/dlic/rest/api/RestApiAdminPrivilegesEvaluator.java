@@ -68,6 +68,7 @@ public class RestApiAdminPrivilegesEvaluator {
                     .put(Endpoint.ROLES, action -> buildEndpointPermission(Endpoint.ROLES))
                     .put(Endpoint.ROLESMAPPING, action -> buildEndpointPermission(Endpoint.ROLESMAPPING))
                     .put(Endpoint.TENANTS, action -> buildEndpointPermission(Endpoint.TENANTS))
+                    .put(Endpoint.TENANCYCONFIG, action -> buildEndpointPermission(Endpoint.TENANCYCONFIG))
                     .put(Endpoint.SSL, action -> {
                         switch (action) {
                             case CERTS_INFO_ACTION:

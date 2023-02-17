@@ -52,7 +52,7 @@ import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
-    
+
     private static final TypeReference<HashMap<String,Object>> typeRefMSO = new TypeReference<HashMap<String,Object>>() {};
 
     @JsonIgnore
@@ -87,7 +87,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         } else {
             sdc = new SecurityDynamicConfiguration<T>();
         }
-        
+
         sdc.ctype = ctype;
         sdc.seqNo = seqNo;
         sdc.primaryTerm = primaryTerm;

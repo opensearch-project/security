@@ -48,6 +48,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.securityconf.TenancyConfigModel;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -95,9 +96,10 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
      */
     @Override
     public ReplaceResult replaceDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
+                                                final TenancyConfigModel tenancyconfig,
                                                 final Resolved requestedResolved, final Map<String, Boolean> tenants) {
 
-        final boolean enabled = config.isDashboardsMultitenancyEnabled();//config.dynamic.kibana.multitenancy_enabled;
+        final boolean enabled = tenancyconfig.isDashboardsMultitenancyEnabled();
 
         if (!enabled) {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
@@ -116,6 +118,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
         final boolean dashboardsIndexOnly = !user.getName().equals(dashboardsServerUsername) && resolveToDashboardsIndexOrAlias(requestedResolved, dashboardsIndexName);
         final boolean isTraceEnabled = log.isTraceEnabled();
+
         if (requestedTenant == null || requestedTenant.length() == 0) {
             if (isTraceEnabled) {
                 log.trace("No tenant, will resolve to " + dashboardsIndexName);
@@ -124,7 +127,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             if (dashboardsIndexOnly && !isTenantAllowed(request, action, user, tenants, "global_tenant")) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
-
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
@@ -175,7 +177,6 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             }
 
         }
-
         return CONTINUE_EVALUATION_REPLACE_RESULT;
     }
 

@@ -91,6 +91,7 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
+import org.opensearch.security.securityconf.TenancyConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
@@ -134,6 +135,7 @@ public class PrivilegesEvaluator {
     private final boolean dlsFlsEnabled;
     private final boolean dfmEmptyOverwritesAll;
     private DynamicConfigModel dcm;
+    private TenancyConfigModel tcm;
     private final NamedXContentRegistry namedXContentRegistry;
     
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
@@ -173,6 +175,11 @@ public class PrivilegesEvaluator {
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         this.dcm = dcm;
+    }
+
+    @Subscribe
+    public void onTenancyConfigModelChanged(TenancyConfigModel tcm) {
+        this.tcm = tcm;
     }
 
     private SecurityRoles getSecurityRoles(Set<String> roles) {
@@ -328,7 +335,7 @@ public class PrivilegesEvaluator {
                 } else {
                     if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, requestedResolved,
+                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, tcm, requestedResolved,
                                 mapTenants(user, mappedRoles));
 
                         if (isDebugEnabled) {
@@ -412,7 +419,7 @@ public class PrivilegesEvaluator {
 
         if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
+            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, tcm, requestedResolved, mapTenants(user, mappedRoles));
 
             if (isDebugEnabled) {
                 log.debug("Result from privileges interceptor: {}", replaceResult);
@@ -522,8 +529,12 @@ public class PrivilegesEvaluator {
 
     public boolean multitenancyEnabled() {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && dcm.isDashboardsMultitenancyEnabled();
+                && tcm.isDashboardsMultitenancyEnabled();
     }
+
+    public boolean privateTenantEnabled(){ return tcm.isDashboardsPrivateTenantEnabled(); }
+
+    public String dashboardsDefaultTenant(){ return tcm.dashboardsDefaultTenant(); }
 
     public boolean notFailOnForbiddenEnabled() {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class

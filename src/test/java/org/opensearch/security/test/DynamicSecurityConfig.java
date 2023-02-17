@@ -45,6 +45,7 @@ public class DynamicSecurityConfig {
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
     private String securityNodesDn = "nodes_dn.yml";
+    private String tenancyconfig = "tenancy_config.yml";
     private String securityWhitelist= "whitelist.yml";
     private String securityAllowlist= "allowlist.yml";
     private String securityAudit = "audit.yml";
@@ -150,8 +151,12 @@ public class DynamicSecurityConfig {
                     .id(CType.TENANTS.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source(CType.TENANTS.toLCString(), FileHelper.readYamlContent(prefix+securityTenants)));
-        }
 
+            ret.add(new IndexRequest(securityIndexName)
+                    .id(CType.TENANCYCONFIG.toLCString())
+                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source(CType.TENANCYCONFIG.toLCString(), FileHelper.readYamlContent(prefix + tenancyconfig)));
+        }
         if (null != FileHelper.getAbsoluteFilePathFromClassPath(prefix + securityNodesDn)) {
             ret.add(new IndexRequest(securityIndexName)
                     .id(CType.NODESDN.toLCString())

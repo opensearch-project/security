@@ -136,10 +136,11 @@ public class ConfigurationRepository {
                                     ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", securityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
                                     ConfigHelper.uploadFile(client, cd+"internal_users.yml", securityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
                                     ConfigHelper.uploadFile(client, cd+"action_groups.yml", securityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
+                                    final boolean populateEmptyIfFileMissing = true;
                                     if(DEFAULT_CONFIG_VERSION == 2) {
                                         ConfigHelper.uploadFile(client, cd+"tenants.yml", securityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
+                                        ConfigHelper.uploadFile(client, cd+"tenancy_config.yml", securityIndex, CType.TENANCYCONFIG, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                     }
-                                    final boolean populateEmptyIfFileMissing = true;
                                     ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", securityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                     ConfigHelper.uploadFile(client, cd + "whitelist.yml", securityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
                                     ConfigHelper.uploadFile(client, cd + "allowlist.yml", securityIndex, CType.ALLOWLIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);

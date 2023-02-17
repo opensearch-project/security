@@ -112,6 +112,9 @@ public class SecurityInfoAction extends BaseRestHandler {
                     builder.field("principal", (String)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
                     builder.field("sso_logout_url", (String)threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));
+                    builder.field("tenancy_enabled", evaluator.multitenancyEnabled());
+                    builder.field("private_tenant_enabled", evaluator.privateTenantEnabled());
+                    builder.field("default_tenant", evaluator.dashboardsDefaultTenant());
                     
                     if(user != null && verbose) {
                         try {

@@ -1,0 +1,5 @@
+{
+  "multitenancy_enabled": true,
+  "private_tenant_enabled": true,
+  "default_tenant": "Global"
+}

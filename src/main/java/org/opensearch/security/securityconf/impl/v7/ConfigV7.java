@@ -138,6 +138,7 @@ public class ConfigV7 {
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
         public String index = ".kibana";
+
         @Override
         public String toString() {
             return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role

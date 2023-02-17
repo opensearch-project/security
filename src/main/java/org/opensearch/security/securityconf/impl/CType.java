@@ -47,6 +47,7 @@ import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.securityconf.impl.v7.RoleMappingsV7;
 import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.securityconf.impl.v7.TenantV7;
+import org.opensearch.security.securityconf.impl.v7.TenancyConfigV7;
 
 public enum CType {
 
@@ -61,7 +62,8 @@ public enum CType {
     NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class)),
     WHITELIST(toMap(1, WhitelistingSettings.class, 2, WhitelistingSettings.class)),
     ALLOWLIST(toMap(1, AllowlistingSettings.class, 2, AllowlistingSettings.class)),
-    AUDIT(toMap(1, AuditConfig.class, 2, AuditConfig.class));
+    AUDIT(toMap(1, AuditConfig.class, 2, AuditConfig.class)),
+    TENANCYCONFIG(toMap(2,TenancyConfigV7.class));
 
     private Map<Integer, Class<?>> implementations;
 

@@ -208,6 +208,7 @@ public class ConfigConstants {
     public static final String SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "plugins.security.cert.intercluster_request_evaluator_class";
     public static final String SECURITY_ADVANCED_MODULES_ENABLED = "plugins.security.advanced_modules_enabled";
     public static final String SECURITY_NODES_DN = "plugins.security.nodes_dn";
+    public static final String SECURITY_TENANCY_CONFIG = "plugins.security.tenancyconfig";
     public static final String SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED = "plugins.security.nodes_dn_dynamic_config_enabled";
     public static final String SECURITY_DISABLED = "plugins.security.disabled";
     public static final String SECURITY_CACHE_TTL_MINUTES = "plugins.security.cache.ttl_minutes";
