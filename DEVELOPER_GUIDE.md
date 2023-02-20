@@ -23,7 +23,7 @@ OpenSearch Security runs as a plugin of OpenSearch. You can [download a minimal 
 
 Not all platforms natively support OpenSearch, to view distribution availability please check these [issues](https://github.com/opensearch-project/opensearch-build/labels/distributions).
 
-On MacOS / PC the OpenSearch distribution can be run with Docker. This distribution contains the released version of OpenSearch including the security plugin. If you wish to use the Docker image for development, you will need to follow the steps found on the [Developing with Docker](DEVLOPING_WITH_DOCKER.md) guide.
+On MacOS / PC the OpenSearch distribution can be run with Docker. This distribution contains the released version of OpenSearch including the security plugin. If you wish to use the Docker image for development, you will need to follow the steps found on the [Developing with Docker](DEVELOPING_WITH_DOCKER.md) guide.
 
 To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. You should follow the steps until you reach the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
 
