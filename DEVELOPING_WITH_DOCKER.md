@@ -54,15 +54,15 @@ services:
       - 9600:9600 # required for Performance Analyzer
     networks:
       - opensearch-net
-    volumes:
-      - ./config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml # These paths are relative to the location of the docker-compose file
-      - ./config/esnode.pem:/usr/share/opensearch/config/esnode.pem
-      - ./config/esnode-key.pem:/usr/share/opensearch/config/esnode-key.pem
-      - ./config/root-ca.pem:/usr/share/opensearch/config/root-ca.pem 
-      - ./config/opensearch-security/audit.yml:/usr/share/opensearch/config/opensearch-security/audit.yml
-      - ./config/opensearch-security/tenants.yml:/usr/share/opensearch/config/opensearch-security/tenants.yml
-      - /OpenSearch-Snapshots:/mnt/snapshots # This is where your snapshots would be stored
-      - /security/build/distributions/opensearch-security-2.5.0.0-SNAPSHOT.jar:/usr/share/opensearch/plugins/opensearch-security/opensearch-security-2.5.0.0.jar
+  # volumes:
+  #   - ./config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml # These paths are relative to the location of the docker-compose file
+  #   - ./config/esnode.pem:/usr/share/opensearch/config/esnode.pem
+  #   - ./config/esnode-key.pem:/usr/share/opensearch/config/esnode-key.pem
+  #   - ./config/root-ca.pem:/usr/share/opensearch/config/root-ca.pem 
+  #   - ./config/opensearch-security/audit.yml:/usr/share/opensearch/config/opensearch-security/audit.yml
+  #   - ./config/opensearch-security/tenants.yml:/usr/share/opensearch/config/opensearch-security/tenants.yml
+  #   - /OpenSearch-Snapshots:/mnt/snapshots # This is where your snapshots would be stored
+  #   - /security/build/distributions/opensearch-security-2.5.0.0-SNAPSHOT.jar:/usr/share/opensearch/plugins/opensearch-security/opensearch-security-2.5.0.0.jar
   opensearch-node2: # This is the same settings as the opensearch-node1
     image: opensearchstaging/opensearch:2.5.0
     environment:
@@ -79,15 +79,15 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-    volumes:
-      - ./config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
-      - ./config/esnode.pem:/usr/share/opensearch/config/esnode.pem
-      - ./config/esnode-key.pem:/usr/share/opensearch/config/esnode-key.pem
-      - ./config/root-ca.pem:/usr/share/opensearch/config/root-ca.pem
-      - ./config/opensearch-security/audit.yml:/usr/share/opensearch/config/opensearch-security/audit.yml
-      - ./config/opensearch-security/tenants.yml:/usr/share/opensearch/config/opensearch-security/tenants.yml
-      - /OpenSearch-Snapshots:/mnt/snapshots  
-      - /security/build/distributions/opensearch-security-2.5.0.0-SNAPSHOT.jar:/usr/share/opensearch/plugins/opensearch-security/opensearch-security-2.5.0.0.jar  
+   #volumes:
+   #  - ./config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+   #  - ./config/esnode.pem:/usr/share/opensearch/config/esnode.pem
+   #  - ./config/esnode-key.pem:/usr/share/opensearch/config/esnode-key.pem
+   #  - ./config/root-ca.pem:/usr/share/opensearch/config/root-ca.pem
+   #  - ./config/opensearch-security/audit.yml:/usr/share/opensearch/config/opensearch-security/audit.yml
+   #  - ./config/opensearch-security/tenants.yml:/usr/share/opensearch/config/opensearch-security/tenants.yml
+   #  - /OpenSearch-Snapshots:/mnt/snapshots  
+   #  - /security/build/distributions/opensearch-security-2.5.0.0-SNAPSHOT.jar:/usr/share/opensearch/plugins/opensearch-security/opensearch-security-2.5.0.0.jar  
     networks:
       - opensearch-net
   opensearch-dashboards:

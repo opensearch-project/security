@@ -21,7 +21,7 @@ OpenSearch Security runs as a plugin of OpenSearch. You can [download a minimal 
 
 ### Native platforms
 
-Not all platforms natively support OpenSearch, to view distribution availability please check these [issues](https://github.com/opensearch-project/opensearch-build/labels/distributions).
+Not all platforms natively support OpenSearch, to view distribution availability please check these [issues](https://github.com/opensearch-project/opensearch-build/issues?q=label%3Adistributions).
 
 On MacOS / PC the OpenSearch distribution can be run with Docker. This distribution contains the released version of OpenSearch including the security plugin. If you wish to use the Docker image for development, you will need to follow the steps found on the [Developing with Docker](DEVELOPING_WITH_DOCKER.md) guide.
 
