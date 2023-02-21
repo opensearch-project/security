@@ -1,5 +1,6 @@
 # Developer Guide
-So you want to contribute code to this project? Excellent! We're glad you're here. Here's what you need to do.
+
+So you want to contribute code to OpenSearch Security? Excellent! We're glad you're here. Here's what you need to do.
 
 - [Developer Guide](#developer-guide)
   - [Prerequisites](#prerequisites)
@@ -16,16 +17,17 @@ So you want to contribute code to this project? Excellent! We're glad you're her
 
 > Please make sure to follow the OpenSearch [Install Prerequisites](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#install-prerequisites) before starting for the first time.
 
-This project runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install this plugin there. However, we will compile it using source code so that we are pulling in changes from the latest commit.
+OpenSearch Security runs as a plugin of OpenSearch. You can [download a minimal release of OpenSearch](https://opensearch.org/downloads.html#minimal) and then install the Security plugin there. However, we will compile OpenSearch Security using source code so that we are pulling in changes from the latest commit.
 
 ### Native platforms
-Not all platforms natively support OpenSearch, to check distribution avaliability please check these [issues](https://github.com/opensearch-project/opensearch-build/labels/distributions).
 
-On MacOS / PC the OpenSearch distribution can be run with docker.  This distribution contains the released version of OpenSearch including the security plugin.  For development we do not recommend using this docker image.
+Not all platforms natively support OpenSearch, to view distribution availability please check these [issues](https://github.com/opensearch-project/opensearch-build/issues?q=label%3Adistributions).
 
-To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. Reach to the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
+On MacOS / PC the OpenSearch distribution can be run with Docker. This distribution contains the released version of OpenSearch including the security plugin. If you wish to use the Docker image for development, you will need to follow the steps found on the [Developing with Docker](DEVELOPING_WITH_DOCKER.md) guide.
 
-Next, run the following commands to copy the built code (snapshot) to a new folder in a different location. (This where you'll be running OpenSearch service). Run this from the base directory of the OpenSearch fork you cloned above:
+To get started, follow the [getting started section](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#getting-started) of OpenSearch's developer guide. This will get OpenSearch up and running built from source code. You can skip the `./gradlew check` step to save some time. You should follow the steps until you reach the point where you can run a successful `curl localhost:9200` call. Great! now kill the server with `Ctrl+C`.
+
+Next, run the following commands to copy the built code (snapshot) to a new folder in a different location. (This where you'll be running the OpenSearch service). Run this from the base directory of the OpenSearch fork you cloned above:
 ```bash
 export OPENSEARCH_HOME=~/<your-folder-location>/opensearch-*
 export OPENSEARCH_BUILD=distribution/archives/darwin-tar/build/install/opensearch-*
@@ -41,20 +43,20 @@ cd $OPENSEARCH_HOME
 ./bin/opensearch
 ```
 
-The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+c`. We are ready to install the security plugin.
+The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+c`. We are now ready to install the security plugin.
 
 >Worth noting:\
 > The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT` compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
 
 ## Building
 
-First create a fork of this repo and clone it locally. Changing to directory containing this clone and run this to build the project:
+First create a fork of this repo and clone it locally. You should then change to the directory containing the clone and run this to build the project:
 
 ```bash
 ./gradlew clean assemble
 ```
 
-Install the built plugin into the OpenSearch server:
+To install the built plugin into the OpenSearch server run:
 
 ```bash
 export OPENSEARCH_SECURITY_HOME=$OPENSEARCH_HOME/plugins/opensearch-security
@@ -68,7 +70,7 @@ mv config/* $OPENSEARCH_HOME/config/opensearch-security/
 rm -rf config/
 ```
 
-Install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
+To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
 
 ```bash
 ./tools/install_demo_configuration.sh
@@ -103,7 +105,7 @@ Detected OpenSearch Security Version: *
 ```
 
 Now if we start our server again and try the original `curl localhost:9200`, it will fail.
-Try this one instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. It should succeed.
+Try this command instead: `curl -XGET https://localhost:9200 -u 'admin:admin' --insecure`. It should succeed.
 
 You can also make this call to return the authenticated user details:
 
@@ -140,15 +142,17 @@ Launch IntelliJ IDEA, choose **Project from Existing Sources**, and select direc
 
 ## Running integration tests
 
-Locally these can be run with `./gradlew test` with detailed results being avaliable at `${project-root}/build/reports/tests/test/index.html`, or run through an IDEs JUnit test runner.
+Locally these can be run with `./gradlew test` with detailed results being available at `${project-root}/build/reports/tests/test/index.html`. You can also run tests through an IDEs JUnit test runner.
 
-Integration tests are automatically run on all pull requests for all supported versions of the JDK.  These must pass for change(s) to be merged.  Detailed logs of these test results are avaliable by going to the GitHub action workflow's summary view and downloading the associated jdk version run of the tests, after extracting this file onto your local machine integration tests results are at `./tests/tests/index.html`.
+Integration tests are automatically run on all pull requests for all supported versions of the JDK. These must pass for change(s) to be merged. Detailed logs of these test results are available by going to the GitHub Actions workflow summary view and downloading the workflow run of the tests. If you see multiple tests listed with different JDK versions, you can download the version with whichever JDK you are interested in. After extracting the test file on your local machine, integration tests results can be found at `./tests/tests/index.html`.
 
 ### Bulk test runs
-To collect reliability data on test runs there is a manual GitHub action workflow called `Bulk Integration Test`.  The workflow is started for a branch on this project or in a fork by going to [GitHub action workflows](https://github.com/opensearch-project/security/actions/workflows/integration-tests.yml) and selecting `Run Workflow`.
+
+To collect reliability data on test runs, there is a manual GitHub action workflow called `Bulk Integration Test`.  The workflow is started for a branch on this project or in a fork by going to [GitHub action workflows](https://github.com/opensearch-project/security/actions/workflows/integration-tests.yml) and selecting `Run Workflow`.
 
 ### Checkstyle Violations
-Checkstyle enforced several rules within this codebase.  Sometimes exceptions will be necessary for components that are set for deprecation but the new version is unavailable.  There are two formats of suppression that can be used when dealing with violations of this nature, one for disabling a single rule, or another for disabling all rules - its best to be as specific as possible.
+
+Checkstyle enforces several rules within this codebase. Sometimes it will be necessary for exceptions to be made when dealing with components that are set for deprecation. This can happen when the new version of a deprecation-path component is unavailable. There are two formats of suppression that can be used when dealing with violations of this nature, one for disabling a single rule, or another for disabling all rules. It is best to only disable specific rules when possible.
 
 *Execute Checkstyle*
 ```
