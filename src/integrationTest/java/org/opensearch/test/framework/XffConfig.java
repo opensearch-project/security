@@ -13,8 +13,8 @@ import java.io.IOException;
 
 import org.apache.commons.lang3.StringUtils;
 
-import org.opensearch.common.xcontent.ToXContentObject;
-import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
 
 /**
 * <p>
