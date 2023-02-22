@@ -22,7 +22,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import org.opensearch.OpenSearchSecurityException;
-
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.securityconf.InternalUsersModel;
 import org.opensearch.security.user.AuthCredentials;
