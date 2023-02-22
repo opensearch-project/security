@@ -12,8 +12,8 @@ package org.opensearch.test.framework;
 import java.io.IOException;
 import java.util.Objects;
 
-import org.opensearch.common.xcontent.ToXContentObject;
-import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
 
 public class RateLimiting implements ToXContentObject {
 
