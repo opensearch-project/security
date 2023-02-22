@@ -169,3 +169,13 @@ opendistro_security_role_tenant_parameters_substitution:
   - "user_tenant_parameters_substitution"
   and_backend_roles: []
   description: "PR#819 / Issue#817"
+opendistro_security_anonymous_multitenancy:
+  reserved: false
+  hidden: false
+  backend_roles:
+  - opendistro_security_anonymous_backendrole
+  hosts: []
+  users:
+  - "opendistro_security_anonymous"
+  and_backend_roles: []
+  description: "PR#2459"
