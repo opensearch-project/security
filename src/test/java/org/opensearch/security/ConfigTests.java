@@ -28,7 +28,6 @@ import org.junit.Test;
 
 import org.opensearch.common.Strings;
 import org.opensearch.common.collect.Tuple;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -60,18 +59,18 @@ public class ConfigTests {
         Tuple<SecurityDynamicConfiguration<RoleV7>, SecurityDynamicConfiguration<TenantV7>> rolesResult = Migration.migrateRoles((SecurityDynamicConfiguration<RoleV6>)load("./legacy/securityconfig_v6/roles.yml", CType.ROLES),
                 (SecurityDynamicConfiguration<RoleMappingsV6>)load("./legacy/securityconfig_v6/roles_mapping.yml", CType.ROLESMAPPING));
         
-        System.out.println(Strings.toString(XContentType.JSON, rolesResult.v2(), true, false));
-        System.out.println(Strings.toString(XContentType.JSON, rolesResult.v1(), true, false));
+        System.out.println(Strings.toString(rolesResult.v2(), true, false));
+        System.out.println(Strings.toString(rolesResult.v1(), true, false));
         
         
         SecurityDynamicConfiguration<ActionGroupsV7> actionGroupsResult = Migration.migrateActionGroups((SecurityDynamicConfiguration<ActionGroupsV6>)load("./legacy/securityconfig_v6/action_groups.yml", CType.ACTIONGROUPS));
-        System.out.println(Strings.toString(XContentType.JSON, actionGroupsResult, true, false));
+        System.out.println(Strings.toString(actionGroupsResult, true, false));
         SecurityDynamicConfiguration<ConfigV7> configResult =Migration.migrateConfig((SecurityDynamicConfiguration<ConfigV6>)load("./legacy/securityconfig_v6/config.yml", CType.CONFIG));
-        System.out.println(Strings.toString(XContentType.JSON, configResult, true, false));
+        System.out.println(Strings.toString(configResult, true, false));
         SecurityDynamicConfiguration<InternalUserV7> internalUsersResult = Migration.migrateInternalUsers((SecurityDynamicConfiguration<InternalUserV6>)load("./legacy/securityconfig_v6/internal_users.yml", CType.INTERNALUSERS));
-        System.out.println(Strings.toString(XContentType.JSON, internalUsersResult, true, false));
+        System.out.println(Strings.toString(internalUsersResult, true, false));
         SecurityDynamicConfiguration<RoleMappingsV7> rolemappingsResult = Migration.migrateRoleMappings((SecurityDynamicConfiguration<RoleMappingsV6>)load("./legacy/securityconfig_v6/roles_mapping.yml", CType.ROLESMAPPING));
-        System.out.println(Strings.toString(XContentType.JSON, rolemappingsResult, true, false));
+        System.out.println(Strings.toString(rolemappingsResult, true, false));
     }
     
     @Test
@@ -114,7 +113,7 @@ public class ConfigTests {
         //Assert.assertTrue(dc.getCEntries().size() > 0);
         String jsonSerialize = DefaultObjectMapper.objectMapper.writeValueAsString(dc);
         SecurityDynamicConfiguration<?> conf = SecurityDynamicConfiguration.fromJson(jsonSerialize, cType, configVersion, 0, 0);
-        SecurityDynamicConfiguration.fromJson(Strings.toString(XContentType.JSON, conf), cType, configVersion, 0, 0);
+        SecurityDynamicConfiguration.fromJson(Strings.toString(conf), cType, configVersion, 0, 0);
         
     }
     

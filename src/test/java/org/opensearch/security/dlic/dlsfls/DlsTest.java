@@ -42,7 +42,7 @@ public class DlsTest extends AbstractDlsFlsTest{
             e.printStackTrace();
         }
         System.out.println("q");
-        System.out.println(Strings.toString(XContentType.JSON, tc.search(new SearchRequest().indices(".opendistro_security")).actionGet()));
+        System.out.println(Strings.toString(tc.search(new SearchRequest().indices(".opendistro_security")).actionGet()));
         tc.search(new SearchRequest().indices("deals")).actionGet();
     }
 
