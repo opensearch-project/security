@@ -999,7 +999,7 @@ public class SecurityAdmin {
         try {
             sb.append("ClusterHealthRequest:"+System.lineSeparator());
 			ClusterHealthResponse nir = restHighLevelClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
-			sb.append(Strings.toString(XContentType.JSON, nir, true, true));
+			sb.append(Strings.toString(nir, true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }

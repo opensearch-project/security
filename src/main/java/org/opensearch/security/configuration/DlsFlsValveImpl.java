@@ -52,7 +52,6 @@ import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.ParsedQuery;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.search.DocValueFormat;
@@ -210,10 +209,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     StringBuilder sb = new StringBuilder();
 
                     if (searchRequest.source() != null) {
-                        sb.append(Strings.toString(XContentType.JSON, searchRequest.source()) + System.lineSeparator());
+                        sb.append(Strings.toString(searchRequest.source()) + System.lineSeparator());
                     }
 
-                    sb.append(Strings.toString(XContentType.JSON, af) + System.lineSeparator());
+                    sb.append(Strings.toString(af) + System.lineSeparator());
 
                     LogManager.getLogger("debuglogger").error(sb.toString());
 
@@ -223,7 +222,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     searchRequest.requestCache(Boolean.FALSE);
                 } else {
                 	LogManager.getLogger("debuglogger").error("Shard requestcache enabled for "
-                            + (searchRequest.source() == null ? "<NULL>" : Strings.toString(XContentType.JSON, searchRequest.source())));
+                            + (searchRequest.source() == null ? "<NULL>" : Strings.toString(searchRequest.source())));
                 }
 
             } else {
