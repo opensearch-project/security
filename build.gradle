@@ -15,7 +15,7 @@ import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "1.3.8")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -25,6 +25,7 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
         kafka_version  = '3.4.0'
+        kafkaVersion   = '3.4.0'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
