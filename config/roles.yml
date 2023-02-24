@@ -68,29 +68,6 @@ anomaly_full_access:
         - 'indices:admin/aliases/get'
         - 'indices:admin/mappings/get'
 
-# Allow users to execute read only k-NN actions
-knn_read_access:
-  reserved: true
-  cluster_permissions:
-    - 'cluster:admin/knn_search_model_action'
-    - 'cluster:admin/knn_get_model_action'
-    - 'cluster:admin/knn_stats_action'
-
-# Allow users to use all k-NN functionality
-knn_full_access:
-  reserved: true
-  cluster_permissions:
-    - 'cluster:admin/knn_training_model_action'
-    - 'cluster:admin/knn_training_job_router_action'
-    - 'cluster:admin/knn_training_job_route_decision_info_action'
-    - 'cluster:admin/knn_warmup_action'
-    - 'cluster:admin/knn_delete_model_action'
-    - 'cluster:admin/knn_remove_model_from_cache_action'
-    - 'cluster:admin/knn_update_model_graveyard_action'
-    - 'cluster:admin/knn_search_model_action'
-    - 'cluster:admin/knn_get_model_action'
-    - 'cluster:admin/knn_stats_action'
-
 # Allows users to read Notebooks
 notebooks_read_access:
   reserved: true
