@@ -65,7 +65,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
-        clockSkewToleranceSeconds = settings.getAsInt("clockSkewToleranceSeconds", DEFAULT_CLOCKSKEWTOLERANCESECONDS);
+        clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCKSKEWTOLERANCESECONDS);
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);

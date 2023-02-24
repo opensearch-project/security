@@ -130,7 +130,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 	public void testExpInSkew() throws Exception {
 		Settings settings = Settings.builder()
 			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
-			.put("clockSkewToleranceSeconds", "10")
+			.put("jwt_clock_skew_tolerance_seconds", "10")
 			.build();
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
@@ -154,7 +154,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 	public void testNbf() throws Exception {
 		Settings settings = Settings.builder()
 			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
-			.put("clockSkewToleranceSeconds", "0")
+			.put("jwt_clock_skew_tolerance_seconds", "0")
 			.build();
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
@@ -178,7 +178,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 	public void testNbfInSkew() throws Exception {
 		Settings settings = Settings.builder()
 			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
-			.put("clockSkewToleranceSeconds", "10")
+			.put("jwt_clock_skew_tolerance_seconds", "10")
 			.build();
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
