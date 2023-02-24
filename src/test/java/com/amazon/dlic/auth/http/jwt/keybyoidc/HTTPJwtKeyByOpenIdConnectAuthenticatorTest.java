@@ -111,7 +111,6 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		Assert.assertEquals(TestJwts.TEST_ROLES, creds.getBackendRoles());
 	}
 
-
 	@Test
 	public void testExp() throws Exception {
 		Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
