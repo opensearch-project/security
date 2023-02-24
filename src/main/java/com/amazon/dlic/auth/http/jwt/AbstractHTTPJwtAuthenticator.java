@@ -56,7 +56,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String subjectKey;
     private final String rolesKey;
 
-    public static final int DEFAULT_CLOCKSKEWTOLERANCESECONDS = 300;
+    public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 300;
     private final int clockSkewToleranceSeconds ;
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
@@ -65,7 +65,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
-        clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCKSKEWTOLERANCESECONDS);
+        clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);
