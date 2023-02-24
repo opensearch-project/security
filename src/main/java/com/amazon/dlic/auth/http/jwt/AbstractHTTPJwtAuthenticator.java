@@ -56,16 +56,20 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String subjectKey;
     private final String rolesKey;
 
+    public static final int DEFAULT_CLOCKSKEWTOLERANCESECONDS = 300;
+    private final int clockSkewToleranceSeconds ;
+
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
         jwtHeaderName = settings.get("jwt_header", HttpHeaders.AUTHORIZATION);
         isDefaultAuthHeader = HttpHeaders.AUTHORIZATION.equalsIgnoreCase(jwtHeaderName);
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
+        clockSkewToleranceSeconds = settings.getAsInt("clockSkewToleranceSeconds", DEFAULT_CLOCKSKEWTOLERANCESECONDS);
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);
-            jwtVerifier = new JwtVerifier(keyProvider);
+            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds );
 
         } catch (Exception e) {
             log.error("Error creating JWT authenticator. JWT authentication will not work", e);

@@ -23,6 +23,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
+import org.apache.cxf.rs.security.jose.jwt.JwtConstants;
+import org.apache.cxf.rs.security.jose.jwt.JwtToken;
+
 public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
 	protected static MockIpdServer mockIdpServer;
@@ -108,19 +111,93 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		Assert.assertEquals(TestJwts.TEST_ROLES, creds.getBackendRoles());
 	}
 
+
 	@Test
 	public void testExp() throws Exception {
 		Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
-
+		
 		AuthCredentials creds = jwtAuth.extractCredentials(
 				new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_EXPIRED_SIGNED_OCT_1),
 						new HashMap<String, String>()),
 				null);
 
 		Assert.assertNull(creds);
+	}	
+
+	@Test
+	public void testExpInSkew() throws Exception {
+		Settings settings = Settings.builder()
+			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
+			.put("clockSkewToleranceSeconds", "10")
+			.build();
+
+		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+		long expiringDate = System.currentTimeMillis()/1000-5;
+
+		JwtToken jwt_token = TestJwts.create(TestJwts.MCCOY_SUBJECT, TestJwts.TEST_AUDIENCE, 
+		TestJwts.ROLES_CLAIM, TestJwts.TEST_ROLES_STRING, 
+		JwtConstants.CLAIM_EXPIRY, expiringDate);
+
+		String token=TestJwts.createSigned(jwt_token, TestJwk.OCT_1);
+		AuthCredentials creds = jwtAuth.extractCredentials(
+				new FakeRestRequest(ImmutableMap.of("Authorization", "bearer "+token),
+						new HashMap<String, String>()),
+				null);
+
+		Assert.assertNotNull(creds);
 	}
+
+	@Test
+	public void testNbf() throws Exception {
+		Settings settings = Settings.builder()
+			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
+			.put("clockSkewToleranceSeconds", "0")
+			.build();
+
+		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+		long nbf = 5+System.currentTimeMillis()/1000;
+
+		JwtToken jwt_token = TestJwts.create(TestJwts.MCCOY_SUBJECT, TestJwts.TEST_AUDIENCE, 
+		TestJwts.ROLES_CLAIM, TestJwts.TEST_ROLES_STRING, 
+		JwtConstants.CLAIM_NOT_BEFORE, nbf);
+
+		String token=TestJwts.createSigned(jwt_token, TestJwk.OCT_1);
+		AuthCredentials creds = jwtAuth.extractCredentials(
+				new FakeRestRequest(ImmutableMap.of("Authorization", "bearer "+token),
+						new HashMap<String, String>()),
+				null);
+
+		Assert.assertNull(creds);
+	}
+
+	@Test
+	public void testNbfInSkew() throws Exception {
+		Settings settings = Settings.builder()
+			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
+			.put("clockSkewToleranceSeconds", "10")
+			.build();
+
+		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+		long nbfDate = 5+System.currentTimeMillis()/1000;
+
+		JwtToken jwt_token = TestJwts.create(TestJwts.MCCOY_SUBJECT, TestJwts.TEST_AUDIENCE, 
+		TestJwts.ROLES_CLAIM, TestJwts.TEST_ROLES_STRING, 
+		JwtConstants.CLAIM_NOT_BEFORE, nbfDate);
+
+		String token=TestJwts.createSigned(jwt_token, TestJwk.OCT_1);
+		AuthCredentials creds = jwtAuth.extractCredentials(
+				new FakeRestRequest(ImmutableMap.of("Authorization", "bearer "+token),
+						new HashMap<String, String>()),
+				null);
+
+		Assert.assertNotNull(creds);
+	}	
+
 
 	@Test
 	public void testRS256() throws Exception {
