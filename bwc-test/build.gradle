@@ -73,7 +73,7 @@ dependencies {
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
 }
 
-String bwcVersion = "2.4.0.0";
+String bwcVersion = "2.6.0.0";
 String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
 String projectVersion = "2.7.0.0"
