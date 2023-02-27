@@ -75,9 +75,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	final ThreadPool threadPool;
 	protected String opendistroIndex;
 	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
+	protected final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
 	protected final AuditLog auditLog;
 	protected final Settings settings;
-	private AdminDNs adminDNs;
 
 	protected AbstractApiAction(final Settings settings, final Path configPath, final RestController controller,
                                 final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
@@ -88,12 +88,13 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.opendistroIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
 				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
 
-		this.adminDNs = adminDNs;
 		this.cl = cl;
 		this.cs = cs;
 		this.threadPool = threadPool;
 		this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(settings, adminDNs, evaluator,
 				principalExtractor, configPath, threadPool);
+		this.restApiAdminPrivilegesEvaluator =
+				new RestApiAdminPrivilegesEvaluator(threadPool.getThreadContext(), evaluator, adminDNs);
 		this.auditLog = auditLog;
 	}
 
@@ -195,7 +196,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		}
 
 		boolean existed = existingConfiguration.exists(name);
-		existingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass()));
+		final Object newContent = DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass());
+		if (!hasPermissionsToCreate(existingConfiguration, newContent, getResourceName())) {
+			forbidden(channel, "No permissions");
+			return;
+		}
+		existingConfiguration.putCObject(name, newContent);
 
 		saveAnUpdateConfigs(client, request, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
@@ -214,6 +220,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected void handlePost(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
 		notImplemented(channel, Method.POST);
+	}
+
+	protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+											 final Object content,
+											 final String resourceName) throws IOException {
+		return false;
 	}
 
 	protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content)
@@ -448,7 +460,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected void response(RestChannel channel, RestStatus status, String message) {
-
 		try {
 			final XContentBuilder builder = channel.newBuilder();
 			builder.startObject();
@@ -558,8 +569,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected abstract Endpoint getEndpoint();
 
 	protected boolean isSuperAdmin() {
-		User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-		return adminDNs.isAdmin(user);
+		return restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint());
 	}
 
 	/**

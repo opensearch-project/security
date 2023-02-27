@@ -482,8 +482,18 @@ public class ConfigModelV6 extends ConfigModel {
             return false;
         }
 
+        @Override
         public boolean impliesClusterPermissionPermission(String action) {
             return roles.stream().filter(r -> r.impliesClusterPermission(action)).count() > 0;
+        }
+
+        @Override
+        public boolean hasExplicitClusterPermissionPermission(String action) {
+            return roles.stream()
+                    .map(r -> {
+                        final WildcardMatcher m = WildcardMatcher.from(r.clusterPerms);
+                        return m == WildcardMatcher.ANY ? WildcardMatcher.NONE : m;
+                    }).filter(m -> m.test(action)).count() > 0;
         }
 
         //rolespan
