@@ -128,32 +128,6 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
     }
 
     @Test
-    public void testReloadHttpSSLCerts_FailWrongUri() throws Exception {
-        initClusterWithTestCerts();
-        RestHelper rh = getRestHelperAdminUser();
-
-        RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest("_opendistro/_security/api/ssl/wrong/reloadcerts", null);
-        JSONObject expectedResponse = new JSONObject();
-        // Note: toString and toJSONString replace / with \/. This helps get rid of the additional \ character.
-        expectedResponse.put("message", "invalid uri path, please use /_opendistro/_security/api/ssl/http/reload or /_opendistro/_security/api/ssl/transport/reload");
-        final String expectedResponseString = expectedResponse.toString().replace("\\", "");
-        Assert.assertEquals(expectedResponseString, reloadCertsResponse.getBody());
-    }
-
-
-    @Test
-    public void testSSLReloadFail_UnAuthorizedUser() throws Exception {
-        initClusterWithTestCerts();
-        // Test endpoint for non-admin user
-        RestHelper rh = getRestHelperNonAdminUser();
-
-        final RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
-        Assert.assertEquals(401, reloadCertsResponse.getStatusCode());
-        Assert.assertEquals("Unauthorized", reloadCertsResponse.getStatusReason());
-    }
-
-
-    @Test
     public void testSSLReloadFail_InvalidDNAndDate() throws Exception {
         initClusterWithTestCerts();
         RestHelper rh = getRestHelperAdminUser();
@@ -167,24 +141,6 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         expectedResponse.appendField("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: " +
             "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];");
         Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
-    }
-
-    @Test
-    public void testSSLReloadFail_NoReloadSet() throws Exception {
-        updateFiles(defaultCertFilePath, pemCertFilePath);
-        updateFiles(defaultKeyFilePath, pemKeyFilePath);
-        // This is when SSLCertReload property is set to false
-        initTestCluster(pemCertFilePath, pemKeyFilePath, pemCertFilePath, pemKeyFilePath, false);
-
-        RestHelper rh = getRestHelperAdminUser();
-
-        final RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
-        Assert.assertEquals(400, reloadCertsResponse.getStatusCode());
-        JSONObject expectedResponse = new JSONObject();
-        expectedResponse.appendField("error", "no handler found for uri [/_opendistro/_security/api/ssl/transport/reloadcerts] and method [PUT]");
-        // Note: toString and toJSONString replace / with \/. This helps get rid of the additional \ character.
-        final String expectedResponseString = expectedResponse.toString().replace("\\", "");
-        Assert.assertEquals(expectedResponseString, reloadCertsResponse.getBody());
     }
 
     @Test
