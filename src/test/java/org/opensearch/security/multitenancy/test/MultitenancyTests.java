@@ -437,4 +437,35 @@ public class MultitenancyTests extends SingleClusterTest {
         assertThat(res.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(res.findValueInJson("_source.tenant"), equalTo(tenantNameAppended));
     }
+
+    @Test
+    public void testMultitenancyAnonymousUser() throws Exception {
+        final Settings settings = Settings.builder()
+                 .build();
+        setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_anonymous.yml"), settings);
+        final RestHelper rh = nonSslRestHelper();
+
+        HttpResponse res;
+
+        /* Create the tenant for the anonymous user to run the tests */
+        final String url = ".kibana/_doc/5.6.0?pretty";
+        final String anonymousTenant = "anonymous_tenant";
+        final String createTenantBody = "{\"buildNum\": 15460, \"defaultIndex\": \"anon\", \"tenant\": \"" + anonymousTenant + "\"}";
+
+        res = rh.executePutRequest(
+            url,
+            createTenantBody,
+            encodeBasicHeader("admin", "admin"),
+            new BasicHeader("securitytenant", anonymousTenant)
+        );
+
+        /* The anonymous user has access to its tenant */
+        res = rh.executeGetRequest(url, new BasicHeader("securitytenant", anonymousTenant));
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertEquals(anonymousTenant, res.findValueInJson("_source.tenant"));
+
+        /* No access to other tenants */
+        res = rh.executeGetRequest(url, new BasicHeader("securitytenant", "human_resources"));
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+    }
 }
