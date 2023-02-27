@@ -62,11 +62,6 @@ if %cluster_mode% == 0 (
     )
 )
 
-if %assumeyes% == 1 (
-  set "initsecurity=1"
-  set "cluster_mode=1"
-)
-
 set BASE_DIR=%SCRIPT_DIR%\..\..\..\
 if not exist %BASE_DIR% (
     echo "basedir does not exist"
@@ -320,7 +315,7 @@ echo plugins.security.enable_snapshot_restore_privilege: true >> "%OPENSEARCH_CO
 echo plugins.security.check_snapshot_restore_write_privileges: true >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access"] >> "%OPENSEARCH_CONF_FILE%"
 echo plugins.security.system_indices.enabled: true >> "%OPENSEARCH_CONF_FILE%"
-echo plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store"] >> "%OPENSEARCH_CONF_FILE%"
+echo plugins.security.system_indices.indices: [".plugins-ml-model", ".plugins-ml-task", ".opendistro-alerting-config", ".opendistro-alerting-alert*", ".opendistro-anomaly-results*", ".opendistro-anomaly-detector*", ".opendistro-anomaly-checkpoints", ".opendistro-anomaly-detection-state", ".opendistro-reports-*", ".opensearch-notifications-*", ".opensearch-notebooks", ".opensearch-observability", ".opendistro-asynchronous-search-response*", ".replication-metadata-store", ".opensearch-knn-models"] >> "%OPENSEARCH_CONF_FILE%"
 
 :: network.host
 >nul findstr /b /c:"network.host" "%OPENSEARCH_CONF_FILE%" && (

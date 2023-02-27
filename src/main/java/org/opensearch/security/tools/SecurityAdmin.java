@@ -107,6 +107,7 @@ import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.MediaType;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -937,11 +938,11 @@ public class SecurityAdmin {
         return false;
     }
 
-    private static BytesReference readXContent(final String content, final XContentType xContentType) throws IOException {
+    private static BytesReference readXContent(final String content, final MediaType mediaType) throws IOException {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
+            parser = XContentFactory.xContent(mediaType).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
@@ -999,7 +1000,7 @@ public class SecurityAdmin {
         try {
             sb.append("ClusterHealthRequest:"+System.lineSeparator());
 			ClusterHealthResponse nir = restHighLevelClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
-			sb.append(Strings.toString(nir, true, true));
+			sb.append(Strings.toString(XContentType.JSON, nir, true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }

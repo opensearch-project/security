@@ -1,0 +1,36 @@
+name: Publish snapshots to maven
+
+on:
+  workflow_dispatch:
+  push:
+      branches: [
+        main
+        1.*
+        2.*
+      ]
+
+jobs:
+  build-and-publish-snapshots:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 11
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
+          aws-region: us-east-1
+      - name: publish snapshots to maven
+        run: |
+          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          echo "::add-mask::$SONATYPE_USERNAME"
+          echo "::add-mask::$SONATYPE_PASSWORD"
+          ./gradlew publishPluginZipPublicationToSnapshotsRepository

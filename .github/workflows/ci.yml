@@ -63,7 +63,7 @@ jobs:
     - run: |
         echo "Running backwards compatibility tests ..."
         security_plugin_version_no_snapshot=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}' | sed 's/-SNAPSHOT//g')
-        bwc_version=2.4.0
+        bwc_version=2.6.0
         cp -r build/ ./bwc-test/
         mkdir ./bwc-test/src/test/resources/security_plugin_version_no_snapshot
         cp build/distributions/opensearch-security-${security_plugin_version_no_snapshot}.zip ./bwc-test/src/test/resources/${security_plugin_version_no_snapshot}
