@@ -8,7 +8,6 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.util.HashMap;
@@ -22,9 +21,6 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
-
-import org.apache.cxf.rs.security.jose.jwt.JwtConstants;
-import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 
 public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
@@ -135,16 +131,15 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
 		long expiringDate = System.currentTimeMillis()/1000-5;
+		long notBeforeDate = System.currentTimeMillis()/1000-25;
 
-		JwtToken jwt_token = TestJwts.create(TestJwts.MCCOY_SUBJECT, TestJwts.TEST_AUDIENCE, 
-		TestJwts.ROLES_CLAIM, TestJwts.TEST_ROLES_STRING, 
-		JwtConstants.CLAIM_EXPIRY, expiringDate);
-
-		String token=TestJwts.createSigned(jwt_token, TestJwk.OCT_1);
 		AuthCredentials creds = jwtAuth.extractCredentials(
-				new FakeRestRequest(ImmutableMap.of("Authorization", "bearer "+token),
-						new HashMap<String, String>()),
-				null);
+			new FakeRestRequest(
+				ImmutableMap.of(
+					"Authorization", 
+					"bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
+				new HashMap<String, String>()),
+			null);
 
 		Assert.assertNotNull(creds);
 	}
@@ -158,17 +153,16 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
-		long nbf = 5+System.currentTimeMillis()/1000;
+		long expiringDate = 20+System.currentTimeMillis()/1000;
+		long notBeforeDate = 5+System.currentTimeMillis()/1000;
 
-		JwtToken jwt_token = TestJwts.create(TestJwts.MCCOY_SUBJECT, TestJwts.TEST_AUDIENCE, 
-		TestJwts.ROLES_CLAIM, TestJwts.TEST_ROLES_STRING, 
-		JwtConstants.CLAIM_NOT_BEFORE, nbf);
-
-		String token=TestJwts.createSigned(jwt_token, TestJwk.OCT_1);
 		AuthCredentials creds = jwtAuth.extractCredentials(
-				new FakeRestRequest(ImmutableMap.of("Authorization", "bearer "+token),
-						new HashMap<String, String>()),
-				null);
+			new FakeRestRequest(
+				ImmutableMap.of(
+					"Authorization", 
+					"bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
+				new HashMap<String, String>()),
+			null);
 
 		Assert.assertNull(creds);
 	}
@@ -182,15 +176,12 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
-		long nbfDate = 5+System.currentTimeMillis()/1000;
+		long expiringDate = 20+System.currentTimeMillis()/1000;
+		long notBeforeDate = 5+System.currentTimeMillis()/1000;;
 
-		JwtToken jwt_token = TestJwts.create(TestJwts.MCCOY_SUBJECT, TestJwts.TEST_AUDIENCE, 
-		TestJwts.ROLES_CLAIM, TestJwts.TEST_ROLES_STRING, 
-		JwtConstants.CLAIM_NOT_BEFORE, nbfDate);
-
-		String token=TestJwts.createSigned(jwt_token, TestJwk.OCT_1);
 		AuthCredentials creds = jwtAuth.extractCredentials(
-				new FakeRestRequest(ImmutableMap.of("Authorization", "bearer "+token),
+				new FakeRestRequest(
+						ImmutableMap.of("Authorization", "bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
 						new HashMap<String, String>()),
 				null);
 
