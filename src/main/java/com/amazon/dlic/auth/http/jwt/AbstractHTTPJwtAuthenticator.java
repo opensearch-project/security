@@ -56,7 +56,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String subjectKey;
     private final String rolesKey;
 
-    public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 300;
+    public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 30;
     private final int clockSkewToleranceSeconds ;
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
