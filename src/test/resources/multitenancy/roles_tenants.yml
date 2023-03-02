@@ -62,3 +62,7 @@ tenant_parameters_substitution_1:
   reserved: false
   hidden: false
   description: "PR#819 / Issue#817"
+anonymous_tenant:
+  reserved: false
+  hidden: false
+  description: "PR#2459"
