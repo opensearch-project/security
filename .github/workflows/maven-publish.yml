@@ -3,11 +3,10 @@ name: Publish snapshots to maven
 on:
   workflow_dispatch:
   push:
-      branches: [
-        main
-        1.*
-        2.*
-      ]
+      branches:
+        - 'main'
+        - '1.*'
+        - '2.*'
 
 jobs:
   build-and-publish-snapshots:
