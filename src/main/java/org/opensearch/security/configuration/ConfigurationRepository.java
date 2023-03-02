@@ -65,6 +65,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
+import org.opensearch.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -110,91 +111,92 @@ public class ConfigurationRepository {
                 .newBuilder()
                 .build();
 
-        bgThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    LOGGER.info("Background init thread started. Install default config?: "+installDefaultConfig.get());
-
-
-                    if(installDefaultConfig.get()) {
-
-                        try {
-                            String lookupDir = System.getProperty("security.default_init.dir");
-                            final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).configDir().toAbsolutePath().toString()+"/opensearch-security/";
-                            File confFile = new File(cd+"config.yml");
-                            if(confFile.exists()) {
-                                final ThreadContext threadContext = threadPool.getThreadContext();
-                                try(StoredContext ctx = threadContext.stashContext()) {
-                                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
-
-                                    createSecurityIndexIfAbsent();
-                                    waitForSecurityIndexToBeAtLeastYellow();
-
-                                    ConfigHelper.uploadFile(client, cd+"config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
-                                    ConfigHelper.uploadFile(client, cd+"roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
-                                    ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", securityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
-                                    ConfigHelper.uploadFile(client, cd+"internal_users.yml", securityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
-                                    ConfigHelper.uploadFile(client, cd+"action_groups.yml", securityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
-                                    if(DEFAULT_CONFIG_VERSION == 2) {
-                                        ConfigHelper.uploadFile(client, cd+"tenants.yml", securityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
-                                    }
-                                    final boolean populateEmptyIfFileMissing = true;
-                                    ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", securityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
-                                    ConfigHelper.uploadFile(client, cd + "whitelist.yml", securityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
-                                    ConfigHelper.uploadFile(client, cd + "allowlist.yml", securityIndex, CType.ALLOWLIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
-
-                                    // audit.yml is not packaged by default
-                                    final String auditConfigPath = cd + "audit.yml";
-                                    if (new File(auditConfigPath).exists()) {
-                                        ConfigHelper.uploadFile(client, auditConfigPath, securityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
-                                    }
-                                }
-                            } else {
-                                LOGGER.error("{} does not exist", confFile.getAbsolutePath());
-                            }
-                        } catch (Exception e) {
-                            LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
-                        }
-                    }
-
-                    while(!dynamicConfigFactory.isInitialized()) {
-                        try {
-                            LOGGER.debug("Try to load config ...");
-                            reloadConfiguration(Arrays.asList(CType.values()));
-                            break;
-                        } catch (Exception e) {
-                            LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
-                            try {
-                                Thread.sleep(3000);
-                            } catch (InterruptedException e1) {
-                                Thread.currentThread().interrupt();
-                                LOGGER.debug("Thread was interrupted so we cancel initialization");
-                                break;
-                            }
-                        }
-                    }
-
-                    final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
-                    if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                        LOGGER.warn("Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0", deprecatedAuditKeysInSettings);
-                    }
-                    final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
-                    if (isAuditConfigDocPresentInIndex) {
-                        if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                            LOGGER.warn("Audit configuration settings found in both index and opensearch settings (deprecated)");
-                        }
-                        LOGGER.info("Hot-reloading of audit configuration is enabled");
-                    } else {
-                        LOGGER.info("Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it.");
-                        auditLog.setConfig(AuditConfig.from(settings));
-                    }
-
-                    LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
-
-                } catch (Exception e) {
-                    LOGGER.error("Unexpected exception while initializing node "+e, e);
+        bgThread = new Thread(() -> {
+            try {
+                LOGGER.info("Background init thread started. Install default config?: "+installDefaultConfig.get());
+                // wait for the cluster here until it will finish managed node election
+                while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+                    LOGGER.info("Wait for cluster to be available ...");
+                    TimeUnit.SECONDS.sleep(1);
                 }
+
+                if(installDefaultConfig.get()) {
+
+                    try {
+                        String lookupDir = System.getProperty("security.default_init.dir");
+                        final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).configDir().toAbsolutePath().toString()+"/opensearch-security/";
+                        File confFile = new File(cd+"config.yml");
+                        if(confFile.exists()) {
+                            final ThreadContext threadContext = threadPool.getThreadContext();
+                            try(StoredContext ctx = threadContext.stashContext()) {
+                                threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
+
+                                createSecurityIndexIfAbsent();
+                                waitForSecurityIndexToBeAtLeastYellow();
+
+                                ConfigHelper.uploadFile(client, cd+"config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd+"roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", securityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd+"internal_users.yml", securityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd+"action_groups.yml", securityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
+                                if(DEFAULT_CONFIG_VERSION == 2) {
+                                    ConfigHelper.uploadFile(client, cd+"tenants.yml", securityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
+                                }
+                                final boolean populateEmptyIfFileMissing = true;
+                                ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", securityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                ConfigHelper.uploadFile(client, cd + "whitelist.yml", securityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                ConfigHelper.uploadFile(client, cd + "allowlist.yml", securityIndex, CType.ALLOWLIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+
+                                // audit.yml is not packaged by default
+                                final String auditConfigPath = cd + "audit.yml";
+                                if (new File(auditConfigPath).exists()) {
+                                    ConfigHelper.uploadFile(client, auditConfigPath, securityIndex, CType.AUDIT, DEFAULT_CONFIG_VERSION);
+                                }
+                            }
+                        } else {
+                            LOGGER.error("{} does not exist", confFile.getAbsolutePath());
+                        }
+                    } catch (Exception e) {
+                        LOGGER.error("Cannot apply default config (this is maybe not an error!)", e);
+                    }
+                }
+
+                while(!dynamicConfigFactory.isInitialized()) {
+                    try {
+                        LOGGER.debug("Try to load config ...");
+                        reloadConfiguration(Arrays.asList(CType.values()));
+                        break;
+                    } catch (Exception e) {
+                        LOGGER.debug("Unable to load configuration due to {}", String.valueOf(ExceptionUtils.getRootCause(e)));
+                        try {
+                            Thread.sleep(3000);
+                        } catch (InterruptedException e1) {
+                            Thread.currentThread().interrupt();
+                            LOGGER.debug("Thread was interrupted so we cancel initialization");
+                            break;
+                        }
+                    }
+                }
+
+                final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
+                if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                    LOGGER.warn("Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0", deprecatedAuditKeysInSettings);
+                }
+                final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
+                if (isAuditConfigDocPresentInIndex) {
+                    if (!deprecatedAuditKeysInSettings.isEmpty()) {
+                        LOGGER.warn("Audit configuration settings found in both index and opensearch settings (deprecated)");
+                    }
+                    LOGGER.info("Hot-reloading of audit configuration is enabled");
+                } else {
+                    LOGGER.info("Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it.");
+                    auditLog.setConfig(AuditConfig.from(settings));
+                }
+
+                LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
+
+            } catch (Exception e) {
+                LOGGER.error("Unexpected exception while initializing node "+e, e);
             }
         });
 
