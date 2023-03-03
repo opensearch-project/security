@@ -8,7 +8,6 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.util.HashMap;
@@ -113,14 +112,82 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
-
+		
 		AuthCredentials creds = jwtAuth.extractCredentials(
 				new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_EXPIRED_SIGNED_OCT_1),
 						new HashMap<String, String>()),
 				null);
 
 		Assert.assertNull(creds);
+	}	
+
+	@Test
+	public void testExpInSkew() throws Exception {
+		Settings settings = Settings.builder()
+			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
+			.put("jwt_clock_skew_tolerance_seconds", "10")
+			.build();
+
+		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+		long expiringDate = System.currentTimeMillis()/1000-5;
+		long notBeforeDate = System.currentTimeMillis()/1000-25;
+
+		AuthCredentials creds = jwtAuth.extractCredentials(
+			new FakeRestRequest(
+				ImmutableMap.of(
+					"Authorization", 
+					"bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
+				new HashMap<String, String>()),
+			null);
+
+		Assert.assertNotNull(creds);
 	}
+
+	@Test
+	public void testNbf() throws Exception {
+		Settings settings = Settings.builder()
+			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
+			.put("jwt_clock_skew_tolerance_seconds", "0")
+			.build();
+
+		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+		long expiringDate = 20+System.currentTimeMillis()/1000;
+		long notBeforeDate = 5+System.currentTimeMillis()/1000;
+
+		AuthCredentials creds = jwtAuth.extractCredentials(
+			new FakeRestRequest(
+				ImmutableMap.of(
+					"Authorization", 
+					"bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
+				new HashMap<String, String>()),
+			null);
+
+		Assert.assertNull(creds);
+	}
+
+	@Test
+	public void testNbfInSkew() throws Exception {
+		Settings settings = Settings.builder()
+			.put("openid_connect_url", mockIdpServer.getDiscoverUri())
+			.put("jwt_clock_skew_tolerance_seconds", "10")
+			.build();
+
+		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+
+		long expiringDate = 20+System.currentTimeMillis()/1000;
+		long notBeforeDate = 5+System.currentTimeMillis()/1000;;
+
+		AuthCredentials creds = jwtAuth.extractCredentials(
+				new FakeRestRequest(
+						ImmutableMap.of("Authorization", "bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
+						new HashMap<String, String>()),
+				null);
+
+		Assert.assertNotNull(creds);
+	}	
+
 
 	@Test
 	public void testRS256() throws Exception {

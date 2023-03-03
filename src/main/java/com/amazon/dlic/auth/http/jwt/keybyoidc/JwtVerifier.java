@@ -32,9 +32,11 @@ public class JwtVerifier {
 	private final static Logger log = LogManager.getLogger(JwtVerifier.class);
 
 	private final KeyProvider keyProvider;
+	private final int clockSkewToleranceSeconds;
 
-	public JwtVerifier(KeyProvider keyProvider) {
+	public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds ) {
 		this.keyProvider = keyProvider;
+		this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
 	}
 
 	public JwtToken getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
@@ -108,8 +110,8 @@ public class JwtVerifier {
 		JwtClaims claims = jwt.getClaims();
 
 		if (claims != null) {
-			JwtUtils.validateJwtExpiry(claims, 0, false);
-			JwtUtils.validateJwtNotBefore(claims, 0, false);
+			JwtUtils.validateJwtExpiry(claims, clockSkewToleranceSeconds, false);
+			JwtUtils.validateJwtNotBefore(claims, clockSkewToleranceSeconds, false);
 		}
 	}
 }
