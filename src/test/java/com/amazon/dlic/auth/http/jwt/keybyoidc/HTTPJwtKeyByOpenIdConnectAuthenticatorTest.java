@@ -114,7 +114,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 		
 		AuthCredentials creds = jwtAuth.extractCredentials(
-				new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_EXPIRED_SIGNED_OCT_1),
+				new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_EXPIRED_SIGNED_OCT_1),
 						new HashMap<String, String>()),
 				null);
 
@@ -137,7 +137,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 			new FakeRestRequest(
 				ImmutableMap.of(
 					"Authorization", 
-					"bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
+					"Bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
 				new HashMap<String, String>()),
 			null);
 
@@ -160,7 +160,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 			new FakeRestRequest(
 				ImmutableMap.of(
 					"Authorization", 
-					"bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
+					"Bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
 				new HashMap<String, String>()),
 			null);
 
@@ -181,7 +181,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
 		AuthCredentials creds = jwtAuth.extractCredentials(
 				new FakeRestRequest(
-						ImmutableMap.of("Authorization", "bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
+						ImmutableMap.of("Authorization", "Bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
 						new HashMap<String, String>()),
 				null);
 
