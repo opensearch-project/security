@@ -83,6 +83,7 @@ kibana_server:
   - "cluster_monitor"
   - "cluster_composite_ops"
   - "indices:admin/template*"
+  - "indices:admin/index_template*"
   - "indices:data/read/scroll*"
   index_permissions:
   - index_patterns:
