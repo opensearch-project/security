@@ -55,10 +55,10 @@ plugins {
     id 'com.diffplug.spotless' version '6.16.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.0.0"
-    id "org.gradle.test-retry" version "1.4.1"
+    id "org.gradle.test-retry" version "1.5.2"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.13"
-    id "com.google.osdetector" version "1.7.1"
+    id "com.google.osdetector" version "1.7.3"
 }
 
 allprojects {
@@ -206,7 +206,9 @@ opensearchplugin {
 loggerUsageCheck.enabled = false
 
 // No need to validate pom, as we do not upload to maven/sonatype
-validateNebulaPom.enabled = false
+tasks.matching {it.path in [":validateMavenPom", ":validateNebulaPom", ":validatePluginZipPom"]}.all { task ->
+    task.enabled = false
+}
 
 publishing {
     publications {
