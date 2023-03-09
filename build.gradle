@@ -52,13 +52,13 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '5.11.0'
+    id 'com.diffplug.spotless' version '6.16.0'
     id 'checkstyle'
-    id 'nebula.ospackage'  version "8.3.0"
-    id "org.gradle.test-retry" version "1.4.1"
+    id 'com.netflix.nebula.ospackage' version "11.0.0"
+    id "org.gradle.test-retry" version "1.5.2"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.13"
-    id "com.google.osdetector" version "1.7.1"
+    id "com.google.osdetector" version "1.7.3"
 }
 
 allprojects {
@@ -206,7 +206,9 @@ opensearchplugin {
 loggerUsageCheck.enabled = false
 
 // No need to validate pom, as we do not upload to maven/sonatype
-validateNebulaPom.enabled = false
+tasks.matching {it.path in [":validateMavenPom", ":validateNebulaPom", ":validatePluginZipPom"]}.all { task ->
+    task.dependsOn ':generatePomFileForNebulaPublication', ':generatePomFileForPluginZipPublication', ':generatePomFileForMavenPublication'
+}
 
 publishing {
     publications {
@@ -550,12 +552,12 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
 buildRpm {
     arch = 'NOARCH'
     addParentDirs = false
-    archiveName "${packageName}-${version}.rpm"
+    archiveFileName = "${packageName}-${version}.rpm"
 }
 
 buildDeb {
     arch = 'all'
-    archiveName "${packageName}-${version}.deb"
+    archiveFileName = "${packageName}-${version}.deb"
 }
 
 publishing {
@@ -623,9 +625,8 @@ afterEvaluate {
         task renameRpm(type: Copy) {
             from("$buildDir/distributions")
             into("$buildDir/distributions")
-            include archiveName
-            rename archiveName, "${packageName}-${version}.rpm"
-            doLast { delete file("$buildDir/distributions/$archiveName") }
+            rename "$archiveFileName", "${packageName}-${version}.rpm"
+            doLast { delete file("$buildDir/distributions/$archiveFileName") }
         }
     }
 
@@ -636,9 +637,8 @@ afterEvaluate {
         task renameDeb(type: Copy) {
             from("$buildDir/distributions")
             into("$buildDir/distributions")
-            include archiveName
-            rename archiveName, "${packageName}-${version}.deb"
-            doLast { delete file("$buildDir/distributions/$archiveName") }
+            rename "$archiveFileName", "${packageName}-${version}.deb"
+            doLast { delete file("$buildDir/distributions/$archiveFileName") }
         }
     }
 
