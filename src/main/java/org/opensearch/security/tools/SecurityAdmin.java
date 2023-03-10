@@ -1410,6 +1410,7 @@ public class SecurityAdmin {
                                     .setSslContext(sslContext)
                                     .setTlsVersions(supportedProtocols)
                                     .setCiphers(supportedCipherSuites)
+                                    .setHostnameVerifier(hnv)
                                     // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
                                     .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
                                         @Override
