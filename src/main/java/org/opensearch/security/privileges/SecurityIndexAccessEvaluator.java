@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,7 +48,7 @@ import org.opensearch.tasks.Task;
 
 public class SecurityIndexAccessEvaluator {
     
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    Logger log = LogManager.getLogger(this.getClass());
     
     private final String securityIndex;
     private final AuditLog auditLog;
@@ -103,7 +104,7 @@ public class SecurityIndexAccessEvaluator {
                     presponse.allowed = false;
                     return presponse.markComplete();
                 }
-            } else if (requestedResolved.getAllIndices().contains(securityIndex) || matchAnySystemIndices(requestedResolved)) {
+            } else if (matchAnySystemIndices(requestedResolved)) {
                 if(filterSecurityIndex) {
                     Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                     allWithoutSecurity.remove(securityIndex);
@@ -121,7 +122,8 @@ public class SecurityIndexAccessEvaluator {
                     return presponse;
                 } else {
                     auditLog.logSecurityIndexAttempt(request, action, task);
-                    log.warn("{} for '{}' index is not allowed for a regular user", action, securityIndex);
+                    final String foundSystemIndexes = getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "));
+                    log.warn("{} for '{}' index is not allowed for a regular user", action, foundSystemIndexes);
                     presponse.allowed = false;
                     return presponse.markComplete();
                 }
@@ -149,6 +151,14 @@ public class SecurityIndexAccessEvaluator {
     }
 
     private boolean matchAnySystemIndices(final Resolved requestedResolved){
-        return systemIndexEnabled && systemIndexMatcher.matchAny(requestedResolved.getAllIndices());
+        return !getProtectedIndexes(requestedResolved).isEmpty();
+    }
+
+    private List<String> getProtectedIndexes(final Resolved requestedResolved) {
+        final List<String> protectedIndexes = requestedResolved.getAllIndices().stream().filter(securityIndex::equals).collect(Collectors.toList());
+        if (systemIndexEnabled) {
+            protectedIndexes.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
+        }
+        return protectedIndexes;
     }
 }
