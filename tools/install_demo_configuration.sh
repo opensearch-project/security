@@ -349,6 +349,12 @@ echo "$ROOT_CA" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/root-ca.pem" > /dev/null
 echo "$NODE_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/esnode-key.pem" > /dev/null
 echo "$ADMIN_CERT_KEY" | $SUDO_CMD tee "$OPENSEARCH_CONF_DIR/kirk-key.pem" > /dev/null
 
+chmod 0600 "$OPENSEARCH_CONF_DIR/kirk.pem"
+chmod 0600 "$OPENSEARCH_CONF_DIR/esnode.pem"
+chmod 0600 "$OPENSEARCH_CONF_DIR/root-ca.pem"
+chmod 0600 "$OPENSEARCH_CONF_DIR/esnode-key.pem"
+chmod 0600 "$OPENSEARCH_CONF_DIR/kirk-key.pem"
+
 echo "" | $SUDO_CMD tee -a  "$OPENSEARCH_CONF_FILE"
 echo "######## Start OpenSearch Security Demo Configuration ########" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
 echo "# WARNING: revise all the lines below before you go into production" | $SUDO_CMD tee -a "$OPENSEARCH_CONF_FILE" > /dev/null
