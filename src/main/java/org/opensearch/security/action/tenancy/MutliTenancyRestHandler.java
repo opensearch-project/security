@@ -24,9 +24,9 @@ import org.opensearch.rest.action.RestToXContentListener;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
-public class MutliTenancyRetrieveRestHandler extends BaseRestHandler {
+public class MutliTenancyRestHandler extends BaseRestHandler {
 
-    public MutliTenancyRetrieveRestHandler() {
+    public MutliTenancyRestHandler() {
         super();
     }
 

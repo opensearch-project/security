@@ -16,7 +16,7 @@ import org.opensearch.action.ActionType;
 public class MultiTenancyRetrieveAction extends ActionType<BooleanSettingRetrieveResponse> {
 
     public static final MultiTenancyRetrieveAction INSTANCE = new MultiTenancyRetrieveAction();
-    public static final String NAME = "securityconfig:admin/config/tenancy/multitenancy_enabled/read";
+    public static final String NAME = "cluster:feature/tenancy/multitenancy_enabled/read";
 
     protected MultiTenancyRetrieveAction() {
         super(NAME, BooleanSettingRetrieveResponse::new);

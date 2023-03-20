@@ -43,7 +43,7 @@ public class TenancyActionsTests extends SingleClusterTest {
     }
 
     @Test
-    public void test_multitenancy_enabled_state_change_works() throws Exception {
+    public void testMultitenancyDisabled_endToEndTest() throws Exception {
         setup();
 
         final HttpResponse getSettingResponse = nonSslRestHelper().executeGetRequest("/_plugins/_security/config/tenancy/multitenancy_enabled", asAdminUser);
@@ -69,15 +69,15 @@ public class TenancyActionsTests extends SingleClusterTest {
     }
 
     @Test
-    public void test_forbidden_access() throws Exception {
+    public void testForbiddenAccess() throws Exception {
         setup();
 
         final HttpResponse getSettingResponse = nonSslRestHelper().executeGetRequest("/_plugins/_security/config/tenancy/multitenancy_enabled", asUser);
         assertThat(getSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-        assertThat(getSettingResponse.findValueInJson("error.reason"), containsString("no permissions for [securityconfig:admin/config/tenancy/multitenancy_enabled/read]"));
+        assertThat(getSettingResponse.findValueInJson("error.reason"), containsString("no permissions for [cluster:feature/tenancy/multitenancy_enabled/read]"));
 
         final HttpResponse updateSettingResponse = nonSslRestHelper().executePutRequest("/_plugins/_security/config/tenancy/multitenancy_enabled", "{\"value\": \"false\"}", asUser);
         assertThat(updateSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-        assertThat(updateSettingResponse.findValueInJson("error.reason"), containsString("no permissions for [securityconfig:admin/config/tenancy/multitenancy_enabled/update]"));
+        assertThat(updateSettingResponse.findValueInJson("error.reason"), containsString("no permissions for [cluster:feature/tenancy/multitenancy_enabled/update]"));
     }
 }

@@ -119,7 +119,7 @@ import org.opensearch.security.action.tenancy.MultiTenancyRetrieveAction;
 import org.opensearch.security.action.tenancy.MultiTenancyRetrieveTransportAction;
 import org.opensearch.security.action.tenancy.MultiTenancyUpdateAction;
 import org.opensearch.security.action.tenancy.MultiTenancyUpdateTransportAction;
-import org.opensearch.security.action.tenancy.MutliTenancyRetrieveRestHandler;
+import org.opensearch.security.action.tenancy.MutliTenancyRestHandler;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -474,7 +474,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
                 handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                handlers.add(new MutliTenancyRetrieveRestHandler());
+                handlers.add(new MutliTenancyRestHandler());
                 handlers.addAll(
                         SecurityRestApiActions.getHandler(
                                 settings,

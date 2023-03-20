@@ -224,7 +224,7 @@ public class AccountApiAction extends AbstractApiAction {
 
         internalUserEntry.setHash(hash);
 
-        AccountApiAction.saveAnUpdateConfigs(this.securityIndexName, client, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
+        AccountApiAction.saveAndUpdateConfigs(this.securityIndexName, client, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
             @Override
             public void onResponse(IndexResponse response) {
                 successResponse(channel, "'" + username + "' updated.");

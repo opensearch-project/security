@@ -78,7 +78,7 @@ public class MultiTenancyUpdateTransportAction extends HandledTransportAction<Bo
         // When performing an update to the configuration run as admin
         try (final ThreadContext.StoredContext stashedContext = pool.getThreadContext().stashContext()) {
             // Update the security configuration and make sure the cluster has fully refreshed
-            AbstractApiAction.saveAnUpdateConfigs(this.securityIndex, this.client, CType.CONFIG, dynamicConfig, new ActionListener<IndexResponse>(){
+            AbstractApiAction.saveAndUpdateConfigs(this.securityIndex, this.client, CType.CONFIG, dynamicConfig, new ActionListener<IndexResponse>(){
 
                 @Override
                 public void onResponse(final IndexResponse response) {

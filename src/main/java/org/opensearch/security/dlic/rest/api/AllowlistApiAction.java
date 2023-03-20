@@ -141,7 +141,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
         boolean existed = existingConfiguration.exists(name);
         existingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass()));
 
-        saveAnUpdateConfigs(this.securityIndexName,client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName,client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {

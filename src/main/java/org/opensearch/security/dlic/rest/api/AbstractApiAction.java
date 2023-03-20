@@ -153,7 +153,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		existingConfiguration.remove(name);
 
 		if (existed) {
-			AbstractApiAction.saveAnUpdateConfigs(this.securityIndexName, client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+			AbstractApiAction.saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
 				@Override
 				public void onResponse(IndexResponse response) {
@@ -203,7 +203,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		}
 		existingConfiguration.putCObject(name, newContent);
 
-		AbstractApiAction.saveAnUpdateConfigs(this.securityIndexName, client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+		AbstractApiAction.saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
 			@Override
 			public void onResponse(IndexResponse response) {
@@ -309,7 +309,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	}
 
-	public static void saveAnUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration, final ActionListener<IndexResponse> actionListener) {
+	public static void saveAndUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration, final ActionListener<IndexResponse> actionListener) {
 		final IndexRequest ir = new IndexRequest(indexName);
 		final String id = cType.toLCString();
 
