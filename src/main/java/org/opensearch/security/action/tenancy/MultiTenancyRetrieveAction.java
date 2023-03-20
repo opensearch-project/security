@@ -9,17 +9,16 @@
  * GitHub history for details.
  */
 
- package org.opensearch.security.action.tenancy;
+package org.opensearch.security.action.tenancy;
 
- import org.opensearch.action.ActionType;
- 
- public class MultiTenancyRetrieveAction extends ActionType<BooleanSettingRetrieveResponse> {
- 
-     public static final MultiTenancyRetrieveAction INSTANCE = new MultiTenancyRetrieveAction();
-     public static final String NAME = "securityconfig:admin/config/tenancy/multitenancy_enabled/read";
- 
-     protected MultiTenancyRetrieveAction() {
-         super(NAME, BooleanSettingRetrieveResponse::new);
-     }
- }
- 
+import org.opensearch.action.ActionType;
+
+public class MultiTenancyRetrieveAction extends ActionType<BooleanSettingRetrieveResponse> {
+
+    public static final MultiTenancyRetrieveAction INSTANCE = new MultiTenancyRetrieveAction();
+    public static final String NAME = "securityconfig:admin/config/tenancy/multitenancy_enabled/read";
+
+    protected MultiTenancyRetrieveAction() {
+        super(NAME, BooleanSettingRetrieveResponse::new);
+    }
+}
