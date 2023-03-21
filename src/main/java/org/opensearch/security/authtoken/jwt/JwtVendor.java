@@ -1,3 +1,14 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
 package org.opensearch.security.authtoken.jwt;
 
 import com.google.common.base.Strings;
@@ -34,20 +45,31 @@ public class JwtVendor {
     private static JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
 
     private JsonWebKey signingKey;
+    private JoseJwtProducer jwtProducer;
     private ConfigModel configModel;
     private ThreadContext threadContext;
 
-    static JsonWebKey createJwkFromSettings(Settings settings) throws Exception {
-        String exchangeKey = settings.get("exchange_key");
+    public JwtVendor(Settings settings) {
+        JoseJwtProducer jwtProducer = new JoseJwtProducer();
+        try {
+            this.signingKey = createJwkFromSettings(settings);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        this.jwtProducer = jwtProducer;
+    }
 
-        if (!Strings.isNullOrEmpty(exchangeKey)) {
+    static JsonWebKey createJwkFromSettings(Settings settings) throws Exception {
+        String signingKey = settings.get("signing_key");
+
+        if (!Strings.isNullOrEmpty(signingKey)) {
 
             JsonWebKey jwk = new JsonWebKey();
 
             jwk.setKeyType(KeyType.OCTET);
             jwk.setAlgorithm("HS512");
             jwk.setPublicKeyUse(PublicKeyUse.SIGN);
-            jwk.setProperty("k", exchangeKey);
+            jwk.setProperty("k", signingKey);
 
             return jwk;
         } else {
@@ -55,7 +77,7 @@ public class JwtVendor {
 
             if (jwkSettings.isEmpty()) {
                 throw new Exception(
-                        "Settings for key exchange missing. Please specify at least the option exchange_key with a shared secret.");
+                        "Settings for key is missing. Please specify at least the option signing_key with a shared secret.");
             }
 
             JsonWebKey jwk = new JsonWebKey();
@@ -68,7 +90,7 @@ public class JwtVendor {
         }
     }
 
-    //Getting roles from User
+    //TODO:Getting roles from User
     public Map<String, String> prepareClaimsForUser(User user, ThreadPool threadPool) {
         Map<String, String> claims = new HashMap<>();
         this.threadContext = threadPool.getThreadContext();
@@ -82,13 +104,7 @@ public class JwtVendor {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    private String createJwt(Map<String, String> claims, Settings settings) {
-        JoseJwtProducer jwtProducer = new JoseJwtProducer();
-        try {
-            signingKey = createJwkFromSettings(settings);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public String createJwt(Map<String, String> claims) {
 
         jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(signingKey));
         JwtClaims jwtClaims = new JwtClaims();
@@ -129,6 +145,7 @@ public class JwtVendor {
                             + JwtUtils.claimsToJson(jwt.getClaims())
             );
         }
+
         return encodedJwt;
     }
 }
