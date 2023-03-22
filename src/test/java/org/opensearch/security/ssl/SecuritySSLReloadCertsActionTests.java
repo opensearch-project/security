@@ -49,8 +49,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         "issuer_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
         "subject_dn", "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
             "san", "[[2, node-1.example.com], [2, localhost], [7, 127.0.0.1], [8, 1.2.3.4.5.5]]",
-        "not_before", "2020-02-17T16:19:25Z",
-        "not_after", "2022-02-16T16:19:25Z"
+        "not_before", "2022-07-18T14:22:27Z",
+        "not_after", "2032-07-15T14:22:27Z"
         ));
 
     private final List<Map<String, String>> NEW_NODE_CERT_DETAILS = ImmutableList.of(
@@ -58,8 +58,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
             "issuer_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
             "subject_dn", "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
             "san", "[[2, node-1.example.com], [2, localhost], [7, 127.0.0.1], [8, 1.2.3.4.5.5]]",
-            "not_before", "2020-02-18T14:11:28Z",
-            "not_after", "2022-02-17T14:11:28Z"
+            "not_before", "2022-07-18T14:22:36Z",
+            "not_after", "2032-07-15T14:22:36Z"
         )
     );
 
@@ -262,7 +262,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
     private void initTestCluster(final String transportPemCertFilePath, final String transportPemKeyFilePath, final String httpPemCertFilePath, final String httpPemKeyFilePath, final boolean sslCertReload) throws Exception {
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, "CN=kirk,OU=client,O=client,L=Test,C=DE")
-            .putList(ConfigConstants.SECURITY_NODES_DN, "C=DE,L=Test,O=Test,OU=SSL,CN=node-1.example.com")
+            .putList(ConfigConstants.SECURITY_NODES_DN, "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE")
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
