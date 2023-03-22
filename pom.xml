@@ -79,8 +79,8 @@
         <jackson-databind.version>2.11.2</jackson-databind.version>
         <jjwt.version>0.10.5</jjwt.version>
         <ldaptive.version>1.2.3</ldaptive.version>
-        <http.commons.version>4.5.13</http.commons.version>
-        <cxf.version>3.4.5</cxf.version>
+        <http.commons.version>4.5.3</http.commons.version>
+        <cxf.version>3.5.3</cxf.version>
         <kafka.version>2.5.0</kafka.version>
         <java-saml.version>2.5.0</java-saml.version>
         <opensaml.version>3.4.5</opensaml.version>
