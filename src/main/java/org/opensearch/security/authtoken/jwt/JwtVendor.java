@@ -11,6 +11,11 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.base.Strings;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
@@ -20,24 +25,17 @@ import org.apache.cxf.rs.security.jose.jws.JwsUtils;
 import org.apache.cxf.rs.security.jose.jwt.JoseJwtProducer;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
-
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.threadpool.ThreadPool;
-
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
@@ -46,6 +44,8 @@ public class JwtVendor {
 
     private JsonWebKey signingKey;
     private JoseJwtProducer jwtProducer;
+
+    //TODO: Relocate/Remove them at once we make the descisions about the `roles`
     private ConfigModel configModel;
     private ThreadContext threadContext;
 
@@ -100,38 +100,37 @@ public class JwtVendor {
         claims.put("roles", String.join(",", mappedRoles));
         return claims;
     }
+
     public Set<String> mapRoles(final User user, final TransportAddress caller) {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    public String createJwt(Map<String, String> claims) {
-
+    public String createJwt(String issuer, String subject, String audience, Integer expiryMin) throws Exception {
         jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(signingKey));
         JwtClaims jwtClaims = new JwtClaims();
         JwtToken jwt = new JwtToken(jwtClaims);
 
-        jwtClaims.setNotBefore(System.currentTimeMillis() / 1000);
-        long expiryTime = System.currentTimeMillis() / 1000 + (60 * 5);
-
-        if (claims.containsKey("sub")) {
-            jwtClaims.setSubject(claims.get("sub"));
-        } else {
-            throw new OpenSearchSecurityException("Cannot create jwt, 'sub' claim is required");
-        }
+        jwtClaims.setIssuer(issuer);
 
         jwtClaims.setIssuedAt(Instant.now().toEpochMilli());
 
-        // TODO: Should call preparelaims();
-        if (claims.containsKey("roles")) {
-            jwtClaims.setProperty("roles", claims.get("roles"));
+        jwtClaims.setSubject(subject);
+
+        jwtClaims.setAudience(audience);
+
+        jwtClaims.setNotBefore(System.currentTimeMillis() / 1000);
+
+        if (expiryMin == null) {
+            long expiryTime = System.currentTimeMillis() / 1000 + (60 * 5);
+            jwtClaims.setExpiryTime(expiryTime);
+        } else if (expiryMin > 0) {
+            long expiryTime = System.currentTimeMillis() / 1000 + (60 * expiryMin);
+            jwtClaims.setExpiryTime(expiryTime);
+        } else {
+            throw new Exception("The expiration time should be a positive integer");
         }
 
-        if (claims.containsKey("exp")) {
-            int customTime = Integer.parseInt(claims.get("exp"));
-            jwtClaims.setExpiryTime(System.currentTimeMillis() / 1000 + (60 * customTime));
-        } else {
-            jwtClaims.setExpiryTime(expiryTime);
-        }
+        // TODO: Should call preparelaims() if we need roles in claim;
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 

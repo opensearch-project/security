@@ -11,17 +11,15 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.util.Map;
+
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
-
-import java.util.Map;
 
 public class JwtVendorTest {
 
@@ -45,23 +43,34 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwt() {
+    public void testCreateJwt() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "extension_0";
+        Integer expiryMin = 5;
         Settings settings =  Settings.builder().put("signing_key", "abc123").build();
+
         JwtVendor jwtVendor = new JwtVendor(settings);
-        Map <String, String> myClaims = Map.of("sub","admin");
-        String encodedJwt = jwtVendor.createJwt(myClaims);
+        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expiryMin);
+
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
         JwtToken jwt = jwtConsumer.getJwtToken();
+
         Assert.assertEquals("admin", jwt.getClaim("sub"));
         Assert.assertNotNull(jwt.getClaim("iat"));
         Assert.assertNotNull(jwt.getClaim("exp"));
     }
 
-    @Test (expected = OpenSearchSecurityException.class)
-    public void testCreateJwtWithBadClaims(){
+    @Test (expected = Exception.class)
+    public void testCreateJwtWithBadExpiry() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "extension_0";
+        Integer expiryMin = -1;
+
         Settings settings =  Settings.builder().put("signing_key", "abc123").build();
         JwtVendor jwtVendor = new JwtVendor(settings);
-        Map <String, String> myClaims = Map.of("roles","admin");
-        jwtVendor.createJwt(myClaims);
+
+        jwtVendor.createJwt(issuer, subject, audience, expiryMin);
     }
 }
