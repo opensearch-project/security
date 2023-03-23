@@ -54,7 +54,7 @@ First create a fork of this repo and clone it locally. You should then change to
 ```
 
 >Worth noting:\
-> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT` compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version of OpenSearch in plugin-descriptor.properties after building the project.
+> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `3.0.0.0-SNAPSHOT` compatible with OpenSearch `3.0.0`. Check the expected compatible version of OpenSearch in plugin-descriptor.properties after building the project.
 
 To install the built plugin into the OpenSearch server run:
 
