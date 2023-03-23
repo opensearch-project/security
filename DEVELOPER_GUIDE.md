@@ -45,9 +45,6 @@ cd $OPENSEARCH_HOME
 
 The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+c`. We are now ready to install the security plugin.
 
->Worth noting:\
-> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT` compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version [here](https://github.com/opensearch-project/security/blob/main/plugin-descriptor.properties#L27) and make sure you get the correct branch from OpenSearch when building that project.
-
 ## Building
 
 First create a fork of this repo and clone it locally. You should then change to the directory containing the clone and run this to build the project:
@@ -55,6 +52,9 @@ First create a fork of this repo and clone it locally. You should then change to
 ```bash
 ./gradlew clean assemble
 ```
+
+>Worth noting:\
+> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `1.3.0.0-SNAPSHOT` compatible with OpenSearch `1.3.0-SNAPSHOT` that gets built from branch `1.x`. Check the expected compatible version of OpenSearch in plugin-descriptor.properties after building the project.
 
 To install the built plugin into the OpenSearch server run:
 
