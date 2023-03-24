@@ -54,7 +54,11 @@ First create a fork of this repo and clone it locally. You should then change to
 ```
 
 >Worth noting:\
-> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `3.0.0.0-SNAPSHOT` compatible with OpenSearch `3.0.0`. Check the expected compatible version of OpenSearch in plugin-descriptor.properties after building the project.
+> The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `3.0.0.0-SNAPSHOT` compatible with OpenSearch `3.0.0`. Check the expected compatible version in `build.gradle` file [here](https://github.com/opensearch-project/security/blob/main/build.gradle) and make sure you get the correct branch from OpenSearch when building that project.
+> 
+> The line to look for: `opensearch_version = System.getProperty("opensearch.version", "x")`
+> 
+> Alternatively, you can find the compatible version of OpenSearch by running `./gradlew properties -q | grep -E '^version:' | awk '{print $2}'` in project root folder.
 
 To install the built plugin into the OpenSearch server run:
 
