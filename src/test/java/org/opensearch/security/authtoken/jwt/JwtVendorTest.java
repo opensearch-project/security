@@ -11,7 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.util.Map;
+import java.util.function.LongSupplier;
 
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
@@ -32,7 +32,6 @@ public class JwtVendorTest {
         Assert.assertEquals("HS512", jwk.getAlgorithm());
         Assert.assertEquals("sig", jwk.getPublicKeyUse().toString());
         Assert.assertEquals("abc123", jwk.getProperty("k"));
-        System.out.print(jwk.getPublicKeyUse());
     }
 
     @Test (expected = Exception.class)
@@ -47,18 +46,23 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "extension_0";
-        Integer expiryMin = 5;
+        Integer expirySeconds = 300;
+        LongSupplier currentTime = () -> (int)100;
         Settings settings =  Settings.builder().put("signing_key", "abc123").build();
+        Long expectedExp = currentTime.getAsLong() + (expirySeconds * 1000);
 
-        JwtVendor jwtVendor = new JwtVendor(settings);
-        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expiryMin);
+        JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
+        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds);
 
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
         JwtToken jwt = jwtConsumer.getJwtToken();
 
+        Assert.assertEquals("cluster_0", jwt.getClaim("iss"));
         Assert.assertEquals("admin", jwt.getClaim("sub"));
+        Assert.assertEquals("extension_0", jwt.getClaim("aud"));
         Assert.assertNotNull(jwt.getClaim("iat"));
         Assert.assertNotNull(jwt.getClaim("exp"));
+        Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
     }
 
     @Test (expected = Exception.class)
@@ -66,11 +70,11 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "extension_0";
-        Integer expiryMin = -1;
+        Integer expirySeconds = -300;
 
         Settings settings =  Settings.builder().put("signing_key", "abc123").build();
         JwtVendor jwtVendor = new JwtVendor(settings);
 
-        jwtVendor.createJwt(issuer, subject, audience, expiryMin);
+        jwtVendor.createJwt(issuer, subject, audience, expirySeconds);
     }
 }

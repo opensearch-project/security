@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.LongSupplier;
 
 import com.google.common.base.Strings;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
@@ -44,6 +45,7 @@ public class JwtVendor {
 
     private JsonWebKey signingKey;
     private JoseJwtProducer jwtProducer;
+    private final LongSupplier timeProvider;
 
     //TODO: Relocate/Remove them at once we make the descisions about the `roles`
     private ConfigModel configModel;
@@ -57,6 +59,19 @@ public class JwtVendor {
             throw new RuntimeException(e);
         }
         this.jwtProducer = jwtProducer;
+        timeProvider = System::currentTimeMillis;
+    }
+
+    //For testing the expiration in the future
+    public JwtVendor(Settings settings, final LongSupplier timeProvider) {
+        JoseJwtProducer jwtProducer = new JoseJwtProducer();
+        try {
+            this.signingKey = createJwkFromSettings(settings);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        this.jwtProducer = jwtProducer;
+        this.timeProvider = timeProvider;
     }
 
     static JsonWebKey createJwkFromSettings(Settings settings) throws Exception {
@@ -105,26 +120,29 @@ public class JwtVendor {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    public String createJwt(String issuer, String subject, String audience, Integer expiryMin) throws Exception {
+    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds) throws Exception {
+        long timeMillis = timeProvider.getAsLong();
+        Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
+
         jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(signingKey));
         JwtClaims jwtClaims = new JwtClaims();
         JwtToken jwt = new JwtToken(jwtClaims);
 
         jwtClaims.setIssuer(issuer);
 
-        jwtClaims.setIssuedAt(Instant.now().toEpochMilli());
+        jwtClaims.setIssuedAt(timeMillis);
 
         jwtClaims.setSubject(subject);
 
         jwtClaims.setAudience(audience);
 
-        jwtClaims.setNotBefore(System.currentTimeMillis() / 1000);
+        jwtClaims.setNotBefore(timeMillis);
 
-        if (expiryMin == null) {
-            long expiryTime = System.currentTimeMillis() / 1000 + (60 * 5);
+        if (expirySeconds == null) {
+            long expiryTime = timeProvider.getAsLong() + (300 * 1000);
             jwtClaims.setExpiryTime(expiryTime);
-        } else if (expiryMin > 0) {
-            long expiryTime = System.currentTimeMillis() / 1000 + (60 * expiryMin);
+        } else if (expirySeconds > 0) {
+            long expiryTime = timeProvider.getAsLong() + (expirySeconds * 1000);
             jwtClaims.setExpiryTime(expiryTime);
         } else {
             throw new Exception("The expiration time should be a positive integer");
