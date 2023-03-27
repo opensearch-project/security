@@ -1,33 +1,32 @@
 package org.opensearch.security.extensions;
 
-import org.apache.hc.core5.http.HttpStatus;
-import org.opensearch.action.ActionRequest;
-import org.opensearch.action.admin.indices.segments.PitSegmentsRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.search.CreatePitRequest;
-import org.opensearch.action.search.DeletePitRequest;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.unit.TimeValue;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.extensions.DiscoveryExtensionNode;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.dlic.rest.api.AbstractApiAction;
-import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
-import org.opensearch.security.resolver.IndexResolverReplacer;
-import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.securityconf.impl.CType;
-import org.opensearch.security.user.User;
+import org.opensearch.security.support.SecurityJsonNode;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * This class handles extension registration and operations on behalf of the Security Plugin.
  */
 public class ExtensionHelper {
+
+    protected String getResourceName() {
+        return "serviceAccount";
+    }
+    protected CType getConfigName() {
+        return CType.INTERNALUSERS;
+    }
+
+    ObjectMapper mapper = new ObjectMapper();
 
     public ExtensionRegistrationResponse register(String extensionUniqueId) throws ExtensionRegistrationException {
 
@@ -45,7 +44,7 @@ public class ExtensionHelper {
         }
     }
 
-    private void addServiceAccount(String extensionUniqueId) {
+    private void addServiceAccount(String extensionUniqueId) throws JsonProcessingException, ExtensionRegistrationException {
 
         final String serviceAccountName = extensionUniqueId;
         final DiscoveryExtensionNode extensionInformation = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager().getExtensionIdMap().get(extensionUniqueId);
@@ -60,10 +59,43 @@ public class ExtensionHelper {
                 "  }\n" +
                 "}";
 
-        // checks complete, create or update the user
-        internalUsersConfiguration.putCObject(serviceAccountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+        //TODO: Need to add service account to internal authentication backend
 
-        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUsersConfiguration, new AbstractApiAction.OnSucessActionListener<IndexResponse>(channel));
+        JsonNode actualObj;
+
+        try {
+             actualObj = mapper.readTree(createServiceAccountPayload);
+        } catch (JsonProcessingException ex) {
+            throw new ExtensionRegistrationException("Failed to parse the provided configuration settings. Failed to register extension: " + extensionUniqueId);
+        }
+
+        ObjectNode content =  (ObjectNode) actualObj;
+        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
+
+        // A password cannot be provided for a Service account.
+        final String plainTextPassword = securityJsonNode.get("password").asString();
+        final String origHash = securityJsonNode.get("hash").asString();
+        if (plainTextPassword != null && plainTextPassword.length() > 0) {
+            throw new ExtensionRegistrationException("A password cannot be provided for extensions. Failed to register extension: " + extensionUniqueId);
+        } else if (origHash != null && origHash.length() > 0) {
+            throw new ExtensionRegistrationException("A password hash cannot be provided for extensions. Failed to register extension: " + extensionUniqueId);
+        }
+
+        //TODO: This needs to be able to respond back to core once the account is created.
+        // This needs to create the user and put in the configuration, then save and update config for all nodes
+        internalUsersConfiguration.putCObject(serviceAccountName, DefaultObjectMapper.readTree(content,  internalUsersConfiguration.getImplementingClass()));
+        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUsersConfiguration, new AbstractApiAction.OnSucessActionListener<IndexResponse>(channel) {
+
+            public void onResponse(IndexResponse response) {
+                ExtensionRegistrationResponse extensionRegistrationResponse = new ExtensionRegistrationResponse(extensionUniqueId);
+            }
+        });
+
+        /*
+           1. Could try to call InternalUsersApiAction and use handlePut() to add the service account
+           2. Could try to use the pieces of handlePut() directly
+         */
+
     }
 
     public static boolean extensionServiceAccountExists(String extensionUniqueId) {
