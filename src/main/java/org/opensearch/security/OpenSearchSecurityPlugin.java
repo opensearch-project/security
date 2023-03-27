@@ -1187,7 +1187,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
-
         private static ExtensionsManager extensionsManager;
 
         @Inject
