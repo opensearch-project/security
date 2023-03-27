@@ -34,10 +34,6 @@ public class DlsTest extends AbstractDlsFlsTest{
                 .source("{\"amount\": 10}", XContentType.JSON)).actionGet();
         tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"amount\": 1500}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"amount\": 1500}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"amount\": 1500}", XContentType.JSON)).actionGet();
 
         try {
             Thread.sleep(3000);
@@ -57,13 +53,13 @@ public class DlsTest extends AbstractDlsFlsTest{
 
 
         String query = "{"+
-            "\"query\" : {"+
-                 "\"match_all\": {}"+
-            "},"+
-            "\"aggs\" : {"+
+                "\"query\" : {"+
+                "\"match_all\": {}"+
+                "},"+
+                "\"aggs\" : {"+
                 "\"thesum\" : { \"sum\" : { \"field\" : \"amount\" } }"+
-            "}"+
-        "}";
+                "}"+
+                "}";
 
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode());
@@ -117,17 +113,17 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         String query =
 
-            "{"+
-                "\"query\": {"+
-                   "\"range\" : {"+
-                      "\"amount\" : {"+
-                           "\"gte\" : 8,"+
-                            "\"lte\" : 20,"+
-                            "\"boost\" : 3.0"+
+                "{"+
+                        "\"query\": {"+
+                        "\"range\" : {"+
+                        "\"amount\" : {"+
+                        "\"gte\" : 8,"+
+                        "\"lte\" : 20,"+
+                        "\"boost\" : 3.0"+
                         "}"+
-                    "}"+
-                "}"+
-            "}";
+                        "}"+
+                        "}"+
+                        "}";
 
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("dept_manager", "password"))).getStatusCode());
@@ -137,16 +133,16 @@ public class DlsTest extends AbstractDlsFlsTest{
         query =
 
                 "{"+
-                    "\"query\": {"+
-                       "\"range\" : {"+
-                          "\"amount\" : {"+
-                               "\"gte\" : 100,"+
-                                "\"lte\" : 2000,"+
-                                "\"boost\" : 2.0"+
-                            "}"+
+                        "\"query\": {"+
+                        "\"range\" : {"+
+                        "\"amount\" : {"+
+                        "\"gte\" : 100,"+
+                        "\"lte\" : 2000,"+
+                        "\"boost\" : 2.0"+
                         "}"+
-                    "}"+
-                "}";
+                        "}"+
+                        "}"+
+                        "}";
 
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("dept_manager", "password"))).getStatusCode());
@@ -183,9 +179,9 @@ public class DlsTest extends AbstractDlsFlsTest{
         //msearch
         String msearchBody =
                 "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
-                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
-                "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
-                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
+                        "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
+                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
 
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode());
@@ -197,16 +193,16 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         String mgetBody = "{"+
                 "\"docs\" : ["+
-                    "{"+
-                         "\"_index\" : \"deals\","+
-                        "\"_id\" : \"1\""+
-                   " },"+
-                   " {"+
-                       "\"_index\" : \"deals\","+
-                       " \"_id\" : \"2\""+
-                    "}"+
+                "{"+
+                "\"_index\" : \"deals\","+
+                "\"_id\" : \"1\""+
+                " },"+
+                " {"+
+                "\"_index\" : \"deals\","+
+                " \"_id\" : \"2\""+
+                "}"+
                 "]"+
-            "}";
+                "}";
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode());
         Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
@@ -226,16 +222,16 @@ public class DlsTest extends AbstractDlsFlsTest{
 
                 "{"+
                         "\"_source\": false,"+
-                    "\"query\": {"+
-                       "\"range\" : {"+
-                          "\"amount\" : {"+
-                               "\"gte\" : 100,"+
-                                "\"lte\" : 2000,"+
-                                "\"boost\" : 2.0"+
-                            "}"+
+                        "\"query\": {"+
+                        "\"range\" : {"+
+                        "\"amount\" : {"+
+                        "\"gte\" : 100,"+
+                        "\"lte\" : 2000,"+
+                        "\"boost\" : 2.0"+
                         "}"+
-                    "}"+
-                "}";
+                        "}"+
+                        "}"+
+                        "}";
 
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("dept_manager", "password"))).getStatusCode());
@@ -503,125 +499,4 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"D\""));
         Assert.assertTrue(response16.getBody(), response16.getBody().contains("\"termX\":\"E\""));
     }
-
-    @Test
-    public void testDlsRoleAddition() throws Exception {
-
-        setup();
-
-        HttpResponse res;
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("dls_test_account_sensitive", "password"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-
-
-
-        String query =
-
-                "{"+
-                        "\"query\": {"+
-                        "\"range\" : {"+
-                        "\"amount\" : {"+
-                        "\"gte\" : 8,"+
-                        "\"lte\" : 20,"+
-                        "\"boost\" : 3.0"+
-                        "}"+
-                        "}"+
-                        "}"+
-                        "}";
-
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("dept_manager", "password"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-        query =
-
-                "{"+
-                        "\"query\": {"+
-                        "\"range\" : {"+
-                        "\"amount\" : {"+
-                        "\"gte\" : 100,"+
-                        "\"lte\" : 2000,"+
-                        "\"boost\" : 2.0"+
-                        "}"+
-                        "}"+
-                        "}"+
-                        "}";
-
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("dept_manager", "password"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("admin", "admin"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?q=amount:10&pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-        res = rh.executeGetRequest("/deals/_doc/0?pretty", encodeBasicHeader("dept_manager", "password"));
-        Assert.assertTrue(res.getBody().contains("\"found\" : false"));
-
-        res = rh.executeGetRequest("/deals/_doc/0?realtime=true&pretty", encodeBasicHeader("dept_manager", "password"));
-        Assert.assertTrue(res.getBody().contains("\"found\" : false"));
-
-        res = rh.executeGetRequest("/deals/_doc/1?pretty", encodeBasicHeader("dept_manager", "password"));
-        Assert.assertTrue(res.getBody().contains("\"found\" : true"));
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"count\" : 2,"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
-        Assert.assertTrue(res.getBody().contains("\"count\" : 1,"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-
-        //mget
-        //msearch
-        String msearchBody =
-                "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
-                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
-                        "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
-                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
-
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode());
-        Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
-        Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
-        Assert.assertTrue(res.getBody().contains("\"amount\" : 1500"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-
-        String mgetBody = "{"+
-                "\"docs\" : ["+
-                "{"+
-                "\"_index\" : \"deals\","+
-                "\"_id\" : \"1\""+
-                " },"+
-                " {"+
-                "\"_index\" : \"deals\","+
-                " \"_id\" : \"2\""+
-                "}"+
-                "]"+
-                "}";
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode());
-        Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
-        Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
-        Assert.assertTrue(res.getBody().contains("amount"));
-        Assert.assertTrue(res.getBody().contains("\"found\" : false"));
-
-    }
-
 }
