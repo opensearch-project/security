@@ -124,7 +124,7 @@ public class DlsIntegrationTests {
 			);
 
 	/**
-	 * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_TWINS} OR {@link Song#FIELD_STARS} is greater than zero.
+	 * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_TWINS} OR {@link Song#FIELD_STARS} is greater than five.
 	 */
 	static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE = new TestSecurityConfig.User("read_where_field_artist_matches_artist_twins_or_field_stars_greater_than_five")
 			.roles(
@@ -159,7 +159,7 @@ public class DlsIntegrationTests {
 			);
 
 	/**
-	* User who is allowed to see documents on all indices where value of the {@link Song#FIELD_STARS} is less than zero.
+	* User who is allowed to see documents on all indices where value of the {@link Song#FIELD_STARS} is less than three.
 	*/
 	static final TestSecurityConfig.User READ_WHERE_STARS_LESS_THAN_THREE = new TestSecurityConfig.User("read_where_stars_less_than_three")
 			.roles(
