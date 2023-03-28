@@ -1,6 +1,8 @@
 package org.opensearch.security.extensions;
 
-import static org.opensearch.security.extensions.ExtensionHelper.extensionServiceAccountExists;
+import org.opensearch.security.privileges.DocumentAllowList;
+
+import static org.opensearch.security.extensions.ExtensionsService.extensionServiceAccountExists;
 
 public class ExtensionRegistrationResponse {
 
@@ -30,5 +32,21 @@ public class ExtensionRegistrationResponse {
 
     public boolean getRegistrationComplete() { return registrationComplete; }
 
-
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (this.getClass() != obj.getClass()) {
+            return false;
+        }
+        ExtensionRegistrationResponse otherExReg = (ExtensionRegistrationResponse) (obj);
+        if (!this.extensionUniqueId.equals(otherExReg.extensionUniqueId)) {
+            return false;
+            }
+        return true;
+    }
 }
