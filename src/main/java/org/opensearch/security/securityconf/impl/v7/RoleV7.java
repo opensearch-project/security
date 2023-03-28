@@ -65,7 +65,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
         this.cluster_permissions = roleV6.getCluster();
         index_permissions = new ArrayList<>();
         tenant_permissions = new ArrayList<>();
-        this.cluster_permissions = new ArrayList<>();
+        this.extension_permissions = new ArrayList<>();
         
         for(Entry<String, RoleV6.Index> v6i: roleV6.getIndices().entrySet()) {
             index_permissions.add(new Index(v6i.getKey(), v6i.getValue()));
