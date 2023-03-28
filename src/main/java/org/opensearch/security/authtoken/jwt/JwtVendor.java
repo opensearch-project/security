@@ -74,6 +74,12 @@ public class JwtVendor {
         this.timeProvider = timeProvider;
     }
 
+    /*
+    * The default configuration of this web key should be:
+    *   KeyType: OCTET
+    *   PublicKeyUse: SIGN
+    *   Encryption Algorithm: HS512
+    * */
     static JsonWebKey createJwkFromSettings(Settings settings) throws Exception {
         String signingKey = settings.get("signing_key");
 
