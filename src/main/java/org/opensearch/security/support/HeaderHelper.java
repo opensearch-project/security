@@ -27,6 +27,7 @@
 package org.opensearch.security.support;
 
 import java.io.Serializable;
+import java.util.Map;
 
 import com.google.common.base.Strings;
 
