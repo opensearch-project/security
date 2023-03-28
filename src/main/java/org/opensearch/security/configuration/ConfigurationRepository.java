@@ -68,12 +68,14 @@ import org.opensearch.env.Environment;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
+import org.opensearch.security.extensions.ExtensionsConfigConstants;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.ConfigHelper;
+import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -404,5 +406,32 @@ public class ConfigurationRepository {
 
     public static int getDefaultConfigVersion() {
         return ConfigurationRepository.DEFAULT_CONFIG_VERSION;
+    }
+
+    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(Collection<CType> configTypes) {
+
+        final ThreadContext threadContext = threadPool.getThreadContext();
+        final Map<CType, SecurityDynamicConfiguration<?>> retVal = new HashMap<>();
+
+        try (StoredContext ctx = threadContext.stashContext()) {
+            threadContext.putHeader(ExtensionsConfigConstants.EXTENSIONS_CONF_REQUEST_HEADER, "true");
+
+            IndexMetadata securityMetadata = clusterService.state().metadata().index(this.securityIndex);
+            MappingMetadata mappingMetadata = securityMetadata == null ? null : securityMetadata.mapping();
+
+            if (securityMetadata != null && mappingMetadata != null) {
+                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS, false), configTypes.size()));
+
+            } else {
+                // wait (and use new layout)
+                LOGGER.debug("Could not access the Security Index");
+                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 5, TimeUnit.SECONDS, false), configTypes.size()));
+            }
+
+        } catch (Exception e) {
+            throw new OpenSearchException(e);
+        }
+
+        return retVal;
     }
 }
