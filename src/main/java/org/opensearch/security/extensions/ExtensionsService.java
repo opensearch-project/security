@@ -17,11 +17,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.extensions.DiscoveryExtensionNode;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.api.AbstractApiAction;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
@@ -41,7 +39,6 @@ public class ExtensionsService {
     NodeClient nodeClient;
     static ConfigurationRepository configurationRepository;
     String securityIndex;
-
     Client client;
 
     protected String getResourceName() {
