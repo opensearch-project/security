@@ -42,15 +42,14 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.rest.extensions.ExtensionRestRequest;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.PermissibleRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.rest.extensions.RestSendToExtensionAction;
-import org.opensearch.rest.extensions.RouteHandler;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -130,14 +129,16 @@ public class SecurityRestFilter {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
                         if (original instanceof RestSendToExtensionAction) {
-                            List<Route> extensionRoutes = ((RestSendToExtensionAction)original).routes();
+                            List<Route> extensionRoutes = original.routes();
                             System.out.println("Hello, world!");
                             Optional<Route> handler = extensionRoutes.stream()
                                     .filter(rh -> rh.getMethod().equals(request.method()))
                                     .filter(rh -> restPathMatches(request.path(), rh.getPath()))
                                     .findFirst();
-                            if (handler.isPresent() && handler.get() instanceof RouteHandler) {
-                                String handlerName = ((RouteHandler)handler.get()).name();
+                            System.out.println("Request: " + request);
+                            System.out.println("Found handler: " + handler);
+                            if (handler.isPresent() && handler.get() instanceof PermissibleRoute) {
+                                String handlerName = ((PermissibleRoute)handler.get()).name();
                                 System.out.println("Handler Name: " + handlerName);
                             }
                         }
@@ -231,7 +232,7 @@ public class SecurityRestFilter {
     /**
      * Determines if the request's path is a match for the configured handler path.
      *
-     * @param requestPath The path from the {@link ExtensionRestRequest}
+     * @param requestPath The path from the {@link PermissibleRoute}
      * @param handlerPath The path from the {@link RestHandler.Route}
      * @return true if the request path matches the route
      */
