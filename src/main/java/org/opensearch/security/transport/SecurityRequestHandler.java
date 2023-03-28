@@ -217,7 +217,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 transportChannel.sendResponse(ex);
                 return;
             } else {
-
                 if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
                 }
@@ -225,7 +224,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 //network intercluster request or cross search cluster request
                 if(HeaderHelper.isInterClusterRequest(getThreadContext())
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())
-                        || HeaderHelper.isExtensionRequest(getThreadContext())) {
+                        || HeaderHelper.isExtensionRequest(getThreadContext())
+                        || Origin.LOCAL.toString().equals(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))) {
 
                     final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
                     final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
