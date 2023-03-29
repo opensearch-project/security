@@ -128,20 +128,6 @@ public class SecurityRestFilter {
                 if (!checkAndAuthenticateRequest(request, channel, client)) {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
-                        if (original instanceof RestSendToExtensionAction) {
-                            List<Route> extensionRoutes = original.routes();
-                            System.out.println("Hello, world!");
-                            Optional<Route> handler = extensionRoutes.stream()
-                                    .filter(rh -> rh.getMethod().equals(request.method()))
-                                    .filter(rh -> restPathMatches(request.path(), rh.getPath()))
-                                    .findFirst();
-                            System.out.println("Request: " + request);
-                            System.out.println("Found handler: " + handler);
-                            if (handler.isPresent() && handler.get() instanceof PermissibleRoute) {
-                                String handlerName = ((PermissibleRoute)handler.get()).name();
-                                System.out.println("Handler Name: " + handlerName);
-                            }
-                        }
                         original.handleRequest(request, channel, client);
                     }
                 }
