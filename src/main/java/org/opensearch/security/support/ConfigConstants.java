@@ -240,6 +240,9 @@ public class ConfigConstants {
     public static final String SECURITY_SSL_CERT_RELOAD_ENABLED = "plugins.security.ssl_cert_reload_enabled";
     public static final String SECURITY_DISABLE_ENVVAR_REPLACEMENT = "plugins.security.disable_envvar_replacement";
     public static final String SECURITY_DFM_EMPTY_OVERRIDES_ALL = "plugins.security.dfm_empty_overrides_all";
+    public static final String SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH = "";
+    public static final String SECURITY_RESTAPI_PASSWORD_MIN_LENGTH = "";
+    public static final String SECURITY_RESTAPI_ADMIN_ENABLED = "";
 
     public enum RolesMappingResolution {
         MAPPING_ONLY,
