@@ -97,7 +97,7 @@ public class ExtensionsService {
                                               final SecurityDynamicConfiguration<?> configuration) {
         final IndexRequest ir = new IndexRequest(this.securityIndex);
 
-        //final String type = "_doc";
+        // final String type = "_doc";
         final String id = cType.toLCString();
 
         configuration.removeStatic();
@@ -185,6 +185,7 @@ public class ExtensionsService {
         internalUsersConfiguration.putCObject(serviceAccountName, DefaultObjectMapper.readTree(content,  internalUsersConfiguration.getImplementingClass()));
 
         saveAndUpdateConfiguration(client, CType.INTERNALUSERS, internalUsersConfiguration);
+
     }
 
     public static boolean extensionServiceAccountExists(String extensionUniqueId) {
@@ -192,4 +193,5 @@ public class ExtensionsService {
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName());
         return internalUsersConfiguration.exists(extensionUniqueId);
     }
+
 }

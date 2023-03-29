@@ -59,7 +59,6 @@ public class ExtensionRegistrationUnitTests extends SingleClusterTest {
 
     //TODO: Figure out how to build these tests when normally inject
 
-
     public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
                                                ResourceWatcherService resourceWatcherService, ScriptService scriptService,
                                                NamedXContentRegistry xContentRegistry, Environment environment,
