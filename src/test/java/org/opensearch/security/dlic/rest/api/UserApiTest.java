@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
+import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -89,15 +90,22 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
-        response = rh.executePatchRequest(ENDPOINT + "/internalusers", "[{ \"op\": \"add\", \"path\": \"/newuser\", \"value\": {\"password\": \"newuser\", \"opendistro_security_roles\": [\"opendistro_security_all_access\"] } }]", new Header[0]);
+        Assert.assertEquals(133, settings.size());
+        response = rh.executePatchRequest(
+                ENDPOINT + "/internalusers",
+                "[{ \"op\": \"add\", \"path\": \"/newuser\", " +
+                        "\"value\": {\"password\": \"fair password for the user\", " +
+                        "\"opendistro_security_roles\": [\"opendistro_security_all_access\"] } }]",
+                new Header[0]
+        );
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/newuser", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("\"opendistro_security_roles\":[\"opendistro_security_all_access\"]"));
 
-        checkGeneralAccess(HttpStatus.SC_OK, "newuser", "newuser");
+        checkGeneralAccess(HttpStatus.SC_OK, "newuser", "fair password for the user");
+
     }
 
     @Test
@@ -108,7 +116,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10, ENDPOINT + "/internalusers/test1", "{\"password\":\"test1\"}");
+        HttpResponse[] responses = rh.executeMultipleAsyncPutRequest(10,
+                ENDPOINT + "/internalusers/test1", "{\"password\":\"test1test1test1test1test1test1\"}");
         boolean created = false;
         for (HttpResponse response : responses) {
             int sc = response.getStatusCode();
@@ -254,7 +263,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // PATCH password
         rh.sendAdminCertificate = sendAdminCert;
-        response = rh.executePatchRequest(ENDPOINT + "/internalusers/test", "[{ \"op\": \"add\", \"path\": \"/password\", \"value\": \"neu\" }]", restAdminHeader);
+        response = rh.executePatchRequest(ENDPOINT + "/internalusers/test", "[{ \"op\": \"add\", \"path\": \"/password\", \"value\": \"neu password 42\" }]", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/test", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -292,7 +301,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // PATCH
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(ENDPOINT + "/internalusers",
-                "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]", restAdminHeader);
+                "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {\"password\": \"bla bla bla password 42\", \"backend_roles\": [\"vulcan\"] } }]", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/bulknew1", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -382,11 +391,11 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // use password instead of hash
         rh.sendAdminCertificate = sendAdminCert;
-        addUserWithPassword("nagilum", "correctpassword", HttpStatus.SC_CREATED);
+        addUserWithPassword("nagilum", "correct password 42", HttpStatus.SC_CREATED);
 
         rh.sendAdminCertificate = false;
         checkGeneralAccess(HttpStatus.SC_UNAUTHORIZED, "nagilum", "wrongpassword");
-        checkGeneralAccess(HttpStatus.SC_OK, "nagilum", "correctpassword");
+        checkGeneralAccess(HttpStatus.SC_OK, "nagilum", "correct password 42");
 
         deleteUser("nagilum");
 
@@ -490,24 +499,24 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // use backendroles when creating user. User picard does not exist in
         // the internal user DB
         // and is also not assigned to any role by username
-        addUserWithPassword("picard", "picard", HttpStatus.SC_CREATED);
+        addUserWithPassword("picard", "picardpicardpicardpicardpicard", HttpStatus.SC_CREATED);
         // changed in ES5, you now need cluster:monitor/main which pucard does not have
-        checkGeneralAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard");
+        checkGeneralAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicardpicard");
 
         // check read access to starfleet index and _doc type, must fail
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicardpicard", "sf", "_doc", 0);
 
         // overwrite user picard, and give him role "starfleet".
-        addUserWithPassword("picard", "picard", new String[]{"starfleet"}, HttpStatus.SC_OK);
+        addUserWithPassword("picard", "picardpicardpicardpicardpicard", new String[]{"starfleet"}, HttpStatus.SC_OK);
 
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicardpicard", "sf", "_doc", 1);
 
         // overwrite user picard, and give him role "starfleet" plus "captains. Now
         // document can be created.
-        addUserWithPassword("picard", "picard", new String[]{"starfleet", "captains"}, HttpStatus.SC_OK);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
+        addUserWithPassword("picard", "picardpicardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_OK);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picardpicardpicardpicardpicard", "sf", "_doc", 1);
 
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/picard", header);
@@ -520,8 +529,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertTrue(roles.contains("starfleet"));
         Assert.assertTrue(roles.contains("captains"));
 
-        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_CREATED);
-        addUserWithPassword("abc", "abc", HttpStatus.SC_CREATED);
+        addUserWithPassword("some_additional_user", "$1aAAAAAAAAC", HttpStatus.SC_CREATED);
+        addUserWithPassword("abc", "abcabcabcabc42", HttpStatus.SC_CREATED);
 
         // check tabs in json
         response = rh.executePutRequest(ENDPOINT + "/internalusers/userwithtabs", "\t{\"hash\": \t \"123\"\t}  ", header);
@@ -565,13 +574,15 @@ public class UserApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
-    public void testPasswordRules() throws Exception {
+    public void testRegExpPasswordRules() throws Exception {
 
         Settings nodeSettings =
                 Settings.builder()
                         .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, "xxx")
                         .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
                                 "(?=.*[A-Z])(?=.*[^a-zA-Z\\\\d])(?=.*[0-9])(?=.*[a-z]).{8,}")
+                        .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH,
+                                PasswordValidator.ScoreStrength.FAIR.name())
                         .build();
 
         setup(nodeSettings);
@@ -582,73 +593,137 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         // initial configuration, 6 users
         HttpResponse response = rh
                 .executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(USER_SETTING_SIZE, settings.size());
 
-        addUserWithPassword("tooshoort", "", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("tooshoort", "123", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("tooshoort", "1234567", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("tooshoort", "1Aa%", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("no-nonnumeric", "123456789", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("no-uppercase", "a123456789", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("no-lowercase", "A123456789", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("ok1", "a%A123456789", HttpStatus.SC_CREATED);
-        addUserWithPassword("ok2", "$aA123456789", HttpStatus.SC_CREATED);
-        addUserWithPassword("ok3", "$Aa123456789", HttpStatus.SC_CREATED);
-        addUserWithPassword("ok4", "$1aAAAAAAAAA", HttpStatus.SC_CREATED);
-        addUserWithPassword("empty_password_no_hash", "", HttpStatus.SC_BAD_REQUEST);
+        verifyCouldNotCreatePasswords(HttpStatus.SC_BAD_REQUEST);
+        verifyCanCreatePasswords();
+        verifySimilarity("xxx");
+
         addUserWithPasswordAndHash("empty_password", "", "$%^123", HttpStatus.SC_BAD_REQUEST);
         addUserWithPasswordAndHash("null_password", null, "$%^123", HttpStatus.SC_BAD_REQUEST);
-
-        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-
-        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"replace\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-
-        addUserWithPassword("ok4", "123", HttpStatus.SC_BAD_REQUEST);
-
-        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-
-        addUserWithPassword("ok4", "$1aAAAAAAAAC", HttpStatus.SC_OK);
-
-        //its not allowed to use the username as password (case insensitive)
-        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/$1aAAAAAAAAB\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword("$1aAAAAAAAac", "$1aAAAAAAAAC", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%", "UTF-8"), "$1aAAAAAAAAC%", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;:test&~@^", "UTF-8").replace("+", "%2B"), "$1aAAAAAAAac%!=\\\"/\\\\;:test&~@^", HttpStatus.SC_BAD_REQUEST);
-        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", HttpStatus.SC_BAD_REQUEST);
 
         response = rh.executeGetRequest(PLUGINS_PREFIX + "/api/internalusers/nothinghthere?pretty", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("NOT_FOUND"));
+    }
 
+    private void verifyCouldNotCreatePasswords(final int expectedStatus) throws Exception {
+        addUserWithPassword("tooshoort", "", expectedStatus);
+        addUserWithPassword("tooshoort", "123",expectedStatus);
+        addUserWithPassword("tooshoort", "1234567", expectedStatus);
+        addUserWithPassword("tooshoort", "1Aa%", expectedStatus);
+        addUserWithPassword("no-nonnumeric", "123456789", expectedStatus);
+        addUserWithPassword("no-uppercase", "a123456789", expectedStatus);
+        addUserWithPassword("no-lowercase", "A123456789", expectedStatus);
+        addUserWithPassword("empty_password_no_hash", "", expectedStatus);
+        HttpResponse response = rh.executePatchRequest(
+                PLUGINS_PREFIX + "/api/internalusers",
+                "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]",
+                new Header[0]
+        );
+        Assert.assertEquals(response.getBody(), expectedStatus, response.getStatusCode());
+        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"replace\", \"path\": \"/ok4\", \"value\": {\"password\": \"bla\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
+        Assert.assertEquals(response.getBody(), expectedStatus, response.getStatusCode());
+        addUserWithPassword("ok4", "123", expectedStatus);
+
+        //its not allowed to use the username as password (case insensitive)
+        response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", "[{ \"op\": \"add\", \"path\": \"/$1aAAAAAAAAB\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]", new Header[0]);
+        Assert.assertEquals(response.getBody(), expectedStatus, response.getStatusCode());
+        addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", expectedStatus);
+        addUserWithPassword("$1aAAAAAAAac", "$1aAAAAAAAAC", expectedStatus);
+        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%", "UTF-8"), "$1aAAAAAAAAC%", expectedStatus);
+        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;:test&~@^", "UTF-8").replace("+", "%2B"), "$1aAAAAAAAac%!=\\\"/\\\\;:test&~@^", expectedStatus);
+        addUserWithPassword(URLEncoder.encode("$1aAAAAAAAac%!=\"/\\;: test&", "UTF-8"), "$1aAAAAAAAac%!=\\\"/\\\\;: test&123", expectedStatus);
         String patchPayload = "[ " +
                 "{ \"op\": \"add\", \"path\": \"/testuser1\",  \"value\": { \"password\": \"$aA123456789\", \"backend_roles\": [\"testrole1\"] } }," +
                 "{ \"op\": \"add\", \"path\": \"/testuser2\",  \"value\": { \"password\": \"testpassword2\", \"backend_roles\": [\"testrole2\"] } }" +
                 "]";
 
         response = rh.executePatchRequest(PLUGINS_PREFIX + "/api/internalusers", patchPayload, new BasicHeader("Content-Type", "application/json"));
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(expectedStatus, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("error"));
         Assert.assertTrue(response.getBody().contains("xxx"));
 
         response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"\"}", new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(expectedStatus, response.getStatusCode());
 
+        response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1",
+                "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"bla\"}",
+                new Header[0]);
+        Assert.assertEquals(expectedStatus, response.getStatusCode());
+    }
+
+    private void verifyCanCreatePasswords() throws Exception {
+        addUserWithPassword("ok1", "a%A123456789", HttpStatus.SC_CREATED);
+        addUserWithPassword("ok2", "$aA123456789", HttpStatus.SC_CREATED);
+        addUserWithPassword("ok3", "$Aa123456789", HttpStatus.SC_CREATED);
+        addUserWithPassword("ok4", "$1aAAAAAAAAA", HttpStatus.SC_CREATED);
+        addUserWithPassword("ok4", "$1aAAAAAAAAC", HttpStatus.SC_OK);
+        HttpResponse response = rh.executePatchRequest(
+                PLUGINS_PREFIX + "/api/internalusers",
+                "[{ \"op\": \"add\", \"path\": \"/ok4\", \"value\": {\"password\": \"$1aAAAAAAAAB\", \"backend_roles\": [\"vulcan\"] } }]",
+                new Header[0]
+        );
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"Admin_123\"}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{}}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(PLUGINS_PREFIX + "/api/internalusers/ok1", "{\"backend_roles\":[\"my-backend-role\"],\"attributes\":{},\"password\":\"bla\"}",
-                new Header[0]);
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+    }
+
+
+    private void verifySimilarity(final String expectedMessage) throws Exception {
+        addUserWithPassword(
+                "some_user_name", "H3235,cc,some_User_Name",
+                HttpStatus.SC_BAD_REQUEST,
+                expectedMessage
+        );
+    }
+
+    @Test
+    public void testScoreBasedPasswordRules() throws Exception {
+
+        Settings nodeSettings =
+                Settings.builder()
+                        .put(ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, 9)
+                        .build();
+
+        setup(nodeSettings);
+
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        // initial configuration, 6 users
+        HttpResponse response = rh
+                .executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
+        Assert.assertEquals(133, settings.size());
+
+        addUserWithPassword(
+                "admin", "password89",
+                HttpStatus.SC_BAD_REQUEST,
+                AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD.getMessage()
+        );
+        addUserWithPassword(
+                "admin", "A123456789",
+                HttpStatus.SC_BAD_REQUEST,
+                AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD.getMessage()
+        );
+
+        addUserWithPassword(
+                "admin", "pas",
+                HttpStatus.SC_BAD_REQUEST,
+                "Password does not match minimum criteria"
+        );
+
+        verifySimilarity(AbstractConfigurationValidator.ErrorType.SIMILAR_PASSWORD.getMessage());
+
+        addUserWithPassword("some_user_name", "ASSDsadwe324wadaasdadqwe", HttpStatus.SC_CREATED);
     }
 
     @Test
@@ -669,13 +744,13 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword(".my.dotuser0", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_CREATED);
 
-        addUserWithPassword(".my.dot.user0", "12345678",
+        addUserWithPassword(".my.dot.user0", "12345678Sd",
                 HttpStatus.SC_CREATED);
 
         addUserWithHash(".my.dotuser1", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_CREATED);
 
-        addUserWithPassword(".my.dot.user2", "12345678",
+        addUserWithPassword(".my.dot.user2", "12345678Sd",
                 HttpStatus.SC_CREATED);
 
     }
@@ -697,7 +772,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/internalusers/user1", "{\"hash\":\"$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m\",\"password\":\"\",\"backend_roles\":[\"admin\",\"rolea\"]}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/internalusers/user1", "{\"hash\":\"$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m\",\"password\":\"Admin_123\",\"backend_roles\":[\"admin\",\"rolea\"]}");
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/user1", "{\"hash\":\"$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m\",\"password\":\"Admin_123345Yq\",\"backend_roles\":[\"admin\",\"rolea\"]}");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/user1");
@@ -709,7 +784,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/internalusers/user2", "{\"password\":\"\",\"backend_roles\":[\"admin\",\"rolex\"]}");
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/internalusers/user2", "{\"password\":\"Admin_123\",\"backend_roles\":[\"admin\",\"rolex\"]}");
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/user2", "{\"password\":\"Admin_123Qerty\",\"backend_roles\":[\"admin\",\"rolex\"]}");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/user2");
