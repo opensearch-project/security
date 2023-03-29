@@ -143,6 +143,7 @@ import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
+import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
@@ -198,6 +199,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SecurityRestFilter securityRestHandler;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
+
+    private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
@@ -824,7 +827,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
 
-        securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
+        restLayerEvaluator = new RestLayerPrivilegesEvaluator(clusterService, threadPool, cr, auditLog,
+                settings, cih, namedXContentRegistry);
+
+        securityRestHandler = new SecurityRestFilter(backendRegistry, restLayerEvaluator, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
 
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
@@ -833,6 +839,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         dcf.registerDCFListener(irr);
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
+        dcf.registerDCFListener(restLayerEvaluator);
         dcf.registerDCFListener(securityRestHandler);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
@@ -858,6 +865,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         components.add(xffResolver);
         components.add(backendRegistry);
         components.add(evaluator);
+        components.add(restLayerEvaluator);
         components.add(si);
         components.add(dcf);
 

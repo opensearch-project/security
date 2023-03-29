@@ -26,19 +26,11 @@
 
 package org.opensearch.security.filter;
 
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.net.ssl.SSLPeerUnverifiedException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
-
 import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -56,6 +48,8 @@ import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.dlic.rest.api.AllowlistApiAction;
+import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
+import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.WhitelistingSettings;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -67,6 +61,13 @@ import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import javax.net.ssl.SSLPeerUnverifiedException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
@@ -74,6 +75,8 @@ public class SecurityRestFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final BackendRegistry registry;
+
+    private final RestLayerPrivilegesEvaluator evaluator;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;
     private final PrincipalExtractor principalExtractor;
@@ -91,11 +94,12 @@ public class SecurityRestFilter {
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
 
-    public SecurityRestFilter(final BackendRegistry registry, final AuditLog auditLog,
-                              final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
+    public SecurityRestFilter(final BackendRegistry registry, final RestLayerPrivilegesEvaluator evaluator,
+                              final AuditLog auditLog, final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
                               final Settings settings, final Path configPath, final CompatConfig compatConfig) {
         super();
         this.registry = registry;
+        this.evaluator = evaluator;
         this.auditLog = auditLog;
         this.threadContext = threadPool.getThreadContext();
         this.principalExtractor = principalExtractor;
@@ -130,16 +134,33 @@ public class SecurityRestFilter {
                     if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
                         if (original instanceof RestSendToExtensionAction) {
                             List<Route> extensionRoutes = original.routes();
-                            System.out.println("Hello, world!");
                             Optional<Route> handler = extensionRoutes.stream()
                                     .filter(rh -> rh.getMethod().equals(request.method()))
                                     .filter(rh -> restPathMatches(request.path(), rh.getPath()))
                                     .findFirst();
-                            System.out.println("Request: " + request);
-                            System.out.println("Found handler: " + handler);
                             if (handler.isPresent() && handler.get() instanceof PermissibleRoute) {
-                                String handlerName = ((PermissibleRoute)handler.get()).name();
-                                System.out.println("Handler Name: " + handlerName);
+                                String action = ((PermissibleRoute)handler.get()).name();
+                                PrivilegesEvaluatorResponse pres = evaluator.evaluate(user, action);
+                                if (log.isDebugEnabled()) {
+                                    log.debug(pres.toString());
+                                }
+
+                                if (pres.isAllowed()) {
+                                    // TODO make sure this is audit logged
+                                    log.debug("Request has been granted");
+                                    // auditLog.logGrantedPrivileges(action, request, task);
+                                } else {
+                                    // auditLog.logMissingPrivileges(action, request, task);
+                                    String err;
+                                    if(!pres.getMissingSecurityRoles().isEmpty()) {
+                                        err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
+                                    } else {
+                                        err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
+                                    }
+                                    log.debug(err);
+                                    channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
+                                    return;
+                                }
                             }
                         }
                         original.handleRequest(request, channel, client);

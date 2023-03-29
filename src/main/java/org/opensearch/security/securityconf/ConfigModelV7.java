@@ -213,6 +213,9 @@ public class ConfigModelV7 extends ConfigModel {
                     final Set<String> permittedClusterActions = agr.resolvedActions(securityRole.getValue().getCluster_permissions());
                     _securityRole.addClusterPerms(permittedClusterActions);
 
+                    final Set<String> permittedExtensionActions = agr.resolvedActions(securityRole.getValue().getExtension_permissions());
+                    _securityRole.addExtensionPerms(permittedExtensionActions);
+
                         /*for(RoleV7.Tenant tenant: securityRole.getValue().getTenant_permissions()) {
 
                             //if(tenant.equals(user.getName())) {
@@ -480,6 +483,11 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         @Override
+        public boolean impliesExtensionPermissionPermission(String action) {
+            return roles.stream().filter(r -> r.impliesExtensionPermission(action)).count() > 0;
+        }
+
+        @Override
         public boolean impliesClusterPermissionPermission(String action) {
             return roles.stream().filter(r -> r.impliesClusterPermission(action)).count() > 0;
         }
@@ -517,9 +525,12 @@ public class ConfigModelV7 extends ConfigModel {
         private final Set<IndexPattern> ipatterns;
         private final WildcardMatcher clusterPerms;
 
+        private final WildcardMatcher extensionPerms;
+
         public static final class Builder {
             private final String name;
             private final Set<String> clusterPerms = new HashSet<>();
+            private final Set<String> extensionPerms = new HashSet<>();
             private final Set<IndexPattern> ipatterns = new HashSet<>();
             public Builder(String name) {
                 this.name = Objects.requireNonNull(name);
@@ -537,16 +548,28 @@ public class ConfigModelV7 extends ConfigModel {
                 return this;
             }
 
+            public Builder addExtensionPerms(Collection<String> extensionPerms) {
+                if (extensionPerms != null) {
+                    this.extensionPerms.addAll(extensionPerms);
+                }
+                return this;
+            }
+
 
             public SecurityRole build() {
-                return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms));
+                return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms), WildcardMatcher.from(extensionPerms));
             }
         }
 
-        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
+        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms, WildcardMatcher extensionPerms) {
             this.name = Objects.requireNonNull(name);
             this.ipatterns = ipatterns;
             this.clusterPerms = clusterPerms;
+            this.extensionPerms = extensionPerms;
+        }
+
+        private boolean impliesExtensionPermission(String action) {
+            return extensionPerms.test(action);
         }
 
         private boolean impliesClusterPermission(String action) {
