@@ -27,6 +27,8 @@
 package org.opensearch.security.filter;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,11 +43,13 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.PermissibleRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.rest.extensions.RestSendToExtensionAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -124,6 +128,20 @@ public class SecurityRestFilter {
                 if (!checkAndAuthenticateRequest(request, channel, client)) {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
+                        if (original instanceof RestSendToExtensionAction) {
+                            List<Route> extensionRoutes = original.routes();
+                            System.out.println("Hello, world!");
+                            Optional<Route> handler = extensionRoutes.stream()
+                                    .filter(rh -> rh.getMethod().equals(request.method()))
+                                    .filter(rh -> restPathMatches(request.path(), rh.getPath()))
+                                    .findFirst();
+                            System.out.println("Request: " + request);
+                            System.out.println("Found handler: " + handler);
+                            if (handler.isPresent() && handler.get() instanceof PermissibleRoute) {
+                                String handlerName = ((PermissibleRoute)handler.get()).name();
+                                System.out.println("Handler Name: " + handlerName);
+                            }
+                        }
                         original.handleRequest(request, channel, client);
                     }
                 }
@@ -209,5 +227,31 @@ public class SecurityRestFilter {
     @Subscribe
     public void onAllowlistingSettingChanged(AllowlistingSettings allowlistingSettings) {
         this.allowlistingSettings = allowlistingSettings;
+    }
+
+    /**
+     * Determines if the request's path is a match for the configured handler path.
+     *
+     * @param requestPath The path from the {@link PermissibleRoute}
+     * @param handlerPath The path from the {@link RestHandler.Route}
+     * @return true if the request path matches the route
+     */
+    private boolean restPathMatches(String requestPath, String handlerPath) {
+        // Check exact match
+        if (handlerPath.equals(requestPath)) {
+            return true;
+        }
+        // Split path to evaluate named params
+        String[] handlerSplit = handlerPath.split("/");
+        String[] requestSplit = requestPath.split("/");
+        if (handlerSplit.length != requestSplit.length) {
+            return false;
+        }
+        for (int i = 0; i < handlerSplit.length; i++) {
+            if (!(handlerSplit[i].equals(requestSplit[i]) || (handlerSplit[i].startsWith("{") && handlerSplit[i].endsWith("}")))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

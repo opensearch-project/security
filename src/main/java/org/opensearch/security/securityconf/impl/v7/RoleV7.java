@@ -51,11 +51,13 @@ public class RoleV7 implements Hideable, StaticDefinable {
     private List<String> cluster_permissions = Collections.emptyList();
     private List<Index> index_permissions = Collections.emptyList();
     private List<Tenant> tenant_permissions = Collections.emptyList();
-    
+
+    private List<String> extension_permissions = Collections.emptyList();
+
     public RoleV7() {
-        
+
     }
-    
+
     public RoleV7(RoleV6 roleV6) {
         this.reserved = roleV6.isReserved();
         this.hidden = roleV6.isHidden();
@@ -63,24 +65,25 @@ public class RoleV7 implements Hideable, StaticDefinable {
         this.cluster_permissions = roleV6.getCluster();
         index_permissions = new ArrayList<>();
         tenant_permissions = new ArrayList<>();
-        
+        this.extension_permissions = new ArrayList<>();
+
         for(Entry<String, RoleV6.Index> v6i: roleV6.getIndices().entrySet()) {
             index_permissions.add(new Index(v6i.getKey(), v6i.getValue()));
         }
-        
+
         //rw tenants
         List<String> rwTenants = roleV6.getTenants().entrySet().stream().filter(e->  "rw".equalsIgnoreCase(e.getValue())).map(e->e.getKey()).collect(Collectors.toList());
-        
+
         if(rwTenants != null && !rwTenants.isEmpty()) {
             Tenant t = new Tenant();
             t.setAllowed_actions(Collections.singletonList("kibana_all_write"));
             t.setTenant_patterns(rwTenants);
             tenant_permissions.add(t);
         }
-        
-        
+
+
         List<String> roTenants = roleV6.getTenants().entrySet().stream().filter(e->  "ro".equalsIgnoreCase(e.getValue())).map(e->e.getKey()).collect(Collectors.toList());
-        
+
         if(roTenants != null && !roTenants.isEmpty()) {
             Tenant t = new Tenant();
             t.setAllowed_actions(Collections.singletonList("kibana_all_read"));
@@ -97,25 +100,25 @@ public class RoleV7 implements Hideable, StaticDefinable {
         private List<String> fls = Collections.emptyList();
         private List<String> masked_fields = Collections.emptyList();
         private List<String> allowed_actions = Collections.emptyList();
-        
+
         public Index(String pattern, RoleV6.Index v6Index) {
             super();
             index_patterns = Collections.singletonList(pattern);
             dls = v6Index.get_dls_();
             fls = v6Index.get_fls_();
             masked_fields = v6Index.get_masked_fields_();
-            Set<String> tmpActions = new HashSet<>(); 
+            Set<String> tmpActions = new HashSet<>();
             for(Entry<String, List<String>> type: v6Index.getTypes().entrySet()) {
                 tmpActions.addAll(type.getValue());
             }
             allowed_actions = new ArrayList<>(tmpActions);
         }
-        
-        
+
+
         public Index() {
             super();
         }
-        
+
         public List<String> getIndex_patterns() {
             return index_patterns;
         }
@@ -152,27 +155,27 @@ public class RoleV7 implements Hideable, StaticDefinable {
                     + ", allowed_actions=" + allowed_actions + "]";
         }
     }
-    
-    
+
+
     public static class Tenant {
 
         private List<String> tenant_patterns = Collections.emptyList();
         private List<String> allowed_actions = Collections.emptyList();
-        
+
         /*public Index(String pattern, RoleV6.Index v6Index) {
             super();
             index_patterns = Collections.singletonList(pattern);
             dls = v6Index.get_dls_();
             fls = v6Index.get_fls_();
             masked_fields = v6Index.get_masked_fields_();
-            Set<String> tmpActions = new HashSet<>(); 
+            Set<String> tmpActions = new HashSet<>();
             for(Entry<String, List<String>> type: v6Index.getTypes().entrySet()) {
                 tmpActions.addAll(type.getValue());
             }
             allowed_actions = new ArrayList<>(tmpActions);
         }*/
-        
-        
+
+
         public Tenant() {
             super();
         }
@@ -197,10 +200,10 @@ public class RoleV7 implements Hideable, StaticDefinable {
         public String toString() {
             return "Tenant [tenant_patterns=" + tenant_patterns + ", allowed_actions=" + allowed_actions + "]";
         }
-        
-        
+
+
     }
-    
+
 
     public boolean isHidden() {
         return hidden;
@@ -226,7 +229,7 @@ public class RoleV7 implements Hideable, StaticDefinable {
         this.cluster_permissions = cluster_permissions;
     }
 
-    
+
 
     public List<Index> getIndex_permissions() {
         return index_permissions;
@@ -242,6 +245,14 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     public void setTenant_permissions(List<Tenant> tenant_permissions) {
         this.tenant_permissions = tenant_permissions;
+    }
+
+    public List<String> getExtension_permissions() {
+        return extension_permissions;
+    }
+
+    public void setExtension_permissions(List<String> extension_permissions) {
+        this.extension_permissions = extension_permissions;
     }
 
     public boolean isReserved() {
@@ -265,11 +276,11 @@ public class RoleV7 implements Hideable, StaticDefinable {
     public String toString() {
         return "RoleV7 [reserved=" + reserved + ", hidden=" + hidden + ", _static=" + _static + ", description=" + description
                 + ", cluster_permissions=" + cluster_permissions + ", index_permissions=" + index_permissions + ", tenant_permissions="
-                + tenant_permissions + "]";
+                + tenant_permissions + ", extension_permissions=" + extension_permissions + "]";
     }
-    
 
-    
-    
+
+
+
 
 }
