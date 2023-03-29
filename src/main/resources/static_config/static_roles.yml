@@ -20,6 +20,8 @@ all_access:
         - "*"
       allowed_actions:
         - "kibana_all_write"
+  extension_permissions:
+    - "*"
 
 kibana_user:
   reserved: true
