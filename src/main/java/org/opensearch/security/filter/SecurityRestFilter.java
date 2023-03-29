@@ -27,8 +27,6 @@
 package org.opensearch.security.filter;
 
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -211,31 +209,5 @@ public class SecurityRestFilter {
     @Subscribe
     public void onAllowlistingSettingChanged(AllowlistingSettings allowlistingSettings) {
         this.allowlistingSettings = allowlistingSettings;
-    }
-
-    /**
-     * Determines if the request's path is a match for the configured handler path.
-     *
-     * @param requestPath The path from the {@link PermissibleRoute}
-     * @param handlerPath The path from the {@link RestHandler.Route}
-     * @return true if the request path matches the route
-     */
-    private boolean restPathMatches(String requestPath, String handlerPath) {
-        // Check exact match
-        if (handlerPath.equals(requestPath)) {
-            return true;
-        }
-        // Split path to evaluate named params
-        String[] handlerSplit = handlerPath.split("/");
-        String[] requestSplit = requestPath.split("/");
-        if (handlerSplit.length != requestSplit.length) {
-            return false;
-        }
-        for (int i = 0; i < handlerSplit.length; i++) {
-            if (!(handlerSplit[i].equals(requestSplit[i]) || (handlerSplit[i].startsWith("{") && handlerSplit[i].endsWith("}")))) {
-                return false;
-            }
-        }
-        return true;
     }
 }

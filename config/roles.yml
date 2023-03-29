@@ -326,9 +326,3 @@ security_analytics_ack_alerts:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/securityanalytics/alerts/*'
-
-# Role for Hello World extension, roles that extensions would like to add should be ultimately be defined elsewhere
-extension_hw:
-  reserved: true
-  extension_permissions:
-    - 'extension:hw/greet'
