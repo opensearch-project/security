@@ -148,7 +148,6 @@ public class ExtensionsService {
         final DiscoveryExtensionNode extensionInformation = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager().getExtensionIdMap().get(extensionUniqueId);
         // extensionInformation.getSecurityConfiguration(); TODO: Need to make it so that we can get the extension configuration information
         // extensionInformation.parseToJson();
-        // TODO: Add check for backend role (illegal) and more than one role (illegal)
         // Add default role option for extensions which do not specify their own role
         final String extensionRole = "opendistro_security_all_access"; // TODO: Swap this to be parsed role with name equal to extension name once configuration reading is live
         final Map<String, String> extensionAttributes = new HashMap<>();
@@ -177,6 +176,7 @@ public class ExtensionsService {
         if (plainTextPassword != null && plainTextPassword.length() > 0) {
             throw new ExtensionRegistrationException("A password cannot be provided for extensions. Failed to register extension: " + extensionUniqueId);
         }
+
         if (origHash != null && origHash.length() > 0) {
             throw new ExtensionRegistrationException("A password hash cannot be provided for extensions. Failed to register extension: " + extensionUniqueId);
         }
@@ -193,5 +193,4 @@ public class ExtensionsService {
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName());
         return internalUsersConfiguration.exists(extensionUniqueId);
     }
-
 }
