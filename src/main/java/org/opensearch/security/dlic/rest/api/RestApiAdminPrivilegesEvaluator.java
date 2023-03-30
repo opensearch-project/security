@@ -85,13 +85,17 @@ public class RestApiAdminPrivilegesEvaluator {
 
     private final AdminDNs adminDNs;
 
+    private final boolean restapiAdminEnabled;
+
     public RestApiAdminPrivilegesEvaluator(
             final ThreadContext threadContext,
             final PrivilegesEvaluator privilegesEvaluator,
-            final AdminDNs adminDNs) {
+            final AdminDNs adminDNs,
+            final boolean restapiAdminEnabled) {
         this.threadContext = threadContext;
         this.privilegesEvaluator = privilegesEvaluator;
         this.adminDNs = adminDNs;
+        this.restapiAdminEnabled = restapiAdminEnabled;
     }
 
     public boolean isCurrentUserRestApiAdminFor(final Endpoint endpoint, final String action) {
@@ -107,24 +111,30 @@ public class RestApiAdminPrivilegesEvaluator {
             }
             return true;
         }
-        if (!ENDPOINTS_WITH_PERMISSIONS.containsKey(endpoint)) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("No permission found for {} endpoint", endpoint);
+        if (restapiAdminEnabled) {
+            if (!ENDPOINTS_WITH_PERMISSIONS.containsKey(endpoint)) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("No permission found for {} endpoint", endpoint);
+                }
+                return false;
             }
-            return false;
+            final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build(action);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Checking permission {} for endpoint {}", permission, endpoint);
+            }
+            return privilegesEvaluator.hasRestAdminPermissions(
+                    userAndRemoteAddress.getLeft(),
+                    userAndRemoteAddress.getRight(),
+                    permission
+            );
         }
-        final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build(action);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Checking permission {} for endpoint {}", permission, endpoint);
-        }
-        return privilegesEvaluator.hasRestAdminPermissions(
-                userAndRemoteAddress.getLeft(),
-                userAndRemoteAddress.getRight(),
-                permission
-        );
+        return false;
     }
 
     public boolean containsRestApiAdminPermissions(final Object configObject) {
+        if (!restapiAdminEnabled) {
+            return false;
+        }
         if (configObject == null) {
             return false;
         }

@@ -248,6 +248,8 @@ public class ConfigConstants {
     public static final String SECURITY_DLS_MODE = "plugins.security.dls.mode";
     // REST API
     public static final String SECURITY_RESTAPI_ROLES_ENABLED = "plugins.security.restapi.roles_enabled";
+
+    public static final String SECURITY_RESTAPI_ADMIN_ENABLED = "plugins.security.restapi.admin.enabled";
     public static final String SECURITY_RESTAPI_ENDPOINTS_DISABLED = "plugins.security.restapi.endpoints_disabled";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = "plugins.security.restapi.password_validation_regex";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE = "plugins.security.restapi.password_validation_error_message";

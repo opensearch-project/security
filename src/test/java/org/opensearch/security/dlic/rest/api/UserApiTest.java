@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 
 public class UserApiTest extends AbstractRestApiUnitTest {
@@ -424,7 +425,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testUserApiWithRestAdminPermissions() throws Exception {
-        setupWithRestRoles();
+        setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         rh.sendAdminCertificate = false;
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
         // initial configuration
@@ -442,7 +443,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testUserApiWithRestInternalUsersAdminPermissions() throws Exception {
-        setupWithRestRoles();
+        setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         rh.sendAdminCertificate = false;
         final Header restApiInternalUsersAdminHeader = encodeBasicHeader("rest_api_admin_internalusers", "rest_api_admin_internalusers");
         // initial configuration
