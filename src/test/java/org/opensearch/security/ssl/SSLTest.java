@@ -530,7 +530,9 @@ public class SSLTest extends SingleClusterTest {
 
         final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", ".")
                 .put("node.name", "client_node_" + new Random().nextInt())
-                .put("node.roles", "")
+                .put("node.data", false)
+                .put("node.master", true)
+                .put("node.ingest", false)
                 .put("path.data", "./target/data/"+clusterInfo.clustername+"/ssl/data")
                 .put("path.logs", "./target/data/"+clusterInfo.clustername+"/ssl/logs")
                 .put("path.home", "./target")
