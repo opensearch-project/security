@@ -194,9 +194,7 @@ public class OpenSSLTest extends SSLTest {
 
         final Settings tcSettings = Settings.builder().put("cluster.name", clusterInfo.clustername).put("path.home", "/tmp")
                 .put("node.name", "client_node_" + new Random().nextInt())
-                .put("node.data", false)
-                .put("node.master", false)
-                .put("node.ingest", false)
+                .put("node.roles", "")
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/ssl/data")
                 .put("path.logs", "./target/data/" + clusterInfo.clustername + "/ssl/logs")
                 .put("path.home", "./target")
