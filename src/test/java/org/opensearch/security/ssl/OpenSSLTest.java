@@ -106,7 +106,9 @@ public class OpenSSLTest extends SSLTest {
 
     @Override
     @Test(timeout=40000)
-    public void testNodeClientSSL() throws Exception {
+    public void
+
+    testNodeClientSSL() throws Exception {
         Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testNodeClientSSL();
     }
