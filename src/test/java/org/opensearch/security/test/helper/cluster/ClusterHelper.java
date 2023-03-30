@@ -308,12 +308,11 @@ public final class ClusterHelper {
 
             final List<NodeInfo> nodes = res.getNodes();
 
-            final List<NodeInfo> clusterManagerNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE)).collect(Collectors.toList());
+            final List<NodeInfo> clusterManagerNodes = nodes.stream().filter(n->n.getNode().getRoles().stream().anyMatch(r -> r.roleName().equals("master"))).collect(Collectors.toList());
             final List<NodeInfo> dataNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE)).collect(Collectors.toList());
             // Sorting the nodes so that the node receiving the http requests is always deterministic
             dataNodes.sort(Comparator.comparing(nodeInfo -> nodeInfo.getNode().getName()));
             final List<NodeInfo> clientNodes = nodes.stream().filter(n->!n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE)).collect(Collectors.toList());
-
 
             for (NodeInfo nodeInfo: clusterManagerNodes) {
                 final TransportInfo transportInfo = nodeInfo.getInfo(TransportInfo.class);
