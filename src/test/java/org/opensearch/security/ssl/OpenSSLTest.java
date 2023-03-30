@@ -40,7 +40,6 @@ import org.opensearch.node.PluginAwareNode;
 import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.test.AbstractSecurityUnitTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.transport.Netty4Plugin;
