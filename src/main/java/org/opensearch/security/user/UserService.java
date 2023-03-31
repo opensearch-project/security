@@ -1,4 +1,22 @@
 /*
+<<<<<<< HEAD
+=======
+ * Copyright 2015-2018 _floragunn_ GmbH
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+>>>>>>> e8c75356f51 (clear)
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -21,6 +39,9 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -31,6 +52,14 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.DefaultObjectMapper;
+import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.securityconf.Hashed;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
 
@@ -42,10 +71,12 @@ import static org.opensearch.security.dlic.rest.support.Utils.hash;
 public class UserService {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
+
     ClusterService clusterService;
     static ConfigurationRepository configurationRepository;
     String securityIndex;
     Client client;
+
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
     final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
 
@@ -54,9 +85,8 @@ public class UserService {
     final static String SERVICE_ACCOUNT_HASH_MESSAGE = "A password hash cannot be provided for service account. Failed to register service account: ";
 
     final static String NO_ACCOUNT_NAME_MESSAGE = "No account name was specified in the request.";
-    private static CType getConfigName() {
-        return CType.INTERNALUSERS;
-    }
+
+    protected static CType getConfigName() { return CType.INTERNALUSERS;}
 
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
             ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
@@ -86,9 +116,31 @@ public class UserService {
         return DynamicConfigFactory.addStatics(loaded);
     }
 
+
+    protected void saveAndUpdateConfiguration(final Client client, final CType cType,
+                                              final SecurityDynamicConfiguration<?> configuration) {
+        final IndexRequest ir = new IndexRequest(this.securityIndex);
+
+        // final String type = "_doc";
+        final String id = cType.toLCString();
+
+        configuration.removeStatic();
+
+        try {
+            client.index(ir.id(id)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                            .setIfSeqNo(configuration.getSeqNo())
+                            .setIfPrimaryTerm(configuration.getPrimaryTerm())
+                            .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)));
+        } catch (IOException e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+    }
+
     /**
      * This function will handle the creation or update of a user account.
      *
+<<<<<<< HEAD
      * @param contentAsNode An object node of different account configurations.
      * @return InternalUserConfiguration with the new/updated user
      * @throws UserServiceException

@@ -24,17 +24,28 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.extensions;
+package org.opensearch.security.user;
 
-import org.junit.Test;
+public class ServiceAccountRegistrationException extends Exception {
 
-import static org.junit.Assert.assertEquals;
+    public ServiceAccountRegistrationException() {
+        super();
+    }
 
-public class ExtensionRegistrationIT {
+    public ServiceAccountRegistrationException(String message, Throwable cause, boolean enableSuppression,
+                                   boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 
-    //TODO: Add integration tests once core side is implemented
-    @Test
-    public void testPassThrough() {
-        assertEquals(true, true);
+    public ServiceAccountRegistrationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public ServiceAccountRegistrationException(String message) {
+        super(message);
+    }
+
+    public ServiceAccountRegistrationException(Throwable cause) {
+        super(cause);
     }
 }

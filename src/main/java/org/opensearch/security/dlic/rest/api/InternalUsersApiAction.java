@@ -100,7 +100,10 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
 
+        String details = request.toString();
+
         final String username = request.param("name");
+
 
         SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
