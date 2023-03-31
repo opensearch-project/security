@@ -24,16 +24,28 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.extensions.api;
+package org.opensearch.security.user;
 
-import org.opensearch.action.ActionType;
+public class AccountCreateOrUpdateException extends Exception {
 
-public class ServiceAccountGetAction extends ActionType<ServiceAccountGetResponse> {
+    public AccountCreateOrUpdateException() {
+        super();
+    }
 
-    public static final ServiceAccountGetAction INSTANCE = new ServiceAccountGetAction();
-    public static final String NAME = "cluster:admin/security/extensions/service_account/get";
+    public AccountCreateOrUpdateException(String message, Throwable cause, boolean enableSuppression,
+                                               boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 
-    protected ServiceAccountGetAction() {
-        super(NAME, ServiceAccountGetResponse::new);
+    public AccountCreateOrUpdateException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public AccountCreateOrUpdateException(String message) {
+        super(message);
+    }
+
+    public AccountCreateOrUpdateException(Throwable cause) {
+        super(cause);
     }
 }
