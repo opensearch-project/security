@@ -78,11 +78,11 @@ configurations.all {
         force 'commons-codec:commons-codec:1.14'
         force 'org.apache.santuario:xmlsec:2.2.3'
         force 'org.cryptacular:cryptacular:1.2.4'
-        force 'net.minidev:json-smart:2.4.7'
+        force 'net.minidev:json-smart:2.4.10'
         force 'commons-cli:commons-cli:1.3.1'
         force 'org.apache.httpcomponents:httpcore:4.4.12'
         force "org.apache.commons:commons-lang3:3.4"
-        force "org.springframework:spring-core:5.3.20"
+        force "org.springframework:spring-core:5.3.26"
         force "com.google.guava:guava:30.0-jre"
         force "com.fasterxml.woodstox:woodstox-core:6.4.0"
         force "org.scala-lang:scala-library:2.13.9"
