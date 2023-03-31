@@ -24,21 +24,17 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.extensions;
+package org.opensearch.security.user;
 
 
-import org.opensearch.security.privileges.DocumentAllowList;
-
-import static org.opensearch.security.extensions.ExtensionsService.extensionServiceAccountExists;
-
-public class ExtensionRegistrationResponse {
+public class ServiceAccountRegistrationResponse {
 
     //TODO: May not need this class; could move into ExtensionHelper
     private final String extensionUniqueId;
 
     private boolean registrationComplete;
 
-    public ExtensionRegistrationResponse(String extensionUniqueId) {
+    public ServiceAccountRegistrationResponse(String extensionUniqueId) {
         this.extensionUniqueId = extensionUniqueId;
         this.registrationComplete = extensionIsRegistered();
     }
@@ -48,7 +44,7 @@ public class ExtensionRegistrationResponse {
         if (registrationComplete) {
             return true;
         }
-        if (extensionServiceAccountExists(this.extensionUniqueId)) {
+        if (UserService.accountExists(this.extensionUniqueId)) {
             this.registrationComplete = true;
             return true;
         }
@@ -70,7 +66,7 @@ public class ExtensionRegistrationResponse {
         if (this.getClass() != obj.getClass()) {
             return false;
         }
-        ExtensionRegistrationResponse otherExReg = (ExtensionRegistrationResponse) (obj);
+        ServiceAccountRegistrationResponse otherExReg = (ServiceAccountRegistrationResponse) (obj);
         if (!this.extensionUniqueId.equals(otherExReg.extensionUniqueId)) {
             return false;
             }
