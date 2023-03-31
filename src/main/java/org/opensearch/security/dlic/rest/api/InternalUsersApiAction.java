@@ -14,7 +14,6 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
