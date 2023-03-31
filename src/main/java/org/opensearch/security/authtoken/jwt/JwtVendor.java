@@ -11,8 +11,13 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.LongSupplier;
@@ -38,11 +43,15 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
 
     private static JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
 
+    private String claimsEncryptionKey;
     private JsonWebKey signingKey;
     private JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
@@ -59,6 +68,7 @@ public class JwtVendor {
             throw new RuntimeException(e);
         }
         this.jwtProducer = jwtProducer;
+        this.claimsEncryptionKey = settings.get("encryption_key");
         timeProvider = System::currentTimeMillis;
     }
 
@@ -71,6 +81,7 @@ public class JwtVendor {
             throw new RuntimeException(e);
         }
         this.jwtProducer = jwtProducer;
+        this.claimsEncryptionKey = settings.get("encryption_key");
         this.timeProvider = timeProvider;
     }
 
@@ -126,7 +137,7 @@ public class JwtVendor {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds) throws Exception {
+    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles) throws Exception {
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
@@ -154,7 +165,8 @@ public class JwtVendor {
             throw new Exception("The expiration time should be a positive integer");
         }
 
-        // TODO: Should call preparelaims() if we need roles in claim;
+        String listOfRoles = String.join(",", roles);
+        jwtClaims.setProperty("roles", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 
