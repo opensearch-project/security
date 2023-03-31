@@ -51,8 +51,8 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.query.ParsedQuery;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.search.DocValueFormat;
@@ -175,7 +175,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             //When we encounter a terms or sampler aggregation with masked fields activated we forcibly
             //need to switch off global ordinals because field masking can break ordering
+            // CS-SUPPRESS-SINGLE: RegexpSingleline Ignore term inside of url
             //https://www.elastic.co/guide/en/elasticsearch/reference/master/eager-global-ordinals.html#_avoiding_global_ordinal_loading
+            // CS-ENFORCE-SINGLE
             if (evaluatedDlsFlsConfig.hasFieldMasking()) {
 
                 if (searchRequest.source() != null && searchRequest.source().aggregations() != null) {
