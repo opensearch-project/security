@@ -29,6 +29,8 @@ import org.opensearch.security.securityconf.impl.v7.RoleV7;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+
 public class RestApiAdminPrivilegesEvaluator {
 
     protected final Logger logger = LogManager.getLogger(RestApiAdminPrivilegesEvaluator.class);
@@ -85,13 +87,17 @@ public class RestApiAdminPrivilegesEvaluator {
 
     private final AdminDNs adminDNs;
 
+    private final boolean restapiAdminEnabled;
+
     public RestApiAdminPrivilegesEvaluator(
             final ThreadContext threadContext,
             final PrivilegesEvaluator privilegesEvaluator,
-            final AdminDNs adminDNs) {
+            final AdminDNs adminDNs,
+            final boolean restapiAdminEnabled) {
         this.threadContext = threadContext;
         this.privilegesEvaluator = privilegesEvaluator;
         this.adminDNs = adminDNs;
+        this.restapiAdminEnabled = restapiAdminEnabled;
     }
 
     public boolean isCurrentUserRestApiAdminFor(final Endpoint endpoint, final String action) {
@@ -108,20 +114,31 @@ public class RestApiAdminPrivilegesEvaluator {
             return true;
         }
         if (!ENDPOINTS_WITH_PERMISSIONS.containsKey(endpoint)) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("No permission found for {} endpoint", endpoint);
-            }
+            logger.debug("No permission found for {} endpoint", endpoint);
             return false;
         }
         final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build(action);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Checking permission {} for endpoint {}", permission, endpoint);
-        }
-        return privilegesEvaluator.hasRestAdminPermissions(
+        final boolean hasAccess = privilegesEvaluator.hasRestAdminPermissions(
                 userAndRemoteAddress.getLeft(),
                 userAndRemoteAddress.getRight(),
                 permission
         );
+        if (logger.isDebugEnabled()) {
+            logger.debug(
+                    "User {} with permission {} {} access to endpoint {}",
+                    userAndRemoteAddress.getLeft().getName(),
+                    permission,
+                    hasAccess ? "has" : "has no",
+                    endpoint
+            );
+            logger.debug(
+                    "{} set to {}. {} use access decision",
+                    SECURITY_RESTAPI_ADMIN_ENABLED,
+                    restapiAdminEnabled,
+                    restapiAdminEnabled ? "Will" : "Will not"
+            );
+        }
+        return hasAccess && restapiAdminEnabled;
     }
 
     public boolean containsRestApiAdminPermissions(final Object configObject) {
