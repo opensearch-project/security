@@ -224,8 +224,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 //network intercluster request or cross search cluster request
                 if(HeaderHelper.isInterClusterRequest(getThreadContext())
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())
-                        || HeaderHelper.isExtensionRequest(getThreadContext())
-                        || Origin.LOCAL.toString().equals(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))) {
+                        || HeaderHelper.isExtensionRequest(getThreadContext())) {
 
                     final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
                     final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
