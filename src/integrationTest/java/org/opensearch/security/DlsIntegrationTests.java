@@ -52,6 +52,7 @@ import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
+import static org.opensearch.test.framework.cluster.SearchRequestFactory.statsAggregationRequest;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
@@ -474,6 +475,131 @@ public class DlsIntegrationTests {
 			Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
 			assertThat(actualAggregation, instanceOf(ParsedAvg.class));
 			assertThat(((ParsedAvg) actualAggregation).getValue(), is(1.5));
+		}
+	}
+
+	@Test
+	public void testSearchForAllDocumentsWithAlias() throws IOException {
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
+			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS);
+			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_FIRST));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_STRING));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(2, FIELD_ARTIST, ARTIST_TWINS));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(3, FIELD_ARTIST, ARTIST_NO));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
+
+			searchRequest = new SearchRequest("*".concat(SECOND_INDEX_NAME));
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_NO));
+		}
+	}
+
+	@Test
+	public void testSearchForAllDocumentsWithAlias() throws IOException {
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
+			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS);
+			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_FIRST));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_STRING));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(2, FIELD_ARTIST, ARTIST_TWINS));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(3, FIELD_ARTIST, ARTIST_NO));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
+
+			searchRequest = new SearchRequest("*".concat(SECOND_INDEX_NAME));
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_NO));
+		}
+	}
+
+	@Test
+	public void testSearchForAllDocumentsWithAlias() throws IOException {
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
+			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS);
+			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_FIRST));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_STRING));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(2, FIELD_ARTIST, ARTIST_TWINS));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(3, FIELD_ARTIST, ARTIST_NO));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
+
+			searchRequest = new SearchRequest("*".concat(SECOND_INDEX_NAME));
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_NO));
+		}
+	}
+
+	@Test
+	public void testSearchForAllDocumentsWithAlias() throws IOException {
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
+			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS);
+			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_FIRST));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_STRING));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(2, FIELD_ARTIST, ARTIST_TWINS));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(3, FIELD_ARTIST, ARTIST_NO));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
+
+			searchRequest = new SearchRequest("*".concat(SECOND_INDEX_NAME));
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_NO));
+		}
+	}
+
+	@Test
+	public void testSearchForAllDocumentsWithAlias() throws IOException {
+
+		try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
+			SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_ALIAS);
+			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(6));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_FIRST));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(1, FIELD_ARTIST, ARTIST_STRING));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(2, FIELD_ARTIST, ARTIST_TWINS));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(3, FIELD_ARTIST, ARTIST_NO));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(4, FIELD_ARTIST, ARTIST_YES));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(5, FIELD_ARTIST, ARTIST_UNKNOWN));
+
+			searchRequest = new SearchRequest("*".concat(SECOND_INDEX_NAME));
+			searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
+
+			assertThat(searchResponse, isSuccessfulSearchResponse());
+			assertThat(searchResponse, numberOfTotalHitsIsEqualTo(4));
+			assertThat(searchResponse, searchHitContainsFieldWithValue(0, FIELD_ARTIST, ARTIST_NO));
 		}
 	}
 }
