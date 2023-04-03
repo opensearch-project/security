@@ -11,19 +11,12 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.LongSupplier;
-
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
 
 import com.google.common.base.Strings;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
