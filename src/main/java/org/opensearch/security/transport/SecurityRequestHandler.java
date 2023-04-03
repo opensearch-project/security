@@ -40,6 +40,7 @@ import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.search.internal.ShardSearchRequest;
 import org.opensearch.security.auditlog.AuditLog;
@@ -224,8 +225,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 //network intercluster request or cross search cluster request
                 if(HeaderHelper.isInterClusterRequest(getThreadContext())
                         || HeaderHelper.isTrustedClusterRequest(getThreadContext())
-                        || HeaderHelper.isExtensionRequest(getThreadContext())
-                        || Origin.LOCAL.toString().equals(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))) {
+                        || HeaderHelper.isExtensionRequest(getThreadContext())) {
 
                     final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
                     final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
@@ -328,7 +328,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         }
 
         String extensionUniqueId = getThreadContext().getHeader("extension_unique_id");
-        if (extensionUniqueId != null) {
+        if (FeatureFlags.isEnabled(FeatureFlags.EXTENSIONS) && extensionUniqueId != null) {
             getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST, Boolean.TRUE);
         }
 
