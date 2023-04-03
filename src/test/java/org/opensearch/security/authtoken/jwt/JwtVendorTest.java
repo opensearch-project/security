@@ -11,11 +11,6 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 import java.util.function.LongSupplier;
 
