@@ -52,7 +52,6 @@ import static org.opensearch.security.Song.SONGS;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 import static org.opensearch.test.framework.cluster.SearchRequestFactory.averageAggregationRequest;
-import static org.opensearch.test.framework.cluster.SearchRequestFactory.statsAggregationRequest;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.containAggregationWithNameAndType;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.isSuccessfulSearchResponse;
 import static org.opensearch.test.framework.matcher.SearchResponseMatchers.numberOfTotalHitsIsEqualTo;
