@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.OpenSearchSecurityException;
+//import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.client.Client;
