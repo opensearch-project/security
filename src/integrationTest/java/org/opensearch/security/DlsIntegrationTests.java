@@ -82,7 +82,6 @@ public class DlsIntegrationTests {
 	static final String FIRST_INDEX_ALIAS_FILTERED_BY_FIRST_ARTIST = FIRST_INDEX_NAME.concat("-filtered-by-first-artist");
 	static final String ALL_INDICES_ALIAS = "_all";
 
-
 	static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
 	/**
