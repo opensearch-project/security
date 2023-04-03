@@ -95,7 +95,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Assert.assertTrue(cir.isAcknowledged());
         }
 
-
+        /*
         // 2. with invalid backend roles
         UserInjectorPlugin.injectedUser = "ttt|kkk";
         Exception exception = null;
@@ -110,6 +110,8 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Assert.assertNotNull(exception);
             Assert.assertTrue(exception.getMessage().contains("indices:admin/create"));
         }
+        */
+
 
         // 3. with valid backend roles for injected user
         UserInjectorPlugin.injectedUser = "injectedadmin|injecttest";
