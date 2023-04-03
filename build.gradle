@@ -62,7 +62,7 @@ ext {
     buildVersionQualifier = System.getProperty("build.version_qualifier", "")
     version_tokens = opensearch_version.tokenize('-')
     opensearch_build = version_tokens[0] + '.0'
-    kafka_version  = '3.0.2'
+    kafka_version  = '3.4.0'
 
     if (buildVersionQualifier) {
         opensearch_build += "-${buildVersionQualifier}"
@@ -132,7 +132,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.1'
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
     testImplementation 'org.mockito:mockito-core:2.23.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test:2.8.6'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.6'
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
@@ -335,12 +335,12 @@ task bundleSecurityAdminStandaloneTarGz(dependsOn: jar, type: Tar) {
 
 task createPluginDescriptor() {
     List<String> descriptorProperties = [
-        "description=Provide access control related features for OpenSearch",
-        "version=${version}",
-        "name=opensearch-security",
-        "classname=org.opensearch.security.OpenSearchSecurityPlugin",
-        "java.version=${java.targetCompatibility}",
-        "opensearch.version=${version_tokens[0]}",
+            "description=Provide access control related features for OpenSearch",
+            "version=${version}",
+            "name=opensearch-security",
+            "classname=org.opensearch.security.OpenSearchSecurityPlugin",
+            "java.version=${java.targetCompatibility}",
+            "opensearch.version=${version_tokens[0]}",
     ]
 
     new File("plugin-descriptor.properties").text = descriptorProperties.join ("\n")
@@ -417,4 +417,4 @@ task updateVersion {
         }
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
     }
-} 
+}
