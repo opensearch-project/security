@@ -39,6 +39,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.index.IndexRequest;
@@ -65,6 +67,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.hash;
  */
 public class UserService {
 
+    protected final Logger log = LogManager.getLogger(this.getClass());
     ClusterService clusterService;
     static ConfigurationRepository configurationRepository;
     String securityIndex;
@@ -156,6 +159,8 @@ public class UserService {
      * @throws IOException
      */
     public void createOrUpdateAccount(String accountDetailsAsString) throws IOException, AccountCreateOrUpdateException, ServiceAccountRegistrationException {
+
+        log.info("Creating or updating new user");
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode accountDetails = mapper.readTree(accountDetailsAsString);

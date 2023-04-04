@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.client.Client;
@@ -94,7 +95,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Assert.assertTrue(cir.isAcknowledged());
         }
 
-        /*
+
         // 2. with invalid backend roles
         UserInjectorPlugin.injectedUser = "ttt|kkk";
         Exception exception = null;
@@ -105,11 +106,10 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             exception = ex;
-            log.warn(ex.toString());
+            log.debug(ex.toString());
             Assert.assertNotNull(exception);
-            Assert.assertTrue(exception.getMessage().contains("indices:admin/create"));
+            Assert.assertTrue(exception.getMessage().contains("no permissions for [indices:admin/create] and User [name=ttt, backend_roles=[kkk], requestedTenant=null]"));
         }
-        */
 
 
         // 3. with valid backend roles for injected user
@@ -158,6 +158,5 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             // Should pass as the user injection is disabled
             Assert.assertTrue(cir.isAcknowledged());
         }
-
     }
 }
