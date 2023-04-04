@@ -56,6 +56,7 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -202,6 +203,8 @@ public class UserService {
         internalUsersConfiguration.remove(accountName);
         contentAsNode.remove("name");
 
+        internalUsersConfiguration.remove(accountName);
+        contentAsNode.remove("name");
         internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
         return internalUsersConfiguration;
     }
