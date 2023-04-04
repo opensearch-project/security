@@ -85,4 +85,18 @@ public class JwtVendorTest {
 
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
     }
+
+    @Test (expected = Exception.class)
+    public void testCreateJwtWithBadRoles() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "extension_0";
+        List <String> roles = List.of("");
+        Integer expirySecond = 300;
+
+        Settings settings = Settings.builder().put("signing_key", "abc123").build();
+        JwtVendor jwtVendor = new JwtVendor(settings);
+
+        jwtVendor.createJwt(issuer, subject, audience, expirySecond, roles);
+    }
 }

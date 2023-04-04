@@ -61,7 +61,11 @@ public class JwtVendor {
             throw new RuntimeException(e);
         }
         this.jwtProducer = jwtProducer;
-        this.claimsEncryptionKey = settings.get("encryption_key");
+        if (settings.get("encryption_key") == null) {
+            throw new RuntimeException("encryption_key cannot be null");
+        } else {
+            this.claimsEncryptionKey = settings.get("encryption_key");
+        }
         timeProvider = System::currentTimeMillis;
     }
 
@@ -74,7 +78,11 @@ public class JwtVendor {
             throw new RuntimeException(e);
         }
         this.jwtProducer = jwtProducer;
-        this.claimsEncryptionKey = settings.get("encryption_key");
+        if (settings.get("encryption_key") == null) {
+            throw new RuntimeException("encryption_key cannot be null");
+        } else {
+            this.claimsEncryptionKey = settings.get("encryption_key");
+        }
         this.timeProvider = timeProvider;
     }
 
@@ -158,8 +166,12 @@ public class JwtVendor {
             throw new Exception("The expiration time should be a positive integer");
         }
 
-        String listOfRoles = String.join(",", roles);
-        jwtClaims.setProperty("roles", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
+        if (roles != null) {
+            String listOfRoles = String.join(",", roles);
+            jwtClaims.setProperty("roles", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
+        } else {
+            throw new Exception("Roles cannot be null");
+        }
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 
