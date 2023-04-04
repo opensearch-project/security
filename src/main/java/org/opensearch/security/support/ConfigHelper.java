@@ -38,6 +38,8 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.security.AccessController;
+import java.security.PrivilegedExceptionAction;
 
 import org.opensearch.security.securityconf.impl.Meta;
 import org.apache.logging.log4j.Logger;
@@ -71,29 +73,31 @@ public class ConfigHelper {
     public static void uploadFile(Client tc, String filepath, String index, CType cType, int configVersion, boolean populateEmptyIfFileMissing) throws Exception {
         final String configType = cType.toLCString();
         LOGGER.info("Will update '" + configType + "' with " + filepath + " and populate it with empty doc if file missing and populateEmptyIfFileMissing=" + populateEmptyIfFileMissing);
-
-        if (!populateEmptyIfFileMissing) {
-            ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
-        }
-
-        try (Reader reader = createFileOrStringReader(cType, configVersion, filepath, populateEmptyIfFileMissing)) {
-
-            final IndexRequest indexRequest = new IndexRequest(index)
-                    .type(configVersion == 1 ? "security" : "_doc")
-                    .id(configType)
-                    .opType(OpType.CREATE)
-                    .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(configType, readXContent(reader, XContentType.YAML));
-            final String res = tc.index(indexRequest).actionGet().getId();
-
-            if (!configType.equals(res)) {
-                throw new Exception("   FAIL: Configuration for '" + configType
-                        + "' failed for unknown reasons. Pls. consult logfile of opensearch");
+        AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+            if (!populateEmptyIfFileMissing) {
+                ConfigHelper.fromYamlFile(filepath, cType, configVersion, 0, 0);
             }
-            LOGGER.info("Doc with id '{}' and version {} is updated in {} index.", configType, configVersion, index);
-        } catch (VersionConflictEngineException versionConflictEngineException) {
-            LOGGER.info("Index {} already contains doc with id {}, skipping update.", index, configType);
-        }
+
+            try (Reader reader = createFileOrStringReader(cType, configVersion, filepath, populateEmptyIfFileMissing)) {
+
+                final IndexRequest indexRequest = new IndexRequest(index)
+                        .type(configVersion == 1 ? "security" : "_doc")
+                        .id(configType)
+                        .opType(OpType.CREATE)
+                        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .source(configType, readXContent(reader, XContentType.YAML));
+                final String res = tc.index(indexRequest).actionGet().getId();
+
+                if (!configType.equals(res)) {
+                    throw new Exception("   FAIL: Configuration for '" + configType
+                            + "' failed for unknown reasons. Pls. consult logfile of opensearch");
+                }
+                LOGGER.info("Doc with id '{}' and version {} is updated in {} index.", configType, configVersion, index);
+            } catch (VersionConflictEngineException versionConflictEngineException) {
+                LOGGER.info("Index {} already contains doc with id {}, skipping update.", index, configType);
+            }
+            return null;
+        });
     }
 
     public static Reader createFileOrStringReader(CType cType, int configVersion, String filepath, boolean populateEmptyIfFileMissing) throws Exception {

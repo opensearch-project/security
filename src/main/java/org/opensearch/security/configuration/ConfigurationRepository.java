@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.opensearch.rest.RestStatus;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.support.SecurityUtils;
 import com.google.common.collect.ImmutableMap;
@@ -118,8 +119,10 @@ public class ConfigurationRepository {
             public void run() {
                 try {
                     LOGGER.info("Background init thread started. Install default config?: "+installDefaultConfig.get());
-
-
+                    while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+                        LOGGER.info("Wait for cluster to be available ...");
+                        TimeUnit.SECONDS.sleep(1);
+                    }
                     if(installDefaultConfig.get()) {
 
                         try {
