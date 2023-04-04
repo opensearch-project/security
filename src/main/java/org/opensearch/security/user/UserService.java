@@ -53,6 +53,7 @@ import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -124,11 +125,9 @@ public class UserService {
      * @param config CType whose data is to be loaded in-memory
      * @return configuration loaded with given CType data
      */
-    protected static final SecurityDynamicConfiguration<?> load(final CType config) {
-        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(Collections.singleton(config))
-                .get(config)
-                .deepClone();
-        return loaded;
+    protected static final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent).get(config).deepClone();
+        return DynamicConfigFactory.addStatics(loaded);
     }
 
     protected void saveAndUpdateConfiguration(final Client client, final CType cType,
@@ -160,14 +159,12 @@ public class UserService {
      */
     public void createOrUpdateAccount(String accountDetailsAsString) throws IOException, AccountCreateOrUpdateException, ServiceAccountRegistrationException {
 
-        log.info("Creating or updating new user");
-
         ObjectMapper mapper = new ObjectMapper();
         JsonNode accountDetails = mapper.readTree(accountDetailsAsString);
         final ObjectNode contentAsNode = (ObjectNode) accountDetails;
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
         final List<String> securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName());
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         String accountName = securityJsonNode.get("name").asString();
 
@@ -178,7 +175,6 @@ public class UserService {
         final Map<String, String> accountAttributes = new HashMap<>();
 
         if (!securityJsonNode.get("service").isNull() && securityJsonNode.get("service").asString() == "true") { // If this is a service account
-
             // final DiscoveryExtensionNode extensionInformation = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager().getExtensionIdMap().get(extensionUniqueId);
             // extensionInformation.getSecurityConfiguration(); TODO: Need to make it so that we can get the extension configuration information
             // extensionInformation.parseToJson();
@@ -197,7 +193,6 @@ public class UserService {
                 throw new ServiceAccountRegistrationException(SERVICE_ACCOUNT_HASH_MESSAGE + accountName);
             }
         } else { // Not a service account
-
             final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(accountName::contains).collect(Collectors.toList());
             if (!foundRestrictedContents.isEmpty()) {
                 final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
@@ -238,8 +233,9 @@ public class UserService {
         }
 
 
-        internalUsersConfiguration.remove(accountName);
 
+        internalUsersConfiguration.remove(accountName);
+        contentAsNode.remove("name");
         internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
 
         if (!securityJsonNode.get("service").isNull() && securityJsonNode.get("service").asString() == "true") { // Internal users update the config as part
@@ -249,7 +245,7 @@ public class UserService {
 
     public static List<String> listServiceAccounts() {
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName());
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         List<String> serviceAccounts = new ArrayList<>();
         for (Map.Entry<String, ?> entry : internalUsersConfiguration.getCEntries().entrySet()) {
@@ -266,7 +262,7 @@ public class UserService {
 
     public static List<String> listInternalUsers() {
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName());
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         List<String> internalUserAccounts = new ArrayList<>();
         for (Map.Entry<String, ?> entry : internalUsersConfiguration.getCEntries().entrySet()) {
@@ -283,13 +279,13 @@ public class UserService {
 
     public static Set<String> listUserAccounts() {
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName());
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
         return internalUsersConfiguration.getCEntries().keySet();
     }
 
     public static boolean accountExists(String accountName) {
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName());
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
         return internalUsersConfiguration.exists(accountName);
     }
 }

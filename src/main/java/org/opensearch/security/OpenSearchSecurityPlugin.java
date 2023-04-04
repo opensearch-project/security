@@ -815,9 +815,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         adminDns = new AdminDNs(settings);
 
-        userService = new UserService(cs, cr, settings, localClient);
-        
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
+
+        userService = new UserService(cs, cr, settings, localClient);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
