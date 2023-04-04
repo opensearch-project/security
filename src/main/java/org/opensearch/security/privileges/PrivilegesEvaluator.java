@@ -179,18 +179,6 @@ public class PrivilegesEvaluator {
         return configModel.getSecurityRoles().filter(roles);
     }
 
-    public boolean hasRestAdminPermissions(final User user,
-                                           final TransportAddress remoteAddress,
-                                           final String permissions) {
-        final Set<String> userRoles = mapRoles(user, remoteAddress);
-        return hasRestAdminPermissions(userRoles, permissions);
-    }
-
-    private boolean hasRestAdminPermissions(final Set<String> roles, String permission) {
-        final SecurityRoles securityRoles = getSecurityRoles(roles);
-        return securityRoles.hasExplicitClusterPermissionPermission(permission);
-    }
-
     public boolean isInitialized() {
         return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
     }
