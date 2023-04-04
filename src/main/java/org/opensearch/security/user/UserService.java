@@ -148,7 +148,6 @@ public class UserService {
      */
     public SecurityDynamicConfiguration<?> createOrUpdateAccount(ObjectNode contentAsNode) throws IOException {
 
-
         SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);

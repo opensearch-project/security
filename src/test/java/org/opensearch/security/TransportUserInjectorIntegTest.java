@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.client.Client;
@@ -94,7 +95,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Assert.assertTrue(cir.isAcknowledged());
         }
 
-        /*
+
         // 2. with invalid backend roles
         UserInjectorPlugin.injectedUser = "ttt|kkk";
         Exception exception = null;
@@ -107,9 +108,9 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             exception = ex;
             log.debug(ex.toString());
             Assert.assertNotNull(exception);
-            Assert.assertTrue(exception.getMessage().toString().contains("no permissions for [indices:admin/create]"));
+            Assert.assertTrue(exception.getMessage().contains("no permissions for [indices:admin/create] and User [name=ttt, backend_roles=[kkk], requestedTenant=null]"));
+
         }
-        */
 
 
 
