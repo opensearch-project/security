@@ -126,6 +126,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // changes
 
         try {
+            ((ObjectNode) content).put("name", username);
             userService.createOrUpdateAccount(content.toString());
         } catch (Exception ex) {
             throw new IOException(ex);
