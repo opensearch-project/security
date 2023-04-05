@@ -104,7 +104,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final String username = request.param("name");
 
-
         SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         if (!isWriteable(channel, internalUsersConfiguration, username)) {
@@ -137,6 +136,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                 ((ObjectNode) content).put("isEnabled", request.param("isEnabled"));
             }
             ((ObjectNode) content).put("name", username);
+
             internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
         }
         catch (UserServiceException ex) {

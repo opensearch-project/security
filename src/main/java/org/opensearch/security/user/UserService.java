@@ -142,6 +142,7 @@ public class UserService {
      * This function will handle the creation or update of a user account.
      *
 <<<<<<< HEAD
+<<<<<<< HEAD
      * @param contentAsNode An object node of different account configurations.
      * @return InternalUserConfiguration with the new/updated user
      * @throws UserServiceException
@@ -203,8 +204,6 @@ public class UserService {
         internalUsersConfiguration.remove(accountName);
         contentAsNode.remove("name");
 
-        internalUsersConfiguration.remove(accountName);
-        contentAsNode.remove("name");
         internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
         return internalUsersConfiguration;
     }
@@ -231,5 +230,24 @@ public class UserService {
     private String generatePassword() {
         String generatedPassword = "superSecurePassword";
         return generatedPassword;
+    }
+
+    public String getNO_PASSWORD_OR_HASH_MESSAGE() {
+        return NO_PASSWORD_OR_HASH_MESSAGE;
+    }
+
+    public String getRESTRICTED_CHARACTER_USE_MESSAGE() {
+        return RESTRICTED_CHARACTER_USE_MESSAGE;
+    }
+
+    public String getSERVICE_ACCOUNT_PASSWORD_MESSAGE() {
+        return SERVICE_ACCOUNT_PASSWORD_MESSAGE;
+    }
+
+    public String getSERVICE_ACCOUNT_HASH_MESSAGE() {
+        return SERVICE_ACCOUNT_HASH_MESSAGE;
+    }
+    public String getNO_ACCOUNT_NAME_MESSAGE() {
+        return NO_ACCOUNT_NAME_MESSAGE;
     }
 }
