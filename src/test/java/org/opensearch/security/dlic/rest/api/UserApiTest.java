@@ -312,45 +312,33 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("'q' deleted."));
         // now really remove user
-        System.out.println("Removing Nagilum");
         deleteUser("nagilum");
 
         // Access must be forbidden now
         rh.sendAdminCertificate = false;
-        System.out.println("Making sure access is forbidden");
         checkGeneralAccess(HttpStatus.SC_UNAUTHORIZED, "nagilum", "nagilum");
 
         // use password instead of hash
         rh.sendAdminCertificate = sendAdminCert;
-        System.out.println("Using password instead of hash");
         addUserWithPassword("nagilum", "correctpassword", HttpStatus.SC_CREATED);
 
         rh.sendAdminCertificate = false;
-        System.out.println("Checking general access");
-        System.out.println("Use wrongpass");
         checkGeneralAccess(HttpStatus.SC_UNAUTHORIZED, "nagilum", "wrongpassword");
-        System.out.println("use correct pass");
         checkGeneralAccess(HttpStatus.SC_OK, "nagilum", "correctpassword");
 
-        System.out.println("Delete Nagilum");
         deleteUser("nagilum");
 
         // Check unchanged password functionality
-        System.out.println("Check unchanged pass functionality");
         rh.sendAdminCertificate = sendAdminCert;
 
         // new user, password or hash is mandatory
-        System.out.println("Add Nagilum without pass or hash");
         addUserWithoutPasswordOrHash("nagilum", new String[]{"starfleet"}, HttpStatus.SC_BAD_REQUEST);
         // new user, add hash
-        System.out.println("Add Nagilum with hash");
         addUserWithHash("nagilum", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_CREATED);
-        System.out.println("Update Nagilum without specifying hash");
         // update user, do not specify hash or password, hash must remain the same
         addUserWithoutPasswordOrHash("nagilum", new String[]{"starfleet"}, HttpStatus.SC_OK);
         // get user, check hash, must be untouched
-        System.out.println("Get Nagilum make sure hash is untouched");
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/nagilum", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
@@ -459,10 +447,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         final Header restApiInternalUsersAdminHeader = encodeBasicHeader("rest_api_admin_internalusers", "rest_api_admin_internalusers");
         // initial configuration
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiInternalUsersAdminHeader);
-        System.out.println("Rest response in test is: " + response.toString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        System.out.println("Settings size in test is: " + settings.size());
         Assert.assertEquals(133, settings.size());
         verifyGet(restApiInternalUsersAdminHeader);
         verifyPut(restApiInternalUsersAdminHeader);
@@ -491,7 +477,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh
                 .executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        System.out.println(response.getBody());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(133, settings.size());
 
