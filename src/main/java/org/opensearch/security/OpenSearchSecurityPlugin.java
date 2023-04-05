@@ -115,6 +115,11 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
+import org.opensearch.security.action.tenancy.TenancyConfigRestHandler;
+import org.opensearch.security.action.tenancy.TenancyConfigRetrieveActions;
+import org.opensearch.security.action.tenancy.TenancyConfigRetrieveTransportAction;
+import org.opensearch.security.action.tenancy.TenancyConfigUpdateAction;
+import org.opensearch.security.action.tenancy.TenancyConfigUpdateTransportAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -469,6 +474,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
                 handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.add(new TenancyConfigRestHandler());
                 handlers.addAll(
                         SecurityRestApiActions.getHandler(
                                 settings,
@@ -505,6 +511,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         if(!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
+
+            actions.add(new ActionHandler<>(TenancyConfigRetrieveActions.INSTANCE, TenancyConfigRetrieveTransportAction.class));
+            actions.add(new ActionHandler<>(TenancyConfigUpdateAction.INSTANCE, TenancyConfigUpdateTransportAction.class));
+
         }
         return actions;
     }
