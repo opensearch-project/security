@@ -79,6 +79,21 @@ public class JwtVendorTest {
         String audience = "extension_0";
         List <String> roles = List.of("admin");
         Integer expirySeconds = -300;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+
+        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        JwtVendor jwtVendor = new JwtVendor(settings);
+
+        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+    }
+
+    @Test (expected = Exception.class)
+    public void testCreateJwtWithBadEncryptionKey() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "extension_0";
+        List <String> roles = List.of("admin");
+        Integer expirySeconds = 300;
 
         Settings settings =  Settings.builder().put("signing_key", "abc123").build();
         JwtVendor jwtVendor = new JwtVendor(settings);
@@ -91,10 +106,12 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "extension_0";
-        List <String> roles = List.of("");
+        List <String> roles = null;
         Integer expirySecond = 300;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
 
-        Settings settings = Settings.builder().put("signing_key", "abc123").build();
+        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+
         JwtVendor jwtVendor = new JwtVendor(settings);
 
         jwtVendor.createJwt(issuer, subject, audience, expirySecond, roles);
