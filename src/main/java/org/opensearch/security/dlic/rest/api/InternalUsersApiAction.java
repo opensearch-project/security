@@ -103,7 +103,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final String username = request.param("name");
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+        SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         if (!isWriteable(channel, internalUsersConfiguration, username)) {
             return;
@@ -127,9 +127,14 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         try {
             ((ObjectNode) content).put("name", username);
-            userService.createOrUpdateAccount(content.toString());
+            internalUsersConfiguration = userService.createOrUpdateAccount(content.toString());
         } catch (Exception ex) {
-            throw new IOException(ex);
+            if (ex.toString().contains(userService.getSERVICE_ACCOUNT_PASSWORD_MESSAGE()) || ex.toString().contains(userService.getNO_PASSWORD_OR_HASH_MESSAGE()) || ex.toString().contains(userService.getSERVICE_ACCOUNT_PASSWORD_MESSAGE()) || ex.toString().contains(userService.getNO_ACCOUNT_NAME_MESSAGE()) || ex.toString().contains(userService.getSERVICE_ACCOUNT_HASH_MESSAGE()) || ex.toString().contains(userService.getRESTRICTED_CHARACTER_USE_MESSAGE())) {
+                badRequestResponse(channel, ex.getMessage());
+                return;
+            } else {
+                throw new IOException(ex);
+            }
         }
 
 

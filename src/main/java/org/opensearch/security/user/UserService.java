@@ -154,10 +154,12 @@ public class UserService {
      * This function will handle the creation or update of a user account.
      *
      * @param accountDetailsAsString A string JSON of different account configurations.
+     * @return
      * @throws ServiceAccountRegistrationException
      * @throws IOException
      */
-    public void createOrUpdateAccount(String accountDetailsAsString) throws IOException, AccountCreateOrUpdateException, ServiceAccountRegistrationException {
+    public SecurityDynamicConfiguration<?> createOrUpdateAccount(String accountDetailsAsString) throws IOException, AccountCreateOrUpdateException, ServiceAccountRegistrationException {
+
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode accountDetails = mapper.readTree(accountDetailsAsString);
@@ -232,15 +234,15 @@ public class UserService {
             }
         }
 
-
-
         internalUsersConfiguration.remove(accountName);
         contentAsNode.remove("name");
+
         internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
 
         if (!securityJsonNode.get("service").isNull() && securityJsonNode.get("service").asString() == "true") { // Internal users update the config as part
             saveAndUpdateConfiguration(client, CType.INTERNALUSERS, internalUsersConfiguration);
         }
+        return internalUsersConfiguration;
     }
 
     public static List<String> listServiceAccounts() {
@@ -287,5 +289,24 @@ public class UserService {
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
         return internalUsersConfiguration.exists(accountName);
+    }
+
+    public String getNO_PASSWORD_OR_HASH_MESSAGE() {
+        return NO_PASSWORD_OR_HASH_MESSAGE;
+    }
+
+    public String getRESTRICTED_CHARACTER_USE_MESSAGE() {
+        return RESTRICTED_CHARACTER_USE_MESSAGE;
+    }
+
+    public String getSERVICE_ACCOUNT_PASSWORD_MESSAGE() {
+        return SERVICE_ACCOUNT_PASSWORD_MESSAGE;
+    }
+
+    public String getSERVICE_ACCOUNT_HASH_MESSAGE() {
+        return SERVICE_ACCOUNT_HASH_MESSAGE;
+    }
+    public String getNO_ACCOUNT_NAME_MESSAGE() {
+        return NO_ACCOUNT_NAME_MESSAGE;
     }
 }
