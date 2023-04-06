@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.net.UnknownServiceException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -42,6 +43,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.UserService;
+import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -128,13 +130,13 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         try {
             ((ObjectNode) content).put("name", username);
             internalUsersConfiguration = userService.createOrUpdateAccount(content.toString());
-        } catch (Exception ex) {
-            if (ex.toString().contains(userService.getSERVICE_ACCOUNT_PASSWORD_MESSAGE()) || ex.toString().contains(userService.getNO_PASSWORD_OR_HASH_MESSAGE()) || ex.toString().contains(userService.getSERVICE_ACCOUNT_PASSWORD_MESSAGE()) || ex.toString().contains(userService.getNO_ACCOUNT_NAME_MESSAGE()) || ex.toString().contains(userService.getSERVICE_ACCOUNT_HASH_MESSAGE()) || ex.toString().contains(userService.getRESTRICTED_CHARACTER_USE_MESSAGE())) {
-                badRequestResponse(channel, ex.getMessage());
-                return;
-            } else {
+        }
+        catch (IOException ex) {
                 throw new IOException(ex);
             }
+        catch (UserServiceException ex) {
+            badRequestResponse(channel, ex.getMessage());
+            return;
         }
 
         saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {

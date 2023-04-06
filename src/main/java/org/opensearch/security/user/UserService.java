@@ -27,6 +27,7 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
+import java.net.UnknownServiceException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,38 +74,21 @@ public class UserService {
     static ConfigurationRepository configurationRepository;
     String securityIndex;
     Client client;
+    final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
+    final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
 
-    final String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
-    final String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
+    final static String SERVICE_ACCOUNT_PASSWORD_MESSAGE = "A password cannot be provided for a service account. Failed to register service account: ";
 
-    final String SERVICE_ACCOUNT_PASSWORD_MESSAGE = "A password cannot be provided for a service account. Failed to register service account: ";
+    final static String SERVICE_ACCOUNT_HASH_MESSAGE = "A password hash cannot be provided for service account. Failed to register service account: ";
 
-    final String SERVICE_ACCOUNT_HASH_MESSAGE = "A password hash cannot be provided for service account. Failed to register service account: ";
-
-    final String NO_ACCOUNT_NAME_MESSAGE = "No account name was specified in the request.";
-    protected static CType getConfigName() {
+    final static String NO_ACCOUNT_NAME_MESSAGE = "No account name was specified in the request.";
+    private static CType getConfigName() {
         return CType.INTERNALUSERS;
     }
 
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
             ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
-
-    // CreateUser
-    // Update User
-    // List User
-    // Get User
-    // This should be for all internal users instead of just service accounts
-
-
-    // Make a SecurityPluginUser object
-    // Work backwards from remaking this as a User Service -- can mostly reuse from current state
-    // Want to check that when code is created or updated, you check if it is a service account and turn on properties
-    // For example: Creator/owner of service account (extension or user)
-    // All end-to-end tests can be written without extensions and we can test everything
-    // Should not need to test create, update, list, get as unit tests but will want to test service account creation and deletion
-    // I.e. service account is invalid because no owner -- can leave tests till later.
-
 
     @Inject
     public UserService(
@@ -155,50 +139,37 @@ public class UserService {
      *
      * @param accountDetailsAsString A string JSON of different account configurations.
      * @return
-     * @throws ServiceAccountRegistrationException
+     * @throws UserServiceException
      * @throws IOException
      */
-    public SecurityDynamicConfiguration<?> createOrUpdateAccount(String accountDetailsAsString) throws IOException, AccountCreateOrUpdateException, ServiceAccountRegistrationException {
-
+    public SecurityDynamicConfiguration<?> createOrUpdateAccount(String accountDetailsAsString) throws IOException {
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode accountDetails = mapper.readTree(accountDetailsAsString);
         final ObjectNode contentAsNode = (ObjectNode) accountDetails;
         final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
-        final List<String> securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         String accountName = securityJsonNode.get("name").asString();
 
         if (accountName == null || accountName.length() == 0) { // Fail if field is present but empty
-            throw new AccountCreateOrUpdateException(NO_ACCOUNT_NAME_MESSAGE);
+            throw new UserServiceException(NO_ACCOUNT_NAME_MESSAGE);
         }
 
         final Map<String, String> accountAttributes = new HashMap<>();
 
         if (!securityJsonNode.get("service").isNull() && securityJsonNode.get("service").asString() == "true") { // If this is a service account
-            // final DiscoveryExtensionNode extensionInformation = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager().getExtensionIdMap().get(extensionUniqueId);
-            // extensionInformation.getSecurityConfiguration(); TODO: Need to make it so that we can get the extension configuration information
-            // extensionInformation.parseToJson();
-            // Add default role option for extensions which do not specify their own role
+
             accountAttributes.put("service", "true"); // This attribute signifies that the account is a service account
+            verifyServiceAccount(securityJsonNode, accountName);
 
-            // A password cannot be provided for a Service account.
-            final String plainTextPassword = securityJsonNode.get("password").asString();
-            final String origHash = securityJsonNode.get("hash").asString();
+        } else {
 
-            if (plainTextPassword != null && plainTextPassword.length() > 0) {
-                throw new ServiceAccountRegistrationException(SERVICE_ACCOUNT_PASSWORD_MESSAGE + accountName);
-            }
-
-            if (origHash != null && origHash.length() > 0) {
-                throw new ServiceAccountRegistrationException(SERVICE_ACCOUNT_HASH_MESSAGE + accountName);
-            }
-        } else { // Not a service account
+            // Not a service account
             final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(accountName::contains).collect(Collectors.toList());
             if (!foundRestrictedContents.isEmpty()) {
                 final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
-                throw new AccountCreateOrUpdateException(RESTRICTED_CHARACTER_USE_MESSAGE + restrictedContents);
+                throw new UnknownServiceException(RESTRICTED_CHARACTER_USE_MESSAGE + restrictedContents);
             }
 
             // if password is set, it takes precedence over hash
@@ -220,7 +191,7 @@ public class UserService {
 
             // sanity checks, hash is mandatory for newly created users
             if (!userExisted && securityJsonNode.get("hash").asString() == null) {
-                throw new AccountCreateOrUpdateException(NO_PASSWORD_OR_HASH_MESSAGE);
+                throw new UserServiceException(NO_PASSWORD_OR_HASH_MESSAGE);
             }
 
             // for existing users, hash is optional
@@ -228,7 +199,7 @@ public class UserService {
                 // sanity check, this should usually not happen
                 final String hash = ((Hashed) internalUsersConfiguration.getCEntry(accountName)).getHash();
                 if (hash == null || hash.length() == 0) {
-                    throw new AccountCreateOrUpdateException("Existing user " + accountName + " has no password, and no new password or hash was specified.");
+                    throw new UserServiceException("Existing user " + accountName + " has no password, and no new password or hash was specified.");
                 }
                 contentAsNode.put("hash", hash);
             }
@@ -245,68 +216,17 @@ public class UserService {
         return internalUsersConfiguration;
     }
 
-    public static List<String> listServiceAccounts() {
+    private void verifyServiceAccount(SecurityJsonNode securityJsonNode, String accountName) {
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+        final String plainTextPassword = securityJsonNode.get("password").asString();
+        final String origHash = securityJsonNode.get("hash").asString();
 
-        List<String> serviceAccounts = new ArrayList<>();
-        for (Map.Entry<String, ?> entry : internalUsersConfiguration.getCEntries().entrySet()) {
-
-            final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
-            final Map accountAttributes = internalUserEntry.getAttributes();
-            final String accountName = entry.getKey();
-            if (accountAttributes.containsKey("service") && accountAttributes.get("service") == "true") {
-                serviceAccounts.add(accountName);
-            }
+        if (plainTextPassword != null && plainTextPassword.length() > 0) {
+            throw new UserServiceException(SERVICE_ACCOUNT_PASSWORD_MESSAGE + accountName);
         }
-        return serviceAccounts;
-    }
 
-    public static List<String> listInternalUsers() {
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-
-        List<String> internalUserAccounts = new ArrayList<>();
-        for (Map.Entry<String, ?> entry : internalUsersConfiguration.getCEntries().entrySet()) {
-
-            final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
-            final Map accountAttributes = internalUserEntry.getAttributes();
-            final String accountName = entry.getKey();
-            if (!accountAttributes.containsKey("service") || accountAttributes.get("service") == "false") {
-                internalUserAccounts.add(accountName);
-            }
+        if (origHash != null && origHash.length() > 0) {
+            throw new UserServiceException(SERVICE_ACCOUNT_HASH_MESSAGE + accountName);
         }
-        return internalUserAccounts;
-    }
-
-    public static Set<String> listUserAccounts() {
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-        return internalUsersConfiguration.getCEntries().keySet();
-    }
-
-    public static boolean accountExists(String accountName) {
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-        return internalUsersConfiguration.exists(accountName);
-    }
-
-    public String getNO_PASSWORD_OR_HASH_MESSAGE() {
-        return NO_PASSWORD_OR_HASH_MESSAGE;
-    }
-
-    public String getRESTRICTED_CHARACTER_USE_MESSAGE() {
-        return RESTRICTED_CHARACTER_USE_MESSAGE;
-    }
-
-    public String getSERVICE_ACCOUNT_PASSWORD_MESSAGE() {
-        return SERVICE_ACCOUNT_PASSWORD_MESSAGE;
-    }
-
-    public String getSERVICE_ACCOUNT_HASH_MESSAGE() {
-        return SERVICE_ACCOUNT_HASH_MESSAGE;
-    }
-    public String getNO_ACCOUNT_NAME_MESSAGE() {
-        return NO_ACCOUNT_NAME_MESSAGE;
     }
 }
