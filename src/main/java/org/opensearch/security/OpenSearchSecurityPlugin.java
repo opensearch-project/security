@@ -93,7 +93,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
-import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.index.Index;
@@ -488,7 +487,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                                 cr, cs, principalExtractor,
                                 evaluator,
                                 threadPool,
-                                Objects.requireNonNull(auditLog), sks, userService,
+                                Objects.requireNonNull(auditLog), sks,
+                                Objects.requireNonNull(userService),
                                 sslCertReloadEnabled)
                 );
                 log.debug("Added {} rest handler(s)", handlers.size());
@@ -1184,16 +1184,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
-        private static ExtensionsManager extensionsManager;
 
         @Inject
         public GuiceHolder(final RepositoriesService repositoriesService,
-                final TransportService remoteClusterService, IndicesService indicesService, PitService pitService, ExtensionsManager extensionsManager) {
+                final TransportService remoteClusterService, IndicesService indicesService, PitService pitService) {
             GuiceHolder.repositoriesService = repositoriesService;
             GuiceHolder.remoteClusterService = remoteClusterService.getRemoteClusterService();
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
-            GuiceHolder.extensionsManager = extensionsManager;
         }
 
         public static RepositoriesService getRepositoriesService() {
@@ -1210,7 +1208,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         public static PitService getPitService() { return pitService; }
 
-        public static ExtensionsManager getExtensionsManager() { return extensionsManager; }
 
         @Override
         public void close() {

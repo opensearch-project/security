@@ -26,26 +26,10 @@
 
 package org.opensearch.security.user;
 
-public class AccountCreateOrUpdateException extends Exception {
+public class UserServiceException extends RuntimeException {
 
-    public AccountCreateOrUpdateException() {
-        super();
-    }
-
-    public AccountCreateOrUpdateException(String message, Throwable cause, boolean enableSuppression,
-                                               boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
-
-    public AccountCreateOrUpdateException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public AccountCreateOrUpdateException(String message) {
+    public UserServiceException(String message) {
         super(message);
     }
 
-    public AccountCreateOrUpdateException(Throwable cause) {
-        super(cause);
-    }
 }
