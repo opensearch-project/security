@@ -28,6 +28,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class SslCertsApiTest extends AbstractRestApiUnitTest {
 
@@ -83,9 +84,7 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
         return String.format("%s/api/ssl/%s/reloadcerts", PLUGINS_PREFIX, certType);
     }
 
-    @Test
-    public void testCertsInfo() throws Exception {
-        setupWithRestRoles();
+    private void verifyHasNoAccess() throws Exception {
         final Header adminCredsHeader = encodeBasicHeader("admin", "admin");
         // No creds, no admin certificate - UNAUTHORIZED
         rh.sendAdminCertificate = false;
@@ -96,17 +95,28 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(certsInfoEndpoint(), adminCredsHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
+        response = rh.executeGetRequest(certsInfoEndpoint(), restApiHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    public void testCertsInfo() throws Exception {
+        setup();
+        verifyHasNoAccess();
         sendAdminCert();
-        response = rh.executeGetRequest(certsInfoEndpoint());
+        HttpResponse response = rh.executeGetRequest(certsInfoEndpoint());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertEquals(EXPECTED_CERTIFICATES_BY_TYPE, response.getBody());
 
+    }
+
+    @Test
+    public void testCertsInfoRestAdmin() throws Exception {
+        setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
+        verifyHasNoAccess();
         rh.sendAdminCertificate = false;
         Assert.assertEquals(EXPECTED_CERTIFICATES_BY_TYPE, loadCerts(restApiAdminHeader));
         Assert.assertEquals(EXPECTED_CERTIFICATES_BY_TYPE, loadCerts(restApiCertsInfoAdminHeader));
-
-        response = rh.executeGetRequest(certsInfoEndpoint(), restApiHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
 
     private String loadCerts(final Header... header) throws Exception {
@@ -120,23 +130,18 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
         setupWithRestRoles();
 
         sendAdminCert();
-        verifyReloadCertsNotAvailable();
+        verifyReloadCertsNotAvailable(HttpStatus.SC_BAD_REQUEST);
 
         rh.sendAdminCertificate = false;
-        verifyReloadCertsNotAvailable(restApiAdminHeader);
-        verifyReloadCertsNotAvailable(restApiReloadCertsAdminHeader);
-
-        HttpResponse response = rh.executePutRequest(certsReloadEndpoint(HTTP_CERTS), "{}", restApiHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executePutRequest(certsReloadEndpoint(TRANSPORT_CERTS), "{}", restApiHeader);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        verifyReloadCertsNotAvailable(HttpStatus.SC_FORBIDDEN, restApiAdminHeader);
+        verifyReloadCertsNotAvailable(HttpStatus.SC_FORBIDDEN, restApiReloadCertsAdminHeader);
     }
 
-    private void verifyReloadCertsNotAvailable(final Header... header) {
+    private void verifyReloadCertsNotAvailable(final int expectedStatus, final Header... header) {
         HttpResponse response = rh.executePutRequest(certsReloadEndpoint(HTTP_CERTS), "{}", header);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), expectedStatus, response.getStatusCode());
         response = rh.executePutRequest(certsReloadEndpoint(TRANSPORT_CERTS), "{}", header);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), expectedStatus, response.getStatusCode());
     }
 
     @Test
@@ -153,12 +158,6 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(response.getBody(), HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
     }
-
-    @Test
-    public void testReloadCerts() throws Exception {
-        setupWithRestRoles(reloadEnabled());
-    }
-
 
     private void sendAdminCert() {
         rh.keystore = "restapi/kirk-keystore.jks";
