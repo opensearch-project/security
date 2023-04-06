@@ -11,8 +11,10 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.util.List;
 import java.util.function.LongSupplier;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
@@ -42,17 +44,20 @@ public class JwtVendorTest {
     }
 
     @Test
-    public void testCreateJwt() throws Exception {
+    public void testCreateJwtWithRoles() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "extension_0";
+        List<String> roles = List.of("IT", "HR");
+        String expectedRoles = "IT,HR";
         Integer expirySeconds = 300;
         LongSupplier currentTime = () -> (int)100;
-        Settings settings =  Settings.builder().put("signing_key", "abc123").build();
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         Long expectedExp = currentTime.getAsLong() + (expirySeconds * 1000);
 
         JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
-        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds);
+        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
 
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
         JwtToken jwt = jwtConsumer.getJwtToken();
@@ -63,6 +68,8 @@ public class JwtVendorTest {
         Assert.assertNotNull(jwt.getClaim("iat"));
         Assert.assertNotNull(jwt.getClaim("exp"));
         Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
+        Assert.assertNotEquals(expectedRoles, jwt.getClaim("roles"));
+        Assert.assertEquals(expectedRoles, EncryptionDecryptionUtil.decrypt(claimsEncryptionKey, jwt.getClaim("roles").toString()));
     }
 
     @Test (expected = Exception.class)
@@ -70,11 +77,43 @@ public class JwtVendorTest {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "extension_0";
+        List <String> roles = List.of("admin");
         Integer expirySeconds = -300;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+
+        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        JwtVendor jwtVendor = new JwtVendor(settings);
+
+        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+    }
+
+    @Test (expected = Exception.class)
+    public void testCreateJwtWithBadEncryptionKey() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "extension_0";
+        List <String> roles = List.of("admin");
+        Integer expirySeconds = 300;
 
         Settings settings =  Settings.builder().put("signing_key", "abc123").build();
         JwtVendor jwtVendor = new JwtVendor(settings);
 
-        jwtVendor.createJwt(issuer, subject, audience, expirySeconds);
+        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+    }
+
+    @Test (expected = Exception.class)
+    public void testCreateJwtWithBadRoles() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "admin";
+        String audience = "extension_0";
+        List <String> roles = null;
+        Integer expirySecond = 300;
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+
+        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+
+        JwtVendor jwtVendor = new JwtVendor(settings);
+
+        jwtVendor.createJwt(issuer, subject, audience, expirySecond, roles);
     }
 }

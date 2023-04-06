@@ -13,6 +13,7 @@ package org.opensearch.security.authtoken.jwt;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.LongSupplier;
@@ -43,6 +44,7 @@ public class JwtVendor {
 
     private static JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
 
+    private String claimsEncryptionKey;
     private JsonWebKey signingKey;
     private JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
@@ -59,6 +61,11 @@ public class JwtVendor {
             throw new RuntimeException(e);
         }
         this.jwtProducer = jwtProducer;
+        if (settings.get("encryption_key") == null) {
+            throw new RuntimeException("encryption_key cannot be null");
+        } else {
+            this.claimsEncryptionKey = settings.get("encryption_key");
+        }
         timeProvider = System::currentTimeMillis;
     }
 
@@ -71,6 +78,11 @@ public class JwtVendor {
             throw new RuntimeException(e);
         }
         this.jwtProducer = jwtProducer;
+        if (settings.get("encryption_key") == null) {
+            throw new RuntimeException("encryption_key cannot be null");
+        } else {
+            this.claimsEncryptionKey = settings.get("encryption_key");
+        }
         this.timeProvider = timeProvider;
     }
 
@@ -126,7 +138,7 @@ public class JwtVendor {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds) throws Exception {
+    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles) throws Exception {
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
@@ -154,7 +166,12 @@ public class JwtVendor {
             throw new Exception("The expiration time should be a positive integer");
         }
 
-        // TODO: Should call preparelaims() if we need roles in claim;
+        if (roles != null) {
+            String listOfRoles = String.join(",", roles);
+            jwtClaims.setProperty("roles", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
+        } else {
+            throw new Exception("Roles cannot be null");
+        }
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 
