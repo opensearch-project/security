@@ -33,10 +33,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.opensearch.security.DefaultObjectMapper;
@@ -125,6 +122,7 @@ public class ConfigV7 {
         public String hosts_resolver_mode = "ip-only";
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
+        public Extensions extensions = new Extensions();
     
         @Override
         public String toString() {
@@ -461,8 +459,29 @@ public class ConfigV7 {
             return "AuthzDomain [http_enabled=" + http_enabled + ", transport_enabled=" + transport_enabled
                     + ", authorization_backend=" + authorization_backend + ", description=" + description + "]";
         }
-        
-        
+
     }
-   
+
+    public static class Extensions {
+        @JsonProperty("signing_key")
+        private String signingKey;
+        @JsonProperty("encryption_key")
+        private String encryptionKey;
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+
+        public void setSigningKey(String signingKey) {
+            this.signingKey = signingKey;
+        }
+
+        public String getEncryptionKey() {
+            return encryptionKey;
+        }
+
+        public void setEncryptionKey(String encryptionKey) {
+            this.encryptionKey = encryptionKey;
+        }
+    }
 }
