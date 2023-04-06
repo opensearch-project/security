@@ -30,6 +30,7 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
+import java.net.UnknownServiceException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -77,7 +78,6 @@ public class UserService {
     static ConfigurationRepository configurationRepository;
     String securityIndex;
     Client client;
-
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
     final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
 
@@ -141,8 +141,6 @@ public class UserService {
     /**
      * This function will handle the creation or update of a user account.
      *
-<<<<<<< HEAD
-<<<<<<< HEAD
      * @param contentAsNode An object node of different account configurations.
      * @return InternalUserConfiguration with the new/updated user
      * @throws UserServiceException

@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.net.UnknownServiceException;
 import java.nio.file.Path;
 import java.util.List;
 
