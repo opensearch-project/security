@@ -122,7 +122,6 @@ public class UserService {
                                               final SecurityDynamicConfiguration<?> configuration) {
         final IndexRequest ir = new IndexRequest(this.securityIndex);
 
-        // final String type = "_doc";
         final String id = cType.toLCString();
 
         configuration.removeStatic();
