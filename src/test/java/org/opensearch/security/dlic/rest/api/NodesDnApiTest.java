@@ -37,6 +37,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class NodesDnApiTest extends AbstractRestApiUnitTest {
     private HttpResponse response;
@@ -184,7 +185,10 @@ public class NodesDnApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testNodesDnApiWithPermissions() throws Exception {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
+        Settings settings =
+                Settings.builder()
+                        .put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
+                        .put(SECURITY_RESTAPI_ADMIN_ENABLED, true)
                 .build();
         setupWithRestRoles(settings);
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
