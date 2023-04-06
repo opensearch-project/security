@@ -66,6 +66,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
+
 public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected final Logger log = LogManager.getLogger(this.getClass());
@@ -94,7 +96,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(settings, adminDNs, evaluator,
 				principalExtractor, configPath, threadPool);
 		this.restApiAdminPrivilegesEvaluator =
-				new RestApiAdminPrivilegesEvaluator(threadPool.getThreadContext(), evaluator, adminDNs);
+				new RestApiAdminPrivilegesEvaluator(
+						threadPool.getThreadContext(), evaluator, adminDNs,
+						settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false));
 		this.auditLog = auditLog;
 	}
 
