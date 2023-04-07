@@ -75,7 +75,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected final ConfigurationRepository cl;
 	protected final ClusterService cs;
 	final ThreadPool threadPool;
-	protected String opendistroIndex;
+	protected String securityIndexName;
 	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
 	protected final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
 	protected final AuditLog auditLog;
@@ -87,7 +87,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                                 ThreadPool threadPool, AuditLog auditLog) {
 		super();
 		this.settings = settings;
-		this.opendistroIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+		this.securityIndexName = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
 				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
 
 		this.cl = cl;
@@ -157,7 +157,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		existingConfiguration.remove(name);
 
 		if (existed) {
-			saveAnUpdateConfigs(client, request, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+			AbstractApiAction.saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
 				@Override
 				public void onResponse(IndexResponse response) {
@@ -207,7 +207,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		}
 		existingConfiguration.putCObject(name, newContent);
 
-		saveAnUpdateConfigs(client, request, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+		AbstractApiAction.saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
 			@Override
 			public void onResponse(IndexResponse response) {
@@ -270,7 +270,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
 	protected boolean ensureIndexExists() {
-		if (!cs.state().metadata().hasConcreteIndex(this.opendistroIndex)) {
+		if (!cs.state().metadata().hasConcreteIndex(this.securityIndexName)) {
 			return false;
 		}
 		return true;
@@ -313,11 +313,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	}
 
-	protected void saveAnUpdateConfigs(final Client client, final RestRequest request, final CType cType,
-									   final SecurityDynamicConfiguration<?> configuration, OnSucessActionListener<IndexResponse> actionListener) {
-		final IndexRequest ir = new IndexRequest(this.opendistroIndex);
-
-		//final String type = "_doc";
+	public static void saveAndUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration, final ActionListener<IndexResponse> actionListener) {
+		final IndexRequest ir = new IndexRequest(indexName);
 		final String id = cType.toLCString();
 
 		configuration.removeStatic();
@@ -485,6 +482,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		try {
 			final XContentBuilder builder = channel.newBuilder();
 			builder.startObject();
+			builder.endObject();
 			channel.sendResponse(
 					new BytesRestResponse(RestStatus.OK, builder));
 		} catch (IOException e) {
