@@ -82,7 +82,7 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 		}
 		rolesMappingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, rolesMappingConfiguration.getImplementingClass()));
 
-		saveAnUpdateConfigs(client, request, getConfigName(), rolesMappingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+		saveAndUpdateConfigs(this.securityIndexName,client, getConfigName(), rolesMappingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
 			@Override
 			public void onResponse(IndexResponse response) {

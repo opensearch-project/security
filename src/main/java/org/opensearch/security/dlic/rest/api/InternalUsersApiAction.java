@@ -141,8 +141,12 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         catch (IOException ex) {
             throw new IOException(ex);
         }
+        internalUsersConfiguration.remove(username);
 
-        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+        // checks complete, create or update the user
+        internalUsersConfiguration.putCObject(username, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+
+        saveAndUpdateConfigs(this.securityIndexName,client, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {

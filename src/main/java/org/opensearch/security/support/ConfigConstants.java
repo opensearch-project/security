@@ -248,11 +248,11 @@ public class ConfigConstants {
     public static final String SECURITY_DLS_MODE = "plugins.security.dls.mode";
     // REST API
     public static final String SECURITY_RESTAPI_ROLES_ENABLED = "plugins.security.restapi.roles_enabled";
+    public static final String SECURITY_RESTAPI_ADMIN_ENABLED = "plugins.security.restapi.admin.enabled";
     public static final String SECURITY_RESTAPI_ENDPOINTS_DISABLED = "plugins.security.restapi.endpoints_disabled";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = "plugins.security.restapi.password_validation_regex";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE = "plugins.security.restapi.password_validation_error_message";
 
-    // Illegal Opcodes from here on
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "plugins.security.unsupported.disable_rest_auth_initially";
     public static final String SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY = "plugins.security.unsupported.disable_intertransport_auth_initially";
     public static final String SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY = "plugins.security.unsupported.passive_intertransport_auth_initially";
@@ -286,6 +286,10 @@ public class ConfigConstants {
     public static final Boolean SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
+
+    public static final String TENANCY_PRIVATE_TENANT_NAME = "Private";
+    public static final String TENANCY_GLOBAL_TENANT_NAME = "Global";
+    public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
     public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
         final List<String> list = settings.getAsList(key, defaultList);

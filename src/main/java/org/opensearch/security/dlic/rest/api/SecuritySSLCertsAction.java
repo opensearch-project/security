@@ -72,8 +72,6 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
 
     private final boolean certificatesReloadEnabled;
 
-    private final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
-
     private final boolean httpsEnabled;
 
     public SecuritySSLCertsAction(final Settings settings,
@@ -91,8 +89,6 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
                                   final boolean certificatesReloadEnabled) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.securityKeyStore = securityKeyStore;
-        this.restApiAdminPrivilegesEvaluator =
-                new RestApiAdminPrivilegesEvaluator(threadPool.getThreadContext(), privilegesEvaluator, adminDNs);
         this.certificatesReloadEnabled = certificatesReloadEnabled;
         this.httpsEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true);
     }
