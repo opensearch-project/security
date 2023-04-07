@@ -115,6 +115,11 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
+import org.opensearch.security.action.tenancy.TenancyConfigRestHandler;
+import org.opensearch.security.action.tenancy.TenancyConfigRetrieveActions;
+import org.opensearch.security.action.tenancy.TenancyConfigRetrieveTransportAction;
+import org.opensearch.security.action.tenancy.TenancyConfigUpdateAction;
+import org.opensearch.security.action.tenancy.TenancyConfigUpdateTransportAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -470,15 +475,24 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 handlers.add(new SecuritySSLCertsInfoAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 handlers.add(new DashboardsInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
-				Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
-                handlers.add(new SecurityConfigUpdateAction(settings, restController,Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                handlers.add(new SecurityWhoAmIAction(settings ,restController,Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                if (sslCertReloadEnabled) {
-                    handlers.add(new SecuritySSLReloadCertsAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
-                }
-                final Collection<RestHandler> apiHandlers = SecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog));
-                handlers.addAll(apiHandlers);
-                log.debug("Added {} management rest handler(s)", apiHandlers.size());
+                        Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
+                handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.add(new TenancyConfigRestHandler());
+                handlers.addAll(
+                        SecurityRestApiActions.getHandler(
+                                settings,
+                                configPath,
+                                restController,
+                                localClient,
+                                adminDns,
+                                cr, cs, principalExtractor,
+                                evaluator,
+                                threadPool,
+                                Objects.requireNonNull(auditLog), sks,
+                                sslCertReloadEnabled)
+                );
+                log.debug("Added {} rest handler(s)", handlers.size());
             }
         }
 
@@ -501,6 +515,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         if(!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
+
+            actions.add(new ActionHandler<>(TenancyConfigRetrieveActions.INSTANCE, TenancyConfigRetrieveTransportAction.class));
+            actions.add(new ActionHandler<>(TenancyConfigUpdateAction.INSTANCE, TenancyConfigUpdateTransportAction.class));
+
         }
         return actions;
     }
@@ -798,7 +816,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         adminDns = new AdminDNs(settings);
-        
+
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
@@ -812,7 +830,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 settings, privilegesInterceptor, cih, irr, dlsFlsEnabled, namedXContentRegistry.get());
 
         sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
-                
+
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
@@ -884,7 +902,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     public List<Setting<?>> getSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.addAll(super.getSettings());
-        
+
         settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_ONLY, false, Property.NodeScope, Property.Filtered));
 
         // currently dual mode is supported only when ssl_only is enabled, but this stance would change in future
@@ -902,26 +920,26 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         if(!SSLConfig.isSslOnlyMode()) {
             settings.add(Setting.listSetting(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
-    
+
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, Property.NodeScope, Property.Filtered));
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_IMPERSONATION_DN+".", Property.NodeScope)); //not filtered here
-    
+
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CERT_OID, Property.NodeScope, Property.Filtered));
-    
+
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_CERT_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, Property.NodeScope, Property.Filtered));
             settings.add(Setting.listSetting(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
 
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false, Property.NodeScope));//not filtered here
-    
+
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE, ConfigConstants.SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                     Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES, ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
                     Property.NodeScope, Property.Filtered));
-    
+
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_DISABLED, false, Property.NodeScope, Property.Filtered));
-    
+
             settings.add(Setting.intSetting(ConfigConstants.SECURITY_CACHE_TTL_MINUTES, 60, 0, Property.NodeScope, Property.Filtered));
-    
+
             //Security
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_ADVANCED_MODULES_ENABLED, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_ALLOW_UNSAFE_DEMOCERTIFICATES, false, Property.NodeScope, Property.Filtered));
@@ -929,10 +947,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".", Property.NodeScope)); //not filtered here
-    
+
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false, Property.NodeScope, Property.Filtered));
-    
+
             // Security - Audit
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, Property.NodeScope, Property.Filtered));
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_ROUTES + ".", Property.NodeScope));
@@ -954,7 +972,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS, true, Property.NodeScope, Property.Filtered));
-    
+
             final BiFunction<String, Boolean, Setting<Boolean>> boolSettingNodeScopeFiltered = (String keyWithNamespace, Boolean value) -> Setting.boolSetting(keyWithNamespace, value, Property.NodeScope, Property.Filtered);
 
             Arrays.stream(FilterEntries.values()).map(filterEntry -> {
@@ -979,12 +997,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         throw new RuntimeException("Please add support for new FilterEntries value '" + filterEntry.name() + "'");
                 }
             }).forEach(settings::add);
-            
-            
+
+
             // Security - Audit - Sink
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_TYPE, Property.NodeScope, Property.Filtered));
-    
+
             // External OpenSearch
             settings.add(Setting.listSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS, Lists.newArrayList("localhost:9200"), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME, Property.NodeScope, Property.Filtered));
@@ -1002,33 +1020,33 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_JKS_CERT_ALIAS, Property.NodeScope, Property.Filtered));
             settings.add(Setting.listSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
             settings.add(Setting.listSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-    
+
             // Webhooks
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_URL, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_FORMAT, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY, true, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, Property.NodeScope, Property.Filtered));
-            
+
             // Log4j
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_LOGGER_NAME, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_LOG4J_LEVEL, Property.NodeScope, Property.Filtered));
-            
-    
+
+
             // Kerberos
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_KERBEROS_KRB5_FILEPATH, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL, Property.NodeScope, Property.Filtered));
-    
-    
+
+
             // OpenSearch Security - REST API
             settings.add(Setting.listSetting(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
-            
+
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Property.NodeScope, Property.Filtered));
 
-            
+
             // Compliance
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
@@ -1061,7 +1079,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, false, Property.NodeScope, Property.Filtered));
             settings.add(Setting.boolSetting(ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false, Property.NodeScope, Property.Filtered));
         }
-        
+
         return settings;
     }
 
@@ -1076,7 +1094,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         settingsFilter.add("plugins.security.*");
         return settingsFilter;
     }
-    
+
     @Override
     public void onNodeStarted() {
         log.info("Node started");
@@ -1188,7 +1206,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         }
 
         public static PitService getPitService() { return pitService; }
-        
+
         @Override
         public void close() {
         }
