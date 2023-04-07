@@ -100,10 +100,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
 
-        System.out.println("In handle put");
-        System.out.println("Request details are: " + request.params().keySet());
-        System.out.println("JsonNode content is: " + content.toString());
-
         final String username = request.param("name");
 
         SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
@@ -136,7 +132,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                 ((ObjectNode) content).put("isEnabled", request.param("isEnabled"));
             }
             ((ObjectNode) content).put("name", username);
-            System.out.println("Going to call user service for: " + content.toString());
             internalUsersConfiguration = userService.createOrUpdateAccount(content.toString());
         }
         catch (UserServiceException ex) {
@@ -149,13 +144,12 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         saveAndUpdateConfigs(this.securityIndexName,client, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
+
             @Override
             public void onResponse(IndexResponse response) {
                 if (userExisted) {
-                    System.out.println("System response is success response");
                     successResponse(channel, "'" + username + "' updated.");
                 } else {
-                    System.out.println("System response is created response");
                     createdResponse(channel, "'" + username + "' created.");
                 }
 
