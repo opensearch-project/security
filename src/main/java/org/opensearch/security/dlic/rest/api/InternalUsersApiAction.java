@@ -100,7 +100,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
 
-        String details = request.toString();
+        System.out.println("In handle put");
+        System.out.println("Request details are: " + request.params().keySet());
+        System.out.println("JsonNode content is: " + content.toString());
 
         final String username = request.param("name");
 
@@ -152,8 +154,10 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             @Override
             public void onResponse(IndexResponse response) {
                 if (userExisted) {
+                    System.out.println("System response is success response");
                     successResponse(channel, "'" + username + "' updated.");
                 } else {
+                    System.out.println("System response is created response");
                     createdResponse(channel, "'" + username + "' created.");
                 }
 

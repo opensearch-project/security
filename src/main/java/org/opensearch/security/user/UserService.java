@@ -1,5 +1,6 @@
 /*
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
  * Copyright 2015-2018 _floragunn_ GmbH
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +18,8 @@
 
 /*
 >>>>>>> e8c75356f51 (clear)
+=======
+>>>>>>> b07f0f8f0c2 (fix user service and add tests)
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -114,7 +117,6 @@ public class UserService {
         SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
-
 
     protected void saveAndUpdateConfiguration(final Client client, final CType cType,
                                               final SecurityDynamicConfiguration<?> configuration) {
@@ -226,6 +228,7 @@ public class UserService {
         String generatedPassword = "superSecurePassword";
         return generatedPassword;
     }
+
 
     public String getNO_PASSWORD_OR_HASH_MESSAGE() {
         return NO_PASSWORD_OR_HASH_MESSAGE;
