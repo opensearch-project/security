@@ -83,6 +83,10 @@ public class ConfigV6 {
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean multitenancy_enabled = true;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public boolean private_tenant_enabled = true;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public String default_tenant = "";
         public String server_username = "kibanaserver";
         public String opendistro_role = null;
         public String index = ".kibana";
