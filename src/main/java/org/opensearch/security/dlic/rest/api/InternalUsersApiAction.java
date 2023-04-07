@@ -100,7 +100,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
 
-        String details = request.toString();
+        System.out.println("In handle put");
+        System.out.println("Request details are: " + request.params().keySet());
+        System.out.println("JsonNode content is: " + content.toString());
 
         final String username = request.param("name");
 
@@ -127,24 +129,34 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // changes
 
         try {
+            if (request.hasParam("service")) {
+                ((ObjectNode) content).put("service", request.param("service"));
+            }
+            if (request.hasParam("isEnabled")) {
+                ((ObjectNode) content).put("isEnabled", request.param("isEnabled"));
+            }
             ((ObjectNode) content).put("name", username);
+            System.out.println("Going to call user service for: " + content.toString());
             internalUsersConfiguration = userService.createOrUpdateAccount(content.toString());
         }
-        catch (IOException ex) {
-                throw new IOException(ex);
-            }
         catch (UserServiceException ex) {
             badRequestResponse(channel, ex.getMessage());
             return;
         }
+        catch (IOException ex) {
+            throw new IOException(ex);
+        }
 
+        System.out.println("Updating config with new user");
         saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {
                 if (userExisted) {
+                    System.out.println("System response is success response");
                     successResponse(channel, "'" + username + "' updated.");
                 } else {
+                    System.out.println("System response is created response");
                     createdResponse(channel, "'" + username + "' created.");
                 }
 

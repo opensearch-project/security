@@ -1,19 +1,4 @@
 /*
- * Copyright 2015-2018 _floragunn_ GmbH
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -27,11 +12,8 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
-import java.net.UnknownServiceException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -111,30 +93,11 @@ public class UserService {
         return DynamicConfigFactory.addStatics(loaded);
     }
 
-    protected void saveAndUpdateConfiguration(final Client client, final CType cType,
-                                              final SecurityDynamicConfiguration<?> configuration) {
-        final IndexRequest ir = new IndexRequest(this.securityIndex);
-
-        final String id = cType.toLCString();
-
-        configuration.removeStatic();
-
-        try {
-            client.index(ir.id(id)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                            .setIfSeqNo(configuration.getSeqNo())
-                            .setIfPrimaryTerm(configuration.getPrimaryTerm())
-                            .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)));
-        } catch (IOException e) {
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
-    }
-
     /**
      * This function will handle the creation or update of a user account.
      *
      * @param accountDetailsAsString A string JSON of different account configurations.
-     * @return
+     * @return InternalUserConfiguration with the new/updated user
      * @throws UserServiceException
      * @throws IOException
      */
@@ -143,62 +106,57 @@ public class UserService {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode accountDetails = mapper.readTree(accountDetailsAsString);
         final ObjectNode contentAsNode = (ObjectNode) accountDetails;
-        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+        SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
         String accountName = securityJsonNode.get("name").asString();
 
         if (accountName == null || accountName.length() == 0) { // Fail if field is present but empty
             throw new UserServiceException(NO_ACCOUNT_NAME_MESSAGE);
         }
 
-        final Map<String, String> accountAttributes = new HashMap<>();
+        if (!securityJsonNode.get("attributes").get("owner").isNull() && !securityJsonNode.get("attributes").get("owner").equals(accountName)) { // If this is a service account
 
-        if (!securityJsonNode.get("service").isNull() && securityJsonNode.get("service").asString() == "true") { // If this is a service account
-
-            accountAttributes.put("service", "true"); // This attribute signifies that the account is a service account
             verifyServiceAccount(securityJsonNode, accountName);
+            String password = generatePassword();
+            contentAsNode.put("password", password);
+            contentAsNode.put("hash", hash(password.toCharArray()));
+        }
 
-        } else {
+        securityJsonNode = new SecurityJsonNode(contentAsNode);
+        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(accountName::contains).collect(Collectors.toList());
+        if (!foundRestrictedContents.isEmpty()) {
+            final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
+            throw new UserServiceException(RESTRICTED_CHARACTER_USE_MESSAGE + restrictedContents);
+        }
 
-            // Not a service account
-            final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(accountName::contains).collect(Collectors.toList());
-            if (!foundRestrictedContents.isEmpty()) {
-                final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
-                throw new UnknownServiceException(RESTRICTED_CHARACTER_USE_MESSAGE + restrictedContents);
+        // if password is set, it takes precedence over hash
+        final String plainTextPassword = securityJsonNode.get("password").asString();
+        final String origHash = securityJsonNode.get("hash").asString();
+        if (plainTextPassword != null && plainTextPassword.length() > 0) {
+            contentAsNode.remove("password");
+            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+        } else if (origHash != null && origHash.length() > 0) {
+            contentAsNode.remove("password");
+        } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
+            contentAsNode.remove("password");
+        }
+
+        final boolean userExisted = internalUsersConfiguration.exists(accountName);
+
+        // sanity checks, hash is mandatory for newly created users
+        if (!userExisted && securityJsonNode.get("hash").asString() == null) {
+            throw new UserServiceException(NO_PASSWORD_OR_HASH_MESSAGE);
+        }
+
+        // for existing users, hash is optional
+        if (userExisted && securityJsonNode.get("hash").asString() == null) {
+            // sanity check, this should usually not happen
+            final String hash = ((Hashed) internalUsersConfiguration.getCEntry(accountName)).getHash();
+            if (hash == null || hash.length() == 0) {
+                throw new UserServiceException("Existing user " + accountName + " has no password, and no new password or hash was specified.");
             }
-
-            // if password is set, it takes precedence over hash
-            final String plainTextPassword = securityJsonNode.get("password").asString();
-            final String origHash = securityJsonNode.get("hash").asString();
-            if (plainTextPassword != null && plainTextPassword.length() > 0) {
-                contentAsNode.remove("password");
-                contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
-            } else if (origHash != null && origHash.length() > 0) {
-                contentAsNode.remove("password");
-            } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
-                contentAsNode.remove("password");
-            }
-
-            final boolean userExisted = internalUsersConfiguration.exists(accountName);
-
-            // when updating an existing user password hash can be blank, which means no
-            // changes
-
-            // sanity checks, hash is mandatory for newly created users
-            if (!userExisted && securityJsonNode.get("hash").asString() == null) {
-                throw new UserServiceException(NO_PASSWORD_OR_HASH_MESSAGE);
-            }
-
-            // for existing users, hash is optional
-            if (userExisted && securityJsonNode.get("hash").asString() == null) {
-                // sanity check, this should usually not happen
-                final String hash = ((Hashed) internalUsersConfiguration.getCEntry(accountName)).getHash();
-                if (hash == null || hash.length() == 0) {
-                    throw new UserServiceException("Existing user " + accountName + " has no password, and no new password or hash was specified.");
-                }
-                contentAsNode.put("hash", hash);
-            }
+            contentAsNode.put("hash", hash);
         }
 
         internalUsersConfiguration.remove(accountName);
@@ -206,9 +164,6 @@ public class UserService {
 
         internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
 
-        if (!securityJsonNode.get("service").isNull() && securityJsonNode.get("service").asString() == "true") { // Internal users update the config as part
-            saveAndUpdateConfiguration(client, CType.INTERNALUSERS, internalUsersConfiguration);
-        }
         return internalUsersConfiguration;
     }
 
@@ -224,5 +179,15 @@ public class UserService {
         if (origHash != null && origHash.length() > 0) {
             throw new UserServiceException(SERVICE_ACCOUNT_HASH_MESSAGE + accountName);
         }
+    }
+
+    /**
+     * This will be swapped in for a real solution once one is decided on.
+     *
+     * @return A password for a service account.
+     */
+    private String generatePassword() {
+        String generatedPassword = "superSecurePassword";
+        return generatedPassword;
     }
 }
