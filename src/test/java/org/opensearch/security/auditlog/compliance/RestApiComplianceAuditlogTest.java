@@ -46,8 +46,8 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
-        Assert.assertTrue(TestAuditlogImpl.messages.size()+"",TestAuditlogImpl.messages.size() == 1);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertTrue(TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
@@ -81,7 +81,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size()+"",TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
