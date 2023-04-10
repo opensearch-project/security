@@ -46,7 +46,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size()+"",TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
@@ -81,7 +81,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body);
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size()+"",TestAuditlogImpl.messages.size() == 1);
         Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("audit_request_effective_user"));
         Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
@@ -242,7 +242,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         // create internal user and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.clear();
         rh.executePutRequest("/_opendistro/_security/api/internalusers/test",  "{ \"password\":\"test\"}");
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertEquals("Message is " + TestAuditlogImpl.messages.toString(), 1, TestAuditlogImpl.messages.size());
         Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
     }
 }
