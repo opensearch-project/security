@@ -112,14 +112,15 @@ if not exist %OPENSEARCH_PLUGINS_DIR%\opensearch-security\ (
     exit /b 1
 )
 
+setlocal EnableDelayedExpansion
 set "OPENSEARCH_VERSION="
-for %%F in ("%OPENSEARCH_LIB_PATH%opensearch-*.jar") do set "OPENSEARCH_VERSION=%%~nxI" & goto :opensearch_version
+for %%F in ("%OPENSEARCH_LIB_PATH%opensearch-*.jar") do set "OPENSEARCH_VERSION=%%~nxF" & goto :opensearch_version
 :opensearch_version
 set "OPENSEARCH_JAR_VERSION="
 for /f "tokens=2 delims=[-]" %%a in ("%OPENSEARCH_VERSION%") do set "OPENSEARCH_JAR_VERSION=%%a"
 
 set "SECURITY_VERSION="
-for %%F in ("%OPENSEARCH_PLUGINS_DIR%\opensearch-security\opensearch-security-*.jar") do set "SECURITY_VERSION=%%~nxI"
+for %%F in ("%OPENSEARCH_PLUGINS_DIR%\opensearch-security\opensearch-security-*.jar") do set "SECURITY_VERSION=%%~nxF"
 set "SECURITY_JAR_VERSION="
 for /f "tokens=3 delims=[-]" %%a in ("%SECURITY_VERSION%") do set "SECURITY_JAR_VERSION=%%a"
 
