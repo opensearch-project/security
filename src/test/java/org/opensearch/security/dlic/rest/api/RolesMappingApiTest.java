@@ -29,6 +29,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class RolesMappingApiTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT; 
@@ -98,7 +99,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testRolesMappingApiWithFullPermissions() throws Exception {
-        setupWithRestRoles();
+        setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         rh.sendAdminCertificate = false;
 
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
@@ -466,7 +467,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testChangeRestApiAdminRoleMappingForbiddenForNonSuperAdmin() throws Exception {
-        setupWithRestRoles();
+        setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         rh.sendAdminCertificate = false;
 
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");

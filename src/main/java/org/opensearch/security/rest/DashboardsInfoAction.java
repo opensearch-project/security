@@ -103,6 +103,9 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     builder.field("opensearch_dashboards_mt_enabled", evaluator.multitenancyEnabled());
                     builder.field("opensearch_dashboards_index", evaluator.dashboardsIndex());
                     builder.field("opensearch_dashboards_server_user", evaluator.dashboardsServerUsername());
+                    builder.field("multitenancy_enabled", evaluator.multitenancyEnabled());
+                    builder.field("private_tenant_enabled", evaluator.privateTenantEnabled());
+                    builder.field("default_tenant", evaluator.dashboardsDefaultTenant());
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);

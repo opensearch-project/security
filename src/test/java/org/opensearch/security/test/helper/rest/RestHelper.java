@@ -92,8 +92,6 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.cluster.ClusterInfo;
 import org.opensearch.security.test.helper.file.FileHelper;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
 public class RestHelper {
 
 	protected final Logger log = LogManager.getLogger(RestHelper.class);
@@ -480,7 +478,7 @@ public class RestHelper {
 		public String findValueInJson(final String jsonDotPath) {
 			// Make sure its json / then parse it
 			if (!isJsonContentType()) {
-				fail("Response was expected to be JSON, body was: \n" + body);
+				throw new RuntimeException("Response was expected to be JSON, body was: \n" + body);
 			}
 			JsonNode currentNode = null;
 			try {
@@ -492,7 +490,7 @@ public class RestHelper {
 			// Break the path into parts, and scan into the json object
 			try (final Scanner jsonPathScanner = new Scanner(jsonDotPath).useDelimiter("\\.")) {
 				if (!jsonPathScanner.hasNext()) {
-					fail("Invalid json dot path '" + jsonDotPath + "', rewrite with '.' characters between path elements.");
+					throw new RuntimeException("Invalid json dot path '" + jsonDotPath + "', rewrite with '.' characters between path elements.");
 				}
 				do {
 					String pathEntry = jsonPathScanner.next();
@@ -510,23 +508,23 @@ public class RestHelper {
 					}
 
 					if (!currentNode.has(pathEntry)) {
-						fail("Unable to resolve '" + jsonDotPath + "', on path entry '" + pathEntry + "' from available fields " + currentNode.toPrettyString());
+						throw new RuntimeException("Unable to resolve '" + jsonDotPath + "', on path entry '" + pathEntry + "' from available fields " + currentNode.toPrettyString());
 					}
 					currentNode = currentNode.get(pathEntry);
 
 					// if it's an Array lookup we get the requested index item
 					if (arrayEntryIdx > -1) {
 						if(!currentNode.isArray()) {
-							fail("Unable to resolve '" + jsonDotPath + "', the '" + pathEntry + "' field is not an array " + currentNode.toPrettyString());
+							throw new RuntimeException("Unable to resolve '" + jsonDotPath + "', the '" + pathEntry + "' field is not an array " + currentNode.toPrettyString());
 						} else if (!currentNode.has(arrayEntryIdx)) {
-							fail("Unable to resolve '" + jsonDotPath + "', index '" + arrayEntryIdx + "' is out of bounds for array '" + pathEntry + "' \n" + currentNode.toPrettyString());
+							throw new RuntimeException("Unable to resolve '" + jsonDotPath + "', index '" + arrayEntryIdx + "' is out of bounds for array '" + pathEntry + "' \n" + currentNode.toPrettyString());
 						}
 						currentNode = currentNode.get(arrayEntryIdx);
 					}
 				} while (jsonPathScanner.hasNext());
 
 				if (!currentNode.isValueNode()) {
-					fail("Unexpected value note, index directly to the object to reference, object\n" + currentNode.toPrettyString());
+					throw new RuntimeException("Unexpected value note, index directly to the object to reference, object\n" + currentNode.toPrettyString());
 				}
 				return currentNode.asText();
 			}
