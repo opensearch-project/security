@@ -111,7 +111,6 @@ public class UserService {
         }
 
         if (!securityJsonNode.get("attributes").get("owner").isNull() && !securityJsonNode.get("attributes").get("owner").equals(accountName)) { // If this is a service account
-
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
             contentAsNode.put("password", password);
@@ -158,7 +157,6 @@ public class UserService {
         contentAsNode.remove("name");
 
         internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
-
         return internalUsersConfiguration;
     }
 

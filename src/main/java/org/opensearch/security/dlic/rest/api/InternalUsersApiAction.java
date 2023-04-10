@@ -31,7 +31,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -116,7 +115,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final List<String> securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
         if (securityRoles != null) {
             for (final String role: securityRoles) {
-                if (!isValidRolesMapping(channel, role)) return;
+                if (!isValidRolesMapping(channel, role)) {
+                    return;
+                }
             }
         }
 
@@ -126,8 +127,8 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // changes
 
         try {
-            if (request.hasParam("service")) {
-                ((ObjectNode) content).put("service", request.param("service"));
+            if (request.hasParam("owner")) {
+                ((ObjectNode) content).put("owner", request.param("owner"));
             }
             if (request.hasParam("isEnabled")) {
                 ((ObjectNode) content).put("isEnabled", request.param("isEnabled"));
