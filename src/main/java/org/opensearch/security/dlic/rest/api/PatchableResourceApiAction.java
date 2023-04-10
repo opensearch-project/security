@@ -162,7 +162,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
         }
 
-        saveAnUpdateConfigs(client, request, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel){
+        saveAndUpdateConfigs(this.securityIndexName,client, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel){
 
             @Override
             public void onResponse(IndexResponse response) {
@@ -244,7 +244,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
         }
 
-        saveAnUpdateConfigs(client, request, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName,client, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {
