@@ -55,6 +55,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.amazon.dlic.auth.http.jwt.HTTPExtensionJwtAuthenticator;
 import com.google.common.collect.Lists;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -846,6 +847,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
+        //TODO: CREATE A INSTANCE OF HTTPExtensionAuthenticationBackend
+        HTTPExtensionJwtAuthenticator acInstance = new HTTPExtensionJwtAuthenticator();
 
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
@@ -854,6 +857,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(securityRestHandler);
+        dcf.registerDCFListener(acInstance);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
