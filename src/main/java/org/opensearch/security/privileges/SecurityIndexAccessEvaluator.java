@@ -32,6 +32,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -44,18 +45,19 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SecurityIndexAccessEvaluator {
-
+    
+    Logger log = LogManager.getLogger(this.getClass());
+    
     private final String securityIndex;
     private final AuditLog auditLog;
     private final WildcardMatcher securityDeniedActionMatcher;
     private final IndexResolverReplacer irr;
+    private final boolean filterSecurityIndex;
 
-    private final boolean filterSecurityIndex; // If all  refereces to the security index should be filtered
     // for system-indices configuration
-    private final WildcardMatcher systemIndexMatcher; //Just the patternMatcher that compares the given value with the list of blocked indexes
+    private final WildcardMatcher systemIndexMatcher;
     private final boolean systemIndexEnabled;
     private final List<String> configuredSystemIndices;
-    Logger log = LogManager.getLogger(this.getClass());
 
     public SecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
@@ -66,7 +68,7 @@ public class SecurityIndexAccessEvaluator {
         List<String> systemIndecesFromConfig =  settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT);
 
         this.configuredSystemIndices = new ArrayList<>(systemIndecesFromConfig);
-        this.configuredSystemIndices.add(ConfigConstants.EXTENSIONS_PERMISSION);
+        this.configuredSystemIndices.add(ConfigConstants.SYSTEM_INDEX_PERMISSION);
 
 
         this.systemIndexMatcher = WildcardMatcher.from(configuredSystemIndices);
@@ -94,13 +96,18 @@ public class SecurityIndexAccessEvaluator {
                 restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
     }
 
-    public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
-        final PrivilegesEvaluatorResponse presponse,  ConfigModelV7.SecurityRoles securityRoles) {
+    public PrivilegesEvaluatorResponse evaluate(
+            final ActionRequest request,
+            final Task task,
+            final String action, 
+            final Resolved requestedResolved,
+        final PrivilegesEvaluatorResponse presponse,
+            ConfigModelV7.SecurityRoles securityRoles) {
 
             boolean isDebugEnabled = log.isDebugEnabled();
 
-            if( matchAnySystemIndices(requestedResolved) && !checkExtensionPermissionsForUser(securityRoles)){
-            log.warn("An account without the {} permission  is trying to access one of the Extensions's System Indexes. Related indexes: {}", ConfigConstants.EXTENSIONS_PERMISSION, requestedResolved.getAllIndices() );
+            if( matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)){
+            log.warn("An account without the {} permission  is trying to access one of the Extensions's System Indexes. Related indexes: {}", ConfigConstants.SYSTEM_INDEX_PERMISSION, requestedResolved.getAllIndices() );
             presponse.allowed = false;
             return presponse.markComplete();
         }
@@ -120,7 +127,7 @@ public class SecurityIndexAccessEvaluator {
                 presponse.allowed = false;
                 return presponse.markComplete();
             }
-            if (matchAnySystemIndices(requestedResolved) && !checkExtensionPermissionsForUser(securityRoles)) {
+            if (matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)) {
                 if (filterSecurityIndex) {
                     Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                     allWithoutSecurity.remove(securityIndex);
@@ -165,17 +172,17 @@ public class SecurityIndexAccessEvaluator {
         return presponse;
     }
 
-    private  boolean checkExtensionPermissionsForUser(ConfigModelV7.SecurityRoles securityRoles) {
+    private  boolean checkSystemIndexPermissionsForUser(ConfigModelV7.SecurityRoles securityRoles) {
         Set<WildcardMatcher> userPermMatchers = new HashSet<>();
 
         securityRoles.getRoles().stream().forEach(securityRole -> {
             securityRole.getIpatterns().stream().forEach((ip) -> {
-                userPermMatchers.add(ip.getNonStarPerms());
+                userPermMatchers.add(ip.getNonWildCardPerms());
             });
         });
 
         for(WildcardMatcher userPermMatcher : userPermMatchers.stream().filter( matcher ->  !matcher.toString().equals("*")).collect(Collectors.toSet()) ){
-            if(userPermMatcher.matchAny(ConfigConstants.EXTENSIONS_PERMISSION)){
+            if(userPermMatcher.matchAny(ConfigConstants.SYSTEM_INDEX_PERMISSION)){
                 return true;
             }
         }

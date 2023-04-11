@@ -285,7 +285,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER = "opendistro_security_injected_roles_validation_header";
 
     // System indices settings
-    public static final String EXTENSIONS_PERMISSION = "system:admin/system_index";
+    public static final String SYSTEM_INDEX_PERMISSION = "system:admin/system_index";
     public static final String SECURITY_SYSTEM_INDICES_ENABLED_KEY = "plugins.security.system_indices.enabled";
     public static final Boolean SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";

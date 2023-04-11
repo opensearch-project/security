@@ -299,7 +299,6 @@ public class SystemIndicesTests extends SingleClusterTest {
             RestHelper.HttpResponse responseIndex = keyStoreRestHelper.executeDeleteRequest(index);
             assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
         }
-
     }
 
     @Test
@@ -667,4 +666,5 @@ public class SystemIndicesTests extends SingleClusterTest {
         response = sslRestHelper.executeGetRequest( "system_index_a", extensionUserCHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
+
 }

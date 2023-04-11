@@ -831,12 +831,9 @@ public class ConfigModelV7 extends ConfigModel {
             return WildcardMatcher.from(perms);
         }
 
-        public WildcardMatcher getNonStarPerms() {
+        public WildcardMatcher getNonWildCardPerms() {
             return WildcardMatcher.from(perms.stream().filter(perm -> !perm.equals("*") ));
         }
-
-
-
     }
 
     /*public static class TypePerm {
@@ -1014,7 +1011,7 @@ public class ConfigModelV7 extends ConfigModel {
 
     private static boolean impliesTypePerm(Set<IndexPattern> ipatterns, Resolved resolved, User user, String[] requestedActions,
             IndexNameExpressionResolver resolver, ClusterService cs) {
-        Set<String> resolvedRequestedIndices = resolved.getAllIndices();
+            Set<String> resolvedRequestedIndices = resolved.getAllIndices();
         IndexMatcherAndPermissions[] indexMatcherAndPermissions;
         if (resolved.isLocalAll()) {
             indexMatcherAndPermissions = ipatterns
