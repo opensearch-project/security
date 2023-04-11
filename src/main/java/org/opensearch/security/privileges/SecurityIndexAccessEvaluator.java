@@ -39,6 +39,7 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -48,16 +49,12 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
 
 public class SecurityIndexAccessEvaluator {
-
     Logger log = LogManager.getLogger(this.getClass());
-
     private final String securityIndex;
     private final AuditLog auditLog;
     private final WildcardMatcher securityDeniedActionMatcher;
     private final IndexResolverReplacer irr;
     private final boolean filterSecurityIndex;
-
-    // for system-indices configuration
     private final WildcardMatcher systemIndexMatcher;
     private final boolean systemIndexEnabled;
     private final List<String> configuredSystemIndices;
@@ -120,7 +117,7 @@ public class SecurityIndexAccessEvaluator {
                 if (filterSecurityIndex) {
                     irr.replace(request, false, "*", "-" + securityIndex);
                     if (isDebugEnabled) {
-                        log.debug("Filtered '{}' from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex,
+                        log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex,
                                 irr.resolveRequest(request));
                     }
                     return presponse;

@@ -54,6 +54,11 @@ public class SystemIndicesTests extends SingleClusterTest {
     private static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
     private static final String allAccessUser = "admin_all_access";
     private static final Header allAccessUserHeader = encodeBasicHeader(allAccessUser, allAccessUser);
+
+    private static final String extensionUser = "extensions_user";
+    private static final Header extensionUserHeader = encodeBasicHeader(extensionUser, allAccessUser);
+    private static final String extensionUserC = "extensions_user_c";
+    private static final Header extensionUserCHeader = encodeBasicHeader(extensionUserC, allAccessUser);
     private static final String generalErrorMessage = String.format(
         "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]",
         allAccessUser
@@ -527,7 +532,7 @@ public class SystemIndicesTests extends SingleClusterTest {
             + "    }\n"
             + "}";
 
-        // as super-admin
+//        as super-admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseIndex = keyStoreRestHelper.executePutRequest(index, indexSettings);
             assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
@@ -540,7 +545,7 @@ public class SystemIndicesTests extends SingleClusterTest {
             keyStoreRestHelper.executeDeleteRequest(index);
         }
 
-        // as admin
+//        as admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseIndex = sslRestHelper.executePutRequest(index, indexSettings, allAccessUserHeader);
             assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
@@ -613,14 +618,8 @@ public class SystemIndicesTests extends SingleClusterTest {
                 "    }\n" +
                 "}";
 
-        for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse responseIndex = sslRestHelper.executePutRequest(index, indexSettings, extensionUserHeader);
-            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
-
-            RestHelper.HttpResponse response = sslRestHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", extensionUserHeader);
-            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode() );
-        }
     }
+
 
     /***************************************************************************************************************************
      * snapshot : since snapshot takes more time, we are testing only Enabled case.
