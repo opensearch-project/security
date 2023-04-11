@@ -28,8 +28,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.securityconf.ConfigModelV7;
 import org.opensearch.tasks.Task;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -58,18 +58,22 @@ public class SecurityIndexAccessEvaluatorTest {
 
     private SecurityIndexAccessEvaluator evaluator;
 
-    private static final String UNPROTECTED_ACTION = "indices:data/read"; 
-    private static final String PROTECTED_ACTION = "indices:data/write"; 
+    private static final String UNPROTECTED_ACTION = "indices:data/read";
+    private static final String PROTECTED_ACTION = "indices:data/write";
+
+    @Mock
+    ConfigModelV7 configModelV7;
+    ConfigModelV7.SecurityRoles securityRoles = configModelV7.getSecurityRoles();
 
     @Before
     public void before() {
         evaluator = new SecurityIndexAccessEvaluator(
-            Settings.EMPTY.builder()
-                .put("plugins.security.system_indices.indices", ".test")
-                .put("plugins.security.system_indices.enabled", true)
-                .build(),
-            auditLog,
-            irr);
+                Settings.EMPTY.builder()
+                        .put("plugins.security.system_indices.indices", ".testSystemIndex")
+                        .put("plugins.security.system_indices.enabled", true)
+                        .build(),
+                auditLog,
+                irr);
         evaluator.log = log;
 
         when(log.isDebugEnabled()).thenReturn(true);
@@ -79,13 +83,13 @@ public class SecurityIndexAccessEvaluatorTest {
     public void after() {
         verifyNoMoreInteractions(auditLog, irr, request, task, presponse, log);
     }
-    
+
     @Test
     public void actionIsNotProtected_noSystemIndexInvolved() {
-        final Resolved resolved = createResolved(".test");
+        final Resolved resolved = createResolved(".testSystemIndex");
 
         // Action
-        final PrivilegesEvaluatorResponse response = evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse);
+        final PrivilegesEvaluatorResponse response = evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse, securityRoles);
 
         verifyNoInteractions(presponse);
         assertThat(response, is(presponse));
@@ -97,12 +101,13 @@ public class SecurityIndexAccessEvaluatorTest {
     public void disableCacheOrRealtimeOnSystemIndex() {
         final SearchRequest searchRequest = mock(SearchRequest.class);
         final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
-        final Resolved resolved = createResolved(".test");
+        final Resolved resolved = createResolved(".testSystemIndex");
+
 
         // Action
-        evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse);
-        evaluator.evaluate(searchRequest, null, UNPROTECTED_ACTION, resolved, presponse);
-        evaluator.evaluate(realtimeRequest, null, UNPROTECTED_ACTION, resolved, presponse);
+        evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse,  securityRoles);
+        evaluator.evaluate(searchRequest, null, UNPROTECTED_ACTION, resolved, presponse,  securityRoles);
+        evaluator.evaluate(realtimeRequest, null, UNPROTECTED_ACTION, resolved, presponse,  securityRoles);
 
         verifyNoInteractions(presponse);
         verify(searchRequest).requestCache(Boolean.FALSE);
@@ -118,7 +123,7 @@ public class SecurityIndexAccessEvaluatorTest {
         final Resolved resolved = Resolved._LOCAL_ALL;
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse);
+        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, securityRoles);
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
@@ -130,10 +135,10 @@ public class SecurityIndexAccessEvaluatorTest {
 
     @Test
     public void protectedActionSystemIndex() {
-        final Resolved resolved = createResolved(".test", ".opendistro_security");
+        final Resolved resolved = createResolved(".testSystemIndex", ".opendistro_security");
 
         // Action
-        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse);
+        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, securityRoles);
 
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
@@ -141,9 +146,9 @@ public class SecurityIndexAccessEvaluatorTest {
 
         verify(log).isDebugEnabled();
         verify(log).warn(
-            "{} for '{}' index is not allowed for a regular user",
-            "indices:data/write",
-            ".opendistro_security, .test");
+                "{} for '{}' index is not allowed for a regular user",
+                "indices:data/write",
+                ".opendistro_security, .testSystemIndex");
     }
 
     private Resolved createResolved(final String... indexes) {

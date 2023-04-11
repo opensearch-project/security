@@ -26,15 +26,8 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -42,31 +35,44 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
+import org.opensearch.security.securityconf.ConfigModelV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 public class SecurityIndexAccessEvaluator {
-    
-    Logger log = LogManager.getLogger(this.getClass());
-    
+
     private final String securityIndex;
     private final AuditLog auditLog;
     private final WildcardMatcher securityDeniedActionMatcher;
     private final IndexResolverReplacer irr;
-    private final boolean filterSecurityIndex;
 
+    private final boolean filterSecurityIndex; // If all  refereces to the security index should be filtered
     // for system-indices configuration
-    private final WildcardMatcher systemIndexMatcher;
+    private final WildcardMatcher systemIndexMatcher; //Just the patternMatcher that compares the given value with the list of blocked indexes
     private final boolean systemIndexEnabled;
+    private final List<String> configuredSystemIndices;
+    Logger log = LogManager.getLogger(this.getClass());
 
     public SecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.auditLog = auditLog;
         this.irr = irr;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
-        this.systemIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT));
-        this.systemIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT);
+
+        List<String> systemIndecesFromConfig =  settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT);
+
+        this.configuredSystemIndices = new ArrayList<>(systemIndecesFromConfig);
+        this.configuredSystemIndices.add(ConfigConstants.EXTENSIONS_PERMISSION);
+
+
+        this.systemIndexMatcher = WildcardMatcher.from(configuredSystemIndices);
+
+        this.systemIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
+                ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT);
 
         final boolean restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
 
@@ -84,31 +90,41 @@ public class SecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("indices:admin/close*");
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
-        securityDeniedActionMatcher = WildcardMatcher.from(restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
+        securityDeniedActionMatcher = WildcardMatcher.from(
+                restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
     }
-    
+
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
-            final PrivilegesEvaluatorResponse presponse)  {
-        final boolean isDebugEnabled = log.isDebugEnabled();
+            final PrivilegesEvaluatorResponse presponse,  ConfigModelV7.SecurityRoles securityRoles) {
+
+        boolean isDebugEnabled = log.isDebugEnabled();
+
+        if( matchAnySystemIndices(requestedResolved) && !checkExtensionPermissionsForUser(securityRoles)){
+            log.warn("An account without the {} permission  is trying to access one of the Extensions's System Indexes. Related indexes: {}", ConfigConstants.EXTENSIONS_PERMISSION, requestedResolved.getAllIndices() );
+            presponse.allowed = false;
+            return presponse.markComplete();
+        }
+
         if (securityDeniedActionMatcher.test(action)) {
-            if(requestedResolved.isLocalAll()) {
-                if(filterSecurityIndex) {
-                    irr.replace(request, false, "*","-"+ securityIndex);
+            if (requestedResolved.isLocalAll()) {
+                if (filterSecurityIndex) {
+                    irr.replace(request, false, "*", "-" + securityIndex);
                     if (isDebugEnabled) {
-                        log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex, irr.resolveRequest(request));
+                        log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex,
+                                irr.resolveRequest(request));
                     }
                     return presponse;
-                } else {
-                    auditLog.logSecurityIndexAttempt(request, action, task);
-                    log.warn( "{} for '_all' indices is not allowed for a regular user", action);
-                    presponse.allowed = false;
-                    return presponse.markComplete();
                 }
-            } else if (matchAnySystemIndices(requestedResolved)) {
-                if(filterSecurityIndex) {
+                auditLog.logSecurityIndexAttempt(request, action, task);
+                log.warn("{} for '_all' indices is not allowed for a regular user", action);
+                presponse.allowed = false;
+                return presponse.markComplete();
+            }
+            if (matchAnySystemIndices(requestedResolved)) {
+                if (filterSecurityIndex) {
                     Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                     allWithoutSecurity.remove(securityIndex);
-                    if(allWithoutSecurity.isEmpty()) {
+                    if (allWithoutSecurity.isEmpty()) {
                         if (isDebugEnabled) {
                             log.debug("Filtered '{}' but resulting list is empty", securityIndex);
                         }
@@ -130,17 +146,16 @@ public class SecurityIndexAccessEvaluator {
             }
         }
 
-        if(requestedResolved.isLocalAll() || requestedResolved.getAllIndices().contains(securityIndex)
-                || matchAnySystemIndices(requestedResolved)) {
+        if (requestedResolved.isLocalAll() || requestedResolved.getAllIndices().contains(securityIndex) || matchAnySystemIndices(requestedResolved)) {
 
-            if(request instanceof SearchRequest) {
-                ((SearchRequest)request).requestCache(Boolean.FALSE);
+            if (request instanceof SearchRequest) {
+                ((SearchRequest) request).requestCache(Boolean.FALSE);
                 if (isDebugEnabled) {
                     log.debug("Disable search request cache for this request");
                 }
             }
 
-            if(request instanceof RealtimeRequest) {
+            if (request instanceof RealtimeRequest) {
                 ((RealtimeRequest) request).realtime(Boolean.FALSE);
                 if (isDebugEnabled) {
                     log.debug("Disable realtime for this request");
@@ -148,6 +163,23 @@ public class SecurityIndexAccessEvaluator {
             }
         }
         return presponse;
+    }
+
+    private  boolean checkExtensionPermissionsForUser(ConfigModelV7.SecurityRoles securityRoles) {
+        Set<WildcardMatcher> userPermMatchers = new HashSet<>();
+
+        securityRoles.getRoles().stream().forEach(securityRole -> {
+            securityRole.getIpatterns().stream().forEach((ip) -> {
+                userPermMatchers.add(ip.getNonStarPerms());
+            });
+        });
+
+        for(WildcardMatcher userPermMatcher : userPermMatchers.stream().filter( matcher ->  !matcher.toString().equals("*")).collect(Collectors.toSet()) ){
+            if(userPermMatcher.matchAny(ConfigConstants.EXTENSIONS_PERMISSION)){
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean matchAnySystemIndices(final Resolved requestedResolved){

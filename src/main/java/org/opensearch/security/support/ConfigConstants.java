@@ -49,7 +49,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_ORIGIN_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"origin_header";
 
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_query";
-    
+
     public static final String OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_filter_level_query";
     public static final String OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_filter_level_query_t";
 
@@ -57,7 +57,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DLS_MODE_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_mode_t";
 
     public static final String OPENDISTRO_SECURITY_FLS_FIELDS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"fls_fields";
-    
+
     public static final String OPENDISTRO_SECURITY_MASKED_FIELD_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"masked_fields";
 
 
@@ -65,7 +65,7 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_DOC_ALLOWLIST_TRANSIENT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"doc_allowlist_t";
 
     public static final String OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE = OPENDISTRO_SECURITY_CONFIG_PREFIX+"filter_level_dls_done";
-    
+
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"dls_query_ccs";
 
     public static final String OPENDISTRO_SECURITY_FLS_FIELDS_CCS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"fls_fields_ccs";
@@ -76,7 +76,7 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS = OPENDISTRO_SECURITY_CONFIG_PREFIX+"remote_address";
     public static final String OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"remote_address_header";
-    
+
     public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"initial_action_class_header";
 
     /**
@@ -117,7 +117,7 @@ public class ConfigConstants {
 
     public static final String SSO_LOGOUT_URL = OPENDISTRO_SECURITY_CONFIG_PREFIX+"sso_logout_url";
 
-    
+
     public static final String OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX = ".opendistro_security";
 
     public static final String SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE = "plugins.security.enable_snapshot_restore_privilege";
@@ -130,7 +130,7 @@ public class ConfigConstants {
                     "indices:admin/create",
                     "indices:data/write/index"
                     // "indices:data/write/bulk"
-              )));
+            )));
 
     public static final String SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS = "plugins.security.cert.intercluster_request_evaluator_class";
     public static final String OPENDISTRO_SECURITY_ACTION_NAME = OPENDISTRO_SECURITY_CONFIG_PREFIX+"action_name";
@@ -140,7 +140,7 @@ public class ConfigConstants {
     public static final String SECURITY_CONFIG_INDEX_NAME = "plugins.security.config_index_name";
     public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = "plugins.security.authcz.impersonation_dn";
     public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS="plugins.security.authcz.rest_impersonation_user";
-    
+
     public static final String SECURITY_AUDIT_TYPE_DEFAULT = "plugins.security.audit.type";
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT = "plugins.security.audit.config";
     public static final String SECURITY_AUDIT_CONFIG_ROUTES = "plugins.security.audit.routes";
@@ -161,14 +161,14 @@ public class ConfigConstants {
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_VERIFY_HOSTNAMES_DEFAULT = true;
     public static final boolean OPENDISTRO_SECURITY_AUDIT_SSL_ENABLE_SSL_CLIENT_AUTH_DEFAULT = false;
     public static final String OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS = "opendistro_security.audit.exclude_sensitive_headers";
-    
+
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "plugins.security.audit.config.";
 
 
     // Internal / External OpenSearch
     public static final String SECURITY_AUDIT_OPENSEARCH_INDEX = "index";
     public static final String SECURITY_AUDIT_OPENSEARCH_TYPE = "type";
-    
+
     // External OpenSearch
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_HTTP_ENDPOINTS = "http_endpoints";
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_USERNAME = "username";
@@ -193,16 +193,16 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_WEBHOOK_SSL_VERIFY = "webhook.ssl.verify";
     public static final String SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH = "webhook.ssl.pemtrustedcas_filepath";
     public static final String SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT = "webhook.ssl.pemtrustedcas_content";
-    
+
     // Log4j
     public static final String SECURITY_AUDIT_LOG4J_LOGGER_NAME = "log4j.logger_name";
     public static final String SECURITY_AUDIT_LOG4J_LEVEL = "log4j.level";
-    
+
     //retry
     public static final String SECURITY_AUDIT_RETRY_COUNT = "plugins.security.audit.config.retry_count";
     public static final String SECURITY_AUDIT_RETRY_DELAY_MS = "plugins.security.audit.config.retry_delay_ms";
 
-        
+
     public static final String SECURITY_KERBEROS_KRB5_FILEPATH = "plugins.security.kerberos.krb5_filepath";
     public static final String SECURITY_KERBEROS_ACCEPTOR_KEYTAB_FILEPATH = "plugins.security.kerberos.acceptor_keytab_filepath";
     public static final String SECURITY_KERBEROS_ACCEPTOR_PRINCIPAL = "plugins.security.kerberos.acceptor_principal";
@@ -250,11 +250,11 @@ public class ConfigConstants {
     public static final String SECURITY_DLS_MODE = "plugins.security.dls.mode";
     // REST API
     public static final String SECURITY_RESTAPI_ROLES_ENABLED = "plugins.security.restapi.roles_enabled";
-    public static final String SECURITY_RESTAPI_ADMIN_ENABLED = "plugins.security.restapi.admin.enabled";
     public static final String SECURITY_RESTAPI_ENDPOINTS_DISABLED = "plugins.security.restapi.endpoints_disabled";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = "plugins.security.restapi.password_validation_regex";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE = "plugins.security.restapi.password_validation_error_message";
 
+    // Illegal Opcodes from here on
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "plugins.security.unsupported.disable_rest_auth_initially";
     public static final String SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY = "plugins.security.unsupported.disable_intertransport_auth_initially";
     public static final String SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY = "plugins.security.unsupported.passive_intertransport_auth_initially";
@@ -284,14 +284,11 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER = "opendistro_security_injected_roles_validation_header";
 
     // System indices settings
+    public static final String EXTENSIONS_PERMISSION = "system:admin/system_index";
     public static final String SECURITY_SYSTEM_INDICES_ENABLED_KEY = "plugins.security.system_indices.enabled";
     public static final Boolean SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
-
-    public static final String TENANCY_PRIVATE_TENANT_NAME = "Private";
-    public static final String TENANCY_GLOBAL_TENANT_NAME = "Global";
-    public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
     public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
         final List<String> list = settings.getAsList(key, defaultList);

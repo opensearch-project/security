@@ -89,6 +89,7 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
+import org.opensearch.security.securityconf.ConfigModelV7;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
@@ -134,11 +135,11 @@ public class PrivilegesEvaluator {
     private final boolean dfmEmptyOverwritesAll;
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
-    
+
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
-                               final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
-                               AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
-                               final IndexResolverReplacer irr, boolean dlsFlsEnabled, NamedXContentRegistry namedXContentRegistry) {
+            final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
+            AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
+            final IndexResolverReplacer irr, boolean dlsFlsEnabled, NamedXContentRegistry namedXContentRegistry) {
 
         super();
         this.clusterService = clusterService;
@@ -179,8 +180,8 @@ public class PrivilegesEvaluator {
     }
 
     public boolean hasRestAdminPermissions(final User user,
-                                           final TransportAddress remoteAddress,
-                                           final String permissions) {
+            final TransportAddress remoteAddress,
+            final String permissions) {
         final Set<String> userRoles = mapRoles(user, remoteAddress);
         return hasRestAdminPermissions(userRoles, permissions);
     }
@@ -209,7 +210,7 @@ public class PrivilegesEvaluator {
     }
 
     public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request,
-                                                Task task, final Set<String> injectedRoles) {
+            Task task, final Set<String> injectedRoles) {
 
         if (!isInitialized()) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
@@ -286,7 +287,8 @@ public class PrivilegesEvaluator {
         }
 
         // Security index access
-        if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse).isComplete()) {
+        if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse,
+                (ConfigModelV7.SecurityRoles) securityRoles).isComplete()) {
             return presponse;
         }
 
@@ -309,7 +311,7 @@ public class PrivilegesEvaluator {
         }
 
         presponse.evaluatedDlsFlsConfig = getSecurityRoles(mappedRoles).getDlsFls(user, dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
-        
+
 
         if (isClusterPerm(action0)) {
             if(!securityRoles.impliesClusterPermissionPermission(action0)) {
@@ -348,7 +350,7 @@ public class PrivilegesEvaluator {
                     if (dnfofEnabled
                             && (action0.startsWith("indices:data/read/"))
                             && !requestedResolved.getAllIndices().isEmpty()
-                            ) {
+                    ) {
 
                         if(requestedResolved.getAllIndices().isEmpty()) {
                             presponse.missingPrivileges.clear();
@@ -384,7 +386,7 @@ public class PrivilegesEvaluator {
             presponse.allowed = true;
             return presponse;
         }
-        
+
         // term aggregations
         if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse) .isComplete()) {
             return presponse;
@@ -480,7 +482,7 @@ public class PrivilegesEvaluator {
 
         }
 
-         if (!permGiven) {
+        if (!permGiven) {
             log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "index" , user, requestedResolved, action0,
                     securityRoles.getRoleNames());
             log.info("No permissions for {}", presponse.missingPrivileges);
@@ -522,15 +524,6 @@ public class PrivilegesEvaluator {
                 && dcm.isDashboardsMultitenancyEnabled();
     }
 
-    public boolean privateTenantEnabled() {
-        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && dcm.isDashboardsPrivateTenantEnabled();
-    }
-
-    public String dashboardsDefaultTenant() {
-        return dcm.getDashboardsDefaultTenant();
-    }
-
     public boolean notFailOnForbiddenEnabled() {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
                 && dcm.isDnfofEnabled();
@@ -549,7 +542,7 @@ public class PrivilegesEvaluator {
     }
 
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {
-      //--- check inner bulk requests
+        //--- check inner bulk requests
         final Set<String> additionalPermissionsRequired = new HashSet<>();
 
         if(!isClusterPerm(originalAction)) {
@@ -619,14 +612,14 @@ public class PrivilegesEvaluator {
         return  (    action0.startsWith("cluster:")
                 || action0.startsWith("indices:admin/template/")
                 || action0.startsWith("indices:admin/index_template/")
-            || action0.startsWith(SearchScrollAction.NAME)
-            || (action0.equals(BulkAction.NAME))
-            || (action0.equals(MultiGetAction.NAME))
-            || (action0.equals(MultiSearchAction.NAME))
-            || (action0.equals(MultiTermVectorsAction.NAME))
-            || (action0.equals(ReindexAction.NAME))
+                || action0.startsWith(SearchScrollAction.NAME)
+                || (action0.equals(BulkAction.NAME))
+                || (action0.equals(MultiGetAction.NAME))
+                || (action0.equals(MultiSearchAction.NAME))
+                || (action0.equals(MultiTermVectorsAction.NAME))
+                || (action0.equals(ReindexAction.NAME))
 
-            ) ;
+        ) ;
     }
 
     @SuppressWarnings("unchecked")
@@ -728,7 +721,7 @@ public class PrivilegesEvaluator {
                 if (log.isDebugEnabled()) {
                     log.debug("Request " + request + " is allowed by " + documentAllowList);
                 }
-                
+
                 return true;
             } else {
                 return false;
@@ -739,7 +732,7 @@ public class PrivilegesEvaluator {
             return false;
         }
     }
-    
+
     private List<String> toString(List<AliasMetadata> aliases) {
         if(aliases == null || aliases.size() == 0) {
             return Collections.emptyList();
