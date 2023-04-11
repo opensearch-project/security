@@ -76,6 +76,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected final ClusterService cs;
 	final ThreadPool threadPool;
 	protected String securityIndexName;
+	protected String tokenIndexName;
 	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
 	protected final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
 	protected final AuditLog auditLog;
@@ -89,7 +90,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.settings = settings;
 		this.securityIndexName = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
 				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-
+		this.tokenIndexName = settings.get(ConfigConstants.TOKEN_CONFIG_INDEX_NAME,
+				ConfigConstants.TOKEN_DEFAULT_CONFIG_INDEX);
 		this.cl = cl;
 		this.cs = cs;
 		this.threadPool = threadPool;
@@ -269,8 +271,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return DynamicConfigFactory.addStatics(loaded);
     }
 
-	protected boolean ensureIndexExists() {
-		if (!cs.state().metadata().hasConcreteIndex(this.securityIndexName)) {
+	protected boolean ensureIndexExists(String indexName) {
+		if (!cs.state().metadata().hasConcreteIndex(indexName)) {
 			return false;
 		}
 		return true;
@@ -380,7 +382,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		consumeParameters(request);
 
 		// check if .opendistro_security index has been initialized
-		if (!ensureIndexExists()) {
+		if (!ensureIndexExists(this.securityIndexName)) {
 			return channel -> internalErrorResponse(channel, ErrorType.SECURITY_NOT_INITIALIZED.getMessage());
 		}
 

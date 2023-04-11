@@ -256,6 +256,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
             try {
                 tc.admin().indices().create(new CreateIndexRequest(".opendistro_security")).actionGet();
+                tc.admin().indices().create(new CreateIndexRequest(".security_tokens")).actionGet();
             } catch (Exception e) {
                 //ignore
             }

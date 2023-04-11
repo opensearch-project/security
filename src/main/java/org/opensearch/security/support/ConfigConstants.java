@@ -135,6 +135,7 @@ public class ConfigConstants {
 
 
     public static final String SECURITY_AUTHCZ_ADMIN_DN = "plugins.security.authcz.admin_dn";
+
     public static final String SECURITY_CONFIG_INDEX_NAME = "plugins.security.config_index_name";
     public static final String SECURITY_AUTHCZ_IMPERSONATION_DN = "plugins.security.authcz.impersonation_dn";
     public static final String SECURITY_AUTHCZ_REST_IMPERSONATION_USERS="plugins.security.authcz.rest_impersonation_user";

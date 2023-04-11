@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 
+import org.apache.lucene.index.IndexNotFoundException;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
@@ -56,11 +57,13 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user/"),
+            new Route(Method.GET, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
             new Route(Method.PUT, "/user/{name}"),
 
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/internalusers/{name}"),
+            new Route(Method.GET, "/internalusers/{name}/authtoken"),
             new Route(Method.GET, "/internalusers/"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
@@ -153,6 +156,57 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                     successResponse(channel, "'" + username + "' updated.");
                 } else {
                     createdResponse(channel, "'" + username + "' created.");
+                }
+
+            }
+        });
+    }
+
+    @Override
+    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
+
+        final String username = request.param("name");
+
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+        filter(internalUsersConfiguration);
+
+        // no specific resource requested, return complete config
+        if (username == null || username.length() == 0) {
+
+            successResponse(channel, internalUsersConfiguration);
+            return;
+        }
+
+        final boolean userExisted = internalUsersConfiguration.exists(username);
+
+        if (!userExisted) {
+            notFound(channel, "Resource '" + username + "' not found.");
+            return;
+        }
+
+        SecurityDynamicConfiguration<?> tokenConfiguration = null;
+        try {
+            if (request.uri().contains("/internalusers/" + username + "/authtoken")) {
+                if (!ensureIndexExists(this.tokenIndexName)) {
+                    throw new IndexNotFoundException("The token index is not initialized.");
+                }
+                tokenConfiguration = userService.generateAuthToken(username);
+            }
+        }  catch (UserServiceException ex) {
+            badRequestResponse(channel, ex.getMessage());
+            return;
+        }
+        catch (IOException ex) {
+            throw new IOException(ex);
+        }
+        saveAndUpdateConfigs(this.tokenIndexName, client,  CType.TOKENS, tokenConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+
+            @Override
+            public void onResponse(IndexResponse response) {
+                if (userExisted) {
+                    successResponse(channel, "'" + username + "' authtoken updated.");
+                } else {
+                    createdResponse(channel, "'" + username + "' authtoken created.");
                 }
 
             }

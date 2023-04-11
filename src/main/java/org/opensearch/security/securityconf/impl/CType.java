@@ -61,7 +61,8 @@ public enum CType {
     NODESDN(toMap(1, NodesDn.class, 2, NodesDn.class)),
     WHITELIST(toMap(1, WhitelistingSettings.class, 2, WhitelistingSettings.class)),
     ALLOWLIST(toMap(1, AllowlistingSettings.class, 2, AllowlistingSettings.class)),
-    AUDIT(toMap(1, AuditConfig.class, 2, AuditConfig.class));
+    AUDIT(toMap(1, AuditConfig.class, 2, AuditConfig.class)),
+    TOKENS(toMap(1, String.class, 2, String.class));
 
     private Map<Integer, Class<?>> implementations;
 
