@@ -77,7 +77,7 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
-                    + authz + "]";
+                    + authz + ", extensions=" + extensions + "]";
         }
     }
 
@@ -342,6 +342,11 @@ public class ConfigV6 {
 
         public void setEncryptionKey(String encryptionKey) {
             this.encryptionKey = encryptionKey;
+        }
+
+        @Override
+        public String toString() {
+            return "Extensions [signing_key=" + signingKey + ", encryption_key=" + encryptionKey +"]";
         }
     }
 }
