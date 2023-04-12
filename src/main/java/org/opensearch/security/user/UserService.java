@@ -231,12 +231,12 @@ public class UserService {
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
 
-        // Check if token index exists -- should exist as part of ConfigurationRepository, installDefaultConfig()
+        // TODO: Check if token index exists -- should exist as part of ConfigurationRepository, installDefaultConfig()
+        // Create index if not
 
+        // Fetch existing tokens as keys of index
+        // Check for key with accountName as value
 
-        GetIndexRequest getIndexRequest = new GetIndexRequest(tokenIndex);
-        // TODO: Need to get a rest high level client at this point to be able to access the index information
-        // GetIndexResponse response = restHighLevelClient.indices().get(getIndexRequest, DEFAULT);
 
         if (!internalUsersConfiguration.exists(accountName)) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
@@ -278,9 +278,9 @@ public class UserService {
             internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
             saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
-            tokenConfiguration.remove(oldToken);
-            tokenConfiguration.putCObject(authToken, accountName); // Makes a configuration entry of <String token, String accountName>
-            return tokenConfiguration;
+            // Remove the old token found at top of the update process
+            // Add new <token, accountName> pair to index
+            // forward response to InternalUsersAPIAction
 
         } catch (JsonProcessingException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
