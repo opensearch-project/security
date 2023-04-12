@@ -52,9 +52,9 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '6.16.0'
+    id 'com.diffplug.spotless' version '6.18.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.0.0"
+    id 'com.netflix.nebula.ospackage' version "11.1.0"
     id "org.gradle.test-retry" version "1.5.2"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.14"
