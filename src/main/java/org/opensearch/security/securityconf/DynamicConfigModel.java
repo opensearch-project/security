@@ -80,7 +80,9 @@ public abstract class DynamicConfigModel {
     public abstract Multimap<String, AuthFailureListener> getAuthBackendFailureListeners();
     public abstract List<ClientBlockRegistry<InetAddress>> getIpClientBlockRegistries();
     public abstract Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries();
-    
+    public abstract String getExtensionsSigningKey();
+    public abstract String getExtensionsEncryptionKey();
+
     protected final Map<String, String> authImplMap = new HashMap<>();
 
     public DynamicConfigModel() {

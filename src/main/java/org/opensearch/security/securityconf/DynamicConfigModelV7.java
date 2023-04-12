@@ -189,10 +189,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
     }
 
+    @Override
     public String getExtensionsSigningKey() {
         return config.dynamic.extensions.getSigningKey();
     }
 
+    @Override
     public String getExtensionsEncryptionKey() {
         return config.dynamic.extensions.getEncryptionKey();
     }

@@ -188,7 +188,17 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     public Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries() {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
     }
-    
+
+    @Override
+    public String getExtensionsSigningKey() {
+        return config.dynamic.extensions.getSigningKey();
+    }
+
+    @Override
+    public String getExtensionsEncryptionKey() {
+        return config.dynamic.extensions.getEncryptionKey();
+    }
+
     private void buildAAA() {
         
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
