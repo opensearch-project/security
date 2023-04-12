@@ -188,7 +188,14 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     public Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries() {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
     }
-    
+
+    public String getExtensionsSigningKey() {
+        return config.dynamic.extensions.getSigningKey();
+    }
+
+    public String getExtensionsEncryptionKey() {
+        return config.dynamic.extensions.getEncryptionKey();
+    }
     
     private void buildAAA() {
         
