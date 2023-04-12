@@ -108,7 +108,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             exception = ex;
             log.debug(ex.toString());
             Assert.assertNotNull(exception);
-            Assert.assertTrue(exception.getMessage().contains("no permissions for [indices:admin/create] and User [name=ttt, backend_roles=[kkk], requestedTenant=null]"));
+            Assert.assertTrue(exception.getMessage().toString().contains("no permissions for [indices:admin/create] and User [name=ttt, backend_roles=[kkk], requestedTenant=null]"));
         }
 
 

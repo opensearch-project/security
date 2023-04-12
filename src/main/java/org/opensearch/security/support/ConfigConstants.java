@@ -289,6 +289,11 @@ public class ConfigConstants {
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
 
     public static final String TOKEN_INDEX_NAME = ".security_tokens";
+    public static final Integer TOKEN_INDEX_SCHEMA_VERSION = 1;
+    public static Integer NO_SCHEMA_VERSION = 0;
+    public static final String META = "_meta";
+
+    public static final String SCHEMA_VERSION_FIELD = "schema_version";
 
     public static final String TENANCY_PRIVATE_TENANT_NAME = "Private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "Global";

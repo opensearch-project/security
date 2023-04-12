@@ -46,6 +46,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.index.IndexService;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -228,8 +229,10 @@ public class UserService {
      */
     public SecurityDynamicConfiguration<?> generateAuthToken(String accountName) throws IOException {
 
-
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
+
+        // Check if token index exists -- should exist as part of ConfigurationRepository, installDefaultConfig()
+
 
         GetIndexRequest getIndexRequest = new GetIndexRequest(tokenIndex);
         // TODO: Need to get a rest high level client at this point to be able to access the index information
