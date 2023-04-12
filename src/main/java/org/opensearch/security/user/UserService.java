@@ -19,7 +19,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
-
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.get.GetIndexRequestBuilder;
+import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.DocWriteResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -35,6 +38,9 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
+import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.indices.GetIndexRequest;
+import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
@@ -51,6 +57,7 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
 
+import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.security.dlic.rest.api.AbstractApiAction.saveAndUpdateConfigs;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
@@ -63,6 +70,7 @@ public class UserService {
     ClusterService clusterService;
     static ConfigurationRepository configurationRepository;
     String securityIndex;
+    String tokenIndex;
     Client client;
 
     User tokenUser;
@@ -79,10 +87,6 @@ public class UserService {
     final static String AUTH_TOKEN_GENERATION_MESSAGE = "An auth token could not be generated for the specified account.";
     private static CType getUserConfigName() {
         return CType.INTERNALUSERS;
-    }
-
-    private static CType getTokenConfigName() {
-        return CType.TOKENS;
     }
 
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
@@ -105,6 +109,7 @@ public class UserService {
         // No one should be able to act as this user, so generate a random value and never store it
         AuthCredentials credentials = new AuthCredentials("tokenUser", new SecureRandom().toString().getBytes());
         this.tokenUser = new User("tokenUser", Collections.singleton("admin"), credentials); // TODO: Confirm this is proper
+        this.tokenIndex = ConfigConstants.TOKEN_INDEX_NAME;
     }
 
     /**
@@ -221,10 +226,14 @@ public class UserService {
      * @param accountName A string representing the name of the account
      * @return A string auth token
      */
-    public SecurityDynamicConfiguration<?> generateAuthToken(String accountName) throws JsonProcessingException {
+    public SecurityDynamicConfiguration<?> generateAuthToken(String accountName) throws IOException {
+
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
-        SecurityDynamicConfiguration<?> tokenConfiguration = load(getTokenConfigName(), false);
+
+        GetIndexRequest getIndexRequest = new GetIndexRequest(tokenIndex);
+        // TODO: Need to get a rest high level client at this point to be able to access the index information
+        // GetIndexResponse response = restHighLevelClient.indices().get(getIndexRequest, DEFAULT);
 
         if (!internalUsersConfiguration.exists(accountName)) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);

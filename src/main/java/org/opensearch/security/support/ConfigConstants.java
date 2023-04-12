@@ -288,6 +288,8 @@ public class ConfigConstants {
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
 
+    public static final String TOKEN_INDEX_NAME = ".security_tokens";
+
     public static final String TENANCY_PRIVATE_TENANT_NAME = "Private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "Global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";

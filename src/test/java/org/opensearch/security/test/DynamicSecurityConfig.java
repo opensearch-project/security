@@ -38,7 +38,6 @@ import org.opensearch.security.test.helper.file.FileHelper;
 public class DynamicSecurityConfig {
 
     private String securityIndexName = ".opendistro_security";
-    private String tokenIndexName = ".security_tokens";
     private String securityConfig = "config.yml";
     private String securityRoles = "roles.yml";
     private String securityTenants = "roles_tenants.yml";
@@ -184,10 +183,6 @@ public class DynamicSecurityConfig {
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                     .source(CType.AUDIT.toLCString(), FileHelper.readYamlContent(auditYmlFile)));
         }
-
-        ret.add(new IndexRequest(tokenIndexName)
-                .id(CType.TOKENS.toLCString())
-                .setRefreshPolicy(RefreshPolicy.IMMEDIATE));
 
         return Collections.unmodifiableList(ret);
     }

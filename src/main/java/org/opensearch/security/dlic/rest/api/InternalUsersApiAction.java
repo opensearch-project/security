@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 
+import java.util.Map;
 import org.apache.lucene.index.IndexNotFoundException;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
@@ -199,7 +200,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         catch (IOException ex) {
             throw new IOException(ex);
         }
-        saveAndUpdateConfigs(this.tokenIndexName, client,  CType.TOKENS, tokenConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.tokenIndexName, client,  new Map<String, String>(), tokenConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {

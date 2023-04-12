@@ -81,6 +81,7 @@ public class ConfigurationRepository {
     private static final Logger LOGGER = LogManager.getLogger(ConfigurationRepository.class);
 
     private final String securityIndex;
+    private final String tokenIndex;
     private final Client client;
     private final Cache<CType, SecurityDynamicConfiguration<?>> configCache;
     private final List<ConfigurationChangeListener> configurationChangedListener;
@@ -98,6 +99,7 @@ public class ConfigurationRepository {
     private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
                                     Client client, ClusterService clusterService, AuditLog auditLog) {
         this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.tokenIndex = ConfigConstants.TOKEN_INDEX_NAME;
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
@@ -131,8 +133,10 @@ public class ConfigurationRepository {
                             try(StoredContext ctx = threadContext.stashContext()) {
                                 threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
-                                createSecurityIndexIfAbsent();
-                                waitForSecurityIndexToBeAtLeastYellow();
+                                createIndexIfAbsent(securityIndex);
+                                createIndexIfAbsent(tokenIndex);
+                                waitForIndexToBeAtLeastYellow(securityIndex);
+                                waitForIndexToBeAtLeastYellow(tokenIndex);
 
                                 ConfigHelper.uploadFile(client, cd+"config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
                                 ConfigHelper.uploadFile(client, cd+"roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
@@ -202,32 +206,32 @@ public class ConfigurationRepository {
 
     }
 
-    private boolean createSecurityIndexIfAbsent() {
+    private boolean createIndexIfAbsent(String index) {
         try {
             final Map<String, Object> indexSettings = ImmutableMap.of(
                     "index.number_of_shards", 1,
                     "index.auto_expand_replicas", "0-all"
             );
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityIndex)
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(index)
                     .settings(indexSettings);
             final boolean ok = client.admin()
                     .indices()
                     .create(createIndexRequest)
                     .actionGet()
                     .isAcknowledged();
-            LOGGER.info("Index {} created?: {}", securityIndex, ok);
+            LOGGER.info("Index {} created?: {}", index, ok);
             return ok;
         } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
-            LOGGER.info("Index {} already exists", securityIndex);
+            LOGGER.info("Index {} already exists", index);
             return false;
         }
     }
 
-    private void waitForSecurityIndexToBeAtLeastYellow() {
+    private void waitForIndexToBeAtLeastYellow(String index) {
         LOGGER.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
         ClusterHealthResponse response = null;
         try {
-            response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex)
+            response = client.admin().cluster().health(new ClusterHealthRequest(index)
                     .waitForActiveShards(1)
                     .waitForYellowStatus()).actionGet();
         } catch (Exception e) {
@@ -235,7 +239,7 @@ public class ConfigurationRepository {
         }
 
         while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-            LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", securityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
+            LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", index, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -243,7 +247,7 @@ public class ConfigurationRepository {
                 Thread.currentThread().interrupt();
             }
             try {
-                response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex).waitForYellowStatus()).actionGet();
+                response = client.admin().cluster().health(new ClusterHealthRequest(index).waitForYellowStatus()).actionGet();
             } catch (Exception e) {
                 LOGGER.debug("Caught again a {} but we just try again ...", e.toString());
             }
@@ -254,15 +258,20 @@ public class ConfigurationRepository {
         try {
             if (settings.getAsBoolean(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, false)) {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
+                LOGGER.info("Will attempt to create index {} if absent", tokenIndex);
                 installDefaultConfig.set(true);
                 bgThread.start();
             } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
                 LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
                         securityIndex);
+                LOGGER.info("Will not attempt to create index {}",
+                        tokenIndex);
                 bgThread.start();
             } else {
                 LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
                         securityIndex);
+                LOGGER.info("Will not attempt to create index {}",
+                        tokenIndex);
             }
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
