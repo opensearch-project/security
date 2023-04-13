@@ -45,9 +45,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SecurityIndexAccessEvaluator {
-    
+
     Logger log = LogManager.getLogger(this.getClass());
-    
+
     private final String securityIndex;
     private final AuditLog auditLog;
     private final WildcardMatcher securityDeniedActionMatcher;
@@ -99,12 +99,12 @@ public class SecurityIndexAccessEvaluator {
     public PrivilegesEvaluatorResponse evaluate(
             final ActionRequest request,
             final Task task,
-            final String action, 
+            final String action,
             final Resolved requestedResolved,
         final PrivilegesEvaluatorResponse presponse,
             ConfigModelV7.SecurityRoles securityRoles) {
 
-            boolean isDebugEnabled = log.isDebugEnabled();
+            final boolean isDebugEnabled = log.isDebugEnabled();
 
             if( matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)){
             log.warn("An account without the {} permission  is trying to access one of the Extensions's System Indexes. Related indexes: {}", ConfigConstants.SYSTEM_INDEX_PERMISSION, requestedResolved.getAllIndices() );
