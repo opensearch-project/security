@@ -54,7 +54,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
                     "subject_dn", "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
                     "san", "[[8, 1.2.3.4.5.5], [0, [2.5.4.3, node-1.example.com]], [2, node-1.example.com], [2, localhost], [7, 127.0.0.1]]",
                     "not_before", "2023-04-13T19:23:03Z",
-                    "not_after", "2033-04-10T00:23:03Z"
+                    "not_after", "2033-04-10T19:23:03Z"
             ));
 
     private final List<Map<String, String>> NEW_NODE_CERT_DETAILS = ImmutableList.of(
