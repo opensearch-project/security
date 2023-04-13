@@ -95,11 +95,11 @@ public class SecurityIndexAccessEvaluator {
     }
 
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
-            final PrivilegesEvaluatorResponse presponse,  ConfigModelV7.SecurityRoles securityRoles) {
+        final PrivilegesEvaluatorResponse presponse,  ConfigModelV7.SecurityRoles securityRoles) {
 
-        boolean isDebugEnabled = log.isDebugEnabled();
+            boolean isDebugEnabled = log.isDebugEnabled();
 
-        if( matchAnySystemIndices(requestedResolved) && !checkExtensionPermissionsForUser(securityRoles)){
+            if( matchAnySystemIndices(requestedResolved) && !checkExtensionPermissionsForUser(securityRoles)){
             log.warn("An account without the {} permission  is trying to access one of the Extensions's System Indexes. Related indexes: {}", ConfigConstants.EXTENSIONS_PERMISSION, requestedResolved.getAllIndices() );
             presponse.allowed = false;
             return presponse.markComplete();
@@ -120,7 +120,7 @@ public class SecurityIndexAccessEvaluator {
                 presponse.allowed = false;
                 return presponse.markComplete();
             }
-            if (matchAnySystemIndices(requestedResolved)) {
+            if (matchAnySystemIndices(requestedResolved) && !checkExtensionPermissionsForUser(securityRoles)) {
                 if (filterSecurityIndex) {
                     Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
                     allWithoutSecurity.remove(securityIndex);

@@ -12,3 +12,15 @@ opendistro_security_all_access:
         - '*'
       allowed_actions:
         - '*'
+
+extensions_role:
+  description: "ExtensionsRole"
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - '*'
+        - 'config1'
+      allowed_actions:
+        - '*'
+        - 'system:admin/system_index'
