@@ -53,8 +53,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
                     "issuer_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
                     "subject_dn", "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
                     "san", "[[8, 1.2.3.4.5.5], [0, [2.5.4.3, node-1.example.com]], [2, node-1.example.com], [2, localhost], [7, 127.0.0.1]]",
-                    "not_before", "2021-04-12T00:07:08Z",
-                    "not_after", "2023-04-12T00:07:08Z"
+                    "not_before", "2023-04-13T20:30:00Z",
+                    "not_after", "2033-04-10T20:50:30Z"
             ));
 
     private final List<Map<String, String>> NEW_NODE_CERT_DETAILS = ImmutableList.of(
@@ -62,8 +62,8 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
                     "issuer_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
                     "subject_dn", "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
                     "san", "[[8, 1.2.3.4.5.5], [0, [2.5.4.3, node-1.example.com]], [2, node-1.example.com], [2, localhost], [7, 127.0.0.1]]",
-                    "not_before", "2021-04-12T00:09:00Z",
-                    "not_after", "2023-04-12T00:09:00Z"
+                    "not_before", "2023-04-13T20:30:00Z",
+                    "not_after", "2033-04-10T20:50:30Z"
             )
     );
 
