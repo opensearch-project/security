@@ -54,13 +54,9 @@ public class SecurityIndexAccessEvaluatorTest {
     private PrivilegesEvaluatorResponse presponse;
     @Mock
     private Logger log;
-
-
     private SecurityIndexAccessEvaluator evaluator;
-
     private static final String UNPROTECTED_ACTION = "indices:data/read";
     private static final String PROTECTED_ACTION = "indices:data/write";
-
     @Mock
     ConfigModelV7 configModelV7;
     ConfigModelV7.SecurityRoles securityRoles = configModelV7.getSecurityRoles();
@@ -69,11 +65,11 @@ public class SecurityIndexAccessEvaluatorTest {
     public void before() {
         evaluator = new SecurityIndexAccessEvaluator(
                 Settings.EMPTY.builder()
-                        .put("plugins.security.system_indices.indices", ".testSystemIndex")
-                        .put("plugins.security.system_indices.enabled", true)
-                        .build(),
-                auditLog,
-                irr);
+                    .put("plugins.security.system_indices.indices", ".testSystemIndex")
+                    .put("plugins.security.system_indices.enabled", true)
+                    .build(),
+            auditLog,
+            irr);
         evaluator.log = log;
 
         when(log.isDebugEnabled()).thenReturn(true);
@@ -83,7 +79,6 @@ public class SecurityIndexAccessEvaluatorTest {
     public void after() {
         verifyNoMoreInteractions(auditLog, irr, request, task, presponse, log);
     }
-
     @Test
     public void actionIsNotProtected_noSystemIndexInvolved() {
         final Resolved resolved = createResolved(".testSystemIndex");
@@ -148,7 +143,7 @@ public class SecurityIndexAccessEvaluatorTest {
         verify(log).warn(
                 "{} for '{}' index is not allowed for a regular user",
                 "indices:data/write",
-                ".opendistro_security, .testSystemIndex");
+                ".opendistro_security, .test");
     }
 
     private Resolved createResolved(final String... indexes) {

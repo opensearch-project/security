@@ -50,13 +50,15 @@ import static org.junit.Assert.assertEquals;
  */
 public class SystemIndicesTests extends SingleClusterTest {
 
-    private static final List<String> listOfIndexesToTest = Arrays.asList("config1", "config2");
+    private static final List<String> listOfIndexesToTest = Arrays.asList("system_index_a", "system_index_b");
     private static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
     private static final String allAccessUser = "admin_all_access";
     private static final Header allAccessUserHeader = encodeBasicHeader(allAccessUser, allAccessUser);
 
-    private static final String extensionUser = "extension_user";
+    private static final String extensionUser = "extensions_user";
     private static final Header extensionUserHeader = encodeBasicHeader(extensionUser, allAccessUser);
+    private static final String extensionUserC = "extensions_user_c";
+    private static final Header extensionUserCHeader = encodeBasicHeader(extensionUserC, allAccessUser);
     private static final String generalErrorMessage = String.format("no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]", allAccessUser);
 
     private void setupSystemIndicesDisabledWithSsl() throws Exception {
@@ -224,22 +226,28 @@ public class SystemIndicesTests extends SingleClusterTest {
     }
 
     @Test
-    public void testSearchWithSystemIndicesShouldSucceedAsExtensionUser() throws Exception {
+    public void testSearchInOwnSystemIndicesShouldSucceedAsExtensionUser() throws Exception {
         setupSystemIndicesEnabledWithSsl();
         createTestIndicesAndDocs();
         RestHelper restHelper = sslRestHelper();
 
-        //search system indices
         for (String index : listOfIndexesToTest) {
             validateSearchResponse(restHelper.executePostRequest(index + "/_search", matchAllQuery, extensionUserHeader), 0);
         }
 
-        //search all indices
+    }
+
+    public void testSearchAllWithSystemIndicesShouldFailAsExtensionUser() throws Exception {
+        setupSystemIndicesEnabledWithSsl();
+        createTestIndicesAndDocs();
+        RestHelper restHelper = sslRestHelper();
+
+
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, extensionUserHeader);
-        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
         XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
-        assertEquals(RestStatus.OK, searchResponse.status());
+        assertEquals(RestStatus.FORBIDDEN, searchResponse.status());
         assertEquals(0, searchResponse.getHits().getHits().length);
     }
 
@@ -641,10 +649,22 @@ public class SystemIndicesTests extends SingleClusterTest {
         setupSystemIndicesEnabledWithSsl();
         RestHelper sslRestHelper = sslRestHelper();
 
-        RestHelper.HttpResponse response = sslRestHelper.executePostRequest( "config1" +  "/_doc", "{\"foo\": \"bar\"}", extensionUserHeader);
+        RestHelper.HttpResponse response = sslRestHelper.executePostRequest( "system_index_a" +  "/_doc", "{\"foo\": \"bar\"}", extensionUserHeader);
         assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode());
 
-        response = sslRestHelper.executeGetRequest( "config1", extensionUserHeader);
+        response = sslRestHelper.executeGetRequest( "system_index_a", extensionUserHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+    }
+
+    @Test
+    public void testExtensionIndexAccessShouldFailAsDifferentExtensionUser() throws Exception {
+        setupSystemIndicesEnabledWithSsl();
+        RestHelper sslRestHelper = sslRestHelper();
+
+        RestHelper.HttpResponse response = sslRestHelper.executePostRequest( "system_index_a" +  "/_doc", "{\"foo\": \"bar\"}", extensionUserCHeader);
+        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+
+        response = sslRestHelper.executeGetRequest( "system_index_a", extensionUserCHeader);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
 }

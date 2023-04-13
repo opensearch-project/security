@@ -20,7 +20,17 @@ extensions_role:
   index_permissions:
     - index_patterns:
         - '*'
-        - 'config1'
+      allowed_actions:
+        - '*'
+        - 'system:admin/system_index'
+
+extensions_role_c:
+  description: "Limited ExtensionsRole"
+  cluster_permissions:
+    - '*'
+  index_permissions:
+    - index_patterns:
+        - 'system_index_b'
       allowed_actions:
         - '*'
         - 'system:admin/system_index'

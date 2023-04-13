@@ -30,14 +30,12 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
     @Before
     public void setupSettingsIndexPattern() throws Exception {
         Settings settings = Settings.builder()
-                .put("plugins.security.system_indices.indices", ".testSystemExtensionIndex")
-                .put("plugins.security.system_indices.enabled", true)
                 .build();
         setup(Settings.EMPTY,
                 new DynamicSecurityConfig()
-                                        .setSecurityRoles("roles_index_patterns.yml")
-                                        .setSecurityInternalUsers("internal_users_index_patterns.yml")
-                                        .setSecurityRolesMapping("roles_mapping_index_patterns.yml"),
+                        .setSecurityRoles("roles_index_patterns.yml")
+                        .setSecurityInternalUsers("internal_users_index_patterns.yml")
+                        .setSecurityRolesMapping("roles_mapping_index_patterns.yml"),
                 settings,
                 true);
     }
