@@ -16,7 +16,7 @@ import org.opensearch.action.ActionType;
 public class TenancyConfigRetrieveActions extends ActionType<TenancyConfigRetrieveResponse> {
 
     public static final TenancyConfigRetrieveActions INSTANCE = new TenancyConfigRetrieveActions();
-    public static final String NAME = "cluster:admin/tenancy/config/read";
+    public static final String NAME = "cluster:feature/tenancy/config/read";
 
     protected TenancyConfigRetrieveActions() {
         super(NAME, TenancyConfigRetrieveResponse::new);
