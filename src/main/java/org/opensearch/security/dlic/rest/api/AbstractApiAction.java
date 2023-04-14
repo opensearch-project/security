@@ -76,22 +76,20 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected final ClusterService cs;
 	final ThreadPool threadPool;
 	protected String securityIndexName;
-	protected String tokenIndexName;
 	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
 	protected final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
 	protected final AuditLog auditLog;
 	protected final Settings settings;
 
 	protected AbstractApiAction(final Settings settings, final Path configPath, final RestController controller,
-                                final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
-                                final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
-                                ThreadPool threadPool, AuditLog auditLog) {
+								final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
+								final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
+								ThreadPool threadPool, AuditLog auditLog) {
 		super();
 		this.settings = settings;
 		this.securityIndexName = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
 				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
-		this.tokenIndexName = settings.get(ConfigConstants.TOKEN_CONFIG_INDEX_NAME,
-				ConfigConstants.TOKEN_DEFAULT_CONFIG_INDEX);
+
 		this.cl = cl;
 		this.cs = cs;
 		this.threadPool = threadPool;
@@ -104,7 +102,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		this.auditLog = auditLog;
 	}
 
-    protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
+	protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
 
 	protected abstract String getResourceName();
 
@@ -184,8 +182,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
 		if (existingConfiguration.getSeqNo() < 0) {
-		    forbidden(channel, "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate.");
-		    return;
+			forbidden(channel, "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate.");
+			return;
 		}
 
 		if (!isWriteable(channel, existingConfiguration, name)) {
@@ -268,11 +266,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
 		SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent, acceptInvalid).get(config).deepClone();
-        return DynamicConfigFactory.addStatics(loaded);
-    }
+		return DynamicConfigFactory.addStatics(loaded);
+	}
 
-	protected boolean ensureIndexExists(String indexName) {
-		if (!cs.state().metadata().hasConcreteIndex(indexName)) {
+	protected boolean ensureIndexExists() {
+		if (!cs.state().metadata().hasConcreteIndex(this.securityIndexName)) {
 			return false;
 		}
 		return true;
@@ -382,7 +380,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		consumeParameters(request);
 
 		// check if .opendistro_security index has been initialized
-		if (!ensureIndexExists(this.securityIndexName)) {
+		if (!ensureIndexExists()) {
 			return channel -> internalErrorResponse(channel, ErrorType.SECURITY_NOT_INITIALIZED.getMessage());
 		}
 
