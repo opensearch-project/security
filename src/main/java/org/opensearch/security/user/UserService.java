@@ -14,6 +14,7 @@ package org.opensearch.security.user;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -106,11 +107,6 @@ public class UserService {
         this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
                 ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.client = client;
-
-        // No one should be able to act as this user, so generate a random value and never store it
-        AuthCredentials credentials = new AuthCredentials("tokenUser", new SecureRandom().toString().getBytes());
-        this.tokenUser = new User("tokenUser", Collections.singleton("admin"), credentials); // TODO: Confirm this is proper
-        this.tokenIndex = ConfigConstants.TOKEN_INDEX_NAME;
     }
 
     /**
@@ -227,16 +223,9 @@ public class UserService {
      * @param accountName A string representing the name of the account
      * @return A string auth token
      */
-    public SecurityDynamicConfiguration<?> generateAuthToken(String accountName) throws IOException {
+    public String generateAuthToken(String accountName) throws IOException {
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
-
-        // TODO: Check if token index exists -- should exist as part of ConfigurationRepository, installDefaultConfig()
-        // Create index if not
-
-        // Fetch existing tokens as keys of index
-        // Check for key with accountName as value
-
 
         if (!internalUsersConfiguration.exists(accountName)) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
@@ -259,18 +248,9 @@ public class UserService {
                 throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
             }
 
-            LongSupplier nanoClock = () -> System.nanoTime();
-            JwtVendor vendor = new JwtVendor(this.client.settings(), nanoClock);
-            authToken = vendor.createJwt(this.tokenUser.getName(), accountName, accountName, (int) nanoClock.getAsLong(), securityJsonNode.get("attributes").get("roles").asList());
-
-            String oldToken = null;
-            if (securityJsonNode.get("attributes").get("authtoken").isNull()) {
-                contentAsNode.put("authtoken", authToken);
-            } else {
-                oldToken = contentAsNode.get("authtoken").toString();
-                contentAsNode.remove("authtoken");
-                contentAsNode.put("authtoken", authToken);
-            }
+            // Generate a new password for the account and store the hash of it
+            String plainTextPassword = generatePassword();
+            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
 
             // Update the internal user associated with the auth token
             internalUsersConfiguration.remove(accountName);
@@ -278,9 +258,9 @@ public class UserService {
             internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
             saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
-            // Remove the old token found at top of the update process
-            // Add new <token, accountName> pair to index
-            // forward response to InternalUsersAPIAction
+
+            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes());
+            return authToken;
 
         } catch (JsonProcessingException ex) {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);

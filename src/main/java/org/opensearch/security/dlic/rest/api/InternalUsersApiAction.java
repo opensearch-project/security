@@ -22,12 +22,18 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.Map;
 import org.apache.lucene.index.IndexNotFoundException;
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.action.ActionListener;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
@@ -185,13 +191,11 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             return;
         }
 
-        SecurityDynamicConfiguration<?> tokenConfiguration = null;
+        String authToken = "";
         try {
             if (request.uri().contains("/internalusers/" + username + "/authtoken")) {
-                if (!ensureIndexExists(this.tokenIndexName)) {
-                    throw new IndexNotFoundException("The token index is not initialized.");
-                }
-                tokenConfiguration = userService.generateAuthToken(username);
+
+                authToken = userService.generateAuthToken(username);
             }
         }  catch (UserServiceException ex) {
             badRequestResponse(channel, ex.getMessage());
@@ -200,19 +204,14 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         catch (IOException ex) {
             throw new IOException(ex);
         }
-        saveAndUpdateConfigs(this.tokenIndexName, client,  new Map<String, String>(), tokenConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
-            @Override
-            public void onResponse(IndexResponse response) {
-                if (userExisted) {
-                    successResponse(channel, "'" + username + "' authtoken updated.");
-                } else {
-                    createdResponse(channel, "'" + username + "' authtoken created.");
-                }
-
-            }
-        });
+        if (!authToken.isEmpty()) {
+            createdResponse(channel, "'" + username + "' authtoken updated generated "  + authToken);
+        } else {
+            badRequestResponse(channel, "'" + username + "' authtoken failed to be created.");
+        }
     }
+
 
     @Override
     protected void filter(SecurityDynamicConfiguration<?> builder) {
