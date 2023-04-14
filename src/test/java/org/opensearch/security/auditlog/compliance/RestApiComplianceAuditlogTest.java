@@ -230,7 +230,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         // read internal users and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.clear();
         rh.executeGetRequest("/_opendistro/_security/api/internalusers");
-        Assert.assertEquals(1, TestAuditlogImpl.messages.size());
+        Assert.assertEquals( 1, TestAuditlogImpl.messages.size());
         Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
 
         // read internal user worf and verify no BCrypt hash is present in audit logs

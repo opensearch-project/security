@@ -14,26 +14,18 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
-import org.apache.lucene.index.IndexNotFoundException;
 
-import org.opensearch.ExceptionsHelper;
-import org.opensearch.action.ActionListener;
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentHelper;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
@@ -197,11 +189,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
                 authToken = userService.generateAuthToken(username);
             } else {
-
-                if (!internalUsersConfiguration.exists(username)) {
-                    notFound(channel, "Resource '" + username + "' not found.");
-                    return;
-                }
 
                 internalUsersConfiguration.removeOthers(username);
                 successResponse(channel, internalUsersConfiguration);
