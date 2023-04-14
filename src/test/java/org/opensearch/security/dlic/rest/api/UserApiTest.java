@@ -12,8 +12,12 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
+import io.netty.handler.codec.base64.Base64Encoder;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
@@ -323,7 +327,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // Add enabled service account then get it
 
-
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceLive",
                 ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
@@ -342,7 +345,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // Add enabled non-service account
         rh.sendAdminCertificate = sendAdminCert;
-        response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_1",
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_2",
                 ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
@@ -416,6 +419,52 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertTrue(settings.get("nagilum.hash").equals(""));
+    }
+
+    private void verifyAuthToken(final boolean sendAdminCert, Header... restAdminHeader) throws Exception {
+
+        // Add enabled service account then generate auth token
+
+        rh.sendAdminCertificate = sendAdminCert;
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceLive",
+                ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = sendAdminCert;
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive", restAdminHeader);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive/authtoken",
+                ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        String tokenFromResponse = response.getBody();
+        byte[] decodedResponse = Base64.getUrlDecoder().decode(tokenFromResponse);
+        String[] decodedResponseString = new String(decodedResponse).split(":", 2);
+        String username = decodedResponseString[0];
+        String password = decodedResponseString[1];
+        Assert.assertEquals("Username is: " + username,username, "happyServiceLive");
+
+
+        // Add disabled service account then try to get its auth token
+        rh.sendAdminCertificate = sendAdminCert;
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceDead",
+                DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceDead/authtoken",
+                ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+
+        // Add enabled non-service account
+        rh.sendAdminCertificate = sendAdminCert;
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_1",
+                ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers/user_is_owner_1/authtoken",
+                ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
     }
 
     private void verifyRoles(final boolean sendAdminCert, Header... header) throws Exception {

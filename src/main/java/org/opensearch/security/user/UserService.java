@@ -11,7 +11,6 @@
 
 package org.opensearch.security.user;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -20,10 +19,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.get.GetIndexRequestBuilder;
-import org.opensearch.action.DocWriteRequest;
-import org.opensearch.action.DocWriteResponse;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -31,10 +28,14 @@ import com.google.common.collect.ImmutableList;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.opensaml.xmlsec.signature.P;
+
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.ActionListener;
+import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.DocWriteResponse;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.get.GetIndexRequestBuilder;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;

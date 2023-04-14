@@ -14,14 +14,14 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
-
-import java.util.Map;
 import org.apache.lucene.index.IndexNotFoundException;
+
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.index.IndexRequest;
@@ -196,6 +196,16 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             if (request.uri().contains("/internalusers/" + username + "/authtoken")) {
 
                 authToken = userService.generateAuthToken(username);
+            } else {
+
+                if (!internalUsersConfiguration.exists(username)) {
+                    notFound(channel, "Resource '" + username + "' not found.");
+                    return;
+                }
+
+                internalUsersConfiguration.removeOthers(username);
+                successResponse(channel, internalUsersConfiguration);
+                return;
             }
         }  catch (UserServiceException ex) {
             badRequestResponse(channel, ex.getMessage());
