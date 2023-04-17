@@ -91,16 +91,14 @@ public class UserService {
     /**
      * This function will handle the creation or update of a user account.
      *
-     * @param accountDetailsAsString A string JSON of different account configurations.
+     * @param contentAsNode An object node of different account configurations.
      * @return InternalUserConfiguration with the new/updated user
      * @throws UserServiceException
      * @throws IOException
      */
-    public SecurityDynamicConfiguration<?> createOrUpdateAccount(String accountDetailsAsString) throws IOException {
+    public SecurityDynamicConfiguration<?> createOrUpdateAccount(ObjectNode contentAsNode) throws IOException {
 
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode accountDetails = mapper.readTree(accountDetailsAsString);
-        final ObjectNode contentAsNode = (ObjectNode) accountDetails;
+
         SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
@@ -113,7 +111,6 @@ public class UserService {
         if (!securityJsonNode.get("attributes").get("owner").isNull() && !securityJsonNode.get("attributes").get("owner").equals(accountName)) { // If this is a service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
-            contentAsNode.put("password", password);
             contentAsNode.put("hash", hash(password.toCharArray()));
         }
 

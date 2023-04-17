@@ -134,7 +134,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                 ((ObjectNode) content).put("isEnabled", request.param("isEnabled"));
             }
             ((ObjectNode) content).put("name", username);
-            internalUsersConfiguration = userService.createOrUpdateAccount(content.toString());
+            internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
         }
         catch (UserServiceException ex) {
             badRequestResponse(channel, ex.getMessage());
