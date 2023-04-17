@@ -14,7 +14,6 @@ Compatible with OpenSearch 2.7.0
 
 ### Enhancements
 
-* Flatten response times ([#2471](https://github.com/opensearch-project/security/pull/2471))
 * Clock skew tolerance for oidc token validation ([#2482](https://github.com/opensearch-project/security/pull/2482))
 * Adding index template permissions to kibana_server role ([#2503](https://github.com/opensearch-project/security/pull/2503))
 * Add a test in order to catch incorrect handling of index parsing during Snapshot Restoration ([#2384](https://github.com/opensearch-project/security/pull/2384))
