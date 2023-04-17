@@ -2,6 +2,10 @@
 
 Compatible with OpenSearch 2.7.0
 
+### Features
+
+* Dynamic tenancy configurations ([#2607](https://github.com/opensearch-project/security/pull/2607))
+
 ### Bug Fixes
 
 * Support multitenancy for the anonymous user ([#2459](https://github.com/opensearch-project/security/pull/2459))
