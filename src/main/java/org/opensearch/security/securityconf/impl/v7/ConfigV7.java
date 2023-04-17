@@ -472,6 +472,15 @@ public class ConfigV7 {
         @JsonProperty("encryption_key")
         private String encryptionKey;
 
+        @JsonIgnore
+        public String configAsJson() {
+            try {
+                return DefaultObjectMapper.writeValueAsString(this, false);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         public String getSigningKey() {
             return signingKey;
         }

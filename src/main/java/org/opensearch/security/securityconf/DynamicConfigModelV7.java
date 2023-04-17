@@ -190,13 +190,10 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     }
 
     @Override
-    public String getExtensionsSigningKey() {
-        return config.dynamic.extensions.getSigningKey();
-    }
-
-    @Override
-    public String getExtensionsEncryptionKey() {
-        return config.dynamic.extensions.getEncryptionKey();
+    public Settings getDynamicExtensionsSettings() {
+        return Settings.builder()
+                .put(Settings.builder().loadFromSource(config.dynamic.extensions.configAsJson(), XContentType.JSON).build())
+                .build();
     }
     
     private void buildAAA() {
