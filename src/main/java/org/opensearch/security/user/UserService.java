@@ -33,10 +33,14 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -49,6 +53,8 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
@@ -78,7 +84,10 @@ public class UserService {
     ClusterService clusterService;
     static ConfigurationRepository configurationRepository;
     String securityIndex;
+    String tokenIndex;
     Client client;
+
+    User tokenUser;
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
     final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
 
@@ -87,6 +96,8 @@ public class UserService {
     final static String SERVICE_ACCOUNT_HASH_MESSAGE = "A password hash cannot be provided for service account. Failed to register service account: ";
 
     final static String NO_ACCOUNT_NAME_MESSAGE = "No account name was specified in the request.";
+    final static String FAILED_ACCOUNT_RETRIEVAL_MESSAGE = "The account specified could not be accessed at this time.";
+    final static String AUTH_TOKEN_GENERATION_MESSAGE = "An auth token could not be generated for the specified account.";
 
     protected static CType getConfigName() { return CType.INTERNALUSERS;}
 
@@ -156,7 +167,7 @@ public class UserService {
             throw new UserServiceException(NO_ACCOUNT_NAME_MESSAGE);
         }
 
-        if (!securityJsonNode.get("attributes").get("owner").isNull() && !securityJsonNode.get("attributes").get("owner").equals(accountName)) { // If this is a service account
+        if (!securityJsonNode.get("attributes").get("owner").isNull() && !securityJsonNode.get("attributes").get("owner").asString().equals(accountName)) { // If this is a service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
             contentAsNode.put("hash", hash(password.toCharArray()));
@@ -207,6 +218,7 @@ public class UserService {
 
     private void verifyServiceAccount(SecurityJsonNode securityJsonNode, String accountName) {
 
+
         final String plainTextPassword = securityJsonNode.get("password").asString();
         final String origHash = securityJsonNode.get("hash").asString();
 
@@ -229,23 +241,73 @@ public class UserService {
         return generatedPassword;
     }
 
+    /**
+     * This function retrieves the auth token associated with a service account.
+     * Fails if the provided account is not a service account or account is not enabled.
+     *
+     * @param accountName A string representing the name of the account
+     * @return A string auth token
+     */
+    public String generateAuthToken(String accountName) throws IOException {
 
-    public String getNO_PASSWORD_OR_HASH_MESSAGE() {
-        return NO_PASSWORD_OR_HASH_MESSAGE;
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+
+        if (!internalUsersConfiguration.exists(accountName)) {
+            throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
+        }
+
+        String authToken = null;
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode accountDetails = mapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
+            final ObjectNode contentAsNode = (ObjectNode) accountDetails;
+            SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
+
+            if (securityJsonNode.get("attributes").get("owner").isNull()) { // If this is not a service account
+                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+            }
+            if (securityJsonNode.get("attributes").get("owner").asString().equals(accountName)) { // If this is not a service account
+                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+            }
+            if (securityJsonNode.get("attributes").get("isEnabled").asString().equals("false")) { // If the service account is not active
+                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+            }
+
+            // Generate a new password for the account and store the hash of it
+            String plainTextPassword = generatePassword();
+            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+
+            // Update the internal user associated with the auth token
+            internalUsersConfiguration.remove(accountName);
+            contentAsNode.remove("name");
+            internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+            saveAndUpdateConfigs(getConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
+
+
+            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes());
+            return authToken;
+
+        } catch (JsonProcessingException ex) {
+            throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
+        } catch (Exception e) {
+            throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+        }
     }
 
-    public String getRESTRICTED_CHARACTER_USE_MESSAGE() {
-        return RESTRICTED_CHARACTER_USE_MESSAGE;
-    }
+    public static void saveAndUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration) {
+        final IndexRequest ir = new IndexRequest(indexName);
+        final String id = cType.toLCString();
 
-    public String getSERVICE_ACCOUNT_PASSWORD_MESSAGE() {
-        return SERVICE_ACCOUNT_PASSWORD_MESSAGE;
-    }
+        configuration.removeStatic();
 
-    public String getSERVICE_ACCOUNT_HASH_MESSAGE() {
-        return SERVICE_ACCOUNT_HASH_MESSAGE;
-    }
-    public String getNO_ACCOUNT_NAME_MESSAGE() {
-        return NO_ACCOUNT_NAME_MESSAGE;
+        try {
+            client.index(ir.id(id)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .setIfSeqNo(configuration.getSeqNo())
+                    .setIfPrimaryTerm(configuration.getPrimaryTerm())
+                    .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)));
+        } catch (IOException e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
     }
 }

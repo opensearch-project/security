@@ -50,17 +50,19 @@ import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
-        ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
+            ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user/"),
+            new Route(Method.GET, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
             new Route(Method.PUT, "/user/{name}"),
 
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/internalusers/{name}"),
+            new Route(Method.GET, "/internalusers/{name}/authtoken"),
             new Route(Method.GET, "/internalusers/"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
@@ -147,6 +149,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         saveAndUpdateConfigs(this.securityIndexName,client, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
+
             @Override
             public void onResponse(IndexResponse response) {
                 if (userExisted) {
@@ -158,6 +161,55 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             }
         });
     }
+
+    @Override
+    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
+
+        final String username = request.param("name");
+
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), true);
+        filter(internalUsersConfiguration);
+
+        // no specific resource requested, return complete config
+        if (username == null || username.length() == 0) {
+
+            successResponse(channel, internalUsersConfiguration);
+            return;
+        }
+
+        final boolean userExisted = internalUsersConfiguration.exists(username);
+
+        if (!userExisted) {
+            notFound(channel, "Resource '" + username + "' not found.");
+            return;
+        }
+
+        String authToken = "";
+        try {
+            if (request.uri().contains("/internalusers/" + username + "/authtoken")) {
+
+                authToken = userService.generateAuthToken(username);
+            } else {
+
+                internalUsersConfiguration.removeOthers(username);
+                successResponse(channel, internalUsersConfiguration);
+                return;
+            }
+        }  catch (UserServiceException ex) {
+            badRequestResponse(channel, ex.getMessage());
+            return;
+        }
+        catch (IOException ex) {
+            throw new IOException(ex);
+        }
+
+        if (!authToken.isEmpty()) {
+            createdResponse(channel, "'" + username + "' authtoken updated generated "  + authToken);
+        } else {
+            badRequestResponse(channel, "'" + username + "' authtoken failed to be created.");
+        }
+    }
+
 
     @Override
     protected void filter(SecurityDynamicConfiguration<?> builder) {
