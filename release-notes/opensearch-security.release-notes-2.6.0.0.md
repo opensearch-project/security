@@ -7,6 +7,7 @@ Compatible with OpenSearch 2.6.0
 * Add actions cluster:admin/component_template/* to cluster_manage_index_templates ([#2409](https://github.com/opensearch-project/security/pull/2409))
 * Publish snapshots to maven ([#2438](https://github.com/opensearch-project/security/pull/2438))
 * Integrate k-NN functionality with security plugin ([#2274](https://github.com/opensearch-project/security/pull/2274))
+* Flatten response times ([#2471](https://github.com/opensearch-project/security/pull/2471))
 
 ### Maintenance
 
