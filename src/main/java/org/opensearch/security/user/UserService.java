@@ -84,7 +84,6 @@ public class UserService {
     ClusterService clusterService;
     static ConfigurationRepository configurationRepository;
     String securityIndex;
-    String tokenIndex;
     Client client;
 
     User tokenUser;
