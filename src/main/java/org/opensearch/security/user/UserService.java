@@ -33,6 +33,7 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -283,7 +284,7 @@ public class UserService {
             saveAndUpdateConfigs(getConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
 
-            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes());
+            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(Charset.forName("UTF-8")));
             return authToken;
 
         } catch (JsonProcessingException ex) {
