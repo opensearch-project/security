@@ -10,6 +10,8 @@ config:
     respect_request_indices_options: false
     kibana:
       multitenancy_enabled: true
+      private_tenant_enabled: true
+      default_tenant: ""
       server_username: "kibanaserver"
       index: ".kibana"
     http:
