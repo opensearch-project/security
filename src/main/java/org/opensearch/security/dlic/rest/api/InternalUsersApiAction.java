@@ -166,7 +166,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final String username = request.param("name");
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), true);
         filter(internalUsersConfiguration);
 
         // no specific resource requested, return complete config
