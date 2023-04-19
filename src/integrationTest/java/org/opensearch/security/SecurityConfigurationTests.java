@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -46,7 +47,7 @@ public class SecurityConfigurationTests {
 
 	private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
 	private static final User LIMITED_USER = new User("limited-user")
-		.roles(new Role("limited-role").indexPermissions("indices:data/read/search", "indices:data/read/get").on("user-${user.name}"));
+			.roles(new Role("limited-role").indexPermissions("indices:data/read/search", "indices:data/read/get").on("user-${user.name}"));
 	public static final String LIMITED_USER_INDEX = "user-" + LIMITED_USER.getName();
 	public static final String ADDITIONAL_USER_1 = "additional00001";
 	public static final String ADDITIONAL_PASSWORD_1 = ADDITIONAL_USER_1;
@@ -61,11 +62,11 @@ public class SecurityConfigurationTests {
 
 	@ClassRule
 	public static LocalCluster cluster = new LocalCluster.Builder()
-		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-		.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_ADMIN, LIMITED_USER).anonymousAuth(false)
-		.nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName()  +"__" + ALL_ACCESS.getName()),
-			SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true))
-		.build();
+			.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+			.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_ADMIN, LIMITED_USER).anonymousAuth(false)
+			.nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName()  +"__" + ALL_ACCESS.getName()),
+					SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true))
+			.build();
 
 	@Rule
 	public TemporaryFolder configurationDirectory = new TemporaryFolder();
@@ -82,7 +83,7 @@ public class SecurityConfigurationTests {
 	public void shouldCreateUserViaRestApi_success() {
 		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
 			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_1, String.format(CREATE_USER_BODY,
-				ADDITIONAL_PASSWORD_1));
+					ADDITIONAL_PASSWORD_1));
 
 			assertThat(httpResponse.getStatusCode(), equalTo(201));
 		}
@@ -98,7 +99,7 @@ public class SecurityConfigurationTests {
 	public void shouldCreateUserViaRestApi_failure() {
 		try(TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
 			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_1, String.format(CREATE_USER_BODY,
-				ADDITIONAL_PASSWORD_1));
+					ADDITIONAL_PASSWORD_1));
 
 			httpResponse.assertStatusCode(403);
 		}
@@ -141,7 +142,7 @@ public class SecurityConfigurationTests {
 		try(TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
 
 			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_2, String.format(CREATE_USER_BODY,
-				ADDITIONAL_PASSWORD_2));
+					ADDITIONAL_PASSWORD_2));
 
 			httpResponse.assertStatusCode(201);
 		}
@@ -158,7 +159,7 @@ public class SecurityConfigurationTests {
 		TestCertificates testCertificates = cluster.getTestCertificates();
 		try(TestRestClient client = cluster.getRestClient(testCertificates.createSelfSignedCertificate("CN=attacker"))) {
 			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_2, String.format(CREATE_USER_BODY,
-				ADDITIONAL_PASSWORD_2));
+					ADDITIONAL_PASSWORD_2));
 
 			httpResponse.assertStatusCode(401);
 		}
@@ -209,7 +210,28 @@ public class SecurityConfigurationTests {
 		assertThat(exitCode, equalTo(0));
 		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
 			Awaitility.await().alias("Waiting for rolemapping 'readall' availability.")
-				.until(() -> client.get("_plugins/_security/api/rolesmapping/readall").getStatusCode(), equalTo(200));
+					.until(() -> client.get("_plugins/_security/api/rolesmapping/readall").getStatusCode(), equalTo(200));
+		}
+	}
+
+	@Test
+	public void shouldReloadExtensionsConfigurationFromFile() throws Exception {
+		SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
+		File config = configurationDirectory.newFile("config.yml");
+		ConfigurationFiles.createConfigFile(config);
+		int exitCode = securityAdminLauncher.updateConfig(config);
+		assertThat(exitCode, equalTo(0));
+
+		try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+			Awaitility.await()
+					.until(() ->
+							{
+								HttpResponse httpResponse = client.get("_plugins/_security/api/securityconfig");
+								JsonNode jsonNode = DefaultObjectMapper.objectMapper.readTree(httpResponse.getBody());
+								return jsonNode.get("config").get("dynamic").get("extensions");
+
+							}, jsonNode -> jsonNode.get("encryption_key").asText().equals("encryption key") && jsonNode.get("signing_key").asText().equals("signing key")
+					);
 		}
 	}
 }

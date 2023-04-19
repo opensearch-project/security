@@ -38,4 +38,17 @@ class SecurityAdminLauncher {
 
 		return SecurityAdmin.execute(commandLineArguments);
 	}
+
+	public int updateConfig(File configFile) throws Exception {
+		String[] commandLineArguments = {"-cacert", certificates.getRootCertificate().getAbsolutePath(),
+				"-cert", certificates.getAdminCertificate().getAbsolutePath(),
+				"-key", certificates.getAdminKey(null).getAbsolutePath(),
+				"-nhnv",
+				"-p", String.valueOf(port),
+				"-f", configFile.getAbsolutePath(),
+				"-t", "config"
+		};
+
+		return SecurityAdmin.execute(commandLineArguments);
+	}
 }

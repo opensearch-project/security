@@ -25,6 +25,11 @@ class ConfigurationFiles {
 		copyResourceToFile(resource, destination);
 	}
 
+	public static void createConfigFile(File destination) {
+		String resource = "config.yml";
+		copyResourceToFile(resource, destination);
+	}
+
 	public static Path createConfigurationDirectory()  {
 		try {
 			Path tempDirectory = Files.createTempDirectory("test-security-config");
