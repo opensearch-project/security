@@ -68,8 +68,8 @@ public class JwtVendorTest {
         Assert.assertNotNull(jwt.getClaim("iat"));
         Assert.assertNotNull(jwt.getClaim("exp"));
         Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
-        Assert.assertNotEquals(expectedRoles, jwt.getClaim("roles"));
-        Assert.assertEquals(expectedRoles, EncryptionDecryptionUtil.decrypt(claimsEncryptionKey, jwt.getClaim("roles").toString()));
+        Assert.assertNotEquals(expectedRoles, jwt.getClaim("enc_r"));
+        Assert.assertEquals(expectedRoles, EncryptionDecryptionUtil.decrypt(claimsEncryptionKey, jwt.getClaim("enc_r").toString()));
     }
 
     @Test (expected = Exception.class)

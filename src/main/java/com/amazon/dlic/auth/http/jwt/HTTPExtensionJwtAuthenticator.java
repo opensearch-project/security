@@ -55,25 +55,22 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
 
     //TODO: TO SEE IF WE NEED THE FINAL FOR FOLLOWING
     private JwtParser jwtParser;
-    //private final boolean isDefaultAuthHeader;
-    //private final String rolesKey;
     private String subjectKey;
-    private String requireAudience;
-    private String requireIssuer;
-    //private final String httpheader;
 
     private String signingKey;
     private String encryptionKey;
 
+    private Boolean BWCMode;
     public HTTPExtensionJwtAuthenticator() {
         super();
         init();
     }
 
     // FOR TESTING
-    public HTTPExtensionJwtAuthenticator(String signingKey, String encryptionKey){
+    public HTTPExtensionJwtAuthenticator(String signingKey, String encryptionKey,Boolean BWCMode){
         this.signingKey = signingKey;
         this.encryptionKey = encryptionKey;
+        this.BWCMode = BWCMode;
         init();
     }
 
@@ -179,19 +176,30 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
 
             final String audience = claims.getAudience();
 
-            //Get roles claim
-            Object encryptedRolesObject = claims.get("roles");
-            String[] roles;
+            //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: enc_r / OFF: dec_r
+            Object rolesObject = null;
+            String[] roles = null;
 
-            if (encryptedRolesObject == null) {
+            if (BWCMode) {
+                rolesObject = claims.get("dec_r");
+            } else if (!BWCMode) {
+                rolesObject = claims.get("enc_r");
+            }
+
+            if (rolesObject == null) {
                 log.warn(
                         "Failed to get roles from JWT claims. Check if this key is correct and available in the JWT payload.");
                 roles = new String[0];
             } else {
-                final String encryptedRoles = claims.get("roles").toString();
-                //TODO: WHERE TO GET THE ENCRYTION KEY
-                final String decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, encryptedRoles);
-                roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
+                final String rolesClaim = rolesObject.toString();
+                //IF THE USER IS IN BWC MODE WE ARE EXPECTING UNENCRYPTED ROLES. IF THE BWC MODE IS OFF WE ARE EXPECTING ENCRYPTED ROLES
+                if (rolesClaim != null && !BWCMode) {
+                    //TODO: WHERE TO GET THE ENCRYTION KEY
+                    final String decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
+                    roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
+                } else if (rolesClaim != null && BWCMode){
+                    roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).toArray(String[]::new);
+                }
             }
 
             if (subject == null) {
