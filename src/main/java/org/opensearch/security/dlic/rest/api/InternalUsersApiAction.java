@@ -246,6 +246,10 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         return null;
     }
 
+    public InternalUsersApiAction getAction(){
+        return this;
+    }
+
     @Override
     protected String getResourceName() {
         return "user";

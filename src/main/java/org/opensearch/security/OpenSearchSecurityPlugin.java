@@ -175,6 +175,7 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
 import org.opensearch.security.transport.SecurityInterceptor;
+import org.opensearch.security.user.SecurityInternalUserProvider;
 import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
@@ -821,6 +822,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         userService = new UserService(cs, cr, settings, localClient);
 
+        SecurityInternalUserProvider securityInternalUserProvider = new SecurityInternalUserProvider(userService);
+
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
 
@@ -878,7 +881,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         components.add(si);
         components.add(dcf);
         components.add(userService);
-
+        components.add(securityInternalUserProvider);
 
         return components;
 
