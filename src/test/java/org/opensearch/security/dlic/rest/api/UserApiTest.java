@@ -323,28 +323,20 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 HttpStatus.SC_CREATED);
 
         // Add enabled service account then get it
-
-<<<<<<< HEAD
-=======
-        rh.sendAdminCertificate = sendAdminCert;
->>>>>>> ea3cae2b9a9 (update checks)
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceLive",
                 ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
+        // Add disabled service account
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceDead",
                 DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
 
         // Add enabled non-service account
-<<<<<<< HEAD
-        response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_1",
-=======
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_2",
->>>>>>> ea3cae2b9a9 (update checks)
                 ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
@@ -438,7 +430,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         String username = decodedResponseString[0];
         String password = decodedResponseString[1];
         Assert.assertEquals("Username is: " + username,username, "happyServiceLive");
-
 
         // Add disabled service account then try to get its auth token
         rh.sendAdminCertificate = sendAdminCert;
