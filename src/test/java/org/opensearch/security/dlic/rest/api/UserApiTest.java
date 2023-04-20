@@ -322,44 +322,35 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 HttpStatus.SC_CREATED);
 
         // Add enabled service account then get it
-
-
-        rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceLive",
                 ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
-        rh.sendAdminCertificate = sendAdminCert;
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 
 
         // Add disabled service account
-        rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceDead",
                 DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
 
         // Add enabled non-service account
-        rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_1",
                 ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // Add service account with password -- Should Fail
-        rh.sendAdminCertificate = sendAdminCert;
+
         response = rh.executePutRequest(ENDPOINT + "/internalusers/passwordService",
                 PASSWORD_SERVICE, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         //Add service with hash -- should fail
-        rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/hashService",
                 HASH_SERVICE, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // Add Service account with password & Hash -- should fail
-        rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/passwordHashService",
                 PASSWORD_HASH_SERVICE, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
