@@ -323,12 +323,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 HttpStatus.SC_CREATED);
 
         // Add enabled service account then get it
-
-        rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceLive",
                 ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
-        rh.sendAdminCertificate = sendAdminCert;
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 

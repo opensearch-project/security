@@ -163,7 +163,8 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         internalUsersConfiguration.remove(username);
 
         // checks complete, create or update the user
-        internalUsersConfiguration.putCObject(username, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+        Object userData = DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass());
+        internalUsersConfiguration.putCObject(username, userData);
 
 
         saveAndUpdateConfigs(this.securityIndexName,client, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
@@ -205,7 +206,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         String authToken = "";
         try {
-            if (request.uri().contains("/internalusers/" + username + "/authtoken")) {
+            if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {
 
                 authToken = userService.generateAuthToken(username);
             } else {
@@ -223,7 +224,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
 
         if (!authToken.isEmpty()) {
-            createdResponse(channel, "'" + username + "' authtoken updated generated "  + authToken);
+            createdResponse(channel, "'" + username + "' authtoken generated "  + authToken);
         } else {
             badRequestResponse(channel, "'" + username + "' authtoken failed to be created.");
         }
