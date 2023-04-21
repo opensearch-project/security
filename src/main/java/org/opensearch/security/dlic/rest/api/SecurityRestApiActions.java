@@ -28,6 +28,7 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
+import org.opensearch.security.user.UserService;
 import org.opensearch.threadpool.ThreadPool;
 
 public class SecurityRestApiActions {
@@ -44,9 +45,10 @@ public class SecurityRestApiActions {
                                                      final ThreadPool threadPool,
                                                      final AuditLog auditLog,
                                                      final SecurityKeyStore securityKeyStore,
+                                                     final UserService userService,
                                                      final boolean certificatesReloadEnabled) {
         final List<RestHandler> handlers = new ArrayList<RestHandler>(16);
-        handlers.add(new InternalUsersApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
+        handlers.add(new InternalUsersApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, userService, auditLog));
         handlers.add(new RolesMappingApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
         handlers.add(new RolesApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
         handlers.add(new ActionGroupsApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
