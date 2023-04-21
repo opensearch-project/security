@@ -11,6 +11,7 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -29,7 +30,7 @@ public class EncryptionDecryptionUtil {
             // rebuild key using SecretKeySpec
             SecretKey originalKey = new SecretKeySpec(Arrays.copyOf(decodedKey, 16), "AES");
             cipher.init(Cipher.ENCRYPT_MODE, originalKey);
-            byte[] cipherText = cipher.doFinal(data.getBytes("UTF-8"));
+            byte[] cipherText = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(cipherText);
         } catch (Exception e) {
             throw new RuntimeException(
@@ -47,7 +48,7 @@ public class EncryptionDecryptionUtil {
             SecretKey originalKey = new SecretKeySpec(Arrays.copyOf(decodedKey, 16), "AES");
             cipher.init(Cipher.DECRYPT_MODE, originalKey);
             byte[] cipherText = cipher.doFinal(Base64.getDecoder().decode(encryptedString));
-            return new String(cipherText);
+            return new String(cipherText, StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException("Error occured while decrypting data", e);
         }
