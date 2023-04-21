@@ -42,7 +42,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         return PLUGINS_PREFIX;
     }
 
-
     final int USER_SETTING_SIZE = 56; // Lines per account entry * number of accounts
 
     private static final String ENABLED_SERVICE_ACCOUNT_BODY  =  "{"
@@ -70,7 +69,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             + " \"attributes\": { \"service\": \"true\", "
             + "\"enabled\": \"true\"}"
             + " }\n";
-
 
     public UserApiTest(){
         ENDPOINT = getEndpointPrefix() + "/api";
@@ -174,6 +172,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(ENDPOINT + "/user", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
+    }
+
         // -- PUT
 
         // no username given
@@ -228,6 +228,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage());
         Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
         Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
+
+    }
 
         // -- PATCH
         // PATCH on non-existing resource
@@ -323,7 +325,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithHash("nagilum", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_CREATED);
 
-
         // Add enabled service account then get it
         response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceLive",
                 ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
@@ -337,6 +338,10 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
 
+        // Add enabled non-service account
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_1",
+                ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // Add service account with password -- Should Fail
         response = rh.executePutRequest(ENDPOINT + "/internalusers/passwordService",
@@ -352,7 +357,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/internalusers/passwordHashService",
                 PASSWORD_HASH_SERVICE, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-
 
         // access must be allowed now
         checkGeneralAccess(HttpStatus.SC_OK, "nagilum", "nagilum");
@@ -527,7 +531,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         addUserWithPassword("$1aAAAAAAAAC", "$1aAAAAAAAAC", HttpStatus.SC_CREATED);
         addUserWithPassword("abc", "abc", HttpStatus.SC_CREATED);
 
-
         // check tabs in json
         response = rh.executePutRequest(ENDPOINT + "/internalusers/userwithtabs", "\t{\"hash\": \t \"123\"\t}  ", new Header[0]);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
@@ -588,7 +591,6 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh
                 .executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        System.out.println(response.getBody());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(USER_SETTING_SIZE, settings.size());
 

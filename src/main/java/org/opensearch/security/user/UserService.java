@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
@@ -57,7 +58,6 @@ public class UserService {
     String securityIndex;
     Client client;
 
-    User tokenUser;
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
     final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
 
@@ -114,6 +114,7 @@ public class UserService {
         SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
+
         String accountName = securityJsonNode.get("name").asString();
 
         if (accountName == null || accountName.length() == 0) { // Fail if field is present but empty
@@ -180,7 +181,6 @@ public class UserService {
     }
 
     private void verifyServiceAccount(SecurityJsonNode securityJsonNode, String accountName) {
-
 
         final String plainTextPassword = securityJsonNode.get("password").asString();
         final String origHash = securityJsonNode.get("hash").asString();

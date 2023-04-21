@@ -106,10 +106,11 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             exception = ex;
-            log.warn(ex.toString());
+            log.debug(ex.toString());
             Assert.assertNotNull(exception);
-            Assert.assertTrue(exception.getMessage().contains("indices:admin/create"));
+            Assert.assertTrue(exception.getMessage().toString().contains("no permissions for [indices:admin/create]"));
         }
+
 
         // 3. with valid backend roles for injected user
         UserInjectorPlugin.injectedUser = "injectedadmin|injecttest";
@@ -157,6 +158,5 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             // Should pass as the user injection is disabled
             Assert.assertTrue(cir.isAcknowledged());
         }
-
     }
 }
