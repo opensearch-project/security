@@ -124,7 +124,7 @@ public class UserService {
      * @param config CType whose data is to be loaded in-memory
      * @return configuration loaded with given CType data
      */
-    protected static final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+    protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
@@ -294,7 +294,7 @@ public class UserService {
         }
     }
 
-    public static void saveAndUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration) {
+    public void saveAndUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration) {
         final IndexRequest ir = new IndexRequest(indexName);
         final String id = cType.toLCString();
 

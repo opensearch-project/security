@@ -20,12 +20,10 @@ public class SecurityInternalUserProvider implements InternalUserProvider{
     @Override
     public void putInternalUser(String userInfo) throws IOException {
 
-        JsonNode content = null;
-        content = DefaultObjectMapper.readTree(userInfo);
+        JsonNode content = DefaultObjectMapper.readTree(userInfo);
         final ObjectNode contentAsNode = (ObjectNode) content;
 
-        SecurityDynamicConfiguration<?> internalUsersConfiguration = userService.load(userService.getUserConfigName(), true);
-        internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
+        SecurityDynamicConfiguration<?> internalUsersConfiguration = userService.createOrUpdateAccount(contentAsNode);
         userService.saveAndUpdateConfigs(userService.getUserConfigName().toString(), userService.client, CType.INTERNALUSERS, internalUsersConfiguration);
     }
 
@@ -59,5 +57,4 @@ public class SecurityInternalUserProvider implements InternalUserProvider{
     public String getInternalUserAuthToken(String username) throws IOException {
         return userService.generateAuthToken(username);
     }
-
 }
