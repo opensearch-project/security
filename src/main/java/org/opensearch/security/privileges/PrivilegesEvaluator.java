@@ -649,7 +649,7 @@ public class PrivilegesEvaluator {
             indexMetaDataCollection = new Iterable<IndexMetadata>() {
                 @Override
                 public Iterator<IndexMetadata> iterator() {
-                    return clusterService.state().getMetadata().getIndices().valuesIt();
+                    return clusterService.state().getMetadata().getIndices().values().iterator();
                 }
             };
         } else {
