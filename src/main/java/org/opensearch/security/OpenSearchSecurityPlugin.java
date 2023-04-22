@@ -840,7 +840,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         }
 
         restLayerEvaluator = new RestLayerPrivilegesEvaluator(clusterService, threadPool, cr, auditLog,
-                settings, cih, namedXContentRegistry);
+                settings, cih, namedXContentRegistry.get());
 
         securityRestHandler = new SecurityRestFilter(backendRegistry, restLayerEvaluator, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
