@@ -523,6 +523,14 @@ public class PrivilegesEvaluator {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
                 && dcm.isDashboardsMultitenancyEnabled();
     }
+    public boolean privateTenantEnabled() {
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
+                && dcm.isDashboardsPrivateTenantEnabled();
+    }
+
+    public String dashboardsDefaultTenant() {
+        return dcm.getDashboardsDefaultTenant();
+    }
 
     public boolean privateTenantEnabled() {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
