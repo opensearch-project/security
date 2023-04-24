@@ -26,7 +26,6 @@
 
 package org.opensearch.security.privileges;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -650,23 +649,7 @@ public class PrivilegesEvaluator {
             indexMetaDataCollection = new Iterable<IndexMetadata>() {
                 @Override
                 public Iterator<IndexMetadata> iterator() {
-                    final Iterator<ObjectCursor<IndexMetadata>> iterator = clusterService.state().getMetadata().getIndices().values().iterator();
-                    return new Iterator<IndexMetadata>() {
-                        @Override
-                        public boolean hasNext() {
-                            return iterator.hasNext();
-                        }
-
-                        @Override
-                        public IndexMetadata next() {
-                            return iterator.next().value;
-                        }
-
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
+                    return clusterService.state().getMetadata().getIndices().values().iterator();
                 }
             };
         } else {
