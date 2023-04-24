@@ -10,6 +10,7 @@
 package org.opensearch.test.framework.matcher;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -41,7 +43,12 @@ class AliasExistsMatcher extends TypeSafeDiagnosingMatcher<Client> {
 	protected boolean matchesSafely(Client client, Description mismatchDescription) {
 		try {
 			GetAliasesResponse response = client.admin().indices().getAliases(new GetAliasesRequest(aliasName)).get();
-			Map<String, List<AliasMetadata>> aliases = response.getAliases();
+
+			final Map<String, List<AliasMetadata>> aliases = new HashMap<>();
+			for (ObjectObjectCursor<String, List<AliasMetadata>> cursor : response.getAliases()) {
+				aliases.put(cursor.key, cursor.value);
+			}
+
 			Set<String> actualAliasNames = StreamSupport.stream(spliteratorUnknownSize(aliases.values().iterator(), IMMUTABLE), false)
 					.flatMap(Collection::stream)
 					.map(AliasMetadata::getAlias)

@@ -29,6 +29,7 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +38,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
@@ -377,8 +379,6 @@ public class PrivilegesEvaluator {
                     presponse.allowed = true;
                     return presponse;
                 }
-
-
             }
         }
 
@@ -674,7 +674,10 @@ public class PrivilegesEvaluator {
 
             final List<AliasMetadata> filteredAliases = new ArrayList<AliasMetadata>();
 
-            final Map<String, AliasMetadata> aliases = indexMetaData.getAliases();
+            final Map<String, AliasMetadata> aliases = new HashMap<>();
+            for (ObjectObjectCursor<String, AliasMetadata> cursor : indexMetaData.getAliases()) {
+                aliases.put(cursor.key, cursor.value);
+            }
 
             if(aliases != null && aliases.size() > 0) {
                 if (isDebugEnabled) {

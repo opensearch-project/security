@@ -9,12 +9,14 @@
 */
 package org.opensearch.test.framework.matcher;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -55,13 +57,21 @@ class ClusterContainTemplateWithAliasMatcher extends TypeSafeDiagnosingMatcher<C
 	private Set<String> getAliases(GetIndexTemplatesResponse response) {
 		return response.getIndexTemplates()
 				.stream()
-				.map(metadata -> metadata.getAliases())
+				.map(metadata -> {
+							Map<String, AliasMetadata> aliases = new HashMap<>();
+							for (ObjectObjectCursor<String, AliasMetadata> cursor : metadata.getAliases()) {
+								aliases.put(cursor.key, cursor.value);
+							}
+							return aliases;
+						})
 				.flatMap(aliasMap -> aliasNames(aliasMap))
 				.collect(Collectors.toSet());
 	}
 
 	private Stream<String> aliasNames(Map<String, AliasMetadata> aliasMap) {
-		return aliasMap.keySet().stream().map(key -> aliasMap.get(key).getAlias());
+		Iterable<Map.Entry<String, AliasMetadata>> iterable = () -> aliasMap.entrySet().iterator();
+		return StreamSupport.stream(iterable.spliterator(), false)
+				.map(entry -> entry.getValue().getAlias());
 	}
 
 
