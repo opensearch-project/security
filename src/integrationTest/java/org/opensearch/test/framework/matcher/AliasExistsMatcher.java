@@ -60,7 +60,7 @@ class AliasExistsMatcher extends TypeSafeDiagnosingMatcher<Client> {
 			}
 			return true;
 		} catch (InterruptedException | ExecutionException e) {
-			mismatchDescription.appendText("Error occured during checking if cluster contains alias ")
+			mismatchDescription.appendText("Error occurred during checking if cluster contains alias ")
 				.appendValue(e);
 			return false;
 		}

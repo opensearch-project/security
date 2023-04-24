@@ -9,6 +9,8 @@
 */
 package org.opensearch.test.framework.matcher;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.hamcrest.Description;
@@ -18,6 +20,7 @@ import org.opensearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
@@ -43,7 +46,11 @@ class IndexMappingIsEqualToMatcher extends TypeSafeDiagnosingMatcher<LocalCluste
 			GetMappingsResponse response = client.admin().indices()
 					.getMappings(new GetMappingsRequest().indices(expectedIndexName)).actionGet();
 
-			Map<String, MappingMetadata> actualMappings = response.getMappings();
+			Map<String, MappingMetadata> actualMappings = new HashMap<>();
+			for (ObjectObjectCursor<String, MappingMetadata> cursor : response.getMappings()) {
+				actualMappings.put(cursor.key, cursor.value);
+			}
+
 			Map<String, Object> actualIndexMapping = actualMappings.get(expectedIndexName).sourceAsMap();
 
 			if (!expectedMapping.equals(actualIndexMapping)) {
