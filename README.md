@@ -138,7 +138,7 @@ sequenceDiagram
     alt Plugin run outside user context
     Cluster->>Cluster: Stash context
     Cluster->>SecurityPlugin: Execute transport layer action outside user context
-    Cluster-->>SecurityPlugin: Check if action is allowed
+    SecurityPlugin-->>SecurityPlugin: Check if action is allowed
     SecurityPlugin->>OpenSearch: Continue request
     OpenSearch-->>Cluster: Transport layer action result
     Cluster->>Cluster: Restore user context
