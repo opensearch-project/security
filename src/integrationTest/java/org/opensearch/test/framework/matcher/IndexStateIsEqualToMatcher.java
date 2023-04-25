@@ -9,6 +9,8 @@
 */
 package org.opensearch.test.framework.matcher;
 
+import java.util.Map;
+
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -16,7 +18,6 @@ import org.opensearch.action.admin.cluster.state.ClusterStateRequest;
 import org.opensearch.action.admin.cluster.state.ClusterStateResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
 import static java.util.Objects.requireNonNull;
@@ -37,7 +38,7 @@ class IndexStateIsEqualToMatcher extends TypeSafeDiagnosingMatcher<LocalCluster>
 			ClusterStateRequest clusterStateRequest = new ClusterStateRequest().indices(expectedIndexName);
 			ClusterStateResponse clusterStateResponse = client.admin().cluster().state(clusterStateRequest).actionGet();
 
-			ImmutableOpenMap<String, IndexMetadata> indicesMetadata = clusterStateResponse.getState().getMetadata().indices();
+			Map<String, IndexMetadata> indicesMetadata = clusterStateResponse.getState().getMetadata().indices();
 			if (!indicesMetadata.containsKey(expectedIndexName)) {
 				mismatchDescription.appendValue("Index does not exist");
 			}

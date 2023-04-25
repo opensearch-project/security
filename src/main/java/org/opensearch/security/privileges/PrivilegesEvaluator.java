@@ -29,6 +29,7 @@ package org.opensearch.security.privileges;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +38,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.logging.log4j.LogManager;
@@ -78,7 +80,6 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.Strings;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -378,8 +379,6 @@ public class PrivilegesEvaluator {
                     presponse.allowed = true;
                     return presponse;
                 }
-
-
             }
         }
 
@@ -632,6 +631,7 @@ public class PrivilegesEvaluator {
             ) ;
     }
 
+    @SuppressWarnings("unchecked")
     private boolean checkFilteredAliases(Resolved requestedResolved, String action, boolean isDebugEnabled) {
         final String faMode = dcm.getFilteredAliasMode();// getConfigSettings().dynamic.filtered_alias_mode;
 
@@ -649,7 +649,7 @@ public class PrivilegesEvaluator {
             indexMetaDataCollection = new Iterable<IndexMetadata>() {
                 @Override
                 public Iterator<IndexMetadata> iterator() {
-                    return clusterService.state().getMetadata().getIndices().valuesIt();
+                    return clusterService.state().getMetadata().getIndices().values().iterator();
                 }
             };
         } else {
@@ -674,14 +674,17 @@ public class PrivilegesEvaluator {
 
             final List<AliasMetadata> filteredAliases = new ArrayList<AliasMetadata>();
 
-            final ImmutableOpenMap<String, AliasMetadata> aliases = indexMetaData.getAliases();
+            final Map<String, AliasMetadata> aliases = new HashMap<>();
+            for (ObjectObjectCursor<String, AliasMetadata> cursor : indexMetaData.getAliases()) {
+                aliases.put(cursor.key, cursor.value);
+            }
 
             if(aliases != null && aliases.size() > 0) {
                 if (isDebugEnabled) {
                     log.debug("Aliases for {}: {}", indexMetaData.getIndex().getName(), aliases);
                 }
 
-                final Iterator<String> it = aliases.keysIt();
+                final Iterator<String> it = aliases.keySet().iterator();
                 while(it.hasNext()) {
                     final String alias = it.next();
                     final AliasMetadata aliasMetadata = aliases.get(alias);
