@@ -14,7 +14,6 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -32,18 +31,18 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.InternalUsersValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
-import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
+import org.opensearch.security.user.UserService;
+import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -69,13 +68,16 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             new Route(Method.PATCH, "/internalusers/{name}")
     ));
 
+    UserService userService;
+
     @Inject
     public InternalUsersApiAction(final Settings settings, final Path configPath, final RestController controller,
                                   final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
                                   final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
-                                  ThreadPool threadPool, AuditLog auditLog) {
+                                  ThreadPool threadPool, UserService userService, AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
                 auditLog);
+        this.userService = userService;
     }
 
     @Override
@@ -100,22 +102,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final String username = request.param("name");
 
-        if (username == null || username.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
-            return;
-        }
-
-        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(username::contains).collect(Collectors.toList());
-        if (!foundRestrictedContents.isEmpty()) {
-            final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
-            badRequestResponse(channel, "Username has restricted characters " + restrictedContents + " that are not permitted.");
-            return;
-        }
-
-        // TODO it might be sensible to consolidate this with the overridden method in
-        // order to minimize duplicated logic
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+        SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         if (!isWriteable(channel, internalUsersConfiguration, username)) {
             return;
@@ -128,20 +115,10 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final List<String> securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
         if (securityRoles != null) {
             for (final String role: securityRoles) {
-                if (!isValidRolesMapping(channel, role)) return;
+                if (!isValidRolesMapping(channel, role)) {
+                    return;
+                }
             }
-        }
-
-        // if password is set, it takes precedence over hash
-        final String plainTextPassword = securityJsonNode.get("password").asString();
-        final String origHash = securityJsonNode.get("hash").asString();
-        if (plainTextPassword != null && plainTextPassword.length() > 0) {
-            contentAsNode.remove("password");
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
-        } else if (origHash != null && origHash.length() > 0) {
-            contentAsNode.remove("password");
-        } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
-            contentAsNode.remove("password");
         }
 
         final boolean userExisted = internalUsersConfiguration.exists(username);
@@ -149,30 +126,25 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // when updating an existing user password hash can be blank, which means no
         // changes
 
-        // sanity checks, hash is mandatory for newly created users
-        if (!userExisted && securityJsonNode.get("hash").asString() == null) {
-            badRequestResponse(channel, "Please specify either 'hash' or 'password' when creating a new internal user.");
+        try {
+            if (request.hasParam("owner")) {
+                ((ObjectNode) content).put("owner", request.param("owner"));
+            }
+            if (request.hasParam("isEnabled")) {
+                ((ObjectNode) content).put("isEnabled", request.param("isEnabled"));
+            }
+            ((ObjectNode) content).put("name", username);
+            internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
+        }
+        catch (UserServiceException ex) {
+            badRequestResponse(channel, ex.getMessage());
             return;
         }
-
-        // for existing users, hash is optional
-        if (userExisted && securityJsonNode.get("hash").asString() == null) {
-            // sanity check, this should usually not happen
-            final String hash = ((Hashed) internalUsersConfiguration.getCEntry(username)).getHash();
-            if (hash == null || hash.length() == 0) {
-                internalErrorResponse(channel,
-                    "Existing user " + username + " has no password, and no new password or hash was specified.");
-                return;
-            }
-            contentAsNode.put("hash", hash);
+        catch (IOException ex) {
+            throw new IOException(ex);
         }
 
-        internalUsersConfiguration.remove(username);
-
-        // checks complete, create or update the user
-        internalUsersConfiguration.putCObject(username, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
-
-        saveAnUpdateConfigs(client, request, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName,client, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {
