@@ -182,15 +182,24 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         });
     }
 
+    /**
+     * Overrides the GET request functionality to allow for the special case of requesting an auth token.
+     *
+     * @param channel The channel the request is coming through
+     * @param request The request itself
+     * @param client The client executing the request
+     * @param content The content of the request parsed into a node
+     * @throws IOException when parsing of configuration files fails (should not happen)
+     */
     @Override
     protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
 
         final String username = request.param("name");
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), true);
-        filter(internalUsersConfiguration);
+        filter(internalUsersConfiguration); // Hides hashes
 
-        // no specific resource requested, return complete config
+        // no specific resource requested, return complete internal user store
         if (username == null || username.length() == 0) {
 
             successResponse(channel, internalUsersConfiguration);
@@ -206,10 +215,10 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         String authToken = "";
         try {
-            if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {
+            if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {  // Handle auth token fetching
 
                 authToken = userService.generateAuthToken(username);
-            } else {
+            } else { // Not an auth token request so just get the target user
 
                 internalUsersConfiguration.removeOthers(username);
                 successResponse(channel, internalUsersConfiguration);
