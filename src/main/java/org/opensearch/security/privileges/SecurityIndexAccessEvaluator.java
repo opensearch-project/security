@@ -26,8 +26,15 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
@@ -40,9 +47,6 @@ import org.opensearch.security.securityconf.ConfigModelV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class SecurityIndexAccessEvaluator {
 
@@ -107,7 +111,7 @@ public class SecurityIndexAccessEvaluator {
             final boolean isDebugEnabled = log.isDebugEnabled();
 
             if( matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)){
-            log.warn("An account without the {} permission  is trying to access one of the Extensions's System Indexes. Related indexes: {}", ConfigConstants.SYSTEM_INDEX_PERMISSION, requestedResolved.getAllIndices() );
+            log.warn("An account without the {} permission  is trying to access a System Index. Related indexes: {}", ConfigConstants.SYSTEM_INDEX_PERMISSION, requestedResolved.getAllIndices() );
             presponse.allowed = false;
             return presponse.markComplete();
         }
