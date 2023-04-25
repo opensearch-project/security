@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -98,7 +99,6 @@ import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.index.Index;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
-import org.opensearch.index.shard.SearchOperationListener;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.indices.breaker.CircuitBreakerService;
@@ -115,6 +115,11 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
+import org.opensearch.security.action.tenancy.TenancyConfigRestHandler;
+import org.opensearch.security.action.tenancy.TenancyConfigRetrieveActions;
+import org.opensearch.security.action.tenancy.TenancyConfigRetrieveTransportAction;
+import org.opensearch.security.action.tenancy.TenancyConfigUpdateAction;
+import org.opensearch.security.action.tenancy.TenancyConfigUpdateTransportAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -160,6 +165,7 @@ import org.opensearch.security.ssl.transport.DefaultPrincipalExtractor;
 import org.opensearch.security.ssl.transport.SecuritySSLNettyTransport;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.GuardedSearchOperationWrapper;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.ModuleInfo;
 import org.opensearch.security.support.ReflectionHelper;
@@ -170,6 +176,7 @@ import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.RemoteClusterService;
@@ -198,6 +205,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SecurityRestFilter securityRestHandler;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
+    private volatile UserService userService;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
@@ -210,7 +218,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile SecurityFilter sf;
     private volatile IndexResolverReplacer irr;
-    private volatile NamedXContentRegistry namedXContentRegistry = null;
+    private final AtomicReference<NamedXContentRegistry> namedXContentRegistry = new AtomicReference<>(NamedXContentRegistry.EMPTY);;
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
@@ -469,6 +477,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
                 handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.add(new TenancyConfigRestHandler());
                 handlers.addAll(
                         SecurityRestApiActions.getHandler(
                                 settings,
@@ -480,6 +489,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                                 evaluator,
                                 threadPool,
                                 Objects.requireNonNull(auditLog), sks,
+                                Objects.requireNonNull(userService),
                                 sslCertReloadEnabled)
                 );
                 log.debug("Added {} rest handler(s)", handlers.size());
@@ -505,6 +515,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         if(!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
+
+            actions.add(new ActionHandler<>(TenancyConfigRetrieveActions.INSTANCE, TenancyConfigRetrieveTransportAction.class));
+            actions.add(new ActionHandler<>(TenancyConfigUpdateAction.INSTANCE, TenancyConfigUpdateTransportAction.class));
+
         }
         return actions;
     }
@@ -559,11 +573,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 }
             });
 
-            indexModule.addSearchOperationListener(new SearchOperationListener() {
+            indexModule.addSearchOperationListener(new GuardedSearchOperationWrapper() {
 
                 @Override
                 public void onPreQueryPhase(SearchContext context) {
-                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry);
+                    dlsFlsValve.handleSearchContext(context, threadPool, namedXContentRegistry.get());
                 }
 
                 @Override
@@ -633,7 +647,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         }
                     }
                 }
-            });
+            }.toListener());
         }
     }
 
@@ -788,6 +802,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         final PrivilegesInterceptor privilegesInterceptor;
 
+        namedXContentRegistry.set(xContentRegistry);
         if (SSLConfig.isSslOnlyMode()) {
             dlsFlsValve = new DlsFlsRequestValve.NoopDlsFlsRequestValve();
             auditLog = new NullAuditLog();
@@ -801,8 +816,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         adminDns = new AdminDNs(settings);
-        
+
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
+
+        userService = new UserService(cs, cr, settings, localClient);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
@@ -812,7 +829,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         // DLS-FLS is enabled if not client and not disabled and not SSL only.
         final boolean dlsFlsEnabled = !SSLConfig.isSslOnlyMode();
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
-                settings, privilegesInterceptor, cih, irr, dlsFlsEnabled, namedXContentRegistry);
+                settings, privilegesInterceptor, cih, irr, dlsFlsEnabled, namedXContentRegistry.get());
 
         sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
                 
@@ -860,6 +877,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         components.add(evaluator);
         components.add(si);
         components.add(dcf);
+        components.add(userService);
 
 
         return components;
@@ -1027,7 +1045,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             // OpenSearch Security - REST API
             settings.add(Setting.listSetting(ConfigConstants.SECURITY_RESTAPI_ROLES_ENABLED, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here
             settings.add(Setting.groupSetting(ConfigConstants.SECURITY_RESTAPI_ENDPOINTS_DISABLED + ".", Property.NodeScope));
-            
+            settings.add(Setting.boolSetting(ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED, false, Property.NodeScope, Property.Filtered));
+
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Property.NodeScope, Property.Filtered));
 
@@ -1166,7 +1185,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RepositoriesService repositoriesService;
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
-
         private static PitService pitService;
 
         @Inject
@@ -1191,7 +1209,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         }
 
         public static PitService getPitService() { return pitService; }
-        
+
+
         @Override
         public void close() {
         }

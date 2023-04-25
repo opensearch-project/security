@@ -10,12 +10,15 @@
 package org.opensearch.test.framework.matcher;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -23,7 +26,6 @@ import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.opensearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.AliasMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Spliterator.IMMUTABLE;
@@ -41,8 +43,13 @@ class AliasExistsMatcher extends TypeSafeDiagnosingMatcher<Client> {
 	protected boolean matchesSafely(Client client, Description mismatchDescription) {
 		try {
 			GetAliasesResponse response = client.admin().indices().getAliases(new GetAliasesRequest(aliasName)).get();
-			ImmutableOpenMap<String, List<AliasMetadata>> aliases = response.getAliases();
-			Set<String> actualAliasNames = StreamSupport.stream(spliteratorUnknownSize(aliases.valuesIt(), IMMUTABLE), false)
+
+			final Map<String, List<AliasMetadata>> aliases = new HashMap<>();
+			for (ObjectObjectCursor<String, List<AliasMetadata>> cursor : response.getAliases()) {
+				aliases.put(cursor.key, cursor.value);
+			}
+
+			Set<String> actualAliasNames = StreamSupport.stream(spliteratorUnknownSize(aliases.values().iterator(), IMMUTABLE), false)
 					.flatMap(Collection::stream)
 					.map(AliasMetadata::getAlias)
 					.collect(Collectors.toSet());
@@ -53,7 +60,7 @@ class AliasExistsMatcher extends TypeSafeDiagnosingMatcher<Client> {
 			}
 			return true;
 		} catch (InterruptedException | ExecutionException e) {
-			mismatchDescription.appendText("Error occured during checking if cluster contains alias ")
+			mismatchDescription.appendText("Error occurred during checking if cluster contains alias ")
 				.appendValue(e);
 			return false;
 		}

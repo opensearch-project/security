@@ -60,6 +60,7 @@ opendistro_security:
     #filtered_alias_mode: warn
     #kibana:
       #multitenancy_enabled: true
+
       #server_username: kibanaserver
       #index: '.kibana'
       #do_not_fail_on_forbidden: false
