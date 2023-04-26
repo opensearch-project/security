@@ -131,8 +131,8 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // changes
 
         try {
-            if (request.hasParam("owner")) {
-                ((ObjectNode) content).put("owner", request.param("owner"));
+            if (request.hasParam("isService")) {
+                ((ObjectNode) content).put("isService", request.param("isService"));
             }
             if (request.hasParam("isEnabled")) {
                 ((ObjectNode) content).put("isEnabled", request.param("isEnabled"));

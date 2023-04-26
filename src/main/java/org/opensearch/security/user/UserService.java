@@ -13,9 +13,11 @@ package org.opensearch.security.user;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -121,10 +123,14 @@ public class UserService {
             throw new UserServiceException(NO_ACCOUNT_NAME_MESSAGE);
         }
 
-        if (!securityJsonNode.get("attributes").get("owner").isNull() && !securityJsonNode.get("attributes").get("owner").asString().equals(accountName)) { // If this is a service account
+        if (!securityJsonNode.get("isService").isNull() && !securityJsonNode.get("isService").asString().equalsIgnoreCase("true"))
+        { // If this is a service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
             contentAsNode.put("hash", hash(password.toCharArray()));
+            contentAsNode.put("isService", "true");
+        } else{
+            contentAsNode.put("isService", "false");
         }
 
         securityJsonNode = new SecurityJsonNode(contentAsNode);
@@ -144,6 +150,10 @@ public class UserService {
             contentAsNode.remove("password");
         } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
             contentAsNode.remove("password");
+        }
+
+        if (!securityJsonNode.get("isEnabled").isNull()) {
+            contentAsNode.put("isEnabled", securityJsonNode.get("isEnabled").asString());
         }
 
         final boolean userExisted = internalUsersConfiguration.exists(accountName);
@@ -217,19 +227,24 @@ public class UserService {
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-            if (securityJsonNode.get("attributes").get("owner").isNull()) { // If this is not a service account
+            if (securityJsonNode.get("isService").isNull()) { // If this is not a service account
                 throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
             }
-            if (securityJsonNode.get("attributes").get("owner").asString().equals(accountName)) { // If this is not a service account
+            if (Objects.requireNonNull(securityJsonNode.get("isService").asString()).equalsIgnoreCase("false")) { // If this is not a service account
                 throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
             }
-            if (securityJsonNode.get("attributes").get("isEnabled").asString().equals("false")) { // If the service account is not active
+            if (securityJsonNode.get("isEnabled").isNull()) { // If there is no enabled flag
+                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+            }
+            if (Objects.requireNonNull(securityJsonNode.get("isEnabled").asString()).equalsIgnoreCase("false")) { // If the service account is not active
                 throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
             }
 
             // Generate a new password for the account and store the hash of it
             String plainTextPassword = generatePassword();
             contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("isEnabled", "true");
+            contentAsNode.put("isService", "true");
 
             // Update the internal user associated with the auth token
             internalUsersConfiguration.remove(accountName);
@@ -238,7 +253,7 @@ public class UserService {
             saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
 
-            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(Charset.forName("UTF-8")));
+            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
             return authToken;
 
         } catch (JsonProcessingException ex) {
