@@ -140,8 +140,8 @@ public class MigrateApiAction extends AbstractApiAction {
         final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
         builder.add(auditConfigV7);
 
-        final int replicas = cs.state().metadata().index(opendistroIndex).getNumberOfReplicas();
-        final String autoExpandReplicas = cs.state().metadata().index(opendistroIndex).getSettings().get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS);
+        final int replicas = cs.state().metadata().index(securityIndexName).getNumberOfReplicas();
+        final String autoExpandReplicas = cs.state().metadata().index(securityIndexName).getSettings().get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS);
 
         final Builder securityIndexSettings = Settings.builder();
 
@@ -153,7 +153,7 @@ public class MigrateApiAction extends AbstractApiAction {
 
         securityIndexSettings.put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1);
 
-        client.admin().indices().prepareDelete(this.opendistroIndex).execute(new ActionListener<AcknowledgedResponse>() {
+        client.admin().indices().prepareDelete(this.securityIndexName).execute(new ActionListener<AcknowledgedResponse>() {
 
             @Override
             public void onResponse(AcknowledgedResponse response) {
@@ -161,14 +161,14 @@ public class MigrateApiAction extends AbstractApiAction {
                 if (response.isAcknowledged()) {
                     log.debug("opendistro_security index deleted successfully");
 
-                    client.admin().indices().prepareCreate(opendistroIndex).setSettings(securityIndexSettings)
+                    client.admin().indices().prepareCreate(securityIndexName).setSettings(securityIndexSettings)
                             .execute(new ActionListener<CreateIndexResponse>() {
 
                                 @Override
                                 public void onResponse(CreateIndexResponse response) {
                                     final List<SecurityDynamicConfiguration<?>> dynamicConfigurations = builder.build();
                                     final ImmutableList.Builder<String> cTypes = ImmutableList.builderWithExpectedSize(dynamicConfigurations.size());
-                                    final BulkRequestBuilder br = client.prepareBulk(opendistroIndex);
+                                    final BulkRequestBuilder br = client.prepareBulk(securityIndexName);
                                     br.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
                                     try {
                                         for (SecurityDynamicConfiguration dynamicConfiguration : dynamicConfigurations) {

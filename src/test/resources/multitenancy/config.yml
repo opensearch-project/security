@@ -11,6 +11,8 @@ config:
     license: null
     kibana:
       multitenancy_enabled: true
+      private_tenant_enabled: true
+      default_tenant: ""
       server_username: "kibanaserver"
       index: ".kibana"
     http:

@@ -108,6 +108,13 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         final String dashboardsIndexName = config.getDashboardsIndexname();//config.dynamic.kibana.index;
 
         String requestedTenant = user.getRequestedTenant();
+        if(USER_TENANT.equals(requestedTenant)) {
+            final boolean private_tenant_enabled = config.isDashboardsPrivateTenantEnabled();
+            if(!private_tenant_enabled) {
+                return ACCESS_DENIED_REPLACE_RESULT;
+            }
+        }
+
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
             log.debug("raw requestedTenant: '" + requestedTenant + "'");
