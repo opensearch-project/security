@@ -9,14 +9,11 @@
 */
 package org.opensearch.test.framework.matcher;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -24,6 +21,7 @@ import org.opensearch.action.admin.indices.template.get.GetIndexTemplatesRequest
 import org.opensearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.common.collect.ImmutableOpenMap;
 
 import static java.util.Objects.requireNonNull;
 
@@ -57,21 +55,13 @@ class ClusterContainTemplateWithAliasMatcher extends TypeSafeDiagnosingMatcher<C
 	private Set<String> getAliases(GetIndexTemplatesResponse response) {
 		return response.getIndexTemplates()
 				.stream()
-				.map(metadata -> {
-							Map<String, AliasMetadata> aliases = new HashMap<>();
-							for (ObjectObjectCursor<String, AliasMetadata> cursor : metadata.getAliases()) {
-								aliases.put(cursor.key, cursor.value);
-							}
-							return aliases;
-						})
+				.map(metadata -> metadata.getAliases())
 				.flatMap(aliasMap -> aliasNames(aliasMap))
 				.collect(Collectors.toSet());
 	}
 
-	private Stream<String> aliasNames(Map<String, AliasMetadata> aliasMap) {
-		Iterable<Map.Entry<String, AliasMetadata>> iterable = () -> aliasMap.entrySet().iterator();
-		return StreamSupport.stream(iterable.spliterator(), false)
-				.map(entry -> entry.getValue().getAlias());
+	private Stream<String> aliasNames(ImmutableOpenMap<String, AliasMetadata> aliasMap) {
+		return StreamSupport.stream(aliasMap.keys().spliterator(), false).map(objectCursor -> objectCursor.value);
 	}
 
 
