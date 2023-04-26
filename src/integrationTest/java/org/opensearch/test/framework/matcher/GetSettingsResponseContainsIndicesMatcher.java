@@ -37,7 +37,7 @@ class GetSettingsResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatche
 			if (!indexToSettings.containsKey(index)) {
 				mismatchDescription
 						.appendText("Response contains settings of indices: ")
-						.appendValue(indexToSettings.keysIt());
+						.appendValue(indexToSettings.keys());
 				return false;
 			}
 		}
