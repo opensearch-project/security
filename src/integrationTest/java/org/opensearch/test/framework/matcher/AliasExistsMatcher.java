@@ -44,11 +44,7 @@ class AliasExistsMatcher extends TypeSafeDiagnosingMatcher<Client> {
 		try {
 			GetAliasesResponse response = client.admin().indices().getAliases(new GetAliasesRequest(aliasName)).get();
 
-			final Map<String, List<AliasMetadata>> aliases = new HashMap<>();
-			for (ObjectObjectCursor<String, List<AliasMetadata>> cursor : response.getAliases()) {
-				aliases.put(cursor.key, cursor.value);
-			}
-
+			Map<String, List<AliasMetadata>> aliases = response.getAliases();
 			Set<String> actualAliasNames = StreamSupport.stream(spliteratorUnknownSize(aliases.values().iterator(), IMMUTABLE), false)
 					.flatMap(Collection::stream)
 					.map(AliasMetadata::getAlias)
@@ -61,7 +57,7 @@ class AliasExistsMatcher extends TypeSafeDiagnosingMatcher<Client> {
 			return true;
 		} catch (InterruptedException | ExecutionException e) {
 			mismatchDescription.appendText("Error occurred during checking if cluster contains alias ")
-				.appendValue(e);
+					.appendValue(e);
 			return false;
 		}
 	}
