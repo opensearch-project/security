@@ -75,7 +75,6 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
     }
 
     private void init() {
-        JwtParser _jwtParser = null;
 
         try {
             if(signingKey == null || signingKey.length() == 0) {
@@ -101,9 +100,9 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
                 }
 
                 if(key != null) {
-                    _jwtParser = Jwts.parser().setSigningKey(key);
+                    jwtParser = Jwts.parser().setSigningKey(key);
                 } else {
-                    _jwtParser = Jwts.parser().setSigningKey(decoded);
+                    jwtParser = Jwts.parser().setSigningKey(decoded);
                 }
 
             }
@@ -113,14 +112,6 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
         }
 
         subjectKey = "sub";
-        //TODO: requireIssuer should be the cluster name. There is one authentication backend for all extensions, so there will be multiple audiences.
-//        requireAudience = "true";
-//        requireIssuer = "true";
-//
-//        _jwtParser.requireAudience(requireAudience);
-//        _jwtParser.requireIssuer(requireIssuer);
-
-        jwtParser = _jwtParser;
     }
 
     @Override
