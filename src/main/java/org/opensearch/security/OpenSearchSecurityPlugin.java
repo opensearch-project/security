@@ -177,6 +177,7 @@ import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.RemoteClusterService;
@@ -207,6 +208,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile PrivilegesEvaluator evaluator;
 
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
+    private volatile UserService userService;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
@@ -490,6 +492,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                                 evaluator,
                                 threadPool,
                                 Objects.requireNonNull(auditLog), sks,
+                                Objects.requireNonNull(userService),
                                 sslCertReloadEnabled)
                 );
                 log.debug("Added {} rest handler(s)", handlers.size());
@@ -816,8 +819,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         sslExceptionHandler = new AuditLogSslExceptionHandler(auditLog);
 
         adminDns = new AdminDNs(settings);
-        
+
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
+
+        userService = new UserService(cs, cr, settings, localClient);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
@@ -880,6 +885,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         components.add(restLayerEvaluator);
         components.add(si);
         components.add(dcf);
+        components.add(userService);
 
 
         return components;
@@ -1187,7 +1193,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RepositoriesService repositoriesService;
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
-
         private static PitService pitService;
 
         @Inject
@@ -1212,7 +1217,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         }
 
         public static PitService getPitService() { return pitService; }
-        
+
+
         @Override
         public void close() {
         }

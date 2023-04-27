@@ -17,8 +17,6 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.test.framework.cluster.LocalCluster;
 
@@ -44,8 +42,7 @@ class IndexMappingIsEqualToMatcher extends TypeSafeDiagnosingMatcher<LocalCluste
 			GetMappingsResponse response = client.admin().indices()
 					.getMappings(new GetMappingsRequest().indices(expectedIndexName)).actionGet();
 
-			ImmutableOpenMap<String, MappingMetadata> actualMappings = response.mappings();
-			Map<String, Object> actualIndexMapping = actualMappings.get(expectedIndexName).getSourceAsMap();
+			Map<String, Object> actualIndexMapping = response.getMappings().get(expectedIndexName).sourceAsMap();
 
 			if (!expectedMapping.equals(actualIndexMapping)) {
 				mismatchDescription.appendText("Actual mapping ").appendValue(actualIndexMapping).appendText(" does not match expected");
