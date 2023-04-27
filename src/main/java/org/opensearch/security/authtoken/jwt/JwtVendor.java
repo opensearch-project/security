@@ -169,7 +169,7 @@ public class JwtVendor {
         //TODO: IF USER ENABLES THE BWC MODE, WE ARE EXPECTING TO SET PLAIN TEXT ROLE AS `dec_r`
         if (roles != null) {
             String listOfRoles = String.join(",", roles);
-            jwtClaims.setProperty("enc_r", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
+            jwtClaims.setProperty("er", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
         } else {
             throw new Exception("Roles cannot be null");
         }

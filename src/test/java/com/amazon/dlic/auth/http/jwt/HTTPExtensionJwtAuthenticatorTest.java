@@ -11,6 +11,16 @@
 
 package com.amazon.dlic.auth.http.jwt;
 
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.crypto.SecretKey;
+
 import com.google.common.io.BaseEncoding;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -20,18 +30,10 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class HTTPExtensionJwtAuthenticatorTest {
     final static byte[] secretKeyBytes = new byte[1024];
@@ -108,7 +110,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
     @Test
     public void testBearer() throws Exception {
 
-        String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("myaud").signWith(secretKey, SignatureAlgorithm.HS512).compact();
+        String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("ext_0").signWith(secretKey, SignatureAlgorithm.HS512).compact();
 
         HTTPExtensionJwtAuthenticator jwtAuth = new HTTPExtensionJwtAuthenticator(BaseEncoding.base64().encode(secretKeyBytes), claimsEncryptionKey,false);
         Map<String, String> headers = new HashMap<String, String>();
@@ -156,9 +158,9 @@ public class HTTPExtensionJwtAuthenticatorTest {
 
         List<String> roles = List.of("IT", "HR");
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(secretKeyBytes),
+                signingKey,
                 claimsEncryptionKey,
-                Jwts.builder().setSubject("Leonard McCoy").claim("dec_r", "role1,role2"),
+                Jwts.builder().setSubject("Leonard McCoy").claim("dr", "role1,role2"),
                 true);
 
         Assert.assertNotNull(credentials);
@@ -172,7 +174,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
                 signingKey,
                 claimsEncryptionKey,
-                Jwts.builder().setSubject("Leonard McCoy").claim("dec_r", null),
+                Jwts.builder().setSubject("Leonard McCoy").claim("dr", null),
                 false);
 
         System.out.println("1111111");
@@ -186,9 +188,9 @@ public class HTTPExtensionJwtAuthenticatorTest {
     public void testNonStringClaim() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(secretKeyBytes),
+                signingKey,
                 claimsEncryptionKey,
-                Jwts.builder().setSubject("Leonard McCoy").claim("dec_r", 123L),
+                Jwts.builder().setSubject("Leonard McCoy").claim("dr", 123L),
                 true);
 
         Assert.assertNotNull(credentials);
@@ -201,7 +203,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
     public void testRolesMissing() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(secretKeyBytes),
+                signingKey,
                 claimsEncryptionKey,
                 Jwts.builder().setSubject("Leonard McCoy"),
                 false);
@@ -215,7 +217,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
     public void testWrongSubjectKey() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(secretKeyBytes),
+                signingKey,
                 claimsEncryptionKey,
                 Jwts.builder().claim("roles", "role1,role2").claim("asub", "Dr. Who"),
                 false);
@@ -227,7 +229,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
     public void testExp() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(secretKeyBytes),
+                signingKey,
                 claimsEncryptionKey,
                 Jwts.builder().setSubject("Expired").setExpiration(new Date(100)),
                 false);
@@ -239,7 +241,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
     public void testNbf() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(secretKeyBytes),
+                signingKey,
                 claimsEncryptionKey,
                 Jwts.builder().setSubject("Expired").setNotBefore(new Date(System.currentTimeMillis()+(1000*36000))),
                 false);
@@ -250,16 +252,15 @@ public class HTTPExtensionJwtAuthenticatorTest {
     @Test
     public void testRolesArray() throws Exception {
 
-        //backend roles format: ["a", "b", "3rd"]
         JwtBuilder builder = Jwts.builder()
                 .setPayload("{"+
                         "\"sub\": \"Cluster_0\","+
                         "\"aud\": \"ext_0\","+
-                        "\"dec_r\": \"a,b,3rd\""+
+                        "\"dr\": \"a,b,3rd\""+
                         "}");
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                BaseEncoding.base64().encode(secretKeyBytes),
+                signingKey,
                 claimsEncryptionKey,
                 builder,
                 true);
@@ -279,9 +280,9 @@ public class HTTPExtensionJwtAuthenticatorTest {
             final String signingKey,
             final String encryptionKey,
             final JwtBuilder jwtBuilder,
-            final Boolean BWCMode) {
+            final Boolean bwcPluginCompatibilityMode) {
         final String jwsToken = jwtBuilder.signWith(secretKey, SignatureAlgorithm.HS512).compact();
-        final HTTPExtensionJwtAuthenticator jwtAuth = new HTTPExtensionJwtAuthenticator(signingKey, encryptionKey, BWCMode);
+        final HTTPExtensionJwtAuthenticator jwtAuth = new HTTPExtensionJwtAuthenticator(signingKey, encryptionKey, bwcPluginCompatibilityMode);
         final Map<String, String> headers = Map.of("Authorization", jwsToken);
         return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()), null);
     }

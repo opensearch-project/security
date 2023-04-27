@@ -32,8 +32,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -60,17 +60,17 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
     private String signingKey;
     private String encryptionKey;
 
-    private Boolean BWCMode;
+    private Boolean bwcPluginCompatibilityMode;
     public HTTPExtensionJwtAuthenticator() {
         super();
         init();
     }
 
     // FOR TESTING
-    public HTTPExtensionJwtAuthenticator(String signingKey, String encryptionKey,Boolean BWCMode){
+    public HTTPExtensionJwtAuthenticator(String signingKey, String encryptionKey,Boolean bwcPluginCompatibilityMode){
         this.signingKey = signingKey;
         this.encryptionKey = encryptionKey;
-        this.BWCMode = BWCMode;
+        this.bwcPluginCompatibilityMode = bwcPluginCompatibilityMode;
         init();
     }
 
@@ -176,14 +176,14 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
 
             final String audience = claims.getAudience();
 
-            //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: enc_r / OFF: dec_r
+            //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
             Object rolesObject = null;
             String[] roles = null;
 
-            if (BWCMode) {
-                rolesObject = claims.get("dec_r");
-            } else if (!BWCMode) {
-                rolesObject = claims.get("enc_r");
+            if (bwcPluginCompatibilityMode) {
+                rolesObject = claims.get("dr");
+            } else if (!bwcPluginCompatibilityMode) {
+                rolesObject = claims.get("er");
             }
 
             if (rolesObject == null) {
@@ -193,11 +193,11 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
             } else {
                 final String rolesClaim = rolesObject.toString();
                 //IF THE USER IS IN BWC MODE WE ARE EXPECTING UNENCRYPTED ROLES. IF THE BWC MODE IS OFF WE ARE EXPECTING ENCRYPTED ROLES
-                if (rolesClaim != null && !BWCMode) {
+                if (!bwcPluginCompatibilityMode) {
                     //TODO: WHERE TO GET THE ENCRYTION KEY
                     final String decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
                     roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
-                } else if (rolesClaim != null && BWCMode){
+                } else if (bwcPluginCompatibilityMode){
                     roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).toArray(String[]::new);
                 }
             }
@@ -256,7 +256,7 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
             }
             // We expect a String. If we find something else, convert to String but issue a warning
             if(!(subjectObject instanceof String)) {
-                log.warn("Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.", subjectKey, subjectObject, subjectObject.getClass());
+                log.warn("Expected type String in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.", subjectKey, subjectObject, subjectObject.getClass());
             }
             subject = String.valueOf(subjectObject);
         }
@@ -272,8 +272,7 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
 
-        //TODO #2615 FOR CONFIGURATION
-        //signingKey = dcm.getExtensionSigningKeys();
+        //TODO: #2615 FOR CONFIGURATION
         //For Testing
         signingKey = "abcd1234";
         encryptionKey = RandomStringUtils.randomAlphanumeric(16);

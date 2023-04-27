@@ -55,13 +55,14 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.amazon.dlic.auth.http.jwt.HTTPExtensionJwtAuthenticator;
 import com.google.common.collect.Lists;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import com.amazon.dlic.auth.http.jwt.HTTPExtensionJwtAuthenticator;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
