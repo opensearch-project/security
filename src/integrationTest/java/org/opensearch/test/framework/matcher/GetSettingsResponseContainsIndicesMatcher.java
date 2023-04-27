@@ -31,7 +31,8 @@ class GetSettingsResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatche
 
 	@Override
 	protected boolean matchesSafely(GetSettingsResponse response, Description mismatchDescription) {
-		ImmutableOpenMap<String, Settings> indexToSettings = response.getIndexToSettings();
+
+		final ImmutableOpenMap<String, Settings> indexToSettings = response.getIndexToSettings();
 		for (String index : expectedIndices) {
 			if (!indexToSettings.containsKey(index)) {
 				mismatchDescription
