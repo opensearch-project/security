@@ -255,7 +255,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
                 .setPayload("{"+
                         "\"sub\": \"Cluster_0\","+
                         "\"aud\": \"ext_0\","+
-                        "\"dec_r\": [\"a\",\"b\",\"3rd\"]"+
+                        "\"dec_r\": \"a,b,3rd\""+
                         "}");
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
