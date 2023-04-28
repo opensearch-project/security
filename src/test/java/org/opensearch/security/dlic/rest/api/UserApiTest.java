@@ -45,28 +45,28 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
 
     private static final String ENABLED_SERVICE_ACCOUNT_BODY  =  "{"
-            + " \"attributes\": { \"owner\": \"test_owner\", "
+            + " \"attributes\": { \"isService\": \"true\", "
             + "\"isEnabled\": \"true\"}"
             + " }\n";
 
     private static final String DISABLED_SERVICE_ACCOUNT_BODY = "{"
-            + " \"attributes\": { \"owner\": \"test_owner\", "
+            + " \"attributes\": { \"isService\": \"true\", "
             + "\"isEnabled\": \"false\"}"
             + " }\n";
     private static final String ENABLED_NOT_SERVICE_ACCOUNT_BODY = "{"
-            + " \"attributes\": { \"owner\": \"user_is_owner_1\", "
+            + " \"attributes\": { \"isService\": \"false\", "
             + "\"isEnabled\": \"true\"}"
             + " }\n";
     private static final String PASSWORD_SERVICE = "{ \"password\" : \"test\","
-            + " \"attributes\": { \"owner\": \"test_owner\", "
+            + " \"attributes\": { \"isService\": \"true\", "
             + "\"isEnabled\": \"true\"}"
             + " }\n";
     private static final String HASH_SERVICE = "{ \"owner\" : \"test_owner\","
-            + " \"attributes\": { \"owner\": \"test_owner\", "
+            + " \"attributes\": { \"isService\": \"true\", "
             + "\"isEnabled\": \"true\"}"
             + " }\n";
     private static final String PASSWORD_HASH_SERVICE = "{ \"password\" : \"test\", \"hash\" : \"123\","
-            + " \"attributes\": { \"owner\": \"test_owner\", "
+            + " \"attributes\": { \"isService\": \"true\", "
             + "\"isEnabled\": \"true\"}"
             + " }\n";
 
@@ -87,7 +87,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(171, settings.size());
         response = rh.executePatchRequest(ENDPOINT + "/internalusers", "[{ \"op\": \"add\", \"path\": \"/newuser\", \"value\": {\"password\": \"newuser\", \"opendistro_security_roles\": [\"opendistro_security_all_access\"] } }]", new Header[0]);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
@@ -137,7 +137,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(171, settings.size());
         verifyGet();
         verifyPut();
         verifyPatch(true);
@@ -152,7 +152,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", header);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(7, settings.size());
+        Assert.assertEquals(9, settings.size());
         // hash must be filtered
         Assert.assertEquals("", settings.get("admin.hash"));
 
@@ -535,7 +535,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(171, settings.size());
         verifyGet(restApiAdminHeader);
         verifyPut(restApiAdminHeader);
         verifyPatch(false, restApiAdminHeader);
@@ -553,7 +553,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiInternalUsersAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(171, settings.size());
         verifyGet(restApiInternalUsersAdminHeader);
         verifyPut(restApiInternalUsersAdminHeader);
         verifyPatch(false, restApiInternalUsersAdminHeader);
@@ -582,7 +582,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(171, settings.size());
 
         addUserWithPassword("tooshoort", "", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword("tooshoort", "123", HttpStatus.SC_BAD_REQUEST);
@@ -662,7 +662,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(171, settings.size());
 
         addUserWithPassword(".my.dotuser0", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_CREATED);

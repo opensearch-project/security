@@ -12,7 +12,6 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
@@ -113,7 +112,6 @@ public class UserService {
      */
     public SecurityDynamicConfiguration<?> createOrUpdateAccount(ObjectNode contentAsNode) throws IOException {
 
-
         SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
@@ -123,7 +121,7 @@ public class UserService {
             throw new UserServiceException(NO_ACCOUNT_NAME_MESSAGE);
         }
 
-        if (!securityJsonNode.get("isService").isNull() && !securityJsonNode.get("isService").asString().equalsIgnoreCase("true"))
+        if (!securityJsonNode.get("attributes").get("isService").isNull() && securityJsonNode.get("attributes").get("isService").asString().equalsIgnoreCase("true"))
         { // If this is a service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
@@ -152,7 +150,7 @@ public class UserService {
             contentAsNode.remove("password");
         }
 
-        if (!securityJsonNode.get("isEnabled").isNull()) {
+        if (!securityJsonNode.get("attributes").get("isEnabled").isNull()) {
             contentAsNode.put("isEnabled", securityJsonNode.get("isEnabled").asString());
         }
 
