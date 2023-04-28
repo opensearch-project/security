@@ -33,7 +33,7 @@
 package org.opensearch.security.user;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -167,7 +167,8 @@ public class UserService {
             throw new UserServiceException(NO_ACCOUNT_NAME_MESSAGE);
         }
 
-        if (!securityJsonNode.get("attributes").get("owner").isNull() && !securityJsonNode.get("attributes").get("owner").asString().equals(accountName)) { // If this is a service account
+        if (!securityJsonNode.get("attributes").get("isService").isNull() && securityJsonNode.get("attributes").get("isService").asString().equalsIgnoreCase("true"))
+        { // If this is a service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
             contentAsNode.put("hash", hash(password.toCharArray()));
@@ -190,6 +191,10 @@ public class UserService {
             contentAsNode.remove("password");
         } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
             contentAsNode.remove("password");
+        }
+
+        if (!securityJsonNode.get("attributes").get("isEnabled").isNull()) {
+            contentAsNode.put("isEnabled", securityJsonNode.get("isEnabled").asString());
         }
 
         final boolean userExisted = internalUsersConfiguration.exists(accountName);
@@ -284,7 +289,7 @@ public class UserService {
             saveAndUpdateConfigs(getConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
 
 
-            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(Charset.forName("UTF-8")));
+            authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
             return authToken;
 
         } catch (JsonProcessingException ex) {
