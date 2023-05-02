@@ -226,12 +226,16 @@ public class UserService {
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-            if (Optional.of(securityJsonNode.get("isService").asString().equalsIgnoreCase("false")).orElseThrow(() -> {throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);})) {
-                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE); // If the account is not a service account
-            }
-            if (Optional.of(securityJsonNode.get("isEnabled").asString().equalsIgnoreCase("false")).orElseThrow(() -> {throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);})) {
-                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE); // If the service account is not active
-            }
+            Optional.ofNullable(securityJsonNode.get("isService"))
+                .map(SecurityJsonNode::asString)
+                .filter("true"::equalsIgnoreCase)
+                .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
+
+
+            Optional.ofNullable(securityJsonNode.get("isEnabled"))
+                .map(SecurityJsonNode::asString)
+                .filter("true"::equalsIgnoreCase)
+                .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
             // Generate a new password for the account and store the hash of it
             String plainTextPassword = generatePassword();
