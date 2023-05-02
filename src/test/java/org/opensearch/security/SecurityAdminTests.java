@@ -107,6 +107,36 @@ public class SecurityAdminTests extends SingleClusterTest {
     }
 
     @Test
+    public void testSecurityAdminHostnameVerificationNotEnforced() throws Exception {
+        final Settings settings = Settings.builder()
+                .put("plugins.security.ssl.http.enabled",true)
+                .put("plugins.security.ssl.http.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("securityadmin/root-ca.pem"))
+                .put("plugins.security.ssl.http.pemcert_filepath", FileHelper.getAbsoluteFilePathFromClassPath("securityadmin/node.crt.pem"))
+                .put("plugins.security.ssl.http.pemkey_filepath", FileHelper.getAbsoluteFilePathFromClassPath("securityadmin/node.key.pem"))
+                .putList("plugins.security.authcz.admin_dn", List.of("CN=kirk,OU=client,O=client,L=test,C=de"))
+                .build();
+        setup(Settings.EMPTY, null, settings, false);
+
+        final String prefix = getResourceFolder()==null?"securityadmin/":getResourceFolder()+"/securityadmin/";
+
+        List<String> argsAsList = new ArrayList<>();
+        argsAsList.add("-cacert");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"root-ca.pem").toFile().getAbsolutePath());
+        argsAsList.add("-cert");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk.crt.pem").toFile().getAbsolutePath());
+        argsAsList.add("-key");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk.key.pem").toFile().getAbsolutePath());
+        argsAsList.add("-p");
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
+        argsAsList.add("-icl");
+        addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
+        argsAsList.add("-nhnv");
+
+        int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        Assert.assertEquals(0, returnCode);
+    }
+
+    @Test
     public void testSecurityAdminInvalidCert() throws Exception {
         final Settings settings = Settings.builder()
                 .put("plugins.security.ssl.http.enabled",true)
