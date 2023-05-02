@@ -16,12 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -121,7 +120,9 @@ public class UserService {
             throw new UserServiceException(NO_ACCOUNT_NAME_MESSAGE);
         }
 
-        if (!securityJsonNode.get("attributes").get("isService").isNull() && securityJsonNode.get("attributes").get("isService").asString().equalsIgnoreCase("true"))
+        SecurityJsonNode attributeNode = securityJsonNode.get("attributes");
+
+            if (!attributeNode.get("isService").isNull() && attributeNode.get("isService").asString().equalsIgnoreCase("true"))
         { // If this is a service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
@@ -150,7 +151,7 @@ public class UserService {
             contentAsNode.remove("password");
         }
 
-        if (!securityJsonNode.get("attributes").get("isEnabled").isNull()) {
+        if (!attributeNode.get("isEnabled").isNull()) {
             contentAsNode.put("isEnabled", securityJsonNode.get("isEnabled").asString());
         }
 
@@ -220,22 +221,16 @@ public class UserService {
 
         String authToken = null;
         try {
-            ObjectMapper mapper = new ObjectMapper();
+            DefaultObjectMapper mapper = new DefaultObjectMapper();
             JsonNode accountDetails = mapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-            if (securityJsonNode.get("isService").isNull()) { // If this is not a service account
-                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+            if (Optional.of(securityJsonNode.get("isService").asString().equalsIgnoreCase("false")).orElseThrow(() -> {throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);})) {
+                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE); // If the account is not a service account
             }
-            if (Objects.requireNonNull(securityJsonNode.get("isService").asString()).equalsIgnoreCase("false")) { // If this is not a service account
-                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
-            }
-            if (securityJsonNode.get("isEnabled").isNull()) { // If there is no enabled flag
-                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
-            }
-            if (Objects.requireNonNull(securityJsonNode.get("isEnabled").asString()).equalsIgnoreCase("false")) { // If the service account is not active
-                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);
+            if (Optional.of(securityJsonNode.get("isEnabled").asString().equalsIgnoreCase("false")).orElseThrow(() -> {throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE);})) {
+                throw new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE); // If the service account is not active
             }
 
             // Generate a new password for the account and store the hash of it

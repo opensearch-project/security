@@ -58,14 +58,14 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user/"),
-            new Route(Method.GET, "/user/{name}/authtoken"),
+            new Route(Method.POST, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
             new Route(Method.PUT, "/user/{name}"),
 
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/internalusers/{name}"),
-            new Route(Method.GET, "/internalusers/{name}/authtoken"),
             new Route(Method.GET, "/internalusers/"),
+            new Route(Method.POST, "/internalusers/{name}/authtoken"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
             new Route(Method.PATCH, "/internalusers/"),
@@ -192,17 +192,17 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
      * @throws IOException when parsing of configuration files fails (should not happen)
      */
     @Override
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
+    protected void handlePost(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
 
         final String username = request.param("name");
 
         final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), true);
         filter(internalUsersConfiguration); // Hides hashes
 
-        // no specific resource requested, return complete internal user store
+        // no specific resource requested
         if (username == null || username.length() == 0) {
 
-            successResponse(channel, internalUsersConfiguration);
+            notImplemented(channel, Method.POST);
             return;
         }
 
@@ -218,10 +218,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {  // Handle auth token fetching
 
                 authToken = userService.generateAuthToken(username);
-            } else { // Not an auth token request so just get the target user
+            } else { // Not an auth token request
 
-                internalUsersConfiguration.removeOthers(username);
-                successResponse(channel, internalUsersConfiguration);
+                notImplemented(channel, Method.POST);
                 return;
             }
         }  catch (UserServiceException ex) {

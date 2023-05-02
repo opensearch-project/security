@@ -44,6 +44,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
     }
 
 
+    final int USER_SETTING_SIZE = 9 * 19; // Lines per account entry * number of accounts
+
     private static final String ENABLED_SERVICE_ACCOUNT_BODY  =  "{"
             + " \"attributes\": { \"isService\": \"true\", "
             + "\"isEnabled\": \"true\"}"
@@ -87,7 +89,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(171, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         response = rh.executePatchRequest(ENDPOINT + "/internalusers", "[{ \"op\": \"add\", \"path\": \"/newuser\", \"value\": {\"password\": \"newuser\", \"opendistro_security_roles\": [\"opendistro_security_all_access\"] } }]", new Header[0]);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
@@ -137,7 +139,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(171, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         verifyGet();
         verifyPut();
         verifyPatch(true);
@@ -417,7 +419,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive", restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive/authtoken",
+        response = rh.executePostRequest(ENDPOINT + "/internalusers/happyServiceLive/authtoken",
                 ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
         String tokenFromResponse = response.getBody();
@@ -433,7 +435,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
 
-        response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceDead/authtoken",
+        response = rh.executePostRequest(ENDPOINT + "/internalusers/happyServiceDead/authtoken",
                 ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
@@ -444,7 +446,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
-        response = rh.executeGetRequest(ENDPOINT + "/internalusers/user_is_owner_1/authtoken",
+        response = rh.executePostRequest(ENDPOINT + "/internalusers/user_is_owner_1/authtoken",
                 ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
@@ -535,7 +537,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(171, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         verifyGet(restApiAdminHeader);
         verifyPut(restApiAdminHeader);
         verifyPatch(false, restApiAdminHeader);
@@ -553,7 +555,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiInternalUsersAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(171, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         verifyGet(restApiInternalUsersAdminHeader);
         verifyPut(restApiInternalUsersAdminHeader);
         verifyPatch(false, restApiInternalUsersAdminHeader);
@@ -582,7 +584,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(171, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
 
         addUserWithPassword("tooshoort", "", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword("tooshoort", "123", HttpStatus.SC_BAD_REQUEST);
@@ -662,7 +664,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(171, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
 
         addUserWithPassword(".my.dotuser0", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_CREATED);
