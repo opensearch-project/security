@@ -23,6 +23,7 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
   - [Test and Build](#test-and-build)
   - [Config hot reloading](#config-hot-reloading)
   - [Onboarding new APIs](#onboarding-new-apis)
+    - [System Index Protection](#system-index-protection)
   - [Contributing](#contributing)
   - [Getting Help](#getting-help)
   - [Code of Conduct](#code-of-conduct)
@@ -119,6 +120,38 @@ It is common practice to create new transport actions to perform different tasks
 2. Register the action in the [OpenSearch Security plugin](https://github.com/opensearch-project/security). Each new action is registered in the plugin as a new permission. Usually, plugins will define different roles for their plugin (e.g., read-only access, write access). Each role will contain a set of permissions. An example of adding a new permission to the `anomaly_read_access` role for the [Anomaly Detection plugin](https://github.com/opensearch-project/anomaly-detection) can be found in [this PR](https://github.com/opensearch-project/security/pull/997/files).
 3. Register the action in the [OpenSearch Dashboards Security plugin](https://github.com/opensearch-project/security-dashboards-plugin). This plugin maintains the full list of possible permissions, so users can see all of them when creating new roles or searching permissions via Dashboards. An example of adding different permissions can be found in [this PR](https://github.com/opensearch-project/security-dashboards-plugin/pull/689/files).
 
+```mermaid
+sequenceDiagram
+    participant Client
+    participant OpenSearch
+    participant SecurityPlugin
+    participant Cluster as Plugin
+    
+    Client->>OpenSearch: Request
+    OpenSearch->>SecurityPlugin: Request
+    SecurityPlugin->>SecurityPlugin: Add Auth information to request context
+    OpenSearch->>Cluster: Client Request
+    Cluster->>SecurityPlugin: Execute transport layer action
+    SecurityPlugin->>SecurityPlugin: Check if action is allowed
+    alt Allowed
+        SecurityPlugin->>OpenSearch: Continue request
+        OpenSearch-->>Cluster: Transport layer action result
+    else Denied
+        SecurityPlugin-->>OpenSearch: Return 403 Forbidden
+        OpenSearch-->>Client: 403 Forbidden
+    end
+    alt Plugin run outside user context
+    Cluster->>Cluster: Stash context
+    Cluster->>SecurityPlugin: Execute transport layer action outside user context
+    SecurityPlugin-->>SecurityPlugin: Check if action is allowed
+    SecurityPlugin->>OpenSearch: Continue request
+    OpenSearch-->>Cluster: Transport layer action result
+    Cluster->>Cluster: Restore user context
+    end
+    Cluster-->>SecurityPlugin: Result
+    SecurityPlugin-->>OpenSearch: Result
+    OpenSearch-->>Client: Result
+```
 
 ### System Index Protection
 
