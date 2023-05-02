@@ -44,32 +44,32 @@ public class UserApiTest extends AbstractRestApiUnitTest {
     }
 
 
-    final int USER_SETTING_SIZE = 9 * 19; // Lines per account entry * number of accounts
+    final int USER_SETTING_SIZE = 7 * 19; // Lines per account entry * number of accounts
 
     private static final String ENABLED_SERVICE_ACCOUNT_BODY  =  "{"
-            + " \"attributes\": { \"isService\": \"true\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
 
     private static final String DISABLED_SERVICE_ACCOUNT_BODY = "{"
-            + " \"attributes\": { \"isService\": \"true\", "
-            + "\"isEnabled\": \"false\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"false\"}"
             + " }\n";
     private static final String ENABLED_NOT_SERVICE_ACCOUNT_BODY = "{"
-            + " \"attributes\": { \"isService\": \"false\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"false\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
     private static final String PASSWORD_SERVICE = "{ \"password\" : \"test\","
-            + " \"attributes\": { \"isService\": \"true\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
     private static final String HASH_SERVICE = "{ \"owner\" : \"test_owner\","
-            + " \"attributes\": { \"isService\": \"true\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
     private static final String PASSWORD_HASH_SERVICE = "{ \"password\" : \"test\", \"hash\" : \"123\","
-            + " \"attributes\": { \"isService\": \"true\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
 
     public UserApiTest(){
@@ -154,7 +154,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/internalusers/admin", header);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(9, settings.size());
+        Assert.assertEquals(7, settings.size());
         // hash must be filtered
         Assert.assertEquals("", settings.get("admin.hash"));
 

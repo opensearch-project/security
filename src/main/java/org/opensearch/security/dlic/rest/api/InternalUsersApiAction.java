@@ -131,11 +131,11 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // changes
 
         try {
-            if (request.hasParam("isService")) {
-                ((ObjectNode) content).put("isService", request.param("isService"));
+            if (request.hasParam("service")) {
+                ((ObjectNode) content).put("service", request.param("service"));
             }
-            if (request.hasParam("isEnabled")) {
-                ((ObjectNode) content).put("isEnabled", request.param("isEnabled"));
+            if (request.hasParam("enabled")) {
+                ((ObjectNode) content).put("enabled", request.param("enabled"));
             }
             ((ObjectNode) content).put("name", username);
             internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);

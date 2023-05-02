@@ -44,8 +44,8 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         private String hash;
         private boolean reserved;
         private boolean hidden;
-        private boolean isService;
-        private boolean isEnabled;
+        private boolean service;
+        private boolean enabled;
         @JsonProperty(value = "static")
         private boolean _static;
         private List<String> backend_roles = Collections.emptyList();
@@ -60,19 +60,19 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
             this.hidden = hidden;
             this.backend_roles = backend_roles;
             this.attributes = attributes;
-            this.isEnabled = true;
-            this.isService = false;
+            this.enabled = true;
+            this.service = false;
         }
 
-    private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes, Boolean isEnabled, Boolean isService) {
+    private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes, Boolean enabled, Boolean service) {
         super();
         this.hash = hash;
         this.reserved = reserved;
         this.hidden = hidden;
         this.backend_roles = backend_roles;
         this.attributes = attributes;
-        this.isEnabled = isEnabled;
-        this.isService = isService;
+        this.enabled = enabled;
+        this.service = service;
     }
 
         public InternalUserV7() {
@@ -128,17 +128,17 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
             this.attributes = attributes;
         }
 
-        public boolean isEnabled() {
-            return this.isEnabled;
+        public boolean enabled() {
+            return this.enabled;
         }
 
-        public boolean isService() {
-            return this.isService;
+        public boolean service() {
+            return this.service;
         }
 
         @Override
         public String toString() {
-            return "InternalUserV7 [hash=" + hash + ", isEnabled=" + isEnabled + ", isService=" + isService + ", reserved=" + reserved + ", hidden=" + hidden + ", _static=" + _static + ", backend_roles="
+            return "InternalUserV7 [hash=" + hash + ", enabled=" + enabled + ", service=" + service + ", reserved=" + reserved + ", hidden=" + hidden + ", _static=" + _static + ", backend_roles="
                     + backend_roles + ", attributes=" + attributes + ", description=" + description + "]";
         }
 
@@ -156,12 +156,12 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
             this.description = description;
         }
 
-        public void setIsEnabled(boolean isEnabled) {
-            this.isEnabled = isEnabled;
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
 
-        public void setIsService(boolean isService) {
-            this.isService = isService;
+        public void setService(boolean service) {
+            this.service = service;
         }
 
         public boolean isReserved() {

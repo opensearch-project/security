@@ -123,14 +123,14 @@ public class UserService {
 
         SecurityJsonNode attributeNode = securityJsonNode.get("attributes");
 
-            if (!attributeNode.get("isService").isNull() && attributeNode.get("isService").asString().equalsIgnoreCase("true"))
+            if (!attributeNode.get("service").isNull() && attributeNode.get("service").asString().equalsIgnoreCase("true"))
         { // If this is a service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
             contentAsNode.put("hash", hash(password.toCharArray()));
-            contentAsNode.put("isService", "true");
+            contentAsNode.put("service", "true");
         } else{
-            contentAsNode.put("isService", "false");
+            contentAsNode.put("service", "false");
         }
 
         securityJsonNode = new SecurityJsonNode(contentAsNode);
@@ -152,8 +152,8 @@ public class UserService {
             contentAsNode.remove("password");
         }
 
-        if (!attributeNode.get("isEnabled").isNull()) {
-            contentAsNode.put("isEnabled", securityJsonNode.get("isEnabled").asString());
+        if (!attributeNode.get("enabled").isNull()) {
+            contentAsNode.put("enabled", securityJsonNode.get("enabled").asString());
         }
 
         final boolean userExisted = internalUsersConfiguration.exists(accountName);
@@ -227,13 +227,13 @@ public class UserService {
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-            Optional.ofNullable(securityJsonNode.get("isService"))
+            Optional.ofNullable(securityJsonNode.get("service"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
 
-            Optional.ofNullable(securityJsonNode.get("isEnabled"))
+            Optional.ofNullable(securityJsonNode.get("enabled"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
@@ -241,8 +241,8 @@ public class UserService {
             // Generate a new password for the account and store the hash of it
             String plainTextPassword = generatePassword();
             contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
-            contentAsNode.put("isEnabled", "true");
-            contentAsNode.put("isService", "true");
+            contentAsNode.put("enabled", "true");
+            contentAsNode.put("service", "true");
 
             // Update the internal user associated with the auth token
             internalUsersConfiguration.remove(accountName);
