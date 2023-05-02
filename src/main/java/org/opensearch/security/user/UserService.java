@@ -11,7 +11,6 @@
 
 package org.opensearch.security.user;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -222,7 +221,7 @@ public class UserService {
 
         String authToken = null;
         try {
-            ObjectMapper mapper = new ObjectMapper();
+            DefaultObjectMapper mapper = new DefaultObjectMapper();
             JsonNode accountDetails = mapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
