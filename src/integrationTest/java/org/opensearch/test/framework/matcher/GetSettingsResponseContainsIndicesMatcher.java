@@ -9,10 +9,8 @@
 */
 package org.opensearch.test.framework.matcher;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -35,10 +33,7 @@ class GetSettingsResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatche
 	@Override
 	protected boolean matchesSafely(GetSettingsResponse response, Description mismatchDescription) {
 
-		final Map<String, Settings> indexToSettings = new HashMap<>();
-		for (ObjectObjectCursor<String, Settings> cursor : response.getIndexToSettings()) {
-			indexToSettings.put(cursor.key, cursor.value);
-		}
+		final Map<String, Settings> indexToSettings = response.getIndexToSettings();
 		for (String index : expectedIndices) {
 			if (!indexToSettings.containsKey(index)) {
 				mismatchDescription
