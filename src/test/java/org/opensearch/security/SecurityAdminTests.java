@@ -19,6 +19,7 @@ package org.opensearch.security;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,10 @@ import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import org.opensearch.security.tools.SecurityAdmin;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.junit.Assert.assertThrows;
 
 public class SecurityAdminTests extends SingleClusterTest {
     
@@ -72,7 +77,7 @@ public class SecurityAdminTests extends SingleClusterTest {
     }
 
     @Test
-    public void testSecurityAdminNoHostnameVerification() throws Exception {
+    public void testSecurityAdminHostnameVerificationEnforced() throws Exception {
         final Settings settings = Settings.builder()
                 .put("plugins.security.ssl.http.enabled",true)
                 .put("plugins.security.ssl.http.pemtrustedcas_filepath", FileHelper.getAbsoluteFilePathFromClassPath("securityadmin/root-ca.pem"))
@@ -95,10 +100,10 @@ public class SecurityAdminTests extends SingleClusterTest {
         argsAsList.add(String.valueOf(clusterInfo.httpPort));
         argsAsList.add("-icl");
         addDirectoryPath(argsAsList, TEST_RESOURCE_ABSOLUTE_PATH);
-        argsAsList.add("-nhnv");
 
-        int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-        Assert.assertEquals(0, returnCode);
+        final IOException expectedException = assertThrows(IOException.class, () -> SecurityAdmin.execute(argsAsList.toArray(new String[0])));
+        final String expectedMessagePattern = "Certificate for <.+> doesn't match any of the subject alternative names: \\[node-.\\.example\\.com\\]";
+        assertThat(expectedException.getMessage(), matchesPattern(expectedMessagePattern));
     }
 
     @Test
