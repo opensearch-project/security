@@ -128,11 +128,11 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
             this.attributes = attributes;
         }
 
-        public boolean getIsEnabled() {
+        public boolean isEnabled() {
             return this.isEnabled;
         }
 
-        public boolean getIsService() {
+        public boolean isService() {
             return this.isService;
         }
 
