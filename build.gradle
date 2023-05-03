@@ -72,10 +72,16 @@ licenseFile = rootProject.file('LICENSE.txt')
 noticeFile = rootProject.file('NOTICE.txt')
 
 spotless {
-  java {
-    // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
-    importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
-  }
+    java {
+        // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+        targetExclude('src/integrationTest/**')
+    }
+    format("integrationTest", JavaExtension) {
+        target('src/integrationTest/java/**/*.java')
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+        indentWithTabs(4)
+    }
 }
 
 spotbugs {
@@ -120,17 +126,17 @@ test {
     }
     jacoco {
         excludes = [
-            "com.sun.jndi.dns.*",
-            "com.sun.security.sasl.gsskerb.*",
-            "java.sql.*",
-            "javax.script.*",
-            "org.jcp.xml.dsig.internal.dom.*",
-            "sun.nio.cs.ext.*",
-            "sun.security.ec.*",
-            "sun.security.jgss.*",
-            "sun.security.pkcs11.*",
-            "sun.security.smartcardio.*",
-            "sun.util.resources.provider.*"
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
         ]
     }
 }
@@ -144,17 +150,17 @@ task opensslTest(type: Test) {
     }
     jacoco {
         excludes = [
-            "com.sun.jndi.dns.*",
-            "com.sun.security.sasl.gsskerb.*",
-            "java.sql.*",
-            "javax.script.*",
-            "org.jcp.xml.dsig.internal.dom.*",
-            "sun.nio.cs.ext.*",
-            "sun.security.ec.*",
-            "sun.security.jgss.*",
-            "sun.security.pkcs11.*",
-            "sun.security.smartcardio.*",
-            "sun.util.resources.provider.*"
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
         ]
     }
 }

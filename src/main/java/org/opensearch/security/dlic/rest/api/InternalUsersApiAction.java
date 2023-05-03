@@ -51,18 +51,20 @@ import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
-        ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
+            ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user/"),
+            new Route(Method.POST, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
             new Route(Method.PUT, "/user/{name}"),
 
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/internalusers/{name}"),
             new Route(Method.GET, "/internalusers/"),
+            new Route(Method.POST, "/internalusers/{name}/authtoken"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
             new Route(Method.PATCH, "/internalusers/"),
@@ -142,9 +144,19 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // when updating an existing user password hash can be blank, which means no
         // changes
 
-        // sanity checks, hash is mandatory for newly created users
-        if (!userExisted && securityJsonNode.get("hash").asString() == null) {
-            badRequestResponse(channel, "Please specify either 'hash' or 'password' when creating a new internal user.");
+        try {
+            if (request.hasParam("service")) {
+                ((ObjectNode) content).put("service", request.param("service"));
+            }
+            if (request.hasParam("enabled")) {
+                ((ObjectNode) content).put("enabled", request.param("enabled"));
+            }
+            ((ObjectNode) content).put("name", username);
+            internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
+        }
+        catch (UserServiceException ex) {
+            badRequestResponse(channel, ex.getMessage());
+
             return;
         }
 
@@ -160,12 +172,27 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             contentAsNode.put("hash", hash);
         }
 
+        // for existing users, hash is optional
+        if (userExisted && securityJsonNode.get("hash").asString() == null) {
+            // sanity check, this should usually not happen
+            final String hash = ((Hashed) internalUsersConfiguration.getCEntry(username)).getHash();
+            if (hash == null || hash.length() == 0) {
+                internalErrorResponse(channel,
+                        "Existing user " + username + " has no password, and no new password or hash was specified.");
+                return;
+            }
+            contentAsNode.put("hash", hash);
+        }
+
         internalUsersConfiguration.remove(username);
 
         // checks complete, create or update the user
-        internalUsersConfiguration.putCObject(username, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+        Object userData = DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass());
+        internalUsersConfiguration.putCObject(username, userData);
+
 
         saveAndUpdateConfigs(this.securityIndexName,client, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+
 
             @Override
             public void onResponse(IndexResponse response) {
@@ -178,6 +205,63 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             }
         });
     }
+
+    /**
+     * Overrides the GET request functionality to allow for the special case of requesting an auth token.
+     *
+     * @param channel The channel the request is coming through
+     * @param request The request itself
+     * @param client The client executing the request
+     * @param content The content of the request parsed into a node
+     * @throws IOException when parsing of configuration files fails (should not happen)
+     */
+    @Override
+    protected void handlePost(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
+
+        final String username = request.param("name");
+
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), true);
+        filter(internalUsersConfiguration); // Hides hashes
+
+        // no specific resource requested
+        if (username == null || username.length() == 0) {
+
+            notImplemented(channel, Method.POST);
+            return;
+        }
+
+        final boolean userExisted = internalUsersConfiguration.exists(username);
+
+        if (!userExisted) {
+            notFound(channel, "Resource '" + username + "' not found.");
+            return;
+        }
+
+        String authToken = "";
+        try {
+            if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {  // Handle auth token fetching
+
+                authToken = userService.generateAuthToken(username);
+            } else { // Not an auth token request
+
+                notImplemented(channel, Method.POST);
+                return;
+            }
+        }  catch (UserServiceException ex) {
+            badRequestResponse(channel, ex.getMessage());
+            return;
+        }
+        catch (IOException ex) {
+            throw new IOException(ex);
+        }
+
+        if (!authToken.isEmpty()) {
+            createdResponse(channel, "'" + username + "' authtoken generated "  + authToken);
+        } else {
+            badRequestResponse(channel, "'" + username + "' authtoken failed to be created.");
+        }
+    }
+
 
     @Override
     protected void filter(SecurityDynamicConfiguration<?> builder) {

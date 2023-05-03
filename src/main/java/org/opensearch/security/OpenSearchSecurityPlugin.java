@@ -364,7 +364,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             final List<String> files = AccessController.doPrivileged(new PrivilegedAction<List<String>>() {
                 @Override
                 public List<String> run() {
+
                     final Path confPath = new Environment(settings, configPath).configFile().toAbsolutePath();
+
                     if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
                         try (Stream<Path> s = Files.walk(confPath)) {
                             return s.distinct().map(p -> sha256(p)).collect(Collectors.toList());

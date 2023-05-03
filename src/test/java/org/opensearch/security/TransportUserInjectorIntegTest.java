@@ -73,7 +73,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .build();
         setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -127,7 +127,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
                 .build();
         setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -147,7 +147,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-1")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());
         }
-        
+
         // with invalid backend roles
         UserInjectorPlugin.injectedUser = "ttt|kkk";
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4Plugin.class,
