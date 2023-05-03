@@ -82,13 +82,13 @@ public class TestAuditlogImpl extends AuditLogSink {
                 Thread.sleep(100);
                 if (missedMessages.size() != 0) {
                     final String missedMessagesErrorMessage = new StringBuilder()
-                    .append("Audit messages were missed! ")
-                    .append("Found " + (missedMessages.size()) + " messages.")
-                    .append("Messages found during this time: \n\n")
-                    .append(missedMessages.stream()
-                        .map(AuditMessage::toString)
-                        .collect(Collectors.joining("\n")))
-                    .toString();
+                            .append("Audit messages were missed! ")
+                            .append("Found " + (missedMessages.size()) + " messages.")
+                            .append("Messages found during this time: \n\n")
+                            .append(missedMessages.stream()
+                                    .map(AuditMessage::toString)
+                                    .collect(Collectors.joining("\n")))
+                            .toString();
 
                     throw new RuntimeException(missedMessagesErrorMessage);
                 }
@@ -155,13 +155,13 @@ public class TestAuditlogImpl extends AuditLogSink {
 
         private static String createDetailMessage(final int expectedCount, final List<AuditMessage> foundMessages) {
             return new StringBuilder()
-                .append("Did not receive all " + expectedCount + " audit messages after a short wait. ")
-                .append("Missing " + (expectedCount - foundMessages.size()) + " messages.")
-                .append("Messages found during this time: \n\n")
-                .append(foundMessages.stream()
-                    .map(AuditMessage::toString)
-                    .collect(Collectors.joining("\n")))
-                .toString();
+                    .append("Did not receive all " + expectedCount + " audit messages after a short wait. ")
+                    .append("Missing " + (expectedCount - foundMessages.size()) + " messages.")
+                    .append("Messages found during this time: \n\n")
+                    .append(foundMessages.stream()
+                            .map(AuditMessage::toString)
+                            .collect(Collectors.joining("\n")))
+                    .toString();
         }
     }
 }
