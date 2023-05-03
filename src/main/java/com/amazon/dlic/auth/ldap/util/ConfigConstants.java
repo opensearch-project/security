@@ -35,6 +35,9 @@ public final class ConfigConstants {
     public static final String LDAP_AUTHZ_MAX_NESTED_DEPTH = "max_nested_depth";
     public static final int LDAP_AUTHZ_MAX_NESTED_DEPTH_DEFAULT = 30;
 
+    public static final String FOLLOW_REFERRALS = "follow_referrals";
+    public static final boolean FOLLOW_REFERRALS_DEFAULT = true;
+
     public static final String LDAP_HOSTS = "hosts";
     public static final String LDAP_BIND_DN = "bind_dn";
     public static final String LDAP_PASSWORD = "password";

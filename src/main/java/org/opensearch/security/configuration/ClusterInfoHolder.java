@@ -77,7 +77,7 @@ public class ClusterInfoHolder implements ClusterStateListener {
             initialized = true;
         }
         
-        isLocalNodeElectedClusterManager = event.localNodeMaster()?Boolean.TRUE:Boolean.FALSE;
+        isLocalNodeElectedClusterManager = event.localNodeClusterManager()?Boolean.TRUE:Boolean.FALSE;
     }
 
     public Boolean getHas6xNodes() {

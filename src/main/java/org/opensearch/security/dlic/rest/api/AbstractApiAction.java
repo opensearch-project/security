@@ -33,10 +33,10 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.opensearch.common.xcontent.ToXContent;
-import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -73,11 +73,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected final ConfigurationRepository cl;
 	protected final ClusterService cs;
 	final ThreadPool threadPool;
-	protected String opendistroIndex;
+	protected String securityIndexName;
 	private final RestApiPrivilegesEvaluator restApiPrivilegesEvaluator;
-	protected final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
 	protected final AuditLog auditLog;
 	protected final Settings settings;
+	private AdminDNs adminDNs;
 
 	protected AbstractApiAction(final Settings settings, final Path configPath, final RestController controller,
                                 final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
@@ -85,16 +85,15 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                                 ThreadPool threadPool, AuditLog auditLog) {
 		super();
 		this.settings = settings;
-		this.opendistroIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+		this.securityIndexName = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
 				ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
 
+		this.adminDNs = adminDNs;
 		this.cl = cl;
 		this.cs = cs;
 		this.threadPool = threadPool;
 		this.restApiPrivilegesEvaluator = new RestApiPrivilegesEvaluator(settings, adminDNs, evaluator,
 				principalExtractor, configPath, threadPool);
-		this.restApiAdminPrivilegesEvaluator =
-				new RestApiAdminPrivilegesEvaluator(threadPool.getThreadContext(), evaluator, adminDNs);
 		this.auditLog = auditLog;
 	}
 
@@ -153,7 +152,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		existingConfiguration.remove(name);
 
 		if (existed) {
-			saveAnUpdateConfigs(client, request, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+			AbstractApiAction.saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
 				@Override
 				public void onResponse(IndexResponse response) {
@@ -196,14 +195,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		}
 
 		boolean existed = existingConfiguration.exists(name);
-		final Object newContent = DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass());
-		if (!hasPermissionsToCreate(existingConfiguration, newContent, getResourceName())) {
-			forbidden(channel, "No permissions");
-			return;
-		}
-		existingConfiguration.putCObject(name, newContent);
+		existingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass()));
 
-		saveAnUpdateConfigs(client, request, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+		AbstractApiAction.saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
 			@Override
 			public void onResponse(IndexResponse response) {
@@ -220,12 +214,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	protected void handlePost(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
 		notImplemented(channel, Method.POST);
-	}
-
-	protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-											 final Object content,
-											 final String resourceName) throws IOException {
-		return false;
 	}
 
 	protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content)
@@ -266,7 +254,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
 	protected boolean ensureIndexExists() {
-		if (!cs.state().metadata().hasConcreteIndex(this.opendistroIndex)) {
+		if (!cs.state().metadata().hasConcreteIndex(this.securityIndexName)) {
 			return false;
 		}
 		return true;
@@ -309,11 +297,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
 	}
 
-	protected void saveAnUpdateConfigs(final Client client, final RestRequest request, final CType cType,
-									   final SecurityDynamicConfiguration<?> configuration, OnSucessActionListener<IndexResponse> actionListener) {
-		final IndexRequest ir = new IndexRequest(this.opendistroIndex);
-
-		//final String type = "_doc";
+	public static void saveAndUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration, final ActionListener<IndexResponse> actionListener) {
+		final IndexRequest ir = new IndexRequest(indexName);
 		final String id = cType.toLCString();
 
 		configuration.removeStatic();
@@ -460,6 +445,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	}
 
 	protected void response(RestChannel channel, RestStatus status, String message) {
+
 		try {
 			final XContentBuilder builder = channel.newBuilder();
 			builder.startObject();
@@ -481,6 +467,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 		try {
 			final XContentBuilder builder = channel.newBuilder();
 			builder.startObject();
+			builder.endObject();
 			channel.sendResponse(
 					new BytesRestResponse(RestStatus.OK, builder));
 		} catch (IOException e) {
@@ -569,7 +556,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 	protected abstract Endpoint getEndpoint();
 
 	protected boolean isSuperAdmin() {
-		return restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint());
+		User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+		return adminDNs.isAdmin(user);
 	}
 
 	/**

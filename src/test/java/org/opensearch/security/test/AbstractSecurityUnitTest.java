@@ -42,6 +42,8 @@ import javax.net.ssl.SSLContext;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.netty.handler.ssl.OpenSsl;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
@@ -69,6 +71,7 @@ import org.opensearch.client.Client;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.cluster.node.DiscoveryNodeRole;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
@@ -93,6 +96,7 @@ import org.opensearch.threadpool.ThreadPool;
 @ThreadLeakScope(Scope.NONE)
 public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
+    private static final String NODE_ROLE_KEY = "node.roles";
     protected static final AtomicLong num = new AtomicLong();
     protected static boolean withRemoteCluster;
 
@@ -194,6 +198,28 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         }
     }
 
+    public static Settings.Builder nodeRolesSettings(final Settings.Builder settingsBuilder, final boolean isClusterManager, final boolean isDataNode) {
+        final ImmutableList.Builder<String> nodeRolesBuilder = ImmutableList.<String>builder();
+        if (isDataNode) {
+            nodeRolesBuilder.add(DiscoveryNodeRole.DATA_ROLE.roleName());
+        }
+        if (isClusterManager) {
+            nodeRolesBuilder.add(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE.roleName());
+        }
+
+        final Settings nodeRoleSettings = Settings.builder().putList(NODE_ROLE_KEY, nodeRolesBuilder.build()).build();
+        return mergeNodeRolesAndSettings(settingsBuilder, nodeRoleSettings);
+    }
+
+    public static Settings.Builder mergeNodeRolesAndSettings(final Settings.Builder settingsBuilder, final Settings otherSettings) {
+        final ImmutableSet.Builder<String> originalRoles = ImmutableSet.<String>builder()
+            .addAll(settingsBuilder.build().getAsList(NODE_ROLE_KEY, ImmutableList.<String>of()))
+            .addAll(otherSettings.getAsList(NODE_ROLE_KEY, ImmutableList.<String>of()));
+
+        return settingsBuilder.put(otherSettings)
+            .putList(NODE_ROLE_KEY, originalRoles.build().asList());
+    }
+
     protected void initialize(ClusterHelper clusterHelper, ClusterInfo clusterInfo, DynamicSecurityConfig securityConfig) throws IOException {
         try (Client tc = clusterHelper.nodeClient()) {
             Assert.assertEquals(clusterInfo.numNodes,
@@ -244,7 +270,6 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         }
         builder.put("cluster.routing.allocation.disk.threshold_enabled", false);
         builder.put(other);
-
         return builder;
     }
 

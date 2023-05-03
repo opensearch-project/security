@@ -82,7 +82,7 @@ import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
@@ -177,18 +177,6 @@ public class PrivilegesEvaluator {
 
     private SecurityRoles getSecurityRoles(Set<String> roles) {
         return configModel.getSecurityRoles().filter(roles);
-    }
-
-    public boolean hasRestAdminPermissions(final User user,
-                                           final TransportAddress remoteAddress,
-                                           final String permissions) {
-        final Set<String> userRoles = mapRoles(user, remoteAddress);
-        return hasRestAdminPermissions(userRoles, permissions);
-    }
-
-    private boolean hasRestAdminPermissions(final Set<String> roles, String permission) {
-        final SecurityRoles securityRoles = getSecurityRoles(roles);
-        return securityRoles.hasExplicitClusterPermissionPermission(permission);
     }
 
     public boolean isInitialized() {
@@ -523,6 +511,15 @@ public class PrivilegesEvaluator {
     public boolean multitenancyEnabled() {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
                 && dcm.isDashboardsMultitenancyEnabled();
+    }
+
+    public boolean privateTenantEnabled() {
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
+                && dcm.isDashboardsPrivateTenantEnabled();
+    }
+
+    public String dashboardsDefaultTenant() {
+        return dcm.getDashboardsDefaultTenant();
     }
 
     public boolean notFailOnForbiddenEnabled() {

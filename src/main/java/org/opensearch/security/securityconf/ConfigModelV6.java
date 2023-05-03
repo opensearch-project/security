@@ -53,7 +53,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.set.Sets;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
@@ -482,18 +482,8 @@ public class ConfigModelV6 extends ConfigModel {
             return false;
         }
 
-        @Override
         public boolean impliesClusterPermissionPermission(String action) {
             return roles.stream().filter(r -> r.impliesClusterPermission(action)).count() > 0;
-        }
-
-        @Override
-        public boolean hasExplicitClusterPermissionPermission(String action) {
-            return roles.stream()
-                    .map(r -> {
-                        final WildcardMatcher m = WildcardMatcher.from(r.clusterPerms);
-                        return m == WildcardMatcher.ANY ? WildcardMatcher.NONE : m;
-                    }).filter(m -> m.test(action)).count() > 0;
         }
 
         //rolespan

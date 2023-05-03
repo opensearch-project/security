@@ -164,6 +164,7 @@ public class ConfigConstants {
     
     public static final String SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX = "plugins.security.audit.config.";
 
+
     // Internal / External OpenSearch
     public static final String SECURITY_AUDIT_OPENSEARCH_INDEX = "index";
     public static final String SECURITY_AUDIT_OPENSEARCH_TYPE = "type";
@@ -287,6 +288,10 @@ public class ConfigConstants {
     public static final Boolean SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
+
+    public static final String TENANCY_PRIVATE_TENANT_NAME = "Private";
+    public static final String TENANCY_GLOBAL_TENANT_NAME = "Global";
+    public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
     public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
         final List<String> list = settings.getAsList(key, defaultList);

@@ -99,13 +99,6 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-                                             final Object content,
-                                             final String resourceName) {
-        return true;
-    }
-
-    @Override
     protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
         if (!isSuperAdmin()) {
             forbidden(channel, "API allowed only for super admin.");
@@ -141,7 +134,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
         boolean existed = existingConfiguration.exists(name);
         existingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass()));
 
-        saveAnUpdateConfigs(client, request, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName,client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {
