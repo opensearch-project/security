@@ -12,6 +12,7 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.net.URLEncoder;
+import java.util.Base64;
 import java.util.List;
 
 import org.apache.hc.core5.http.Header;
@@ -37,36 +38,38 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_A
 
 
 public class UserApiTest extends AbstractRestApiUnitTest {
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
 
+    final int USER_SETTING_SIZE = 7 * 19; // Lines per account entry * number of accounts
+
     private static final String ENABLED_SERVICE_ACCOUNT_BODY  =  "{"
-            + " \"attributes\": { \"owner\": \"test_owner\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
 
     private static final String DISABLED_SERVICE_ACCOUNT_BODY = "{"
-            + " \"attributes\": { \"owner\": \"test_owner\", "
-            + "\"isEnabled\": \"false\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"false\"}"
             + " }\n";
     private static final String ENABLED_NOT_SERVICE_ACCOUNT_BODY = "{"
-            + " \"attributes\": { \"owner\": \"user_is_owner_1\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"false\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
     private static final String PASSWORD_SERVICE = "{ \"password\" : \"test\","
-            + " \"attributes\": { \"owner\": \"test_owner\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
     private static final String HASH_SERVICE = "{ \"owner\" : \"test_owner\","
-            + " \"attributes\": { \"owner\": \"test_owner\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
     private static final String PASSWORD_HASH_SERVICE = "{ \"password\" : \"test\", \"hash\" : \"123\","
-            + " \"attributes\": { \"owner\": \"test_owner\", "
-            + "\"isEnabled\": \"true\"}"
+            + " \"attributes\": { \"service\": \"true\", "
+            + "\"enabled\": \"true\"}"
             + " }\n";
 
     public UserApiTest(){
@@ -86,7 +89,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         response = rh.executePatchRequest(ENDPOINT + "/internalusers", "[{ \"op\": \"add\", \"path\": \"/newuser\", \"value\": {\"password\": \"newuser\", \"opendistro_security_roles\": [\"opendistro_security_all_access\"] } }]", new Header[0]);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
 
@@ -99,9 +102,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testParallelPutRequests() throws Exception {
-        
+
         setup();
-        
+
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
@@ -136,7 +139,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         verifyGet();
         verifyPut();
         verifyPatch(true);
@@ -334,13 +337,8 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
 
-        // Add enabled non-service account
-        response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_1",
-                ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // Add service account with password -- Should Fail
-
         response = rh.executePutRequest(ENDPOINT + "/internalusers/passwordService",
                 PASSWORD_SERVICE, restAdminHeader);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
@@ -407,6 +405,51 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertTrue(settings.get("nagilum.hash").equals(""));
+    }
+
+    private void verifyAuthToken(final boolean sendAdminCert, Header... restAdminHeader) throws Exception {
+
+        // Add enabled service account then generate auth token
+
+        rh.sendAdminCertificate = sendAdminCert;
+        HttpResponse response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceLive",
+                ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        rh.sendAdminCertificate = sendAdminCert;
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers/happyServiceLive", restAdminHeader);
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+
+        response = rh.executePostRequest(ENDPOINT + "/internalusers/happyServiceLive/authtoken",
+                ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+        String tokenFromResponse = response.getBody();
+        byte[] decodedResponse = Base64.getUrlDecoder().decode(tokenFromResponse);
+        String[] decodedResponseString = new String(decodedResponse).split(":", 2);
+        String username = decodedResponseString[0];
+        String password = decodedResponseString[1];
+        Assert.assertEquals("Username is: " + username,username, "happyServiceLive");
+
+        // Add disabled service account then try to get its auth token
+        rh.sendAdminCertificate = sendAdminCert;
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceDead",
+                DISABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
+
+        response = rh.executePostRequest(ENDPOINT + "/internalusers/happyServiceDead/authtoken",
+                ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+
+        // Add enabled non-service account
+        rh.sendAdminCertificate = sendAdminCert;
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/user_is_owner_1",
+                ENABLED_NOT_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+
+        response = rh.executePostRequest(ENDPOINT + "/internalusers/user_is_owner_1/authtoken",
+                ENABLED_SERVICE_ACCOUNT_BODY, restAdminHeader);
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
     }
 
     private void verifyRoles(final boolean sendAdminCert, Header... header) throws Exception {
@@ -494,7 +537,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         verifyGet(restApiAdminHeader);
         verifyPut(restApiAdminHeader);
         verifyPatch(false, restApiAdminHeader);
@@ -512,7 +555,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString(), restApiInternalUsersAdminHeader);
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
         verifyGet(restApiInternalUsersAdminHeader);
         verifyPut(restApiInternalUsersAdminHeader);
         verifyPatch(false, restApiInternalUsersAdminHeader);
@@ -541,7 +584,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest("_plugins/_security/api/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
 
         addUserWithPassword("tooshoort", "", HttpStatus.SC_BAD_REQUEST);
         addUserWithPassword("tooshoort", "123", HttpStatus.SC_BAD_REQUEST);
@@ -621,7 +664,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
                 .executeGetRequest(ENDPOINT + "/" + CType.INTERNALUSERS.toLCString());
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(133, settings.size());
+        Assert.assertEquals(USER_SETTING_SIZE, settings.size());
 
         addUserWithPassword(".my.dotuser0", "$2a$12$n5nubfWATfQjSYHiWtUyeOxMIxFInUHOAx8VMmGmxFNPGpaBmeB.m",
                 HttpStatus.SC_CREATED);
@@ -722,7 +765,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         // Put reserved role is forbidden for non-superadmin
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{ \"opendistro_security_roles\": [\"opendistro_security_reserved\"]}",
-            new Header[0]);
+                new Header[0]);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(settings.get("message"), "Resource 'opendistro_security_reserved' is read-only.");
