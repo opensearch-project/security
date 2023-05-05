@@ -62,7 +62,7 @@ import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import com.amazon.dlic.auth.http.jwt.HTTPExtensionJwtAuthenticator;
+import org.opensearch.security.http.HTTPOnBehalfOfJwtAuthenticator;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
@@ -849,7 +849,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
         //TODO: CREATE A INSTANCE OF HTTPExtensionAuthenticationBackend
-        HTTPExtensionJwtAuthenticator acInstance = new HTTPExtensionJwtAuthenticator();
+        HTTPOnBehalfOfJwtAuthenticator acInstance = new HTTPOnBehalfOfJwtAuthenticator();
 
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);

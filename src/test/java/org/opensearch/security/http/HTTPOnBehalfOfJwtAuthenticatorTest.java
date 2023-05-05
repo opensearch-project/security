@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.http.jwt;
+package org.opensearch.security.http;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -21,6 +21,7 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
+import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
 import com.google.common.io.BaseEncoding;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -35,7 +36,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
-public class HTTPExtensionJwtAuthenticatorTest {
+public class HTTPOnBehalfOfJwtAuthenticatorTest {
     final static byte[] secretKeyBytes = new byte[1024];
     final static String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
     final static SecretKey secretKey;
@@ -86,7 +87,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
     @Test
     public void testTokenMissing() throws Exception {
 
-        HTTPExtensionJwtAuthenticator jwtAuth = new HTTPExtensionJwtAuthenticator(BaseEncoding.base64().encode(secretKeyBytes),claimsEncryptionKey,false);
+        HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(BaseEncoding.base64().encode(secretKeyBytes),claimsEncryptionKey,false);
         Map<String, String> headers = new HashMap<String, String>();
 
         AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
@@ -99,7 +100,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
 
         String jwsToken = "123invalidtoken..";
 
-        HTTPExtensionJwtAuthenticator jwtAuth = new HTTPExtensionJwtAuthenticator(BaseEncoding.base64().encode(secretKeyBytes), claimsEncryptionKey,false);
+        HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(BaseEncoding.base64().encode(secretKeyBytes), claimsEncryptionKey,false);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer "+jwsToken);
 
@@ -112,7 +113,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
 
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("ext_0").signWith(secretKey, SignatureAlgorithm.HS512).compact();
 
-        HTTPExtensionJwtAuthenticator jwtAuth = new HTTPExtensionJwtAuthenticator(BaseEncoding.base64().encode(secretKeyBytes), claimsEncryptionKey,false);
+        HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(BaseEncoding.base64().encode(secretKeyBytes), claimsEncryptionKey,false);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer "+jwsToken);
 
@@ -282,7 +283,7 @@ public class HTTPExtensionJwtAuthenticatorTest {
             final JwtBuilder jwtBuilder,
             final Boolean bwcPluginCompatibilityMode) {
         final String jwsToken = jwtBuilder.signWith(secretKey, SignatureAlgorithm.HS512).compact();
-        final HTTPExtensionJwtAuthenticator jwtAuth = new HTTPExtensionJwtAuthenticator(signingKey, encryptionKey, bwcPluginCompatibilityMode);
+        final HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(signingKey, encryptionKey, bwcPluginCompatibilityMode);
         final Map<String, String> headers = Map.of("Authorization", jwsToken);
         return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()), null);
     }

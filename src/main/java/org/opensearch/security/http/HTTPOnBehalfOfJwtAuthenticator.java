@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package com.amazon.dlic.auth.http.jwt;
+package org.opensearch.security.http;
 
 import java.security.AccessController;
 import java.security.Key;
@@ -46,7 +46,7 @@ import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.AuthCredentials;
 
-public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
+public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -61,13 +61,13 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
     private String encryptionKey;
 
     private Boolean bwcPluginCompatibilityMode;
-    public HTTPExtensionJwtAuthenticator() {
+    public HTTPOnBehalfOfJwtAuthenticator() {
         super();
         init();
     }
 
     // FOR TESTING
-    public HTTPExtensionJwtAuthenticator(String signingKey, String encryptionKey,Boolean bwcPluginCompatibilityMode){
+    public HTTPOnBehalfOfJwtAuthenticator(String signingKey, String encryptionKey, Boolean bwcPluginCompatibilityMode){
         this.signingKey = signingKey;
         this.encryptionKey = encryptionKey;
         this.bwcPluginCompatibilityMode = bwcPluginCompatibilityMode;
@@ -169,7 +169,7 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
 
             //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
             Object rolesObject = null;
-            String[] roles = null;
+            String[] roles;
 
             if (bwcPluginCompatibilityMode) {
                 rolesObject = claims.get("dr");
@@ -183,8 +183,8 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
                 roles = new String[0];
             } else {
                 final String rolesClaim = rolesObject.toString();
-                // Extracting roles based on the compatbility mode
 
+                // Extracting roles based on the compatbility mode
                 String rolesPostEncryptionDecryption = rolesClaim;
                 // Case 1:
                 if (!bwcPluginCompatibilityMode) {
