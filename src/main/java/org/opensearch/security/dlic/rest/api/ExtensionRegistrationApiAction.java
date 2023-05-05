@@ -88,7 +88,17 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
     }
 
     @Override
+    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content)
+            throws IOException{
+
+        createdResponse(channel, " updated");
+
+        ;
+    }
+
+    @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
+        createdResponse(channel, " updated");
 
         final String uniqueId = request.param("unique_id");
         final List<String> indices = Arrays.asList(request.param("indices"));

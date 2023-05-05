@@ -41,6 +41,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 /**
  *  Test for opendistro system indices, to restrict configured indices access to adminDn
@@ -358,6 +359,38 @@ public class SystemIndicesTests extends SingleClusterTest {
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
         }
     }
+
+    @Test
+    public void tempTestForExtensionRegistrationAPiActionRemoveAfter() throws Exception {
+        setupSystemIndicesDisabledWithSsl();
+//        createTestIndicesAndDocs();
+
+        RestHelper keyStoreRestHelper = keyStoreRestHelper();
+        RestHelper sslRestHelper = sslRestHelper();
+
+        String indexSettings = "{\n" +
+                "    \"index\" : {\n" +
+                "        \"refresh_interval\" : null\n" +
+                "    }\n" +
+                "}";
+        String ENDPOINT = PLUGINS_PREFIX + "/api/extensions/register";
+
+
+        //as Superadmin
+        RestHelper.HttpResponse responsea = keyStoreRestHelper.executeGetRequest( ENDPOINT, indexSettings);
+        assertEquals(RestStatus.CREATED.getStatus(), responsea.getStatusCode());
+
+        responsea = keyStoreRestHelper.executePutRequest( ENDPOINT, indexSettings);
+        assertEquals(RestStatus.CREATED.getStatus(), responsea.getStatusCode());
+
+        //as admin
+        responsea = sslRestHelper.executeGetRequest( ENDPOINT, indexSettings, allAccessUserHeader);
+        assertEquals(RestStatus.CREATED.getStatus(), responsea.getStatusCode());
+
+        responsea = sslRestHelper.executePutRequest( ENDPOINT, indexSettings, allAccessUserHeader);
+        assertEquals(RestStatus.CREATED.getStatus(), responsea.getStatusCode());
+    }
+
 
     @Test
     public void testUpdateIndexSettingsWithSystemIndices() throws Exception {
