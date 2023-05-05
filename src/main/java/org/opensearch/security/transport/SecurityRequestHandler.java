@@ -42,7 +42,9 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.search.internal.ShardSearchRequest;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.ssl.SslExceptionHandler;
@@ -328,8 +330,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         }
 
         String extensionUniqueId = getThreadContext().getHeader("extension_unique_id");
-        if (FeatureFlags.isEnabled(FeatureFlags.EXTENSIONS) && extensionUniqueId != null) {
-            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST, Boolean.TRUE);
+        if (extensionUniqueId != null) {
+            ExtensionsManager extManager = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager();
+            if (extManager.lookupInitializedExtensionById(extensionUniqueId).isPresent()) {
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST, Boolean.TRUE);
+            }
         }
 
         super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);

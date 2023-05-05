@@ -75,16 +75,16 @@ licenseFile = rootProject.file('LICENSE.txt')
 noticeFile = rootProject.file('NOTICE.txt')
 
 spotless {
-  java {
-    // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
-    importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
-    targetExclude('src/integrationTest/**')
-  }
-  format("integrationTest", JavaExtension) {
-      target('src/integrationTest/java/**/*.java')
-      importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
-      indentWithTabs(4)
-  }
+    java {
+        // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+        targetExclude('src/integrationTest/**')
+    }
+    format("integrationTest", JavaExtension) {
+        target('src/integrationTest/java/**/*.java')
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+        indentWithTabs(4)
+    }
 }
 
 spotbugs {
@@ -135,17 +135,17 @@ test {
     }
     jacoco {
         excludes = [
-            "com.sun.jndi.dns.*",
-            "com.sun.security.sasl.gsskerb.*",
-            "java.sql.*",
-            "javax.script.*",
-            "org.jcp.xml.dsig.internal.dom.*",
-            "sun.nio.cs.ext.*",
-            "sun.security.ec.*",
-            "sun.security.jgss.*",
-            "sun.security.pkcs11.*",
-            "sun.security.smartcardio.*",
-            "sun.util.resources.provider.*"
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
         ]
     }
 }
@@ -159,17 +159,17 @@ task opensslTest(type: Test) {
     }
     jacoco {
         excludes = [
-            "com.sun.jndi.dns.*",
-            "com.sun.security.sasl.gsskerb.*",
-            "java.sql.*",
-            "javax.script.*",
-            "org.jcp.xml.dsig.internal.dom.*",
-            "sun.nio.cs.ext.*",
-            "sun.security.ec.*",
-            "sun.security.jgss.*",
-            "sun.security.pkcs11.*",
-            "sun.security.smartcardio.*",
-            "sun.util.resources.provider.*"
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
         ]
     }
 }
@@ -462,7 +462,7 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
     // Kafka test execution
     testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
-    testRuntimeOnly ('org.springframework:spring-core:5.3.26') {
+    testRuntimeOnly ('org.springframework:spring-core:5.3.27') {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.9'
