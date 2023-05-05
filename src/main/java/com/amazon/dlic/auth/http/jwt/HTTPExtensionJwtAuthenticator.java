@@ -183,14 +183,15 @@ public class HTTPExtensionJwtAuthenticator implements HTTPAuthenticator {
                 roles = new String[0];
             } else {
                 final String rolesClaim = rolesObject.toString();
-                //IF THE USER IS IN BWC MODE WE ARE EXPECTING UNENCRYPTED ROLES. IF THE BWC MODE IS OFF WE ARE EXPECTING ENCRYPTED ROLES
+                // Extracting roles based on the compatbility mode
+
+                String rolesPostEncryptionDecryption = rolesClaim;
+                // Case 1:
                 if (!bwcPluginCompatibilityMode) {
                     //TODO: WHERE TO GET THE ENCRYTION KEY
-                    final String decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
-                    roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
-                } else if (bwcPluginCompatibilityMode){
-                    roles = Arrays.stream(rolesClaim.split(",")).map(String::trim).toArray(String[]::new);
+                    rolesPostEncryptionDecryption = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
                 }
+                roles = Arrays.stream(rolesPostEncryptionDecryption.split(",")).map(String::trim).toArray(String[]::new);
             }
 
             if (subject == null) {
