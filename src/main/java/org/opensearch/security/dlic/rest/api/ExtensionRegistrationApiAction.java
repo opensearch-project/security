@@ -34,7 +34,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.InternalUsersValidator;
+import org.opensearch.security.dlic.rest.validation.ExtensionRegistrationValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -55,6 +55,8 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
     //Sample Request
     // {
     //  "unique_id": "hello_world",
+    //  "description": "Extension that greets the user",
+    //  "developer": "messages",
     //  "indices": "messages",
     //  "protected_indices": {},
     //  "endpoints": "/hello, /goodbye",
@@ -98,9 +100,10 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
 
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
-        createdResponse(channel, " updated");
 
         final String uniqueId = request.param("unique_id");
+        final String description = request.param("unique_id");
+        final String developer = request.param("unique_id");
         final List<String> indices = Arrays.asList(request.param("indices"));
         final List<String> protected_indices = Arrays.asList(request.param("protected_indices"));
         final List<String> endpoints = Arrays.asList(request.param("endpoints"));
@@ -108,11 +111,6 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
 
         final String username = request.param("name");
 
-
-        if(!validateRequest(request)){
-            badRequestResponse(channel, "No Extension Unique ID specified.");
-            return;
-        }
 
         if(save(request)){
             generateAuthToken();
@@ -136,7 +134,6 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
 //            contentAsNode.remove("password");
 //        }
 
-        final boolean userExisted = internalUsersConfiguration.exists(username);
 
         // checks complete, create or update the user
         internalUsersConfiguration.putCObject(username, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
@@ -144,11 +141,8 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
     }
 
     private boolean save(RestRequest request) {
-        return  true;
-    }
 
-    private boolean validateRequest(RestRequest request) {
-        return true;
+        return  true;
     }
 
     @Override
@@ -176,6 +170,7 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
 
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
-        return new InternalUsersValidator(request, isSuperAdmin(), ref, this.settings, params);
+        return new ExtensionRegistrationValidator(request, isSuperAdmin(), ref, this.settings, params);
     }
 }
+
