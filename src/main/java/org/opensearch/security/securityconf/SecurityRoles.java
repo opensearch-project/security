@@ -36,7 +36,6 @@ import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.user.User;
 
 public interface SecurityRoles {
-    boolean impliesExtensionPermissionPermission(String action0);
 
     boolean impliesClusterPermissionPermission(String action0);
 

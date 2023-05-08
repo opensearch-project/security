@@ -98,7 +98,7 @@ public class RestLayerPrivilegesEvaluator {
             log.debug("Action: {}", action0);
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
-        if(!securityRoles.impliesExtensionPermissionPermission(action0)) {
+        if(!securityRoles.impliesClusterPermissionPermission(action0)) {
             presponse.missingPrivileges.add(action0);
             presponse.allowed = false;
             log.info("No extension-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",  user, action0,
