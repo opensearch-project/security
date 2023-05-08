@@ -50,8 +50,8 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
-    private static final Pattern BASIC = Pattern.compile("^\\s*Basic\\s.*", Pattern.CASE_INSENSITIVE);
-    private static final String BEARER = "bearer ";
+    private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
+    private static final String BEARER_PREFIX = "bearer ";
 
     //TODO: TO SEE IF WE NEED THE FINAL FOR FOLLOWING
     private JwtParser jwtParser;
@@ -140,9 +140,6 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
         }
 
         String jwtToken = request.header(HttpHeaders.AUTHORIZATION);
-        if (jwtToken != null && BASIC.matcher(jwtToken).matches()) {
-            jwtToken = null;
-        }
 
         if (jwtToken == null || jwtToken.length() == 0) {
             if(log.isDebugEnabled()) {
@@ -151,9 +148,13 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
             return null;
         }
 
+        if (!BEARER.matcher(jwtToken).matches()) {
+            jwtToken = null;
+        }
+
         final int index;
-        if((index = jwtToken.toLowerCase().indexOf(BEARER)) > -1) { //detect Bearer
-            jwtToken = jwtToken.substring(index+BEARER.length());
+        if((index = jwtToken.toLowerCase().indexOf(BEARER_PREFIX)) > -1) { //detect Bearer
+            jwtToken = jwtToken.substring(index+BEARER_PREFIX.length());
         } else {
             if(log.isDebugEnabled()) {
                 log.debug("No Bearer scheme found in header");
@@ -232,7 +233,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
     @Override
     public String getType() {
-        return "extension_jwt";
+        return "onbehalfof_jwt";
     }
 
     //TODO: Extract the audience (ext_id) and inject it into thread context

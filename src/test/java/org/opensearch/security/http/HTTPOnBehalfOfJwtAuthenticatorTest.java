@@ -284,7 +284,7 @@ public class HTTPOnBehalfOfJwtAuthenticatorTest {
             final Boolean bwcPluginCompatibilityMode) {
         final String jwsToken = jwtBuilder.signWith(secretKey, SignatureAlgorithm.HS512).compact();
         final HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(signingKey, encryptionKey, bwcPluginCompatibilityMode);
-        final Map<String, String> headers = Map.of("Authorization", jwsToken);
+        final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
         return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()), null);
     }
 }
