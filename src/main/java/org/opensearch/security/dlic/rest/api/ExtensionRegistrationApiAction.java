@@ -162,4 +162,3 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
         return new ExtensionRegistrationValidator(request, isSuperAdmin(), ref, this.settings, params);
     }
 }
-
