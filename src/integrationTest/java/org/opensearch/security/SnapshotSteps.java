@@ -41,7 +41,7 @@ class SnapshotSteps {
 
 	// CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
 	public org.opensearch.action.support.master.AcknowledgedResponse createSnapshotRepository(String repositoryName, String snapshotDirPath, String type)
-	//CS-ENFORCE-SINGLE
+	// CS-ENFORCE-SINGLE
 		throws IOException {
 		PutRepositoryRequest createRepositoryRequest = new PutRepositoryRequest().name(repositoryName).type(type)
 			.settings(Map.of("location", snapshotDirPath));

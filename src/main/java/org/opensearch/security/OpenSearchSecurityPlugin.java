@@ -94,7 +94,9 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+// CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 import org.opensearch.extensions.ExtensionsManager;
+// CS-ENFORCE-SINGLE
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.index.Index;
@@ -1188,6 +1190,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static IndicesService indicesService;
         private static PitService pitService;
 
+        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         private static ExtensionsManager extensionsManager;
 
         @Inject
@@ -1199,6 +1202,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
         }
+        // CS-ENFORCE-SINGLE
 
         public static RepositoriesService getRepositoriesService() {
             return repositoriesService;
@@ -1214,7 +1218,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         public static PitService getPitService() { return pitService; }
 
+        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         public static ExtensionsManager getExtensionsManager() { return extensionsManager; }
+        // CS-ENFORCE-SINGLE
 
 
         @Override
