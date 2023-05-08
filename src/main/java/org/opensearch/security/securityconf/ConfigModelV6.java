@@ -483,11 +483,6 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         @Override
-        public boolean impliesExtensionPermissionPermission(String action0) {
-            return false;
-        }
-
-        @Override
         public boolean impliesClusterPermissionPermission(String action) {
             return roles.stream().filter(r -> r.impliesClusterPermission(action)).count() > 0;
         }
