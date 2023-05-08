@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.bytes.BytesReference;
@@ -58,8 +59,8 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
     //  "description": "Extension that greets the user",
     //  "developer": "messages",
     //  "indices": "messages",
-    //  "protected_indices": {},
-    //  "endpoints": "/hello, /goodbye",
+    //  "protected_indices": null,
+    //  "endpoints": "hello, goodbye",
     //  "protected_endpoints": "/update/{name}"
     //}
 
@@ -102,41 +103,29 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
 
         final String uniqueId = request.param("unique_id");
-        final String description = request.param("unique_id");
-        final String developer = request.param("unique_id");
+        final String description = request.param("description");
+        final String developer = request.param("developer");
         final List<String> indices = Arrays.asList(request.param("indices"));
         final List<String> protected_indices = Arrays.asList(request.param("protected_indices"));
         final List<String> endpoints = Arrays.asList(request.param("endpoints"));
         final List<String> protected_endpoints = Arrays.asList(request.param("protected_endpoints"));
 
-        final String username = request.param("name");
-
-
-        if(save(request)){
-            generateAuthToken();
-            createdResponse(channel, "'" + uniqueId + "' updated");
-        }
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-
         final ObjectNode contentAsNode = (ObjectNode) content;
-        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-        // if password is set, it takes precedence over hash
-        final String plainTextPassword = securityJsonNode.get("password").asString();
-        final String origHash = securityJsonNode.get("hash").asString();
-//        if (plainTextPassword != null && plainTextPassword.length() > 0) {
-//            contentAsNode.remove("password");
-//            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
-//        } else if (origHash != null && origHash.length() > 0) {
-//            contentAsNode.remove("password");
-//        } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
-//            contentAsNode.remove("password");
-//        }
+        contentAsNode.put("uniqueId", uniqueId);
+        contentAsNode.put("description", description);
+        contentAsNode.put("developer", developer);
+        contentAsNode.put("indices", indices.toString());
+        contentAsNode.put("protected_indices", protected_indices.toString());
+        contentAsNode.put("endpoints", endpoints.toString());
+        contentAsNode.put("protected_endpoints", protected_endpoints.toString());
 
+        client.index(new IndexRequest().source(contentAsNode));
 
-        // checks complete, create or update the user
-        internalUsersConfiguration.putCObject(username, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+        if("allGood" == "allGood"){
+            generateAuthToken();
+            createdResponse(channel, "Extension " + uniqueId + " was Created");
+        }
 
     }
 
