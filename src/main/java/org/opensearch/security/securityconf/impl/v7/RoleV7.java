@@ -63,7 +63,6 @@ public class RoleV7 implements Hideable, StaticDefinable {
         this.cluster_permissions = roleV6.getCluster();
         index_permissions = new ArrayList<>();
         tenant_permissions = new ArrayList<>();
-
         for(Entry<String, RoleV6.Index> v6i: roleV6.getIndices().entrySet()) {
             index_permissions.add(new Index(v6i.getKey(), v6i.getValue()));
         }
@@ -238,6 +237,10 @@ public class RoleV7 implements Hideable, StaticDefinable {
 
     public List<Tenant> getTenant_permissions() {
         return tenant_permissions;
+    }
+
+    public void setTenant_permissions(List<Tenant> tenant_permissions) {
+        this.tenant_permissions = tenant_permissions;
     }
 
     public boolean isReserved() {

@@ -213,7 +213,6 @@ public class ConfigModelV7 extends ConfigModel {
                     final Set<String> permittedClusterActions = agr.resolvedActions(securityRole.getValue().getCluster_permissions());
                     _securityRole.addClusterPerms(permittedClusterActions);
 
-
                         /*for(RoleV7.Tenant tenant: securityRole.getValue().getTenant_permissions()) {
 
                             //if(tenant.equals(user.getName())) {
