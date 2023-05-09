@@ -332,7 +332,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         String extensionUniqueId = getThreadContext().getHeader("extension_unique_id");
         if (extensionUniqueId != null) {
             ExtensionsManager extManager = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager();
-            if (extManager.getExtensionsSettings().containsKey(extensionUniqueId)) {
+            if (extManager.lookupExtensionSettingsById(extensionUniqueId).isPresent()) {
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST, Boolean.TRUE);
             }
         }
