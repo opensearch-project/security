@@ -70,7 +70,7 @@ class SnapshotSteps {
 		return snapshotClient.deleteRepository(request, DEFAULT);
 	}
 
-	//CS-SUPPRESS-SINGLE: RegexpSingleline: It is not possible to use phrase "cluster manager" instead of master here
+	//CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
 	public org.opensearch.action.support.master.AcknowledgedResponse deleteSnapshot(String repositoryName, String snapshotName) throws IOException {
 	//CS-ENFORCE-SINGLE
 		return snapshotClient.delete(new DeleteSnapshotRequest(repositoryName, snapshotName), DEFAULT);
