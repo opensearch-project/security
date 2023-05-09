@@ -62,11 +62,6 @@ if %cluster_mode% == 0 (
     )
 )
 
-if %assumeyes% == 1 (
-  set "initsecurity=1"
-  set "cluster_mode=1"
-)
-
 set BASE_DIR=%SCRIPT_DIR%\..\..\..\
 if not exist %BASE_DIR% (
     echo "basedir does not exist"
