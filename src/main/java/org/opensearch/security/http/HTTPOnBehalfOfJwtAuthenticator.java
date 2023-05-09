@@ -107,7 +107,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
             }
         } catch (Throwable e) {
-            log.error("Error creating JWT authenticator. JWT authentication will not work", e);
+            log.error("Error while creating JWT authenticator", e);
             throw new RuntimeException(e);
         }
 
