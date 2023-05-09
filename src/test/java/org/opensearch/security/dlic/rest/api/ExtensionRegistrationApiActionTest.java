@@ -40,9 +40,9 @@ public class ExtensionRegistrationApiActionTest extends SystemIndicesTests {
     //  "protected_endpoints": "/update/{name}"
     //}
 
-    private final String correctExtRequest = "{\"unique_id\":\"hello_world\",\"indices\":\"messages\",\"protected_indices\":\"null\",\"endpoints\":\"hello, goodbye\",\"protected_endpoints\":\"/update/{name}\"}\n";
+    private final String correctExtensionRequest = "{\"unique_id\":\"hello_world\",\"indices\":\"messages\",\"protected_indices\":\"null\",\"endpoints\":\"hello, goodbye\",\"protected_endpoints\":\"/update/{name}\"}\n";
 
-    private final String wrongExtRequest = "     {\n"  + "      \"indices\": \"messages\",\n" + "      \"protected_indices\": {},\n" + "      \"endpoints\": \"/hello, /goodbye\",\n" + "      \"protected_endpoints\": \"/update/{name}\"\n" + "    }";
+    private final String wrongExtensionRequest = "     {\n"  + "      \"indices\": \"messages\",\n" + "      \"protected_indices\": {},\n" + "      \"endpoints\": \"/hello, /goodbye\",\n" + "      \"protected_endpoints\": \"/update/{name}\"\n" + "    }";
 
     private void setupSettingsWithSsl() throws Exception {
 
@@ -83,17 +83,11 @@ public class ExtensionRegistrationApiActionTest extends SystemIndicesTests {
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
         RestHelper sslRestHelper = sslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"unique_id\" : {\n" +
-                "        \"refresh_interval\" : null\n" +
-                "    }\n" +
-                "}";
-
         //as Superadmin
-//        RestHelper.HttpResponse responsea = keyStoreRestHelper.executeGetRequest( ENDPOINT, correctExtRequest);
+//        RestHelper.HttpResponse responsea = keyStoreRestHelper.executeGetRequest( ENDPOINT, correctExtensionRequest);
 //        assertEquals(RestStatus.CREATED.getStatus(), responsea.getStatusCode());
 
-        RestHelper.HttpResponse responsea = keyStoreRestHelper.executePutRequest( ENDPOINT, correctExtRequest);
+        RestHelper.HttpResponse responsea = keyStoreRestHelper.executePutRequest( ENDPOINT, correctExtensionRequest);
         assertEquals(RestStatus.CREATED.getStatus(), responsea.getStatusCode());
 
         //as admin

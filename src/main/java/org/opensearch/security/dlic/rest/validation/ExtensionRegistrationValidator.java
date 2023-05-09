@@ -25,10 +25,11 @@ public class ExtensionRegistrationValidator extends AbstractConfigurationValidat
         super(request, ref, opensearchSettings, param);
         allowedKeys.put("unique_id", DataType.STRING);
         allowedKeys.put("description", DataType.STRING);
-        allowedKeys.put("indices", DataType.ARRAY);
-        allowedKeys.put("protected_indices", DataType.ARRAY);
-        allowedKeys.put("endpoints", DataType.ARRAY);
-        allowedKeys.put("protected_endpoints", DataType.ARRAY);
+        allowedKeys.put("developer", DataType.STRING);
+        allowedKeys.put("indices", DataType.STRING);
+        allowedKeys.put("protected_indices", DataType.STRING);
+        allowedKeys.put("endpoints", DataType.STRING);
+        allowedKeys.put("protected_endpoints", DataType.STRING);
     }
 
     @Override

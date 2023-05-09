@@ -120,7 +120,7 @@ public class ExtensionRegistrationApiAction extends AbstractApiAction {
         contentAsNode.put("endpoints", endpoints.toString());
         contentAsNode.put("protected_endpoints", protected_endpoints.toString());
 
-        client.index(new IndexRequest().source(contentAsNode));
+        client.index(new IndexRequest("registered_extensions").source(contentAsNode));
 
         if("allGood" == "allGood"){
             generateAuthToken();
