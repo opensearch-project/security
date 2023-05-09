@@ -26,9 +26,18 @@
 
 package org.opensearch.security.filter;
 
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.client.node.NodeClient;
@@ -60,13 +69,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HTTPHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-
-import javax.net.ssl.SSLPeerUnverifiedException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;

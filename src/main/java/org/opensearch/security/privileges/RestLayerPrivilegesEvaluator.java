@@ -11,9 +11,13 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
+
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -30,8 +34,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class RestLayerPrivilegesEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -43,7 +45,7 @@ public class RestLayerPrivilegesEvaluator {
     private final ClusterInfoHolder clusterInfoHolder;
     private ConfigModel configModel;
     private DynamicConfigModel dcm;
-    private final NamedXContentRegistry namedXContentRegistry;
+    private final AtomicReference<NamedXContentRegistry> namedXContentRegistry;
 
     public RestLayerPrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                         final ConfigurationRepository configurationRepository,
@@ -99,22 +101,62 @@ public class RestLayerPrivilegesEvaluator {
             log.debug("Action: {}", action0);
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
-        if(!securityRoles.impliesClusterPermissionPermission(action0)) {
+
+        if (!securityRoles.impliesClusterPermissionPermission(action0) && !impliesLegacyPermission(action0, securityRoles)) {
             presponse.missingPrivileges.add(action0);
             presponse.allowed = false;
-            log.info("No extension-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",  user, action0,
+            log.info("No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",  user, action0,
                     securityRoles.getRoleNames(), presponse.missingPrivileges);
-            return presponse;
         } else {
             if (isDebugEnabled) {
                 log.debug("Allowed because we have extension permissions for {}", action0);
             }
             presponse.allowed = true;
-            return presponse;
         }
+        return presponse;
     }
 
     public Set<String> mapRoles(final User user, final TransportAddress caller) {
         return this.configModel.mapSecurityRoles(user, caller);
+    }
+
+    /**
+     * Checks if the route is accessible via legacy naming convention.
+     * We check against cluster permissions because the legacy convention for cluster permissions map 1-1 with a transport
+     * action call initiated via REST API handler. Hence we use the same to allow/block request forwarding to extensions.
+     * This ensures backwards-compatibility
+     *
+     *
+     * NOTE: THIS CHECK WILL BE REMOVED ONCE ALL ACTIONS HAVE BEEN MIGRATED TO THE NEW CONVENTION
+     *
+     * E.g For extension `hw`, following are two possible ways actions an be defined in roles:
+     *
+     * extension_hw_full:
+     *   reserved: true
+     *   cluster_permissions:
+     *     - 'extension:hw/greet'
+     *
+     * legacy_hw_full:
+     *   reserved: true
+     *   cluster_permissions:
+     *     - 'cluster:admin/opensearch/hw/greet'
+     *
+     *
+     * @param action - The action to be checked against its legacy version
+     * @return true, if a legacy version was found and validated, false otherwise
+     */
+    private boolean impliesLegacyPermission(String action, SecurityRoles roles) {
+        boolean isAlreadyLegacy = action.startsWith("cluster:admin/open");
+        if (isAlreadyLegacy) {
+            return false; // this check was already made, so return false
+        }
+
+        log.info("Checking legacy permissions for {}", action);
+
+        action = action.replace(':', '/');
+        String opendistroAction = "cluster:admin/opendistro/" + action;
+        String opensearchAction = "cluster:admin/opensearch/" + action;
+
+        return roles.impliesClusterPermissionPermission(opendistroAction) || roles.impliesClusterPermissionPermission(opensearchAction);
     }
 }
