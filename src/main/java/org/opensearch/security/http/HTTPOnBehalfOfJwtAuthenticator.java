@@ -60,17 +60,15 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
     private String signingKey;
     private String encryptionKey;
 
-    private Boolean bwcPluginCompatibilityMode;
     public HTTPOnBehalfOfJwtAuthenticator() {
         super();
         init();
     }
 
     // FOR TESTING
-    public HTTPOnBehalfOfJwtAuthenticator(String signingKey, String encryptionKey, Boolean bwcPluginCompatibilityMode){
+    public HTTPOnBehalfOfJwtAuthenticator(String signingKey, String encryptionKey){
         this.signingKey = signingKey;
         this.encryptionKey = encryptionKey;
-        this.bwcPluginCompatibilityMode = bwcPluginCompatibilityMode;
         init();
     }
 
@@ -169,13 +167,19 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
             final String audience = claims.getAudience();
 
             //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
-            Object rolesObject;
+            Object rolesObject = null;
             String[] roles;
 
-            if (bwcPluginCompatibilityMode) {
-                rolesObject = claims.get("dr");
-            } else {
+            try {
                 rolesObject = claims.get("er");
+            } catch (Throwable e) {
+                    log.debug("No encrypted role founded in the claim, continue searching for decrypted roles.");
+            }
+
+            try {
+                rolesObject = claims.get("dr");
+            } catch (Throwable e) {
+                log.debug("No decrypted role founded in the claim.");
             }
 
             if (rolesObject == null) {
@@ -187,7 +191,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
                 // Extracting roles based on the compatbility mode
                 String rolesPostEncryptionDecryption = rolesClaim;
-                if (!bwcPluginCompatibilityMode) {
+                if (rolesObject == claims.get("er")) {
                     //TODO: WHERE TO GET THE ENCRYTION KEY
                     rolesPostEncryptionDecryption = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
                 }
