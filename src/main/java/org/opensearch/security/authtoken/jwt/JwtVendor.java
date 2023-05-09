@@ -166,7 +166,7 @@ public class JwtVendor {
             throw new Exception("The expiration time should be a positive integer");
         }
 
-        //TODO: IF USER ENABLES THE BWC MODE, WE ARE EXPECTING TO SET PLAIN TEXT ROLE AS `dec_r`
+        //TODO: IF USER ENABLES THE BWC MODE, WE ARE EXPECTING TO SET PLAIN TEXT ROLE AS `dr`
         if (roles != null) {
             String listOfRoles = String.join(",", roles);
             jwtClaims.setProperty("er", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
