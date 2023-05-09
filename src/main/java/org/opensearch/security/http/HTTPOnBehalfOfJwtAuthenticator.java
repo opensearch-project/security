@@ -169,12 +169,12 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
             final String audience = claims.getAudience();
 
             //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
-            Object rolesObject = null;
+            Object rolesObject;
             String[] roles;
 
             if (bwcPluginCompatibilityMode) {
                 rolesObject = claims.get("dr");
-            } else if (!bwcPluginCompatibilityMode) {
+            } else {
                 rolesObject = claims.get("er");
             }
 
@@ -187,7 +187,6 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
                 // Extracting roles based on the compatbility mode
                 String rolesPostEncryptionDecryption = rolesClaim;
-                // Case 1:
                 if (!bwcPluginCompatibilityMode) {
                     //TODO: WHERE TO GET THE ENCRYTION KEY
                     rolesPostEncryptionDecryption = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
