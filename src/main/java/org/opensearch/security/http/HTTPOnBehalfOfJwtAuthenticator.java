@@ -190,12 +190,12 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
                 final String rolesClaim = rolesObject.toString();
 
                 // Extracting roles based on the compatbility mode
-                String rolesPostEncryptionDecryption = rolesClaim;
+                String decryptedRoles = rolesClaim;
                 if (rolesObject == claims.get("er")) {
                     //TODO: WHERE TO GET THE ENCRYTION KEY
-                    rolesPostEncryptionDecryption = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
+                    decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
                 }
-                roles = Arrays.stream(rolesPostEncryptionDecryption.split(",")).map(String::trim).toArray(String[]::new);
+                roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
             }
 
             if (subject == null) {
@@ -228,9 +228,6 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
     @Override
     public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED,"");
-        wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
-        channel.sendResponse(wwwAuthenticateResponse);
         return false;
     }
 
