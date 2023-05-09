@@ -62,8 +62,6 @@ import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.Weight;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import org.opensearch.security.http.HTTPOnBehalfOfJwtAuthenticator;
-
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -147,6 +145,7 @@ import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.http.HTTPOnBehalfOfJwtAuthenticator;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;

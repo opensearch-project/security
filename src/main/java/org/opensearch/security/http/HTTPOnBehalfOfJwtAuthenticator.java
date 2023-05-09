@@ -228,7 +228,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
         final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED,"");
         wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
-        return true;
+        return false;
     }
 
     @Override

@@ -21,7 +21,6 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
-import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
 import com.google.common.io.BaseEncoding;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -31,6 +30,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
@@ -178,8 +179,6 @@ public class HTTPOnBehalfOfJwtAuthenticatorTest {
                 Jwts.builder().setSubject("Leonard McCoy").claim("dr", null),
                 false);
 
-        System.out.println("1111111");
-        System.out.println(credentials);
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
         Assert.assertEquals(0, credentials.getBackendRoles().size());
@@ -266,10 +265,8 @@ public class HTTPOnBehalfOfJwtAuthenticatorTest {
                 builder,
                 true);
 
-        System.out.println("Printing out credentials!!!" + credentials);
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Cluster_0", credentials.getUsername());
-        System.out.println("Backend roles size: " + credentials.getBackendRoles().size());
         Assert.assertEquals(3, credentials.getBackendRoles().size());
         Assert.assertTrue(credentials.getBackendRoles().contains("a"));
         Assert.assertTrue(credentials.getBackendRoles().contains("b"));
