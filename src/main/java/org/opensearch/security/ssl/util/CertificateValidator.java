@@ -52,6 +52,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline certification extensions is unrelated to OpenSearch extensions
 /**
  * Convenience class to handle validation of certificates, aliases and keystores
  *
@@ -62,6 +63,7 @@ import java.util.Set;
  * IMPORTANT: at least one of the above mechanisms *MUST* be configured and
  * operational, otherwise certificate validation *WILL FAIL* unconditionally.
  */
+// CS-ENFORCE-SINGLE
 public class CertificateValidator
 {
     
