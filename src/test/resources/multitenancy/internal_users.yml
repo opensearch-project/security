@@ -156,3 +156,9 @@ user_tenant_parameters_substitution:
   attributes:
     attribute1: "tenant_parameters_substitution"
   description: "PR# 819 / Issue#817"
+user_rest_api_access:
+  hash: "$2y$12$aHkyhk95XbrMCByYYVAlrek1thXpTDuVKJW01vdLYPh6kyR36j7x6"
+  reserved: false
+  hidden: false
+  backend_roles: []
+  description: "REST API Access"
