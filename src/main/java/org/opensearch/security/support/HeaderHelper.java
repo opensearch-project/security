@@ -44,7 +44,12 @@ public class HeaderHelper {
         return  "direct".equals(context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE))
                   || context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE) == null;
     }
-    
+
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Java Cryptography Extension is unrelated to OpenSearch extensions
+    public static boolean isExtensionRequest(final ThreadContext context) {
+        return context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST) == Boolean.TRUE;
+    }
+    // CS-ENFORCE-SINGLE
     
     public static String getSafeFromHeader(final ThreadContext context, final String headerName) {
 

@@ -97,6 +97,9 @@ public class ConfigConstants {
 
     public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_transport_trustedcluster_request";
 
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
+    public static final String OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX+"ssl_transport_extension_request";
+    // CS-ENFORCE-SINGLE
 
     /**
      * Set by the SSL plugin, this is the peer node certificate on the transport layer

@@ -210,8 +210,10 @@ public class SecurityAdmin {
         options.addOption( "nhnv", "disable-host-name-verification", false, "Disable hostname verification" );
         options.addOption(Option.builder("ts").longOpt("truststore").hasArg().argName("file").desc("Path to truststore (JKS/PKCS12 format)").build());
         options.addOption(Option.builder("ks").longOpt("keystore").hasArg().argName("file").desc("Path to keystore (JKS/PKCS12 format").build());
+        // CS-SUPPRESS-SINGLE: RegexpSingleline file extensions is unrelated to OpenSearch extensions
         options.addOption(Option.builder("tst").longOpt("truststore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given we use the file extension to dectect the type").build());
         options.addOption(Option.builder("kst").longOpt("keystore-type").hasArg().argName("type").desc("JKS or PKCS12, if not given we use the file extension to dectect the type").build());
+        // CS-ENFORCE-SINGLE
         options.addOption(Option.builder("tspass").longOpt("truststore-password").hasArg().argName("password").desc("Truststore password").build());
         options.addOption(Option.builder("kspass").longOpt("keystore-password").hasArg().argName("password").desc("Keystore password").build());
         options.addOption(Option.builder("cd").longOpt("configdir").hasArg().argName("directory").desc("Directory for config files").build());
@@ -1410,6 +1412,7 @@ public class SecurityAdmin {
                                     .setSslContext(sslContext)
                                     .setTlsVersions(supportedProtocols)
                                     .setCiphers(supportedCipherSuites)
+                                    .setHostnameVerifier(hnv)
                                     // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
                                     .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
                                         @Override
