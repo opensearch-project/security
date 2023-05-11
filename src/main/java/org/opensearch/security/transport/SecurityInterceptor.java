@@ -61,7 +61,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.Transport;
 import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportException;
 import org.opensearch.transport.TransportInterceptor.AsyncSender;
