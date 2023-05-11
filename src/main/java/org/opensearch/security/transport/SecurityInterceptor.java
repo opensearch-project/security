@@ -58,8 +58,10 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.Transport;
 import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportException;
 import org.opensearch.transport.TransportInterceptor.AsyncSender;
@@ -127,6 +129,8 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
+        final boolean isDirectRequest = cs.localNode().equals(connection.getNode()) || HeaderHelper.isDirectRequest(getThreadContext());
+
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
@@ -150,9 +154,7 @@ public class SecurityInterceptor {
 
             if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
                     && clusterInfoHolder.isInitialized()
-                    && (action.equals(ClusterSearchShardsAction.NAME)
-                    || action.equals(SearchAction.NAME)
-            )
+                    && (action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME))
                     && !clusterInfoHolder.hasNode(connection.getNode())) {
                 if (isDebugEnabled) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
@@ -197,7 +199,7 @@ public class SecurityInterceptor {
 
             getThreadContext().putHeader(headerMap);
 
-            ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString);
+            ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString, isDirectRequest);
 
             if (isActionTraceEnabled()) {
                 getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
@@ -208,7 +210,7 @@ public class SecurityInterceptor {
     }
 
     private void ensureCorrectHeaders(final Object remoteAdr, final User origUser, final String origin,
-                                      final String injectedUserString, final String injectedRolesString) {
+                                      final String injectedUserString, final String injectedRolesString, boolean isDirectRequest) {
         // keep original address
 
         if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
@@ -224,7 +226,15 @@ public class SecurityInterceptor {
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
 
             if(remoteAddressHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
+                TransportAddress transportAddress = (TransportAddress) remoteAdr;
+
+                if(isDirectRequest) {
+                    // if request is going to be handled by same node, we directly put transient value.
+                    log.info("Tranport Addr dir channel: {}", transportAddress);
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, transportAddress);
+                } else {
+                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(transportAddress.address()));
+                }
             }
         }
 
@@ -233,7 +243,12 @@ public class SecurityInterceptor {
 
         if(userHeader == null) {
             if(origUser != null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                if(isDirectRequest) {
+                    // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be stah.
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, origUser);
+                } else {
+                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                }
             }
             else if(StringUtils.isNotEmpty(injectedRolesString)) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);

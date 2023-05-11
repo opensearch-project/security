@@ -138,10 +138,12 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             //bypass non-netty requests
             if(channelType.equals("direct")) {
                 final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+                // for direct channel requests we don't serialize the user object in sendRequestDecorate
+                final User user = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
                 final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
 
-                if(Strings.isNullOrEmpty(userHeader)) {
+                if(user != null) {
                     // Keeping role injection with higher priority as plugins under OpenSearch will be using this
                     // on transport layer
                     if(!Strings.isNullOrEmpty(injectedRolesHeader)) {
@@ -150,14 +152,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     else if(!Strings.isNullOrEmpty(injectedUserHeader)) {
                         getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
                     }
-                } else {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, Objects.requireNonNull((User) Base64Helper.deserializeObject(userHeader)));
-                }
-
-                final String originalRemoteAddress = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
-
-                if(!Strings.isNullOrEmpty(originalRemoteAddress)) {
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, new TransportAddress((InetSocketAddress) Base64Helper.deserializeObject(originalRemoteAddress)));
                 }
 
                 final String rolesValidation = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER);
@@ -177,21 +171,21 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             boolean skipSecurityIfDualMode = getThreadContext().getTransient(ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY) == Boolean.TRUE;
 
-                if(skipSecurityIfDualMode) {
-                    if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) == null) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
-                    }
+            if(skipSecurityIfDualMode) {
+                if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) == null) {
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, request.remoteAddress());
+                }
 
-                    if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
-                    }
+                if(getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.TRANSPORT.toString());
+                }
 
-                    if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == null) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
-                    }
+                if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == null) {
+                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST, Boolean.TRUE);
+                }
 
-                    super.messageReceivedDecorate(request, handler, transportChannel, task);
-                    return;
+                super.messageReceivedDecorate(request, handler, transportChannel, task);
+                return;
             }
 
             //if the incoming request is an internal:* or a shard request allow only if request was sent by a server node
