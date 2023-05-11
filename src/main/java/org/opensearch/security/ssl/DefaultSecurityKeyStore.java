@@ -110,8 +110,10 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
             final int aesMaxKeyLength = Cipher.getMaxAllowedKeyLength("AES");
 
             if (aesMaxKeyLength < 256) {
+	            // CS-SUPPRESS-SINGLE: RegexpSingleline Java Cryptography Extension is unrelated to OpenSearch extensions
                 log.info("AES-256 not supported, max key length for AES is {} bit."
                     + " (This is not an issue, it just limits possible encryption strength. To enable AES 256, install 'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files')", aesMaxKeyLength);
+	            // CS-ENFORCE-SINGLE
             }
         } catch (final NoSuchAlgorithmException e) {
             log.error("AES encryption not supported (SG 1). ", e);

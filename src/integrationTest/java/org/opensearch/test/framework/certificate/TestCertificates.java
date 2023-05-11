@@ -60,8 +60,8 @@ public class TestCertificates {
 	private static final String CA_SUBJECT = "DC=com,DC=example,O=Example Com Inc.,OU=Example Com Inc. Root CA,CN=Example Com Inc. Root CA";
 	private static final String ADMIN_DN = "CN=kirk,OU=client,O=client,L=test,C=de";
 	private static final int CERTIFICATE_VALIDITY_DAYS = 365;
-	private static final String CERTIFICATE_FILE_EXTENSION = ".cert";
-	private static final String KEY_FILE_EXTENSION = ".key";
+	private static final String CERTIFICATE_FILE_EXT = ".cert";
+	private static final String KEY_FILE_EXT = ".key";
 	private final CertificateData caCertificate;
 	private final CertificateData adminCertificate;
 	private final List<CertificateData> nodeCertificates;
@@ -106,7 +106,7 @@ public class TestCertificates {
 	* @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
 	*/
 	public File getRootCertificate() {
-		return createTempFile("root", CERTIFICATE_FILE_EXTENSION, caCertificate.certificateInPemFormat());
+		return createTempFile("root", CERTIFICATE_FILE_EXT, caCertificate.certificateInPemFormat());
 	}
 
 	public CertificateData getRootCertificateData() {
@@ -120,7 +120,7 @@ public class TestCertificates {
 	*/
 	public File getNodeCertificate(int node) {
 		CertificateData certificateData = getNodeCertificateData(node);
-		return createTempFile("node-" + node, CERTIFICATE_FILE_EXTENSION, certificateData.certificateInPemFormat());
+		return createTempFile("node-" + node, CERTIFICATE_FILE_EXT, certificateData.certificateInPemFormat());
 	}
 
 	public CertificateData getNodeCertificateData(int node) {
@@ -178,7 +178,7 @@ public class TestCertificates {
 	*/
 	public File getNodeKey(int node, String privateKeyPassword) {
 		CertificateData certificateData = nodeCertificates.get(node);
-		return createTempFile("node-" + node, KEY_FILE_EXTENSION, certificateData.privateKeyInPemFormat(privateKeyPassword));
+		return createTempFile("node-" + node, KEY_FILE_EXT, certificateData.privateKeyInPemFormat(privateKeyPassword));
 	}
 
 	/**
@@ -187,7 +187,7 @@ public class TestCertificates {
 	* @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
 	*/
 	public File getAdminCertificate() {
-		return createTempFile("admin", CERTIFICATE_FILE_EXTENSION, adminCertificate.certificateInPemFormat());
+		return createTempFile("admin", CERTIFICATE_FILE_EXT, adminCertificate.certificateInPemFormat());
 	}
 
 	public CertificateData getAdminCertificateData() {
@@ -202,7 +202,7 @@ public class TestCertificates {
 	* by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
 	*/
 	public File getAdminKey(String privateKeyPassword) {
-		return createTempFile("admin", KEY_FILE_EXTENSION, adminCertificate.privateKeyInPemFormat(privateKeyPassword));
+		return createTempFile("admin", KEY_FILE_EXT, adminCertificate.privateKeyInPemFormat(privateKeyPassword));
 	}
 
 	public String[] getAdminDNs() {

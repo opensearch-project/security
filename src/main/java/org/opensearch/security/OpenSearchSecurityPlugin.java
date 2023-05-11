@@ -26,6 +26,7 @@
 
 package org.opensearch.security;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -195,6 +196,7 @@ import org.opensearch.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
+// CS-ENFORCE-SINGLE
 
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin, IdentityPlugin {
 
@@ -1206,6 +1208,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static IndicesService indicesService;
         private static PitService pitService;
 
+        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         private static ExtensionsManager extensionsManager;
 
         @Inject
@@ -1217,6 +1220,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
         }
+        // CS-ENFORCE-SINGLE
 
         public static RepositoriesService getRepositoriesService() {
             return repositoriesService;
@@ -1232,7 +1236,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         public static PitService getPitService() { return pitService; }
 
+        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         public static ExtensionsManager getExtensionsManager() { return extensionsManager; }
+        // CS-ENFORCE-SINGLE
 
 
         @Override
