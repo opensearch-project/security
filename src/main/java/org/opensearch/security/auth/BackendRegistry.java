@@ -224,6 +224,8 @@ public class BackendRegistry {
 
         HTTPAuthenticator firstChallengingHttpAuthenticator = null;
 
+        //TODO: ADD OUR AUTHC BACKEND IN/BEFORE THIS LIST
+
         //loop over all http/rest auth domains
         for (final AuthDomain authDomain: restAuthDomains) {
             if (isDebugEnabled) {

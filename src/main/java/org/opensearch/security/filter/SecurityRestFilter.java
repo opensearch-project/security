@@ -124,7 +124,7 @@ public class SecurityRestFilter {
                 if (!checkAndAuthenticateRequest(request, channel, client)) {
                     User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
-                        //TODO: If the request is going to the extension, issue a JWT for authenticated user.
+                        //TODO: If the request is going to the ext, issue a JWT for authenticated user.
                         original.handleRequest(request, channel, client);
                     }
                 }
