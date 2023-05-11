@@ -13,7 +13,10 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -41,6 +44,7 @@ import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.UserService;
@@ -55,9 +59,14 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
+    public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
+    public static final String PLUGINS_PREFIX = "_plugins/_security";
+
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user/"),
+            new Route(Method.GET, "/user/serviceaccounts"),
+            new Route(Method.GET, "/user/internalaccounts"),
             new Route(Method.POST, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
             new Route(Method.PUT, "/user/{name}"),
@@ -100,6 +109,43 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     protected Endpoint getEndpoint() {
         return Endpoint.INTERNALUSERS;
     }
+    @Override
+    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
+        final String resourcename = request.param("name");
+
+        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
+        filter(configuration);
+
+        if (request.rawPath().equalsIgnoreCase("/_plugins/_security/api/internalaccounts")){
+            userService.listInternalUsers();
+            successResponse(channel, configuration);
+            return;
+
+            }
+        if (request.rawPath().equalsIgnoreCase("/_plugins/_security/api/user/serviceaccounts")){
+            userService.listServiceAccounts();
+            successResponse(channel, configuration);
+            return;
+         }
+
+        // no specific resource requested, return complete config
+        if (resourcename == null || resourcename.length() == 0) {
+
+            successResponse(channel, configuration);
+            return;
+        }
+
+        if (!configuration.exists(resourcename)) {
+            notFound(channel, "Resource '" + resourcename + "' not found.");
+            return;
+        }
+
+        configuration.removeOthers(resourcename);
+        successResponse(channel, configuration);
+
+        return;
+    }
+
 
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
@@ -191,6 +237,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
      * @param content The content of the request parsed into a node
      * @throws IOException when parsing of configuration files fails (should not happen)
      */
+
     @Override
     protected void handlePost(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
 

@@ -13,10 +13,7 @@ package org.opensearch.security.user;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -41,6 +38,7 @@ import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
 
@@ -276,4 +274,51 @@ public class UserService {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
     }
+
+    public static List<String> listServiceAccounts() {
+
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+
+        List<String> serviceAccounts = new ArrayList<>();
+        for (Map.Entry<String, ?> entry : internalUsersConfiguration.getCEntries().entrySet()) {
+
+            final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
+            final Map accountAttributes = internalUserEntry.getAttributes();
+            final String accountName = entry.getKey();
+            if (accountAttributes.containsKey("service") && accountAttributes.get("service") == "true") {
+                serviceAccounts.add(accountName);
+            }
+        }
+        return serviceAccounts;
+    }
+
+    public static List<String> listInternalUsers() {
+
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+
+        List<String> internalUserAccounts = new ArrayList<>();
+        for (Map.Entry<String, ?> entry : internalUsersConfiguration.getCEntries().entrySet()) {
+
+            final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
+            final Map accountAttributes = internalUserEntry.getAttributes();
+            final String accountName = entry.getKey();
+            if (!accountAttributes.containsKey("service") || accountAttributes.get("service") == "false") {
+                internalUserAccounts.add(accountName);
+            }
+        }
+        return internalUserAccounts;
+    }
+
+    public static Set<String> listUserAccounts() {
+
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+        return internalUsersConfiguration.getCEntries().keySet();
+    }
+
+    protected static CType getConfigName() {
+        return CType.INTERNALUSERS;
+    }
+
 }
+
+
