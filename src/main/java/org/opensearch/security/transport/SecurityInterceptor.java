@@ -229,7 +229,6 @@ public class SecurityInterceptor {
 
                 if(isDirectRequest) {
                     // if request is going to be handled by same node, we directly put transient value.
-                    log.info("Tranport Addr dir channel: {}", transportAddress);
                     getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, transportAddress);
                 } else {
                     getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(transportAddress.address()));

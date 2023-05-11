@@ -137,7 +137,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             //bypass non-netty requests
             if(channelType.equals("direct")) {
-                final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
                 // for direct channel requests we don't serialize the user object in sendRequestDecorate
                 final User user = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
