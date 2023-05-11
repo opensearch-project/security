@@ -128,7 +128,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-        final boolean isDirectRequest = cs.localNode().equals(connection.getNode()) || HeaderHelper.isDirectRequest(getThreadContext());
+        final boolean isDirectRequest = HeaderHelper.isDirectRequest(getThreadContext());
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
