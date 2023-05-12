@@ -58,7 +58,6 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.transport.SSLConfig;
 import org.opensearch.security.support.Base64Helper;
 import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transport.Connection;
@@ -128,7 +127,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-        final boolean isDirectRequest = HeaderHelper.isDirectRequest(getThreadContext());
+        final boolean isDirectRequest = cs.localNode().equals(connection.getNode()); // using DiscoveryNode equals comparison here
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
@@ -236,25 +235,26 @@ public class SecurityInterceptor {
             }
         }
 
-
+        User user = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
-        if(userHeader == null) {
-            if(origUser != null) {
-                if(isDirectRequest) {
-                    // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be stah.
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, origUser);
-                } else {
-                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
-                }
-            }
-            else if(StringUtils.isNotEmpty(injectedRolesString)) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
-            }
-            else if(StringUtils.isNotEmpty(injectedUserString)) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
+
+        if(origUser != null) {
+            if(isDirectRequest) {
+                // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be stah.
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, origUser);
+//                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+            } else {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
             }
         }
+        else if(StringUtils.isNotEmpty(injectedRolesString)) {
+            getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
+        }
+        else if(StringUtils.isNotEmpty(injectedUserString)) {
+            getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
+        }
+
 
     }
 
