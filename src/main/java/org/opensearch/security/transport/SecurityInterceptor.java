@@ -238,21 +238,25 @@ public class SecurityInterceptor {
         User user = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
-
-        if(origUser != null) {
-            if(isDirectRequest) {
+        if(isDirectRequest) {
+            // put as transient values for same node requests
+            if(origUser != null) {
                 // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be stah.
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, origUser);
-//                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
-            } else {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+            } else if(StringUtils.isNotEmpty(injectedRolesString)) {
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesString);
+            } else if(StringUtils.isNotEmpty(injectedUserString)) {
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserString);
             }
-        }
-        else if(StringUtils.isNotEmpty(injectedRolesString)) {
-            getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
-        }
-        else if(StringUtils.isNotEmpty(injectedUserString)) {
-            getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
+        } else {
+            // put as headers for other requests
+            if(origUser != null) {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+            } else if(StringUtils.isNotEmpty(injectedRolesString)) {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
+            } else if(StringUtils.isNotEmpty(injectedUserString)) {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
+            }
         }
 
 

@@ -137,21 +137,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             //bypass non-netty requests
             if(channelType.equals("direct")) {
-                // for direct channel requests we don't serialize the user object in sendRequestDecorate
-                final User user = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                final String injectedRolesHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER);
-                final String injectedUserHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER);
-
-                if(user != null) {
-                    // Keeping role injection with higher priority as plugins under OpenSearch will be using this
-                    // on transport layer
-                    if(!Strings.isNullOrEmpty(injectedRolesHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesHeader);
-                    }
-                    else if(!Strings.isNullOrEmpty(injectedUserHeader)) {
-                        getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserHeader);
-                    }
-                }
+                // for direct channel requests user, injected user and injected roles value are already present as transient headers
+                // so we don't place them here again
 
                 final String rolesValidation = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER);
                 if(!Strings.isNullOrEmpty(rolesValidation)) {
