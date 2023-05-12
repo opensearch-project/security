@@ -73,7 +73,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .build();
         setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -106,10 +106,11 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             exception = ex;
-            log.warn(ex.toString());
+            log.debug(ex.toString());
             Assert.assertNotNull(exception);
-            Assert.assertTrue(exception.getMessage().contains("indices:admin/create"));
+            Assert.assertTrue(exception.getMessage().toString().contains("no permissions for [indices:admin/create]"));
         }
+
 
         // 3. with valid backend roles for injected user
         UserInjectorPlugin.injectedUser = "injectedadmin|injecttest";
@@ -127,7 +128,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, false)
                 .build();
         setup(clusterNodeSettings, new DynamicSecurityConfig().setSecurityRolesMapping("roles_transport_inject_user.yml"), Settings.EMPTY);
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -147,7 +148,7 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-1")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());
         }
-        
+
         // with invalid backend roles
         UserInjectorPlugin.injectedUser = "ttt|kkk";
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
@@ -157,6 +158,5 @@ public class TransportUserInjectorIntegTest extends SingleClusterTest {
             // Should pass as the user injection is disabled
             Assert.assertTrue(cir.isAcknowledged());
         }
-
     }
 }

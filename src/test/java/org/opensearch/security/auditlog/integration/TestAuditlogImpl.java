@@ -61,7 +61,7 @@ public class TestAuditlogImpl extends AuditLogSink {
         final List<AuditMessage> missedMessages = new ArrayList<>();
         final List<AuditMessage> messages = new ArrayList<>();
         final CountDownLatch latch = resetAuditStorage(expectedCount, messages);
-        
+
         try {
             action.run();
             final int maxSecondsToWaitForMessages = 1;
@@ -82,13 +82,13 @@ public class TestAuditlogImpl extends AuditLogSink {
                 Thread.sleep(100);
                 if (missedMessages.size() != 0) {
                     final String missedMessagesErrorMessage = new StringBuilder()
-                    .append("Audit messages were missed! ")
-                    .append("Found " + (missedMessages.size()) + " messages.")
-                    .append("Messages found during this time: \n\n")
-                    .append(missedMessages.stream()
-                        .map(AuditMessage::toString)
-                        .collect(Collectors.joining("\n")))
-                    .toString();
+                            .append("Audit messages were missed! ")
+                            .append("Found " + (missedMessages.size()) + " messages.")
+                            .append("Messages found during this time: \n\n")
+                            .append(missedMessages.stream()
+                                    .map(AuditMessage::toString)
+                                    .collect(Collectors.joining("\n")))
+                            .toString();
 
                     throw new RuntimeException(missedMessagesErrorMessage);
                 }
@@ -104,9 +104,9 @@ public class TestAuditlogImpl extends AuditLogSink {
 
     /**
      * Resets all of the mechanics for fresh messages to be captured
-     * 
+     *
      * @param expectedMessageCount The number of messages before the latch is signalled, indicating all messages have been recieved
-     * @param message Where messages will be stored after being recieved
+     * @param messages Where messages will be stored after being recieved
      */
     private static CountDownLatch resetAuditStorage(int expectedMessageCount, List<AuditMessage> messages) {
         final CountDownLatch latch = new CountDownLatch(expectedMessageCount);
@@ -155,13 +155,13 @@ public class TestAuditlogImpl extends AuditLogSink {
 
         private static String createDetailMessage(final int expectedCount, final List<AuditMessage> foundMessages) {
             return new StringBuilder()
-                .append("Did not receive all " + expectedCount + " audit messages after a short wait. ")
-                .append("Missing " + (expectedCount - foundMessages.size()) + " messages.")
-                .append("Messages found during this time: \n\n")
-                .append(foundMessages.stream()
-                    .map(AuditMessage::toString)
-                    .collect(Collectors.joining("\n")))
-                .toString();
+                    .append("Did not receive all " + expectedCount + " audit messages after a short wait. ")
+                    .append("Missing " + (expectedCount - foundMessages.size()) + " messages.")
+                    .append("Messages found during this time: \n\n")
+                    .append(foundMessages.stream()
+                            .map(AuditMessage::toString)
+                            .collect(Collectors.joining("\n")))
+                    .toString();
         }
     }
 }

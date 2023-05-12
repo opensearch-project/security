@@ -14,7 +14,6 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -44,6 +43,8 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
+import org.opensearch.security.user.UserService;
+import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -51,31 +52,36 @@ import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
-        ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
+            ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user/"),
+            new Route(Method.POST, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
             new Route(Method.PUT, "/user/{name}"),
 
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/internalusers/{name}"),
             new Route(Method.GET, "/internalusers/"),
+            new Route(Method.POST, "/internalusers/{name}/authtoken"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
             new Route(Method.PATCH, "/internalusers/"),
             new Route(Method.PATCH, "/internalusers/{name}")
     ));
 
+    UserService userService;
+
     @Inject
     public InternalUsersApiAction(final Settings settings, final Path configPath, final RestController controller,
                                   final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
                                   final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
-                                  ThreadPool threadPool, AuditLog auditLog) {
+                                  ThreadPool threadPool, UserService userService, AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
                 auditLog);
+        this.userService = userService;
     }
 
     @Override
@@ -100,22 +106,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
         final String username = request.param("name");
 
-        if (username == null || username.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
-            return;
-        }
-
-        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(username::contains).collect(Collectors.toList());
-        if (!foundRestrictedContents.isEmpty()) {
-            final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
-            badRequestResponse(channel, "Username has restricted characters " + restrictedContents + " that are not permitted.");
-            return;
-        }
-
-        // TODO it might be sensible to consolidate this with the overridden method in
-        // order to minimize duplicated logic
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
+        SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
 
         if (!isWriteable(channel, internalUsersConfiguration, username)) {
             return;
@@ -128,20 +119,10 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final List<String> securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
         if (securityRoles != null) {
             for (final String role: securityRoles) {
-                if (!isValidRolesMapping(channel, role)) return;
+                if (!isValidRolesMapping(channel, role)) {
+                    return;
+                }
             }
-        }
-
-        // if password is set, it takes precedence over hash
-        final String plainTextPassword = securityJsonNode.get("password").asString();
-        final String origHash = securityJsonNode.get("hash").asString();
-        if (plainTextPassword != null && plainTextPassword.length() > 0) {
-            contentAsNode.remove("password");
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
-        } else if (origHash != null && origHash.length() > 0) {
-            contentAsNode.remove("password");
-        } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
-            contentAsNode.remove("password");
         }
 
         final boolean userExisted = internalUsersConfiguration.exists(username);
@@ -149,10 +130,22 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         // when updating an existing user password hash can be blank, which means no
         // changes
 
-        // sanity checks, hash is mandatory for newly created users
-        if (!userExisted && securityJsonNode.get("hash").asString() == null) {
-            badRequestResponse(channel, "Please specify either 'hash' or 'password' when creating a new internal user.");
+        try {
+            if (request.hasParam("service")) {
+                ((ObjectNode) content).put("service", request.param("service"));
+            }
+            if (request.hasParam("enabled")) {
+                ((ObjectNode) content).put("enabled", request.param("enabled"));
+            }
+            ((ObjectNode) content).put("name", username);
+            internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
+        }
+        catch (UserServiceException ex) {
+            badRequestResponse(channel, ex.getMessage());
             return;
+        }
+        catch (IOException ex) {
+            throw new IOException(ex);
         }
 
         // for existing users, hash is optional
@@ -161,7 +154,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             final String hash = ((Hashed) internalUsersConfiguration.getCEntry(username)).getHash();
             if (hash == null || hash.length() == 0) {
                 internalErrorResponse(channel,
-                    "Existing user " + username + " has no password, and no new password or hash was specified.");
+                        "Existing user " + username + " has no password, and no new password or hash was specified.");
                 return;
             }
             contentAsNode.put("hash", hash);
@@ -170,9 +163,12 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         internalUsersConfiguration.remove(username);
 
         // checks complete, create or update the user
-        internalUsersConfiguration.putCObject(username, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+        Object userData = DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass());
+        internalUsersConfiguration.putCObject(username, userData);
+
 
         saveAndUpdateConfigs(this.securityIndexName,client, CType.INTERNALUSERS, internalUsersConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
+
 
             @Override
             public void onResponse(IndexResponse response) {
@@ -185,6 +181,63 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             }
         });
     }
+
+    /**
+     * Overrides the GET request functionality to allow for the special case of requesting an auth token.
+     *
+     * @param channel The channel the request is coming through
+     * @param request The request itself
+     * @param client The client executing the request
+     * @param content The content of the request parsed into a node
+     * @throws IOException when parsing of configuration files fails (should not happen)
+     */
+    @Override
+    protected void handlePost(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
+
+        final String username = request.param("name");
+
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), true);
+        filter(internalUsersConfiguration); // Hides hashes
+
+        // no specific resource requested
+        if (username == null || username.length() == 0) {
+
+            notImplemented(channel, Method.POST);
+            return;
+        }
+
+        final boolean userExisted = internalUsersConfiguration.exists(username);
+
+        if (!userExisted) {
+            notFound(channel, "Resource '" + username + "' not found.");
+            return;
+        }
+
+        String authToken = "";
+        try {
+            if (request.uri().contains("/internalusers/" + username + "/authtoken") && request.uri().endsWith("/authtoken")) {  // Handle auth token fetching
+
+                authToken = userService.generateAuthToken(username);
+            } else { // Not an auth token request
+
+                notImplemented(channel, Method.POST);
+                return;
+            }
+        }  catch (UserServiceException ex) {
+            badRequestResponse(channel, ex.getMessage());
+            return;
+        }
+        catch (IOException ex) {
+            throw new IOException(ex);
+        }
+
+        if (!authToken.isEmpty()) {
+            createdResponse(channel, "'" + username + "' authtoken generated "  + authToken);
+        } else {
+            badRequestResponse(channel, "'" + username + "' authtoken failed to be created.");
+        }
+    }
+
 
     @Override
     protected void filter(SecurityDynamicConfiguration<?> builder) {

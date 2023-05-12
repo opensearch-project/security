@@ -9,11 +9,12 @@
 */
 package org.opensearch.test.framework.matcher;
 
+import java.util.Map;
+
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 
 import static java.util.Objects.isNull;
@@ -31,12 +32,13 @@ class GetSettingsResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatche
 
 	@Override
 	protected boolean matchesSafely(GetSettingsResponse response, Description mismatchDescription) {
-		ImmutableOpenMap<String, Settings> indexToSettings = response.getIndexToSettings();
+
+		final Map<String, Settings> indexToSettings = response.getIndexToSettings();
 		for (String index : expectedIndices) {
 			if (!indexToSettings.containsKey(index)) {
 				mismatchDescription
 						.appendText("Response contains settings of indices: ")
-						.appendValue(indexToSettings.keys());
+						.appendValue(indexToSettings.keySet());
 				return false;
 			}
 		}
