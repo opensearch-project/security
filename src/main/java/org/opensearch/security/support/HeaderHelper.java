@@ -52,15 +52,8 @@ public class HeaderHelper {
             return null;
         }
 
-        String headerValue = null;
-        	
-        Map<String, String> headers = context.getHeaders();
-        if (!headers.containsKey(headerName) || (headerValue = headers.get(headerName)) == null) {
-            return null;
-        }
-
         if (isInterClusterRequest(context) || isTrustedClusterRequest(context) || isDirectRequest(context)) {
-            return headerValue;
+            return context.getHeader(headerName);
         }
 
         return null;
