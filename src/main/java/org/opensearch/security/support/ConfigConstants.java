@@ -289,7 +289,6 @@ public class ConfigConstants {
     public static final Boolean SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT = false;
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
-    public static final String EXTENSIONS_BWC_PLUGIN_MODE_ENABLED = "bwc_plugin_mode_enabled";
     public static final String TENANCY_PRIVATE_TENANT_NAME = "Private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "Global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";

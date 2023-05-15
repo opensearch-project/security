@@ -1201,13 +1201,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     }
 
     @Override
-    public List<Setting<?>> getExtensionSettings() {
-        List<Setting<?>> settings = new ArrayList<Setting<?>>();
-        settings.add(Setting.boolSetting(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_ENABLED, false, Property.ExtensionScope));
-        return settings;
-    }
-
-    @Override
     public ScheduledJobIdentityManager getScheduledJobIdentityManager() {
         return scheduledJobIdentityManager;
     }
