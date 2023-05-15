@@ -179,6 +179,17 @@ public class UserService {
         return internalUsersConfiguration;
     }
 
+    /**
+     * Checks if user exists in internal user's configuration.
+     *
+     * @param username
+     * @return boolean
+     */
+    public boolean userExists(String username) {
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
+        return internalUsersConfiguration.exists(username);
+    }
+
     private void verifyServiceAccount(SecurityJsonNode securityJsonNode, String accountName) {
 
 
