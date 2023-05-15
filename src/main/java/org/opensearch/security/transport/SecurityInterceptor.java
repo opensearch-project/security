@@ -219,19 +219,12 @@ public class SecurityInterceptor {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
         }
 
+        String remoteAddressHeader = null;
+        TransportAddress transportAddress = null;
         if (remoteAdr != null && remoteAdr instanceof TransportAddress) {
-
-            String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
-
+            remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
             if(remoteAddressHeader == null) {
-                TransportAddress transportAddress = (TransportAddress) remoteAdr;
-
-                if(isDirectRequest) {
-                    // if request is going to be handled by same node, we directly put transient value.
-                    getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, transportAddress);
-                } else {
-                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(transportAddress.address()));
-                }
+                transportAddress = (TransportAddress) remoteAdr;
             }
         }
 
@@ -240,6 +233,10 @@ public class SecurityInterceptor {
 
         if(isDirectRequest) {
             // put as transient values for same node requests
+            if (transportAddress != null) {
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, transportAddress);
+            }
+
             if(origUser != null) {
                 // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be stah.
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, origUser);
@@ -250,6 +247,10 @@ public class SecurityInterceptor {
             }
         } else {
             // put as headers for other requests
+            if (transportAddress != null) {
+                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(transportAddress.address()));
+            }
+
             if(origUser != null) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
             } else if(StringUtils.isNotEmpty(injectedRolesString)) {
