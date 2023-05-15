@@ -29,6 +29,7 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.identity.ScheduledJobIdentityManager;
 import org.opensearch.identity.tokens.AuthToken;
@@ -140,9 +141,9 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     private ActionListener<CreateIndexResponse> markMappingUpToDate(SecurityIndex index, ActionListener<CreateIndexResponse> followingListener) {
         return ActionListener.wrap(createdResponse -> {
             if (createdResponse.isAcknowledged()) {
-                IndexState indexStatetate = indexStates.computeIfAbsent(index, IndexState::new);
-                if (Boolean.FALSE.equals(indexStatetate.mappingUpToDate)) {
-                    indexStatetate.mappingUpToDate = Boolean.TRUE;
+                IndexState indexState = indexStates.computeIfAbsent(index, IndexState::new);
+                if (Boolean.FALSE.equals(indexState.mappingUpToDate)) {
+                    indexState.mappingUpToDate = Boolean.TRUE;
                     logger.info(new ParameterizedMessage("Mark [{}]'s mapping up-to-date", index.getIndexName()));
                 }
             }
@@ -229,14 +230,19 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
             logger.info("Scheduled Job Identity already exists in " + SCHEDULED_JOB_IDENTITY_INDEX + " for job with jobId " + jobId);
         } else {
             final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+            System.out.println("Saving job identity with user " + user);
             if (user == null) {
                 throw new OpenSearchSecurityException("Attempting to save user details for scheduled job, but user info is empty");
             }
             ScheduledJobIdentity identityOfJob = new ScheduledJobIdentity(indexName, Instant.now(), Instant.now(), user);
+            System.out.println("identityOfJob: " + identityOfJob);
+            XContentBuilder source = identityOfJob.toXContent(XContentFactory.jsonBuilder(), XCONTENT_WITH_TYPE);
+            System.out.println("source: " + source);
             IndexRequest indexRequest = new IndexRequest(SCHEDULED_JOB_IDENTITY_INDEX)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .source(identityOfJob.toXContent(XContentFactory.jsonBuilder(), XCONTENT_WITH_TYPE))
                     .id(jobId);
+            System.out.println("Index Request: " + indexRequest);
             client
                     .index(
                             indexRequest,

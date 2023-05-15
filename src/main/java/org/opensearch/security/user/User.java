@@ -36,12 +36,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.common.io.stream.Writeable;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import static org.opensearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
@@ -52,7 +55,7 @@ import static org.opensearch.common.xcontent.XContentParserUtils.ensureExpectedT
  * <b>Do not subclass from this class!</b>
  *
  */
-public class User implements Serializable, Writeable, CustomAttributesAware {
+public class User implements Serializable, Writeable, ToXContent, CustomAttributesAware {
 
     public static final User ANONYMOUS = new User("opendistro_security_anonymous", Lists.newArrayList("opendistro_security_anonymous_backendrole"), null);
 
@@ -339,5 +342,21 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     
     public final Set<String> getSecurityRoles() {
         return this.securityRoles == null ? Collections.synchronizedSet(Collections.emptySet()) : Collections.unmodifiableSet(this.securityRoles);
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        List<String> customAttNames = new ArrayList<>();
+        if (attributes != null) {
+            customAttNames = attributes.keySet().stream().collect(Collectors.toList());
+        }
+        builder
+                .startObject()
+                .field(NAME_FIELD, name)
+                .field(BACKEND_ROLES_FIELD, roles)
+                .field(ROLES_FIELD, securityRoles)
+                .field(CUSTOM_ATTRIBUTE_NAMES_FIELD, customAttNames)
+                .field(REQUESTED_TENANT_FIELD, requestedTenant);
+        return builder.endObject();
     }
 }

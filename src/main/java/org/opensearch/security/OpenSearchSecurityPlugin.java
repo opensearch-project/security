@@ -1209,7 +1209,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
     @Override
     public ScheduledJobIdentityManager getScheduledJobIdentityManager() {
-        return null;
+        return scheduledJobIdentityManager;
     }
 
     public static class GuiceHolder implements LifecycleComponent {
