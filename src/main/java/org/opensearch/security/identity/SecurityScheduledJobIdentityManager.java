@@ -248,17 +248,15 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
             IndexRequest indexRequest = new IndexRequest(SCHEDULED_JOB_IDENTITY_INDEX)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .source(identityOfJob.toXContent(XContentFactory.jsonBuilder(), XCONTENT_WITH_TYPE));
-            client
-                .index(
-                    indexRequest,
-                    ActionListener
-                        .wrap(
-                            indexResponse -> logger.info("Successfully created scheduled job identity index entry for jobId " + jobId),
-                            exception -> new OpenSearchSecurityException(
-                                "Exception received while indexing for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
-                            )
-                        )
-                );
+            client.index(
+                indexRequest,
+                ActionListener.wrap(
+                    indexResponse -> logger.info("Successfully created scheduled job identity index entry for jobId " + jobId),
+                    exception -> new OpenSearchSecurityException(
+                        "Exception received while indexing for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
+                    )
+                )
+            );
         }
     }
 
