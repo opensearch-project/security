@@ -403,7 +403,7 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
     // Kafka test execution
     testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
-    testRuntimeOnly ('org.springframework:spring-core:5.3.26') {
+    testRuntimeOnly ('org.springframework:spring-core:5.3.27') {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.9'
