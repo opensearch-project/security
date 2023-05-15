@@ -119,7 +119,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
             }
             return NO_SCHEMA_VERSION;
         } catch (Exception e) {
-            // since this method is called in the constructor that is called by AnomalyDetectorPlugin.createComponents,
+            // since this method is called in the constructor that is called by OpenSearchSecurityPlugin.createComponents,
             // we cannot throw checked exception
             throw new RuntimeException(e);
         }

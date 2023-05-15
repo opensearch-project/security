@@ -31,14 +31,6 @@ import static org.opensearch.common.xcontent.XContentParserUtils.ensureExpectedT
  * Scheduled Job Identity.
  */
 public class ScheduledJobIdentity implements Writeable, ToXContentObject {
-
-    public static final String PARSE_FIELD_NAME = "AnomalyDetectorJob";
-    public static final NamedXContentRegistry.Entry XCONTENT_REGISTRY = new NamedXContentRegistry.Entry(
-            ScheduledJobIdentity.class,
-            new ParseField(PARSE_FIELD_NAME),
-            it -> parse(it)
-    );
-
     public static final String JOB_ID_FIELD = "job_id";
     public static final String JOB_INDEX_FIELD = "job_index";
     public static final String LAST_UPDATE_TIME_FIELD = "last_update_time";
