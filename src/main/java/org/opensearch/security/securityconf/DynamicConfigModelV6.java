@@ -190,7 +190,7 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     }
 
     @Override
-    public Settings getDynamicExtensionsSettings() {
+    public Settings getDynamicOnBehalfOfSettings() {
         return Settings.EMPTY;
     }
 

@@ -15,6 +15,6 @@ config:
         authentication_backend:
           type: "internal"
           config: {}
-    extensions:
+    on_behalf_of:
       signing_key: "signing key"
       encryption_key: "encryption key"
