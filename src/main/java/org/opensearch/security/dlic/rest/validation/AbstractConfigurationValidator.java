@@ -249,8 +249,18 @@ public abstract class AbstractConfigurationValidator {
                     break;
                 case INVALID_PASSWORD:
                     builder.field("status", "error");
-                    builder.field("reason", opensearchSettings.get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
+                    builder.field("reason", opensearchSettings.get(
+                            ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
                             "Password does not match minimum criteria"));
+                    break;
+                case WEAK_PASSWORD:
+                case SIMILAR_PASSWORD:
+                    builder.field("status", "error");
+                    builder.field(
+                            "reason",
+                            opensearchSettings.get(
+                                    ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
+                                    errorType.message));
                     break;
                 case WRONG_DATATYPE:
                     builder.field("status", "error");
@@ -289,8 +299,14 @@ public abstract class AbstractConfigurationValidator {
     }
 
     public static enum ErrorType {
-        NONE("ok"), INVALID_CONFIGURATION("Invalid configuration"), INVALID_PASSWORD("Invalid password"), WRONG_DATATYPE("Wrong datatype"),
-        BODY_NOT_PARSEABLE("Could not parse content of request."), PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
+        NONE("ok"),
+        INVALID_CONFIGURATION("Invalid configuration"),
+        INVALID_PASSWORD("Invalid password"),
+        WEAK_PASSWORD("Weak password"),
+        SIMILAR_PASSWORD("Password is similar to user name"),
+        WRONG_DATATYPE("Wrong datatype"),
+        BODY_NOT_PARSEABLE("Could not parse content of request."),
+        PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
         PAYLOAD_MANDATORY("Request body required for this action."), SECURITY_NOT_INITIALIZED("Security index not initialized"),
         NULL_ARRAY_ELEMENT("`null` is not allowed as json array element");
 

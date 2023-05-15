@@ -53,9 +53,9 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
         rh.sendAdminCertificate = true;
         verifyGetForSuperAdmin(new Header[0]);
         rh.sendAdminCertificate = true;
@@ -122,21 +122,21 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
         // put picard in captains role. Role opendistro_security_role_captains uses the CRUD_UT
         // action group
         // which uses READ_UT and WRITE action groups. We removed READ_UT, so only
         // WRITE is possible
-        addUserWithPassword("picard", "picard", new String[] { "captains" }, HttpStatus.SC_OK);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicard", new String[] { "captains" }, HttpStatus.SC_OK);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
 
         // now remove also CRUD_UT groups, write also not possible anymore
         rh.sendAdminCertificate = true;
         response = rh.executeDeleteRequest(ENDPOINT+"/CRUD_UT", new Header[0]);
         rh.sendAdminCertificate = false;
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
     }
 
     void verifyPutForSuperAdmin(final Header[] header, final boolean userAdminCert) throws Exception {
@@ -161,8 +161,8 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = false;
 
         // write access allowed again, read forbidden, since READ_UT group is still missing
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
 
         // restore READ_UT action groups
         rh.sendAdminCertificate = userAdminCert;
@@ -171,8 +171,8 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
 
         rh.sendAdminCertificate = false;
         // read/write allowed again
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
 
         // -- PUT, new JSON format including readonly flag, disallowed in REST API
         rh.sendAdminCertificate = userAdminCert;
@@ -370,9 +370,9 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
         verifyGetForSuperAdmin(new Header[] {restApiAdminHeader});
         verifyDeleteForSuperAdmin(new Header[]{restApiAdminHeader}, false);
         verifyPutForSuperAdmin(new Header[]{restApiAdminHeader}, false);
@@ -388,9 +388,9 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         final Header restApiAdminActionGroupsHeader = encodeBasicHeader("rest_api_admin_actiongroups", "rest_api_admin_actiongroups");
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
         verifyGetForSuperAdmin(new Header[] {restApiAdminActionGroupsHeader});
         verifyDeleteForSuperAdmin(new Header[]{restApiAdminActionGroupsHeader}, false);
         verifyPutForSuperAdmin(new Header[]{restApiAdminActionGroupsHeader}, false);
