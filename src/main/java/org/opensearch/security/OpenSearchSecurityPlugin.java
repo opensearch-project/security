@@ -98,6 +98,7 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.identity.ScheduledJobIdentityManager;
 import org.opensearch.identity.Subject;
 import org.opensearch.index.Index;
 import org.opensearch.index.IndexModule;
@@ -150,6 +151,7 @@ import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.identity.SecurityScheduledJobIdentityManager;
 import org.opensearch.security.identity.SecuritySubject;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
@@ -229,6 +231,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
+
+    private volatile ScheduledJobIdentityManager scheduledJobIdentityManager;
 
     public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
@@ -871,6 +875,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 interClusterRequestEvaluator, cs, Objects.requireNonNull(sslExceptionHandler), Objects.requireNonNull(cih), SSLConfig);
         components.add(principalExtractor);
 
+        scheduledJobIdentityManager = new SecurityScheduledJobIdentityManager(cs, localClient, threadPool);
+
         // NOTE: We need to create DefaultInterClusterRequestEvaluator before creating ConfigurationRepository since the latter requires security index to be accessible which means
         // communciation with other nodes is already up. However for the communication to be up, there needs to be trusted nodes_dn. Hence the base values from opensearch.yml
         // is used to first establish trust between same cluster nodes and there after dynamic config is loaded if enabled.
@@ -887,7 +893,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         components.add(si);
         components.add(dcf);
         components.add(userService);
-
+        components.add(scheduledJobIdentityManager);
 
         return components;
 
@@ -1199,6 +1205,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.add(Setting.boolSetting(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_ENABLED, false, Property.ExtensionScope));
         return settings;
+    }
+
+    @Override
+    public ScheduledJobIdentityManager getScheduledJobIdentityManager() {
+        return null;
     }
 
     public static class GuiceHolder implements LifecycleComponent {

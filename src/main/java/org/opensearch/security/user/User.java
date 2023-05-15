@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,6 +42,9 @@ import com.google.common.collect.Lists;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.common.io.stream.Writeable;
+import org.opensearch.core.xcontent.XContentParser;
+
+import static org.opensearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
 
 /**
  * A authenticated user and attributes associated to them (like roles, tenant, custom attributes)
@@ -56,6 +60,13 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     // This is to be used in scenarios where some of the nodes do not have security enabled, and therefore do not pass any user information in threadcontext, yet we need the communication to not break between the nodes.
     // Attach the required permissions to either the user or the backend role.
     public static final User DEFAULT_TRANSPORT_USER = new User("opendistro_security_default_transport_user", Lists.newArrayList("opendistro_security_default_transport_backendrole"), null);
+
+    // field name in toXContent
+    public static final String NAME_FIELD = "name";
+    public static final String BACKEND_ROLES_FIELD = "backend_roles";
+    public static final String ROLES_FIELD = "roles";
+    public static final String CUSTOM_ATTRIBUTE_NAMES_FIELD = "custom_attribute_names";
+    public static final String REQUESTED_TENANT_FIELD = "user_requested_tenant";
     
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
@@ -114,6 +125,28 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         this(name, null, null);
     }
 
+    public User(String name, List<String> backendRoles, List<String> roles, List<String> customAttNames, String requestedTenant) {
+        super();
+
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("name must not be null or empty");
+        }
+
+        this.name = name;
+
+        if (roles != null) {
+            this.addSecurityRoles(roles);
+        }
+
+        if (backendRoles != null) {
+            this.addRoles(backendRoles);
+        }
+
+        if (requestedTenant != null) {
+            this.setRequestedTenant(requestedTenant);
+        }
+    }
+
     public final String getName() {
         return name;
     }
@@ -165,6 +198,49 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         if(attributes != null) {
             this.attributes.putAll(attributes);
         }
+    }
+
+    public static User parse(XContentParser parser) throws IOException {
+        String name = "";
+        List<String> backendRoles = new ArrayList<>();
+        List<String> roles = new ArrayList<>();
+        List<String> customAttNames = new ArrayList<>();
+        String requestedTenant = null;
+
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            String fieldName = parser.currentName();
+            parser.nextToken();
+            switch (fieldName) {
+                case NAME_FIELD:
+                    name = parser.text();
+                    break;
+                case BACKEND_ROLES_FIELD:
+                    ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                    while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                        backendRoles.add(parser.text());
+                    }
+                    break;
+                case ROLES_FIELD:
+                    ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                    while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                        roles.add(parser.text());
+                    }
+                    break;
+                case CUSTOM_ATTRIBUTE_NAMES_FIELD:
+                    ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                    while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                        customAttNames.add(parser.text());
+                    }
+                    break;
+                case REQUESTED_TENANT_FIELD:
+                    requestedTenant = parser.textOrNull();
+                    break;
+                default:
+                    break;
+            }
+        }
+        return new User(name, backendRoles, roles, customAttNames, requestedTenant);
     }
     
     public final String getRequestedTenant() {
