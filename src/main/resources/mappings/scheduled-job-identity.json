@@ -15,6 +15,9 @@
       "type": "date",
       "format": "strict_date_time||epoch_millis"
     },
+    "job_id": {
+      "type": "keyword"
+    },
     "job_index": {
       "type": "keyword"
     },

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.time.Instant;
 import java.util.EnumMap;
+import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
@@ -16,9 +17,9 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexMetadata;
@@ -33,6 +34,10 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.identity.ScheduledJobIdentityManager;
 import org.opensearch.identity.tokens.AuthToken;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
@@ -161,21 +166,21 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
             CreateIndexRequest request = new CreateIndexRequest(SCHEDULED_JOB_IDENTITY_INDEX)
                     .mapping(getScheduledJobIdentityMappings(), XContentType.JSON);
             request
-                    .settings(
-                            Settings
-                                    .builder()
-                                    // Schedule job identity index is small. 1 primary shard is enough
-                                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-                                    // Job scheduler puts both primary and replica shards in the
-                                    // hash ring. Auto-expand the number of replicas based on the
-                                    // number of data nodes (up to 20) in the cluster so that each node can
-                                    // become a coordinating node. This is useful when customers
-                                    // scale out their cluster so that we can do adaptive scaling
-                                    // accordingly.
-                                    // At least 1 replica for fail-over.
-                                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, minJobIndexReplicas + "-" + maxJobIndexReplicas)
-                                    .put("index.hidden", true)
-                    );
+                .settings(
+                    Settings
+                        .builder()
+                        // Schedule job identity index is small. 1 primary shard is enough
+                        .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                        // Job scheduler puts both primary and replica shards in the
+                        // hash ring. Auto-expand the number of replicas based on the
+                        // number of data nodes (up to 20) in the cluster so that each node can
+                        // become a coordinating node. This is useful when customers
+                        // scale out their cluster so that we can do adaptive scaling
+                        // accordingly.
+                        // At least 1 replica for fail-over.
+                        .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, minJobIndexReplicas + "-" + maxJobIndexReplicas)
+                        .put("index.hidden", true)
+                );
             client.admin().indices().create(request, markMappingUpToDate(SecurityIndex.SCHEDULED_JOB_IDENTITY, actionListener));
         } catch (IOException e) {
             logger.error("Fail to init AD job index", e);
@@ -205,55 +210,55 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     }
 
     private void createScheduledJobIdentityEntry(String jobId, String indexName) {
-        // TODO Figure out if jobId is unique across indexes since jobs details are stored in indices
-        // owned by different plugins
-        GetRequest getRequest = new GetRequest(SCHEDULED_JOB_IDENTITY_INDEX).id(jobId);
+        SearchRequest searchRequest = new SearchRequest().indices(SCHEDULED_JOB_IDENTITY_INDEX);
+        List<QueryBuilder> must = List.of(QueryBuilders.matchQuery("job_id", jobId), QueryBuilders.matchQuery("job_index", indexName));
+        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("job_id", jobId)).must(QueryBuilders.matchQuery("job_index", indexName));
+        searchRequest.source(SearchSourceBuilder.searchSource().query(boolQuery));
 
-        client.get(
-            getRequest,
+        client.search(
+            searchRequest,
             ActionListener
                 .wrap(
-                        response -> indexScheduledJobIdentity(response, jobId, indexName),
-                        exception -> new OpenSearchSecurityException(
-                                "Exception received while querying for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
-                        )
+                    response -> indexScheduledJobIdentity(response, jobId, indexName),
+                    exception -> new OpenSearchSecurityException(
+                        "Exception received while querying for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
+                    )
                 )
         );
     }
 
     private void indexScheduledJobIdentity(
-            GetResponse response,
+            SearchResponse response,
             String jobId,
             String indexName
     ) throws IOException {
-        if (response.isExists()) {
+        long totalHits = response.getHits().getTotalHits().value;
+        if (totalHits > 1) {
+            // Should not happen
+            logger.warn("Multiple scheduled job identities already exists in " + SCHEDULED_JOB_IDENTITY_INDEX + " for job with jobId " + jobId);
+        } else if (totalHits == 1) {
             logger.info("Scheduled Job Identity already exists in " + SCHEDULED_JOB_IDENTITY_INDEX + " for job with jobId " + jobId);
         } else {
             final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            System.out.println("Saving job identity with user " + user);
             if (user == null) {
                 throw new OpenSearchSecurityException("Attempting to save user details for scheduled job, but user info is empty");
             }
-            ScheduledJobIdentity identityOfJob = new ScheduledJobIdentity(indexName, Instant.now(), Instant.now(), user);
-            System.out.println("identityOfJob: " + identityOfJob);
+            ScheduledJobIdentity identityOfJob = new ScheduledJobIdentity(jobId, indexName, Instant.now(), Instant.now(), user);
             XContentBuilder source = identityOfJob.toXContent(XContentFactory.jsonBuilder(), XCONTENT_WITH_TYPE);
-            System.out.println("source: " + source);
             IndexRequest indexRequest = new IndexRequest(SCHEDULED_JOB_IDENTITY_INDEX)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-                    .source(identityOfJob.toXContent(XContentFactory.jsonBuilder(), XCONTENT_WITH_TYPE))
-                    .id(jobId);
-            System.out.println("Index Request: " + indexRequest);
+                    .source(identityOfJob.toXContent(XContentFactory.jsonBuilder(), XCONTENT_WITH_TYPE));
             client
-                    .index(
-                            indexRequest,
-                            ActionListener
-                                    .wrap(
-                                            indexResponse -> logger.info("Successfully created scheduled job identity index entry for jobId " + jobId),
-                                            exception -> new OpenSearchSecurityException(
-                                                    "Exception received while indexing for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
-                                            )
-                                    )
-                    );
+                .index(
+                    indexRequest,
+                    ActionListener
+                        .wrap(
+                            indexResponse -> logger.info("Successfully created scheduled job identity index entry for jobId " + jobId),
+                            exception -> new OpenSearchSecurityException(
+                                "Exception received while indexing for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
+                            )
+                        )
+                );
         }
     }
 

@@ -39,22 +39,26 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
             it -> parse(it)
     );
 
+    public static final String JOB_ID_FIELD = "job_id";
     public static final String JOB_INDEX_FIELD = "job_index";
     public static final String LAST_UPDATE_TIME_FIELD = "last_update_time";
     public static final String CREATED_TIME_FIELD = "created_time";
     public static final String USER_FIELD = "user";
 
+    private final String jobId;
     private final String jobIndex;
     private final Instant createdTime;
     private final Instant lastUpdateTime;
     private final User user;
 
     public ScheduledJobIdentity(
+            String jobId,
             String jobIndex,
             Instant createdTime,
             Instant lastUpdateTime,
             User user
     ) {
+        this.jobId = jobId;
         this.jobIndex = jobIndex;
         this.createdTime = createdTime;
         this.lastUpdateTime = lastUpdateTime;
@@ -62,6 +66,7 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
     }
 
     public ScheduledJobIdentity(StreamInput input) throws IOException {
+        jobId = input.readString();
         jobIndex = input.readString();
         createdTime = input.readInstant();
         lastUpdateTime = input.readInstant();
@@ -93,6 +98,7 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         XContentBuilder xContentBuilder = builder
                 .startObject()
+                .field(JOB_ID_FIELD, jobId)
                 .field(JOB_INDEX_FIELD, jobIndex)
                 .field(CREATED_TIME_FIELD, createdTime.toEpochMilli())
                 .field(LAST_UPDATE_TIME_FIELD, lastUpdateTime.toEpochMilli());
@@ -104,6 +110,7 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
 
     @Override
     public void writeTo(StreamOutput output) throws IOException {
+        output.writeString(jobId);
         output.writeString(jobIndex);
         output.writeInstant(createdTime);
         output.writeInstant(lastUpdateTime);
@@ -116,6 +123,7 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
     }
 
     public static ScheduledJobIdentity parse(XContentParser parser) throws IOException {
+        String jobId = null;
         String jobIndex = null;
         Instant createdTime = null;
         Instant lastUpdateTime = null;
@@ -127,6 +135,9 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
             parser.nextToken();
 
             switch (fieldName) {
+                case JOB_ID_FIELD:
+                    jobId = parser.text();
+                    break;
                 case JOB_INDEX_FIELD:
                     jobIndex = parser.text();
                     break;
@@ -145,6 +156,7 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
             }
         }
         return new ScheduledJobIdentity(
+                jobId,
                 jobIndex,
                 createdTime,
                 lastUpdateTime,
