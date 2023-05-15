@@ -45,13 +45,4 @@ public class SecuritySubject implements Subject {
     public void authenticate(AuthToken authToken) {
         // TODO implement this - replace with logic from SecurityRestFilter
     }
-
-    @Override
-    public boolean isAuthenticated() {
-        if (threadPool == null) {
-            return false;
-        }
-        final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        return user != null;
-    }
 }
