@@ -58,8 +58,9 @@ public class ServiceAccountManagerImpl implements ServiceAccountManager {
         }
     }
 
+    //TODO introduce method signature in the interface
     @Override
-    public boolean getOrCreateServiceAccount(ObjectNode objectNode) throws IOException {
+    public boolean getOrCreateServiceAccount(ObjectNode objectNode) {
         //Do we want to return service account or boolean confirming account was created?
         try {
             userService.createOrUpdateAccount(objectNode);

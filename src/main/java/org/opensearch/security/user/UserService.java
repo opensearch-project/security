@@ -13,6 +13,7 @@ package org.opensearch.security.user;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -286,5 +287,19 @@ public class UserService {
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
+    }
+
+    public org.opensearch.identity.User getUser(String username) {
+        //TODO
+        return new org.opensearch.identity.User("");
+    }
+
+    public void removeUserByName(String username) {
+        //TODO
+    }
+
+    public List<org.opensearch.identity.User> getUsers() {
+        //TODO
+        return new ArrayList<>();
     }
 }

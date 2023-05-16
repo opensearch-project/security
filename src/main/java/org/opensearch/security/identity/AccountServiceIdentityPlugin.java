@@ -8,15 +8,18 @@
 
 package org.opensearch.security.identity;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.identity.ServiceAccountManager;
 import org.opensearch.identity.Subject;
+import org.opensearch.identity.User;
 import org.opensearch.identity.UserProvider;
 import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.security.user.UserService;
 
+import java.io.IOException;
+import java.util.List;
+
 public class AccountServiceIdentityPlugin implements IdentityPlugin {
-    //TODO
-    public static String name = "AccountServiceIdentityPlugin";
     private UserService userService;
 
     public AccountServiceIdentityPlugin(UserService userService) {
@@ -25,6 +28,7 @@ public class AccountServiceIdentityPlugin implements IdentityPlugin {
 
     @Override
     public Subject getSubject() {
+        //TODO
         return null;
     }
 
@@ -35,6 +39,30 @@ public class AccountServiceIdentityPlugin implements IdentityPlugin {
 
     @Override
     public UserProvider getUserProvider() {
-        return null;
+        return new UserProvider() {
+            @Override
+            public User getUser(String username) {
+                return userService.getUser(username);
+            }
+
+            @Override
+            public void removeUser(String username) {
+                userService.removeUserByName(username);
+            }
+
+            @Override
+            public void putUser(ObjectNode userContent) {
+                try {
+                    userService.createOrUpdateAccount(userContent);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public List<User> getUsers() {
+                return userService.getUsers();
+            }
+        };
     }
 }
