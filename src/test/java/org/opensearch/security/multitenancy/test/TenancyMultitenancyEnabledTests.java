@@ -29,15 +29,15 @@ public class TenancyMultitenancyEnabledTests extends SingleClusterTest {
     private static final Header AS_REST_API_USER = encodeBasicHeader("user_rest_api_access", "user_rest_api_access");
     private static final Header AS_USER = encodeBasicHeader("admin", "admin");
     private static final Header ON_USER_TENANT = new BasicHeader("securitytenant", "__user__");
-    
+
     private static String createIndexPatternDoc(final String title) {
         return "{"+
-        "\"type\" : \"index-pattern\","+
-        "\"updated_at\" : \"2018-09-29T08:56:59.066Z\","+
-        "\"index-pattern\" : {"+
+            "\"type\" : \"index-pattern\","+
+            "\"updated_at\" : \"2018-09-29T08:56:59.066Z\","+
+            "\"index-pattern\" : {"+
             "\"title\" : \"" + title + "\""+
             "}}";
-    } 
+    }
 
     @Override
     protected String getResourceFolder() {
@@ -47,9 +47,9 @@ public class TenancyMultitenancyEnabledTests extends SingleClusterTest {
     @Test
     public void testMultitenancyDisabled_endToEndTest() throws Exception {
         setup(Settings.EMPTY,
-                new DynamicSecurityConfig(),
-                Settings.builder().put("plugins.security.restapi.roles_enabled.0", "security_rest_api_access").build(),
-                true);
+            new DynamicSecurityConfig(),
+            Settings.builder().put("plugins.security.restapi.roles_enabled.0", "security_rest_api_access").build(),
+            true);
 
         final HttpResponse getSettingResponse = nonSslRestHelper().executeGetRequest("/_plugins/_security/api/tenancy/config", AS_REST_API_USER);
         assertThat(getSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
