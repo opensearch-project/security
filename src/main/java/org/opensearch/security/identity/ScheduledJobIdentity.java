@@ -163,16 +163,20 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
         if (o == null || getClass() != o.getClass())
             return false;
         ScheduledJobIdentity that = (ScheduledJobIdentity) o;
-        return Objects.equal(getJobIndex(), that.getJobIndex())
+        return Objects.equal(getJobId(), that.getJobId())
+                && Objects.equal(getJobIndex(), that.getJobIndex())
                 && Objects.equal(getCreatedTime(), that.getCreatedTime())
                 && Objects.equal(getLastUpdateTime(), that.getLastUpdateTime());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(jobIndex, createdTime, lastUpdateTime);
+        return Objects.hashCode(jobId, jobIndex, createdTime, lastUpdateTime);
     }
 
+    public String getJobId() {
+        return jobId;
+    }
     public String getJobIndex() {
         return jobIndex;
     }
