@@ -72,12 +72,14 @@ public class ConfigV6 {
         public String hosts_resolver_mode = "ip-only";
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
-        public Extensions extensions = new Extensions();
+        public OnBehalfOf on_behalf_of = new OnBehalfOf() {
+            
+        };
 
         @Override
         public String toString() {
             return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
-                    + authz + ", extensions=" + extensions + "]";
+                    + authz + ", on_behalf_of=" + on_behalf_of + "]";
         }
     }
 
@@ -322,7 +324,7 @@ public class ConfigV6 {
         
     }
 
-    public static class Extensions {
+    public static class OnBehalfOf {
         @JsonProperty("signing_key")
         private String signingKey;
         @JsonProperty("encryption_key")
@@ -346,7 +348,7 @@ public class ConfigV6 {
 
         @Override
         public String toString() {
-            return "Extensions [signing_key=" + signingKey + ", encryption_key=" + encryptionKey +"]";
+            return "OnBehalfOf [signing_key=" + signingKey + ", encryption_key=" + encryptionKey +"]";
         }
     }
 }

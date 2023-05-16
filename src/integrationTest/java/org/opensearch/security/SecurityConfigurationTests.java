@@ -215,7 +215,7 @@ public class SecurityConfigurationTests {
 	}
 
 	@Test
-	public void shouldReloadExtensionsConfigurationFromFile() throws Exception {
+	public void shouldReloadOnBehalfOfConfigurationFromFile() throws Exception {
 		SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
 		File config = configurationDirectory.newFile("config.yml");
 		ConfigurationFiles.createConfigFile(config);
@@ -228,7 +228,7 @@ public class SecurityConfigurationTests {
 							{
 								HttpResponse httpResponse = client.get("_plugins/_security/api/securityconfig");
 								JsonNode jsonNode = DefaultObjectMapper.objectMapper.readTree(httpResponse.getBody());
-								return jsonNode.get("config").get("dynamic").get("extensions");
+								return jsonNode.get("config").get("dynamic").get("on_behalf_of");
 
 							}, jsonNode -> jsonNode.get("encryption_key").asText().equals("encryption key") && jsonNode.get("signing_key").asText().equals("signing key")
 					);

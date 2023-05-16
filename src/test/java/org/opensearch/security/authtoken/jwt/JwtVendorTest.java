@@ -47,7 +47,7 @@ public class JwtVendorTest {
     public void testCreateJwtWithRoles() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
-        String audience = "extension_0";
+        String audience = "audience_0";
         List<String> roles = List.of("IT", "HR");
         String expectedRoles = "IT,HR";
         Integer expirySeconds = 300;
@@ -64,7 +64,7 @@ public class JwtVendorTest {
 
         Assert.assertEquals("cluster_0", jwt.getClaim("iss"));
         Assert.assertEquals("admin", jwt.getClaim("sub"));
-        Assert.assertEquals("extension_0", jwt.getClaim("aud"));
+        Assert.assertEquals("audience_0", jwt.getClaim("aud"));
         Assert.assertNotNull(jwt.getClaim("iat"));
         Assert.assertNotNull(jwt.getClaim("exp"));
         Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
@@ -76,7 +76,7 @@ public class JwtVendorTest {
     public void testCreateJwtWithBadExpiry() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
-        String audience = "extension_0";
+        String audience = "audience_0";
         List <String> roles = List.of("admin");
         Integer expirySeconds = -300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
@@ -91,7 +91,7 @@ public class JwtVendorTest {
     public void testCreateJwtWithBadEncryptionKey() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
-        String audience = "extension_0";
+        String audience = "audience_0";
         List <String> roles = List.of("admin");
         Integer expirySeconds = 300;
 
@@ -105,7 +105,7 @@ public class JwtVendorTest {
     public void testCreateJwtWithBadRoles() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
-        String audience = "extension_0";
+        String audience = "audience_0";
         List <String> roles = null;
         Integer expirySecond = 300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
