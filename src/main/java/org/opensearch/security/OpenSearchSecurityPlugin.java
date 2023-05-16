@@ -821,7 +821,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
-        subject.setThreadPool(threadPool);
+        subject.setThreadContext(threadPool.getThreadContext());
 
         userService = new UserService(cs, cr, settings, localClient);
 

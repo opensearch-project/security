@@ -13,6 +13,7 @@ package org.opensearch.security.identity;
 
 import java.security.Principal;
 
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.identity.Subject;
 import org.opensearch.identity.tokens.AuthToken;
@@ -22,19 +23,19 @@ import org.opensearch.threadpool.ThreadPool;
 
 public class SecuritySubject implements Subject {
 
-    private ThreadPool threadPool;
+    private ThreadContext threadContext;
 
     public SecuritySubject() { }
 
-    public void setThreadPool(ThreadPool threadPool) {
-        this.threadPool = threadPool;
+    public void setThreadContext(ThreadContext threadContext) {
+        this.threadContext = threadContext;
     }
     @Override
     public Principal getPrincipal() {
-        if (threadPool == null) {
+        if (threadContext == null) {
             return NamedPrincipal.UNAUTHENTICATED;
         }
-        final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
             return NamedPrincipal.UNAUTHENTICATED;
         }

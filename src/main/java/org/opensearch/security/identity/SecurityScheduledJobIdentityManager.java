@@ -2,7 +2,6 @@ package org.opensearch.security.identity;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.List;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
@@ -22,7 +21,6 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.identity.ScheduledJobIdentityManager;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.index.query.BoolQueryBuilder;
-import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.security.support.ConfigConstants;
@@ -47,19 +45,12 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
         this.cs = cs;
         this.client = client;
         this.threadPool = threadPool;
-        this.securityIndices = new SecurityIndices(client, cs, threadPool);
-    }
-
-    protected boolean doesScheduledJobIdentityIndexExists() {
-        if (!cs.state().metadata().hasConcreteIndex(SCHEDULED_JOB_IDENTITY_INDEX)) {
-            return false;
-        }
-        return true;
+        this.securityIndices = new SecurityIndices(client, cs);
     }
 
     @Override
     public void saveUserDetails(String jobId, String indexName) {
-        if (!doesScheduledJobIdentityIndexExists()) {
+        if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
            securityIndices.initScheduledJobIdentityIndex(ActionListener.wrap(response -> {
                 if (response.isAcknowledged()) {
                     logger.info("Created {} with mappings.", SCHEDULED_JOB_IDENTITY_INDEX);
@@ -80,8 +71,9 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
 
     private void createScheduledJobIdentityEntry(String jobId, String indexName) {
         SearchRequest searchRequest = new SearchRequest().indices(SCHEDULED_JOB_IDENTITY_INDEX);
-        List<QueryBuilder> must = List.of(QueryBuilders.matchQuery("job_id", jobId), QueryBuilders.matchQuery("job_index", indexName));
-        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("job_id", jobId)).must(QueryBuilders.matchQuery("job_index", indexName));
+        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+                .must(QueryBuilders.matchQuery("job_id", jobId))
+                .must(QueryBuilders.matchQuery("job_index", indexName));
         searchRequest.source(SearchSourceBuilder.searchSource().query(boolQuery));
 
         client.search(
@@ -131,14 +123,14 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
 
     @Override
     public void deleteUserDetails(String jobId, String indexName) {
-        if (!doesScheduledJobIdentityIndexExists()) {
+        if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
             throw new OpenSearchSecurityException("Scheduled Job Identity Index (" + SCHEDULED_JOB_IDENTITY_INDEX + ") does not exist.");
         }
     }
 
     @Override
     public AuthToken issueAccessTokenOnBehalfOfUser(String jobId, String indexName) {
-        if (!doesScheduledJobIdentityIndexExists()) {
+        if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
             throw new OpenSearchSecurityException("Scheduled Job Identity Index (" + SCHEDULED_JOB_IDENTITY_INDEX + ") does not exist.");
         }
         return null;
