@@ -183,7 +183,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
                 );
             client.admin().indices().create(request, markMappingUpToDate(SecurityIndex.SCHEDULED_JOB_IDENTITY, actionListener));
         } catch (IOException e) {
-            logger.error("Fail to init AD job index", e);
+            logger.error("Fail to init scheduler job identity index", e);
             actionListener.onFailure(e);
         }
     }
