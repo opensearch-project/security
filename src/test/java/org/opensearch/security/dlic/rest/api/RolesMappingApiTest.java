@@ -53,8 +53,8 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
         // add user picard, role captains initially maps to
         // opendistro_security_role_starfleet_captains and opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "captains" }, HttpStatus.SC_CREATED);
-        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
+        addUserWithPassword("picard", "picardpicardpicard", new String[] { "captains" }, HttpStatus.SC_CREATED);
+        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picardpicardpicard", "sf", "_doc", 1);
         // TODO: only one doctype allowed for ES6
         //checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
         rh.sendAdminCertificate = true;
@@ -65,35 +65,35 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         verifyPutForSuperAdmin(new Header[0]);
         verifyPatchForSuperAdmin(new Header[0]);
         // mapping with several backend roles, one of the is captain
-        deleteAndputNewMapping(new Header[0],"rolesmapping_backendroles_captains_list.json", true);
+        deleteAndPutNewMapping(new Header[0],"rolesmapping_backendroles_captains_list.json", true);
         checkAllSfAllowed();
 
         // mapping with one backend role, captain
-        deleteAndputNewMapping(new Header[0],"rolesmapping_backendroles_captains_single.json", true);
+        deleteAndPutNewMapping(new Header[0],"rolesmapping_backendroles_captains_single.json", true);
         checkAllSfAllowed();
 
         // mapping with several users, one is picard
-        deleteAndputNewMapping(new Header[0],"rolesmapping_users_picard_list.json", true);
+        deleteAndPutNewMapping(new Header[0],"rolesmapping_users_picard_list.json", true);
         checkAllSfAllowed();
 
         // just user picard
-        deleteAndputNewMapping(new Header[0],"rolesmapping_users_picard_single.json", true);
+        deleteAndPutNewMapping(new Header[0],"rolesmapping_users_picard_single.json", true);
         checkAllSfAllowed();
 
         // hosts
-        deleteAndputNewMapping(new Header[0],"rolesmapping_hosts_list.json", true);
+        deleteAndPutNewMapping(new Header[0],"rolesmapping_hosts_list.json", true);
         checkAllSfAllowed();
 
         // hosts
-        deleteAndputNewMapping(new Header[0],"rolesmapping_hosts_single.json", true);
+        deleteAndPutNewMapping(new Header[0],"rolesmapping_hosts_single.json", true);
         checkAllSfAllowed();
 
         // full settings, access
-        deleteAndputNewMapping(new Header[0],"rolesmapping_all_access.json", true);
+        deleteAndPutNewMapping(new Header[0],"rolesmapping_all_access.json", true);
         checkAllSfAllowed();
 
         // full settings, no access
-        deleteAndputNewMapping(new Header[0],"rolesmapping_all_noaccess.json", true);
+        deleteAndPutNewMapping(new Header[0],"rolesmapping_all_noaccess.json", true);
         checkAllSfForbidden();
     }
 
@@ -107,8 +107,8 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
         // add user picard, role captains initially maps to
         // opendistro_security_role_starfleet_captains and opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "captains" }, HttpStatus.SC_CREATED);
-        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
+        addUserWithPassword("picard", "picardpicardpicard", new String[] { "captains" }, HttpStatus.SC_CREATED);
+        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picardpicardpicard", "sf", "_doc", 1);
         // TODO: only one doctype allowed for ES6
         //checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
 
@@ -117,35 +117,35 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         verifyPutForSuperAdmin(new Header[]{restApiAdminHeader});
         verifyPatchForSuperAdmin(new Header[]{restApiAdminHeader});
         // mapping with several backend roles, one of the is captain
-        deleteAndputNewMapping(new Header[]{restApiAdminHeader}, "rolesmapping_backendroles_captains_list.json", false);
+        deleteAndPutNewMapping(new Header[]{restApiAdminHeader}, "rolesmapping_backendroles_captains_list.json", false);
         checkAllSfAllowed();
 
         // mapping with one backend role, captain
-        deleteAndputNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_backendroles_captains_single.json", true);
+        deleteAndPutNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_backendroles_captains_single.json", true);
         checkAllSfAllowed();
 
         // mapping with several users, one is picard
-        deleteAndputNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_users_picard_list.json", true);
+        deleteAndPutNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_users_picard_list.json", true);
         checkAllSfAllowed();
 
         // just user picard
-        deleteAndputNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_users_picard_single.json", true);
+        deleteAndPutNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_users_picard_single.json", true);
         checkAllSfAllowed();
 
         // hosts
-        deleteAndputNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_hosts_list.json", true);
+        deleteAndPutNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_hosts_list.json", true);
         checkAllSfAllowed();
 
         // hosts
-        deleteAndputNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_hosts_single.json", true);
+        deleteAndPutNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_hosts_single.json", true);
         checkAllSfAllowed();
 
         // full settings, access
-        deleteAndputNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_all_access.json", true);
+        deleteAndPutNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_all_access.json", true);
         checkAllSfAllowed();
 
         // full settings, no access
-        deleteAndputNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_all_noaccess.json", true);
+        deleteAndPutNewMapping(new Header[]{restApiAdminHeader},"rolesmapping_all_noaccess.json", true);
         checkAllSfForbidden();
 
     }
@@ -221,7 +221,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
         // now picard is only in opendistro_security_role_starfleet, which has write access to
         // public, but not to _doc
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 1);
 
         // TODO: only one doctype allowed for ES6
         // checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 1);
@@ -382,17 +382,17 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
     private void checkAllSfAllowed() throws Exception {
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 1);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 1);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 1);
     }
 
     private void checkAllSfForbidden() throws Exception {
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 1);
     }
 
-    private HttpResponse deleteAndputNewMapping(final Header[] header, final String fileName, final boolean useAdminCert) throws Exception {
+    private HttpResponse deleteAndPutNewMapping(final Header[] header, final String fileName, final boolean useAdminCert) throws Exception {
         rh.sendAdminCertificate = useAdminCert;
         HttpResponse response = rh.executeDeleteRequest(ENDPOINT + "/rolesmapping/opendistro_security_role_starfleet_captains",
                         header);

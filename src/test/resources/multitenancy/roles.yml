@@ -2,6 +2,8 @@
 _meta:
   type: "roles"
   config_version: 2
+security_rest_api_access:
+  reserved: true
 opendistro_security_own_index:
   reserved: false
   hidden: false
