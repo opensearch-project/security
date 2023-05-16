@@ -43,7 +43,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.securityconf.impl.v6.ConfigV6;
-import org.opensearch.security.securityconf.impl.v6.ConfigV6.OnBehalfOf;
 
 public class ConfigV7 {
 
