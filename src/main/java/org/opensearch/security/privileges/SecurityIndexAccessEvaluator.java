@@ -39,7 +39,6 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -110,7 +109,7 @@ public class SecurityIndexAccessEvaluator {
 
             final boolean isDebugEnabled = log.isDebugEnabled();
 
-            if( FeatureFlags.isEnabled(FeatureFlags.EXTENSIONS) && matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)){
+            if( matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)){
             log.warn("An account without the {} permission  is trying to access a System Index. Related indexes: {}", ConfigConstants.SYSTEM_INDEX_PERMISSION, requestedResolved.getAllIndices() );
             presponse.allowed = false;
             return presponse.markComplete();
@@ -177,15 +176,12 @@ public class SecurityIndexAccessEvaluator {
     }
 
     private  boolean checkSystemIndexPermissionsForUser(ConfigModelV7.SecurityRoles securityRoles) {
-        Set<WildcardMatcher> userPermMatchers = new HashSet<>();
+        Set<WildcardMatcher> userPermMatchers = securityRoles.getRoles().stream()
+                .flatMap(role -> role.getIpatterns().stream())
+                .map(ConfigModelV7.IndexPattern::getNonWildCardPerms)
+                .collect(Collectors.toSet());
 
-        securityRoles.getRoles().stream().forEach(securityRole -> {
-            securityRole.getIpatterns().stream().forEach((ip) -> {
-                userPermMatchers.add(ip.getNonWildCardPerms());
-            });
-        });
-
-        for(WildcardMatcher userPermMatcher : userPermMatchers.stream().filter( matcher ->  !matcher.toString().equals("*")).collect(Collectors.toSet()) ){
+        for(WildcardMatcher userPermMatcher : userPermMatchers.stream().collect(Collectors.toSet()) ){
             if(userPermMatcher.matchAny(ConfigConstants.SYSTEM_INDEX_PERMISSION)){
                 return true;
             }
