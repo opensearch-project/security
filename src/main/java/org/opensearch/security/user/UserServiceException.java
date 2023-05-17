@@ -9,10 +9,12 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security.action.tenancy;
+package org.opensearch.security.user;
 
-public class TenancyConfigs {
-    public Boolean multitenancy_enabled;
-    public Boolean private_tenant_enabled;
-    public String default_tenant;
+public class UserServiceException extends RuntimeException {
+
+    public UserServiceException(String message) {
+        super(message);
+    }
+
 }
