@@ -115,11 +115,6 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
-import org.opensearch.security.action.tenancy.TenancyConfigRestHandler;
-import org.opensearch.security.action.tenancy.TenancyConfigRetrieveActions;
-import org.opensearch.security.action.tenancy.TenancyConfigRetrieveTransportAction;
-import org.opensearch.security.action.tenancy.TenancyConfigUpdateAction;
-import org.opensearch.security.action.tenancy.TenancyConfigUpdateTransportAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -178,6 +173,7 @@ import org.opensearch.security.transport.DefaultInterClusterRequestEvaluator;
 import org.opensearch.security.transport.InterClusterRequestEvaluator;
 import org.opensearch.security.transport.SecurityInterceptor;
 import org.opensearch.security.user.User;
+import org.opensearch.security.user.UserService;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.RemoteClusterService;
@@ -206,6 +202,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SecurityRestFilter securityRestHandler;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
+    private volatile UserService userService;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
@@ -363,7 +360,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             final List<String> files = AccessController.doPrivileged(new PrivilegedAction<List<String>>() {
                 @Override
                 public List<String> run() {
+
                     final Path confPath = new Environment(settings, configPath).configFile().toAbsolutePath();
+
                     if(Files.isDirectory(confPath, LinkOption.NOFOLLOW_LINKS)) {
                         try (Stream<Path> s = Files.walk(confPath)) {
                             return s.distinct().map(p -> sha256(p)).collect(Collectors.toList());
@@ -476,15 +475,26 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                 handlers.add(new DashboardsInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
                 handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
                         Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
-                handlers.add(new TenancyConfigRestHandler());
                 handlers.add(new SecurityConfigUpdateAction(settings, restController,Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 handlers.add(new SecurityWhoAmIAction(settings ,restController,Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 if (sslCertReloadEnabled) {
                     handlers.add(new SecuritySSLReloadCertsAction(settings, restController, sks, Objects.requireNonNull(threadPool), Objects.requireNonNull(adminDns)));
                 }
-                final Collection<RestHandler> apiHandlers = SecurityRestApiActions.getHandler(settings, configPath, restController, localClient, adminDns, cr, cs, principalExtractor, evaluator, threadPool, Objects.requireNonNull(auditLog));
-                handlers.addAll(apiHandlers);
-                log.debug("Added {} management rest handler(s)", apiHandlers.size());
+
+                handlers.addAll(
+                        SecurityRestApiActions.getHandler(
+                                settings,
+                                configPath,
+                                restController,
+                                localClient,
+                                adminDns,
+                                cr, cs, principalExtractor,
+                                evaluator,
+                                threadPool,
+                                Objects.requireNonNull(auditLog),
+                                Objects.requireNonNull(userService))
+                );
+                log.debug("Added {} rest handler(s)", handlers.size());
             }
         }
 
@@ -507,8 +517,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         if(!disabled && !SSLConfig.isSslOnlyMode()) {
             actions.add(new ActionHandler<>(ConfigUpdateAction.INSTANCE, TransportConfigUpdateAction.class));
             actions.add(new ActionHandler<>(WhoAmIAction.INSTANCE, TransportWhoAmIAction.class));
-            actions.add(new ActionHandler<>(TenancyConfigRetrieveActions.INSTANCE, TenancyConfigRetrieveTransportAction.class));
-            actions.add(new ActionHandler<>(TenancyConfigUpdateAction.INSTANCE, TenancyConfigUpdateTransportAction.class));
         }
         return actions;
     }
@@ -809,6 +817,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
+        userService = new UserService(cs, cr, settings, localClient);
+
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
 
@@ -865,6 +875,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         components.add(evaluator);
         components.add(si);
         components.add(dcf);
+        components.add(userService);
 
 
         return components;
@@ -1171,7 +1182,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RepositoriesService repositoriesService;
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
-
         private static PitService pitService;
 
         @Inject
