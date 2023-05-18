@@ -61,7 +61,7 @@ import com.amazon.dlic.auth.ldap.LdapUser;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.common.Strings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.user.User;
 
 public class Base64Helper {
