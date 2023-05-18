@@ -37,6 +37,7 @@ import com.google.common.base.Strings;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.Version;
 import org.opensearch.action.bulk.BulkShardRequest;
 import org.opensearch.action.support.replication.TransportReplicationAction.ConcreteShardRequest;
 import org.opensearch.cluster.service.ClusterService;
@@ -100,6 +101,12 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
         if(request instanceof ConcreteShardRequest) {
             resolvedActionClass = ((ConcreteShardRequest<?>) request).getRequest().getClass().getSimpleName();
+        }
+
+        final boolean useJDKSerialization = transportChannel.getVersion().before(Version.V_2_7_0);
+
+        if(useJDKSerialization) {
+            serializeHeadersUsingProtoForVersionUpgrade();
         }
 
         String initialActionClassValue = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER);
@@ -295,6 +302,10 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 sgContext.close();
             }
         }
+    }
+
+    private void serializeHeadersUsingProtoForVersionUpgrade() {
+        HeaderHelper.getAllSerializedHeaders(getThreadContext()).forEach((key, value) -> getThreadContext().putHeader(key, Base64Helper.serializeObject(Base64Helper.deserializeObject(value, true))));
     }
     
     private void putInitialActionClassHeader(String initialActionClassValue, String resolvedActionClass) {

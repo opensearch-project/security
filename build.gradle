@@ -367,6 +367,10 @@ dependencies {
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
     implementation 'com.onelogin:java-saml:2.5.0'
     implementation 'com.onelogin:java-saml-core:2.5.0'
+    implementation 'io.protostuff:protostuff-api:1.7.4'
+    implementation 'io.protostuff:protostuff-core:1.7.4'
+    implementation 'io.protostuff:protostuff-collectionschema:1.7.4'
+    implementation 'io.protostuff:protostuff-runtime:1.7.4'
 
     runtimeOnly 'net.minidev:accessors-smart:2.4.7'
 

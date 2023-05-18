@@ -26,8 +26,10 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.security.user.User;
 
-import static org.opensearch.security.support.Base64Helper.deserializeObject;
-import static org.opensearch.security.support.Base64Helper.serializeObject;
+import static org.opensearch.security.support.Base64Helper.deserializeObjectJDK;
+import static org.opensearch.security.support.Base64Helper.deserializeObjectProto;
+import static org.opensearch.security.support.Base64Helper.serializeObjectJDK;
+import static org.opensearch.security.support.Base64Helper.serializeObjectProto;
 
 public class Base64HelperTest {
 
@@ -35,67 +37,84 @@ public class Base64HelperTest {
         private static final long serialVersionUID = 5135559266828470092L;
     }
 
-    private static Serializable ds(Serializable s) {
-        return deserializeObject(serializeObject(s));
+    private static Serializable dsJDK(Serializable s) {
+        return deserializeObjectJDK(serializeObjectJDK(s));
+    }
+
+    private static Serializable dsProto(Serializable s) {
+        return deserializeObjectProto(serializeObjectProto(s));
     }
 
     @Test
     public void testString() {
         String string = "string";
-        Assert.assertEquals(string, ds(string));
+        Assert.assertEquals(string, dsJDK(string));
+        Assert.assertEquals(string, dsProto(string));
     }
 
     @Test
     public void testInteger() {
         Integer integer = Integer.valueOf(0);
-        Assert.assertEquals(integer, ds(integer));
+        Assert.assertEquals(integer, dsJDK(integer));
+        Assert.assertEquals(integer, dsProto(integer));
     }
 
     @Test
     public void testDouble() {
         Double number = Double.valueOf(0.);
-        Assert.assertEquals(number, ds(number));
+        Assert.assertEquals(number, dsJDK(number));
+        Assert.assertEquals(number, dsProto(number));
     }
 
     @Test
     public void testInetSocketAddress() {
         InetSocketAddress inetSocketAddress = new InetSocketAddress(0);
-        Assert.assertEquals(inetSocketAddress, ds(inetSocketAddress));
+        Assert.assertEquals(inetSocketAddress, dsJDK(inetSocketAddress));
+        Assert.assertEquals(inetSocketAddress, dsProto(inetSocketAddress));
+
     }
 
     @Test
     public void testPattern() {
         Pattern pattern = Pattern.compile(".*");
-        Assert.assertEquals(pattern.pattern(), ((Pattern) ds(pattern)).pattern());
+        Assert.assertEquals(pattern.pattern(), ((Pattern) dsJDK(pattern)).pattern());
+        Assert.assertEquals(pattern.pattern(), ((Pattern) dsProto(pattern)).pattern());
+
     }
 
     @Test
     public void testUser() {
         User user = new User("user");
-        Assert.assertEquals(user, ds(user));
+        Assert.assertEquals(user, dsJDK(user));
+        Assert.assertEquals(user, dsProto(user));
     }
 
     @Test
     public void testSourceFieldsContext() {
         SourceFieldsContext sourceFieldsContext = new SourceFieldsContext(new SearchRequest(""));
-        Assert.assertEquals(sourceFieldsContext.toString(), ds(sourceFieldsContext).toString());
+        Assert.assertEquals(sourceFieldsContext.toString(), dsJDK(sourceFieldsContext).toString());
+        Assert.assertEquals(sourceFieldsContext.toString(), dsProto(sourceFieldsContext).toString());
+
     }
 
     @Test
     public void testHashMap() {
         HashMap map = new HashMap();
-        Assert.assertEquals(map, ds(map));
+        Assert.assertEquals(map, dsJDK(map));
+        Assert.assertEquals(map, dsProto(map));
     }
 
     @Test
     public void testArrayList() {
         ArrayList list = new ArrayList();
-        Assert.assertEquals(list, ds(list));
+        Assert.assertEquals(list, dsJDK(list));
+        Assert.assertEquals(list, dsProto(list));
     }
 
     @Test(expected = OpenSearchException.class)
     public void notSafeSerializable() {
-        serializeObject(new NotSafeSerializable());
+        serializeObjectJDK(new NotSafeSerializable());
+        serializeObjectProto(new NotSafeSerializable());
     }
 
     @Test(expected = OpenSearchException.class)
@@ -104,6 +123,7 @@ public class Base64HelperTest {
         try (final ObjectOutputStream out = new ObjectOutputStream(bos)) {
             out.writeObject(new NotSafeSerializable());
         }
-        deserializeObject(BaseEncoding.base64().encode(bos.toByteArray()));
+        deserializeObjectJDK(BaseEncoding.base64().encode(bos.toByteArray()));
+        deserializeObjectProto(BaseEncoding.base64().encode(bos.toByteArray()));
     }
 }

@@ -79,6 +79,8 @@ public class ConfigConstants {
     
     public static final String OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX+"initial_action_class_header";
 
+    public static final String OPENDISTRO_SECURITY_SOURCE_FIELD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX+"source_field_context";
+
     /**
      * Set by SSL plugin for https requests only
      */

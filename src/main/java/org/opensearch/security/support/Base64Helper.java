@@ -52,6 +52,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
+import io.protostuff.LinkedBuffer;
+import io.protostuff.ProtostuffIOUtil;
+import io.protostuff.Schema;
+import io.protostuff.runtime.RuntimeSchema;
 import org.ldaptive.AbstractLdapBean;
 import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
@@ -65,6 +69,8 @@ import org.opensearch.common.Strings;
 import org.opensearch.security.user.User;
 
 public class Base64Helper {
+
+    private static final ThreadLocal<LinkedBuffer> threadLocalLinkedBuffer = ThreadLocal.withInitial(() -> LinkedBuffer.allocate(1024));
 
     private static final Set<Class<?>> SAFE_CLASSES = ImmutableSet.of(
         String.class,
@@ -156,7 +162,7 @@ public class Base64Helper {
         }
     }
 
-    public static String serializeObject(final Serializable object) {
+    public static String serializeObjectJDK(final Serializable object) {
 
         Preconditions.checkArgument(object != null, "object must not be null");
 
@@ -170,7 +176,7 @@ public class Base64Helper {
         return BaseEncoding.base64().encode(bytes);
     }
 
-    public static Serializable deserializeObject(final String string) {
+    public static Serializable deserializeObjectJDK(final String string) {
 
         Preconditions.checkArgument(!Strings.isNullOrEmpty(string), "string must not be null or empty");
 
@@ -181,6 +187,52 @@ public class Base64Helper {
         } catch (final Exception e) {
             throw new OpenSearchException(e);
         }
+    }
+
+
+    public static Serializable deserializeObjectProto(final String string) {
+        //ToDo: introduce safe class checks during deserialization using proto
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(string), "string must not be null or empty");
+        final byte[] bytes = BaseEncoding.base64().decode(string);
+        try {
+            Schema<SerializableWrapper> schema = RuntimeSchema.getSchema(SerializableWrapper.class);
+            SerializableWrapper serializableWrapper = schema.newMessage();
+            ProtostuffIOUtil.mergeFrom(bytes, serializableWrapper, schema);
+            return serializableWrapper.serializable;
+        } catch (final Exception e) {
+            throw new OpenSearchException(e);
+        }
+    }
+
+    public static Serializable deserializeObject(final String string, final boolean useJDKDeserialization) {
+        return useJDKDeserialization ? deserializeObjectJDK(string) : deserializeObjectProto(string);
+    }
+
+    public static Serializable deserializeObject(final String string) {
+        return deserializeObjectProto(string);
+    }
+
+    public static String serializeObjectProto(final Serializable object) {
+        //ToDo: introduce safe class checks during serialization using proto
+        SerializableWrapper serializableWrapper = new SerializableWrapper(object);
+        Preconditions.checkArgument(object != null, "object must not be null");
+        byte[] byteArray;
+        Schema<SerializableWrapper> schema = RuntimeSchema.getSchema(SerializableWrapper.class);
+        try {
+            byteArray = ProtostuffIOUtil.toByteArray(serializableWrapper, schema, threadLocalLinkedBuffer.get());
+            threadLocalLinkedBuffer.get().clear();
+        } catch (Exception e) {
+            throw new OpenSearchException("Instance {} of class {} is not serializable", e, object, object.getClass());
+        }
+        return BaseEncoding.base64().encode(byteArray);
+    }
+
+    public static String serializeObject(final Serializable object, final boolean useJDKSerialization) {
+        return useJDKSerialization ? serializeObjectJDK(object) : serializeObjectProto(object);
+    }
+
+    public static String serializeObject(final Serializable object) {
+        return serializeObjectProto(object);
     }
 
     private final static class SafeObjectInputStream extends ObjectInputStream {
@@ -198,6 +250,26 @@ public class Base64Helper {
             }
 
             throw new InvalidClassException("Unauthorized deserialization attempt ", clazz.getName());
+        }
+    }
+
+
+    private static class SerializableWrapper {
+        /*
+         * Introduction of SerializableWrapper eases the protostuff deserialization part.
+         *
+         * When deserializing, we need to fetch the root proto Schema by specifying the class of the object that we
+         * intend to deserialize. The serialized bytes in case of proto do not have a class label, hence it's not
+         * possible to generically identify what object type are we deserializing.
+         *
+         * SerializableWrapper here will hold our actual serializable object, and we'll always (de)serialize
+         * SerializableWrapper object. Protostuff will internally construct and maintain schemas for underlying
+         * classes.
+         */
+        Serializable serializable;
+
+        public SerializableWrapper(Serializable serializable) {
+            this.serializable = serializable;
         }
     }
 }
