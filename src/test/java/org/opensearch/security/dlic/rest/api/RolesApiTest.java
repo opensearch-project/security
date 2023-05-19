@@ -151,9 +151,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = true;
         verifyGetForSuperAdmin(new Header[0]);
@@ -220,17 +220,17 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         rh.sendAdminCertificate = false;
         // user has only role starfleet left, role has READ access only
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
         // ES7 only supports one doc type, but OpenSearch permission checks run first
         // So we also get a 403 FORBIDDEN when tring to add new document type
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = sendAdminCert;
         // remove also starfleet role, nothing is allowed anymore
         response = rh.executeDeleteRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
     }
 
     void verifyPutForSuperAdmin(final Header[] header, final boolean sendAdminCert) throws Exception {
@@ -282,14 +282,14 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
                 FileHelper.loadFile("restapi/roles_starfleet.json"), header);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         // now picard is only in opendistro_security_role_starfleet, which has write access to
         // all indices. We collapse all document types in ODFE7 so this permission in the
         // starfleet role grants all permissions:
         //   _doc:
         //       - 'indices:*'
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = sendAdminCert;
 
@@ -298,18 +298,13 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
                 FileHelper.loadFile("restapi/roles_captains.json"), header);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
                 FileHelper.loadFile("restapi/roles_complete_invalid.json"), header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-
-//        rh.sendAdminCertificate = sendAdminCert;
-//        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-//                FileHelper.loadFile("restapi/roles_multiple.json"), header);
-//        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
                 FileHelper.loadFile("restapi/roles_multiple_2.json"), header);
@@ -530,9 +525,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         verifyGetForSuperAdmin(new Header[]{restApiAdminHeader});
         verifyDeleteForSuperAdmin(new Header[]{restApiAdminHeader}, false);
@@ -550,9 +545,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
 
         verifyGetForSuperAdmin(new Header[]{restApiRolesHeader});

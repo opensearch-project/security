@@ -45,7 +45,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         // arrange
         setup();
         final String testUser = "test-user";
-        final String testPass = "test-pass";
+        final String testPass = "some password for user";
         addUserWithPassword(testUser, testPass, HttpStatus.SC_CREATED);
 
         // test - unauthorized access as credentials are missing.

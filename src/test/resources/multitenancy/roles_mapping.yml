@@ -2,6 +2,11 @@
 _meta:
   type: "rolesmapping"
   config_version: 2
+security_rest_api_access:
+  reserved: false
+  hidden: false
+  users:
+    - "user_rest_api_access"
 opendistro_security_human_resources:
   reserved: false
   hidden: false

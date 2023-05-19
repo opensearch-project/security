@@ -49,10 +49,10 @@ public class SecurityConfigurationTests {
 		.roles(new Role("limited-role").indexPermissions("indices:data/read/search", "indices:data/read/get").on("user-${user.name}"));
 	public static final String LIMITED_USER_INDEX = "user-" + LIMITED_USER.getName();
 	public static final String ADDITIONAL_USER_1 = "additional00001";
-	public static final String ADDITIONAL_PASSWORD_1 = ADDITIONAL_USER_1;
+	public static final String ADDITIONAL_PASSWORD_1 = "user 1 fair password";
 
 	public static final String ADDITIONAL_USER_2 = "additional2";
-	public static final String ADDITIONAL_PASSWORD_2 = ADDITIONAL_USER_2;
+	public static final String ADDITIONAL_PASSWORD_2 = "user 2 fair password";
 	public static final String CREATE_USER_BODY = "{\"password\": \"%s\",\"opendistro_security_roles\": []}";
 	public static final String INTERNAL_USERS_RESOURCE = "_plugins/_security/api/internalusers/";
 	public static final String ID_1 = "one";

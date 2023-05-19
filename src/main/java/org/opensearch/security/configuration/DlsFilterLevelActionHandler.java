@@ -142,7 +142,7 @@ public class DlsFilterLevelActionHandler {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE, request.toString());
 
             try {
-                if (!createQueryExtension()) {
+                if (!modifyQuery()) {
                     return true;
                 }
 
@@ -186,7 +186,7 @@ public class DlsFilterLevelActionHandler {
 
         if (localClusterAlias != null) {
             try {
-                createQueryExtension(localClusterAlias);
+                modifyQuery(localClusterAlias);
             } catch (Exception e) {
                 log.error("Unable to handle filter level DLS", e);
                 listener.onFailure(new OpenSearchSecurityException("Unable to handle filter level DLS", e));
@@ -387,11 +387,11 @@ public class DlsFilterLevelActionHandler {
                 documentFields, metadataFields);
     }
 
-    private boolean createQueryExtension() throws IOException {
-        return createQueryExtension(null);
+    private boolean modifyQuery() throws IOException {
+        return modifyQuery(null);
     }
 
-    private boolean createQueryExtension(String localClusterAlias) throws IOException {
+    private boolean modifyQuery(String localClusterAlias) throws IOException {
         Map<String, Set<String>> filterLevelQueries = evaluatedDlsFlsConfig.getDlsQueriesByIndex();
 
         BoolQueryBuilder dlsQueryBuilder = QueryBuilders.boolQuery().minimumShouldMatch(1);

@@ -395,6 +395,7 @@ dependencies {
     implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
         exclude(group: 'org.apache.velocity', module: 'velocity')
     }
+    implementation "com.nulab-inc:zxcvbn:1.7.0"
     testImplementation 'org.opensaml:opensaml-messaging-impl:3.4.5'
     implementation 'org.opensaml:opensaml-messaging-api:3.4.5'
     runtimeOnly 'org.opensaml:opensaml-profile-api:3.4.5'
@@ -462,7 +463,7 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
     // Kafka test execution
     testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
-    testRuntimeOnly ('org.springframework:spring-core:5.3.26') {
+    testRuntimeOnly ('org.springframework:spring-core:5.3.27') {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
     testRuntimeOnly 'org.scala-lang:scala-library:2.13.9'
