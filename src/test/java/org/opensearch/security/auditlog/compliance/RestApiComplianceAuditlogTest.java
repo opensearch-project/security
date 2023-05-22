@@ -42,7 +42,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
         TestAuditlogImpl.clear();
-        String body = "{ \"password\":\"test\",\"backend_roles\":[\"role1\",\"role2\"] }";
+        String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
         HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
@@ -71,7 +71,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
         TestAuditlogImpl.clear();
-        String body = "{ \"password\":\"test\",\"backend_roles\":[\"role1\",\"role2\"] }";
+        String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
@@ -169,12 +169,13 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
         TestAuditlogImpl.clear();
-        String body = "{ \"password\":\"test\",\"backend_roles\":[\"role1\",\"role2\"] }";
+        String body = "{ \"password\":\"some new password\",\"backend_roles\":[\"role1\",\"role2\"] }";
         System.out.println("exec");
-        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty", body, encodeBasicHeader("admin", "admin"));
+        HttpResponse response = rh.executePutRequest("_opendistro/_security/api/internalusers/compuser?pretty",
+                body, encodeBasicHeader("admin", "admin"));
         Thread.sleep(1500);
         System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
         Assert.assertTrue(TestAuditlogImpl.messages.size()+"", TestAuditlogImpl.messages.isEmpty());
     }
 
@@ -241,7 +242,7 @@ public class RestApiComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         // create internal user and verify no BCrypt hash is present in audit logs
         TestAuditlogImpl.clear();
-        rh.executePutRequest("/_opendistro/_security/api/internalusers/test",  "{ \"password\":\"test\"}");
+        rh.executePutRequest("/_opendistro/_security/api/internalusers/test",  "{ \"password\":\"some new user password\"}");
         Assert.assertEquals(1, TestAuditlogImpl.messages.size());
         Assert.assertFalse(AuditMessage.BCRYPT_HASH.matcher(TestAuditlogImpl.sb.toString()).matches());
     }

@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -28,11 +29,14 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditTestUtils;
+import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH;
 
 public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 
@@ -49,6 +53,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		Settings.Builder builder = Settings.builder();
 
 		builder.put("plugins.security.ssl.http.enabled", true)
+				.put(SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, PasswordValidator.ScoreStrength.FAIR.name())
 				.put("plugins.security.ssl.http.keystore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
 				.put("plugins.security.ssl.http.truststore_filepath",
@@ -85,6 +90,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		Settings.Builder builder = Settings.builder();
 
 		builder.put("plugins.security.ssl.http.enabled", true)
+				.put(SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, PasswordValidator.ScoreStrength.FAIR.name())
 				.put("plugins.security.ssl.http.keystore_filepath",
 						FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
 				.put("plugins.security.ssl.http.truststore_filepath",
@@ -123,12 +129,19 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 	}
 
 	protected void addUserWithPassword(String username, String password, int status) throws Exception {
+		addUserWithPassword(username, password, status, null);
+	}
+
+	protected void addUserWithPassword(String username, String password, int status, String message) throws Exception {
 		boolean sendAdminCertificate = rh.sendAdminCertificate;
 		rh.sendAdminCertificate = true;
 		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username,
 				"{\"password\": \"" + password + "\"}", new Header[0]);
 		Assert.assertEquals(status, response.getStatusCode());
 		rh.sendAdminCertificate = sendAdminCertificate;
+		if (Objects.nonNull(message)) {
+			Assert.assertTrue(response.getBody().contains(message));
+		}
 	}
 
 	protected void addUserWithPassword(String username, String password, String[] roles, int status) throws Exception {
