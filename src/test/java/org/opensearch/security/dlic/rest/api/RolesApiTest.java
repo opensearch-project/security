@@ -159,9 +159,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "starfleet", "captains" }, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[] { "starfleet", "captains" }, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
 
         // -- DELETE
@@ -188,18 +188,18 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = false;
 
         // user has only role starfleet left, role has READ access only
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
 
         // ES7 only supports one doc type, but OpenSearch permission checks run first
         // So we also get a 403 FORBIDDEN when tring to add new document type
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = true;
         // remove also starfleet role, nothing is allowed anymore
         response = rh.executeDeleteRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         // -- PUT
         // put with empty roles, must fail
@@ -249,14 +249,14 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
                 FileHelper.loadFile("restapi/roles_starfleet.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         // now picard is only in opendistro_security_role_starfleet, which has write access to
         // all indices. We collapse all document types in ODFE7 so this permission in the
         // starfleet role grants all permissions:
         //   _doc:
         //       - 'indices:*'
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = true;
 
@@ -265,8 +265,8 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
                 FileHelper.loadFile("restapi/roles_captains.json"), new Header[0]);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = true;
         response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",

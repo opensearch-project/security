@@ -137,6 +137,7 @@ import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
 import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
+import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.SecurityHttpServerTransport;
@@ -1048,6 +1049,19 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, Property.NodeScope, Property.Filtered));
             settings.add(Setting.simpleString(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, Property.NodeScope, Property.Filtered));
 
+            settings.add(
+                    Setting.intSetting(
+                            ConfigConstants.SECURITY_RESTAPI_PASSWORD_MIN_LENGTH,
+                            -1, -1, Property.NodeScope, Property.Filtered)
+            );
+            settings.add(
+                    Setting.simpleString(
+                            ConfigConstants.SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH,
+                            PasswordValidator.ScoreStrength.STRONG.name(),
+                            PasswordValidator.ScoreStrength::fromConfiguration,
+                            Property.NodeScope, Property.Filtered
+                    )
+            );
 
             // Compliance
             settings.add(Setting.listSetting(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList(), Function.identity(), Property.NodeScope)); //not filtered here

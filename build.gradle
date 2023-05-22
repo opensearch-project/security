@@ -335,6 +335,7 @@ dependencies {
     implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
         exclude(group: 'org.apache.velocity', module: 'velocity')
     }
+    implementation "com.nulab-inc:zxcvbn:1.7.0"
     testImplementation 'org.opensaml:opensaml-messaging-impl:3.4.5'
     implementation 'org.opensaml:opensaml-messaging-api:3.4.5'
     runtimeOnly 'org.opensaml:opensaml-profile-api:3.4.5'

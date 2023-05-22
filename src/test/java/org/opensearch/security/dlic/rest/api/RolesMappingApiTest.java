@@ -96,8 +96,8 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
         // add user picard, role captains initially maps to
         // opendistro_security_role_starfleet_captains and opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "captains" }, HttpStatus.SC_CREATED);
-        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[] { "captains" }, HttpStatus.SC_CREATED);
+        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
 
         // TODO: only one doctype allowed for ES6
         //checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
@@ -128,7 +128,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
         // now picard is only in opendistro_security_role_starfleet, which has write access to
         // public, but not to _doc
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
 
         // TODO: only one doctype allowed for ES6
         // checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 1);
@@ -324,14 +324,14 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
 
     private void checkAllSfAllowed() throws Exception {
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 1);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 1);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
     }
 
     private void checkAllSfForbidden() throws Exception {
         rh.sendAdminCertificate = false;
-        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 1);
+        checkReadAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
     }
 
     private HttpResponse deleteAndputNewMapping(String fileName) throws Exception {

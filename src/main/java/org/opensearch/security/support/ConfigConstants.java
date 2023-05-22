@@ -253,6 +253,8 @@ public class ConfigConstants {
     public static final String SECURITY_RESTAPI_ENDPOINTS_DISABLED = "plugins.security.restapi.endpoints_disabled";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX = "plugins.security.restapi.password_validation_regex";
     public static final String SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE = "plugins.security.restapi.password_validation_error_message";
+    public static final String SECURITY_RESTAPI_PASSWORD_MIN_LENGTH = "plugins.security.restapi.password_min_length";
+    public static final String SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH = "plugins.security.restapi.password_score_based_validation_strength";
 
     // Illegal Opcodes from here on
     public static final String SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY = "plugins.security.unsupported.disable_rest_auth_initially";
