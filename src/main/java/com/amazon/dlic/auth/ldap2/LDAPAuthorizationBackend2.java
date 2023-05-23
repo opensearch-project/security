@@ -49,8 +49,8 @@ import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfigException;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.support.WildcardMatcher;
