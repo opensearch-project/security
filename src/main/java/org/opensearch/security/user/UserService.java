@@ -302,8 +302,8 @@ public class UserService {
             final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
             final Map accountAttributes = internalUserEntry.getAttributes();
             final String accountName = entry.getKey();
-            if (!accountAttributes.containsKey("service") || accountAttributes.get("service") == "false") {
-                internalUserAccounts.add(accountName);
+        if (accountAttributes.getOrDefault("service", "false").equals("false")) {
+                serviceAccounts.add(accountName);
             }
         }
         return internalUserAccounts;
