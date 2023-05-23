@@ -74,8 +74,8 @@ import com.amazon.dlic.auth.ldap.util.Utils;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;

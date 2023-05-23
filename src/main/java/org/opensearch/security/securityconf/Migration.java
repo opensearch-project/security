@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.opensearch.common.Strings;
 import org.opensearch.common.collect.Tuple;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.securityconf.impl.AllowlistingSettings;
 import org.opensearch.security.securityconf.impl.CType;

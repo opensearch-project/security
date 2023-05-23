@@ -34,13 +34,13 @@ import org.joda.time.format.DateTimeFormatter;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.Strings;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.common.Strings;
 import org.opensearch.index.shard.ShardId;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog.Operation;
@@ -451,18 +451,18 @@ public final class AuditMessage {
         return (String) this.auditInfo.get(EXCEPTION);
     }
 
-    @Override
-    public String toString() {
-        try {
-            return Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
-        } catch (final IOException e) {
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
-    }
+	@Override
+	public String toString() {
+		try {
+			return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
+		} catch (final IOException e) {
+		    throw ExceptionsHelper.convertToOpenSearchException(e);
+		}
+	}
 
     public String toPrettyString() {
         try {
-            return Strings.toString(JsonXContent.contentBuilder().prettyPrint().map(getAsMap()));
+            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().prettyPrint().map(getAsMap()));
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
