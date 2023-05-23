@@ -69,16 +69,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             new Route(Method.GET, "/user/internalaccounts"),
             new Route(Method.POST, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
-            new Route(Method.PUT, "/user/{name}"),
-
-            // corrected mapping, introduced in OpenSearch Security
-            new Route(Method.GET, "/internalusers/{name}"),
-            new Route(Method.GET, "/internalusers/"),
-            new Route(Method.POST, "/internalusers/{name}/authtoken"),
-            new Route(Method.DELETE, "/internalusers/{name}"),
-            new Route(Method.PUT, "/internalusers/{name}"),
-            new Route(Method.PATCH, "/internalusers/"),
-            new Route(Method.PATCH, "/internalusers/{name}")
+            new Route(Method.PUT, "/user/{name}")
     ));
 
     UserService userService;
@@ -116,7 +107,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
         filter(configuration);
 
-        if (request.rawPath().equalsIgnoreCase("/_plugins/_security/api/internalaccounts")){
+        if (request.rawPath().equalsIgnoreCase("/_plugins/_security/api/user/internalaccounts")){
             userService.listInternalUsers();
             successResponse(channel, configuration);
             return;
