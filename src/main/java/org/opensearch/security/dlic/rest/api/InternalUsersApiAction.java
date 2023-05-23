@@ -13,10 +13,7 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -44,7 +41,6 @@ import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
-import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.UserService;
@@ -69,7 +65,18 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             new Route(Method.GET, "/user/internalaccounts"),
             new Route(Method.POST, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
-            new Route(Method.PUT, "/user/{name}")
+            new Route(Method.PUT, "/user/{name}"),
+
+            // corrected mapping, introduced in OpenSearch Security
+            new Route(Method.GET, "/internalusers/{name}"),
+            new Route(Method.GET, "/internalusers/"),
+            new Route(Method.GET, "/internalusers/serviceaccounts"),
+            new Route(Method.GET, "/internalusers/internalaccounts"),
+            new Route(Method.POST, "/internalusers/{name}/authtoken"),
+            new Route(Method.DELETE, "/internalusers/{name}"),
+            new Route(Method.PUT, "/internalusers/{name}"),
+            new Route(Method.PATCH, "/internalusers/"),
+            new Route(Method.PATCH, "/internalusers/{name}")
     ));
 
     UserService userService;
