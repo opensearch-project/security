@@ -107,17 +107,17 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
         filter(configuration);
 
-        if (request.rawPath().equalsIgnoreCase("/_plugins/_security/api/user/internalaccounts")){
+        String destination = request.rawPath().split("/")[5];
+
+        if (destination.equalsIgnoreCase("internalaccounts")) {
             userService.listInternalUsers();
             successResponse(channel, configuration);
             return;
-
-            }
-        if (request.rawPath().equalsIgnoreCase("/_plugins/_security/api/user/serviceaccounts")){
+        } else if (destination.equalsIgnoreCase("serviceaccounts")) {
             userService.listServiceAccounts();
             successResponse(channel, configuration);
             return;
-         }
+        } 
 
         // no specific resource requested, return complete config
         if (resourcename == null || resourcename.length() == 0) {
