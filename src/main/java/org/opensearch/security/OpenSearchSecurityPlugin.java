@@ -73,6 +73,7 @@ import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.component.Lifecycle.State;
@@ -1193,6 +1194,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
+        private static DiscoveryNode localNode;
 
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         private static ExtensionsManager extensionsManager;
@@ -1205,6 +1207,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
+            GuiceHolder.localNode = remoteClusterService.getLocalNode();
         }
         // CS-ENFORCE-SINGLE
 
@@ -1226,6 +1229,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         public static ExtensionsManager getExtensionsManager() { return extensionsManager; }
         // CS-ENFORCE-SINGLE
 
+        public static DiscoveryNode getLocalNode() { return localNode; }
 
         @Override
         public void close() {

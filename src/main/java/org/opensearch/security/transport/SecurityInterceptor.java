@@ -43,6 +43,7 @@ import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.settings.Settings;
@@ -68,6 +69,7 @@ import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
+import org.opensearch.transport.TransportService;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 
@@ -85,14 +87,16 @@ public class SecurityInterceptor {
     private final ClusterInfoHolder clusterInfoHolder;
     private final SSLConfig SSLConfig;
 
+    private final DiscoveryNode localNode;
+
     public SecurityInterceptor(final Settings settings,
-            final ThreadPool threadPool, final BackendRegistry backendRegistry,
-            final AuditLog auditLog, final PrincipalExtractor principalExtractor,
-            final InterClusterRequestEvaluator requestEvalProvider,
-            final ClusterService cs,
-            final SslExceptionHandler sslExceptionHandler,
-            final ClusterInfoHolder clusterInfoHolder,
-            final SSLConfig SSLConfig) {
+                               final ThreadPool threadPool, final BackendRegistry backendRegistry,
+                               final AuditLog auditLog, final PrincipalExtractor principalExtractor,
+                               final InterClusterRequestEvaluator requestEvalProvider,
+                               final ClusterService cs,
+                               final SslExceptionHandler sslExceptionHandler,
+                               final ClusterInfoHolder clusterInfoHolder,
+                               final SSLConfig SSLConfig) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -103,6 +107,7 @@ public class SecurityInterceptor {
         this.sslExceptionHandler = sslExceptionHandler;
         this.clusterInfoHolder = clusterInfoHolder;
         this.SSLConfig = SSLConfig;
+        this.localNode = OpenSearchSecurityPlugin.GuiceHolder.getLocalNode();
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action,
@@ -127,12 +132,14 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-        boolean isSameNodeRequest = false;
-        try {
-            isSameNodeRequest = cs.localNode().equals(connection.getNode()); // using DiscoveryNode equals comparison here
-        } catch (AssertionError e) {
-            // do nothing
-        }
+        boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
+//        try {
+//            isSameNodeRequest = cs.localNode().equals(connection.getNode()); // using DiscoveryNode equals comparison here
+//        } catch (AssertionError e) {
+//            // do nothing
+//            log.info(e);
+//        }
+
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
