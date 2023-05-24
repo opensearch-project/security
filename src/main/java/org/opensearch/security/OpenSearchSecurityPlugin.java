@@ -73,7 +73,6 @@ import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.component.Lifecycle.State;
