@@ -69,7 +69,6 @@ import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
-import org.opensearch.transport.TransportService;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 
@@ -86,8 +85,6 @@ public class SecurityInterceptor {
     private final SslExceptionHandler sslExceptionHandler;
     private final ClusterInfoHolder clusterInfoHolder;
     private final SSLConfig SSLConfig;
-
-    private final DiscoveryNode localNode;
 
     public SecurityInterceptor(final Settings settings,
                                final ThreadPool threadPool, final BackendRegistry backendRegistry,
@@ -107,7 +104,6 @@ public class SecurityInterceptor {
         this.sslExceptionHandler = sslExceptionHandler;
         this.clusterInfoHolder = clusterInfoHolder;
         this.SSLConfig = SSLConfig;
-        this.localNode = OpenSearchSecurityPlugin.GuiceHolder.getLocalNode();
     }
 
     public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action,
@@ -132,6 +128,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
+        final DiscoveryNode localNode = OpenSearchSecurityPlugin.GuiceHolder.getTransportService().getLocalNode();
         boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
 //        try {
 //            isSameNodeRequest = cs.localNode().equals(connection.getNode()); // using DiscoveryNode equals comparison here

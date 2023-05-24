@@ -1194,7 +1194,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
-        private static DiscoveryNode localNode;
+        private static TransportService transportService;
 
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         private static ExtensionsManager extensionsManager;
@@ -1207,7 +1207,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
-            GuiceHolder.localNode = remoteClusterService.getLocalNode();
+            GuiceHolder.transportService = remoteClusterService;
         }
         // CS-ENFORCE-SINGLE
 
@@ -1229,7 +1229,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         public static ExtensionsManager getExtensionsManager() { return extensionsManager; }
         // CS-ENFORCE-SINGLE
 
-        public static DiscoveryNode getLocalNode() { return localNode; }
+        public static TransportService getTransportService() { return transportService; }
 
         @Override
         public void close() {
