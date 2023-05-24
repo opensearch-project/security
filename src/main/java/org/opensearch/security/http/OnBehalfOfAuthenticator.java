@@ -36,6 +36,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -57,9 +58,16 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private String signingKey;
     private String encryptionKey;
+    private volatile boolean initialized;
 
     public OnBehalfOfAuthenticator() {
         super();
+        init();
+    }
+
+    public HTTPOnBehalfOfJwtAuthenticator(Settings settings){
+        this.signingKey = settings.get("signing_key");
+        this.encryptionKey = settings.get("encryption_key");
         init();
     }
 
@@ -68,6 +76,10 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         this.signingKey = signingKey;
         this.encryptionKey = encryptionKey;
         init();
+    }
+
+    public boolean isInitialized(){
+        return initialized;
     }
 
     private void init() {
@@ -265,8 +277,9 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
         //TODO: #2615 FOR CONFIGURATION
         //For Testing
-        signingKey = "abcd1234";
-        encryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        signingKey = dcm.getDynamicOnBehalfOfSettings().get("signing_key");
+        encryptionKey = dcm.getDynamicOnBehalfOfSettings().get("encryption_key");
+        initialized = signingKey != null && encryptionKey != null;
     }
 
 }
