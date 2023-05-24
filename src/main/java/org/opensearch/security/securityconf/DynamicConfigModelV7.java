@@ -54,6 +54,8 @@ import org.opensearch.security.auth.Destroyable;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
+import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
+import org.opensearch.security.http.HTTPOnBehalfOfJwtAuthenticator;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.Authc;
 import org.opensearch.security.securityconf.impl.v7.ConfigV7.AuthcDomain;
@@ -310,6 +312,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                 }
 
             }
+        }
+
+        Settings oboSettings = getDynamicOnBehalfOfSettings();
+        if (oboSettings.get("signing_key") != null && oboSettings.get("encryption_key") != null) {
+            final AuthDomain _ad = new AuthDomain(new NoOpAuthenticationBackend(Settings.EMPTY, null), new HTTPOnBehalfOfJwtAuthenticator(getDynamicOnBehalfOfSettings()), false, 0);
+            restAuthDomains0.add(_ad);
         }
 
         List<Destroyable> originalDestroyableComponents = destroyableComponents;
