@@ -11,6 +11,7 @@
 
 package org.opensearch.security.privileges;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -31,6 +32,7 @@ import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
+import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -153,10 +155,12 @@ public class RestLayerPrivilegesEvaluator {
 
         log.info("Checking legacy permissions for {}", action);
 
-        action = action.replace(':', '/');
-        String opendistroAction = "cluster:admin/opendistro/" + action;
-        String opensearchAction = "cluster:admin/opensearch/" + action;
+        action = action.split(":")[1]; // e.g. `hw:greet` would check for action `greet` for extension `hw`
+        String opendistroAction = "cluster:admin/opendistro/*/" + action;
+        String opensearchAction = "cluster:admin/opensearch/*/" + action;
 
-        return roles.impliesClusterPermissionPermission(opendistroAction) || roles.impliesClusterPermissionPermission(opensearchAction);
+        List<String> legacyPermissions = List.of(opendistroAction, opendistroAction);
+
+        return roles.impliesLegacyPermissions(opendistroAction) || roles.impliesLegacyPermissions(opensearchAction);
     }
 }

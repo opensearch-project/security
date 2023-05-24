@@ -488,6 +488,11 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         @Override
+        public boolean impliesLegacyPermissions(String action0) {
+            return false;
+        }
+
+        @Override
         public boolean hasExplicitClusterPermissionPermission(String action) {
             return roles.stream()
                     .map(r -> {

@@ -485,6 +485,11 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         @Override
+        public boolean impliesLegacyPermissions(String action) {
+            return roles.stream().filter(r -> r.impliesLegacyPermission(action)).count() > 0;
+        }
+
+        @Override
         public boolean hasExplicitClusterPermissionPermission(String action) {
             return roles.stream()
                     .map(r -> r.clusterPerms == WildcardMatcher.ANY ? WildcardMatcher.NONE : r.clusterPerms)
@@ -537,7 +542,6 @@ public class ConfigModelV7 extends ConfigModel {
                 return this;
             }
 
-
             public SecurityRole build() {
                 return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms));
             }
@@ -551,6 +555,10 @@ public class ConfigModelV7 extends ConfigModel {
 
         private boolean impliesClusterPermission(String action) {
             return clusterPerms.test(action);
+        }
+
+        private boolean impliesLegacyPermission(String action) {
+            return clusterPerms.matchAny(action);
         }
 
         //get indices which are permitted for the given types and actions
