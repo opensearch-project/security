@@ -11,9 +11,10 @@
 
 package org.opensearch.security.privileges;
 
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,10 +40,8 @@ import org.opensearch.threadpool.ThreadPool;
 public class RestLayerPrivilegesEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ClusterService clusterService;
-
     private final AuditLog auditLog;
     private ThreadContext threadContext;
-
     private final ClusterInfoHolder clusterInfoHolder;
     private ConfigModel configModel;
     private DynamicConfigModel dcm;
@@ -155,11 +154,31 @@ public class RestLayerPrivilegesEvaluator {
         log.info("Checking legacy permissions for {}", action);
 
         action = action.split(":")[1]; // e.g. `hw:greet` would check for action `greet` for extension `hw`
-        String opendistroAction = "cluster:admin/opendistro/*/" + action;
-        String opensearchAction = "cluster:admin/opensearch/*/" + action;
 
-        List<String> legacyPermissions = List.of(opendistroAction, opendistroAction);
+        /* Regex: `/(?:cluster:admin\/\b(open(distro|search))\b\/[a-zA-Z]+\/|\*)action\/?(?:\*|[\/a-zA-Z0-9]*)/gm`
+         *  matches:
+         *  *action*
+         *  cluster:admin/opensearch/abcd/action
+         *  cluster:admin/opensearch/abcd/action*
+         *  cluster:admin/opensearch/abcd/action/*
+         *  cluster:admin/opensearch/abcd/action/a/*
+         *  cluster:admin/opensearch/abcd/action/a/b/c
+         *  *action*
+         *  *action/abc
+         *
+         *  doesn't match:
+         *  action
+         *  action*
+         *  action/
+         *  indices:admin/action/
+         *
+         *  For more details on regex, please visit regex101.com and paste the regex
+         */
+        String legacyActionMatchRegex = "(?:cluster:admin/\\\\b(open(distro|search))\\\\b/[a-zA-Z]+/|\\\\*)greet/?(?:\\\\*|[/a-zA-Z0-9]*)";
 
-        return roles.impliesLegacyPermissions(opendistroAction) || roles.impliesLegacyPermissions(opensearchAction);
+        String regex = String.format(legacyActionMatchRegex, action);
+        Predicate<String> pattern = Pattern.compile(regex).asPredicate();
+
+        return roles.impliesLegacyPermissions(pattern);
     }
 }

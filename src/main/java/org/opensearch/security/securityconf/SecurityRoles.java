@@ -28,6 +28,7 @@
 package org.opensearch.security.securityconf;
 
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
@@ -39,7 +40,7 @@ public interface SecurityRoles {
 
     boolean impliesClusterPermissionPermission(String action0);
 
-    boolean impliesLegacyPermissions(String action0);
+    boolean impliesLegacyPermissions(Predicate<String> action0);
 
     boolean hasExplicitClusterPermissionPermission(String action);
 

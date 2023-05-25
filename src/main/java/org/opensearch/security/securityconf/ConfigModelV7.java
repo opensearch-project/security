@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -485,7 +486,7 @@ public class ConfigModelV7 extends ConfigModel {
         }
 
         @Override
-        public boolean impliesLegacyPermissions(String action) {
+        public boolean impliesLegacyPermissions(Predicate<String> action) {
             return roles.stream().filter(r -> r.impliesLegacyPermission(action)).count() > 0;
         }
 
@@ -521,6 +522,8 @@ public class ConfigModelV7 extends ConfigModel {
         private final String name;
         private final Set<IndexPattern> ipatterns;
         private final WildcardMatcher clusterPerms;
+        // Holds all legacy permissions of this role in a Set format to then be matched by a predicate via impliesLegacyPermission()
+        private final Set<String> legacyPerms;
 
         public static final class Builder {
             private final String name;
@@ -543,22 +546,23 @@ public class ConfigModelV7 extends ConfigModel {
             }
 
             public SecurityRole build() {
-                return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms));
+                return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms), clusterPerms);
             }
         }
 
-        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
+        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms, Set<String> legacyPerms) {
             this.name = Objects.requireNonNull(name);
             this.ipatterns = ipatterns;
             this.clusterPerms = clusterPerms;
+            this.legacyPerms = legacyPerms;
         }
 
         private boolean impliesClusterPermission(String action) {
             return clusterPerms.test(action);
         }
 
-        private boolean impliesLegacyPermission(String action) {
-            return clusterPerms.matchAny(action);
+        private boolean impliesLegacyPermission(Predicate<String> action) {
+            return legacyPerms.stream().anyMatch(action);
         }
 
         //get indices which are permitted for the given types and actions
