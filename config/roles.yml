@@ -192,6 +192,8 @@ index_management_full_access:
     - "cluster:admin/opendistro/ism/*"
     - "cluster:admin/opendistro/rollup/*"
     - "cluster:admin/opendistro/transform/*"
+    - "cluster:admin/opensearch/controlcenter/lron/*"
+    - "cluster:admin/opensearch/notifications/channels/get"
     - "cluster:admin/opensearch/notifications/feature/publish"
   index_permissions:
     - index_patterns:
