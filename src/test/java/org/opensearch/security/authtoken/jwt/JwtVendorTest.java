@@ -11,6 +11,8 @@
 
 package org.opensearch.security.authtoken.jwt;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.function.LongSupplier;
 
@@ -22,6 +24,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JwtVendorTest {
 
@@ -115,5 +119,31 @@ public class JwtVendorTest {
         JwtVendor jwtVendor = new JwtVendor(settings);
 
         jwtVendor.createJwt(issuer, subject, audience, expirySecond, roles);
+    }
+
+    //For Manual Testing
+    @Test
+    public void testCreateJwtWithRolesAndEncyptionKey() throws Exception {
+        String issuer = "cluster_0";
+        String subject = "craig";
+        String audience = "audience_0";
+        List<String> roles = List.of("admin", "HR");
+        Integer expirySeconds = 10000;
+        LongSupplier currentTime = () -> (System.currentTimeMillis() / 1000);
+        String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
+        String signingKey = Base64.getEncoder().encodeToString("jwt signing key for an on behalf of token authentication backend for testing of extensions".getBytes(StandardCharsets.UTF_8));
+        String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
+        System.out.println("The encryptionkey is:" + encryptionKey);
+        Settings settings =  Settings.builder().put("signing_key", signingKey).put("encryption_key", encryptionKey).build();
+
+        JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
+        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+
+        JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
+        JwtToken jwt = jwtConsumer.getJwtToken();
+
+        System.out.println("JWT: " + encodedJwt);
+
+        assertTrue(true);
     }
 }

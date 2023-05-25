@@ -28,7 +28,7 @@ import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.WeakKeyException;
-import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -176,21 +176,9 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
             final String audience = claims.getAudience();
 
-            //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
-            Object rolesObject = null;
             String[] roles;
 
-            try {
-                rolesObject = claims.get("er");
-            } catch (Throwable e) {
-                    log.debug("No encrypted role founded in the claim, continue searching for decrypted roles.");
-            }
-
-            try {
-                rolesObject = claims.get("dr");
-            } catch (Throwable e) {
-                log.debug("No decrypted role founded in the claim.");
-            }
+            Object rolesObject = ObjectUtils.firstNonNull(claims.get("er"), claims.get("dr"));
 
             if (rolesObject == null) {
                 log.warn(
@@ -202,7 +190,6 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
                 // Extracting roles based on the compatbility mode
                 String decryptedRoles = rolesClaim;
                 if (rolesObject == claims.get("er")) {
-                    //TODO: WHERE TO GET THE ENCRYTION KEY
                     decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
                 }
                 roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
@@ -226,9 +213,11 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
             return ac;
 
         } catch (WeakKeyException e) {
+            System.out.println("Error MSG1!" + e.getMessage());
             log.error("Cannot authenticate user with JWT because of ", e);
             return null;
         } catch (Exception e) {
+            System.out.println("Error MSG2!" + e.getMessage());
             if(log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
             }
@@ -275,7 +264,6 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
 
-        //TODO: #2615 FOR CONFIGURATION
         //For Testing
         signingKey = dcm.getDynamicOnBehalfOfSettings().get("signing_key");
         encryptionKey = dcm.getDynamicOnBehalfOfSettings().get("encryption_key");
