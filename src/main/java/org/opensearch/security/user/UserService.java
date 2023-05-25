@@ -275,48 +275,32 @@ public class UserService {
         }
     }
 
-    public static List<String> listServiceAccounts() {
+    public void removeNonServiceAccounts(SecurityDynamicConfiguration<?> configuration) {
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-
-        List<String> serviceAccounts = new ArrayList<>();
-        for (Map.Entry<String, ?> entry : internalUsersConfiguration.getCEntries().entrySet()) {
-
+        List<String> nonServiceAccounts = new ArrayList<>();
+        for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
             final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
             final Map accountAttributes = internalUserEntry.getAttributes();
             final String accountName = entry.getKey();
-        if (accountAttributes.getOrDefault("service", "false").equals("true")) {
-                serviceAccounts.add(accountName);
+            if (accountAttributes.getOrDefault("service", "false").equals("false")) {
+                    nonServiceAccounts.add(accountName);
             }
         }
-        return serviceAccounts;
+        configuration.remove(nonServiceAccounts);
     }
 
-    public static List<String> listInternalUsers() {
+    public void removeNonInternalAccounts(SecurityDynamicConfiguration<?> configuration) {
 
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-
-        List<String> internalUserAccounts = new ArrayList<>();
-        for (Map.Entry<String, ?> entry : internalUsersConfiguration.getCEntries().entrySet()) {
-
+        List<String> nonInternalAccounts = new ArrayList<>();
+        for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
             final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
             final Map accountAttributes = internalUserEntry.getAttributes();
             final String accountName = entry.getKey();
-        if (accountAttributes.getOrDefault("service", "false").equals("false")) {
-                serviceAccounts.add(accountName);
+            if (accountAttributes.getOrDefault("service", "false").equals("true")) {
+                nonInternalAccounts.add(accountName);
             }
         }
-        return internalUserAccounts;
-    }
-
-    public static Set<String> listUserAccounts() {
-
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-        return internalUsersConfiguration.getCEntries().keySet();
-    }
-
-    protected static CType getConfigName() {
-        return CType.INTERNALUSERS;
+        configuration.remove(nonInternalAccounts);
     }
 
 }

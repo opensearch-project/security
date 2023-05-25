@@ -30,6 +30,7 @@ package org.opensearch.security.securityconf.impl;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -178,7 +179,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         this.centries.clear();
         this.centries.put(key, tmp);
     }
-    
+
     @JsonIgnore
     public T putCEntry(String key, T value) {
         return centries.put(key, value);
@@ -265,7 +266,11 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public void remove(String key) {
        centries.remove(key);
-        
+    }
+
+    @JsonIgnore
+    public void remove(List<String> keySet) {
+       keySet.stream().forEach(this::remove);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

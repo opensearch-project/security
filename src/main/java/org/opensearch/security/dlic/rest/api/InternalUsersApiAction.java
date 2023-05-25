@@ -57,12 +57,12 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
 
     public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
     public static final String PLUGINS_PREFIX = "_plugins/_security";
+    public static final String SERVICE_ACCOUNTS_ENDPOINT = "/internalusers/serviceaccounts";
+    public static final String INTERNAL_ACCOUNTS_ENDPOINT = "/internalusers/internalaccounts";
 
     private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
             new Route(Method.GET, "/user/"),
-            new Route(Method.GET, "/user/serviceaccounts"),
-            new Route(Method.GET, "/user/internalaccounts"),
             new Route(Method.POST, "/user/{name}/authtoken"),
             new Route(Method.DELETE, "/user/{name}"),
             new Route(Method.PUT, "/user/{name}"),
@@ -70,8 +70,8 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/internalusers/{name}"),
             new Route(Method.GET, "/internalusers/"),
-            new Route(Method.GET, "/internalusers/serviceaccounts"),
-            new Route(Method.GET, "/internalusers/internalaccounts"),
+            new Route(Method.GET, SERVICE_ACCOUNTS_ENDPOINT),
+            new Route(Method.GET, INTERNAL_ACCOUNTS_ENDPOINT),
             new Route(Method.POST, "/internalusers/{name}/authtoken"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
@@ -111,37 +111,33 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
         final String resourcename = request.param("name");
 
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
+        SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
         filter(configuration);
 
-        String destination = request.rawPath().split("/")[5];
+        String requestDestination = request.rawPath().split("/api")[1];
 
-        if (destination.equalsIgnoreCase("internalaccounts")) {
-            userService.listInternalUsers();
-            successResponse(channel, configuration);
-            return;
-        } else if (destination.equalsIgnoreCase("serviceaccounts")) {
-            userService.listServiceAccounts();
-            successResponse(channel, configuration);
-            return;
-        } 
-
-        // no specific resource requested, return complete config
-        if (resourcename == null || resourcename.length() == 0) {
-
+        if (requestDestination.equalsIgnoreCase(INTERNAL_ACCOUNTS_ENDPOINT)) {
+            userService.removeNonInternalAccounts(configuration);
             successResponse(channel, configuration);
             return;
         }
-
+        if (requestDestination.equalsIgnoreCase(SERVICE_ACCOUNTS_ENDPOINT)) {
+            userService.removeNonServiceAccounts(configuration);
+            successResponse(channel, configuration);
+            return;
+        }
+        // no specific resource requested, return complete config
+        if (resourcename == null || resourcename.length() == 0) {
+            successResponse(channel, configuration);
+            return;
+        }
         if (!configuration.exists(resourcename)) {
             notFound(channel, "Resource '" + resourcename + "' not found.");
             return;
         }
-
         configuration.removeOthers(resourcename);
         successResponse(channel, configuration);
 
-        return;
     }
 
 
