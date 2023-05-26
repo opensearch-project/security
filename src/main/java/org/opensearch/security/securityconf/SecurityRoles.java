@@ -28,7 +28,6 @@
 package org.opensearch.security.securityconf;
 
 import java.util.Set;
-import java.util.function.Predicate;
 
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
