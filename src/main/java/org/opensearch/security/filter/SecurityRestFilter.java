@@ -124,17 +124,13 @@ public class SecurityRestFilter {
      * SuperAdmin is identified by credentials, which can be passed in the curl request.
      */
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
-        return new RestHandler() {
-
-            @Override
-            public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
-                org.apache.logging.log4j.ThreadContext.clearAll();
-                if (!checkAndAuthenticateRequest(request, channel, client)) {
-                    User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
-                        if (!authorizeRequest(original, request, channel, user)) {
-                            original.handleRequest(request, channel, client);
-                        }
+        return (request, channel, client) -> {
+            org.apache.logging.log4j.ThreadContext.clearAll();
+            if (!checkAndAuthenticateRequest(request, channel, client)) {
+                User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
+                    if (!authorizeRequest(original, request, channel, user)) {
+                        original.handleRequest(request, channel, client);
                     }
                 }
             }
@@ -181,7 +177,6 @@ public class SecurityRestFilter {
                 }
             }
         }
-
         return false;
     }
 
@@ -189,7 +184,6 @@ public class SecurityRestFilter {
                                                 NodeClient client) throws Exception {
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
-
         if(HTTPHelper.containsBadHeader(request)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
@@ -197,7 +191,6 @@ public class SecurityRestFilter {
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;
         }
-
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
@@ -212,7 +205,6 @@ public class SecurityRestFilter {
                 if(sslInfo.getPrincipal() != null) {
                     threadContext.putTransient("_opendistro_security_ssl_principal", sslInfo.getPrincipal());
                 }
-
                 if(sslInfo.getX509Certs() != null) {
                      threadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
                 }
@@ -225,7 +217,6 @@ public class SecurityRestFilter {
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
             return true;
         }
-
         if(!compatConfig.restAuthEnabled()) {
             return false;
         }
@@ -244,7 +235,6 @@ public class SecurityRestFilter {
                 org.apache.logging.log4j.ThreadContext.put("user", ((User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName());
             }
         }
-
         return false;
     }
 

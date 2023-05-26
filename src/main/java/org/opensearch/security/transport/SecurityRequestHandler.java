@@ -63,6 +63,7 @@ import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
+// CS-ENFORCE-SINGLE
 
 public class SecurityRequestHandler<T extends TransportRequest> extends SecuritySSLRequestHandler<T> {
 
