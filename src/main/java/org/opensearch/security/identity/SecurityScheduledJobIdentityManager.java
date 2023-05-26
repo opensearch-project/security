@@ -2,6 +2,10 @@ package org.opensearch.security.identity;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
@@ -19,6 +23,9 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.identity.ScheduledJobIdentityManager;
+import org.opensearch.identity.schedule.ScheduledJobIdentityModel;
+import org.opensearch.identity.schedule.ScheduledJobOperator;
+import org.opensearch.identity.schedule.ScheduledJobUserModel;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -49,12 +56,12 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     }
 
     @Override
-    public void saveUserDetails(String jobId, String indexName) {
+    public void saveUserDetails(String jobId, String indexName, ScheduledJobOperator operator) {
         if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
            securityIndices.initScheduledJobIdentityIndex(ActionListener.wrap(response -> {
                 if (response.isAcknowledged()) {
                     logger.info("Created {} with mappings.", SCHEDULED_JOB_IDENTITY_INDEX);
-                    createScheduledJobIdentityEntry(jobId, indexName);
+                    createScheduledJobIdentityEntry(jobId, indexName, operator);
                 } else {
                     logger.warn("Created {} with mappings call not acknowledged.", SCHEDULED_JOB_IDENTITY_INDEX);
                     throw new OpenSearchSecurityException(
@@ -65,11 +72,11 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
                "Created " + SCHEDULED_JOB_IDENTITY_INDEX + " with mappings call failed."
            )));
         } else {
-            createScheduledJobIdentityEntry(jobId, indexName);
+            createScheduledJobIdentityEntry(jobId, indexName, operator);
         }
     }
 
-    private void createScheduledJobIdentityEntry(String jobId, String indexName) {
+    private void createScheduledJobIdentityEntry(String jobId, String indexName, ScheduledJobOperator operator) {
         SearchRequest searchRequest = new SearchRequest().indices(SCHEDULED_JOB_IDENTITY_INDEX);
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
                 .must(QueryBuilders.matchQuery("job_id", jobId))
@@ -80,7 +87,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
             searchRequest,
             ActionListener
                 .wrap(
-                    response -> indexScheduledJobIdentity(response, jobId, indexName),
+                    response -> indexScheduledJobIdentity(response, jobId, indexName, operator),
                     exception -> new OpenSearchSecurityException(
                         "Exception received while querying for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
                     )
@@ -91,7 +98,8 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     private void indexScheduledJobIdentity(
             SearchResponse response,
             String jobId,
-            String indexName
+            String indexName,
+            ScheduledJobOperator operator
     ) throws IOException {
         long totalHits = response.getHits().getTotalHits().value;
         if (totalHits > 1) {
@@ -100,12 +108,17 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
         } else if (totalHits == 1) {
             logger.info("Scheduled Job Identity already exists in " + SCHEDULED_JOB_IDENTITY_INDEX + " for job with jobId " + jobId);
         } else {
-            final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if (user == null) {
+            ScheduledJobIdentityModel identity = operator.getIdentity();
+            ScheduledJobUserModel userModel = identity.getUser();
+            String username = userModel.getUsername();
+            Map<String, String> attributes = userModel.getAttributes();
+            if (!(attributes.containsKey("roles") && attributes.containsKey("backend_roles"))) {
                 throw new OpenSearchSecurityException("Attempting to save user details for scheduled job, but user info is empty");
             }
+            List<String> roles = Arrays.stream(attributes.get("roles").split(",")).collect(Collectors.toList());
+            List<String> backendRoles = Arrays.stream(attributes.get("backend_roles").split(",")).collect(Collectors.toList());
+            final User user = new User(username, backendRoles, roles, List.of(), null);
             ScheduledJobIdentity identityOfJob = new ScheduledJobIdentity(jobId, indexName, Instant.now(), Instant.now(), user);
-            XContentBuilder source = identityOfJob.toXContent(XContentFactory.jsonBuilder(), XCONTENT_WITH_TYPE);
             IndexRequest indexRequest = new IndexRequest(SCHEDULED_JOB_IDENTITY_INDEX)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .source(identityOfJob.toXContent(XContentFactory.jsonBuilder(), XCONTENT_WITH_TYPE));
