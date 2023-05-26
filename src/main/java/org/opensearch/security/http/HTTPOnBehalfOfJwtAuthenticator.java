@@ -161,7 +161,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
         }
 
         final int index;
-        if((index = jwtToken.toLowerCase().indexOf(BEARER_PREFIX)) > -1) { //detect Bearer
+        if(jwtToken != null && (index = jwtToken.toLowerCase().indexOf(BEARER_PREFIX)) > -1) { //detect Bearer
             jwtToken = jwtToken.substring(index+BEARER_PREFIX.length());
         } else {
             if(log.isDebugEnabled()) {
@@ -259,15 +259,6 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(algo);
         return kf.generatePublic(spec);
-    }
-
-    @Subscribe
-    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
-
-        //For Testing
-        signingKey = dcm.getDynamicOnBehalfOfSettings().get("signing_key");
-        encryptionKey = dcm.getDynamicOnBehalfOfSettings().get("encryption_key");
-        initialized = signingKey != null && encryptionKey != null;
     }
 
 }
