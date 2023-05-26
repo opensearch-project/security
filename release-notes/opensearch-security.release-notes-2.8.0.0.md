@@ -19,6 +19,7 @@ Compatible with OpenSearch 2.8.0
 
 * Add default roles for SQL plugin: PPL and cross-cluster search ([#2729](https://github.com/opensearch-project/security/pull/2729))
 * Update security-analytics roles to add correlation engine apis ([#2732](https://github.com/opensearch-project/security/pull/2732))
+* Changes in role.yml for long-running operation notification feature in Index-Management repo ([#2789](https://github.com/opensearch-project/security/pull/2789))
 
 ### Maintenance
 
