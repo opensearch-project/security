@@ -837,8 +837,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
 
-        restLayerEvaluator = new RestLayerPrivilegesEvaluator(clusterService, threadPool, cr, auditLog,
-                settings, cih, namedXContentRegistry);
+        restLayerEvaluator = new RestLayerPrivilegesEvaluator(clusterService, threadPool, auditLog, cih, namedXContentRegistry);
 
         securityRestHandler = new SecurityRestFilter(backendRegistry, restLayerEvaluator, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);

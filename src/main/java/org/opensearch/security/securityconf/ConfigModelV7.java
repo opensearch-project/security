@@ -485,9 +485,67 @@ public class ConfigModelV7 extends ConfigModel {
             return roles.stream().filter(r -> r.impliesClusterPermission(action)).count() > 0;
         }
 
+        /**
+         * Checks if the route is accessible via legacy naming convention.
+         * We check against cluster permissions because the legacy convention for cluster permissions map 1-1 with a transport
+         * action call initiated via REST API handler. Hence we use the same to allow/block request forwarding to extensions.
+         * This ensures backwards-compatibility
+         *
+         *
+         * NOTE: THIS CHECK WILL BE REMOVED ONCE ALL ACTIONS HAVE BEEN MIGRATED TO THE NEW CONVENTION
+         *
+         * E.g For extension `hw`, following are two possible ways actions an be defined in roles:
+         *
+         * extension_hw_greet:
+         *   reserved: true
+         *   cluster_permissions:
+         *     - 'hw:greet'
+         *
+         * legacy_hw_greet:
+         *   reserved: true
+         *   cluster_permissions:
+         *     - 'cluster:admin/opensearch/hw/greet'
+         *
+         *
+         * @param action - The action to be checked against its legacy version
+         * @return true, if a legacy version was found and validated, false otherwise
+         */
         @Override
-        public boolean impliesLegacyPermissions(Predicate<String> action) {
-            return roles.stream().filter(r -> r.impliesLegacyPermission(action)).count() > 0;
+        public boolean impliesLegacyPermission(String action) {
+            boolean isAlreadyLegacy = action.startsWith("cluster:admin/open");
+            if (isAlreadyLegacy) {
+                return false; // this check was already made, so return false
+            }
+
+            log.info("Checking legacy permissions for {}", action);
+
+            action = action.split(":")[1]; // e.g. `hw:greet` would check for action `greet` for extension `hw`
+
+            /* Regex: `/(?:cluster:admin\/\b(open(distro|search))\b\/[a-zA-Z]+\/|\*)action\/?(?:\*|[\/a-zA-Z0-9]*)/gm`
+             *  matches:
+             *  *action*
+             *  cluster:admin/opensearch/abcd/action
+             *  cluster:admin/opensearch/abcd/action*
+             *  cluster:admin/opensearch/abcd/action/*
+             *  cluster:admin/opensearch/abcd/action/a/*
+             *  cluster:admin/opensearch/abcd/action/a/b/c
+             *  *action*
+             *  *action/abc
+             *
+             *  doesn't match:
+             *  action
+             *  action*
+             *  action/
+             *  indices:admin/action/
+             *
+             *  For more details on regex, please visit regex101.com and paste the regex
+             */
+            String legacyActionMatchRegex = "(?:cluster:admin/\\\\b(open(distro|search))\\\\b/[a-zA-Z]+/|\\\\*)greet/?(?:\\\\*|[/a-zA-Z0-9]*)";
+
+            String regex = String.format(legacyActionMatchRegex, action);
+            Predicate<String> pattern = Pattern.compile(regex).asPredicate();
+
+            return roles.stream().filter(r -> r.impliesLegacyPermission(pattern)).count() > 0;
         }
 
         @Override

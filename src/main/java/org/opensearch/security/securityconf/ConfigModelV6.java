@@ -489,7 +489,7 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         @Override
-        public boolean impliesLegacyPermissions(Predicate<String> action0) {
+        public boolean impliesLegacyPermission(String action0) {
             // no support for ES 6 and below
             return false;
         }

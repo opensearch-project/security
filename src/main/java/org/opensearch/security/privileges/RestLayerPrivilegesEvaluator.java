@@ -48,8 +48,7 @@ public class RestLayerPrivilegesEvaluator {
     private final AtomicReference<NamedXContentRegistry> namedXContentRegistry;
 
     public RestLayerPrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
-                                        final ConfigurationRepository configurationRepository,
-                                        AuditLog auditLog, final Settings settings, final ClusterInfoHolder clusterInfoHolder,
+                                        AuditLog auditLog, final ClusterInfoHolder clusterInfoHolder,
                                         AtomicReference<NamedXContentRegistry> namedXContentRegistry) {
 
         super();
@@ -102,7 +101,7 @@ public class RestLayerPrivilegesEvaluator {
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
-        if (!securityRoles.impliesClusterPermissionPermission(action0) && !impliesLegacyPermission(action0, securityRoles)) {
+        if (!securityRoles.impliesClusterPermissionPermission(action0) && !securityRoles.impliesLegacyPermission(action0)) {
             presponse.missingPrivileges.add(action0);
             presponse.allowed = false;
             log.info("No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",  user, action0,
@@ -120,65 +119,4 @@ public class RestLayerPrivilegesEvaluator {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-    /**
-     * Checks if the route is accessible via legacy naming convention.
-     * We check against cluster permissions because the legacy convention for cluster permissions map 1-1 with a transport
-     * action call initiated via REST API handler. Hence we use the same to allow/block request forwarding to extensions.
-     * This ensures backwards-compatibility
-     *
-     *
-     * NOTE: THIS CHECK WILL BE REMOVED ONCE ALL ACTIONS HAVE BEEN MIGRATED TO THE NEW CONVENTION
-     *
-     * E.g For extension `hw`, following are two possible ways actions an be defined in roles:
-     *
-     * extension_hw_full:
-     *   reserved: true
-     *   cluster_permissions:
-     *     - 'extension:hw/greet'
-     *
-     * legacy_hw_full:
-     *   reserved: true
-     *   cluster_permissions:
-     *     - 'cluster:admin/opensearch/hw/greet'
-     *
-     *
-     * @param action - The action to be checked against its legacy version
-     * @return true, if a legacy version was found and validated, false otherwise
-     */
-    private boolean impliesLegacyPermission(String action, SecurityRoles roles) {
-        boolean isAlreadyLegacy = action.startsWith("cluster:admin/open");
-        if (isAlreadyLegacy) {
-            return false; // this check was already made, so return false
-        }
-
-        log.info("Checking legacy permissions for {}", action);
-
-        action = action.split(":")[1]; // e.g. `hw:greet` would check for action `greet` for extension `hw`
-
-        /* Regex: `/(?:cluster:admin\/\b(open(distro|search))\b\/[a-zA-Z]+\/|\*)action\/?(?:\*|[\/a-zA-Z0-9]*)/gm`
-         *  matches:
-         *  *action*
-         *  cluster:admin/opensearch/abcd/action
-         *  cluster:admin/opensearch/abcd/action*
-         *  cluster:admin/opensearch/abcd/action/*
-         *  cluster:admin/opensearch/abcd/action/a/*
-         *  cluster:admin/opensearch/abcd/action/a/b/c
-         *  *action*
-         *  *action/abc
-         *
-         *  doesn't match:
-         *  action
-         *  action*
-         *  action/
-         *  indices:admin/action/
-         *
-         *  For more details on regex, please visit regex101.com and paste the regex
-         */
-        String legacyActionMatchRegex = "(?:cluster:admin/\\\\b(open(distro|search))\\\\b/[a-zA-Z]+/|\\\\*)greet/?(?:\\\\*|[/a-zA-Z0-9]*)";
-
-        String regex = String.format(legacyActionMatchRegex, action);
-        Predicate<String> pattern = Pattern.compile(regex).asPredicate();
-
-        return roles.impliesLegacyPermissions(pattern);
-    }
 }
