@@ -76,7 +76,6 @@ public class SecurityRestFilter {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final BackendRegistry registry;
-
     private final RestLayerPrivilegesEvaluator evaluator;
     private final AuditLog auditLog;
     private final ThreadContext threadContext;

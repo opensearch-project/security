@@ -364,7 +364,6 @@ legacy_hw_greet_with_name:
   cluster_permissions:
     - 'cluster:admin/opensearch/hw/greet_with_name'
 
-
 extension_hw_full:
   reserved: true
   cluster_permissions:
