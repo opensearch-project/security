@@ -31,9 +31,6 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator;
-
-import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
@@ -91,7 +88,7 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testTokenMissing() throws Exception {
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(BaseEncoding.base64().encode(secretKeyBytes),claimsEncryptionKey);
+        HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(signingKey,claimsEncryptionKey);
         Map<String, String> headers = new HashMap<String, String>();
 
         AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
@@ -104,7 +101,7 @@ public class OnBehalfOfAuthenticatorTest {
 
         String jwsToken = "123invalidtoken..";
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(BaseEncoding.base64().encode(secretKeyBytes), claimsEncryptionKey);
+        HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(signingKey, claimsEncryptionKey);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -121,7 +118,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(secretKey, SignatureAlgorithm.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(BaseEncoding.base64().encode(secretKeyBytes), claimsEncryptionKey);
+        HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(signingKey, claimsEncryptionKey);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -136,11 +133,9 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testBearerWrongPosition() throws Exception {
 
-        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
+        String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("ext_0").signWith(secretKey, SignatureAlgorithm.HS512).compact();
+        HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(signingKey, claimsEncryptionKey);
 
-        String jwsToken = Jwts.builder().setSubject("Leonard McCoy").signWith(secretKey, SignatureAlgorithm.HS512).compact();
-
-        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", jwsToken + "Bearer " + " 123");
 
@@ -151,11 +146,10 @@ public class OnBehalfOfAuthenticatorTest {
 
     @Test
     public void testBasicAuthHeader() throws Exception {
-        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
-        HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
+        String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("ext_0").signWith(secretKey, SignatureAlgorithm.HS512).compact();
+        HTTPOnBehalfOfJwtAuthenticator jwtAuth = new HTTPOnBehalfOfJwtAuthenticator(signingKey, claimsEncryptionKey);
 
-        String basicAuth = BaseEncoding.base64().encode("user:password".getBytes(StandardCharsets.UTF_8));
-        Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Basic " + basicAuth);
+        Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Basic " + jwsToken);
 
         AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, Collections.emptyMap()), null);
         Assert.assertNull(credentials);
