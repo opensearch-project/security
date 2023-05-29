@@ -242,6 +242,7 @@ public class ConfigConstants {
         "opendistro_security.compliance.history.write.ignore_users";
     public static final String OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED =
         "opendistro_security.compliance.history.external_config_enabled";
+    public static final String OPENDISTRO_SECURITY_SOURCE_FIELD_CONTEXT = OPENDISTRO_SECURITY_CONFIG_PREFIX + "source_field_context";
     public static final String SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION =
         "plugins.security.compliance.disable_anonymous_authentication";
     public static final String SECURITY_COMPLIANCE_IMMUTABLE_INDICES = "plugins.security.compliance.immutable_indices";
@@ -322,6 +323,8 @@ public class ConfigConstants {
     public static final String TENANCY_PRIVATE_TENANT_NAME = "private";
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
+
+    public static final String USE_JDK_SERIALIZATION = "plugins.security.use_jdk_serialization";
 
     // On-behalf-of endpoints settings
     // CS-SUPPRESS-SINGLE: RegexpSingleline get Extensions Settings
