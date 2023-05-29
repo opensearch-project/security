@@ -15,6 +15,7 @@ import java.net.URLEncoder;
 import java.util.Base64;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
@@ -23,6 +24,7 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.securityconf.impl.CType;
@@ -137,6 +139,38 @@ public class UserApiTest extends AbstractRestApiUnitTest {
     }
 
     @Test
+    public void testUserFilters() throws Exception {
+        setup();
+        rh.keystore = "restapi/kirk-keystore.jks";
+        rh.sendAdminCertificate = true;
+
+        HttpResponse response;
+
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/happyServiceDead", ENABLED_SERVICE_ACCOUNT_BODY);
+
+        final int SERVICE_ACCOUNTS_IN_SETTINGS = 1;
+        final int INTERNAL_ACCOUNTS_IN_SETTINGS = 19;
+
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers/internalaccounts");
+
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        JsonNode list =  DefaultObjectMapper.readTree(response.getBody());
+        Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers/serviceaccounts");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        list =  DefaultObjectMapper.readTree(response.getBody());
+        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, list.size());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers/serviceaccounts?wrongparameter=jhondoe");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
+
+        response = rh.executePutRequest(ENDPOINT + "/internalusers/serviceaccounts", "{sample:value");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
+    }
+
+    @Test
     public void testUserApi() throws Exception {
 
         setup();
@@ -149,22 +183,12 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(USER_SETTING_SIZE, settings.size());
-        verifyGetFilteredUsers();
-//        verifyGet();
-//        verifyPut();
-//        verifyPatch(true);
-//        // create index first
-//        setupStarfleetIndex();
-//        verifyRoles(true);
-    }
-
-    private void verifyGetFilteredUsers(final Header... header) throws Exception {
-        // TODO proper test
-        HttpResponse response = rh.executeGetRequest(ENDPOINT + "/user/internalaccounts", header);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
-
-        response = rh.executeGetRequest(ENDPOINT + "/user/serviceaccounts", header);
-        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        verifyGet();
+        verifyPut();
+        verifyPatch(true);
+        // create index first
+        setupStarfleetIndex();
+        verifyRoles(true);
     }
 
     private void verifyGet(final Header... header) throws Exception {
