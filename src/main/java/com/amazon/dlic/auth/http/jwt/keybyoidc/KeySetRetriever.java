@@ -54,15 +54,20 @@ public class KeySetRetriever implements KeySetProvider {
 	private int oidcCacheModuleResponses = 0;
 	private long oidcRequests = 0;
 	private long lastCacheStatusLog = 0;
+	private String jwksUri;
 
 	KeySetRetriever(String openIdConnectEndpoint, SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint) {
 		this.openIdConnectEndpoint = openIdConnectEndpoint;
 		this.sslConfig = sslConfig;
 
-		if (useCacheForOidConnectEndpoint) {
-			cacheConfig = CacheConfig.custom().setMaxCacheEntries(10).setMaxObjectSize(1024L * 1024L).build();
-			oidcHttpCacheStorage = new BasicHttpCacheStorage(cacheConfig);
-		}
+		configureCache(useCacheForOidConnectEndpoint);
+	}
+
+	KeySetRetriever(SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint, String jwksUri) {
+		this.jwksUri = jwksUri;
+		this.sslConfig = sslConfig;
+
+		configureCache(useCacheForOidConnectEndpoint);
 	}
 
 	public JsonWebKeys get() throws AuthenticatorUnavailableException {
@@ -100,6 +105,10 @@ public class KeySetRetriever implements KeySetProvider {
 	}
 
 	String getJwksUri() throws AuthenticatorUnavailableException {
+
+		if (jwksUri != null && !jwksUri.isBlank()) {
+			return jwksUri;
+		}
 
 		try (CloseableHttpClient httpClient = createHttpClient(oidcHttpCacheStorage)) {
 
@@ -202,6 +211,13 @@ public class KeySetRetriever implements KeySetProvider {
 		}
 
 		return builder.build();
+	}
+
+	private void configureCache(boolean useCacheForOidConnectEndpoint) {
+		if (useCacheForOidConnectEndpoint) {
+			cacheConfig = CacheConfig.custom().setMaxCacheEntries(10).setMaxObjectSize(1024L * 1024L).build();
+			oidcHttpCacheStorage = new BasicHttpCacheStorage(cacheConfig);
+		}
 	}
 
 	public int getOidcCacheHits() {

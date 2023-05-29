@@ -32,9 +32,15 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticator extends AbstractHTTPJwtAuthe
 
 		int refreshRateLimitTimeWindowMs = settings.getAsInt("refresh_rate_limit_time_window_ms", 10000);
 		int refreshRateLimitCount = settings.getAsInt("refresh_rate_limit_count", 10);
+		var jwksUri = settings.get("jwks_uri");
 
-		KeySetRetriever keySetRetriever = new KeySetRetriever(settings.get("openid_connect_url"),
-				getSSLConfig(settings, configPath), settings.getAsBoolean("cache_jwks_endpoint", false));
+		KeySetRetriever keySetRetriever;
+		if(jwksUri != null && !jwksUri.isBlank()) {
+			keySetRetriever =
+				new KeySetRetriever(getSSLConfig(settings, configPath), settings.getAsBoolean("cache_jwks_endpoint", false), jwksUri);
+		} else {
+			keySetRetriever = new KeySetRetriever(settings.get("openid_connect_url"), getSSLConfig(settings, configPath), settings.getAsBoolean("cache_jwks_endpoint", false));
+		}
 
 		keySetRetriever.setRequestTimeoutMs(idpRequestTimeoutMs);
 
