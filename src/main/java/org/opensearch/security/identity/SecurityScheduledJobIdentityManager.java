@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
@@ -21,16 +22,15 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.identity.ScheduledJobIdentityManager;
 import org.opensearch.identity.schedule.ScheduledJobIdentityModel;
 import org.opensearch.identity.schedule.ScheduledJobOperator;
 import org.opensearch.identity.schedule.ScheduledJobUserModel;
 import org.opensearch.identity.tokens.AuthToken;
+import org.opensearch.identity.tokens.BearerAuthToken;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -142,10 +142,11 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     }
 
     @Override
-    public AuthToken issueAccessTokenOnBehalfOfUser(String jobId, String indexName) {
+    public AuthToken issueAccessTokenOnBehalfOfUser(String jobId, String indexName, Optional<String> extensionUniqueId) {
         if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
             throw new OpenSearchSecurityException("Scheduled Job Identity Index (" + SCHEDULED_JOB_IDENTITY_INDEX + ") does not exist.");
         }
-        return null;
+        BearerAuthToken bearerAuthToken = new BearerAuthToken("encodedJwt");
+        return bearerAuthToken;
     }
 }
