@@ -118,7 +118,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 	public void jwksMissingRequiredAudienceInClaimTest() {
 		Settings settings = Settings.builder()
 			.put("jwks_uri", mockIdpServer.getJwksUri())
-			.put("required_issuer", TestJwts.TEST_ISSUER)
+			.put("required_audience", TestJwts.TEST_AUDIENCE)
 			.build();
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);

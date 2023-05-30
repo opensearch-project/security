@@ -110,7 +110,7 @@ public class JwtVerifier {
 		}
 	}
 
-	private void validateClaims(JwtToken jwt) throws BadCredentialsException, JwtException {
+	private void validateClaims(JwtToken jwt) throws JwtException {
 		JwtClaims claims = jwt.getClaims();
 
 		if (claims != null) {
@@ -125,7 +125,7 @@ public class JwtVerifier {
 		String issuer = claims.getIssuer();
 
 		if (!audience.equals(requiredAudience)) {
-			throw new JwtException("Invalid issuer");
+			throw new JwtException("Invalid audience");
 		}
 
 		if (!issuer.equals(requiredIssuer)) {
