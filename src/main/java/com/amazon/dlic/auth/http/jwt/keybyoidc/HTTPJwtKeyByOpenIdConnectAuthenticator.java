@@ -32,7 +32,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticator extends AbstractHTTPJwtAuthe
 
 		int refreshRateLimitTimeWindowMs = settings.getAsInt("refresh_rate_limit_time_window_ms", 10000);
 		int refreshRateLimitCount = settings.getAsInt("refresh_rate_limit_count", 10);
-		var jwksUri = settings.get("jwks_uri");
+		String jwksUri = settings.get("jwks_uri");
 
 		KeySetRetriever keySetRetriever;
 		if(jwksUri != null && !jwksUri.isBlank()) {
