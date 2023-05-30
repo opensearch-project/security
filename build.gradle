@@ -346,7 +346,6 @@ task integrationTest(type: Test) {
 check.dependsOn integrationTest
 
 dependencies {
-    implementation 'jakarta.annotation:jakarta.annotation-api:1.3.5'
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
