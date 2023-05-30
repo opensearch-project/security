@@ -38,8 +38,6 @@ import org.opensearch.SpecialPermission;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
-import org.opensearch.common.xcontent.ToXContent;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
