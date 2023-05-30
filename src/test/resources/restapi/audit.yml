@@ -33,7 +33,7 @@ config:
     # configs
     internal_config: true
     external_config: false
-  
+
     # compliance read
     read_metadata_only: false
     read_watched_fields: {}

@@ -4,7 +4,7 @@ allprojects {
         java {
             // Normally this isn't necessary, but we have Java sources in
             // non-standard places
-            target '**/*.java'
+            target '*/com/amazon/dlic/auth/**/*.java'
 
             removeUnusedImports()
             eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
@@ -32,9 +32,5 @@ allprojects {
             trimTrailingWhitespace()
             endWithNewline()
         }
-        format("license", {
-            licenseHeaderFile("${rootProject.file("formatter/license-header.txt")}", "package ");
-            target("src/*/java/**/*.java")
-        })
     }
 }
