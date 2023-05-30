@@ -39,11 +39,18 @@ class TestJwts {
 
 	static final JwtToken MC_COY_2 = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
 
+	static final JwtToken MC_COY_NO_AUDIENCE = create(MCCOY_SUBJECT, null, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+
+	static final JwtToken MC_COY_NO_ISSUER = create(MCCOY_SUBJECT, TEST_AUDIENCE, null, ROLES_CLAIM, TEST_ROLES_STRING);
+
     static final JwtToken MC_COY_EXPIRED = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING, JwtConstants.CLAIM_EXPIRY, 10);
 
 	static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
 
 	static final String MC_COY_SIGNED_OCT_2 = createSigned(MC_COY_2, TestJwk.OCT_2);
+
+	static final String MC_COY_SIGNED_NO_AUDIENCE_OCT_1 = createSigned(MC_COY_NO_AUDIENCE, TestJwk.OCT_1);
+	static final String MC_COY_SIGNED_NO_ISSUER_OCT_1 = createSigned(MC_COY_NO_ISSUER, TestJwk.OCT_1);
 
 	static final String MC_COY_SIGNED_OCT_1_INVALID_KID = createSigned(MC_COY, TestJwk.FORWARD_SLASH_KID_OCT_1);
 
@@ -67,8 +74,12 @@ class TestJwts {
 		JwtClaims claims = new JwtClaims();
 
 		claims.setSubject(subject);
-		claims.setAudience(audience);
-		claims.setIssuer(issuer);
+		if (audience != null) {
+			claims.setAudience(audience);
+		}
+		if (issuer != null) {
+			claims.setIssuer(issuer);
+		}
 
 		if (moreClaims != null) {
 			for (int i = 0; i < moreClaims.length; i += 2) {

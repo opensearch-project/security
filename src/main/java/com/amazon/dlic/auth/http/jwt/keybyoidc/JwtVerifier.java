@@ -124,11 +124,11 @@ public class JwtVerifier {
 		String audience = claims.getAudience();
 		String issuer = claims.getIssuer();
 
-		if (!Strings.isNullOrEmpty(requiredAudience) && !audience.equals(requiredAudience)) {
+		if (!Strings.isNullOrEmpty(requiredAudience) && !requiredAudience.equals(audience)) {
 			throw new JwtException("Invalid audience");
 		}
 
-		if (!Strings.isNullOrEmpty(requiredAudience)  && !issuer.equals(requiredIssuer)) {
+		if (!Strings.isNullOrEmpty(requiredIssuer)  && !requiredIssuer.equals(issuer)) {
 			throw new JwtException("Invalid issuer");
 		}
 	}

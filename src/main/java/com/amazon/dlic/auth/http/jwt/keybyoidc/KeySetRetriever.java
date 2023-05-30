@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import joptsimple.internal.Strings;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
 import org.apache.cxf.rs.security.jose.jwk.JwkUtils;
 import org.apache.hc.client5.http.cache.HttpCacheContext;
@@ -106,8 +107,12 @@ public class KeySetRetriever implements KeySetProvider {
 
 	String getJwksUri() throws AuthenticatorUnavailableException {
 
-		if (jwksUri != null && !jwksUri.isBlank()) {
+		if (!Strings.isNullOrEmpty(jwksUri)) {
 			return jwksUri;
+		}
+
+		if (Strings.isNullOrEmpty(openIdConnectEndpoint)) {
+			throw new AuthenticatorUnavailableException("Either openid_connect_url or jwks_uri must be configured for OIDC Authentication backend");
 		}
 
 		try (CloseableHttpClient httpClient = createHttpClient(oidcHttpCacheStorage)) {
