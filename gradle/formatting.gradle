@@ -4,7 +4,7 @@ allprojects {
         java {
             // Normally this isn't necessary, but we have Java sources in
             // non-standard places
-            target '*/com/amazon/dlic/**/*.java'
+            target '**/com/amazon/dlic/auth/http/**/*.java'
 
             removeUnusedImports()
             eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
