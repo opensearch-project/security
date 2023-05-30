@@ -581,7 +581,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(USER_SETTING_SIZE, settings.size());
-//        verifyGet(restApiAdminHeader);
+        verifyGet(restApiAdminHeader);
         verifyPut(restApiAdminHeader);
         verifyPatch(false, restApiAdminHeader);
         // create index first
@@ -599,7 +599,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(USER_SETTING_SIZE, settings.size());
-//        verifyGet(restApiInternalUsersAdminHeader);
+        verifyGet(restApiInternalUsersAdminHeader);
         verifyPut(restApiInternalUsersAdminHeader);
         verifyPatch(false, restApiInternalUsersAdminHeader);
         // create index first
