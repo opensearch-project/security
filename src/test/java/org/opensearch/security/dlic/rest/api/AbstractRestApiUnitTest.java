@@ -25,8 +25,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpStatus;
+import org.apache.http.Header;
+import org.apache.http.HttpStatus;
 import org.junit.Assert;
 
 import org.opensearch.common.settings.Settings;

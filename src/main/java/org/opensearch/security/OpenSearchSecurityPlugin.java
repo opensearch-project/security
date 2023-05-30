@@ -487,7 +487,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                                 evaluator,
                                 threadPool,
                                 Objects.requireNonNull(auditLog),
-                                userService,
+                                Objects.requireNonNull(userService),
                                 sks,
                                 sslCertReloadEnabled)
                 );
