@@ -25,6 +25,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
@@ -370,9 +371,9 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
         verifyGetForSuperAdmin(new Header[] {restApiAdminHeader});
         verifyDeleteForSuperAdmin(new Header[]{restApiAdminHeader}, false);
         verifyPutForSuperAdmin(new Header[]{restApiAdminHeader}, false);
@@ -388,9 +389,9 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         final Header restApiAdminActionGroupsHeader = encodeBasicHeader("rest_api_admin_actiongroups", "rest_api_admin_actiongroups");
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicard", new String[] { "starfleet" }, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_FORBIDDEN, "picard", "picardpicardpicard", "sf", "_doc", 0);
         verifyGetForSuperAdmin(new Header[] {restApiAdminActionGroupsHeader});
         verifyDeleteForSuperAdmin(new Header[]{restApiAdminActionGroupsHeader}, false);
         verifyPutForSuperAdmin(new Header[]{restApiAdminActionGroupsHeader}, false);

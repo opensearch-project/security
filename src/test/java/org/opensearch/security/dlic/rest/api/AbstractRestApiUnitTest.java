@@ -163,7 +163,7 @@ public abstract class AbstractRestApiUnitTest extends SingleClusterTest {
 		}
 		payload += "]}";
 		HttpResponse response = rh.executePutRequest("/_opendistro/_security/api/internalusers/" + username, payload, new Header[0]);
-		Assert.assertEquals(status, response.getStatusCode());
+		Assert.assertEquals(response.getBody(), status, response.getStatusCode());
 		rh.sendAdminCertificate = sendAdminCertificate;
 	}
 

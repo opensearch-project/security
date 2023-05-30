@@ -149,8 +149,8 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
         addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picardpicardpicardpicard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picardpicardpicardpicard", "picard", "sf", "_doc", 0);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = true;
         verifyGetForSuperAdmin(new Header[0]);
@@ -528,9 +528,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         verifyGetForSuperAdmin(new Header[]{restApiAdminHeader});
         verifyDeleteForSuperAdmin(new Header[]{restApiAdminHeader}, false);
@@ -548,9 +548,9 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
-        checkReadAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
-        checkWriteAccess(HttpStatus.SC_OK, "picard", "picard", "sf", "_doc", 0);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
+        checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
+        checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
 
         verifyGetForSuperAdmin(new Header[]{restApiRolesHeader});

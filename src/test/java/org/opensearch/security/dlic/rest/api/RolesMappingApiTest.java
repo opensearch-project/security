@@ -52,8 +52,8 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
         // add user picard, role captains initially maps to
         // opendistro_security_role_starfleet_captains and opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picard", new String[] { "captains" }, HttpStatus.SC_CREATED);
-        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[] { "captains" }, HttpStatus.SC_CREATED);
+        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
         // TODO: only one doctype allowed for ES6
         //checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
         rh.sendAdminCertificate = true;
@@ -107,7 +107,7 @@ public class RolesMappingApiTest extends AbstractRestApiUnitTest {
         // add user picard, role captains initially maps to
         // opendistro_security_role_starfleet_captains and opendistro_security_role_starfleet
         addUserWithPassword("picard", "picardpicardpicardpicard", new String[] { "captains" }, HttpStatus.SC_CREATED);
-        checkWriteAccess(HttpStatus.SC_CREATED, "picardpicardpicardpicard", "picard", "sf", "_doc", 1);
+        checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picardpicardpicardpicard", "sf", "_doc", 1);
         // TODO: only one doctype allowed for ES6
         //checkWriteAccess(HttpStatus.SC_CREATED, "picard", "picard", "sf", "_doc", 1);
 
