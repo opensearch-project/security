@@ -118,6 +118,10 @@ class MockIpdServer implements Closeable {
 		return uri + CTX_DISCOVER;
 	}
 
+	public String getJwksUri() {
+		return uri + CTX_KEYS;
+	}
+
 	public int getPort() {
 		return port;
 	}
