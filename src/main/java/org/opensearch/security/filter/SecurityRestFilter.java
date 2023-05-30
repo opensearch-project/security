@@ -26,6 +26,7 @@
 
 package org.opensearch.security.filter;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to certificate extensions, keeping this rule disable for the whole file
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -49,9 +50,7 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
-// CS-SUPPRESS-SINGLE
 import org.opensearch.rest.extensions.RestSendToExtensionAction;
-// CS-ENFORCE-SINGLE
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -147,9 +146,7 @@ public class SecurityRestFilter {
     }
 
     private boolean authorizeRequest(RestHandler original, RestRequest request, RestChannel channel, User user) throws Exception {
-        // CS-SUPPRESS-SINGLE
         if (original instanceof RestSendToExtensionAction) {
-        // CS-ENFORCE-SINGLE
             List<RestHandler.Route> outOfProcessRoutes = original.routes();
             Optional<RestHandler.Route> handler = outOfProcessRoutes.stream()
                     .filter(rh -> rh.getMethod().equals(request.method()))
