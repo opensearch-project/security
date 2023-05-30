@@ -33,11 +33,24 @@ class TestJwts {
 
 	static final String MCCOY_SUBJECT = "Leonard McCoy";
 
-	static final JwtToken MC_COY = create(MCCOY_SUBJECT, TEST_AUDIENCE, ROLES_CLAIM, TEST_ROLES_STRING);
+	static final String TEST_ISSUER = "TestIssuer";
 
-    static final JwtToken MC_COY_EXPIRED = create(MCCOY_SUBJECT, TEST_AUDIENCE, ROLES_CLAIM, TEST_ROLES_STRING, JwtConstants.CLAIM_EXPIRY, 10);
+	static final JwtToken MC_COY = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+
+	static final JwtToken MC_COY_2 = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+
+	static final JwtToken MC_COY_NO_AUDIENCE = create(MCCOY_SUBJECT, null, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING);
+
+	static final JwtToken MC_COY_NO_ISSUER = create(MCCOY_SUBJECT, TEST_AUDIENCE, null, ROLES_CLAIM, TEST_ROLES_STRING);
+
+    static final JwtToken MC_COY_EXPIRED = create(MCCOY_SUBJECT, TEST_AUDIENCE, TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING, JwtConstants.CLAIM_EXPIRY, 10);
 
 	static final String MC_COY_SIGNED_OCT_1 = createSigned(MC_COY, TestJwk.OCT_1);
+
+	static final String MC_COY_SIGNED_OCT_2 = createSigned(MC_COY_2, TestJwk.OCT_2);
+
+	static final String MC_COY_SIGNED_NO_AUDIENCE_OCT_1 = createSigned(MC_COY_NO_AUDIENCE, TestJwk.OCT_1);
+	static final String MC_COY_SIGNED_NO_ISSUER_OCT_1 = createSigned(MC_COY_NO_ISSUER, TestJwk.OCT_1);
 
 	static final String MC_COY_SIGNED_OCT_1_INVALID_KID = createSigned(MC_COY, TestJwk.FORWARD_SLASH_KID_OCT_1);
 
@@ -57,11 +70,16 @@ class TestJwts {
 		static final String MC_COY_SIGNED_RSA_1 = createSignedWithPeculiarEscaping(MC_COY, TestJwk.RSA_1);
 	}
 
-	static JwtToken create(String subject, String audience, Object... moreClaims) {
+	static JwtToken create(String subject, String audience, String issuer, Object... moreClaims) {
 		JwtClaims claims = new JwtClaims();
 
 		claims.setSubject(subject);
-		claims.setAudience(audience);
+		if (audience != null) {
+			claims.setAudience(audience);
+		}
+		if (issuer != null) {
+			claims.setIssuer(issuer);
+		}
 
 		if (moreClaims != null) {
 			for (int i = 0; i < moreClaims.length; i += 2) {
@@ -109,8 +127,8 @@ class TestJwts {
 	{
 		JwtToken jwt_token = create(
 			MCCOY_SUBJECT, TEST_AUDIENCE,
-			ROLES_CLAIM, TEST_ROLES_STRING,
-			JwtConstants.CLAIM_NOT_BEFORE, nbf,
+			TEST_ISSUER, ROLES_CLAIM, TEST_ROLES_STRING,
+			JwtConstants.CLAIM_NOT_BEFORE, nbf, 
 			JwtConstants.CLAIM_EXPIRY, exp);
 
 		return createSigned(jwt_token, TestJwk.OCT_1);

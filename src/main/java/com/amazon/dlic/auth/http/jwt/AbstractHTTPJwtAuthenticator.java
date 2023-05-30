@@ -55,6 +55,8 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String jwtUrlParameter;
     private final String subjectKey;
     private final String rolesKey;
+    private final String requiredAudience;
+    private final String requiredIssuer;
 
     public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 30;
     private final int clockSkewToleranceSeconds ;
@@ -66,10 +68,12 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
+        requiredAudience = settings.get("required_audience");
+        requiredIssuer = settings.get("required_issuer");
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);
-            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds );
+            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience);
 
         } catch (Exception e) {
             log.error("Error creating JWT authenticator. JWT authentication will not work", e);
@@ -231,6 +235,14 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
+    }
+
+    public String getRequiredAudience() {
+        return requiredAudience;
+    }
+
+    public String getRequiredIssuer() {
+        return requiredIssuer;
     }
 
 }

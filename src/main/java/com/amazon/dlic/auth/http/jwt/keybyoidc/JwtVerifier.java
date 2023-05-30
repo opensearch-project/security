@@ -33,10 +33,14 @@ public class JwtVerifier {
 
 	private final KeyProvider keyProvider;
 	private final int clockSkewToleranceSeconds;
-
-	public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds ) {
+	private final String requiredIssuer;
+	private final String requiredAudience;
+	
+	public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, String requiredAudience) {
 		this.keyProvider = keyProvider;
 		this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
+		this.requiredIssuer = requiredIssuer;
+		this.requiredAudience = requiredAudience;
 	}
 
 	public JwtToken getVerifiedJwtToken(String encodedJwt) throws BadCredentialsException {
@@ -106,12 +110,26 @@ public class JwtVerifier {
 		}
 	}
 
-	private void validateClaims(JwtToken jwt) throws BadCredentialsException, JwtException {
+	private void validateClaims(JwtToken jwt) throws JwtException {
 		JwtClaims claims = jwt.getClaims();
 
 		if (claims != null) {
 			JwtUtils.validateJwtExpiry(claims, clockSkewToleranceSeconds, false);
 			JwtUtils.validateJwtNotBefore(claims, clockSkewToleranceSeconds, false);
+			validateRequiredAudienceAndIssuer(claims);
+		}
+	}
+
+	private void validateRequiredAudienceAndIssuer(JwtClaims claims) {
+		String audience = claims.getAudience();
+		String issuer = claims.getIssuer();
+
+		if (!Strings.isNullOrEmpty(requiredAudience) && !requiredAudience.equals(audience)) {
+			throw new JwtException("Invalid audience");
+		}
+
+		if (!Strings.isNullOrEmpty(requiredIssuer)  && !requiredIssuer.equals(issuer)) {
+			throw new JwtException("Invalid issuer");
 		}
 	}
 }
