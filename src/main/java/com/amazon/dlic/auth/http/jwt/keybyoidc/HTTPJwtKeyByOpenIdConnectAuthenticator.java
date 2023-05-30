@@ -13,8 +13,6 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.nio.file.Path;
 
-import joptsimple.internal.Strings;
-
 import com.amazon.dlic.auth.http.jwt.AbstractHTTPJwtAuthenticator;
 import com.amazon.dlic.util.SettingsBasedSSLConfigurator;
 
