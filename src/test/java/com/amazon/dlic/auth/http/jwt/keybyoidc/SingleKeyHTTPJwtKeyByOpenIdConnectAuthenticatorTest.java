@@ -40,7 +40,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
 			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
 			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(3, creds.getAttributes().size());
+			Assert.assertEquals(4, creds.getAttributes().size());
 
 		} finally {
 			try {
@@ -92,7 +92,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
 			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
 			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(3, creds.getAttributes().size());
+			Assert.assertEquals(4, creds.getAttributes().size());
 		} finally {
 			try {
 				mockIdpServer.close();
@@ -145,7 +145,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
 			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
 			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(3, creds.getAttributes().size());
+			Assert.assertEquals(4, creds.getAttributes().size());
 
 			creds = jwtAuth.extractCredentials(
 					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2),
@@ -170,7 +170,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
 			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
 			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(3, creds.getAttributes().size());
+			Assert.assertEquals(4, creds.getAttributes().size());
 
 		} finally {
 			try {
@@ -194,7 +194,7 @@ public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
 			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
 			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(3, creds.getAttributes().size());
+			Assert.assertEquals(4, creds.getAttributes().size());
 
 		} finally {
 			try {
