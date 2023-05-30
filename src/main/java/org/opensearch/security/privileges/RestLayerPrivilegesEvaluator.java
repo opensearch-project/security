@@ -104,7 +104,7 @@ public class RestLayerPrivilegesEvaluator {
                     securityRoles.getRoleNames(), presponse.missingPrivileges);
         } else {
             if (isDebugEnabled) {
-                log.debug("Allowed because we have extension permissions for {}", action0);
+                log.debug("Allowed because we have ext permissions for {}", action0);
             }
             presponse.allowed = true;
         }

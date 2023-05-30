@@ -488,15 +488,15 @@ public class ConfigModelV7 extends ConfigModel {
         /**
          * Checks if the route is accessible via legacy naming convention.
          * We check against cluster permissions because the legacy convention for cluster permissions map 1-1 with a transport
-         * action call initiated via REST API handler. Hence we use the same to allow/block request forwarding to extensions.
+         * action call initiated via REST API handler. Hence we use the same to allow/block request forwarding to ext.
          * This ensures backwards-compatibility
          *
          *
          * NOTE: THIS CHECK WILL BE REMOVED ONCE ALL ACTIONS HAVE BEEN MIGRATED TO THE NEW CONVENTION
          *
-         * E.g For extension `hw`, following are two possible ways actions an be defined in roles:
+         * E.g For ext `hw`, following are two possible ways actions an be defined in roles:
          *
-         * extension_hw_greet:
+         * ext_hw_greet:
          *   reserved: true
          *   cluster_permissions:
          *     - 'hw:greet'
@@ -519,7 +519,7 @@ public class ConfigModelV7 extends ConfigModel {
 
             log.info("Checking legacy permissions for {}", action);
 
-            action = action.split(":")[1]; // e.g. `hw:greet` would check for action `greet` for extension `hw`
+            action = action.split(":")[1]; // e.g. `hw:greet` would check for action `greet` for ext `hw`
 
             /* Regex: `/(?:cluster:admin\/\b(open(distro|search))\b\/[a-zA-Z]+\/|\*)action\/?(?:\*|[\/a-zA-Z0-9]*)/gm`
              *  matches:

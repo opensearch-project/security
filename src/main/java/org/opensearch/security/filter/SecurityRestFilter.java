@@ -49,7 +49,9 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
+// CS-SUPPRESS-SINGLE
 import org.opensearch.rest.extensions.RestSendToExtensionAction;
+// CS-ENFORCE-SINGLE
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -145,9 +147,11 @@ public class SecurityRestFilter {
     }
 
     private boolean authorizeRequest(RestHandler original, RestRequest request, RestChannel channel, User user) throws Exception {
+        // CS-SUPPRESS-SINGLE
         if (original instanceof RestSendToExtensionAction) {
-            List<RestHandler.Route> extensionRoutes = original.routes();
-            Optional<RestHandler.Route> handler = extensionRoutes.stream()
+        // CS-ENFORCE-SINGLE
+            List<RestHandler.Route> outOfProcessRoutes = original.routes();
+            Optional<RestHandler.Route> handler = outOfProcessRoutes.stream()
                     .filter(rh -> rh.getMethod().equals(request.method()))
                     .filter(rh -> restPathMatches(request.path(), rh.getPath()))
                     .findFirst();
@@ -171,7 +175,7 @@ public class SecurityRestFilter {
                         err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                     }
                     log.debug(err);
-                    // TODO Figure out why extension hangs intermittently after single unauthorized request
+                    // TODO Figure out why ext hangs intermittently after single unauthorized request
                     channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
                     return true;
                 }
