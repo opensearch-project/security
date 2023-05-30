@@ -39,6 +39,8 @@ public interface SecurityRoles {
 
     boolean impliesClusterPermissionPermission(String action0);
 
+    boolean hasExplicitClusterPermissionPermission(String action);
+
     Set<String> getRoleNames();
 
     Set<String> reduce(Resolved requestedResolved, User user, String[] strings, IndexNameExpressionResolver resolver, ClusterService clusterService);

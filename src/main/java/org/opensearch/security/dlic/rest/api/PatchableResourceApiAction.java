@@ -55,9 +55,9 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     public PatchableResourceApiAction(Settings settings, Path configPath, RestController controller, Client client,
-                                      AdminDNs adminDNs, ConfigurationRepository cl, ClusterService cs,
-                                      PrincipalExtractor principalExtractor, PrivilegesEvaluator evaluator, ThreadPool threadPool,
-                                      AuditLog auditLog) {
+                                         AdminDNs adminDNs, ConfigurationRepository cl, ClusterService cs,
+                                         PrincipalExtractor principalExtractor, PrivilegesEvaluator evaluator, ThreadPool threadPool,
+                                         AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
                 auditLog);
     }
@@ -146,7 +146,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
         if (!validator.validate()) {
             request.params().clear();
-                badRequestResponse(channel, validator);
+            badRequestResponse(channel, validator);
             return;
         }
 
@@ -156,7 +156,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
                                    , existingConfiguration.getVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
 
         if (existingConfiguration.getCType().equals(CType.ACTIONGROUPS)) {
-            if(hasActionGroupSelfReference(mdc, name)) {
+            if (hasActionGroupSelfReference(mdc, name)) {
                 badRequestResponse(channel, name + " cannot be an allowed_action of itself");
                 return;
             }
@@ -188,7 +188,6 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         for (String resourceName : existingConfiguration.getCEntries().keySet()) {
             JsonNode oldResource = existingAsObjectNode.get(resourceName);
             JsonNode patchedResource = patchedAsJsonNode.get(resourceName);
-
             if (oldResource != null && !oldResource.equals(patchedResource) && !isWriteable(channel, existingConfiguration, resourceName)) {
                 return;
             }
@@ -206,7 +205,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             if(originalValidator != null) {
                 if (!originalValidator.validate()) {
                     request.params().clear();
-                        badRequestResponse(channel, originalValidator);
+                    badRequestResponse(channel, originalValidator);
                     return;
                 }
             }
@@ -222,7 +221,13 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
                 if (!validator.validate()) {
                     request.params().clear();
-                        badRequestResponse(channel, validator);
+                    badRequestResponse(channel, validator);
+                    return;
+                }
+                final Object newContent = DefaultObjectMapper.readTree(patchedResource, existingConfiguration.getImplementingClass());
+                if (!hasPermissionsToCreate(existingConfiguration, newContent, resourceName)) {
+                    request.params().clear();
+                    forbidden(channel, "No permissions");
                     return;
                 }
             }

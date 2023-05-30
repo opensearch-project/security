@@ -28,5 +28,6 @@ public enum Endpoint {
     VALIDATE,
     WHITELIST,
     ALLOWLIST,
-    NODESDN;
+    NODESDN,
+    SSL;
 }

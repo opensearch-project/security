@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -71,7 +72,11 @@ public class RestApiPrivilegesEvaluator {
 
 	private final Boolean roleBasedAccessEnabled;
 
-	public RestApiPrivilegesEvaluator(Settings settings, AdminDNs adminDNs, PrivilegesEvaluator privilegesEvaluator, PrincipalExtractor principalExtractor, Path configPath,
+	public RestApiPrivilegesEvaluator(final Settings settings,
+									  final AdminDNs adminDNs,
+									  final PrivilegesEvaluator privilegesEvaluator,
+									  final PrincipalExtractor principalExtractor,
+									  final Path configPath,
 			ThreadPool threadPool) {
 
 		this.adminDNs = adminDNs;
@@ -80,9 +85,7 @@ public class RestApiPrivilegesEvaluator {
 		this.configPath = configPath;
 		this.threadPool = threadPool;
 		this.settings = settings;
-
 		// set up
-
 		// all endpoints and methods
 		Map<Endpoint, List<Method>> allEndpoints = new HashMap<>();
 		for(Endpoint endpoint : Endpoint.values()) {
@@ -344,8 +347,10 @@ public class RestApiPrivilegesEvaluator {
 		if (this.roleBasedAccessEnabled) {
 
 			// get current user and roles
-			final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-			final TransportAddress remoteAddress = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+			final Pair<User, TransportAddress> userAndRemoteAddress =
+					Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
+			final User user = userAndRemoteAddress.getLeft();
+			final TransportAddress remoteAddress = userAndRemoteAddress.getRight();
 
 			// map the users Security roles
 			Set<String> userRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
@@ -355,7 +360,6 @@ public class RestApiPrivilegesEvaluator {
 				// yes, calculate disabled end points. Since a user can have
 				// multiple roles, the endpoint
 				// needs to be disabled in all roles.
-
 				Map<Endpoint, List<Method>> disabledEndpointsForUser = getDisabledEndpointsForCurrentUser(user.getName(), userRoles);
 
 				if (isDebugEnabled) {

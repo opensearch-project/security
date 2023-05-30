@@ -142,7 +142,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
      */
     @Test
     public void testAllowlistApi() throws Exception {
-        setupWithRestRoles(null);
+        setupWithRestRoles();
         // No creds, no admin certificate - UNAUTHORIZED
         checkGetAndPutAllowlistPermissions(HttpStatus.SC_UNAUTHORIZED, false);
 
@@ -154,6 +154,29 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
 
         // any creds, admin certificate - OK
         checkGetAndPutAllowlistPermissions(HttpStatus.SC_OK, true, nonAdminCredsHeader);
+    }
+
+    @Test
+    public void testAllowlistApiWithPermissions() throws Exception {
+        setupWithRestRoles();
+
+        final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
+        final Header restApiAllowlistHeader = encodeBasicHeader("rest_api_admin_allowlist", "rest_api_admin_allowlist");
+        final Header restApiUserHeader = encodeBasicHeader("test", "test");
+
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_FORBIDDEN, false, restApiUserHeader);
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_OK, false, restApiAdminHeader);
+    }
+
+    @Test
+    public void testAllowlistApiWithAllowListPermissions() throws Exception {
+        setupWithRestRoles();
+
+        final Header restApiAllowlistHeader = encodeBasicHeader("rest_api_admin_allowlist", "rest_api_admin_allowlist");
+        final Header restApiUserHeader = encodeBasicHeader("test", "test");
+
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_FORBIDDEN, false, restApiUserHeader);
+        checkGetAndPutAllowlistPermissions(HttpStatus.SC_OK, false, restApiAllowlistHeader);
     }
 
     @Test
