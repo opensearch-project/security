@@ -13,6 +13,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import java.io.IOException;
 
+import joptsimple.internal.Strings;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
 import org.apache.cxf.rs.security.jose.jwk.JwkUtils;
 import org.apache.http.HttpEntity;
@@ -52,15 +53,20 @@ public class KeySetRetriever implements KeySetProvider {
 	private int oidcCacheModuleResponses = 0;
 	private long oidcRequests = 0;
 	private long lastCacheStatusLog = 0;
+	private String jwksUri;
 
 	KeySetRetriever(String openIdConnectEndpoint, SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint) {
 		this.openIdConnectEndpoint = openIdConnectEndpoint;
 		this.sslConfig = sslConfig;
 
-		if (useCacheForOidConnectEndpoint) {
-			cacheConfig = CacheConfig.custom().setMaxCacheEntries(10).setMaxObjectSize(1024L * 1024L).build();
-			oidcHttpCacheStorage = new BasicHttpCacheStorage(cacheConfig);
-		}
+		configureCache(useCacheForOidConnectEndpoint);
+	}
+
+	KeySetRetriever(SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint, String jwksUri) {
+		this.jwksUri = jwksUri;
+		this.sslConfig = sslConfig;
+
+		configureCache(useCacheForOidConnectEndpoint);
 	}
 
 	public JsonWebKeys get() throws AuthenticatorUnavailableException {
@@ -100,6 +106,14 @@ public class KeySetRetriever implements KeySetProvider {
 	}
 
 	String getJwksUri() throws AuthenticatorUnavailableException {
+
+		if (!Strings.isNullOrEmpty(jwksUri)) {
+			return jwksUri;
+		}
+
+		if (Strings.isNullOrEmpty(openIdConnectEndpoint)) {
+			throw new AuthenticatorUnavailableException("Either openid_connect_url or jwks_uri must be configured for OIDC Authentication backend");
+		}
 
 		try (CloseableHttpClient httpClient = createHttpClient(oidcHttpCacheStorage)) {
 
@@ -200,6 +214,13 @@ public class KeySetRetriever implements KeySetProvider {
 		}
 
 		return builder.build();
+	}
+
+	private void configureCache(boolean useCacheForOidConnectEndpoint) {
+		if (useCacheForOidConnectEndpoint) {
+			cacheConfig = CacheConfig.custom().setMaxCacheEntries(10).setMaxObjectSize(1024L * 1024L).build();
+			oidcHttpCacheStorage = new BasicHttpCacheStorage(cacheConfig);
+		}
 	}
 
 	public int getOidcCacheHits() {
