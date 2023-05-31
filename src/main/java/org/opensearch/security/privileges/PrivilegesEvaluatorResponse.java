@@ -42,11 +42,11 @@ public class PrivilegesEvaluatorResponse {
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     Resolved resolved;
     CreateIndexRequestBuilder createIndexRequestBuilder;
-    
+
     public Resolved getResolved() {
 		return resolved;
 	}
-    
+
     public boolean isAllowed() {
         return allowed;
     }
@@ -61,11 +61,11 @@ public class PrivilegesEvaluatorResponse {
     public EvaluatedDlsFlsConfig getEvaluatedDlsFlsConfig() {
         return evaluatedDlsFlsConfig;
     }
-    
+
     public CreateIndexRequestBuilder getCreateIndexRequestBuilder() {
         return createIndexRequestBuilder;
     }
-    
+
     public PrivilegesEvaluatorResponse markComplete() {
         this.state = PrivilegesEvaluatorResponseState.COMPLETE;
         return this;
@@ -89,10 +89,10 @@ public class PrivilegesEvaluatorResponse {
         return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges + ", evaluatedDlsFlsConfig="
                 + evaluatedDlsFlsConfig + "]";
     }
-    
+
     public static enum PrivilegesEvaluatorResponseState {
         PENDING,
         COMPLETE;
     }
-    
+
 }

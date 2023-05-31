@@ -36,7 +36,7 @@ import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
-    
+
     boolean invoke(String action, ActionRequest request, ActionListener<?> listener, EvaluatedDlsFlsConfig evaluatedDlsFlsConfig, Resolved resolved);
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
@@ -61,5 +61,5 @@ public interface DlsFlsRequestValve {
 
         }
     }
-    
+
 }

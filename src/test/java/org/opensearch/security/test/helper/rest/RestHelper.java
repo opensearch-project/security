@@ -95,7 +95,7 @@ import org.opensearch.security.test.helper.file.FileHelper;
 public class RestHelper {
 
 	protected final Logger log = LogManager.getLogger(RestHelper.class);
-	
+
 	public boolean enableHTTPClientSSL = true;
 	public boolean enableHTTPClientSSLv3Only = false;
 	public boolean sendAdminCertificate = false;
@@ -105,12 +105,12 @@ public class RestHelper {
 	public final String prefix;
 	//public String truststore = "truststore.jks";
 	private ClusterInfo clusterInfo;
-	
+
 	public RestHelper(ClusterInfo clusterInfo, String prefix) {
 		this.clusterInfo = clusterInfo;
 		this.prefix = prefix;
 	}
-	
+
 	public RestHelper(ClusterInfo clusterInfo, boolean enableHTTPClientSSL, boolean trustHTTPServerCertificate, String prefix) {
 		this.clusterInfo = clusterInfo;
 		this.enableHTTPClientSSL = enableHTTPClientSSL;
@@ -191,11 +191,11 @@ public class RestHelper {
 		getRequest.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 		return executeRequest(getRequest, header);
 	}
-	
+
 	public HttpResponse executeHeadRequest(final String request, Header... header) {
 		return executeRequest(new HttpHead(getRequestUri(request)), header);
 	}
-	
+
 	public HttpResponse executeOptionsRequest(final String request) {
 		return executeRequest(new HttpOptions(getRequestUri(request)));
 	}
@@ -228,15 +228,15 @@ public class RestHelper {
 
 		return executeRequest(uriRequest, header);
 	}
-	
+
 	public HttpResponse executePatchRequest(final String request, String body, Header... header) {
 		HttpPatch uriRequest = new HttpPatch(getRequestUri(request));
 		if (body != null && !body.isEmpty()) {
 			uriRequest.setEntity(createStringEntity(body));
 		}
 		return executeRequest(uriRequest, header);
-	}	
-	
+	}
+
 	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) {
 
 		CloseableHttpAsyncClient httpClient = null;
@@ -255,7 +255,7 @@ public class RestHelper {
 			if (!uriRequest.containsHeader("Content-Type")) {
 				uriRequest.addHeader("Content-Type","application/json");
 			}
-			
+
 			final CompletableFuture<SimpleHttpResponse> future = new CompletableFuture<>();
 			final SimpleHttpRequest simpleRequest = SimpleRequestBuilder.copy(uriRequest).build();
 			if (uriRequest.getEntity() != null) {
@@ -283,7 +283,7 @@ public class RestHelper {
 			if (enableHTTPClientSSL && !res.getProtocolVersion().equals(HttpVersion.HTTP_2)) {
 				throw new IllegalStateException("HTTP/2 expected for HTTPS communication but " + res.getProtocolVersion() + " was used");
 			}
-			
+
 			log.debug(res.getBody());
 			return res;
 		} catch (final CompletionException e) {
@@ -313,7 +313,7 @@ public class RestHelper {
 	private HttpEntity createStringEntity(String body) {
 		return new StringEntity(body);
 	}
-	
+
 	protected final String getHttpServerUri() {
 		final String address = "http" + (enableHTTPClientSSL ? "s" : "") + "://" + clusterInfo.httpHost + ":" + clusterInfo.httpPort;
 		log.debug("Connect to {}", address);
@@ -323,7 +323,7 @@ public class RestHelper {
 	protected final String getRequestUri(String request) {
 		return getHttpServerUri() + "/" + StringUtils.strip(request, "/");
 	}
-	
+
 	protected final CloseableHttpAsyncClient getHTTPClient() throws Exception {
 
 		final HttpAsyncClientBuilder hcb = HttpAsyncClients.custom();
@@ -338,13 +338,13 @@ public class RestHelper {
 		if (enableHTTPClientSSL) {
 
 			log.debug("Configure HTTP client with SSL");
-			
+
 			if(prefix != null && !keystore.contains("/")) {
 				keystore = prefix+"/"+keystore;
 			}
-			
+
 			final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
-						
+
 			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
 			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
 					"changeit".toCharArray());
@@ -399,7 +399,7 @@ public class RestHelper {
 		return hcb.setDefaultRequestConfig(requestConfigBuilder.build()).disableAutomaticRetries().build();
 	}
 
-	
+
 	public static class HttpResponse {
 		private final SimpleHttpResponse inner;
 		private final String body;
@@ -473,7 +473,7 @@ public class RestHelper {
 		}
 
 		/**
-		 * Given a json path with dots delimiated returns the object at the leaf 
+		 * Given a json path with dots delimiated returns the object at the leaf
 		 */
 		public String findValueInJson(final String jsonDotPath) {
 			// Make sure its json / then parse it
@@ -539,5 +539,5 @@ public class RestHelper {
 		}
 	}
 
-	
+
 }

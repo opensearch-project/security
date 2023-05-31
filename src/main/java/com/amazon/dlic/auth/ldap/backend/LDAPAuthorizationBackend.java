@@ -398,7 +398,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             @Override
             public Response<Void> open(BindRequest request) throws LdapException {
-                
+
                 try {
                     if(isDebugEnabled && delegate != null && delegate.isOpen()) {
                         log.debug("Opened a connection, total count is now {}", CONNECTION_COUNTER.incrementAndGet());
@@ -406,13 +406,13 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 } catch (Throwable e) {
                     //ignore
                 }
-                
+
                 return delegate.open(request);
             }
 
             @Override
             public Response<Void> open() throws LdapException {
-                
+
                 try {
                     if(isDebugEnabled && delegate != null && delegate.isOpen()) {
                         log.debug("Opened a connection, total count is now {}", CONNECTION_COUNTER.incrementAndGet());
@@ -420,7 +420,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 } catch (Throwable e) {
                     //ignore
                 }
-                
+
                 return delegate.open();
             }
 
@@ -441,7 +441,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             @Override
             public void close(RequestControl[] controls) {
-                
+
                 try {
                     if(isDebugEnabled && delegate != null && delegate.isOpen()) {
                         log.debug("Closed a connection, total count is now {}", CONNECTION_COUNTER.decrementAndGet());
@@ -449,7 +449,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 } catch (Throwable e) {
                     //ignore
                 }
-                
+
                 try {
                     delegate.close(controls);
                 } finally {
@@ -459,7 +459,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
 
             @Override
             public void close() {
-                
+
                 try {
                     if(isDebugEnabled && delegate != null && delegate.isOpen()) {
                         log.debug("Closed a connection, total count is now {}", CONNECTION_COUNTER.decrementAndGet());
@@ -467,7 +467,7 @@ public class LDAPAuthorizationBackend implements AuthorizationBackend {
                 } catch (Throwable e) {
                     //ignore
                 }
-                
+
                 try {
                     delegate.close();
                 } finally {

@@ -48,7 +48,7 @@ import org.opensearch.threadpool.ThreadPool;
 public class SnapshotRestoreHelper {
 
     protected static final Logger log = LogManager.getLogger(SnapshotRestoreHelper.class);
-    
+
     public static List<String> resolveOriginalIndices(RestoreSnapshotRequest restoreRequest) {
         final SnapshotInfo snapshotInfo = getSnapshotInfo(restoreRequest);
 
@@ -57,17 +57,17 @@ public class SnapshotRestoreHelper {
             return null;
         } else {
             return SnapshotUtils.filterIndices(snapshotInfo.indices(), restoreRequest.indices(), restoreRequest.indicesOptions());
-        }    
-        
-        
+        }
+
+
     }
-    
+
     public static SnapshotInfo getSnapshotInfo(RestoreSnapshotRequest restoreRequest) {
         final RepositoriesService repositoriesService = Objects.requireNonNull(OpenSearchSecurityPlugin.GuiceHolder.getRepositoriesService(), "RepositoriesService not initialized");
         final Repository repository = repositoriesService.repository(restoreRequest.repository());
         final String threadName = Thread.currentThread().getName();
         SnapshotInfo snapshotInfo = null;
-        
+
         try {
             setCurrentThreadName("[" + ThreadPool.Names.GENERIC + "]");
             for (SnapshotId snapshotId : PlainActionFuture.get(repository::getRepositoryData).getSnapshotIds()) {
@@ -86,7 +86,7 @@ public class SnapshotRestoreHelper {
         }
         return snapshotInfo;
     }
-    
+
     @SuppressWarnings("removal")
     private static void setCurrentThreadName(final String name) {
         final SecurityManager sm = System.getSecurityManager();
@@ -94,7 +94,7 @@ public class SnapshotRestoreHelper {
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
         }
-        
+
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -103,5 +103,5 @@ public class SnapshotRestoreHelper {
             }
         });
     }
-    
+
 }

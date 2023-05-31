@@ -25,7 +25,7 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
@@ -57,7 +57,7 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
         response = rh.executeDeleteRequest(ENDPOINT + "/securityconfig", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
     }
-    
+
     @Test
     public void testSecurityConfigApiWrite() throws Exception {
 

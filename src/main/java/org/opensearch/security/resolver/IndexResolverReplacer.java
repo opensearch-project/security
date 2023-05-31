@@ -369,7 +369,7 @@ public class IndexResolverReplacer {
         private final Set<String> remoteIndices;
         private final boolean isLocalAll;
         private final IndicesOptions indicesOptions;
-        
+
         public Resolved(final ImmutableSet<String> aliases,
                         final ImmutableSet<String> allIndices,
                         final ImmutableSet<String> originalRequested,
@@ -394,15 +394,15 @@ public class IndexResolverReplacer {
         public Set<String> getAllIndices() {
             return allIndices;
         }
-        
+
         public Set<String> getAllIndicesResolved(ClusterService clusterService, IndexNameExpressionResolver resolver) {
-            if (isLocalAll) {                        
+            if (isLocalAll) {
                 return new HashSet<>(Arrays.asList(resolver.concreteIndexNames(clusterService.state(), indicesOptions, "*")));
-            } else {            
+            } else {
                 return allIndices;
             }
         }
-        
+
         public boolean isAllIndicesEmpty() {
             return allIndices.isEmpty();
         }
@@ -711,7 +711,7 @@ public class IndexResolverReplacer {
     }
 
     private IndicesOptions indicesOptionsFrom(Object localRequest) {
-        
+
         if(!respectRequestIndicesOptions) {
             return IndicesOptions.fromOptions(false, true, true, false, true);
         }

@@ -78,7 +78,7 @@ public class TenantInfoAction extends BaseRestHandler {
     private final AdminDNs adminDns;
     private final ConfigurationRepository configurationRepository;
 
-    public TenantInfoAction(final Settings settings, final RestController controller, 
+    public TenantInfoAction(final Settings settings, final RestController controller,
     		final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterService clusterService, final AdminDNs adminDns,
                             final ConfigurationRepository configurationRepository) {
         super();
@@ -102,18 +102,18 @@ public class TenantInfoAction extends BaseRestHandler {
             public void accept(RestChannel channel) throws Exception {
                 XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
-                
+
                 try {
 
                     final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    
+
                     //only allowed for admins or the kibanaserveruser
                     if(!isAuthorized()) {
                         response = new BytesRestResponse(RestStatus.FORBIDDEN,"");
                     } else {
 
                     	builder.startObject();
-	
+
                     	final SortedMap<String, IndexAbstraction> lookup = clusterService.state().metadata().getIndicesLookup();
                     	for(final String indexOrAlias: lookup.keySet()) {
                     		final String tenant = tenantNameForIndex(indexOrAlias);
@@ -123,7 +123,7 @@ public class TenantInfoAction extends BaseRestHandler {
                     	}
 
 	                    builder.endObject();
-	
+
 	                    response = new BytesRestResponse(RestStatus.OK, builder);
                     }
                 } catch (final Exception e1) {
@@ -179,21 +179,21 @@ public class TenantInfoAction extends BaseRestHandler {
 
     private String tenantNameForIndex(String index) {
     	String[] indexParts;
-    	if(index == null 
+    	if(index == null
     			|| (indexParts = index.split("_")).length != 3
     			) {
     		return null;
     	}
-    	
-    	
+
+
     	if(!indexParts[0].equals(evaluator.dashboardsIndex())) {
     		return null;
     	}
-    	
+
     	try {
 			final int expectedHash = Integer.parseInt(indexParts[1]);
 			final String sanitizedName = indexParts[2];
-			
+
 			for(String tenant: evaluator.getAllConfiguredTenantNames()) {
 				if(tenant.hashCode() == expectedHash && sanitizedName.equals(tenant.toLowerCase().replaceAll("[^a-z0-9]+",""))) {
 					return tenant;
@@ -211,6 +211,6 @@ public class TenantInfoAction extends BaseRestHandler {
     public String getName() {
         return "Tenant Info Action";
     }
-    
-    
+
+
 }

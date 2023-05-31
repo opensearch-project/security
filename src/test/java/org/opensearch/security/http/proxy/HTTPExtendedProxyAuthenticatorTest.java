@@ -90,11 +90,11 @@ public class HTTPExtendedProxyAuthenticatorTest {
 
     @Test
     public void testReturnsNullWhenUserHeaderIsMissing() {
-        
+
         assertNull(authenticator.extractCredentials(new TestRestRequest(), context));
     }
     @Test
-    
+
     public void testReturnsCredentials() {
         headers.put("user", new ArrayList<>());
         headers.put("proxy_uid", new ArrayList<>());
@@ -103,7 +103,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
         headers.get("proxy_uid").add("123");
         headers.get("proxy_uid").add("456");
         headers.get("proxy_other").add("someothervalue");
-        
+
         settings = Settings.builder().put(settings).put("attr_header_prefix","proxy_").build();
         authenticator = new HTTPExtendedProxyAuthenticator(settings,null);
         AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers), context);
@@ -113,14 +113,14 @@ public class HTTPExtendedProxyAuthenticatorTest {
         assertEquals("someothervalue", creds.getAttributes().get("attr.proxy.other"));
         assertTrue(creds.isComplete());
     }
-    
+
     @Test
     public void testTrimOnRoles() {
     	headers.put("user", new ArrayList<>());
         headers.put("roles", new ArrayList<>());
         headers.get("user").add("aValidUser");
         headers.get("roles").add("role1, role2,\t");
-        
+
         settings = Settings.builder().put(settings)
              .put("roles_header","roles")
              .put("roles_separator", ",")
@@ -134,7 +134,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
     }
 
     static class TestRestRequest extends RestRequest {
-        
+
         public TestRestRequest() {
             super(NamedXContentRegistry.EMPTY, new HashMap<>(), "", new HashMap<>(),new HttpRequestImpl(),new HttpChannelImpl());
         }
@@ -162,7 +162,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
         }
 
     }
-    
+
     static class HttpRequestImpl implements HttpRequest {
 
         @Override
@@ -228,19 +228,19 @@ public class HTTPExtendedProxyAuthenticatorTest {
             return null;
         }
     }
-    
+
     static class HttpChannelImpl implements HttpChannel {
 
         @Override
         public void close() {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
         public void addCloseListener(ActionListener<Void> listener) {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
@@ -252,7 +252,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
         @Override
         public void sendResponse(HttpResponse response, ActionListener<Void> listener) {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
@@ -266,6 +266,6 @@ public class HTTPExtendedProxyAuthenticatorTest {
             // TODO Auto-generated method stub
             return null;
         }
-        
+
     }
 }

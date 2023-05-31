@@ -37,7 +37,7 @@ import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.Hideable;
 
 public class InternalUserV6 implements Hideable, Hashed {
-        
+
         private String hash;
         private boolean readonly;
         private boolean hidden;
@@ -45,7 +45,7 @@ public class InternalUserV6 implements Hideable, Hashed {
         private Map<String, String> attributes = Collections.emptyMap();
         private String username;
 
-        
+
 
         public InternalUserV6(String hash, boolean readonly, boolean hidden, List<String> roles, Map<String, String> attributes, String username) {
             super();
@@ -69,7 +69,7 @@ public class InternalUserV6 implements Hideable, Hashed {
             super();
             //default constructor
         }
-        
+
         public String getHash() {
             return hash;
         }
@@ -80,7 +80,7 @@ public class InternalUserV6 implements Hideable, Hashed {
         public void setPassword(String password){
           // no-op setter. Due to a bug in 6.x, empty "password" may be saved to the internalusers doc. Ignore it.
         }
-        
+
         public boolean isReadonly() {
             return readonly;
         }
@@ -111,7 +111,7 @@ public class InternalUserV6 implements Hideable, Hashed {
             return "SgInternalUser [hash=" + hash + ", readonly=" + readonly + ", hidden=" + hidden + ", roles=" + roles + ", attributes="
                     + attributes + "]";
         }
-        
+
         @JsonIgnore
         public boolean isReserved() {
             return readonly;
@@ -122,7 +122,7 @@ public class InternalUserV6 implements Hideable, Hashed {
         public void clearHash() {
             hash = "";
         }
-        
-        
+
+
 
     }

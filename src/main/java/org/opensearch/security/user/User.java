@@ -56,7 +56,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     // This is to be used in scenarios where some of the nodes do not have security enabled, and therefore do not pass any user information in threadcontext, yet we need the communication to not break between the nodes.
     // Attach the required permissions to either the user or the backend role.
     public static final User DEFAULT_TRANSPORT_USER = new User("opendistro_security_default_transport_user", Lists.newArrayList("opendistro_security_default_transport_backendrole"), null);
-    
+
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
     /**
@@ -76,10 +76,10 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
         securityRoles.addAll(in.readList(StreamInput::readString));
     }
-    
+
     /**
      * Create a new authenticated user
-     * 
+     *
      * @param name The username (must not be null or empty)
      * @param roles Roles of which the user is a member off (maybe null)
      * @param customAttributes Custom attributes associated with this (maybe null)
@@ -97,7 +97,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         if (roles != null) {
             this.addRoles(roles);
         }
-        
+
         if(customAttributes != null) {
             this.attributes.putAll(customAttributes.getAttributes());
         }
@@ -106,7 +106,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Create a new authenticated user without roles and attributes
-     * 
+     *
      * @param name The username (must not be null or empty)
      * @throws IllegalArgumentException if name is null or empty
      */
@@ -119,7 +119,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
 
     /**
-     * 
+     *
      * @return A unmodifiable set of the backend roles this user is a member of
      */
     public final Set<String> getRoles() {
@@ -128,7 +128,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Associate this user with a backend role
-     * 
+     *
      * @param role The backend role
      */
     public final void addRole(final String role) {
@@ -137,7 +137,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Associate this user with a set of backend roles
-     * 
+     *
      * @param roles The backend roles
      */
     public final void addRoles(final Collection<String> roles) {
@@ -148,7 +148,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Check if this user is a member of a backend role
-     * 
+     *
      * @param role The backend role
      * @return true if this user is a member of the backend role, false otherwise
      */
@@ -158,7 +158,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Associate this user with a set of backend roles
-     * 
+     *
      * @param roles The backend roles
      */
     public final void addAttributes(final Map<String,String> attributes) {
@@ -166,7 +166,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
             this.attributes.putAll(attributes);
         }
     }
-    
+
     public final String getRequestedTenant() {
         return requestedTenant;
     }
@@ -174,8 +174,8 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     public final void setRequestedTenant(String requestedTenant) {
         this.requestedTenant = requestedTenant;
     }
-    
-    
+
+
     public boolean isInjected() {
         return isInjected;
     }
@@ -225,7 +225,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Copy all backend roles from another user
-     * 
+     *
      * @param user The user from which the backend roles should be copied over
      */
     public final void copyRolesFrom(final User user) {
@@ -245,7 +245,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     /**
      * Get the custom attributes associated with this user
-     * 
+     *
      * @return A modifiable map with all the current custom attributes associated with this user
      */
     public synchronized final Map<String, String> getCustomAttributesMap() {
@@ -254,13 +254,13 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         }
         return attributes;
     }
-    
+
     public final void addSecurityRoles(final Collection<String> securityRoles) {
         if(securityRoles != null && this.securityRoles != null) {
             this.securityRoles.addAll(securityRoles);
         }
     }
-    
+
     public final Set<String> getSecurityRoles() {
         return this.securityRoles == null ? Collections.synchronizedSet(Collections.emptySet()) : Collections.unmodifiableSet(this.securityRoles);
     }
