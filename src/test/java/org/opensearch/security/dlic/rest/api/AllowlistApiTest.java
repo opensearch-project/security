@@ -37,6 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 /**
  * Testing class to verify that {@link AllowlistApiAction} works correctly.
@@ -158,7 +159,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testAllowlistApiWithPermissions() throws Exception {
-        setupWithRestRoles();
+        setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
 
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
         final Header restApiAllowlistHeader = encodeBasicHeader("rest_api_admin_allowlist", "rest_api_admin_allowlist");
@@ -170,7 +171,7 @@ public class AllowlistApiTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testAllowlistApiWithAllowListPermissions() throws Exception {
-        setupWithRestRoles();
+        setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
 
         final Header restApiAllowlistHeader = encodeBasicHeader("rest_api_admin_allowlist", "rest_api_admin_allowlist");
         final Header restApiUserHeader = encodeBasicHeader("test", "test");
