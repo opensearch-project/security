@@ -1,7 +1,7 @@
 {
   "text": "text answer value",
   "joinfield": {
-    "name": "answer", 
-    "parent": "1" 
+    "name": "answer",
+    "parent": "1"
   }
 }
