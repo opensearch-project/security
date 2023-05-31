@@ -133,9 +133,21 @@ public class LDAPConnectionFactoryFactory {
         checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, ConfigConstants.LDAP_POOL_PRUNING_PERIOD);
         checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, ConfigConstants.LDAP_POOL_IDLE_TIME);
 
-        result.setPruneStrategy(new IdlePruneStrategy(
-            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_PRUNING_PERIOD, this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, 5l))),
-            Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_IDLE_TIME, this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, 10l))))
+        result.setPruneStrategy(
+            new IdlePruneStrategy(
+                Duration.ofMinutes(
+                    this.settings.getAsLong(
+                        ConfigConstants.LDAP_POOL_PRUNING_PERIOD,
+                        this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, 5l)
+                    )
+                ),
+                Duration.ofMinutes(
+                    this.settings.getAsLong(
+                        ConfigConstants.LDAP_POOL_IDLE_TIME,
+                        this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, 10l)
+                    )
+                )
+            )
         );
 
         result.initialize();
@@ -186,8 +198,10 @@ public class LDAPConnectionFactoryFactory {
             log.error("No password given for bind_dn {}. Will try to authenticate anonymously to ldap", bindDn);
         }
 
-        boolean enableClientAuth = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH,
-                ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH_DEFAULT);
+        boolean enableClientAuth = settings.getAsBoolean(
+            ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH,
+            ConfigConstants.LDAPS_ENABLE_SSL_CLIENT_AUTH_DEFAULT
+        );
 
         if (bindDn != null && password != null) {
             log.debug("Will perform simple bind with bind dn");
@@ -195,8 +209,7 @@ public class LDAPConnectionFactoryFactory {
             result.setBindCredential(new Credential(password));
 
             if (enableClientAuth) {
-                log.warn(
-                        "Will perform simple bind with bind dn because to bind dn is given and overrides client cert authentication");
+                log.warn("Will perform simple bind with bind dn because to bind dn is given and overrides client cert authentication");
             }
         } else if (enableClientAuth) {
             log.debug("Will perform External SASL bind because client cert authentication is enabled");
@@ -210,12 +223,12 @@ public class LDAPConnectionFactoryFactory {
 
     private ConnectionStrategy getConnectionStrategy() {
         switch (this.settings.get(ConfigConstants.LDAP_CONNECTION_STRATEGY, "active_passive").toLowerCase()) {
-        case "round_robin":
-            return new RoundRobinConnectionStrategy();
-        case "random":
-            return new RandomConnectionStrategy();
-        default:
-            return new ActivePassiveConnectionStrategy();
+            case "round_robin":
+                return new RoundRobinConnectionStrategy();
+            case "random":
+                return new RandomConnectionStrategy();
+            default:
+                return new ActivePassiveConnectionStrategy();
         }
     }
 
@@ -228,14 +241,19 @@ public class LDAPConnectionFactoryFactory {
         Validator<Connection> result = null;
 
         if ("compare".equalsIgnoreCase(validationStrategy)) {
-            result = new CompareValidator(new CompareRequest(this.settings.get("validation.compare.dn", ""),
-                    new LdapAttribute(this.settings.get("validation.compare.attribute", "objectClass"),
-                            this.settings.get("validation.compare.value", "top"))));
+            result = new CompareValidator(
+                new CompareRequest(
+                    this.settings.get("validation.compare.dn", ""),
+                    new LdapAttribute(
+                        this.settings.get("validation.compare.attribute", "objectClass"),
+                        this.settings.get("validation.compare.value", "top")
+                    )
+                )
+            );
         } else {
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.setBaseDn(this.settings.get("validation.search.base_dn", ""));
-            searchRequest.setSearchFilter(
-                    new SearchFilter(this.settings.get("validation.search.filter", "(objectClass=*)")));
+            searchRequest.setSearchFilter(new SearchFilter(this.settings.get("validation.search.filter", "(objectClass=*)")));
             searchRequest.setReturnAttributes(ReturnAttributes.NONE.value());
             searchRequest.setSearchScope(SearchScope.OBJECT);
             searchRequest.setSizeLimit(1);
@@ -250,8 +268,7 @@ public class LDAPConnectionFactoryFactory {
         // It's a bit weird that we create from structured data a plain string which is
         // later parsed again by ldaptive. But that's the way the API wants it to be.
 
-        List<String> ldapHosts = this.settings.getAsList(ConfigConstants.LDAP_HOSTS,
-                Collections.singletonList("localhost"));
+        List<String> ldapHosts = this.settings.getAsList(ConfigConstants.LDAP_HOSTS, Collections.singletonList("localhost"));
         boolean enableSSL = settings.getAsBoolean(ConfigConstants.LDAPS_ENABLE_SSL, false);
 
         StringBuilder result = new StringBuilder();
@@ -282,9 +299,12 @@ public class LDAPConnectionFactoryFactory {
 
         SslConfig ldaptiveSslConfig = new SslConfig();
         CredentialConfig cc = CredentialConfigFactory.createKeyStoreCredentialConfig(
-                this.sslConfig.getEffectiveTruststore(), this.sslConfig.getEffectiveTruststoreAliasesArray(),
-                this.sslConfig.getEffectiveKeystore(), this.sslConfig.getEffectiveKeyPasswordString(),
-                this.sslConfig.getEffectiveKeyAliasesArray());
+            this.sslConfig.getEffectiveTruststore(),
+            this.sslConfig.getEffectiveTruststoreAliasesArray(),
+            this.sslConfig.getEffectiveKeystore(),
+            this.sslConfig.getEffectiveKeyPasswordString(),
+            this.sslConfig.getEffectiveKeyAliasesArray()
+        );
 
         ldaptiveSslConfig.setCredentialConfig(cc);
 
@@ -292,9 +312,11 @@ public class LDAPConnectionFactoryFactory {
             ldaptiveSslConfig.setHostnameVerifier(new AllowAnyHostnameVerifier());
 
             if (!Boolean.parseBoolean(System.getProperty("com.sun.jndi.ldap.object.disableEndpointIdentification"))) {
-                log.warn("In order to disable host name verification for LDAP connections (verify_hostnames: true), "
+                log.warn(
+                    "In order to disable host name verification for LDAP connections (verify_hostnames: true), "
                         + "you also need to set set the system property com.sun.jndi.ldap.object.disableEndpointIdentification to true when starting the JVM running OpenSearch. "
-                        + "This applies for all Java versions released since July 2018.");
+                        + "This applies for all Java versions released since July 2018."
+                );
                 // See:
                 // https://www.oracle.com/technetwork/java/javase/8u181-relnotes-4479407.html
                 // https://www.oracle.com/technetwork/java/javase/10-0-2-relnotes-4477557.html
