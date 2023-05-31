@@ -75,7 +75,7 @@ spotless {
     java {
         // Normally this isn't necessary, but we have Java sources in
         // non-standard places
-        target '**/com/amazon/dlic/auth/**/*.java'
+        target '**/com/amazon/dlic/**/*.java'
 
         removeUnusedImports()
         eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
@@ -107,7 +107,7 @@ spotless {
 
         importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
         target '**/*.java'
-        targetExclude '**/com/amazon/dlic/auth/**/*.java'
+        targetExclude '**/com/amazon/dlic/**/*.java'
         targetExclude('src/integrationTest/**')
 
         trimTrailingWhitespace()
