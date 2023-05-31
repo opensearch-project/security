@@ -7,7 +7,7 @@ plugins.security:
         type: external_opensearch
         config:
           http_endpoints: ['localhost:9200','localhost:9201','localhost:9202']
-          index: auditlog 
+          index: auditlog
           username: auditloguser
           password: auditlogpassword
           enable_ssl: false

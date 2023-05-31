@@ -5,7 +5,7 @@ inputs:
   plugin-branch:
     description: 'The branch of the plugin that should be built, e.g "2.2", "1.x"'
     required: true
-  
+
 outputs:
   built-version:
     description: 'The version of OpenSearch that was associated with this branch'

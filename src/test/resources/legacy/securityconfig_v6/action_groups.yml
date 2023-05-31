@@ -128,7 +128,7 @@ OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS:
     - "indices:admin/aliases*"
     - "indices:data/write/reindex"
     - CLUSTER_COMPOSITE_OPS_RO
-  
+
 OPENDISTRO_SECURITY_MANAGE_SNAPSHOTS:
   readonly: true
   permissions:

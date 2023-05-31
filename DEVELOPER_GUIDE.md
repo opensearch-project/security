@@ -48,9 +48,9 @@ The `curl localhost:9200` call should succeed again. Kill the server with `Ctrl+
 
 >Worth noting:\
 > The version of OpenSearch and the security plugin must match as there is an explicit version check at startup. This can be a bit confusing as, for example, at the time of writing this guide, the `main` branch of this security plugin builds version `3.0.0.0-SNAPSHOT` compatible with OpenSearch `3.0.0`. Check the expected compatible version in `build.gradle` file [here](https://github.com/opensearch-project/security/blob/main/build.gradle) and make sure you get the correct branch from OpenSearch when building that project.
-> 
+>
 > The line to look for: `opensearch_version = System.getProperty("opensearch.version", "x")`
-> 
+>
 > Alternatively, you can find the compatible version of OpenSearch by running in project root folder
 > ```
 > ./gradlew properties -q | grep -E '^version:' | awk '{print $2}'
@@ -164,7 +164,7 @@ Checkstyle enforces several rules within this codebase. Sometimes it will be nec
 
 *Execute Checkstyle*
 ```
-./gradlew checkstyleMain checkstyleTest 
+./gradlew checkstyleMain checkstyleTest
 ```
 
 *Example violation*
