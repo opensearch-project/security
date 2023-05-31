@@ -70,6 +70,7 @@ apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.testclusters'
+//apply from: 'gradle/formatting.gradle'
 
 spotless {
     java {
