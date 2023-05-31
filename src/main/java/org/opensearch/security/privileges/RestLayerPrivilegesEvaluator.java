@@ -97,7 +97,8 @@ public class RestLayerPrivilegesEvaluator {
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
-        if (!securityRoles.impliesClusterPermissionPermission(action0) && !securityRoles.impliesLegacyPermission(action0)) {
+        if (!securityRoles.impliesClusterPermissionPermission(action0)
+                && !securityRoles.impliesLegacyPermission(action0)) {
             presponse.missingPrivileges.add(action0);
             presponse.allowed = false;
             log.info("No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",  user, action0,
