@@ -14,6 +14,8 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionListener;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -95,6 +97,24 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
         );
     }
 
+    private void deleteScheduledJobIdentityEntry(String jobId, String indexName) {
+        SearchRequest searchRequest = new SearchRequest().indices(SCHEDULED_JOB_IDENTITY_INDEX);
+        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+                .must(QueryBuilders.matchQuery("job_id", jobId))
+                .must(QueryBuilders.matchQuery("job_index", indexName));
+        searchRequest.source(SearchSourceBuilder.searchSource().query(boolQuery));
+
+        client.search(
+            searchRequest,
+            ActionListener.wrap(
+                response -> deleteScheduledJobIdentity(response, jobId, indexName),
+                exception -> new OpenSearchSecurityException(
+                    "Exception received while querying for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
+                )
+            )
+        );
+    }
+
     private void indexScheduledJobIdentity(
             SearchResponse response,
             String jobId,
@@ -125,9 +145,37 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
             client.index(
                 indexRequest,
                 ActionListener.wrap(
-                    indexResponse -> logger.info("Successfully created scheduled job identity index entry for jobId " + jobId),
+                    indexResponse -> logger.info("Successfully created scheduled job identity index entry for jobId " + jobId + " in index " + indexName),
                     exception -> new OpenSearchSecurityException(
                         "Exception received while indexing for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
+                    )
+                )
+            );
+        }
+    }
+
+    private void deleteScheduledJobIdentity(
+            SearchResponse response,
+            String jobId,
+            String indexName
+    ) {
+        long totalHits = response.getHits().getTotalHits().value;
+        if (totalHits > 1) {
+            // Should not happen
+            logger.warn("Multiple scheduled job identities already exists in " + SCHEDULED_JOB_IDENTITY_INDEX + " for job with jobId " + jobId + " in index " + indexName);
+        } else if (totalHits == 0) {
+            logger.info("No scheduled job identity found in " + SCHEDULED_JOB_IDENTITY_INDEX + " for job with jobId " + jobId + " in index " + indexName);
+        } else {
+            String docId = response.getHits().getHits()[0].getId();
+            DeleteRequest deleteRequest = new DeleteRequest(SCHEDULED_JOB_IDENTITY_INDEX)
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .id(docId);
+            client.delete(
+                deleteRequest,
+                ActionListener.wrap(
+                    indexResponse -> logger.info("Successfully deleted scheduled job identity index entry for jobId " + jobId + " in index " + indexName),
+                    exception -> new OpenSearchSecurityException(
+                            "Exception received while deleting scheduled job identity entry for " + jobId + " in " + SCHEDULED_JOB_IDENTITY_INDEX
                     )
                 )
             );
@@ -139,6 +187,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
         if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
             throw new OpenSearchSecurityException("Scheduled Job Identity Index (" + SCHEDULED_JOB_IDENTITY_INDEX + ") does not exist.");
         }
+        deleteScheduledJobIdentityEntry(jobId, indexName);
     }
 
     @Override
