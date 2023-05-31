@@ -43,10 +43,6 @@ import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
-import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
-import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
-import org.opensearch.action.admin.indices.template.put.PutComponentTemplateAction;
-import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,6 +57,7 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasA
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.elasticsearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkShardRequest;
 import org.elasticsearch.action.delete.DeleteRequest;

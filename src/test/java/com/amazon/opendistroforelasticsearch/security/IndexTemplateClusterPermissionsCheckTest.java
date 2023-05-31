@@ -9,7 +9,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security;
+package com.amazon.opendistroforelasticsearch.security;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;

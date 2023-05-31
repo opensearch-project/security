@@ -75,9 +75,9 @@ import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.test.helper.cluster.ClusterInfo;
-import org.opensearch.security.test.helper.file.FileHelper;
+import com.amazon.opendistroforelasticsearch.security.DefaultObjectMapper;
+import com.amazon.opendistroforelasticsearch.security.test.helper.cluster.ClusterInfo;
+import com.amazon.opendistroforelasticsearch.security.test.helper.file.FileHelper;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
