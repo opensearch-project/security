@@ -10,7 +10,6 @@
  */
 
 
-import com.diffplug.gradle.spotless.JavaExtension
 import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
