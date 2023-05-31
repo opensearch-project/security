@@ -5,6 +5,6 @@ opendistro_security_public:
   indices:
   indices:
     '.notexistingindexcvnjl9809991'
-      '*':  
+      '*':
         - ALL
 invalid yml

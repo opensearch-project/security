@@ -20,7 +20,7 @@ If you have an issue you'd like to bring forth please consider getting a link to
 
 ### Is there an agenda for each week?
 
-Meetings are lightly structured as follows: 
+Meetings are lightly structured as follows:
 
 1. Announcements: If there are any announcements to be made they will happen at the start of the meeting.
 2. Review of new issues: The meetings always start with reviewing all untriaged [issues](https://github.com/search?q=label%3Auntriaged+is%3Aopen++repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=issues&ref=advsearch&s=created&o=desc) for the security and security-dashboards repositories.
@@ -53,7 +53,7 @@ There you can find answers to many common questions as well as speak with implem
 
 ### What if my issue is critical to OpenSearch operations, do I have to wait for the weekly meeting for it to be addressed?
 
-All new issues for the [security](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Auntriaged) repo and [security-dashboards](https://github.com/opensearch-project/security-dashboards-plugin/issues?q=is%3Aissue+is%3Aopen+-label%3Atriaged) repo are reviewed daily to check for critical issues which require immediate triaging. If an issue relates to a severe concern for OpenSearch operation, it will be triaged by a maintainer mid-week. You can still come to discuss an issue at the following meeting even if it has already been triaged during the week. 
+All new issues for the [security](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Auntriaged) repo and [security-dashboards](https://github.com/opensearch-project/security-dashboards-plugin/issues?q=is%3Aissue+is%3Aopen+-label%3Atriaged) repo are reviewed daily to check for critical issues which require immediate triaging. If an issue relates to a severe concern for OpenSearch operation, it will be triaged by a maintainer mid-week. You can still come to discuss an issue at the following meeting even if it has already been triaged during the week.
 
 ### Is this where I should bring up potential security vulnerabilities?
 
