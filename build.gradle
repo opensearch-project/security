@@ -78,7 +78,13 @@ spotless {
         // non-standard places
         target '**/com/amazon/dlic/**/*.java'
         target '**/com/amazon/security/**/*.java'
-        target '**/test/java/org/opensearch/security/**/*.java'
+        target '**/test/java/org/opensearch/security/a*/*.java'
+        target '**/test/java/org/opensearch/security/b*/*.java'
+        target '**/test/java/org/opensearch/security/c*/*.java'
+        target '**/test/java/org/opensearch/security/d*/*.java'
+        target '**/test/java/org/opensearch/security/f*/*.java'
+        target '**/test/java/org/opensearch/security/h*/*.java'
+        target '**/test/java/org/opensearch/security/m*/*.java'
 
         removeUnusedImports()
         eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
@@ -112,7 +118,13 @@ spotless {
         target '**/*.java'
         targetExclude '**/com/amazon/dlic/**/*.java'
         targetExclude '**/com/amazon/security/**/*.java'
-        targetExclude '**/test/java/org/opensearch/security/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/a*/*.java'
+        targetExclude '**/test/java/org/opensearch/security/b*/*.java'
+        targetExclude '**/test/java/org/opensearch/security/c*/*.java'
+        targetExclude '**/test/java/org/opensearch/security/d*/*.java'
+        targetExclude '**/test/java/org/opensearch/security/f*/*.java'
+        targetExclude '**/test/java/org/opensearch/security/h*/*.java'
+        targetExclude '**/test/java/org/opensearch/security/m*/*.java'
         targetExclude 'src/integrationTest/**'
 
         trimTrailingWhitespace()
