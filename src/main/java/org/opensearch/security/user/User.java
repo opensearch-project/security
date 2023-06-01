@@ -70,7 +70,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
     public static final String ROLES_FIELD = "roles";
     public static final String CUSTOM_ATTRIBUTE_NAMES_FIELD = "custom_attribute_names";
     public static final String REQUESTED_TENANT_FIELD = "user_requested_tenant";
-    
+
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
     /**
@@ -245,7 +245,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
         }
         return new User(name, backendRoles, roles, customAttNames, requestedTenant);
     }
-    
+
     public final String getRequestedTenant() {
         return requestedTenant;
     }

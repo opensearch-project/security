@@ -1,13 +1,14 @@
 package org.opensearch.security.identity;
 
+import java.security.Principal;
+
 import org.junit.Test;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.identity.NamedPrincipal;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-
-import java.security.Principal;
 
 import static org.junit.Assert.assertEquals;
 
