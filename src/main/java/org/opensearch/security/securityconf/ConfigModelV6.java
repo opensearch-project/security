@@ -83,9 +83,9 @@ public class ConfigModelV6 extends ConfigModel {
             SecurityDynamicConfiguration<RoleMappingsV6> rolesmapping,
             DynamicConfigModel dcm,
             Settings opensearchSettings) {
-        
+
         this.roles = roles;
-        
+
         try {
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.valueOf(
                     opensearchSettings.get(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, ConfigConstants.RolesMappingResolution.MAPPING_ONLY.toString())
@@ -94,13 +94,13 @@ public class ConfigModelV6 extends ConfigModel {
             log.error("Cannot apply roles mapping resolution", e);
             rolesMappingResolution = ConfigConstants.RolesMappingResolution.MAPPING_ONLY;
         }
-        
+
         agr = reloadActionGroups(actiongroups);
         securityRoles = reload(roles);
         tenantHolder = new TenantHolder(roles);
         roleMappingHolder = new RoleMappingHolder(rolesmapping, dcm.getHostsResolverMode());
     }
-    
+
     public Set<String> getAllConfiguredTenantNames() {
         final Set<String> configuredTenants = new HashSet<>();
         for (Entry<String, RoleV6> securityRole : roles.getCEntries().entrySet()) {
@@ -114,18 +114,18 @@ public class ConfigModelV6 extends ConfigModel {
 
         return Collections.unmodifiableSet(configuredTenants);
     }
-    
+
     public SecurityRoles getSecurityRoles() {
         return securityRoles;
     }
-    
+
     private static interface ActionGroupResolver {
         Set<String> resolvedActions(final List<String> actions);
     }
-    
+
     private ActionGroupResolver reloadActionGroups(SecurityDynamicConfiguration<ActionGroupsV6> actionGroups) {
         return new ActionGroupResolver() {
-            
+
             private Set<String> getGroupMembers(final String groupname) {
 
                 if (actionGroups == null) {
@@ -134,27 +134,27 @@ public class ConfigModelV6 extends ConfigModel {
 
                 return Collections.unmodifiableSet(resolve(actionGroups, groupname));
             }
-            
+
             private Set<String> resolve(final SecurityDynamicConfiguration<?> actionGroups, final String entry) {
 
-                
+
                 // SG5 format, plain array
                 //List<String> en = actionGroups.getAsList(DotPath.of(entry));
                 //if (en.isEmpty()) {
                     // try SG6 format including readonly and permissions key
                 //  en = actionGroups.getAsList(DotPath.of(entry + "." + ConfigConstants.CONFIGKEY_ACTION_GROUPS_PERMISSIONS));
                     //}
-                
+
                 if(!actionGroups.getCEntries().containsKey(entry)) {
                     return Collections.emptySet();
                 }
-                
+
                 final Set<String> ret = new HashSet<String>();
-                
+
                 final Object actionGroupAsObject = actionGroups.getCEntries().get(entry);
-                
+
                 if(actionGroupAsObject != null && actionGroupAsObject instanceof List) {
-                    
+
                     for (final String perm: ((List<String>) actionGroupAsObject)) {
                         if (actionGroups.getCEntries().keySet().contains(perm)) {
                             ret.addAll(resolve(actionGroups,perm));
@@ -162,8 +162,8 @@ public class ConfigModelV6 extends ConfigModel {
                             ret.add(perm);
                         }
                     }
-                    
-                    
+
+
                 } else if(actionGroupAsObject != null &&  actionGroupAsObject instanceof ActionGroupsV6) {
                     for (final String perm: ((ActionGroupsV6) actionGroupAsObject).getPermissions()) {
                         if (actionGroups.getCEntries().keySet().contains(perm)) {
@@ -175,10 +175,10 @@ public class ConfigModelV6 extends ConfigModel {
                 } else {
                     throw new RuntimeException("Unable to handle "+actionGroupAsObject);
                 }
-                
+
                 return Collections.unmodifiableSet(ret);
             }
-            
+
             @Override
             public Set<String> resolvedActions(final List<String> actions) {
                 final Set<String> resolvedActions = new HashSet<String>();
@@ -208,7 +208,7 @@ public class ConfigModelV6 extends ConfigModel {
                 @Override
                 public SecurityRole call() throws Exception {
                     SecurityRole _securityRole = new SecurityRole(securityRole.getKey());
-                    
+
                     if(securityRole.getValue() == null) {
                         return null;
                     }
@@ -261,8 +261,8 @@ public class ConfigModelV6 extends ConfigModel {
                             _securityRole.addIndexPattern(_indexPattern);
 
                         }
-            
-                            
+
+
                         return _securityRole;
                 }
             });
@@ -352,7 +352,7 @@ public class ConfigModelV6 extends ConfigModel {
         public Set<String> getRoleNames() {
             return getRoles().stream().map(r -> r.getName()).collect(Collectors.toSet());
         }
-        
+
         public SecurityRoles filter(Set<String> keep) {
             final SecurityRoles retVal = new SecurityRoles(roles.size());
             for (SecurityRole sr : roles) {
@@ -371,7 +371,7 @@ public class ConfigModelV6 extends ConfigModel {
             final Map<String, Set<String>> dlsQueries = new HashMap<String, Set<String>>();
             final Map<String, Set<String>> flsFields = new HashMap<String, Set<String>>();
             final Map<String, Set<String>> maskedFieldsMap = new HashMap<String, Set<String>>();
-            
+
             for (SecurityRole sr : roles) {
                 for (IndexPattern ip : sr.getIpatterns()) {
                     final Set<String> fls = ip.getFls();
@@ -423,7 +423,7 @@ public class ConfigModelV6 extends ConfigModel {
                             }
                         }
                     }
-            
+
                     if (maskedFields != null && maskedFields.size() > 0) {
 
                         if (maskedFieldsMap.containsKey(indexPattern)) {
@@ -444,7 +444,7 @@ public class ConfigModelV6 extends ConfigModel {
                     }
                 }
             }
-            
+
             return new EvaluatedDlsFlsConfig(dlsQueries, flsFields, maskedFieldsMap);
         }
 
@@ -1016,10 +1016,10 @@ public class ConfigModelV6 extends ConfigModel {
                 );
     }
 
-    
-    
+
+
     //#######
-    
+
     private class TenantHolder {
 
         private SetMultimap<String, Tuple<String, Boolean>> tenantsMM = null;
@@ -1030,7 +1030,7 @@ public class ConfigModelV6 extends ConfigModel {
             final ExecutorService execs = Executors.newFixedThreadPool(10);
 
             for(Entry<String, RoleV6> securityRole: roles.getCEntries().entrySet()) {
-                
+
                 if(securityRole.getValue() == null) {
                     continue;
                 }
@@ -1042,7 +1042,7 @@ public class ConfigModelV6 extends ConfigModel {
                         final Map<String, String> tenants = securityRole.getValue().getTenants();
 
                         if (tenants != null) {
-                            
+
                             for (String tenant : tenants.keySet()) {
 
                                 if ("RW".equalsIgnoreCase(tenants.get(tenant))) {
@@ -1131,7 +1131,7 @@ public class ConfigModelV6 extends ConfigModel {
         private RoleMappingHolder(final SecurityDynamicConfiguration<RoleMappingsV6> rolesMapping, final String hostResolverMode) {
 
             this.hostResolverMode = hostResolverMode;
-            
+
             if (rolesMapping != null) {
 
                 users = ArrayListMultimap.create();
@@ -1234,10 +1234,10 @@ public class ConfigModelV6 extends ConfigModel {
 
         }
     }
-    
-    
-    
-    
+
+
+
+
 
     public Map<String, Boolean> mapTenants(User user, Set<String> roles) {
         return tenantHolder.mapTenants(user, roles);

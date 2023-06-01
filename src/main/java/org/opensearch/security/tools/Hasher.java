@@ -51,7 +51,7 @@ public class Hasher {
         final CommandLineParser parser = new DefaultParser();
         try {
             final CommandLine line = parser.parse(options, args);
-            
+
             if(line.hasOption("p")) {
                 System.out.println(hash(line.getOptionValue("p").toCharArray()));
             } else if(line.hasOption("env")) {
@@ -67,7 +67,7 @@ public class Hasher {
                 }
                 final char[] passwd = console.readPassword("[%s]", "Password:");
                 System.out.println(hash(passwd));
-            }  
+            }
         } catch (final Exception exp) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("hash.sh", options, true);

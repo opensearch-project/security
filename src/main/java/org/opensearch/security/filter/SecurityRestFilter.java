@@ -185,6 +185,7 @@ public class SecurityRestFilter {
                                                 NodeClient client) throws Exception {
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
+
         if(HTTPHelper.containsBadHeader(request)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
@@ -192,6 +193,7 @@ public class SecurityRestFilter {
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
             return true;
         }
+
         if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
@@ -206,6 +208,7 @@ public class SecurityRestFilter {
                 if(sslInfo.getPrincipal() != null) {
                     threadContext.putTransient("_opendistro_security_ssl_principal", sslInfo.getPrincipal());
                 }
+
                 if(sslInfo.getX509Certs() != null) {
                      threadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
                 }
@@ -218,6 +221,7 @@ public class SecurityRestFilter {
             channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, e));
             return true;
         }
+
         if(!compatConfig.restAuthEnabled()) {
             return false;
         }
@@ -236,6 +240,7 @@ public class SecurityRestFilter {
                 org.apache.logging.log4j.ThreadContext.put("user", ((User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName());
             }
         }
+
         return false;
     }
 

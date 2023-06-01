@@ -7,7 +7,7 @@ plugins.security:
         remoteIpHeader: "x-forwarded-for"
         proxiesHeader: "x-forwarded-by"
         trustedProxies: "proxy1|proxy2"
-      authenticator:  
+      authenticator:
         type: org.opensearch.security.http.HTTPBasicAuthenticator
     authcz:
       authentication_domain_basic_internal:

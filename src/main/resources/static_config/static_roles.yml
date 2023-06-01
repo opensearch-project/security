@@ -62,7 +62,7 @@ own_index:
     allowed_actions:
     - "indices_all"
 
-  
+
 manage_snapshots:
   reserved: true
   hidden: false
@@ -76,7 +76,7 @@ manage_snapshots:
     allowed_actions:
     - "indices:data/write/index"
     - "indices:admin/create"
-  
+
 kibana_server:
   reserved: true
   hidden: false
@@ -141,7 +141,7 @@ logstash:
     allowed_actions:
     - "crud"
     - "create_index"
-  
+
 readall_and_monitor:
   reserved: true
   hidden: false
@@ -155,7 +155,7 @@ readall_and_monitor:
     - "*"
     allowed_actions:
     - "read"
-  
+
 readall:
   reserved: true
   hidden: false
@@ -168,4 +168,3 @@ readall:
     - "*"
     allowed_actions:
     - "read"
-  

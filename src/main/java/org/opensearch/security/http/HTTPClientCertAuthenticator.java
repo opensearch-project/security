@@ -48,7 +48,7 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
-    
+
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final Settings settings;
 
@@ -62,29 +62,29 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
         final String principal = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
         if (!Strings.isNullOrEmpty(principal)) {
-            
+
             final String usernameAttribute = settings.get("username_attribute");
             final String rolesAttribute = settings.get("roles_attribute");
-            
+
             try {
                 final LdapName rfc2253dn = new LdapName(principal);
                 String username = principal.trim();
                 String[] backendRoles = null;
-                
+
                 if(usernameAttribute != null && usernameAttribute.length() > 0) {
                     final List<String> usernames = getDnAttribute(rfc2253dn, usernameAttribute);
                     if(usernames.isEmpty() == false) {
                         username = usernames.get(0);
                     }
                 }
-                
+
                 if(rolesAttribute != null && rolesAttribute.length() > 0) {
                     final List<String> roles = getDnAttribute(rfc2253dn, rolesAttribute);
                     if(roles.isEmpty() == false) {
                         backendRoles = roles.toArray(new String[0]);
                     }
                 }
-                
+
                 return new AuthCredentials(username, backendRoles).markComplete();
             } catch (InvalidNameException e) {
                 log.error("Client cert had no properly formed DN (was: {})", principal);
@@ -106,8 +106,8 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
     public String getType() {
         return "clientcert";
     }
-    
-    private List<String> getDnAttribute(LdapName rfc2253dn, String attribute) {        
+
+    private List<String> getDnAttribute(LdapName rfc2253dn, String attribute) {
         final List<String> attrValues = new ArrayList<>(rfc2253dn.size());
         final List<Rdn> reverseRdn = new ArrayList<>(rfc2253dn.getRdns());
         Collections.reverse(reverseRdn);
@@ -117,7 +117,7 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
                 attrValues.add(rdn.getValue().toString());
             }
         }
-        
+
         return Collections.unmodifiableList(attrValues);
     }
 }

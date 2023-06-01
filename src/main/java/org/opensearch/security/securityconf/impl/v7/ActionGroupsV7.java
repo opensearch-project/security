@@ -38,8 +38,8 @@ import org.opensearch.security.securityconf.impl.v6.ActionGroupsV6;
 
 public class ActionGroupsV7 implements Hideable, StaticDefinable {
 
-    
-    
+
+
     private boolean reserved;
     private boolean hidden;
     @JsonProperty(value = "static")
@@ -47,7 +47,7 @@ public class ActionGroupsV7 implements Hideable, StaticDefinable {
     private List<String> allowed_actions = Collections.emptyList();
     private String type;
     private String description;
-    
+
     public ActionGroupsV7() {
         super();
     }
@@ -76,8 +76,8 @@ public class ActionGroupsV7 implements Hideable, StaticDefinable {
     public void setDescription(String description) {
         this.description = description;
     }
-    
-    
+
+
     public boolean isReserved() {
         return reserved;
     }
@@ -109,8 +109,8 @@ public class ActionGroupsV7 implements Hideable, StaticDefinable {
         return "ActionGroupsV7 [reserved=" + reserved + ", hidden=" + hidden + ", _static=" + _static + ", allowed_actions=" + allowed_actions
                 + ", type=" + type + ", description=" + description + "]";
     }
-    
-    
-    
-    
+
+
+
+
 }

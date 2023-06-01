@@ -181,7 +181,7 @@ public class BackendRegistry {
             if (isDebugEnabled) {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getHttpChannel().getRemoteAddress());
             }
-            
+
             channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, "Authentication finally failed"));
 
             return false;
@@ -200,14 +200,14 @@ public class BackendRegistry {
             // ThreadContext injected user
             return true;
         }
-        
+
         if (!isInitialized()) {
             log.error("Not yet initialized (you may need to run securityadmin)");
             channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE,
                     "OpenSearch Security not initialized."));
             return false;
         }
-        
+
         final TransportAddress remoteAddress = xffResolver.resolve(request);
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (isTraceEnabled) {
@@ -291,7 +291,7 @@ public class BackendRegistry {
                 }
             }
 
-            //http completed       
+            //http completed
             authenticatedUser = authcz(userCache, restRoleCache, ac, authDomain.getBackend(), restAuthorizers);
 
             if(authenticatedUser == null) {
@@ -479,7 +479,7 @@ public class BackendRegistry {
             return null;
         }
         try {
-            
+
             //noop backend configured and no authorizers
             //that mean authc and authz was completely done via HTTP (like JWT or PKI)
             if(authBackend.getClass() == NoOpAuthenticationBackend.class && authorizers.isEmpty()) {
@@ -545,7 +545,7 @@ public class BackendRegistry {
                 if (isDebugEnabled) {
                     log.debug("Impersonate rest user from '{}' to '{}'", originalUser.toStringWithAttributes(), impersonatedUser.toStringWithAttributes());
                 }
-                
+
                 impersonatedUser.setRequestedTenant(originalUser.getRequestedTenant());
                 return impersonatedUser;
             }

@@ -37,12 +37,12 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 public class WhoAmIResponse extends ActionResponse implements ToXContent {
-    
+
     private String dn;
     private boolean isAdmin;
     private boolean isAuthenticated;
     private boolean isNodeCertificateRequest;
-    
+
     public WhoAmIResponse(String dn, boolean isAdmin, boolean isAuthenticated, boolean isNodeCertificateRequest) {
         this.dn = dn;
         this.isAdmin = isAdmin;
@@ -93,8 +93,8 @@ public class WhoAmIResponse extends ActionResponse implements ToXContent {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        
-        builder.startObject("whoami"); 
+
+        builder.startObject("whoami");
         builder.field("dn", dn);
         builder.field("is_admin", isAdmin);
         builder.field("is_authenticated", isAuthenticated);

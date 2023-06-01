@@ -134,7 +134,7 @@ public class PrivilegesEvaluator {
     private final boolean dfmEmptyOverwritesAll;
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
-    
+
     public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
                                final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
                                AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
@@ -309,7 +309,7 @@ public class PrivilegesEvaluator {
         }
 
         presponse.evaluatedDlsFlsConfig = getSecurityRoles(mappedRoles).getDlsFls(user, dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
-        
+
 
         if (isClusterPerm(action0)) {
             if(!securityRoles.impliesClusterPermissionPermission(action0)) {
@@ -384,7 +384,7 @@ public class PrivilegesEvaluator {
             presponse.allowed = true;
             return presponse;
         }
-        
+
         // term aggregations
         if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse) .isComplete()) {
             return presponse;
@@ -728,7 +728,7 @@ public class PrivilegesEvaluator {
                 if (log.isDebugEnabled()) {
                     log.debug("Request " + request + " is allowed by " + documentAllowList);
                 }
-                
+
                 return true;
             } else {
                 return false;
@@ -739,7 +739,7 @@ public class PrivilegesEvaluator {
             return false;
         }
     }
-    
+
     private List<String> toString(List<AliasMetadata> aliases) {
         if(aliases == null || aliases.size() == 0) {
             return Collections.emptyList();

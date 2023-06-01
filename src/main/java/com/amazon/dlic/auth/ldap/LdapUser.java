@@ -30,8 +30,14 @@ public class LdapUser extends User {
     private final transient LdapEntry userEntry;
     private final String originalUsername;
 
-    public LdapUser(final String name, String originalUsername, final LdapEntry userEntry,
-            final AuthCredentials credentials, int customAttrMaxValueLen, WildcardMatcher allowlistedCustomLdapAttrMatcher) {
+    public LdapUser(
+        final String name,
+        String originalUsername,
+        final LdapEntry userEntry,
+        final AuthCredentials credentials,
+        int customAttrMaxValueLen,
+        WildcardMatcher allowlistedCustomLdapAttrMatcher
+    ) {
         super(name, null, credentials);
         this.originalUsername = originalUsername;
         this.userEntry = userEntry;
@@ -41,7 +47,7 @@ public class LdapUser extends User {
 
     /**
      * May return null because ldapEntry is transient
-     * 
+     *
      * @return ldapEntry or null if object was deserialized
      */
     public LdapEntry getUserEntry() {
@@ -55,9 +61,13 @@ public class LdapUser extends User {
     public String getOriginalUsername() {
         return originalUsername;
     }
-    
-    public static Map<String, String> extractLdapAttributes(String originalUsername, final LdapEntry userEntry,
-            int customAttrMaxValueLen, WildcardMatcher allowlistedCustomLdapAttrMatcher) {
+
+    public static Map<String, String> extractLdapAttributes(
+        String originalUsername,
+        final LdapEntry userEntry,
+        int customAttrMaxValueLen,
+        WildcardMatcher allowlistedCustomLdapAttrMatcher
+    ) {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ldap.original.username", originalUsername);
         attributes.put("ldap.dn", userEntry.getDn());

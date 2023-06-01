@@ -67,7 +67,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
 public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
-    
+
     private final ClusterHelper cl1 = new ClusterHelper("crl1_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     private final ClusterHelper cl2 = new ClusterHelper("crl2_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
     private ClusterInfo cl1Info;
@@ -143,13 +143,13 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         System.out.println("### " + ch.getClusterName() + " complete ###");
         return new Tuple<>(clusterInfo, rh);
     }
-    
+
     @After
     public void tearDown() throws Exception {
         cl1.stopCluster();
         cl2.stopCluster();
     }
-    
+
     @Test
     public void testCcs() throws Exception {
         setupCcs();
@@ -1004,7 +1004,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         }
 
         final Settings.Builder clusterClientSettings = Settings.builder().putList("node.roles", "remote_cluster_client");
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(clusterClientSettings, false, false) 
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(clusterClientSettings, false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", cl1Info.clustername)
                 .put("path.data", "./target/data/" + cl1Info.clustername + "/cert/data")

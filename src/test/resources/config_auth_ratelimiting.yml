@@ -23,5 +23,5 @@ config:
         allowed_tries: 10
       internal_authentication_backend_limiting:
         type: username
-        authentication_backend: intern        
+        authentication_backend: intern
         allowed_tries: 3

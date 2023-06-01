@@ -44,7 +44,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.tools.Hasher;
 
 public final class SecurityUtils {
-    
+
     protected final static Logger log = LogManager.getLogger(SecurityUtils.class);
     private static final String ENV_PATTERN_SUFFIX = "\\.([\\w=():\\-_]+?)(\\:\\-[\\w=():\\-_]*)?\\}";
     static final Pattern ENV_PATTERN = Pattern.compile("\\$\\{env" + ENV_PATTERN_SUFFIX);
@@ -98,7 +98,7 @@ public final class SecurityUtils {
                 .findAny()
                 .orElse(null);
     }
-    
+
     @SafeVarargs
     public static <T> Map<T, T>  mapFromArray(T ... keyValues) {
         if(keyValues == null) {
@@ -109,25 +109,25 @@ public final class SecurityUtils {
             return null;
         }
         Map<T, T> map = new HashMap<>();
-        
+
         for(int i = 0; i<keyValues.length; i+=2) {
             map.put(keyValues[i], keyValues[i+1]);
         }
         return map;
     }
-    
+
     public static String replaceEnvVars(String in, Settings settings) {
         if(in == null || in.isEmpty()) {
             return in;
         }
-        
+
         if(settings == null || settings.getAsBoolean(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)) {
             return in;
         }
-        
+
         return replaceEnvVarsBC(replaceEnvVarsNonBC(replaceEnvVarsBase64(in)));
     }
-    
+
     private static String replaceEnvVarsNonBC(String in) {
         //${env.MY_ENV_VAR}
         //${env.MY_ENV_VAR:-default}
@@ -142,7 +142,7 @@ public final class SecurityUtils {
         matcher.appendTail(sb);
         return sb.toString();
     }
-    
+
     private static String replaceEnvVarsBC(String in) {
         //${envbc.MY_ENV_VAR}
         //${envbc.MY_ENV_VAR:-default}
@@ -157,7 +157,7 @@ public final class SecurityUtils {
         matcher.appendTail(sb);
         return sb.toString();
     }
-    
+
     private static String replaceEnvVarsBase64(String in) {
         //${envbc.MY_ENV_VAR}
         //${envbc.MY_ENV_VAR:-default}
@@ -172,7 +172,7 @@ public final class SecurityUtils {
         matcher.appendTail(sb);
         return sb.toString();
     }
-    
+
     //${env.MY_ENV_VAR}
     //${env.MY_ENV_VAR:-default}
     private static String resolveEnvVar(String envVarName, String mode, boolean bc) {

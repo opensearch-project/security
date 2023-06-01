@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package org.opensearch.security.ssl.rest;
@@ -68,11 +68,11 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
     public List<Route> routes() {
         return routes;
     }
-    
+
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         return new RestChannelConsumer() {
-            
+
             final Boolean showDn = request.paramAsBoolean("show_dn", Boolean.FALSE);
 
             @Override
@@ -81,7 +81,7 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
                 BytesRestResponse response = null;
 
                 try {
-                    
+
                     SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor);
                     X509Certificate[] certs = sslInfo == null?null:sslInfo.getX509Certs();
                     X509Certificate[] localCerts = sslInfo == null?null:sslInfo.getLocalCertificates();
@@ -123,7 +123,7 @@ public class SecuritySSLInfoAction extends BaseRestHandler {
                         builder.close();
                     }
                 }
-                
+
                 channel.sendResponse(response);
             }
         };

@@ -17,15 +17,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OpenIdProviderConfiguration {
 
-	@JsonProperty("jwks_uri")
-	private String jwksUri;
+    @JsonProperty("jwks_uri")
+    private String jwksUri;
 
-	public String getJwksUri() {
-		return jwksUri;
-	}
+    public String getJwksUri() {
+        return jwksUri;
+    }
 
-	public void setJwksUri(String jwksUri) {
-		this.jwksUri = jwksUri;
-	}
+    public void setJwksUri(String jwksUri) {
+        this.jwksUri = jwksUri;
+    }
 
 }

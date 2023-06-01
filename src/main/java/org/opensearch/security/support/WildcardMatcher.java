@@ -296,7 +296,7 @@ public abstract class WildcardMatcher implements Predicate<String> {
     //
     // --- Implementation specializations ---
     //
-    // Casefolding matcher - sits on top of case-sensitive matcher 
+    // Casefolding matcher - sits on top of case-sensitive matcher
     // and proxies toLower() of input string to the wrapped matcher
     private static final class CasefoldingMatcher extends WildcardMatcher {
 

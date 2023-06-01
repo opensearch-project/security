@@ -99,7 +99,7 @@ public final class DlsQueryParser {
 
         return dlsQueryBuilder;
     }
-    
+
     private static void handleNested(final QueryShardContext queryShardContext, final BooleanQuery.Builder dlsQueryBuilder,
             final Query parentQuery) {
         final BitSetProducer parentDocumentsFilter = queryShardContext.bitsetFilter(NON_NESTED_QUERY);
@@ -131,7 +131,7 @@ public final class DlsQueryParser {
                 if (log.isDebugEnabled()) {
                     log.debug("containsTermLookupQuery() returns true due to " + query + "\nqueries: " + unparsedQueries);
                 }
-                
+
                 return true;
             }
         }
@@ -139,7 +139,7 @@ public final class DlsQueryParser {
         if (log.isDebugEnabled()) {
             log.debug("containsTermLookupQuery() returns false\nqueries: " + unparsedQueries);
         }
-        
+
         return false;
     }
 
@@ -156,5 +156,5 @@ public final class DlsQueryParser {
         }
     }
 
-  
+
 }

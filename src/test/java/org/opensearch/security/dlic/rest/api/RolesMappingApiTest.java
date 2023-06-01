@@ -32,7 +32,7 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public class RolesMappingApiTest extends AbstractRestApiUnitTest {
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }

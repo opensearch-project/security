@@ -68,7 +68,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
         try {
             String signingKey = settings.get("signing_key");
 
-            if(signingKey == null || signingKey.length() == 0) {
+            if (signingKey == null || signingKey.length() == 0) {
                 log.error("signingKey must not be null or empty. JWT authentication will not work");
             } else {
 
@@ -90,7 +90,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
                     log.debug("No public ECDSA key, try other algos ({})", e.toString());
                 }
 
-                if(key != null) {
+                if (key != null) {
                     _jwtParser = Jwts.parser().setSigningKey(key);
                 } else {
                     _jwtParser = Jwts.parser().setSigningKey(decoded);
@@ -120,7 +120,6 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
         jwtParser = _jwtParser;
     }
-
 
     @Override
     @SuppressWarnings("removal")
@@ -152,25 +151,29 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             jwtToken = null;
         }
 
-        if((jwtToken == null || jwtToken.isEmpty()) && jwtUrlParameter != null) {
+        if ((jwtToken == null || jwtToken.isEmpty()) && jwtUrlParameter != null) {
             jwtToken = request.param(jwtUrlParameter);
         } else {
-            //just consume to avoid "contains unrecognized parameter"
+            // just consume to avoid "contains unrecognized parameter"
             request.param(jwtUrlParameter);
         }
 
         if (jwtToken == null || jwtToken.length() == 0) {
-            if(log.isDebugEnabled()) {
-                log.debug("No JWT token found in '{}' {} header", jwtUrlParameter==null?jwtHeaderName:jwtUrlParameter, jwtUrlParameter==null?"header":"url parameter");
+            if (log.isDebugEnabled()) {
+                log.debug(
+                    "No JWT token found in '{}' {} header",
+                    jwtUrlParameter == null ? jwtHeaderName : jwtUrlParameter,
+                    jwtUrlParameter == null ? "header" : "url parameter"
+                );
             }
             return null;
         }
 
         final int index;
-        if((index = jwtToken.toLowerCase().indexOf(BEARER)) > -1) { //detect Bearer
-            jwtToken = jwtToken.substring(index+BEARER.length());
+        if ((index = jwtToken.toLowerCase().indexOf(BEARER)) > -1) { // detect Bearer
+            jwtToken = jwtToken.substring(index + BEARER.length());
         } else {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("No Bearer scheme found in header");
             }
         }
@@ -181,16 +184,16 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             final String subject = extractSubject(claims, request);
 
             if (subject == null) {
-            	log.error("No subject found in JWT token");
-            	return null;
+                log.error("No subject found in JWT token");
+                return null;
             }
 
             final String[] roles = extractRoles(claims, request);
 
             final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
-            for(Entry<String, Object> claim: claims.entrySet()) {
-                ac.addAttribute("attr.jwt."+claim.getKey(), String.valueOf(claim.getValue()));
+            for (Entry<String, Object> claim : claims.entrySet()) {
+                ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
             }
 
             return ac;
@@ -199,7 +202,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
             log.error("Cannot authenticate user with JWT because of ", e);
             return null;
         } catch (Exception e) {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
             }
             return null;
@@ -208,7 +211,7 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     @Override
     public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
-        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED,"");
+        final BytesRestResponse wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, "");
         wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
@@ -221,16 +224,21 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     protected String extractSubject(final Claims claims, final RestRequest request) {
         String subject = claims.getSubject();
-        if(subjectKey != null) {
-    		// try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
+        if (subjectKey != null) {
+            // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
             Object subjectObject = claims.get(subjectKey, Object.class);
-            if(subjectObject == null) {
+            if (subjectObject == null) {
                 log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
                 return null;
             }
-        	// We expect a String. If we find something else, convert to String but issue a warning
-            if(!(subjectObject instanceof String)) {
-        		log.warn("Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.", subjectKey, subjectObject, subjectObject.getClass());
+            // We expect a String. If we find something else, convert to String but issue a warning
+            if (!(subjectObject instanceof String)) {
+                log.warn(
+                    "Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
+                    subjectKey,
+                    subjectObject,
+                    subjectObject.getClass()
+                );
             }
             subject = String.valueOf(subjectObject);
         }
@@ -239,34 +247,43 @@ public class HTTPJwtAuthenticator implements HTTPAuthenticator {
 
     @SuppressWarnings("unchecked")
     protected String[] extractRoles(final Claims claims, final RestRequest request) {
-    	// no roles key specified
-    	if(rolesKey == null) {
-    		return new String[0];
-    	}
-		// try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
-    	final Object rolesObject = claims.get(rolesKey, Object.class);
-    	if(rolesObject == null) {
-    		log.warn("Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.", rolesKey);
-    		return new String[0];
-    	}
+        // no roles key specified
+        if (rolesKey == null) {
+            return new String[0];
+        }
+        // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
+        final Object rolesObject = claims.get(rolesKey, Object.class);
+        if (rolesObject == null) {
+            log.warn(
+                "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
+                rolesKey
+            );
+            return new String[0];
+        }
 
-    	String[] roles = String.valueOf(rolesObject).split(",");
+        String[] roles = String.valueOf(rolesObject).split(",");
 
-    	// We expect a String or Collection. If we find something else, convert to String but issue a warning
-    	if (!(rolesObject instanceof String) && !(rolesObject instanceof Collection<?>)) {
-    		log.warn("Expected type String or Collection for roles in the JWT for roles_key {}, but value was '{}' ({}). Will convert this value to String.", rolesKey, rolesObject, rolesObject.getClass());
-		} else if (rolesObject instanceof Collection<?>) {
-		    roles = ((Collection<String>) rolesObject).toArray(new String[0]);
-		}
+        // We expect a String or Collection. If we find something else, convert to String but issue a warning
+        if (!(rolesObject instanceof String) && !(rolesObject instanceof Collection<?>)) {
+            log.warn(
+                "Expected type String or Collection for roles in the JWT for roles_key {}, but value was '{}' ({}). Will convert this value to String.",
+                rolesKey,
+                rolesObject,
+                rolesObject.getClass()
+            );
+        } else if (rolesObject instanceof Collection<?>) {
+            roles = ((Collection<String>) rolesObject).toArray(new String[0]);
+        }
 
-    	for (int i = 0; i < roles.length; i++) {
-    	    roles[i] = roles[i].trim();
-    	}
+        for (int i = 0; i < roles.length; i++) {
+            roles[i] = roles[i].trim();
+        }
 
-    	return roles;
+        return roles;
     }
 
-    private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException,
+        InvalidKeySpecException {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(algo);
         return kf.generatePublic(spec);

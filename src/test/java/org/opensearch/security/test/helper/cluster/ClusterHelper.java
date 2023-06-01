@@ -74,7 +74,7 @@ public final class ClusterHelper {
     static {
         resetSystemProperties();
     }
-    
+
     /** Resets all system properties associated with a cluster */
     public static void resetSystemProperties() {
         System.setProperty("opensearch.enforce.bootstrap.checks", "true");
@@ -84,7 +84,7 @@ public final class ClusterHelper {
     /**
      * Update the default directory used by the security plugin
      * NOTE: this setting is system wide, use ClusterHelper.resetSystemProperties() to restore the original state
-     * 
+     *
      * @return the previous value if one was set, otherwise null
      */
     public static String updateDefaultDirectory(final String newValue) {

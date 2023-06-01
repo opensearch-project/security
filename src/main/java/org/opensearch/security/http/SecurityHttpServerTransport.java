@@ -39,7 +39,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.SharedGroupFactory;
 
 public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTransport {
-    
+
     public SecurityHttpServerTransport(final Settings settings, final NetworkService networkService,
                                        final BigArrays bigArrays, final ThreadPool threadPool, final SecurityKeyStore odsks,
                                        final SslExceptionHandler sslExceptionHandler, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher, final ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {

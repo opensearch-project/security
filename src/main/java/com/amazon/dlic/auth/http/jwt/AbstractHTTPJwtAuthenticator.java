@@ -55,9 +55,11 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
     private final String jwtUrlParameter;
     private final String subjectKey;
     private final String rolesKey;
+    private final String requiredAudience;
+    private final String requiredIssuer;
 
     public static final int DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS = 30;
-    private final int clockSkewToleranceSeconds ;
+    private final int clockSkewToleranceSeconds;
 
     public AbstractHTTPJwtAuthenticator(Settings settings, Path configPath) {
         jwtUrlParameter = settings.get("jwt_url_parameter");
@@ -66,10 +68,12 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         rolesKey = settings.get("roles_key");
         subjectKey = settings.get("subject_key");
         clockSkewToleranceSeconds = settings.getAsInt("jwt_clock_skew_tolerance_seconds", DEFAULT_CLOCK_SKEW_TOLERANCE_SECONDS);
+        requiredAudience = settings.get("required_audience");
+        requiredIssuer = settings.get("required_issuer");
 
         try {
             this.keyProvider = this.initKeyProvider(settings, configPath);
-            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds );
+            jwtVerifier = new JwtVerifier(keyProvider, clockSkewToleranceSeconds, requiredIssuer, requiredAudience);
 
         } catch (Exception e) {
             log.error("Error creating JWT authenticator. JWT authentication will not work", e);
@@ -79,8 +83,7 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
     @Override
     @SuppressWarnings("removal")
-    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context)
-            throws OpenSearchSecurityException {
+    public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {
@@ -182,8 +185,11 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
             // warning
             if (!(subjectObject instanceof String)) {
                 log.warn(
-                        "Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
-                        subjectKey, subjectObject, subjectObject.getClass());
+                    "Expected type String for roles in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
+                    subjectKey,
+                    subjectObject,
+                    subjectObject.getClass()
+                );
                 subject = String.valueOf(subjectObject);
             } else {
                 subject = (String) subjectObject;
@@ -203,8 +209,9 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
 
         if (rolesObject == null) {
             log.warn(
-                    "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
-                    rolesKey);
+                "Failed to get roles from JWT claims with roles_key '{}'. Check if this key is correct and available in the JWT payload.",
+                rolesKey
+            );
             return new String[0];
         }
 
@@ -214,8 +221,11 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         // String but issue a warning
         if (!(rolesObject instanceof String) && !(rolesObject instanceof Collection<?>)) {
             log.warn(
-                    "Expected type String or Collection for roles in the JWT for roles_key {}, but value was '{}' ({}). Will convert this value to String.",
-                    rolesKey, rolesObject, rolesObject.getClass());
+                "Expected type String or Collection for roles in the JWT for roles_key {}, but value was '{}' ({}). Will convert this value to String.",
+                rolesKey,
+                rolesObject,
+                rolesObject.getClass()
+            );
         } else if (rolesObject instanceof Collection<?>) {
             roles = ((Collection<String>) rolesObject).toArray(new String[0]);
         }
@@ -231,6 +241,14 @@ public abstract class AbstractHTTPJwtAuthenticator implements HTTPAuthenticator 
         wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Bearer realm=\"OpenSearch Security\"");
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
+    }
+
+    public String getRequiredAudience() {
+        return requiredAudience;
+    }
+
+    public String getRequiredIssuer() {
+        return requiredIssuer;
     }
 
 }

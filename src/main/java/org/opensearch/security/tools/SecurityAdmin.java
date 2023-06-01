@@ -162,7 +162,7 @@ public class SecurityAdmin {
     private static final Settings ENABLE_ALL_ALLOCATIONS_SETTINGS = Settings.builder()
             .put("cluster.routing.allocation.enable", "all")
             .build();
-    
+
     public static void main(final String[] args) {
         try {
             final int returnCode = execute(args);
@@ -173,7 +173,7 @@ public class SecurityAdmin {
             System.out.println(ExceptionsHelper.stackTrace(e));
             System.out.println();
             System.exit(-1);
-        } 
+        }
         catch (IndexNotFoundException e) {
             System.out.println("ERR: No OpenSearch Security configuration index found. Please execute securityadmin with different command line parameters");
             System.out.println("When you run it for the first time do not specify -us, -era, -dra or -rl");
@@ -181,16 +181,16 @@ public class SecurityAdmin {
             System.exit(-1);
         }
         catch (Throwable e) {
-            
+
             if (e instanceof OpenSearchException
-                    && e.getMessage() != null 
+                    && e.getMessage() != null
                     && e.getMessage().contains("no permissions")) {
 
-                System.out.println("ERR: You try to connect with a TLS node certificate instead of an admin client certificate");                
+                System.out.println("ERR: You try to connect with a TLS node certificate instead of an admin client certificate");
                 System.out.println();
                 System.exit(-1);
             }
-            
+
             System.out.println("ERR: An unexpected "+e.getClass().getSimpleName()+" occured: "+e.getMessage());
             System.out.println("Trace:");
             System.out.println(ExceptionsHelper.stackTrace(e));
@@ -200,7 +200,7 @@ public class SecurityAdmin {
     }
 
     public static int execute(final String[] args) throws Exception {
-        
+
         System.out.println("Security Admin v7");
         System.setProperty("security.nowarn.client","true");
         System.setProperty("jdk.tls.rejectClientInitiatedRenegotiation","true");
@@ -256,16 +256,16 @@ public class SecurityAdmin {
         options.addOption(Option.builder("backup").hasArg().argName("folder").desc("Backup configuration to folder").build());
 
         options.addOption(Option.builder("migrate").hasArg().argName("folder").desc("Migrate and use folder to store migrated files").build());
-        
+
         options.addOption(Option.builder("rev").longOpt("resolve-env-vars").desc("Resolve/Substitute env vars in config with their value before uploading").build());
 
         options.addOption(Option.builder("vc").numberOfArgs(1).optionalArg(true).argName("version").longOpt("validate-configs").desc("Validate config for version 6 or 7 (default 7)").build());
 
         options.addOption(Option.builder("mo").longOpt("migrate-offline").hasArg().argName("folder").desc("Migrate and use folder to store migrated files").build());
 
-        
+
         //when adding new options also adjust validate(CommandLine line)
-        
+
         String hostname = "localhost";
         int port = 9200;
         String kspass = System.getenv(OPENDISTRO_SECURITY_KS_PASS);
@@ -293,7 +293,7 @@ public class SecurityAdmin {
         boolean deleteConfigIndex = false;
         boolean enableShardAllocation = false;
         boolean acceptRedCluster = false;
-        
+
         String keypass = System.getenv(OPENDISTRO_SECURITY_KEYPASS);
         String cacert = null;
         String cert = null;
@@ -316,28 +316,28 @@ public class SecurityAdmin {
         CommandLineParser parser = new DefaultParser();
         try {
             CommandLine line = parser.parse( options, args );
-            
+
             validate(line);
-            
+
             hostname = line.getOptionValue("h", hostname);
             port = Integer.parseInt(line.getOptionValue("p", String.valueOf(port)));
 
             promptForPassword = line.hasOption("prompt");
-            
+
             if(kspass == null || kspass.isEmpty()) {
                 kspass = line.getOptionValue("kspass",promptForPassword?null:"changeit");
             }
-            
+
             if(tspass == null || tspass.isEmpty()) {
                 tspass = line.getOptionValue("tspass",promptForPassword?null:kspass);
             }
 
             cd = line.getOptionValue("cd", cd);
-            
+
             if(!cd.endsWith(File.separator)) {
                 cd += File.separator;
             }
-            
+
             ks = line.getOptionValue("ks",ks);
             ts = line.getOptionValue("ts",ts);
             kst = line.getOptionValue("kst", kst);
@@ -349,87 +349,87 @@ public class SecurityAdmin {
             retrieve = line.hasOption("r");
             ksAlias = line.getOptionValue("ksalias", ksAlias);
             index = line.getOptionValue("i", index);
-            
+
             String enabledCiphersString = line.getOptionValue("ec", null);
             String enabledProtocolsString = line.getOptionValue("ep", null);
-            
+
             if(enabledCiphersString != null) {
                 enabledCiphers = enabledCiphersString.split(",");
             }
-            
+
             if(enabledProtocolsString != null) {
                 enabledProtocols = enabledProtocolsString.split(",");
             }
-            
+
             updateSettings = line.hasOption("us")?Integer.parseInt(line.getOptionValue("us")):null;
 
             reload = line.hasOption("rl");
-            
+
             if(line.hasOption("era")) {
                 replicaAutoExpand = true;
             }
-            
+
             if(line.hasOption("dra")) {
                 replicaAutoExpand = false;
             }
-            
+
             failFast = line.hasOption("ff");
             diagnose = line.hasOption("dg");
             deleteConfigIndex = line.hasOption("dci");
             enableShardAllocation = line.hasOption("esa");
             acceptRedCluster = line.hasOption("arc");
-            
+
             cacert = line.getOptionValue("cacert");
             cert = line.getOptionValue("cert");
             key = line.getOptionValue("key");
             keypass = line.getOptionValue("keypass", keypass);
 
             si = line.hasOption("si");
-            
+
             whoami = line.hasOption("w");
-            
+
             explicitReplicas = line.getOptionValue("er", explicitReplicas);
-            
+
             backup = line.getOptionValue("backup");
-            
+
             migrate = line.getOptionValue("migrate");
-            
+
             resolveEnvVars = line.hasOption("rev");
-            
+
             validateConfig = !line.hasOption("vc")?null:Integer.parseInt(line.getOptionValue("vc", "7"));
-            
+
             if(validateConfig != null && validateConfig.intValue() != 6 && validateConfig.intValue() != 7) {
                 throw new ParseException("version must be 6 or 7");
             }
-            
+
             migrateOffline = line.getOptionValue("mo");
-            
+
         }
         catch( ParseException exp ) {
             System.out.println("ERR: Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("securityadmin.sh", options, true);
             return -1;
         }
-        
+
         if(validateConfig != null) {
             System.out.println("Validate configuration for Version "+validateConfig.intValue());
             return validateConfig(cd, file, type, validateConfig.intValue());
         }
-        
+
         if(migrateOffline != null) {
             System.out.println("Migrate "+migrateOffline+" offline");
             final boolean retVal =  Migrater.migrateDirectory(new File(migrateOffline), true);
             return retVal?0:-1;
         }
 
-        
+
         System.out.print("Will connect to "+hostname+":"+port);
         Socket socket = new Socket();
-        
+
         try {
-            
+
             socket.connect(new InetSocketAddress(hostname, port));
-            
+
           } catch (java.net.ConnectException ex) {
             System.out.println();
             System.out.println("ERR: Seems there is no OpenSearch running on "+hostname+":"+port+" - Will exit");
@@ -450,13 +450,13 @@ public class SecurityAdmin {
                         kspass = promptForPassword("Keystore", "kspass", OPENDISTRO_SECURITY_KS_PASS);
                     }
                 }
-                
+
                 if(ts != null) {
                     tst = tst==null?(ts.endsWith(".jks")?"JKS":"PKCS12"):tst;
                     if(tspass == null && promptForPassword) {
                         tspass = promptForPassword("Truststore", "tspass", OPENDISTRO_SECURITY_TS_PASS);
                     }
-                }            
+                }
 
                 if(key != null) {
 
@@ -549,7 +549,7 @@ public class SecurityAdmin {
                 System.out.println("Reload config on all nodes");
                 return 0;
             }
-            
+
             if(si) {
                 return (0);
             }
@@ -558,9 +558,9 @@ public class SecurityAdmin {
 				System.out.println(whoAmIResNode.toPrettyString());
                 return (0);
             }
-            
-            
-            if(replicaAutoExpand != null) { 
+
+
+            if(replicaAutoExpand != null) {
                 Settings indexSettings = Settings.builder()
                         .put("index.auto_expand_replicas", replicaAutoExpand?"0-all":"false")
                         .build();
@@ -594,10 +594,10 @@ public class SecurityAdmin {
                 } else {
                     System.out.println("ERR: Unable to enable shard allocation");
                 }
-                
+
                 return (successful?0:-1);
-            }   
-            
+            }
+
             if(failFast) {
                 System.out.println("Fail-fast is activated");
             }
@@ -620,11 +620,11 @@ public class SecurityAdmin {
 				} catch (Exception e) {
 
                     Throwable rootCause = ExceptionUtils.getRootCause(e);
-                    
+
                     if(!failFast) {
                         System.out.println("Cannot retrieve cluster state due to: "+e.getMessage()+". This is not an error, will keep on trying ...");
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
-                        System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");   
+                        System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
                         System.out.println("   * Make sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
                         System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)");
                         System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
@@ -634,12 +634,12 @@ public class SecurityAdmin {
                         System.out.println("  Root cause: "+rootCause+" ("+e.getClass().getName()+"/"+rootCause.getClass().getName()+")");
                         System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
                         System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
-                        System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
+                        System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)");
                         System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
 
                         return (-1);
                     }
-                    
+
                     Thread.sleep(3000);
                     continue;
                 }
@@ -651,7 +651,7 @@ public class SecurityAdmin {
                 System.out.println("ERR: Timed out while waiting for a green or yellow cluster state.");
                 System.out.println("   * Try running securityadmin.sh with -icl (but no -cl) and -nhnv (If that works you need to check your clustername as well as hostnames in your TLS certificates)");
                 System.out.println("   * Make also sure that your keystore or PEM certificate is a client certificate (not a node certificate) and configured properly in opensearch.yml");
-                System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)"); 
+                System.out.println("   * If this is not working, try running securityadmin.sh with --diagnose and see diagnose trace log file)");
                 System.out.println("   * Add --accept-red-cluster to allow securityadmin to operate on a red cluster.");
                 return (-1);
             }
@@ -680,7 +680,7 @@ public class SecurityAdmin {
             if(deleteConfigIndex) {
 				return deleteConfigIndex(restHighLevelClient, index, indexExists);
             }
-               
+
             if (!indexExists) {
                 System.out.print(index +" index does not exists, attempt to create it ... ");
 				final int created = createConfigIndex(restHighLevelClient, index, explicitReplicas);
@@ -690,7 +690,7 @@ public class SecurityAdmin {
 
             } else {
                 System.out.println(index+" index already exists, so we do not need to create one.");
-                
+
                 try {
 					ClusterHealthResponse clusterHealthResponse = restHighLevelClient.cluster().health(new ClusterHealthRequest(index), RequestOptions.DEFAULT);
 
@@ -705,7 +705,7 @@ public class SecurityAdmin {
 					if (clusterHealthResponse.getStatus() == ClusterHealthStatus.YELLOW) {
                         System.out.println("INFO: "+index+" index state is YELLOW, it seems you miss some replicas");
                     }
-                    
+
                 } catch (Exception e) {
                     if(!failFast) {
                         System.out.println("Cannot retrieve "+index+" index state state due to "+e.getMessage()+". This is not an error, will keep on trying ...");
@@ -726,7 +726,7 @@ public class SecurityAdmin {
                     && securityIndex.getMappings() != null
                     && securityIndex.getMappings().get(index) != null
                     && securityIndex.getMappings().get(index).getSourceAsMap().containsKey("security"));
-            
+
             if(legacy) {
                 System.out.println("Legacy index '"+index+"' (ES 6) detected (or forced). You should migrate the configuration!");
             }
@@ -765,9 +765,9 @@ public class SecurityAdmin {
             }
 
             boolean isCdAbs = new File(cd).isAbsolute();
-             
+
             System.out.println("Populate config from "+(isCdAbs?cd:new File(".", cd).getCanonicalPath()));
-            
+
             if(file != null) {
                 if(type != null) {
                     System.out.println("Force type: "+type);
@@ -828,7 +828,7 @@ public class SecurityAdmin {
 			} else {
 				System.out.println("SUCC: Expected " + expectedConfigCount + " config types for node " + n + " is " + n.get("updated_config_size").asInt() + " (" + n.get("updated_config_types") + ") due to: " + (n.get("message") == null ? "unknown reason" : n.get("message")));
             }
-            
+
             success = success && successNode;
         }
 
@@ -843,7 +843,7 @@ public class SecurityAdmin {
         final boolean populateEmptyIfMissing) {
 
         String id = _id;
-                
+
         if(legacy) {
             id = _id;
 
@@ -892,12 +892,12 @@ public class SecurityAdmin {
 
 	private static boolean retrieveFile(final RestHighLevelClient restHighLevelClient, final String filepath, final String index, final String _id, final boolean legacy, final boolean populateFileIfEmpty) {
         String id = _id;
-                
+
         if(legacy) {
             id = _id;
-            
+
         }
-        
+
         System.out.println("Will retrieve '"+"/" +id+"' into "+filepath+" "+(legacy?"(legacy mode)":""));
         try (Writer writer = new FileWriter(filepath, StandardCharsets.UTF_8)) {
 
@@ -944,7 +944,7 @@ public class SecurityAdmin {
         } catch (Exception e) {
             System.out.println("   FAIL: Get configuration for '"+_id+"' failed because of "+e.toString());
         }
-        
+
         return false;
     }
 
@@ -962,23 +962,23 @@ public class SecurityAdmin {
                 parser.close();
             }
         }
-        
+
         //validate
         return retVal;
     }
-    
+
     private static String convertToYaml(String type, BytesReference bytes, boolean prettyPrint) throws IOException {
-        
+
         try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, bytes.streamInput())) {
             parser.nextToken();
             parser.nextToken();
-            
+
             if(!type.equals((parser.currentName()))) {
                 return null;
             }
-            
+
             parser.nextToken();
-            
+
             XContentBuilder builder = XContentFactory.yamlBuilder();
             if (prettyPrint) {
                 builder.prettyPrint();
@@ -991,7 +991,7 @@ public class SecurityAdmin {
 	protected static void generateDiagnoseTrace(final RestHighLevelClient restHighLevelClient) {
 
         final String date = DATE_FORMAT.format(new Date());
-        
+
         final StringBuilder sb = new StringBuilder();
         sb.append("Diagnostic securityadmin trace"+System.lineSeparator());
         sb.append("OpenSearch client version: "+Version.CURRENT+System.lineSeparator());
@@ -1061,19 +1061,19 @@ public class SecurityAdmin {
         if(line.hasOption("ts") && line.hasOption("cacert")) {
             System.out.println("WARN: It makes no sense to specify -ts as well as -cacert");
         }
-        
+
         if(line.hasOption("ks") && line.hasOption("cert")) {
             System.out.println("WARN: It makes no sense to specify -ks as well as -cert");
         }
-        
+
         if(line.hasOption("ks") && line.hasOption("key")) {
             System.out.println("WARN: It makes no sense to specify -ks as well as -key");
         }
-        
+
         if(line.hasOption("cd") && line.hasOption("rl")) {
             System.out.println("WARN: It makes no sense to specify -cd as well as -r");
         }
-        
+
         if(line.hasOption("cd") && line.hasOption("f")) {
             System.out.println("WARN: It makes no sense to specify -cd as well as -f");
         }
@@ -1089,15 +1089,15 @@ public class SecurityAdmin {
         if(!line.hasOption("vc") && !line.hasOption("ks") && !line.hasOption("cert") /*&& !line.hasOption("simple-auth")*/) {
             throw new ParseException("Specify at least -ks or -cert");
         }
-        
-        if(!line.hasOption("vc")  && !line.hasOption("mo") 
+
+        if(!line.hasOption("vc")  && !line.hasOption("mo")
                 && !line.hasOption("ts") && !line.hasOption("cacert")) {
             throw new ParseException("Specify at least -ts or -cacert");
         }
-        
+
         //TODO add more validation rules
     }
-    
+
     private static String promptForPassword(String passwordName, String commandLineOption, String envVarName) throws Exception {
         final Console console = System.console();
         if(console == null) {
@@ -1132,7 +1132,7 @@ public class SecurityAdmin {
             if(!ALLOW_MIXED) {
                 return -1;
             }
-           
+
         } else {
             System.out.println("OpenSearch Version: "+minVersion.toString());
         }
@@ -1161,14 +1161,14 @@ public class SecurityAdmin {
         } else {
             System.out.print("No index '"+index+"' exists, so no need to delete it");
         }
-        
+
         return (success?0:-1);
     }
 
 	private static int createConfigIndex(RestHighLevelClient restHighLevelClient, String index, String explicitReplicas) throws IOException {
         Map<String, Object> indexSettings = new HashMap<>();
         indexSettings.put("index.number_of_shards", 1);
-        
+
         if(explicitReplicas != null) {
             if(explicitReplicas.contains("-")) {
                 indexSettings.put("index.auto_expand_replicas", explicitReplicas);
@@ -1218,11 +1218,11 @@ public class SecurityAdmin {
         boolean success = uploadFile(tc, cd + "config.yml", index, "config", legacy, resolveEnvVars);
         success = uploadFile(tc, cd+"roles.yml", index, "roles", legacy, resolveEnvVars) && success;
         success = uploadFile(tc, cd+"roles_mapping.yml", index, "rolesmapping", legacy, resolveEnvVars) && success;
-        
+
         success = uploadFile(tc, cd+"internal_users.yml", index, "internalusers", legacy, resolveEnvVars) && success;
         success = uploadFile(tc, cd+"action_groups.yml", index, "actiongroups", legacy, resolveEnvVars) && success;
 
-        
+
         if(!legacy) {
             success = uploadFile(tc, cd+"tenants.yml", index, "tenants", legacy, resolveEnvVars) && success;
         }
@@ -1252,18 +1252,18 @@ public class SecurityAdmin {
 
         System.out.println("== Migration started ==");
         System.out.println("=======================");
-        
+
         System.out.println("-> Backup current configuration to "+backupDir.getAbsolutePath());
-        
+
         if(backup(tc, index, backupDir, true) != 0) {
             return -1;
         }
 
         System.out.println("  done");
-        
+
         File v7Dir = new File(backupDir,"v7");
         v7Dir.mkdirs();
-        
+
         try {
 
             System.out.println("-> Migrate configuration to new format and store it here: "+v7Dir.getAbsolutePath());
@@ -1303,13 +1303,13 @@ public class SecurityAdmin {
             e.printStackTrace();
             return -1;
         }
-        
+
         System.out.println("  done");
-        
+
         System.out.println("-> Delete old "+index+" index");
         deleteConfigIndex(tc, index, true);
         System.out.println("  done");
-        
+
         System.out.println("-> Upload new configuration into OpenSearch cluster");
 
 		int uploadResult = upload(tc, index, v7Dir.getAbsolutePath() + "/", false, expectedNodeCount, resolveEnvVars);
@@ -1319,10 +1319,10 @@ public class SecurityAdmin {
         }else {
             System.out.println("  ERR: unable to upload");
         }
-        
+
         return uploadResult;
     }
-    
+
     private static String readTypeFromFile(File file) throws IOException {
         if(!file.exists() || !file.isFile()) {
             System.out.println("ERR: No such file "+file.getAbsolutePath());
@@ -1335,16 +1335,16 @@ public class SecurityAdmin {
     private static int validateConfig(String cd, String file, String type, int version) {
         if (file != null) {
             try {
-                
+
                 if(type == null) {
                     type = readTypeFromFile(new File(file));
                 }
-                
+
                 if(type == null) {
                     System.out.println("ERR: Unable to read type from "+file);
                     return -1;
                 }
-                
+
                 ConfigHelper.fromYamlFile(file, CType.fromString(type), version==7?2:1, 0, 0);
                 return 0;
             } catch (Exception e) {
@@ -1357,7 +1357,7 @@ public class SecurityAdmin {
             success = validateConfigFile(cd+"roles.yml", CType.ROLES, version) && success;
             success = validateConfigFile(cd+"roles_mapping.yml", CType.ROLESMAPPING, version) && success;
             success = validateConfigFile(cd+"config.yml", CType.CONFIG, version) && success;
-            
+
             if(new File(cd+"tenants.yml").exists() && version != 6) {
                 success = validateConfigFile(cd+"tenants.yml", CType.TENANTS, version) && success;
             }
@@ -1368,10 +1368,10 @@ public class SecurityAdmin {
             return success?0:-1;
 
         }
-        
+
         return -1;
     }
-    
+
     private static boolean validateConfigFile(String file, CType cType, int version) {
         try {
             ConfigHelper.fromYamlFile(file, cType, version==7?2:1, 0, 0);

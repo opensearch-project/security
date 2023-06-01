@@ -55,7 +55,7 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
         setup(new DynamicSecurityConfig()
             .setSecurityRoles("roles_fls_indexing.yml")
             .setSecurityRolesMapping("roles_mapping_fls_indexing.yml"));
-      
+
         final HttpResponse phoneOneFilteredResponse = rh.executeGetRequest(searchQuery, asPhoneOneUser);
         assertThat(phoneOneFilteredResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(phoneOneFilteredResponse.getBody(), not(containsString("1003")));
@@ -76,7 +76,7 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
         setup(new DynamicSecurityConfig()
             .setSecurityRoles("roles_fls_indexing.yml")
             .setSecurityRolesMapping("roles_mapping_fls_indexing.yml"));
-  
+
         final HttpResponse phoneOneFilteredResponse = rh.executeGetRequest("/yellow-pages/_search?filter_path=hits.hits&pretty", asPhoneOneUser);
         assertThat(phoneOneFilteredResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(phoneOneFilteredResponse.getBody(), not(containsString("1003")));
