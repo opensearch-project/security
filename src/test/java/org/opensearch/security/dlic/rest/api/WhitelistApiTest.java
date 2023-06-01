@@ -51,7 +51,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
      */
     private final Header adminCredsHeader = encodeBasicHeader("admin_all_access", "admin_all_access");
     private final Header nonAdminCredsHeader = encodeBasicHeader("sarek", "sarek");
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }

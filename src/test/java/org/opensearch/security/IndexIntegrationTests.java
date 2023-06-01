@@ -59,46 +59,46 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testComposite() throws Exception {
-    
+
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("composite_config.yml").setSecurityRoles("roles_composite.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
-    
+
         try (Client tc = getClient()) {
             tc.index(new IndexRequest("starfleet").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("klingonempire").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("public").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
-        
-        String msearchBody = 
+
+        String msearchBody =
                 "{\"index\":\"starfleet\", \"ignore_unavailable\": true}"+System.lineSeparator()+
                 "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
                 "{\"index\":\"klingonempire\", \"ignore_unavailable\": true}"+System.lineSeparator()+
                 "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
                 "{\"index\":\"public\", \"ignore_unavailable\": true}"+System.lineSeparator()+
                 "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
-                         
-            
+
+
         HttpResponse resc = rh.executePostRequest("_msearch", msearchBody, encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"_index\":\"klingonempire\""));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("hits"));
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("no permissions for [indices:data/read/search]"));
-        
+
     }
-    
+
     @Test
     public void testBulkShards() throws Exception {
-    
+
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_bs.yml"), Settings.EMPTY, true);
         final RestHelper rh = nonSslRestHelper();
-        
+
         try (Client tc = getClient()) {
             //create indices and mapping upfront
             tc.index(new IndexRequest("test").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("lorem").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"field2\":\"init\"}", XContentType.JSON)).actionGet();
         }
-        
-        String bulkBody = 
+
+        String bulkBody =
         "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"1\" } }"+System.lineSeparator()+
         "{ \"field2\" : \"value1\" }" +System.lineSeparator()+
         "{ \"index\" : { \"_index\" : \"test\", \"_id\" : \"2\" } }"+System.lineSeparator()+
@@ -120,7 +120,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         "{ \"index\" : { \"_index\" : \"lorem\", \"_id\" : \"5\" } }"+System.lineSeparator()+
         "{ \"field2\" : \"value2\" }"+System.lineSeparator()+
         "{ \"delete\" : { \"_index\" : \"lorem\", \"_id\" : \"5\" } }"+System.lineSeparator();
-       
+
         System.out.println("############ _bulk");
         HttpResponse res = rh.executePostRequest("_bulk?refresh=true&pretty=true", bulkBody, encodeBasicHeader("worf", "worf"));
         System.out.println(res.getBody());
@@ -128,43 +128,43 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains("\"errors\" : true"));
         Assert.assertTrue(res.getBody().contains("\"status\" : 201"));
         Assert.assertTrue(res.getBody().contains("no permissions for"));
-        
+
         System.out.println("############ check shards");
         System.out.println(rh.executeGetRequest("_cat/shards?v", encodeBasicHeader("nagilum", "nagilum")));
 
-        
+
     }
 
     @Test
     public void testCreateIndex() throws Exception {
-    
+
         setup();
         RestHelper rh = nonSslRestHelper();
-              
+
         HttpResponse res;
         Assert.assertEquals("Unable to create index 'nag'", HttpStatus.SC_OK, rh.executePutRequest("nag1", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
         Assert.assertEquals("Unable to create index 'starfleet_library'", HttpStatus.SC_OK, rh.executePutRequest("starfleet_library", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        
+
         clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), clusterInfo.numNodes);
-        
+
         Assert.assertEquals("Unable to close index 'starfleet_library'", HttpStatus.SC_OK, rh.executePostRequest("starfleet_library/_close", null, encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-        
+
         Assert.assertEquals("Unable to open index 'starfleet_library'", HttpStatus.SC_OK, (res = rh.executePostRequest("starfleet_library/_open", null, encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertTrue("open index 'starfleet_library' not acknowledged", res.getBody().contains("acknowledged"));
         Assert.assertFalse("open index 'starfleet_library' not acknowledged", res.getBody().contains("false"));
-        
+
         clusterHelper.waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(10), clusterInfo.numNodes);
-        
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest("public", null, encodeBasicHeader("spock", "spock")).getStatusCode());
-        
-        
+
+
     }
 
     @Test
     public void testFilteredAlias() throws Exception {
-    
+
         setup();
-        
+
         try (Client tc = getClient()) {
 
             tc.index(new IndexRequest("theindex").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -173,30 +173,30 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().alias("alias2").filter(QueryBuilders.termQuery("_type", "type2")).index("theindex"))).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().alias("alias3").filter(QueryBuilders.termQuery("_type", "type2")).index("otherindex"))).actionGet();
         }
-        
-        
+
+
         RestHelper rh = nonSslRestHelper();
-    
+
         //opendistro_security_user1 -> worf
         //opendistro_security_user2 -> picard
-        
+
         HttpResponse resc = rh.executeGetRequest("alias*/_search", encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc =  rh.executeGetRequest("theindex/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc =  rh.executeGetRequest("alias3/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         resc =  rh.executeGetRequest("_cat/indices", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        
+
     }
-    
+
     @Test
     public void testIndexTypeEvaluation() throws Exception {
-    
+
         setup();
 
         try (Client tc = getClient()) {
@@ -212,45 +212,45 @@ public class IndexIntegrationTests extends SingleClusterTest {
                 //expected
             }
         }
-        
+
         RestHelper rh = nonSslRestHelper();
-    
+
         HttpResponse resc = rh.executeGetRequest("/foo1/_search?pretty", encodeBasicHeader("baz", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
-        
+
         resc = rh.executeGetRequest("/foo2/_search?pretty", encodeBasicHeader("baz", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
-        
+
         resc = rh.executeGetRequest("/foo/_search?pretty", encodeBasicHeader("baz", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\" : 3"));
-        
+
         //resc = rh.executeGetRequest("/fooba/z/_search?pretty", encodeBasicHeader("baz", "worf"));
-        //Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());        
-    
+        //Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
+
         resc = rh.executeGetRequest("/foo1/_doc/1?pretty", encodeBasicHeader("baz", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
         Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
-        
+
         resc = rh.executeGetRequest("/foo2/_doc/2?pretty", encodeBasicHeader("baz", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\" : 2"));
         Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
-        
+
         resc = rh.executeGetRequest("/foo/_doc/3?pretty", encodeBasicHeader("baz", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\" : 3"));
         Assert.assertTrue(resc.getBody().contains("\"found\" : true"));
-    
+
         //resc = rh.executeGetRequest("/fooba/z/4?pretty", encodeBasicHeader("baz", "worf"));
         //Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-    
+
         //resc = rh.executeGetRequest("/foo*/_search?pretty", encodeBasicHeader("baz", "worf"));
         //Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-    
+
         resc = rh.executeGetRequest("/foo*,-fooba/_search?pretty", encodeBasicHeader("baz", "worf"));
         Assert.assertEquals(200, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\" : 1"));
@@ -259,32 +259,32 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testIndices() throws Exception {
-    
+
         setup();
-    
+
         try (Client tc = getClient()) {
             tc.index(new IndexRequest("nopermindex").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-    
+
             tc.index(new IndexRequest("logstash-1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("logstash-2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("logstash-3").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("logstash-4").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-    
+
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd", SecurityUtils.EN_Locale);
             sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            
+
             String date = sdf.format(new Date());
             tc.index(new IndexRequest("logstash-"+date).setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
-        
+
         RestHelper rh = nonSslRestHelper();
-        
+
         HttpResponse res = null;
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
-    
+
         //nonexistent index with permissions
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (res = rh.executeGetRequest("/logstash-nonex/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
-    
+
         //existent index without permissions
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/nopermindex/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
 
@@ -298,25 +298,25 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash-1/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
 
         //nonexistent index with failed login
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, (res = rh.executeGetRequest("/logstash-nonex/_search", encodeBasicHeader("nouser", "nosuer"))).getStatusCode());   
-        
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, (res = rh.executeGetRequest("/logstash-nonex/_search", encodeBasicHeader("nouser", "nosuer"))).getStatusCode());
+
         //nonexistent index with no login
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, (res = rh.executeGetRequest("/logstash-nonex/_search")).getStatusCode());   
-        
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, (res = rh.executeGetRequest("/logstash-nonex/_search")).getStatusCode());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
-        
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/_all/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
-    
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/*/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());        
-    
+
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/*/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/nopermindex,logstash-1,nonexist/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
-        
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/logstash-1,nonexist/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
-        
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/nonexist/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/%3Clogstash-%7Bnow%2Fd%7D%3E/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
-    
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/%3Cnonex-%7Bnow%2Fd%7D%3E/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
 
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/%3Clogstash-%7Bnow%2Fd%7D%3E,logstash-*/_search", encodeBasicHeader("opendistro_security_logstash", "nagilum"))).getStatusCode());
@@ -337,7 +337,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertTrue(res.getBody().contains("logstash-cnew-20"));
         Assert.assertFalse(res.getBody().contains("<"));
     }
-    
+
     @Test
     public void testAliases() throws Exception {
 
@@ -346,10 +346,10 @@ public class IndexIntegrationTests extends SingleClusterTest {
                 .build();
 
         setup(settings);
-    
+
         try (Client tc = getClient()) {
             tc.index(new IndexRequest("nopermindex").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-    
+
             tc.index(new IndexRequest("logstash-1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("logstash-2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("logstash-3").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
@@ -360,28 +360,28 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
             String date = new SimpleDateFormat("YYYY.MM.dd").format(new Date());
             tc.index(new IndexRequest("logstash-"+date).setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-        
+
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("nopermindex").alias("nopermalias"))).actionGet();
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices(".opendistro_security").alias("mysgi"))).actionGet();
         }
-        
+
         RestHelper rh = nonSslRestHelper();
-        
+
         HttpResponse res = null;
-        
+
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePostRequest("/mysgi/_doc", "{}",encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/mysgi/_search?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
         assertContains(res, "*\"hits\" : {*\"value\" : 0,*\"hits\" : [ ]*");
-        
+
         System.out.println("#### add alias to allowed index");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePutRequest("/logstash-1/_alias/alog1", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
         System.out.println("#### add alias to not existing (no perm)");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/nonexitent/_alias/alnp", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
-        
+
         System.out.println("#### add alias to not existing (with perm)");
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (res = rh.executePutRequest("/logstash-nonex/_alias/alnp", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
-        
+
         System.out.println("#### add alias to not allowed index");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/nopermindex/_alias/alnp", "",encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
@@ -391,32 +391,32 @@ public class IndexIntegrationTests extends SingleClusterTest {
                "{ \"remove_index\": { \"index\": \"logstash-del\" } }  "+
             "]"+
         "}";
-        
+
         System.out.println("#### remove_index");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePostRequest("/_aliases", aliasRemoveIndex,encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
-        
+
         System.out.println("#### get alias for permitted index");
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash-1/_alias/alog1", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
-        
+
         System.out.println("#### get alias for all indices");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/_alias/alog1", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
 
-        
+
         System.out.println("#### get alias no perm");
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("/_alias/nopermalias", encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
-        
+
         String alias =
         "{"+
           "\"aliases\": {"+
             "\"alias1\": {}"+
           "}"+
         "}";
-        
-        
+
+
         System.out.println("#### create alias along with index");
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/beats-withalias", alias,encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());        
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executePutRequest("/beats-withalias", alias,encodeBasicHeader("aliasmngt", "nagilum"))).getStatusCode());
     }
 
     @Test
@@ -429,10 +429,10 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("invalid_index_name_exception"));
     }
-    
+
     @Test
     public void testCCSIndexResolve() throws Exception {
-        
+
         setup();
         final RestHelper rh = nonSslRestHelper();
 
@@ -452,7 +452,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     @Ignore
     public void testCCSIndexResolve2() throws Exception {
-        
+
         setup();
         final RestHelper rh = nonSslRestHelper();
 
@@ -462,46 +462,46 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("noperm").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":3}", XContentType.JSON)).actionGet();
 
         }
-        
+
         HttpResponse res = rh.executeGetRequest("/*:.abc,.abc/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
-        
+
         res = rh.executeGetRequest("/ba*bcuzh/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":12"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        
+
         res = rh.executeGetRequest("/*:.abc/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        
+
         res = rh.executeGetRequest("/*:xyz,xyz/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":2"));
-        
+
         //res = rh.executeGetRequest("/*noexist/_search", encodeBasicHeader("nagilum", "nagilum"));
-        //Assert.assertEquals(HttpStatus.SC_NOT_FOUND, res.getStatusCode()); 
-        
+        //Assert.assertEquals(HttpStatus.SC_NOT_FOUND, res.getStatusCode());
+
         res = rh.executeGetRequest("/*:.abc/_search", encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode()); 
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
-        
+
         res = rh.executeGetRequest("/*:xyz/_search", encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode()); 
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":2"));
-   
+
         res = rh.executeGetRequest("/.abc/_search", encodeBasicHeader("ccsresolv", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/xyz/_search", encodeBasicHeader("ccsresolv", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/*:.abc,.abc/_search", encodeBasicHeader("ccsresolv", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());  
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/*:xyz,xyz/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/*:.abc/_search", encodeBasicHeader("ccsresolv", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode()); 
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/*:xyz/_search", encodeBasicHeader("ccsresolv", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode()); 
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/*:noperm/_search", encodeBasicHeader("ccsresolv", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeGetRequest("/*:noperm/_search", encodeBasicHeader("ccsresolv", "nagilum"));
@@ -532,7 +532,7 @@ public class IndexIntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody(), resc.getBody().contains("\"total\":{\"value\":1"));
     }
-    
+
     @Test
     public void testIndexResolveIndicesAlias() throws Exception {
 
@@ -545,19 +545,19 @@ public class IndexIntegrationTests extends SingleClusterTest {
             tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("foo-index").alias("foo-alias"))).actionGet();
             tc.admin().indices().delete(new DeleteIndexRequest("foo-index")).actionGet();
         }
-        
+
         HttpResponse resc = rh.executeGetRequest("/_cat/aliases", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertFalse(resc.getBody().contains("foo"));
 
         resc = rh.executeGetRequest("/foo-alias/_search", encodeBasicHeader("foo_index", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/foo-index/_search", encodeBasicHeader("foo_index", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/foo-alias/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, resc.getStatusCode());
-        
+
     }
 
     @Test
@@ -576,30 +576,30 @@ public class IndexIntegrationTests extends SingleClusterTest {
 
         resc = rh.executeGetRequest("/*/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/**,-foo*/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/*,-foo*/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/*,-*security/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         resc = rh.executeGetRequest("/*,-*security/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/*,-*security,-foo*/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/_all,-*security/_search", encodeBasicHeader("foo_all", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("/_all,-*security/_search", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, resc.getStatusCode());
-        
+
     }
 }

@@ -53,7 +53,7 @@ public class SlowIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testCustomInterclusterRequestEvaluator() throws Exception {
-        
+
         final Settings settings = Settings.builder()
                 .put(ConfigConstants.SECURITY_INTERCLUSTER_REQUEST_EVALUATOR_CLASS, "org.opensearch.security.AlwaysFalseInterClusterRequestEvaluator")
                 .put("discovery.initial_state_timeout","8s")
@@ -69,9 +69,9 @@ public class SlowIntegrationTests extends SingleClusterTest {
         setup();
         Assert.assertEquals(clusterInfo.numNodes, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
         Assert.assertEquals(ClusterHealthStatus.GREEN, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
-    
-        
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+
+
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -81,24 +81,24 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("discovery.initial_state_timeout","8s")
                 .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost+":"+clusterInfo.nodePort)
                 .build();
-    
+
         log.debug("Start node client");
-        
+
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
             Assert.assertFalse(node.client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(String.valueOf(clusterInfo.numNodes+1))).actionGet().isTimedOut());
-            Assert.assertEquals(clusterInfo.numNodes+1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
+            Assert.assertEquals(clusterInfo.numNodes+1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
         }
     }
-    
+
     @SuppressWarnings("resource")
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate() throws Exception {
         setup();
         Assert.assertEquals(clusterInfo.numNodes, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
         Assert.assertEquals(ClusterHealthStatus.GREEN, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
-    
-        
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+
+
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -110,26 +110,26 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("kirk-keystore.jks"))
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"kirk")
                 .build();
-    
+
         log.debug("Start node client");
 
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
             Thread.sleep(10000);
-            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
+            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
         } catch (Exception e) {
             Assert.fail(e.toString());
         }
-         
+
     }
-    
+
     @SuppressWarnings("resource")
     @Test
     public void testNodeClientDisallowedWithNonServerCertificate2() throws Exception {
         setup();
         Assert.assertEquals(clusterInfo.numNodes, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
         Assert.assertEquals(ClusterHealthStatus.GREEN, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
-     
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
@@ -141,12 +141,12 @@ public class SlowIntegrationTests extends SingleClusterTest {
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("spock-keystore.jks"))
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS,"spock")
                 .build();
-    
+
         log.debug("Start node client");
-        
+
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
             Thread.sleep(10000);
-            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());    
+            Assert.assertEquals(1, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
         } catch (Exception e) {
             Assert.fail(e.toString());
         }

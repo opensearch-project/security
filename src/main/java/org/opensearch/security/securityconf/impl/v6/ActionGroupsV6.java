@@ -35,7 +35,7 @@ import org.opensearch.security.securityconf.Hideable;
 
 public class ActionGroupsV6 implements Hideable {
 
-   
+
     private boolean readonly;
     private boolean hidden;
     private List<String> permissions = Collections.emptyList();
@@ -43,7 +43,7 @@ public class ActionGroupsV6 implements Hideable {
     public ActionGroupsV6() {
         super();
     }
-    
+
     @JsonIgnore
     public boolean isReserved() {
         return readonly;
@@ -70,6 +70,6 @@ public class ActionGroupsV6 implements Hideable {
     public String toString() {
         return "ActionGroups [readonly=" + readonly + ", hidden=" + hidden + ", permissions=" + permissions + "]";
     }
-    
-    
+
+
 }

@@ -39,7 +39,7 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
         LocalDateTime today = LocalDateTime.now(ZoneId.of("UTC"));
         LocalDateTime tomorrow = LocalDateTime.now(ZoneId.of("UTC")).plusDays(1);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-        
+
         tc.index(new IndexRequest("logstash").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
                 .source("{\"@timestamp\": \""+formatter.format(yesterday)+"\"}", XContentType.JSON)).actionGet();
         tc.index(new IndexRequest("logstash").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
@@ -48,7 +48,7 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
                 .source("{\"@timestamp\": \""+formatter.format(tomorrow)+"\"}", XContentType.JSON)).actionGet();
     }
 
-    
+
     @Test
     public void testDlsDateMathQuery() throws Exception {
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS,true).build();
@@ -60,13 +60,13 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
     }
-    
+
     @Test
     public void testDlsDateMathQueryNotAllowed() throws Exception {
         setup();
@@ -77,7 +77,7 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("'now' is not allowed in DLS queries"));
         Assert.assertTrue(res.getBody().contains("error"));
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));

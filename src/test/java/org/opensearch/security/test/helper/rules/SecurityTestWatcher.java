@@ -30,7 +30,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 public class SecurityTestWatcher extends TestWatcher{
-  
+
 	@Override
   protected void starting(final Description description) {
       final String methodName = description.getMethodName();

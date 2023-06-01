@@ -60,7 +60,7 @@ public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator{
     	if(credentials == null) {
     	    return null;
     	}
-        
+
         String attrHeaderPrefix = settings.get("attr_header_prefix");
         if(Strings.isNullOrEmpty(attrHeaderPrefix)) {
             log.debug("attr_header_prefix is null. Skipping additional attribute extraction");
@@ -68,7 +68,7 @@ public class HTTPExtendedProxyAuthenticator extends HTTPProxyAuthenticator{
         } else if(log.isDebugEnabled()) {
             log.debug("attrHeaderPrefix {}", attrHeaderPrefix);
         }
-        
+
         credentials.addAttribute(ATTR_PROXY_USERNAME, credentials.getUsername());
         attrHeaderPrefix = attrHeaderPrefix.toLowerCase();
         for (Entry<String, List<String>> entry : request.getHeaders().entrySet()) {

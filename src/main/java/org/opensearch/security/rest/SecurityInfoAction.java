@@ -88,12 +88,12 @@ public class SecurityInfoAction extends BaseRestHandler {
             public void accept(RestChannel channel) throws Exception {
                 XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
-                
+
                 try {
 
-                    
+
                     final boolean verbose = request.paramAsBoolean("verbose", false);
-                    
+
                     final X509Certificate[] certs = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PEER_CERTIFICATES);
                     final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
@@ -112,7 +112,7 @@ public class SecurityInfoAction extends BaseRestHandler {
                     builder.field("principal", (String)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL));
                     builder.field("peer_certificates", certs != null && certs.length > 0 ? certs.length + "" : "0");
                     builder.field("sso_logout_url", (String)threadContext.getTransient(ConfigConstants.SSO_LOGOUT_URL));
-                    
+
                     if(user != null && verbose) {
                         try {
                             builder.field("size_of_user", RamUsageEstimator.humanReadableUnits(Base64Helper.serializeObject(user).length()));
@@ -122,8 +122,8 @@ public class SecurityInfoAction extends BaseRestHandler {
                             //ignore
                         }
                     }
-                    
-                    
+
+
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
@@ -144,7 +144,7 @@ public class SecurityInfoAction extends BaseRestHandler {
             }
         };
     }
-    
+
     @Override
     public String getName() {
         return "OpenSearch Security Info Action";

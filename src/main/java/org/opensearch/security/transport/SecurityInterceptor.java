@@ -142,7 +142,7 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
-                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)                            
+                            || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)
                             || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
                             || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
@@ -269,18 +269,18 @@ public class SecurityInterceptor {
 
         @Override
         public void handleResponse(T response) {
-        	
+
             ThreadContext threadContext = getThreadContext();
             Map<String, List<String>> responseHeaders = threadContext.getResponseHeaders();
 
             List<String> flsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
             List<String> dlsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
             List<String> maskedFieldsResponseHeader = responseHeaders.get(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
-            
+
             contextToRestore.restore();
 
             final boolean isDebugEnabled = log.isDebugEnabled();
-            if (response instanceof ClusterSearchShardsResponse) {           
+            if (response instanceof ClusterSearchShardsResponse) {
                 if (flsResponseHeader != null && !flsResponseHeader.isEmpty()) {
                     if (isDebugEnabled) {
                         log.debug("add flsResponseHeader as transient");

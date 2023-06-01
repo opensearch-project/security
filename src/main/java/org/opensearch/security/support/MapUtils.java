@@ -32,11 +32,11 @@ import java.util.List;
 import java.util.Map;
 
 public class MapUtils {
-    
+
     public static void deepTraverseMap(final Map<String, Object> map, final Callback cb) {
         deepTraverseMap(map, cb, null);
     }
-    
+
     private static void deepTraverseMap(final Map<String, Object> map, final Callback cb, final List<String> stack) {
         final List<String> localStack;
         if(stack == null) {
@@ -58,7 +58,7 @@ public class MapUtils {
             }
         }
     }
-    
+
     public static interface Callback {
         public void call(String key, Map<String, Object> map, List<String> stack);
     }

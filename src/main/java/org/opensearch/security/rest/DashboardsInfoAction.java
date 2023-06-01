@@ -92,9 +92,9 @@ public class DashboardsInfoAction extends BaseRestHandler {
             public void accept(RestChannel channel) throws Exception {
                 XContentBuilder builder = channel.newBuilder(); //NOSONAR
                 BytesRestResponse response = null;
-                
+
                 try {
-                    
+
                     final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
                     builder.startObject();
@@ -131,6 +131,6 @@ public class DashboardsInfoAction extends BaseRestHandler {
     public String getName() {
         return "Kibana Info Action";
     }
-    
-    
+
+
 }

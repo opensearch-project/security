@@ -42,7 +42,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_A
 public class NodesDnApiTest extends AbstractRestApiUnitTest {
     private HttpResponse response;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }

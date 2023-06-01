@@ -90,10 +90,10 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
         attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
         securityRoles.addAll(in.readList(StreamInput::readString));
     }
-    
+
     /**
      * Create a new authenticated user
-     * 
+     *
      * @param name The username (must not be null or empty)
      * @param roles Roles of which the user is a member off (maybe null)
      * @param customAttributes Custom attributes associated with this (maybe null)
@@ -111,7 +111,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
         if (roles != null) {
             this.addRoles(roles);
         }
-        
+
         if(customAttributes != null) {
             this.attributes.putAll(customAttributes.getAttributes());
         }
@@ -120,7 +120,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
 
     /**
      * Create a new authenticated user without roles and attributes
-     * 
+     *
      * @param name The username (must not be null or empty)
      * @throws IllegalArgumentException if name is null or empty
      */
@@ -155,7 +155,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
     }
 
     /**
-     * 
+     *
      * @return A unmodifiable set of the backend roles this user is a member of
      */
     public final Set<String> getRoles() {
@@ -164,7 +164,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
 
     /**
      * Associate this user with a backend role
-     * 
+     *
      * @param role The backend role
      */
     public final void addRole(final String role) {
@@ -173,7 +173,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
 
     /**
      * Associate this user with a set of backend roles
-     * 
+     *
      * @param roles The backend roles
      */
     public final void addRoles(final Collection<String> roles) {
@@ -184,7 +184,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
 
     /**
      * Check if this user is a member of a backend role
-     * 
+     *
      * @param role The backend role
      * @return true if this user is a member of the backend role, false otherwise
      */
@@ -194,7 +194,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
 
     /**
      * Associate this user with a set of backend roles
-     * 
+     *
      * @param roles The backend roles
      */
     public final void addAttributes(final Map<String,String> attributes) {
@@ -253,8 +253,8 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
     public final void setRequestedTenant(String requestedTenant) {
         this.requestedTenant = requestedTenant;
     }
-    
-    
+
+
     public boolean isInjected() {
         return isInjected;
     }
@@ -304,7 +304,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
 
     /**
      * Copy all backend roles from another user
-     * 
+     *
      * @param user The user from which the backend roles should be copied over
      */
     public final void copyRolesFrom(final User user) {
@@ -324,7 +324,7 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
 
     /**
      * Get the custom attributes associated with this user
-     * 
+     *
      * @return A modifiable map with all the current custom attributes associated with this user
      */
     public synchronized final Map<String, String> getCustomAttributesMap() {
@@ -333,13 +333,13 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
         }
         return attributes;
     }
-    
+
     public final void addSecurityRoles(final Collection<String> securityRoles) {
         if(securityRoles != null && this.securityRoles != null) {
             this.securityRoles.addAll(securityRoles);
         }
     }
-    
+
     public final Set<String> getSecurityRoles() {
         return this.securityRoles == null ? Collections.synchronizedSet(Collections.emptySet()) : Collections.unmodifiableSet(this.securityRoles);
     }

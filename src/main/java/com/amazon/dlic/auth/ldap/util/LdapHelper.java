@@ -38,9 +38,16 @@ import org.opensearch.SpecialPermission;
 public class LdapHelper {
 
     private static SearchFilter ALL = new SearchFilter("(objectClass=*)");
+
     @SuppressWarnings("removal")
-    public static List<LdapEntry> search(final Connection conn, final String unescapedDn, SearchFilter filter,
-            final SearchScope searchScope, final String[] returnAttributes, boolean shouldFollowReferrals) throws LdapException {
+    public static List<LdapEntry> search(
+        final Connection conn,
+        final String unescapedDn,
+        SearchFilter filter,
+        final SearchScope searchScope,
+        final String[] returnAttributes,
+        boolean shouldFollowReferrals
+    ) throws LdapException {
 
         final SecurityManager sm = System.getSecurityManager();
 
@@ -61,7 +68,7 @@ public class LdapHelper {
                     final SearchOperation search = new SearchOperation(conn);
 
                     if (shouldFollowReferrals) {
-                         // referrals will be followed to build the response
+                        // referrals will be followed to build the response
                         request.setReferralHandler(new SearchReferralHandler());
                     }
 
@@ -80,12 +87,17 @@ public class LdapHelper {
             } else {
                 throw new RuntimeException(e);
             }
-        }catch (InvalidNameException e) {
+        } catch (InvalidNameException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static LdapEntry lookup(final Connection conn, final String unescapedDn, final String[] returnAttributes, boolean shouldFollowReferrals) throws LdapException {
+    public static LdapEntry lookup(
+        final Connection conn,
+        final String unescapedDn,
+        final String[] returnAttributes,
+        boolean shouldFollowReferrals
+    ) throws LdapException {
 
         final List<LdapEntry> entries = search(conn, unescapedDn, ALL, SearchScope.OBJECT, returnAttributes, shouldFollowReferrals);
 
@@ -99,15 +111,15 @@ public class LdapHelper {
     private static String escapeDn(String dn) throws InvalidNameException {
         final LdapName dnName = new LdapName(dn);
         final List<Rdn> escaped = new ArrayList<>(dnName.size());
-        for(Rdn rdn: dnName.getRdns()) {
+        for (Rdn rdn : dnName.getRdns()) {
             escaped.add(new Rdn(rdn.getType(), escapeForwardSlash(rdn.getValue())));
         }
         return new LdapName(escaped).toString();
     }
 
     private static Object escapeForwardSlash(Object input) {
-        if(input != null && input instanceof String) {
-            return ((String)input).replace("/", "\\2f");
+        if (input != null && input instanceof String) {
+            return ((String) input).replace("/", "\\2f");
         } else {
             return input;
         }

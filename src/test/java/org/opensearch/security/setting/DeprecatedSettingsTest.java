@@ -29,7 +29,7 @@ public class DeprecatedSettingsTest {
     @Mock
     private DeprecationLogger logger;
 
-    private DeprecationLogger original; 
+    private DeprecationLogger original;
 
     @Before
     public void before() {

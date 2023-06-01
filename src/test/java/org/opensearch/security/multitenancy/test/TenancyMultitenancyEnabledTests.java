@@ -29,7 +29,7 @@ public class TenancyMultitenancyEnabledTests extends SingleClusterTest {
     private static final Header AS_REST_API_USER = encodeBasicHeader("user_rest_api_access", "user_rest_api_access");
     private static final Header AS_USER = encodeBasicHeader("admin", "admin");
     private static final Header ON_USER_TENANT = new BasicHeader("securitytenant", "__user__");
-    
+
     private static String createIndexPatternDoc(final String title) {
         return "{"+
         "\"type\" : \"index-pattern\","+
@@ -37,7 +37,7 @@ public class TenancyMultitenancyEnabledTests extends SingleClusterTest {
         "\"index-pattern\" : {"+
             "\"title\" : \"" + title + "\""+
             "}}";
-    } 
+    }
 
     @Override
     protected String getResourceFolder() {

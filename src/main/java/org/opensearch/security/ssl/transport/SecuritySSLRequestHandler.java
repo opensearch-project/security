@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package org.opensearch.security.ssl.transport;
@@ -47,7 +47,7 @@ import org.opensearch.transport.netty4.Netty4TcpChannel;
 
 public class SecuritySSLRequestHandler<T extends TransportRequest>
 implements TransportRequestHandler<T> {
-    
+
     private final String action;
     private final TransportRequestHandler<T> actualHandler;
     private final ThreadPool threadPool;
@@ -68,7 +68,7 @@ implements TransportRequestHandler<T> {
         this.SSLConfig = SSLConfig;
         this.errorHandler = errorHandler;
     }
-    
+
     protected ThreadContext getThreadContext() {
         if(threadPool == null) {
             return null;
@@ -80,7 +80,7 @@ implements TransportRequestHandler<T> {
     @Override
     public final void messageReceived(T request, TransportChannel channel, Task task) throws Exception {
         ThreadContext threadContext = getThreadContext() ;
-      
+
         if(SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final Exception exception = ExceptionUtils.createBadHeaderException();
             channel.sendResponse(exception);
@@ -91,12 +91,12 @@ implements TransportRequestHandler<T> {
         if (!channelType.equals("direct") && !channelType.equals("transport")) {
             channel = getInnerChannel(channel);
         }
- 
+
         if (!"transport".equals(channel.getChannelType())) { //netty4
             messageReceivedDecorate(request, actualHandler, channel, task);
             return;
         }
-        
+
         try {
 
             Netty4TcpChannel nettyChannel = null;
@@ -111,7 +111,7 @@ implements TransportRequestHandler<T> {
             } else {
                 throw new Exception("Invalid channel of type "+channel.getClass()+ " ("+channel.getChannelType()+")");
             }
-            
+
             final SslHandler sslhandler = (SslHandler) nettyChannel.getNettyChannel().pipeline().get("ssl_server");
 
             if (sslhandler == null) {
@@ -131,11 +131,11 @@ implements TransportRequestHandler<T> {
 
             final Certificate[] peerCerts = sslhandler.engine().getSession().getPeerCertificates();
             final Certificate[] localCerts = sslhandler.engine().getSession().getLocalCertificates();
-            
-            if (peerCerts != null 
-                    && peerCerts.length > 0 
-                    && peerCerts[0] instanceof X509Certificate 
-                    && localCerts != null && localCerts.length > 0 
+
+            if (peerCerts != null
+                    && peerCerts.length > 0
+                    && peerCerts[0] instanceof X509Certificate
+                    && localCerts != null && localCerts.length > 0
                     && localCerts[0] instanceof X509Certificate) {
                 final X509Certificate[] x509PeerCerts = Arrays.copyOf(peerCerts, peerCerts.length, X509Certificate[].class);
                 final X509Certificate[] x509LocalCerts = Arrays.copyOf(localCerts, localCerts.length, X509Certificate[].class);
@@ -168,7 +168,7 @@ implements TransportRequestHandler<T> {
             errorHandler.logError(e, request, action, task, 0);
             throw e;
         }
-        
+
     }
 
     protected TransportChannel getInnerChannel(TransportChannel transportChannel) throws Exception {
@@ -182,12 +182,12 @@ implements TransportRequestHandler<T> {
             throw new RuntimeException("Unknown channel type " + transportChannel.getChannelType() + " does not implement getInnerChannel method.");
         }
     }
-    
+
     protected void addAdditionalContextValues(final String action, final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts, final String principal)
             throws Exception {
         // no-op
     }
-    
+
     protected void messageReceivedDecorate(final T request, final TransportRequestHandler<T> actualHandler, final TransportChannel transportChannel, Task task) throws Exception {
         actualHandler.messageReceived(request, transportChannel, task);
     }

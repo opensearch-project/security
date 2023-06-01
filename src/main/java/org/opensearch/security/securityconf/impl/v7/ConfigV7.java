@@ -53,7 +53,7 @@ public class ConfigV7 {
 
     public ConfigV7(ConfigV6 c6) {
         dynamic = new Dynamic();
-        
+
         dynamic.filtered_alias_mode = c6.dynamic.filtered_alias_mode;
         dynamic.disable_rest_auth = c6.dynamic.disable_rest_auth;
         dynamic.disable_intertransport_auth = c6.dynamic.disable_intertransport_auth;
@@ -64,40 +64,40 @@ public class ConfigV7 {
         dynamic.multi_rolespan_enabled = c6.dynamic.multi_rolespan_enabled;
         dynamic.hosts_resolver_mode = c6.dynamic.hosts_resolver_mode;
         dynamic.transport_userrname_attribute = c6.dynamic.transport_userrname_attribute;
-        
+
         dynamic.kibana = new Kibana();
-        
+
         dynamic.kibana.index = c6.dynamic.kibana.index;
         dynamic.kibana.multitenancy_enabled = c6.dynamic.kibana.multitenancy_enabled;
         dynamic.kibana.private_tenant_enabled = true;
         dynamic.kibana.default_tenant = "";
         dynamic.kibana.server_username = c6.dynamic.kibana.server_username;
-        
+
         dynamic.http = new Http();
-        
+
         dynamic.http.anonymous_auth_enabled = c6.dynamic.http.anonymous_auth_enabled;
-        
+
         dynamic.http.xff = new Xff();
-        
+
         dynamic.http.xff.enabled = c6.dynamic.http.xff.enabled;
         dynamic.http.xff.internalProxies = c6.dynamic.http.xff.internalProxies;
         dynamic.http.xff.remoteIpHeader = c6.dynamic.http.xff.remoteIpHeader;
-        
+
         dynamic.authc = new Authc();
-        
+
         dynamic.authc.domains.putAll(c6.dynamic.authc.getDomains().entrySet().stream().collect(Collectors.toMap(
-                entry -> entry.getKey(), 
+                entry -> entry.getKey(),
                 entry -> new AuthcDomain(entry.getValue()))));
-        
+
         dynamic.authz = new Authz();
-        
+
         dynamic.authz.domains.putAll(c6.dynamic.authz.getDomains().entrySet().stream().collect(Collectors.toMap(
-                entry -> entry.getKey(), 
+                entry -> entry.getKey(),
                 entry -> new AuthzDomain(entry.getValue()))));
-        
+
         dynamic.auth_failure_listeners = new AuthFailureListeners();
         dynamic.auth_failure_listeners.listeners.putAll(c6.dynamic.auth_failure_listeners.getListeners().entrySet().stream().collect(Collectors.toMap(
-                entry -> entry.getKey(), 
+                entry -> entry.getKey(),
                 entry -> new AuthFailureListener(entry.getValue()))));
     }
 
@@ -125,7 +125,7 @@ public class ConfigV7 {
         public String hosts_resolver_mode = "ip-only";
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
-    
+
         @Override
         public String toString() {
             return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
@@ -151,9 +151,9 @@ public class ConfigV7 {
                     server_username + ", opendistro_role=" + opendistro_role
             + ", index=" + index + "]";
         }
-        
-        
-        
+
+
+
     }
 
     public static class Http {
@@ -163,8 +163,8 @@ public class ConfigV7 {
         public String toString() {
             return "Http [anonymous_auth_enabled=" + anonymous_auth_enabled + ", xff=" + xff + "]";
         }
-        
-        
+
+
     }
 
     public static class AuthFailureListeners {
@@ -181,7 +181,7 @@ public class ConfigV7 {
             return listeners;
         }
 
-        
+
     }
 
     public static class AuthFailureListener {
@@ -192,9 +192,9 @@ public class ConfigV7 {
         public int block_expiry_seconds = 60 * 10;
         public int max_blocked_clients = 100_000;
         public int max_tracked_clients = 100_000;
-        
-        
-        
+
+
+
         public AuthFailureListener() {
             super();
         }
@@ -209,7 +209,7 @@ public class ConfigV7 {
             this.max_blocked_clients = v6.max_blocked_clients;
             this.max_tracked_clients = v6.max_tracked_clients;
         }
-        
+
         @JsonIgnore
         public String asJson() {
             try {
@@ -235,12 +235,12 @@ public class ConfigV7 {
         public String toString() {
             return "Xff [enabled=" + enabled + ", internalProxies=" + internalProxies + ", remoteIpHeader=" + remoteIpHeader+"]";
         }
-        
-        
+
+
     }
 
     public static class Authc {
-        
+
         @JsonIgnore
         private final Map<String, AuthcDomain> domains = new HashMap<>();
 
@@ -258,9 +258,9 @@ public class ConfigV7 {
         public String toString() {
             return "Authc [domains=" + domains + "]";
         }
-        
-        
-        
+
+
+
     }
 
     public static class AuthcDomain {
@@ -274,11 +274,11 @@ public class ConfigV7 {
         public HttpAuthenticator http_authenticator = new HttpAuthenticator();
         public AuthcBackend authentication_backend = new AuthcBackend();
         public String description;
-        
+
         public AuthcDomain() {
             super();
         }
-        
+
         public AuthcDomain(ConfigV6.AuthcDomain v6) {
             super();
             http_enabled = v6.http_enabled && v6.enabled;
@@ -299,8 +299,8 @@ public class ConfigV7 {
                     + ", http_authenticator=" + http_authenticator + ", authentication_backend=" + authentication_backend + ", description="
                     + description + "]";
         }
-        
-        
+
+
     }
 
     public static class HttpAuthenticator {
@@ -308,7 +308,7 @@ public class ConfigV7 {
         public boolean challenge = true;
         public String type;
         public Map<String, Object> config = Collections.emptyMap();
-        
+
         public HttpAuthenticator() {
             super();
         }
@@ -335,16 +335,16 @@ public class ConfigV7 {
         public String toString() {
             return "HttpAuthenticator [challenge=" + challenge + ", type=" + type + ", config=" + config + "]";
         }
-        
-        
+
+
     }
 
     public static class AuthzBackend {
         public String type = "noop";
         public Map<String, Object> config = Collections.emptyMap();
-        
-        
-        
+
+
+
         public AuthzBackend() {
             super();
         }
@@ -373,16 +373,16 @@ public class ConfigV7 {
         public String toString() {
             return "AuthzBackend [type=" + type + ", config=" + config + "]";
         }
-        
-        
+
+
     }
 
     public static class AuthcBackend {
         public String type = InternalAuthenticationBackend.class.getName();
         public Map<String, Object> config = Collections.emptyMap();
-        
-        
-        
+
+
+
         public AuthcBackend() {
             super();
         }
@@ -411,8 +411,8 @@ public class ConfigV7 {
         public String toString() {
             return "AuthcBackend [type=" + type + ", config=" + config + "]";
         }
-        
-        
+
+
     }
 
     public static class Authz {
@@ -433,8 +433,8 @@ public class ConfigV7 {
         public String toString() {
             return "Authz [domains=" + domains + "]";
         }
-        
-        
+
+
     }
 
     public static class AuthzDomain {
@@ -444,11 +444,11 @@ public class ConfigV7 {
         public boolean transport_enabled = true;
         public AuthzBackend authorization_backend = new AuthzBackend();
         public String description;
-        
+
         public AuthzDomain() {
             super();
         }
-        
+
         public AuthzDomain(ConfigV6.AuthzDomain v6) {
             http_enabled = v6.http_enabled && v6.enabled;
             transport_enabled = v6.transport_enabled && v6.enabled;
@@ -461,8 +461,8 @@ public class ConfigV7 {
             return "AuthzDomain [http_enabled=" + http_enabled + ", transport_enabled=" + transport_enabled
                     + ", authorization_backend=" + authorization_backend + ", description=" + description + "]";
         }
-        
-        
+
+
     }
-   
+
 }

@@ -36,16 +36,16 @@ import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.common.io.stream.Writeable;
 
 public class ModuleInfo implements Serializable, Writeable{
-	
+
 	private static final long serialVersionUID = -1077651823194285138L;
-	
+
 	private ModuleType moduleType;
 	private String classname;
 	private String classpath = "";
 	private String version = "";
 	private String buildTime = "";
 	private String gitsha1 = "";
-	
+
 	public ModuleInfo(ModuleType moduleType, String classname) {
 		assert(moduleType != null);
 		this.moduleType = moduleType;
@@ -73,7 +73,7 @@ public class ModuleInfo implements Serializable, Writeable{
 	public void setBuildTime(String buildTime) {
 		this.buildTime = buildTime;
 	}
-	
+
 	public String getGitsha1() {
         return gitsha1;
     }
@@ -85,7 +85,7 @@ public class ModuleInfo implements Serializable, Writeable{
     public ModuleType getModuleType() {
 		return moduleType;
 	}
-	
+
 	public Map<String, String> getAsMap() {
 		Map<String, String> infoMap = new HashMap<>();
 		infoMap.put("type", moduleType.name());
@@ -99,7 +99,7 @@ public class ModuleInfo implements Serializable, Writeable{
 		infoMap.put("gitsha1", this.gitsha1);
 		return infoMap;
 	}
-	
+
 	@Override
 	public void writeTo(StreamOutput out) throws IOException {
         out.writeEnum(moduleType);
@@ -109,8 +109,8 @@ public class ModuleInfo implements Serializable, Writeable{
         out.writeString(buildTime);
         out.writeString(gitsha1);
 	}
-	
- 
+
+
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
@@ -180,5 +180,5 @@ public class ModuleInfo implements Serializable, Writeable{
     public String toString() {
         return "Module [type=" + this.moduleType.name() + ", implementing class=" + this.classname + "]";
     }
-    
+
 }

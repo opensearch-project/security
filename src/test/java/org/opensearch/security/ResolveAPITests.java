@@ -34,7 +34,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 
 
 public class ResolveAPITests extends SingleClusterTest {
-    
+
     protected final Logger log = LogManager.getLogger(this.getClass());
 
     @Test

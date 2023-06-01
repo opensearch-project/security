@@ -68,7 +68,7 @@ public class IndexPatternTests {
     @After
     public void after() {
         verifyNoMoreInteractions(user, resolver, clusterService);
-    } 
+    }
 
     @Test
     public void testCtor() {
@@ -78,7 +78,7 @@ public class IndexPatternTests {
     /** Ensure that concreteIndexNames sends correct parameters are sent to getResolvedIndexPattern */
     @Test
     public void testConcreteIndexNamesOverload() {
-        doReturn(ImmutableSet.of("darn")).when(ip).getResolvedIndexPattern(user, resolver, clusterService, false);    
+        doReturn(ImmutableSet.of("darn")).when(ip).getResolvedIndexPattern(user, resolver, clusterService, false);
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -93,7 +93,7 @@ public class IndexPatternTests {
     @Test
     public void testAttemptResolveIndexNamesOverload() {
         doReturn(ImmutableSet.of("yarn")).when(ip).getResolvedIndexPattern(user, resolver, clusterService, true);
-    
+
         final Set<String> results = ip.attemptResolveIndexNames(user, resolver, clusterService);
 
         assertThat(results, contains("yarn"));
@@ -172,7 +172,7 @@ public class IndexPatternTests {
         verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"));
         verify(resolver).concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"));
     }
-    
+
     /** Verify attemptResolveIndexNames with multiple aliases */
     @Test
     public void testMultipleConcreteAliasedAndUnresolved() {
@@ -200,7 +200,7 @@ public class IndexPatternTests {
         Arrays.stream(indices).forEach(indexShorthand -> {
             final IndexAbstraction indexAbstraction = mock(IndexAbstraction.class);
             when(indexAbstraction.getType()).thenReturn(indexShorthand.type);
-            indexMap.put(indexShorthand.name, indexAbstraction);    
+            indexMap.put(indexShorthand.name, indexAbstraction);
         });
 
         final Metadata mockMetadata = mock(Metadata.class, withSettings().strictness(Strictness.LENIENT));

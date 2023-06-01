@@ -83,7 +83,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
         final Settings settings = Settings.builder()
             .put("plugins.security.audit.type", TestAuditlogImpl.class.getName())
             .put(FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKeyWithNamespace(), "NONE")
-            .build(); 
+            .build();
         verifyAuthenticated(settings);
     }
 
@@ -133,7 +133,7 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
             final RuntimeException ex = Assert.assertThrows(RuntimeException.class,
                 () -> nonSslRestHelper().executeGetRequest("_search", encodeBasicHeader("admin", "admin")));
             Assert.assertEquals("org.apache.hc.core5.http.NoHttpResponseException", ex.getCause().getClass().getName());
-        }, 1); /* no retry on NotSslRecordException exceptions */ 
+        }, 1); /* no retry on NotSslRecordException exceptions */
 
         // All of the messages should be the same as the http client is attempting multiple times.
         messages.stream().forEach((message) -> {
