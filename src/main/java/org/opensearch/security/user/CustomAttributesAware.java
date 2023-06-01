@@ -29,6 +29,6 @@ package org.opensearch.security.user;
 import java.util.Map;
 
 public interface CustomAttributesAware {
-    
+
     Map<String, String> getCustomAttributesMap();
 }

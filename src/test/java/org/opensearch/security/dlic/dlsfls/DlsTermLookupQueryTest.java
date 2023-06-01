@@ -545,7 +545,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
 		setup(new DynamicSecurityConfig().setConfig("securityconfig_tlq.yml")
 				.setSecurityInternalUsers("internal_users_tlq.yml").setSecurityRoles("roles_tlq.yml")
 				.setSecurityRolesMapping("roles_mapping_tlq.yml"));
-		
+
 		String body = ""
 				+ "		{\n"
 				+ "		  \"aggs\": {\n"
@@ -580,7 +580,7 @@ public class DlsTermLookupQueryTest extends AbstractDlsFlsTest {
 			Assert.assertTrue("Expected doc count in bucket " + bucketName + " to be 2", bucket.getDocCount() == 2);
 		}
 		// expect FFF to be absent
-		Assert.assertNull("Expected bucket FFF to be absent", agg.getBucketByKey("FFF"));		
+		Assert.assertNull("Expected bucket FFF to be absent", agg.getBucketByKey("FFF"));
 	}
 
 

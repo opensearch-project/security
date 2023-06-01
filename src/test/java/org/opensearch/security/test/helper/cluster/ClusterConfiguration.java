@@ -47,7 +47,7 @@ import org.opensearch.transport.Netty4ModulePlugin;
 public enum ClusterConfiguration {
 	//first one needs to be a cluster manager
     //HUGE(new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(false, true,false), new NodeSettings(false, true, false)),
-	
+
     //3 nodes (1m, 2d)
     DEFAULT(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true)),
 
@@ -65,7 +65,7 @@ public enum ClusterConfiguration {
 
     //1 node (1md)
 	SINGLENODE(new NodeSettings(true, true)),
-    
+
 	//4 node (1m, 2d, 1c)
 	CLIENTNODE(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, false)),
 
@@ -73,50 +73,50 @@ public enum ClusterConfiguration {
     USERINJECTOR(new NodeSettings(true, false, Lists.newArrayList(UserInjectorPlugin.class)), new NodeSettings(false, true, Lists.newArrayList(UserInjectorPlugin.class)), new NodeSettings(false, true, Lists.newArrayList(UserInjectorPlugin.class)));
 
 	private List<NodeSettings> nodeSettings = new LinkedList<>();
-	
+
 	private ClusterConfiguration(NodeSettings ... settings) {
 		nodeSettings.addAll(Arrays.asList(settings));
 	}
-	
+
 	public  List<NodeSettings> getNodeSettings() {
 		return Collections.unmodifiableList(nodeSettings);
 	}
-	
+
 	public  List<NodeSettings> getClusterManagerNodeSettings() {
         return Collections.unmodifiableList(nodeSettings.stream().filter(a->a.clusterManagerNode).collect(Collectors.toList()));
     }
-	
+
 	public  List<NodeSettings> getNonClusterManagerNodeSettings() {
         return Collections.unmodifiableList(nodeSettings.stream().filter(a->!a.clusterManagerNode).collect(Collectors.toList()));
     }
-	
+
 	public int getNodes() {
         return nodeSettings.size();
     }
-	
+
 	public int getClusterManagerNodes() {
         return (int) nodeSettings.stream().filter(a->a.clusterManagerNode).count();
     }
-	
+
 	public int getDataNodes() {
         return (int) nodeSettings.stream().filter(a->a.dataNode).count();
     }
-	
+
 	public int getClientNodes() {
         return (int) nodeSettings.stream().filter(a->!a.clusterManagerNode && !a.dataNode).count();
     }
-	
+
 	public static class NodeSettings {
 		public boolean clusterManagerNode;
 		public boolean dataNode;
 		public List<Class<? extends Plugin>> plugins = Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MatrixAggregationModulePlugin.class, MustacheModulePlugin.class, ParentJoinModulePlugin.class, PercolatorModulePlugin.class, ReindexModulePlugin.class);
-		
+
 		public NodeSettings(boolean clusterManagerNode, boolean dataNode) {
 			super();
 			this.clusterManagerNode = clusterManagerNode;
 			this.dataNode = dataNode;
 		}
-        
+
 		public NodeSettings(boolean clusterManagerNode, boolean dataNode, List<Class<? extends Plugin>> additionalPlugins) {
             this(clusterManagerNode, dataNode);
             this.plugins.addAll(additionalPlugins);
@@ -126,7 +126,7 @@ public enum ClusterConfiguration {
 			this.plugins.remove(pluginToRemove);
 			return this;
 		}
-		
+
 		public Class<? extends Plugin>[] getPlugins() {
 		    return plugins.toArray(new Class[0] );
 		}

@@ -16,7 +16,7 @@ import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
 
 class CxfTestTools {
 
-	static String toJson(JsonMapObject jsonMapObject) {
-		return new JsonMapObjectReaderWriter().toJson(jsonMapObject);
-	}
+    static String toJson(JsonMapObject jsonMapObject) {
+        return new JsonMapObjectReaderWriter().toJson(jsonMapObject);
+    }
 }

@@ -22,7 +22,7 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     protected String getEndpoint() {
         return PLUGINS_PREFIX + "/dashboardsinfo";
     }

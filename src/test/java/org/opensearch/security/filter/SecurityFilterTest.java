@@ -119,7 +119,7 @@ public class SecurityFilterTest {
         final ArgumentCaptor<OpenSearchSecurityException> cap = ArgumentCaptor.forClass(OpenSearchSecurityException.class);
         verify(listener).onFailure(cap.capture());
 
-        assertThat("The cause should never be included as it will leak to callers", cap.getValue().getCause(), nullValue()); 
+        assertThat("The cause should never be included as it will leak to callers", cap.getValue().getCause(), nullValue());
         assertThat("Make sure the cause exception wasn't toStringed in the method", cap.getValue().getMessage(), not(containsString("ABC!")));
 
         verifyNoMoreInteractions(auditLog, listener);

@@ -110,31 +110,31 @@ public class UtilTests {
     public void testMapFromArray() {
         Map<Object, Object> map = SecurityUtils.mapFromArray((Object)null);
         assertTrue(map == null);
-        
+
         map = SecurityUtils.mapFromArray("key");
         assertTrue(map == null);
 
         map = SecurityUtils.mapFromArray("key", "value", "otherkey");
         assertTrue(map == null);
-        
+
         map = SecurityUtils.mapFromArray("key", "value");
-        assertNotNull(map);        
+        assertNotNull(map);
         assertEquals(1, map.size());
         assertEquals("value", map.get("key"));
 
         map = SecurityUtils.mapFromArray("key", "value", "key", "value");
-        assertNotNull(map);        
+        assertNotNull(map);
         assertEquals(1, map.size());
         assertEquals("value", map.get("key"));
 
         map = SecurityUtils.mapFromArray("key1", "value1", "key2", "value2");
-        assertNotNull(map);        
+        assertNotNull(map);
         assertEquals(2, map.size());
         assertEquals("value1", map.get("key1"));
         assertEquals("value2", map.get("key2"));
 
     }
-    
+
     @Test
     public void testEnvReplace() {
         Settings settings = Settings.EMPTY;
@@ -150,7 +150,7 @@ public class UtilTests {
 
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
-        
+
         boolean checked = false;
 
         for(String k: env.keySet()) {
@@ -166,10 +166,10 @@ public class UtilTests {
             assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc."+k+"}",settings), val.toCharArray()));
             checked = true;
         }
-        
+
         assertTrue(checked);
     }
-    
+
     @Test
     public void testNoEnvReplace() {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
@@ -182,7 +182,7 @@ public class UtilTests {
         assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
-        
+
         for(String k: env.keySet()) {
             assertEquals("abv${env."+k+"}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
             assertEquals("abv${"+k+"}xyz", SecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));

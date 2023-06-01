@@ -136,7 +136,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         final List<AuditMessage> mappingCreation = messages.stream().filter(msg -> "indices:admin/mapping/auto_put".equals(msg.getPrivilege())).collect(Collectors.toList());
         assertThat(mappingCreation.size(), anyOf(equalTo(4), equalTo(2)));
-       
+
         // disable compliance
         auditConfig = new AuditConfig(true, AuditConfig.Filter.DEFAULT , ComplianceConfig.from(ImmutableMap.of("enabled", false, "write_watched_indices", Collections.singletonList("emp")), additionalSettings));
         updateAuditConfig(AuditTestUtils.createAuditPayload(auditConfig));

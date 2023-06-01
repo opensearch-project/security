@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package org.opensearch.security.ssl;
@@ -122,7 +122,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             this.sks = null;
             this.configPath = null;
             SSLConfig = new SSLConfig(false, false);
-            
+
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
                 @Override
                 public Object run() {
@@ -130,36 +130,36 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                     return null;
                 }
             });
-            
-            
+
+
             return;
         }
         SSLConfig = new SSLConfig(settings);
         this.configPath = configPath;
-        
+
         if(this.configPath != null) {
             log.info("OpenSearch Config path is {}", this.configPath.toAbsolutePath());
         } else {
             log.info("OpenSearch Config path is not set");
         }
-        
+
         final boolean allowClientInitiatedRenegotiation = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION, false);
         final boolean rejectClientInitiatedRenegotiation = Boolean.parseBoolean(System.getProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION));
-   
+
         if(allowClientInitiatedRenegotiation && !rejectClientInitiatedRenegotiation) {
             final String renegoMsg = "Client side initiated TLS renegotiation enabled. This can open a vulnerablity for DoS attacks through client side initiated TLS renegotiation.";
             log.warn(renegoMsg);
             System.out.println(renegoMsg);
             System.err.println(renegoMsg);
-        } else {   
+        } else {
             if(!rejectClientInitiatedRenegotiation) {
-                
+
                 final SecurityManager sm = System.getSecurityManager();
 
                 if (sm != null) {
                     sm.checkPermission(new SpecialPermission());
                 }
-                
+
                 AccessController.doPrivileged(new PrivilegedAction<Object>() {
                     @Override
                     public Object run() {
@@ -198,7 +198,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         NonValidatingObjectMapper.inject(injectableValues);
 
         client = !"node".equals(this.settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE));
-        
+
         httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED,
                 SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT);
         transportSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED,
@@ -211,7 +211,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             System.out.println("SSL not activated for http and/or transport.");
             System.err.println("SSL not activated for http and/or transport.");
         }
-        
+
         if(ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
             this.sks = new ExternalSecurityKeyStore(settings);
         } else {
@@ -223,9 +223,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
             PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
             NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
-        
+
         if (!client && httpSSLEnabled) {
-            
+
             final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
             final SecuritySSLNettyHttpServerTransport sgsnht =
                     new SecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool,
@@ -233,7 +233,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                             sharedGroupFactory);
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
-            
+
         }
         return Collections.emptyMap();
 
@@ -243,35 +243,35 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
             IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
-        
+
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
-        
+
         if (!client) {
             handlers.add(new SecuritySSLInfoAction(settings, configPath, restController, sks, Objects.requireNonNull(principalExtractor)));
         }
-        
+
         return handlers;
     }
-    
-    
-    
+
+
+
     @Override
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
-        
+
         if(transportSSLEnabled && !client) {
             interceptors.add(new SecuritySSLTransportInterceptor(settings, null, null, SSLConfig, NOOP_SSL_EXCEPTION_HANDLER));
         }
-        
+
         return interceptors;
     }
 
-    
-    
+
+
     @Override
     public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, PageCacheRecycler pageCacheRecycler,
             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
-        
+
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
             transports.put("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
@@ -290,11 +290,11 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
 
         final List<Object> components = new ArrayList<>(1);
-        
+
         if(client) {
             return components;
         }
-        
+
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
         if(principalExtractorClass == null) {
@@ -309,9 +309,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 throw new OpenSearchException(e);
             }
         }
-        
+
         components.add(principalExtractor);
-        
+
         return components;
     }
 
@@ -389,24 +389,24 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     @Override
     public Settings additionalSettings() {
        final Settings.Builder builder = Settings.builder();
-        
+
        if(!client && httpSSLEnabled) {
-           
+
            if(settings.get("http.compression") == null) {
                builder.put("http.compression", false);
                log.info("Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in opensearch.yml");
            }
-           
+
            builder.put(NetworkModule.HTTP_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport");
        }
-        
+
        if (transportSSLEnabled) {
            builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
        }
-        
+
         return builder.build();
     }
-    
+
     @Override
     public List<String> getSettingsFilter() {
         List<String> settingsFilter = new ArrayList<>();

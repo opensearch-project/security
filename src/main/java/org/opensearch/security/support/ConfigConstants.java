@@ -188,7 +188,7 @@ public class ConfigConstants {
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_CIPHERS = "enabled_ssl_ciphers";
     public static final String SECURITY_AUDIT_EXTERNAL_OPENSEARCH_ENABLED_SSL_PROTOCOLS = "enabled_ssl_protocols";
 
-    // Webhooks    
+    // Webhooks
     public static final String SECURITY_AUDIT_WEBHOOK_URL = "webhook.url";
     public static final String SECURITY_AUDIT_WEBHOOK_FORMAT = "webhook.format";
     public static final String SECURITY_AUDIT_WEBHOOK_SSL_VERIFY = "webhook.ssl.verify";

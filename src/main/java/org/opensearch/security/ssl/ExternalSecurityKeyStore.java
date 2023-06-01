@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package org.opensearch.security.ssl;
@@ -45,13 +45,13 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
         this.settings = Objects.requireNonNull(settings);
         final String externalContextId = settings
                 .get(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
-                
+
         if(externalContextId == null || externalContextId.length() == 0) {
             throw new OpenSearchException("no external ssl context id was set");
         }
-        
+
         externalSslContext = contextMap.get(externalContextId);
-        
+
         if(externalSslContext == null) {
             throw new OpenSearchException("no external ssl context for id "+externalContextId);
         }
@@ -70,7 +70,7 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
     @Override
     public SSLEngine createClientTransportSSLEngine(final String peerHost, final int peerPort) throws SSLException {
         if (peerHost != null) {
-            final SSLEngine engine = externalSslContext.createSSLEngine(peerHost, peerPort);            
+            final SSLEngine engine = externalSslContext.createSSLEngine(peerHost, peerPort);
             final SSLParameters sslParams = new SSLParameters();
             sslParams.setEndpointIdentificationAlgorithm("HTTPS");
             engine.setSSLParameters(sslParams);
@@ -135,31 +135,31 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
     public static void registerExternalSslContext(String id, SSLContext externalSsslContext) {
         contextMap.put(Objects.requireNonNull(id), Objects.requireNonNull(externalSsslContext));
     }
-    
+
     public static boolean hasExternalSslContext(Settings settings) {
-        
+
         final String externalContextId = settings
                 .get(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
-                
+
         if(externalContextId == null || externalContextId.length() == 0) {
             return false;
         }
-        
+
         return contextMap.containsKey(externalContextId);
     }
-    
+
     public static boolean hasExternalSslContext(String id) {
         return contextMap.containsKey(id);
     }
-    
+
     public static void removeExternalSslContext(String id) {
         contextMap.remove(id);
     }
-    
+
     public static void removeAllExternalSslContexts() {
         contextMap.clear();
     }
-    
+
     private String[] evalSecure(String[] engineEnabled, String[] secure) {
         List<String> tmp = new ArrayList<>(Arrays.asList(engineEnabled));
         tmp.retainAll(Arrays.asList(secure));

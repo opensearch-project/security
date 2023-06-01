@@ -18,7 +18,7 @@ import org.junit.Test;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class SecurityApiAccessTest extends AbstractRestApiUnitTest {
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }

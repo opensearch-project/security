@@ -140,7 +140,7 @@ public class ConfigModelV7 extends ConfigModel {
                 //if (en.isEmpty()) {
                 // try SG6 format including readonly and permissions key
                 //  en = actionGroups.getAsList(DotPath.of(entry + "." + ConfigConstants.CONFIGKEY_ACTION_GROUPS_PERMISSIONS));
-                //}
+                    //}
 
                 if(!actionGroups.getCEntries().containsKey(entry)) {
                     return Collections.emptySet();
@@ -232,13 +232,13 @@ public class ConfigModelV7 extends ConfigModel {
                         final List<String> fls = permittedAliasesIndex.getFls();
                         final List<String> maskedFields = permittedAliasesIndex.getMasked_fields();
 
-                        for(String pat: permittedAliasesIndex.getIndex_patterns()) {
-                            IndexPattern _indexPattern = new IndexPattern(pat);
-                            _indexPattern.setDlsQuery(dls);
-                            _indexPattern.addFlsFields(fls);
-                            _indexPattern.addMaskedFields(maskedFields);
-                            _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
-    
+                            for(String pat: permittedAliasesIndex.getIndex_patterns()) {
+                                IndexPattern _indexPattern = new IndexPattern(pat);
+                                _indexPattern.setDlsQuery(dls);
+                                _indexPattern.addFlsFields(fls);
+                                _indexPattern.addMaskedFields(maskedFields);
+                                _indexPattern.addPerm(agr.resolvedActions(permittedAliasesIndex.getAllowed_actions()));
+
                                 /*for(Entry<String, List<String>> type: permittedAliasesIndex.getValue().getTypes(-).entrySet()) {
                                     TypePerm typePerm = new TypePerm(type.getKey());
                                     final List<String> perms = type.getValue();
@@ -246,14 +246,14 @@ public class ConfigModelV7 extends ConfigModel {
                                     _indexPattern.addTypePerms(typePerm);
                                 }*/
 
-                            _securityRole.addIndexPattern(_indexPattern);
+                                _securityRole.addIndexPattern(_indexPattern);
+
+                            }
 
                         }
 
-                    }
 
-
-                    return _securityRole.build();
+                        return _securityRole.build();
                 }
             });
 
@@ -563,12 +563,12 @@ public class ConfigModelV7 extends ConfigModel {
                 //what if we cannot resolve one (for create purposes)
                 final boolean patternMatch = p.getPerms().matchAll(actions);
 
-                //                final Set<TypePerm> tperms = p.getTypePerms();
-                //                for (TypePerm tp : tperms) {
-                //                    if (WildcardMatcher.matchAny(tp.typePattern, resolved.getTypes(-).toArray(new String[0]))) {
-                //                        patternMatch = WildcardMatcher.matchAll(tp.perms.toArray(new String[0]), actions);
-                //                    }
-                //                }
+//                final Set<TypePerm> tperms = p.getTypePerms();
+//                for (TypePerm tp : tperms) {
+//                    if (WildcardMatcher.matchAny(tp.typePattern, resolved.getTypes(-).toArray(new String[0]))) {
+//                        patternMatch = WildcardMatcher.matchAll(tp.perms.toArray(new String[0]), actions);
+//                    }
+//                }
                 if (patternMatch) {
                     //resolved but can contain patterns for nonexistent indices
                     final WildcardMatcher permitted = WildcardMatcher.from(p.attemptResolveIndexNames(user, resolver, cs)); //maybe they do not exist
