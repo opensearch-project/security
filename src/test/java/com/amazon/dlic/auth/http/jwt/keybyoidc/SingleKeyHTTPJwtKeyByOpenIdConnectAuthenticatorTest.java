@@ -23,186 +23,185 @@ import org.opensearch.security.util.FakeRestRequest;
 
 public class SingleKeyHTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 
-	@Test
-	public void basicTest() throws Exception {
-		MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1);
-		try {
-			Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
+    @Test
+    public void basicTest() throws Exception {
+        MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1);
+        try {
+            Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-			HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
-			AuthCredentials creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1),
-							new HashMap<String, String>()),
-					null);
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<String, String>()),
+                null
+            );
 
-			Assert.assertNotNull(creds);
-			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
-			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(4, creds.getAttributes().size());
+            Assert.assertNotNull(creds);
+            Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
+            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(0, creds.getBackendRoles().size());
+            Assert.assertEquals(4, creds.getAttributes().size());
 
-		} finally {
-			try {
-				mockIdpServer.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+        } finally {
+            try {
+                mockIdpServer.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
-	@Test
-	public void wrongSigTest() throws Exception {
-		MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1);
-		try {
-			Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
+    @Test
+    public void wrongSigTest() throws Exception {
+        MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1);
+        try {
+            Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-			HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
-			AuthCredentials creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_X),
-							new HashMap<String, String>()),
-					null);
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_X), new HashMap<String, String>()),
+                null
+            );
 
-			Assert.assertNull(creds);
+            Assert.assertNull(creds);
 
-		} finally {
-			try {
-				mockIdpServer.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+        } finally {
+            try {
+                mockIdpServer.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
-	@Test
-	public void noAlgTest() throws Exception {
-		MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1_NO_ALG);
-		try {
-			Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
+    @Test
+    public void noAlgTest() throws Exception {
+        MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1_NO_ALG);
+        try {
+            Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-			HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
-			AuthCredentials creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1),
-							new HashMap<String, String>()),
-					null);
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.MC_COY_SIGNED_RSA_1), new HashMap<String, String>()),
+                null
+            );
 
-			Assert.assertNotNull(creds);
-			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
-			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(4, creds.getAttributes().size());
-		} finally {
-			try {
-				mockIdpServer.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+            Assert.assertNotNull(creds);
+            Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
+            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(0, creds.getBackendRoles().size());
+            Assert.assertEquals(4, creds.getAttributes().size());
+        } finally {
+            try {
+                mockIdpServer.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
-	@Test
-	public void mismatchedAlgTest() throws Exception {
-		MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1_WRONG_ALG);
-		try {
-			Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
+    @Test
+    public void mismatchedAlgTest() throws Exception {
+        MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1_WRONG_ALG);
+        try {
+            Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-			HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+            HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
-			AuthCredentials creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1),
-							new HashMap<String, String>()),
-					null);
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<String, String>()),
+                null
+            );
 
-			Assert.assertNull(creds);
+            Assert.assertNull(creds);
 
-		} finally {
-			try {
-				mockIdpServer.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+        } finally {
+            try {
+                mockIdpServer.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
+    @Test
+    public void keyExchangeTest() throws Exception {
+        MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1);
 
-	@Test
-	public void keyExchangeTest() throws Exception {
-		MockIpdServer mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_1);
+        Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
-		Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
+        HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
-		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        try {
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<String, String>()),
+                null
+            );
 
-		try {
-			AuthCredentials creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1),
-							new HashMap<String, String>()),
-					null);
+            Assert.assertNotNull(creds);
+            Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
+            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(0, creds.getBackendRoles().size());
+            Assert.assertEquals(4, creds.getAttributes().size());
 
-			Assert.assertNotNull(creds);
-			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
-			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(4, creds.getAttributes().size());
+            creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2), new HashMap<String, String>()),
+                null
+            );
 
-			creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2),
-							new HashMap<String, String>()),
-					null);
+            Assert.assertNull(creds);
 
-			Assert.assertNull(creds);
+            creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_X), new HashMap<String, String>()),
+                null
+            );
 
-			creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_X),
-							new HashMap<String, String>()),
-					null);
+            Assert.assertNull(creds);
 
-			Assert.assertNull(creds);
+            creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1), new HashMap<String, String>()),
+                null
+            );
 
-			creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_1),
-							new HashMap<String, String>()),
-					null);
+            Assert.assertNotNull(creds);
+            Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
+            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(0, creds.getBackendRoles().size());
+            Assert.assertEquals(4, creds.getAttributes().size());
 
-			Assert.assertNotNull(creds);
-			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
-			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(4, creds.getAttributes().size());
+        } finally {
+            try {
+                mockIdpServer.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
-		} finally {
-			try {
-				mockIdpServer.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+        mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_2);
+        settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build(); // port changed
+        jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
 
-		mockIdpServer = new MockIpdServer(TestJwk.Jwks.RSA_2);
-		settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build(); //port changed
-		jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
+        try {
+            AuthCredentials creds = jwtAuth.extractCredentials(
+                new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2), new HashMap<String, String>()),
+                null
+            );
 
-		try {
-			AuthCredentials creds = jwtAuth.extractCredentials(
-					new FakeRestRequest(ImmutableMap.of("Authorization", TestJwts.NoKid.MC_COY_SIGNED_RSA_2),
-							new HashMap<String, String>()),
-					null);
+            Assert.assertNotNull(creds);
+            Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
+            Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
+            Assert.assertEquals(0, creds.getBackendRoles().size());
+            Assert.assertEquals(4, creds.getAttributes().size());
 
-			Assert.assertNotNull(creds);
-			Assert.assertEquals(TestJwts.MCCOY_SUBJECT, creds.getUsername());
-			Assert.assertEquals(TestJwts.TEST_AUDIENCE, creds.getAttributes().get("attr.jwt.aud"));
-			Assert.assertEquals(0, creds.getBackendRoles().size());
-			Assert.assertEquals(4, creds.getAttributes().size());
-
-		} finally {
-			try {
-				mockIdpServer.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+        } finally {
+            try {
+                mockIdpServer.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 }

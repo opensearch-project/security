@@ -65,7 +65,7 @@ public class PrivilegesInterceptor {
     protected final Client client;
     protected final ThreadPool threadPool;
 
-    public PrivilegesInterceptor(final IndexNameExpressionResolver resolver, final ClusterService clusterService, 
+    public PrivilegesInterceptor(final IndexNameExpressionResolver resolver, final ClusterService clusterService,
             final Client client, ThreadPool threadPool) {
         this.resolver = resolver;
         this.clusterService = clusterService;
@@ -77,7 +77,7 @@ public class PrivilegesInterceptor {
                                                 final Resolved requestedResolved, final Map<String, Boolean> tenants) {
         throw new RuntimeException("not implemented");
     }
-    
+
     protected final ThreadContext getThreadContext() {
         return threadPool.getThreadContext();
     }

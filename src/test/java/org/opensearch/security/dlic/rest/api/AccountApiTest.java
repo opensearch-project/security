@@ -29,8 +29,8 @@ import static org.junit.Assert.assertTrue;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class AccountApiTest extends AbstractRestApiUnitTest {
-    private final String BASE_ENDPOINT; 
-    private final String ENDPOINT; 
+    private final String BASE_ENDPOINT;
+    private final String ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }

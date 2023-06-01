@@ -58,12 +58,12 @@ import org.opensearch.transport.SharedGroupFactory;
  * @author jkressin
  */
 public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
-    
+
     Settings settings;
     private final SharedGroupFactory sharedGroupFactory;
     ThreadPool threadPool;
-    
-    public UserInjectorPlugin(final Settings settings, final Path configPath) {        
+
+    public UserInjectorPlugin(final Settings settings, final Path configPath) {
         this.settings = settings;
         sharedGroupFactory = new SharedGroupFactory(settings);
     }
@@ -77,17 +77,17 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
         return ImmutableMap.of("org.opensearch.security.http.UserInjectingServerTransport",
                 () -> new UserInjectingServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory));
     }
-    
+
     class UserInjectingServerTransport extends Netty4HttpServerTransport {
-        
+
         public UserInjectingServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
                                             final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher, ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
             super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
         }
     }
-    
+
     class UserInjectingDispatcher implements Dispatcher {
-        
+
         private Dispatcher originalDispatcher;
 
         public UserInjectingDispatcher(final Dispatcher originalDispatcher) {
@@ -99,7 +99,7 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
         public void dispatchRequest(RestRequest request, RestChannel channel, ThreadContext threadContext) {
             threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, request.header(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER));
             originalDispatcher.dispatchRequest(request, channel, threadContext);
-            
+
         }
 
         @Override

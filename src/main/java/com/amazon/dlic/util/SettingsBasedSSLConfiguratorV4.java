@@ -96,8 +96,7 @@ public class SettingsBasedSSLConfiguratorV4 {
     private String effectiveKeyAlias;
     private List<String> effectiveTruststoreAliases;
 
-    public SettingsBasedSSLConfiguratorV4(Settings settings, Path configPath, String settingsKeyPrefix,
-                                        String clientName) {
+    public SettingsBasedSSLConfiguratorV4(Settings settings, Path configPath, String settingsKeyPrefix, String clientName) {
         this.settings = settings;
         this.configPath = configPath;
         this.settingsKeyPrefix = normalizeSettingsKeyPrefix(settingsKeyPrefix);
@@ -137,10 +136,20 @@ public class SettingsBasedSSLConfiguratorV4 {
             return null;
         }
 
-        return new SSLConfig(sslContext, getSupportedProtocols(), getSupportedCipherSuites(), getHostnameVerifier(),
-                isHostnameVerificationEnabled(), isTrustAllEnabled(), isStartTlsEnabled(), this.effectiveTruststore,
-                this.effectiveTruststoreAliases, this.effectiveKeystore, this.effectiveKeyPassword,
-                this.effectiveKeyAlias);
+        return new SSLConfig(
+            sslContext,
+            getSupportedProtocols(),
+            getSupportedCipherSuites(),
+            getHostnameVerifier(),
+            isHostnameVerificationEnabled(),
+            isTrustAllEnabled(),
+            isStartTlsEnabled(),
+            this.effectiveTruststore,
+            this.effectiveTruststoreAliases,
+            this.effectiveKeystore,
+            this.effectiveKeyPassword,
+            this.effectiveKeyAlias
+        );
     }
 
     private boolean isHostnameVerificationEnabled() {
@@ -182,7 +191,7 @@ public class SettingsBasedSSLConfiguratorV4 {
         this.enableSslClientAuth = getSettingAsBoolean(ENABLE_SSL_CLIENT_AUTH, false);
 
         if (settings.get(settingsKeyPrefix + PEMTRUSTEDCAS_FILEPATH, null) != null
-                || settings.get(settingsKeyPrefix + PEMTRUSTEDCAS_CONTENT, null) != null) {
+            || settings.get(settingsKeyPrefix + PEMTRUSTEDCAS_CONTENT, null) != null) {
             initFromPem();
         } else {
             initFromKeyStore();
@@ -195,22 +204,21 @@ public class SettingsBasedSSLConfiguratorV4 {
         if (enableSslClientAuth) {
             if (effectiveKeystore != null) {
                 try {
-                    sslContextBuilder.loadKeyMaterial(effectiveKeystore, effectiveKeyPassword,
-                            new PrivateKeyStrategy() {
+                    sslContextBuilder.loadKeyMaterial(effectiveKeystore, effectiveKeyPassword, new PrivateKeyStrategy() {
 
-                                @Override
-                                public String chooseAlias(Map<String, PrivateKeyDetails> aliases, Socket socket) {
-                                    if (aliases == null || aliases.isEmpty()) {
-                                        return effectiveKeyAlias;
-                                    }
+                        @Override
+                        public String chooseAlias(Map<String, PrivateKeyDetails> aliases, Socket socket) {
+                            if (aliases == null || aliases.isEmpty()) {
+                                return effectiveKeyAlias;
+                            }
 
-                                    if (effectiveKeyAlias == null || effectiveKeyAlias.isEmpty()) {
-                                        return aliases.keySet().iterator().next();
-                                    }
+                            if (effectiveKeyAlias == null || effectiveKeyAlias.isEmpty()) {
+                                return aliases.keySet().iterator().next();
+                            }
 
-                                    return effectiveKeyAlias;
-                                }
-                            });
+                            return effectiveKeyAlias;
+                        }
+                    });
                 } catch (UnrecoverableKeyException e) {
                     throw new RuntimeException(e);
                 }
@@ -224,22 +232,25 @@ public class SettingsBasedSSLConfiguratorV4 {
 
         try {
             trustCertificates = PemKeyReader.loadCertificatesFromStream(
-                    PemKeyReader.resolveStream(settingsKeyPrefix + PEMTRUSTEDCAS_CONTENT, settings));
+                PemKeyReader.resolveStream(settingsKeyPrefix + PEMTRUSTEDCAS_CONTENT, settings)
+            );
         } catch (Exception e) {
             throw new SSLConfigException(
-                    "Error loading PEM from " + settingsKeyPrefix + PEMTRUSTEDCAS_CONTENT + " for " + this.clientName,
-                    e);
+                "Error loading PEM from " + settingsKeyPrefix + PEMTRUSTEDCAS_CONTENT + " for " + this.clientName,
+                e
+            );
         }
 
         if (trustCertificates == null) {
-            String path = PemKeyReader.resolve(settingsKeyPrefix + PEMTRUSTEDCAS_FILEPATH, settings, configPath,
-                    !isTrustAllEnabled());
+            String path = PemKeyReader.resolve(settingsKeyPrefix + PEMTRUSTEDCAS_FILEPATH, settings, configPath, !isTrustAllEnabled());
 
             try {
                 trustCertificates = PemKeyReader.loadCertificatesFromFile(path);
             } catch (Exception e) {
-                throw new SSLConfigException("Error loading PEM from " + path + " (" + settingsKeyPrefix
-                        + PEMTRUSTEDCAS_FILEPATH + ") for " + this.clientName, e);
+                throw new SSLConfigException(
+                    "Error loading PEM from " + path + " (" + settingsKeyPrefix + PEMTRUSTEDCAS_FILEPATH + ") for " + this.clientName,
+                    e
+                );
             }
         }
 
@@ -248,21 +259,22 @@ public class SettingsBasedSSLConfiguratorV4 {
 
         try {
             authenticationCertificate = PemKeyReader.loadCertificatesFromStream(
-                    PemKeyReader.resolveStream(settingsKeyPrefix + PEMCERT_CONTENT, settings));
+                PemKeyReader.resolveStream(settingsKeyPrefix + PEMCERT_CONTENT, settings)
+            );
         } catch (Exception e) {
-            throw new SSLConfigException(
-                    "Error loading PEM from " + settingsKeyPrefix + PEMCERT_CONTENT + " for " + this.clientName, e);
+            throw new SSLConfigException("Error loading PEM from " + settingsKeyPrefix + PEMCERT_CONTENT + " for " + this.clientName, e);
         }
 
         if (authenticationCertificate == null) {
-            String path = PemKeyReader.resolve(settingsKeyPrefix + PEMCERT_FILEPATH, settings, configPath,
-                    enableSslClientAuth);
+            String path = PemKeyReader.resolve(settingsKeyPrefix + PEMCERT_FILEPATH, settings, configPath, enableSslClientAuth);
 
             try {
                 authenticationCertificate = PemKeyReader.loadCertificatesFromFile(path);
             } catch (Exception e) {
-                throw new SSLConfigException("Error loading PEM from " + path + " (" + settingsKeyPrefix
-                        + PEMCERT_FILEPATH + ") for " + this.clientName, e);
+                throw new SSLConfigException(
+                    "Error loading PEM from " + path + " (" + settingsKeyPrefix + PEMCERT_FILEPATH + ") for " + this.clientName,
+                    e
+                );
             }
 
         }
@@ -270,22 +282,24 @@ public class SettingsBasedSSLConfiguratorV4 {
         PrivateKey authenticationKey;
 
         try {
-            authenticationKey = PemKeyReader.loadKeyFromStream(getSetting(PEMKEY_PASSWORD),
-                    PemKeyReader.resolveStream(settingsKeyPrefix + PEMKEY_CONTENT, settings));
+            authenticationKey = PemKeyReader.loadKeyFromStream(
+                getSetting(PEMKEY_PASSWORD),
+                PemKeyReader.resolveStream(settingsKeyPrefix + PEMKEY_CONTENT, settings)
+            );
         } catch (Exception e) {
-            throw new SSLConfigException(
-                    "Error loading PEM from " + settingsKeyPrefix + PEMKEY_CONTENT + " for " + this.clientName, e);
+            throw new SSLConfigException("Error loading PEM from " + settingsKeyPrefix + PEMKEY_CONTENT + " for " + this.clientName, e);
         }
 
         if (authenticationKey == null) {
-            String path = PemKeyReader.resolve(settingsKeyPrefix + PEMKEY_FILEPATH, settings, configPath,
-                    enableSslClientAuth);
+            String path = PemKeyReader.resolve(settingsKeyPrefix + PEMKEY_FILEPATH, settings, configPath, enableSslClientAuth);
 
             try {
                 authenticationKey = PemKeyReader.loadKeyFromFile(getSetting(PEMKEY_PASSWORD), path);
             } catch (Exception e) {
-                throw new SSLConfigException("Error loading PEM from " + path + " (" + settingsKeyPrefix
-                        + PEMKEY_FILEPATH + ") for " + this.clientName, e);
+                throw new SSLConfigException(
+                    "Error loading PEM from " + path + " (" + settingsKeyPrefix + PEMKEY_FILEPATH + ") for " + this.clientName,
+                    e
+                );
             }
         }
 
@@ -293,8 +307,12 @@ public class SettingsBasedSSLConfiguratorV4 {
             effectiveKeyPassword = PemKeyReader.randomChars(12);
             effectiveKeyAlias = "al";
             effectiveTruststore = PemKeyReader.toTruststore(effectiveKeyAlias, trustCertificates);
-            effectiveKeystore = PemKeyReader.toKeystore(effectiveKeyAlias, effectiveKeyPassword,
-                    authenticationCertificate, authenticationKey);
+            effectiveKeystore = PemKeyReader.toKeystore(
+                effectiveKeyAlias,
+                effectiveKeyPassword,
+                authenticationCertificate,
+                authenticationKey
+            );
         } catch (Exception e) {
             throw new SSLConfigException("Error initializing SSLConfig for " + this.clientName, e);
         }
@@ -307,13 +325,20 @@ public class SettingsBasedSSLConfiguratorV4 {
 
         try {
             trustStore = PemKeyReader.loadKeyStore(
-                    PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings,
-                            configPath, !isTrustAllEnabled()),
-                    SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
-                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
+                PemKeyReader.resolve(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                    settings,
+                    configPath,
+                    !isTrustAllEnabled()
+                ),
+                SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
+                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
+            );
         } catch (Exception e) {
-            throw new SSLConfigException("Error loading trust store from "
-                    + settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH), e);
+            throw new SSLConfigException(
+                "Error loading trust store from " + settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH),
+                e
+            );
         }
 
         effectiveTruststoreAliases = getSettingAsList(CA_ALIAS, null);
@@ -322,20 +347,24 @@ public class SettingsBasedSSLConfiguratorV4 {
 
         try {
             keyStore = PemKeyReader.loadKeyStore(
-                    PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, settings,
-                            configPath, enableSslClientAuth),
-                    SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings,
-                            SSLConfigConstants.DEFAULT_STORE_PASSWORD),
-                    settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE));
+                PemKeyReader.resolve(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                    settings,
+                    configPath,
+                    enableSslClientAuth
+                ),
+                SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE)
+            );
         } catch (Exception e) {
-            throw new SSLConfigException("Error loading key store from "
-                    + settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH), e);
+            throw new SSLConfigException(
+                "Error loading key store from " + settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH),
+                e
+            );
         }
 
-        String keyStorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD
-                .getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD);
-        effectiveKeyPassword = keyStorePassword == null || keyStorePassword.isEmpty() ? null
-                : keyStorePassword.toCharArray();
+        String keyStorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD);
+        effectiveKeyPassword = keyStorePassword == null || keyStorePassword.isEmpty() ? null : keyStorePassword.toCharArray();
         effectiveKeyAlias = getSetting(CERT_ALIAS);
 
         if (enableSslClientAuth && effectiveKeyAlias == null) {
@@ -394,10 +423,20 @@ public class SettingsBasedSSLConfiguratorV4 {
         private final char[] effectiveKeyPassword;
         private final String effectiveKeyAlias;
 
-        public SSLConfig(SSLContext sslContext, String[] supportedProtocols, String[] supportedCipherSuites,
-                         HostnameVerifier hostnameVerifier, boolean hostnameVerificationEnabled, boolean trustAll,
-                         boolean startTlsEnabled, KeyStore effectiveTruststore, List<String> effectiveTruststoreAliases,
-                         KeyStore effectiveKeystore, char[] effectiveKeyPassword, String effectiveKeyAlias) {
+        public SSLConfig(
+            SSLContext sslContext,
+            String[] supportedProtocols,
+            String[] supportedCipherSuites,
+            HostnameVerifier hostnameVerifier,
+            boolean hostnameVerificationEnabled,
+            boolean trustAll,
+            boolean startTlsEnabled,
+            KeyStore effectiveTruststore,
+            List<String> effectiveTruststoreAliases,
+            KeyStore effectiveKeystore,
+            char[] effectiveKeyPassword,
+            String effectiveKeyAlias
+        ) {
             this.sslContext = sslContext;
             this.supportedProtocols = supportedProtocols;
             this.supportedCipherSuites = supportedCipherSuites;
@@ -437,8 +476,7 @@ public class SettingsBasedSSLConfiguratorV4 {
         }
 
         public SSLConnectionSocketFactory toSSLConnectionSocketFactory() {
-            return new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites,
-                    hostnameVerifier);
+            return new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifier);
         }
 
         public boolean isStartTlsEnabled() {
@@ -495,12 +533,29 @@ public class SettingsBasedSSLConfiguratorV4 {
 
         @Override
         public String toString() {
-            return "SSLConfig [sslContext=" + sslContext + ", supportedProtocols=" + Arrays.toString(supportedProtocols)
-                    + ", supportedCipherSuites=" + Arrays.toString(supportedCipherSuites) + ", hostnameVerifier="
-                    + hostnameVerifier + ", startTlsEnabled=" + startTlsEnabled + ", hostnameVerificationEnabled="
-                    + hostnameVerificationEnabled + ", trustAll=" + trustAll + ", effectiveTruststore="
-                    + effectiveTruststore + ", effectiveTruststoreAliases=" + effectiveTruststoreAliases
-                    + ", effectiveKeystore=" + effectiveKeystore + ", effectiveKeyAlias=" + effectiveKeyAlias + "]";
+            return "SSLConfig [sslContext="
+                + sslContext
+                + ", supportedProtocols="
+                + Arrays.toString(supportedProtocols)
+                + ", supportedCipherSuites="
+                + Arrays.toString(supportedCipherSuites)
+                + ", hostnameVerifier="
+                + hostnameVerifier
+                + ", startTlsEnabled="
+                + startTlsEnabled
+                + ", hostnameVerificationEnabled="
+                + hostnameVerificationEnabled
+                + ", trustAll="
+                + trustAll
+                + ", effectiveTruststore="
+                + effectiveTruststore
+                + ", effectiveTruststoreAliases="
+                + effectiveTruststoreAliases
+                + ", effectiveKeystore="
+                + effectiveKeystore
+                + ", effectiveKeyAlias="
+                + effectiveKeyAlias
+                + "]";
         }
 
         public boolean isTrustAllEnabled() {
@@ -516,8 +571,7 @@ public class SettingsBasedSSLConfiguratorV4 {
             super();
         }
 
-        public SSLConfigException(String message, Throwable cause, boolean enableSuppression,
-                                  boolean writableStackTrace) {
+        public SSLConfigException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
             super(message, cause, enableSuppression, writableStackTrace);
         }
 
@@ -537,23 +591,26 @@ public class SettingsBasedSSLConfiguratorV4 {
 
     private static class OverlyTrustfulSSLContextBuilder extends SSLContextBuilder {
         @Override
-        protected void initSSLContext(SSLContext sslContext, Collection<KeyManager> keyManagers,
-                                      Collection<TrustManager> trustManagers, SecureRandom secureRandom) throws KeyManagementException {
-            sslContext.init(!keyManagers.isEmpty() ? keyManagers.toArray(new KeyManager[keyManagers.size()]) : null,
-                    new TrustManager[] { new OverlyTrustfulTrustManager() }, secureRandom);
+        protected void initSSLContext(
+            SSLContext sslContext,
+            Collection<KeyManager> keyManagers,
+            Collection<TrustManager> trustManagers,
+            SecureRandom secureRandom
+        ) throws KeyManagementException {
+            sslContext.init(
+                !keyManagers.isEmpty() ? keyManagers.toArray(new KeyManager[keyManagers.size()]) : null,
+                new TrustManager[] { new OverlyTrustfulTrustManager() },
+                secureRandom
+            );
         }
     }
 
     private static class OverlyTrustfulTrustManager implements X509TrustManager {
         @Override
-        public void checkClientTrusted(final X509Certificate[] chain, final String authType)
-                throws CertificateException {
-        }
+        public void checkClientTrusted(final X509Certificate[] chain, final String authType) throws CertificateException {}
 
         @Override
-        public void checkServerTrusted(final X509Certificate[] chain, final String authType)
-                throws CertificateException {
-        }
+        public void checkServerTrusted(final X509Certificate[] chain, final String authType) throws CertificateException {}
 
         @Override
         public X509Certificate[] getAcceptedIssuers() {

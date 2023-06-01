@@ -58,8 +58,8 @@ public class SecurityIndexAccessEvaluatorTest {
 
     private SecurityIndexAccessEvaluator evaluator;
 
-    private static final String UNPROTECTED_ACTION = "indices:data/read"; 
-    private static final String PROTECTED_ACTION = "indices:data/write"; 
+    private static final String UNPROTECTED_ACTION = "indices:data/read";
+    private static final String PROTECTED_ACTION = "indices:data/write";
 
     @Before
     public void before() {
@@ -79,7 +79,7 @@ public class SecurityIndexAccessEvaluatorTest {
     public void after() {
         verifyNoMoreInteractions(auditLog, irr, request, task, presponse, log);
     }
-    
+
     @Test
     public void actionIsNotProtected_noSystemIndexInvolved() {
         final Resolved resolved = createResolved(".test");

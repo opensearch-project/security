@@ -64,14 +64,14 @@ public class FileHelper {
 	    if(path==null) {
 	        return null;
 	    }
-	    
+
 	    KeyStore ks = KeyStore.getInstance("JKS");
 	    try (FileInputStream fin = new FileInputStream(path.toFile())) {
 	        ks.load(fin, password==null||password.isEmpty()?null:password.toCharArray());
 	    }
 	    return ks;
 	}
-	
+
 	public static Path getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
 		File file = null;
 		final URL fileUrl = FileHelper.class.getClassLoader().getResource(fileNameFromClasspath);
@@ -99,9 +99,9 @@ public class FileHelper {
 		IOUtils.copy(FileHelper.class.getResourceAsStream("/" + file), sw, StandardCharsets.UTF_8);
 		return sw.toString();
 	}
-	
+
     public static BytesReference readYamlContent(final String file) {
-        
+
         XContentParser parser = null;
         try {
             parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(loadFile(file)));
@@ -122,9 +122,9 @@ public class FileHelper {
             }
         }
 	}
-    
+
     public static BytesReference readYamlContentFromString(final String yaml) {
-        
+
         XContentParser parser = null;
         try {
             parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(yaml));

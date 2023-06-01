@@ -67,7 +67,7 @@ public class SecurityHealthAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         return new RestChannelConsumer() {
-            
+
             final String mode = request.param("mode","strict");
 
             @Override
@@ -76,8 +76,8 @@ public class SecurityHealthAction extends BaseRestHandler {
                 RestStatus restStatus = RestStatus.OK;
                 BytesRestResponse response = null;
                 try {
-                    
-                    
+
+
                     String status = "UP";
                     String message = null;
 
@@ -98,12 +98,12 @@ public class SecurityHealthAction extends BaseRestHandler {
                 } finally {
                     builder.close();
                 }
-                
-                
+
+
                 channel.sendResponse(response);
             }
-            
-            
+
+
         };
     }
 

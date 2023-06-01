@@ -51,7 +51,7 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     // non-admin
     final Header nonAdminCredsHeader = encodeBasicHeader("random", "random");
 
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     private final String CONFIG_ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;

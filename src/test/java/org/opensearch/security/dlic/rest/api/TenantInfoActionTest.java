@@ -27,7 +27,7 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
             "\"backend_roles\":[\"starfleet*\",\"ambassador\"],\"and_backend_roles\":[],\"description\":\"Migrated " +
             "from v6\"}";
     private final String BASE_ENDPOINT;
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
@@ -60,7 +60,7 @@ public class TenantInfoActionTest extends AbstractRestApiUnitTest {
     public void testTenantInfoAPIUpdate() throws Exception {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
         setup(settings);
-        
+
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendHTTPClientCredentials = true;
         rh.sendAdminCertificate = true;

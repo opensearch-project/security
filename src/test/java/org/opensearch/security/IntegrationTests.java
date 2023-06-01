@@ -62,7 +62,7 @@ import static org.opensearch.security.DefaultObjectMapper.readTree;
 public class IntegrationTests extends SingleClusterTest {
 
     @Test
-    public void testSearchScroll() throws Exception {        
+    public void testSearchScroll() throws Exception {
     final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".worf", "knuddel","nonexists")
             .build();
@@ -73,12 +73,12 @@ public class IntegrationTests extends SingleClusterTest {
             for(int i=0; i<3; i++)
             tc.index(new IndexRequest("vulcangov").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
         }
-        
-        
+
+
         System.out.println("########search");
         HttpResponse res;
         Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executeGetRequest("vulcangov/_search?scroll=1m&pretty=true", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
-        
+
         System.out.println(res.getBody());
         int start = res.getBody().indexOf("_scroll_id") + 15;
         String scrollid = res.getBody().substring(start, res.getBody().indexOf("\"", start+1));
@@ -88,8 +88,8 @@ public class IntegrationTests extends SingleClusterTest {
 
 
         System.out.println("########search done");
-        
-        
+
+
     }
 
     @Test
@@ -101,21 +101,21 @@ public class IntegrationTests extends SingleClusterTest {
         HTTPClientCertAuthenticator auth = new HTTPClientCertAuthenticator(settings, null);
         Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("cn=abc,cn=xxx,l=ert,st=zui,c=qwe")).getUsername());
         Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
-        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("CN=abc,L=ert,st=zui,c=qwe")).getUsername());     
+        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("CN=abc,L=ert,st=zui,c=qwe")).getUsername());
         Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("l=ert,cn=abc,st=zui,c=qwe")).getUsername());
         Assert.assertNull(auth.extractCredentials(null, newThreadContext("L=ert,CN=abc,c,st=zui,c=qwe")));
         Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("l=ert,st=zui,c=qwe,cn=abc")).getUsername());
-        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe,CN=abc")).getUsername()); 
-        Assert.assertEquals("L=ert,st=zui,c=qwe", auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe")).getUsername()); 
+        Assert.assertEquals("abc", auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe,CN=abc")).getUsername());
+        Assert.assertEquals("L=ert,st=zui,c=qwe", auth.extractCredentials(null, newThreadContext("L=ert,st=zui,c=qwe")).getUsername());
         Assert.assertArrayEquals(new String[] {"ert"}, auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getBackendRoles().toArray(new String[0]));
         Assert.assertArrayEquals(new String[] {"bleh", "ert"}, new TreeSet<>(auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,L=bleh,st=zui,c=qwe")).getBackendRoles()).toArray(new String[0]));
-        
+
         settings = Settings.builder()
                 .build();
         auth = new HTTPClientCertAuthenticator(settings, null);
         Assert.assertEquals("cn=abc,l=ert,st=zui,c=qwe", auth.extractCredentials(null, newThreadContext("cn=abc,l=ert,st=zui,c=qwe")).getUsername());
     }
-    
+
     private ThreadContext newThreadContext(String sslPrincipal) {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL, sslPrincipal);
@@ -124,7 +124,7 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testDNSpecials() throws Exception {
-    
+
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
@@ -133,24 +133,24 @@ public class IntegrationTests extends SingleClusterTest {
                 .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")
                 .put(ConfigConstants.SECURITY_CERT_OID,"1.2.3.4.5.6")
                 .build();
-        
-        
+
+
         Settings tcSettings = Settings.builder()
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .build();
-        
+
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);
         RestHelper rh = nonSslRestHelper();
-        
+
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("").getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode());
-    
+
     }
-    
+
     @Test
     public void testDNSpecials1() throws Exception {
-    
+
         final Settings settings = Settings.builder()
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
@@ -159,16 +159,16 @@ public class IntegrationTests extends SingleClusterTest {
                 .putList("plugins.security.authcz.admin_dn", "EMAILADDREss=unt@xxx.com,  cn=node-untspec6.example.com, OU=SSL,O=Te\\, st,L=Test, c=DE")
                 .put("plugins.security.cert.oid","1.2.3.4.5.6")
                 .build();
-        
-        
+
+
         Settings tcSettings = Settings.builder()
                 .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
                 .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
                 .build();
-        
+
         setup(tcSettings, new DynamicSecurityConfig(), settings, true);
         RestHelper rh = nonSslRestHelper();
-        
+
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("").getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("worf", "worf")).getStatusCode());
     }
@@ -181,17 +181,17 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testMultiget() throws Exception {
-    
+
         setup();
-    
+
         try (Client tc = getClient()) {
             tc.index(new IndexRequest("mindex1").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("mindex2").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
         }
-    
+
         //opendistro_security_multiget -> picard
-        
-        
+
+
             String mgetBody = "{"+
             "\"docs\" : ["+
                 "{"+
@@ -204,86 +204,86 @@ public class IntegrationTests extends SingleClusterTest {
                 "}"+
             "]"+
         "}";
-       
+
        RestHelper rh = nonSslRestHelper();
        HttpResponse resc = rh.executePostRequest("_mget?refresh=true", mgetBody, encodeBasicHeader("picard", "picard"));
        System.out.println(resc.getBody());
        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
        Assert.assertFalse(resc.getBody().contains("type2"));
-        
+
     }
 
     @Test
     public void testRestImpersonation() throws Exception {
-    
+
         final Settings settings = Settings.builder()
                  .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".spock", "knuddel","userwhonotexists").build();
- 
+
         setup(settings);
-        
+
         RestHelper rh = nonSslRestHelper();
-        
+
         //knuddel:
         //    hash: _rest_impersonation_only_
-    
+
         HttpResponse resp;
         resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "knuddel"), encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
-    
+
         resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "knuddel"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_OK, resp.getStatusCode());
         Assert.assertTrue(resp.getBody().contains("name=knuddel"));
         Assert.assertFalse(resp.getBody().contains("spock"));
-        
+
         resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "userwhonotexists"), encodeBasicHeader("spock", "spock"));
         System.out.println(resp.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
-    
+
         resp = rh.executeGetRequest("/_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "invalid"), encodeBasicHeader("spock", "spock"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resp.getStatusCode());
     }
 
     @Test
     public void testSingle() throws Exception {
-    
+
         setup();
-    
+
         try (Client tc = getClient()) {
             tc.index(new IndexRequest("shakespeare").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-                      
+
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
         }
-    
+
         RestHelper rh = nonSslRestHelper();
         //opendistro_security_shakespeare -> picard
-    
+
         HttpResponse resc = rh.executeGetRequest("shakespeare/_search", encodeBasicHeader("picard", "picard"));
         System.out.println(resc.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("\"content\":1"));
-        
+
         resc = rh.executeHeadRequest("shakespeare", encodeBasicHeader("picard", "picard"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        
+
     }
 
     @Test
     public void testSpecialUsernames() throws Exception {
-    
-        setup();    
+
+        setup();
         RestHelper rh = nonSslRestHelper();
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("bug.99", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("", encodeBasicHeader("a", "b")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("\"'+-,;_?*@<>!$%&/()=#", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("", encodeBasicHeader("§ÄÖÜäöüß", "nagilum")).getStatusCode());
-    
+
     }
 
     @Test
     public void testXff() throws Exception {
-    
+
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_xff.yml"), Settings.EMPTY, true);
         RestHelper rh = nonSslRestHelper();
         HttpResponse resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("x-forwarded-for", "10.0.0.7"), encodeBasicHeader("worf", "worf"));
@@ -293,7 +293,7 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testRegexExcludes() throws Exception {
-        
+
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY);
 
         try (Client tc = getClient()) {
@@ -303,7 +303,7 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("special").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"special\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("alsonotallowed").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"alsonotallowed\":1}", XContentType.JSON)).actionGet();
         }
-        
+
         RestHelper rh = nonSslRestHelper();
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("index*/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("indexa/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
@@ -311,10 +311,10 @@ public class IntegrationTests extends SingleClusterTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("special/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("alsonotallowed/_search",encodeBasicHeader("rexclude", "nagilum")).getStatusCode());
     }
-    
+
     @Test
     public void testMultiRoleSpan() throws Exception {
-        
+
         setup();
         final RestHelper rh = nonSslRestHelper();
 
@@ -322,31 +322,31 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("mindex_1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("mindex_2").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
         }
-        
+
         HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         Assert.assertFalse(res.getBody().contains("\"content\":1"));
         Assert.assertFalse(res.getBody().contains("\"content\":2"));
-        
+
         try (Client tc = getClient()) {
             tc.index(new IndexRequest(".opendistro_security").id("config").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("config", FileHelper.readYamlContent("config_multirolespan.yml"))).actionGet();
-   
+
             ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
         }
-        
+
         res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"content\":1"));
         Assert.assertTrue(res.getBody().contains("\"content\":2"));
-        
+
     }
-    
+
     @Test
     public void testMultiRoleSpan2() throws Exception {
-        
+
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_multirolespan.yml"), Settings.EMPTY);
         final RestHelper rh = nonSslRestHelper();
 
@@ -356,26 +356,26 @@ public class IntegrationTests extends SingleClusterTest {
             tc.index(new IndexRequest("mindex_3").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
             tc.index(new IndexRequest("mindex_4").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"content\":2}", XContentType.JSON)).actionGet();
         }
-        
+
         HttpResponse res = rh.executeGetRequest("/mindex_1,mindex_2/_search", encodeBasicHeader("mindex12", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        
+
         res = rh.executeGetRequest("/mindex_1,mindex_3/_search", encodeBasicHeader("mindex12", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
 
         res = rh.executeGetRequest("/mindex_1,mindex_4/_search", encodeBasicHeader("mindex12", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
-         
+
     }
-    
+
     @Test
     public void testSecurityUnderscore() throws Exception {
-        
+
         setup();
         final RestHelper rh = nonSslRestHelper();
-        
+
         HttpResponse res = rh.executePostRequest("abc_xyz_2018_05_24/_doc/1", "{\"content\":1}", encodeBasicHeader("underscore", "nagilum"));
-        
+
         res = rh.executeGetRequest("abc_xyz_2018_05_24/_doc/1", encodeBasicHeader("underscore", "nagilum"));
         Assert.assertTrue(res.getBody(),res.getBody().contains("\"content\":1"));
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -573,10 +573,10 @@ public class IntegrationTests extends SingleClusterTest {
 
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (resc=rh.executeGetRequest("notexists/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());
-        
+
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (resc=rh.executeGetRequest("permitnotexistentindex/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());
-        
+
         Assert.assertEquals(HttpStatus.SC_OK, (resc=rh.executeGetRequest("permitnotexistentindex*/_search?pretty", encodeBasicHeader("user_a", "user_a"))).getStatusCode());
         System.out.println(resc.getBody());
 

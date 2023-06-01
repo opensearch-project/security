@@ -102,7 +102,7 @@ class EmptyFilterLeafReader extends FilterLeafReader {
         protected DirectoryReader doWrapDirectoryReader(final DirectoryReader in) throws IOException {
             return new EmptyDirectoryReader(in);
         }
-        
+
         @Override
         public CacheHelper getReaderCacheHelper() {
             return in.getReaderCacheHelper();

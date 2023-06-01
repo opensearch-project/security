@@ -266,7 +266,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     RestStatus.FORBIDDEN));
             return false;
         }
-        
+
         if (evaluatedDlsFlsConfig.hasDls()) {
             if (request instanceof SearchRequest) {
 
@@ -317,7 +317,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 assert context.parsedQuery() != null;
 
                 final Set<String> unparsedDlsQueries = queries.get(dlsEval);
-                
+
                 if (unparsedDlsQueries != null && !unparsedDlsQueries.isEmpty()) {
                     BooleanQuery.Builder queryBuilder = dlsQueryParser.parse(unparsedDlsQueries, context.getQueryShardContext(),
                             (q) -> new ConstantScoreQuery(q));
@@ -390,7 +390,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             } else {
                 if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER) != null) {
                     Object deserializedDlsQueries = Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER));
-                    if (!dlsQueries.equals(deserializedDlsQueries)) {                        
+                    if (!dlsQueries.equals(deserializedDlsQueries)) {
                         throw new OpenSearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER + " does not match (SG 900D)");
                     }
                 } else {

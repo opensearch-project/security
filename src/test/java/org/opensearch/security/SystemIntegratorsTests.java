@@ -40,31 +40,31 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class SystemIntegratorsTests extends SingleClusterTest {
-    
+
     @Test
     public void testInjectedUserMalformed() throws Exception {
-    
-        final Settings settings = Settings.builder()                
+
+        final Settings settings = Settings.builder()
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
-                      
+
         setup(settings, ClusterConfiguration.USERINJECTOR);
-        
+
         final RestHelper rh = nonSslRestHelper();
         // username|role1,role2|remoteIP|attributes
-        
+
         HttpResponse resc;
-        
+
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, null));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
 
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "|||"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "||127.0.0:80|"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
-        
+
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "username||ip|"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
 
@@ -82,24 +82,24 @@ public class SystemIntegratorsTests extends SingleClusterTest {
 
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "||127.0.0:80|key1,value1,key2,value2"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
-        
+
     }
 
     @Test
     public void testInjectedUser() throws Exception {
-    
-        final Settings settings = Settings.builder()                
+
+        final Settings settings = Settings.builder()
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
-                      
+
         setup(settings, ClusterConfiguration.USERINJECTOR);
-        
+
         final RestHelper rh = nonSslRestHelper();
         // username|role1,role2|remoteIP|attributes
-        
+
         HttpResponse resc;
-               
+
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin||127.0.0:80|"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[], requestedTenant=null]"));
@@ -139,7 +139,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         // mapped by username
         Assert.assertTrue(resc.getBody().contains("\"roles\":[\"opendistro_security_all_access\""));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
-        
+
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=null]"));
@@ -149,7 +149,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         // mapped by backend role "twitter"
         Assert.assertTrue(resc.getBody().contains("\"roles\":[\"public\",\"role_vulcans_admin\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
-        
+
         // add requested tenant
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2|"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
@@ -179,43 +179,43 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"vulcanadmin\"]"));
         // mapped by backend role "twitter"
         Assert.assertTrue(resc.getBody().contains("\"roles\":[\"public\",\"role_vulcans_admin\"]"));
-        
 
-    }    
+
+    }
 
     @Test
     public void testInjectedUserDisabled() throws Exception {
-    
-        final Settings settings = Settings.builder()                
+
+        final Settings settings = Settings.builder()
                 .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
-                      
+
         setup(settings, ClusterConfiguration.USERINJECTOR);
-        
+
         final RestHelper rh = nonSslRestHelper();
         // username|role1,role2|remoteIP|attributes
-        
+
         HttpResponse resc;
-               
+
         resc = rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1"));
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, resc.getStatusCode());
     }
 
   @Test
   public void testInjectedAdminUser() throws Exception {
-  
-      final Settings settings = Settings.builder()                
+
+      final Settings settings = Settings.builder()
               .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
               .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_ADMIN_USER_ENABLED, true)
               .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
               .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
               .build();
-                    
+
       setup(settings, ClusterConfiguration.USERINJECTOR);
-      
+
       final RestHelper rh = nonSslRestHelper();
       HttpResponse resc;
-      
+
       // injected user is admin, access to Security index must be allowed
       resc = rh.executeGetRequest(".opendistro_security/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
       Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
@@ -223,26 +223,26 @@ public class SystemIntegratorsTests extends SingleClusterTest {
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"roles\""));
       Assert.assertTrue(resc.getBody().contains("\"_id\" : \"internalusers\""));
       Assert.assertTrue(resc.getBody().contains("\"total\" : 5"));
-      
+
       resc = rh.executeGetRequest(".opendistro_security/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "wrongadmin|role1|127.0.0:80|key1,value1"));
       Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
-      
+
   }
 
     @Test
     public void testInjectedAdminUserAdminInjectionDisabled() throws Exception {
-    
-        final Settings settings = Settings.builder()                
+
+        final Settings settings = Settings.builder()
                 .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
                 .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, Lists.newArrayList("CN=kirk,OU=client,O=client,L=Test,C=DE","injectedadmin"))
                 .put("http.type", "org.opensearch.security.http.UserInjectingServerTransport")
                 .build();
-                      
+
         setup(settings, ClusterConfiguration.USERINJECTOR);
-        
+
         final RestHelper rh = nonSslRestHelper();
         HttpResponse resc;
-        
+
         // injected user is admin, access to Security index must be allowed
         resc = rh.executeGetRequest(".opendistro_security/_search?pretty", new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "injectedadmin|role1|127.0.0:80|key1,value1"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
@@ -251,7 +251,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertFalse(resc.getBody().contains("\"_id\" : \"internalusers\""));
         Assert.assertFalse(resc.getBody().contains("\"_id\" : \"tattr\""));
         Assert.assertFalse(resc.getBody(), resc.getBody().contains("\"total\" : 6"));
-                
-    }    
+
+    }
 
 }

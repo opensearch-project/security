@@ -75,7 +75,7 @@ public class RolesValidationIntegTest extends SingleClusterTest {
     public void testRolesValidation() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles.yml"), Settings.EMPTY);
 
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
                 .put(minimumSecuritySettings(Settings.EMPTY).get(0))
                 .put("cluster.name", clusterInfo.clustername)
                 .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")

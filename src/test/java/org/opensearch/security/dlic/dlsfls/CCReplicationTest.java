@@ -185,7 +185,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
         Assert.assertEquals(ClusterHealthStatus.GREEN, clusterHelper.nodeClient().admin().cluster().
         health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
 
-        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false) 
+        final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
             .put(minimumSecuritySettings(Settings.EMPTY).get(0))
             .put("cluster.name", clusterInfo.clustername)
             .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
