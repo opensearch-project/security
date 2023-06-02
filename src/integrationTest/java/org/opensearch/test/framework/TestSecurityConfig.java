@@ -114,6 +114,11 @@ public class TestSecurityConfig {
 		config.xffConfig(xffConfig);
 		return this;
 	}
+
+	public TestSecurityConfig onBehalfOf(OnBehalfOfConfig onBehalfOfConfig){
+		config.onBehalfOfConfig(onBehalfOfConfig);
+		return this;
+	}
 	
 	public TestSecurityConfig authc(AuthcDomain authcDomain) {
 		config.authc(authcDomain);
@@ -170,6 +175,7 @@ public class TestSecurityConfig {
 
 		private Boolean doNotFailOnForbidden;
 		private XffConfig xffConfig;
+		private OnBehalfOfConfig onBehalfOfConfig;
 		private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
 		private AuthFailureListeners authFailureListeners;
@@ -187,6 +193,11 @@ public class TestSecurityConfig {
 
 		public Config xffConfig(XffConfig xffConfig) {
 			this.xffConfig = xffConfig;
+			return this;
+		}
+
+		public Config onBehalfOfConfig(OnBehalfOfConfig onBehalfOfConfig) {
+			this.onBehalfOfConfig = onBehalfOfConfig;
 			return this;
 		}
 
