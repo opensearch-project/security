@@ -540,7 +540,7 @@ public class ConfigModelV7 extends ConfigModel {
              *
              *  For more details on regex, please visit regex101.com and paste the regex
              */
-            String legacyActionMatchRegex = "(?:cluster:admin/\\\\b(open(distro|search))\\\\b/[a-zA-Z]+/|\\\\*)greet/?(?:\\\\*|[/a-zA-Z0-9]*)";
+            String legacyActionMatchRegex = "(?:cluster:admin/\\\\b(open(distro|search))\\\\b/[a-zA-Z]+/|\\\\*)%s/?(?:\\\\*|[/a-zA-Z0-9]*)";
 
             String regex = String.format(legacyActionMatchRegex, action);
             Predicate<String> pattern = Pattern.compile(regex).asPredicate();
