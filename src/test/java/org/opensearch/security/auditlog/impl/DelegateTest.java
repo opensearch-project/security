@@ -22,28 +22,28 @@ import org.opensearch.security.auditlog.sink.ExternalOpenSearchSink;
 import org.opensearch.security.auditlog.sink.InternalOpenSearchSink;
 
 public class DelegateTest {
-	@Test
-	public void auditLogTypeTest() throws Exception{
-		testAuditType("DeBUg", DebugSink.class);
-		testAuditType("intERnal_OpenSearch", InternalOpenSearchSink.class);
-		testAuditType("EXTERnal_OpenSearch", ExternalOpenSearchSink.class);
-		testAuditType("org.opensearch.security.auditlog.sink.MyOwnAuditLog", MyOwnAuditLog.class);
-		testAuditType("org.opensearch.security.auditlog.sink.MyOwnAuditLog", null);
-		testAuditType("idonotexist", null);
-	}
+    @Test
+    public void auditLogTypeTest() throws Exception {
+        testAuditType("DeBUg", DebugSink.class);
+        testAuditType("intERnal_OpenSearch", InternalOpenSearchSink.class);
+        testAuditType("EXTERnal_OpenSearch", ExternalOpenSearchSink.class);
+        testAuditType("org.opensearch.security.auditlog.sink.MyOwnAuditLog", MyOwnAuditLog.class);
+        testAuditType("org.opensearch.security.auditlog.sink.MyOwnAuditLog", null);
+        testAuditType("idonotexist", null);
+    }
 
-	private void testAuditType(String type, Class<? extends AuditLogSink> expectedClass) throws Exception {
-		Builder settingsBuilder  = Settings.builder();
-		settingsBuilder.put("plugins.security.audit.type", type);
-		settingsBuilder.put("path.home", ".");
-		AuditLogImpl auditLog = new AuditLogImpl(settingsBuilder.build(), null, null, null, null, null);
-		auditLog.close();
-//		if (expectedClass != null) {
-//		    Assert.assertNotNull("delegate is null for type: "+type,auditLog.delegate);
-//			Assert.assertEquals(expectedClass, auditLog.delegate.getClass());
-//		} else {
-//			Assert.assertNull(auditLog.delegate);
-//		}
+    private void testAuditType(String type, Class<? extends AuditLogSink> expectedClass) throws Exception {
+        Builder settingsBuilder = Settings.builder();
+        settingsBuilder.put("plugins.security.audit.type", type);
+        settingsBuilder.put("path.home", ".");
+        AuditLogImpl auditLog = new AuditLogImpl(settingsBuilder.build(), null, null, null, null, null);
+        auditLog.close();
+        // if (expectedClass != null) {
+        // Assert.assertNotNull("delegate is null for type: "+type,auditLog.delegate);
+        // Assert.assertEquals(expectedClass, auditLog.delegate.getClass());
+        // } else {
+        // Assert.assertNull(auditLog.delegate);
+        // }
 
-	}
+    }
 }

@@ -32,7 +32,6 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 
-
 public class ResolveAPITests extends SingleClusterTest {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
@@ -48,7 +47,10 @@ public class ResolveAPITests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -59,7 +61,10 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*role01_role02*");
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -72,10 +77,16 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("_resolve/index/*?pretty",  encodeBasicHeader("worf", "worf"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_FORBIDDEN,
+            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        );
         log.debug(res.getBody());
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty",  encodeBasicHeader("worf", "worf"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        );
         log.debug(res.getBody());
         assertContains(res, "*starfleet*");
         assertContains(res, "*starfleet_academy*");
@@ -92,7 +103,10 @@ public class ResolveAPITests extends SingleClusterTest {
         final RestHelper rh = nonSslRestHelper();
         RestHelper.HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -103,7 +117,10 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*xyz*");
         assertContains(res, "*role01_role02*");
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
+        );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -116,7 +133,10 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/*?pretty",  encodeBasicHeader("worf", "worf"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("_resolve/index/*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -127,7 +147,10 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*public*");
         assertContains(res, "*xyz*");
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty",  encodeBasicHeader("worf", "worf"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("_resolve/index/starfleet*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        );
         log.debug(res.getBody());
         assertNotContains(res, "*xception*");
         assertNotContains(res, "*erial*");
@@ -140,30 +163,87 @@ public class ResolveAPITests extends SingleClusterTest {
         assertContains(res, "*starfleet_academy*");
         assertContains(res, "*starfleet_library*");
 
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, (res = rh.executeGetRequest("_resolve/index/vulcangov*?pretty",  encodeBasicHeader("worf", "worf"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_FORBIDDEN,
+            (res = rh.executeGetRequest("_resolve/index/vulcangov*?pretty", encodeBasicHeader("worf", "worf"))).getStatusCode()
+        );
         log.debug(res.getBody());
     }
 
     private void setupIndices() {
         try (Client tc = getClient()) {
             tc.admin().indices().create(new CreateIndexRequest("copysf")).actionGet();
-            tc.index(new IndexRequest("vulcangov").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet_academy").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("starfleet_library").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("klingonempire").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("public").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("vulcangov").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("starfleet").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("starfleet_academy").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("starfleet_library").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("klingonempire").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("public").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
 
-            tc.index(new IndexRequest("spock").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("kirk").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("role01_role02").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("spock").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("kirk").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("role01_role02").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
 
-            tc.index(new IndexRequest("xyz").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("xyz").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
 
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(IndicesAliasesRequest.AliasActions.add().indices("starfleet","starfleet_academy","starfleet_library").alias("sf"))).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(IndicesAliasesRequest.AliasActions.add().indices("klingonempire","vulcangov").alias("nonsf"))).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(IndicesAliasesRequest.AliasActions.add().indices("public").alias("unrestricted"))).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(IndicesAliasesRequest.AliasActions.add().indices("xyz").alias("alias1"))).actionGet();
+            tc.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        IndicesAliasesRequest.AliasActions.add().indices("starfleet", "starfleet_academy", "starfleet_library").alias("sf")
+                    )
+                )
+                .actionGet();
+            tc.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        IndicesAliasesRequest.AliasActions.add().indices("klingonempire", "vulcangov").alias("nonsf")
+                    )
+                )
+                .actionGet();
+            tc.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        IndicesAliasesRequest.AliasActions.add().indices("public").alias("unrestricted")
+                    )
+                )
+                .actionGet();
+            tc.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(IndicesAliasesRequest.AliasActions.add().indices("xyz").alias("alias1"))
+                )
+                .actionGet();
         }
     }
 }

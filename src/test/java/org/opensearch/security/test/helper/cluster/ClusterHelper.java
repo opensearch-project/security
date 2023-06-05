@@ -78,7 +78,7 @@ public final class ClusterHelper {
     /** Resets all system properties associated with a cluster */
     public static void resetSystemProperties() {
         System.setProperty("opensearch.enforce.bootstrap.checks", "true");
-        updateDefaultDirectory(new File( SingleClusterTest.PROJECT_ROOT_RELATIVE_PATH + "config").getAbsolutePath());
+        updateDefaultDirectory(new File(SingleClusterTest.PROJECT_ROOT_RELATIVE_PATH + "config").getAbsolutePath());
     }
 
     /**
@@ -115,12 +115,17 @@ public final class ClusterHelper {
      * @throws Exception
      */
 
-    public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration) throws Exception {
+    public final ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration)
+        throws Exception {
         return startCluster(nodeSettingsSupplier, clusterConfiguration, 10, null);
     }
 
-    public final synchronized ClusterInfo startCluster(final NodeSettingsSupplier nodeSettingsSupplier, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes)
-            throws Exception {
+    public final synchronized ClusterInfo startCluster(
+        final NodeSettingsSupplier nodeSettingsSupplier,
+        ClusterConfiguration clusterConfiguration,
+        int timeout,
+        Integer nodes
+    ) throws Exception {
 
         switch (clusterState) {
             case UNINITIALIZED:
@@ -140,27 +145,40 @@ public final class ClusterHelper {
         final String forkno = System.getProperty("forkno");
         int forkNumber = 1;
 
-        if(forkno != null && forkno.length() > 0) {
+        if (forkno != null && forkno.length() > 0) {
             forkNumber = Integer.parseInt(forkno.split("_")[1]);
         }
 
-        final int min = SocketUtils.PORT_RANGE_MIN+(forkNumber*5000);
-        final int max = SocketUtils.PORT_RANGE_MIN+((forkNumber+1)*5000)-1;
+        final int min = SocketUtils.PORT_RANGE_MIN + (forkNumber * 5000);
+        final int max = SocketUtils.PORT_RANGE_MIN + ((forkNumber + 1) * 5000) - 1;
 
-        final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size()*2, min, max);
-        assert freePorts.size() == internalNodeSettings.size()*2;
+        final SortedSet<Integer> freePorts = SocketUtils.findAvailableTcpPorts(internalNodeSettings.size() * 2, min, max);
+        assert freePorts.size() == internalNodeSettings.size() * 2;
         final SortedSet<Integer> tcpClusterManagerPortsOnly = new TreeSet<Integer>();
         final SortedSet<Integer> tcpAllPorts = new TreeSet<Integer>();
-        freePorts.stream().limit(clusterConfiguration.getClusterManagerNodes()).forEach(el->tcpClusterManagerPortsOnly.add(el));
-        freePorts.stream().limit(internalNodeSettings.size()).forEach(el->tcpAllPorts.add(el));
+        freePorts.stream().limit(clusterConfiguration.getClusterManagerNodes()).forEach(el -> tcpClusterManagerPortsOnly.add(el));
+        freePorts.stream().limit(internalNodeSettings.size()).forEach(el -> tcpAllPorts.add(el));
 
         final Iterator<Integer> tcpPortsAllIt = tcpAllPorts.iterator();
 
         final SortedSet<Integer> httpPorts = new TreeSet<Integer>();
-        freePorts.stream().skip(internalNodeSettings.size()).limit(internalNodeSettings.size()).forEach(el->httpPorts.add(el));
+        freePorts.stream().skip(internalNodeSettings.size()).limit(internalNodeSettings.size()).forEach(el -> httpPorts.add(el));
         final Iterator<Integer> httpPortsIt = httpPorts.iterator();
 
-        System.out.println("tcpClusterManagerPorts: "+tcpClusterManagerPortsOnly+"/tcpAllPorts: "+tcpAllPorts+"/httpPorts: "+httpPorts+" for ("+min+"-"+max+") fork "+forkNumber);
+        System.out.println(
+            "tcpClusterManagerPorts: "
+                + tcpClusterManagerPortsOnly
+                + "/tcpAllPorts: "
+                + tcpAllPorts
+                + "/httpPorts: "
+                + httpPorts
+                + " for ("
+                + min
+                + "-"
+                + max
+                + ") fork "
+                + forkNumber
+        );
 
         final CountDownLatch latch = new CountDownLatch(internalNodeSettings.size());
 
@@ -174,7 +192,15 @@ public final class ClusterHelper {
         for (int i = 0; i < internalClusterManagerNodeSettings.size(); i++) {
             NodeSettings setting = internalClusterManagerNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
-            final Settings.Builder nodeSettingsBuilder = getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next());
+            final Settings.Builder nodeSettingsBuilder = getMinimumNonSecurityNodeSettingsBuilder(
+                nodeNum,
+                setting.clusterManagerNode,
+                setting.dataNode,
+                internalNodeSettings.size(),
+                tcpClusterManagerPortsOnly,
+                tcpPortsAllIt.next(),
+                httpPortsIt.next()
+            );
             final Settings settingsForNode;
             if (nodeSettingsSupplier != null) {
                 final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
@@ -206,7 +232,15 @@ public final class ClusterHelper {
         for (int i = 0; i < internalNonClusterManagerNodeSettings.size(); i++) {
             NodeSettings setting = internalNonClusterManagerNodeSettings.get(i);
             int nodeNum = nodeNumCounter--;
-            final Settings.Builder nodeSettingsBuilder = getMinimumNonSecurityNodeSettingsBuilder(nodeNum, setting.clusterManagerNode, setting.dataNode, internalNodeSettings.size(), tcpClusterManagerPortsOnly, tcpPortsAllIt.next(), httpPortsIt.next());
+            final Settings.Builder nodeSettingsBuilder = getMinimumNonSecurityNodeSettingsBuilder(
+                nodeNum,
+                setting.clusterManagerNode,
+                setting.dataNode,
+                internalNodeSettings.size(),
+                tcpClusterManagerPortsOnly,
+                tcpPortsAllIt.next(),
+                httpPortsIt.next()
+            );
             final Settings settingsForNode;
             if (nodeSettingsSupplier != null) {
                 final Settings suppliedSettings = nodeSettingsSupplier.get(nodeNum);
@@ -239,27 +273,34 @@ public final class ClusterHelper {
 
         latch.await();
 
-        if(err.get() != null) {
-            throw new RuntimeException("Could not start all nodes "+err.get(),err.get());
+        if (err.get() != null) {
+            throw new RuntimeException("Could not start all nodes " + err.get(), err.get());
         }
 
-        ClusterInfo cInfo = waitForCluster(ClusterHealthStatus.GREEN, TimeValue.timeValueSeconds(timeout), nodes == null?opensearchNodes.size():nodes.intValue());
+        ClusterInfo cInfo = waitForCluster(
+            ClusterHealthStatus.GREEN,
+            TimeValue.timeValueSeconds(timeout),
+            nodes == null ? opensearchNodes.size() : nodes.intValue()
+        );
         cInfo.numNodes = internalNodeSettings.size();
         cInfo.clustername = clustername;
-        cInfo.tcpClusterManagerPortsOnly = tcpClusterManagerPortsOnly.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList());
+        cInfo.tcpClusterManagerPortsOnly = tcpClusterManagerPortsOnly.stream().map(s -> "127.0.0.1:" + s).collect(Collectors.toList());
 
-        final String defaultTemplate = "{\n" +
-                "          \"index_patterns\": [\"*\"],\n" +
-                "          \"order\": -1,\n" +
-                "          \"settings\": {\n" +
-                "            \"number_of_shards\": \"5\",\n" +
-                "            \"number_of_replicas\": \"1\"\n" +
-                "          }\n" +
-                "        }";
+        final String defaultTemplate = "{\n"
+            + "          \"index_patterns\": [\"*\"],\n"
+            + "          \"order\": -1,\n"
+            + "          \"settings\": {\n"
+            + "            \"number_of_shards\": \"5\",\n"
+            + "            \"number_of_replicas\": \"1\"\n"
+            + "          }\n"
+            + "        }";
 
-        final AcknowledgedResponse templateAck = nodeClient().admin().indices().putTemplate(new PutIndexTemplateRequest("default").source(defaultTemplate, XContentType.JSON)).actionGet();
+        final AcknowledgedResponse templateAck = nodeClient().admin()
+            .indices()
+            .putTemplate(new PutIndexTemplateRequest("default").source(defaultTemplate, XContentType.JSON))
+            .actionGet();
 
-        if(!templateAck.isAcknowledged()) {
+        if (!templateAck.isAcknowledged()) {
             throw new RuntimeException("Default template could not be created");
         }
 
@@ -269,15 +310,15 @@ public final class ClusterHelper {
 
     public final void stopCluster() throws Exception {
         closeAllNodes();
-        FileUtils.deleteDirectory(new File("./target/data/"+clustername));
+        FileUtils.deleteDirectory(new File("./target/data/" + clustername));
     }
 
-    private void closeAllNodes() throws  Exception {
-        //close non cluster manager nodes
-        opensearchNodes.stream().filter(n->!n.isClusterManagerEligible()).forEach(ClusterHelper::closeNode);
+    private void closeAllNodes() throws Exception {
+        // close non cluster manager nodes
+        opensearchNodes.stream().filter(n -> !n.isClusterManagerEligible()).forEach(ClusterHelper::closeNode);
 
-        //close cluster manager nodes
-        opensearchNodes.stream().filter(n->n.isClusterManagerEligible()).forEach(ClusterHelper::closeNode);
+        // close cluster manager nodes
+        opensearchNodes.stream().filter(n -> n.isClusterManagerEligible()).forEach(ClusterHelper::closeNode);
         opensearchNodes.clear();
         clusterState = ClusterState.STOPPED;
     }
@@ -287,16 +328,16 @@ public final class ClusterHelper {
             node.close();
             node.awaitClose(250, TimeUnit.MILLISECONDS);
         } catch (Throwable e) {
-            //ignore
+            // ignore
         }
     }
-
 
     public Client nodeClient() {
         return opensearchNodes.get(0).client();
     }
 
-    public ClusterInfo waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final int expectedNodeCount) throws IOException {
+    public ClusterInfo waitForCluster(final ClusterHealthStatus status, final TimeValue timeout, final int expectedNodeCount)
+        throws IOException {
         if (opensearchNodes.isEmpty()) {
             throw new RuntimeException("List of nodes was empty.");
         }
@@ -307,12 +348,19 @@ public final class ClusterHelper {
         Client client = node.client();
         try {
             log.debug("waiting for cluster state {} and {} nodes", status.name(), expectedNodeCount);
-            final ClusterHealthResponse healthResponse = client.admin().cluster().prepareHealth()
-                    .setWaitForStatus(status).setTimeout(timeout).setClusterManagerNodeTimeout(timeout).setWaitForNodes("" + expectedNodeCount).execute()
-                    .actionGet();
+            final ClusterHealthResponse healthResponse = client.admin()
+                .cluster()
+                .prepareHealth()
+                .setWaitForStatus(status)
+                .setTimeout(timeout)
+                .setClusterManagerNodeTimeout(timeout)
+                .setWaitForNodes("" + expectedNodeCount)
+                .execute()
+                .actionGet();
             if (healthResponse.isTimedOut()) {
-                throw new IOException("cluster state is " + healthResponse.getStatus().name() + " with "
-                        + healthResponse.getNumberOfNodes() + " nodes");
+                throw new IOException(
+                    "cluster state is " + healthResponse.getStatus().name() + " with " + healthResponse.getNumberOfNodes() + " nodes"
+                );
             } else {
                 log.debug("... cluster state ok {} with {} nodes", healthResponse.getStatus().name(), healthResponse.getNumberOfNodes());
             }
@@ -323,21 +371,32 @@ public final class ClusterHelper {
 
             final List<NodeInfo> nodes = res.getNodes();
 
-            final List<NodeInfo> clusterManagerNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE)).collect(Collectors.toList());
-            final List<NodeInfo> dataNodes = nodes.stream().filter(n->n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE)).collect(Collectors.toList());
+            final List<NodeInfo> clusterManagerNodes = nodes.stream()
+                .filter(n -> n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE))
+                .collect(Collectors.toList());
+            final List<NodeInfo> dataNodes = nodes.stream()
+                .filter(
+                    n -> n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE)
+                        && !n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE)
+                )
+                .collect(Collectors.toList());
             // Sorting the nodes so that the node receiving the http requests is always deterministic
             dataNodes.sort(Comparator.comparing(nodeInfo -> nodeInfo.getNode().getName()));
-            final List<NodeInfo> clientNodes = nodes.stream().filter(n->!n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE) && !n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE)).collect(Collectors.toList());
+            final List<NodeInfo> clientNodes = nodes.stream()
+                .filter(
+                    n -> !n.getNode().getRoles().contains(DiscoveryNodeRole.CLUSTER_MANAGER_ROLE)
+                        && !n.getNode().getRoles().contains(DiscoveryNodeRole.DATA_ROLE)
+                )
+                .collect(Collectors.toList());
 
-
-            for (NodeInfo nodeInfo: clusterManagerNodes) {
+            for (NodeInfo nodeInfo : clusterManagerNodes) {
                 final TransportInfo transportInfo = nodeInfo.getInfo(TransportInfo.class);
                 final TransportAddress transportAddress = transportInfo.getAddress().publishAddress();
                 clusterInfo.nodePort = transportAddress.getPort();
                 clusterInfo.nodeHost = transportAddress.getAddress();
             }
 
-            if(!clientNodes.isEmpty()) {
+            if (!clientNodes.isEmpty()) {
                 NodeInfo nodeInfo = clientNodes.get(0);
                 final HttpInfo httpInfo = nodeInfo.getInfo(HttpInfo.class);
                 if (httpInfo != null && httpInfo.address() != null) {
@@ -348,9 +407,9 @@ public final class ClusterHelper {
                 } else {
                     throw new RuntimeException("no http host/port for client node");
                 }
-            } else if(!dataNodes.isEmpty()) {
+            } else if (!dataNodes.isEmpty()) {
 
-                for (NodeInfo nodeInfo: dataNodes) {
+                for (NodeInfo nodeInfo : dataNodes) {
                     final HttpInfo httpInfo = nodeInfo.getInfo(HttpInfo.class);
                     if (httpInfo != null && httpInfo.address() != null) {
                         final TransportAddress transportAddress = httpInfo.address().publishAddress();
@@ -360,9 +419,9 @@ public final class ClusterHelper {
                         break;
                     }
                 }
-            }  else  {
+            } else {
 
-                for (NodeInfo nodeInfo: nodes) {
+                for (NodeInfo nodeInfo : nodes) {
                     final HttpInfo httpInfo = nodeInfo.getInfo(HttpInfo.class);
                     if (httpInfo != null && httpInfo.address() != null) {
                         final TransportAddress transportAddress = httpInfo.address().publishAddress();
@@ -374,32 +433,41 @@ public final class ClusterHelper {
                 }
             }
         } catch (final OpenSearchTimeoutException e) {
-            throw new IOException(
-                    "timeout, cluster does not respond to health request, cowardly refusing to continue with operations");
+            throw new IOException("timeout, cluster does not respond to health request, cowardly refusing to continue with operations");
         }
         return clusterInfo;
     }
 
     // @formatter:off
-    private Settings.Builder getMinimumNonSecurityNodeSettingsBuilder(final int nodenum, final boolean isClusterManagerNode,
-                                                                final boolean isDataNode, int nodeCount, SortedSet<Integer> clusterManagerTcpPorts, int tcpPort, int httpPort) {
+    private Settings.Builder getMinimumNonSecurityNodeSettingsBuilder(
+        final int nodenum,
+        final boolean isClusterManagerNode,
+        final boolean isDataNode,
+        int nodeCount,
+        SortedSet<Integer> clusterManagerTcpPorts,
+        int tcpPort,
+        int httpPort
+    ) {
 
         return AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), isClusterManagerNode, isDataNode)
-                .put("node.name", "node_"+clustername+ "_num" + nodenum)
-                .put("cluster.name", clustername)
-                .put("path.data", "./target/data/"+clustername+"/data")
-                .put("path.logs", "./target/data/"+clustername+"/logs")
-                .put("node.max_local_storage_nodes", nodeCount)
-                .putList("cluster.initial_cluster_manager_nodes", clusterManagerTcpPorts.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList()))
-                .put("discovery.initial_state_timeout","8s")
-                .putList("discovery.seed_hosts", clusterManagerTcpPorts.stream().map(s->"127.0.0.1:"+s).collect(Collectors.toList()))
-                .put("transport.tcp.port", tcpPort)
-                .put("http.port", httpPort)
-                .put("http.cors.enabled", true)
-                .put("path.home", "./target");
+            .put("node.name", "node_" + clustername + "_num" + nodenum)
+            .put("cluster.name", clustername)
+            .put("path.data", "./target/data/" + clustername + "/data")
+            .put("path.logs", "./target/data/" + clustername + "/logs")
+            .put("node.max_local_storage_nodes", nodeCount)
+            .putList(
+                "cluster.initial_cluster_manager_nodes",
+                clusterManagerTcpPorts.stream().map(s -> "127.0.0.1:" + s).collect(Collectors.toList())
+            )
+            .put("discovery.initial_state_timeout", "8s")
+            .putList("discovery.seed_hosts", clusterManagerTcpPorts.stream().map(s -> "127.0.0.1:" + s).collect(Collectors.toList()))
+            .put("transport.tcp.port", tcpPort)
+            .put("http.port", httpPort)
+            .put("http.cors.enabled", true)
+            .put("path.home", "./target");
     }
 
-    private enum ClusterState{
+    private enum ClusterState {
         UNINITIALIZED,
         STARTED,
         STOPPED

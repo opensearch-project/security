@@ -58,7 +58,7 @@ public abstract class AbstractDlsFlsTest extends SingleClusterTest {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, "debug").put(override).build();
         setup(Settings.EMPTY, dynamicSecurityConfig, settings, true);
 
-        try(Client tc = getClient()) {
+        try (Client tc = getClient()) {
             populateData(tc);
         }
 
@@ -66,50 +66,48 @@ public abstract class AbstractDlsFlsTest extends SingleClusterTest {
     }
 
     protected SearchResponse executeSearch(String indexName, String user, String password) throws Exception {
-		HttpResponse response = rh.executeGetRequest("/"+indexName+"/_search?from=0&size=50&pretty",
-				encodeBasicHeader(user, password));
-		Assert.assertEquals(200, response.getStatusCode());
-		XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY,
-				LoggingDeprecationHandler.INSTANCE, response.getBody());
-		return SearchResponse.fromXContent(xcp);
+        HttpResponse response = rh.executeGetRequest("/" + indexName + "/_search?from=0&size=50&pretty", encodeBasicHeader(user, password));
+        Assert.assertEquals(200, response.getStatusCode());
+        XContentParser xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        return SearchResponse.fromXContent(xcp);
     }
 
     protected GetResponse executeGet(String indexName, String id, String user, String password) throws Exception {
-		HttpResponse response = rh.executeGetRequest("/"+indexName+"/_doc/"+id, encodeBasicHeader(user, password));
-		XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY,
-				LoggingDeprecationHandler.INSTANCE, response.getBody());
-		return GetResponse.fromXContent(xcp);
+        HttpResponse response = rh.executeGetRequest("/" + indexName + "/_doc/" + id, encodeBasicHeader(user, password));
+        XContentParser xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        return GetResponse.fromXContent(xcp);
     }
 
-    protected MultiSearchResponse executeMSearchMatchAll(String user, String password, String ... indexName) throws Exception {
-		StringBuilder body = new StringBuilder();
+    protected MultiSearchResponse executeMSearchMatchAll(String user, String password, String... indexName) throws Exception {
+        StringBuilder body = new StringBuilder();
 
-		for (String index : indexName) {
-			body.append("{\"index\": \"").append(index).append("\"}\n");
-			body.append("{\"query\" : {\"match_all\" : {}}}\n");
-		}
+        for (String index : indexName) {
+            body.append("{\"index\": \"").append(index).append("\"}\n");
+            body.append("{\"query\" : {\"match_all\" : {}}}\n");
+        }
 
-    	HttpResponse response = rh.executePostRequest("/_msearch?pretty", body.toString(),
-				encodeBasicHeader(user, password));
-		Assert.assertEquals(200, response.getStatusCode());
-		XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY,
-				LoggingDeprecationHandler.INSTANCE, response.getBody());
-		return MultiSearchResponse.fromXContext(xcp);
+        HttpResponse response = rh.executePostRequest("/_msearch?pretty", body.toString(), encodeBasicHeader(user, password));
+        Assert.assertEquals(200, response.getStatusCode());
+        XContentParser xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        return MultiSearchResponse.fromXContext(xcp);
     }
 
     protected MultiGetResponse executeMGet(String user, String password, Map<String, String> indicesAndIds) throws Exception {
 
-		Set<String> indexAndIdJson = new HashSet<>();
-		for (Map.Entry<String, String> indexAndId : indicesAndIds.entrySet()) {
-			indexAndIdJson.add("{ \"_index\": \""+indexAndId.getKey()+"\", \"_id\": \""+indexAndId.getValue()+"\" }");
-		}
-		String body = "{ \"docs\": ["+ String.join(",", indexAndIdJson) +"] }";
+        Set<String> indexAndIdJson = new HashSet<>();
+        for (Map.Entry<String, String> indexAndId : indicesAndIds.entrySet()) {
+            indexAndIdJson.add("{ \"_index\": \"" + indexAndId.getKey() + "\", \"_id\": \"" + indexAndId.getValue() + "\" }");
+        }
+        String body = "{ \"docs\": [" + String.join(",", indexAndIdJson) + "] }";
 
-    	HttpResponse response = rh.executePostRequest("/_mget?pretty", body,encodeBasicHeader(user, password));
-		Assert.assertEquals(200, response.getStatusCode());
-		XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY,
-				LoggingDeprecationHandler.INSTANCE, response.getBody());
-		return MultiGetResponse.fromXContent(xcp);
+        HttpResponse response = rh.executePostRequest("/_mget?pretty", body, encodeBasicHeader(user, password));
+        Assert.assertEquals(200, response.getStatusCode());
+        XContentParser xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        return MultiGetResponse.fromXContent(xcp);
     }
 
     abstract void populateData(Client tc);

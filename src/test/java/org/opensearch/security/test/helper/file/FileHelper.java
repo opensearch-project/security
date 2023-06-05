@@ -57,90 +57,90 @@ import static org.opensearch.core.xcontent.DeprecationHandler.THROW_UNSUPPORTED_
 
 public class FileHelper {
 
-	protected final static Logger log = LogManager.getLogger(FileHelper.class);
+    protected final static Logger log = LogManager.getLogger(FileHelper.class);
 
-	public static KeyStore getKeystoreFromClassPath(final String fileNameFromClasspath, String password) throws Exception {
-	    Path path = getAbsoluteFilePathFromClassPath(fileNameFromClasspath);
-	    if(path==null) {
-	        return null;
-	    }
+    public static KeyStore getKeystoreFromClassPath(final String fileNameFromClasspath, String password) throws Exception {
+        Path path = getAbsoluteFilePathFromClassPath(fileNameFromClasspath);
+        if (path == null) {
+            return null;
+        }
 
-	    KeyStore ks = KeyStore.getInstance("JKS");
-	    try (FileInputStream fin = new FileInputStream(path.toFile())) {
-	        ks.load(fin, password==null||password.isEmpty()?null:password.toCharArray());
-	    }
-	    return ks;
-	}
+        KeyStore ks = KeyStore.getInstance("JKS");
+        try (FileInputStream fin = new FileInputStream(path.toFile())) {
+            ks.load(fin, password == null || password.isEmpty() ? null : password.toCharArray());
+        }
+        return ks;
+    }
 
-	public static Path getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
-		File file = null;
-		final URL fileUrl = FileHelper.class.getClassLoader().getResource(fileNameFromClasspath);
-		if (fileUrl != null) {
-			try {
-				file = new File(URLDecoder.decode(fileUrl.getFile(), "UTF-8"));
-			} catch (final UnsupportedEncodingException e) {
-				return null;
-			}
+    public static Path getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) {
+        File file = null;
+        final URL fileUrl = FileHelper.class.getClassLoader().getResource(fileNameFromClasspath);
+        if (fileUrl != null) {
+            try {
+                file = new File(URLDecoder.decode(fileUrl.getFile(), "UTF-8"));
+            } catch (final UnsupportedEncodingException e) {
+                return null;
+            }
 
-			if (file.exists() && file.canRead()) {
-				return Paths.get(file.getAbsolutePath());
-			} else {
-				log.error("Cannot read from {}, maybe the file does not exists? ", file.getAbsolutePath());
-			}
+            if (file.exists() && file.canRead()) {
+                return Paths.get(file.getAbsolutePath());
+            } else {
+                log.error("Cannot read from {}, maybe the file does not exists? ", file.getAbsolutePath());
+            }
 
-		} else {
-			log.error("Failed to load {}", fileNameFromClasspath);
-		}
-		return null;
-	}
+        } else {
+            log.error("Failed to load {}", fileNameFromClasspath);
+        }
+        return null;
+    }
 
-	public static final String loadFile(final String file) throws IOException {
-		final StringWriter sw = new StringWriter();
-		IOUtils.copy(FileHelper.class.getResourceAsStream("/" + file), sw, StandardCharsets.UTF_8);
-		return sw.toString();
-	}
+    public static final String loadFile(final String file) throws IOException {
+        final StringWriter sw = new StringWriter();
+        IOUtils.copy(FileHelper.class.getResourceAsStream("/" + file), sw, StandardCharsets.UTF_8);
+        return sw.toString();
+    }
 
     public static BytesReference readYamlContent(final String file) {
 
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(loadFile(file)));
+            parser = XContentFactory.xContent(XContentType.YAML)
+                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(loadFile(file)));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
             return BytesReference.bytes(builder);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-        finally {
+        } finally {
             if (parser != null) {
                 try {
                     parser.close();
                 } catch (IOException e) {
-                    //ignore
+                    // ignore
                 }
             }
         }
-	}
+    }
 
     public static BytesReference readYamlContentFromString(final String yaml) {
 
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(yaml));
+            parser = XContentFactory.xContent(XContentType.YAML)
+                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(yaml));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
             return BytesReference.bytes(builder);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-        finally {
+        } finally {
             if (parser != null) {
                 try {
                     parser.close();
                 } catch (IOException e) {
-                    //ignore
+                    // ignore
                 }
             }
         }

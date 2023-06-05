@@ -34,7 +34,6 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES;
 
-
 public class RolesInjectorTest {
 
     private TransportRequest transportRequest;
@@ -76,13 +75,7 @@ public class RolesInjectorTest {
 
     @Test
     public void testCorruptedInjection() {
-        List<String> corruptedStrs = Arrays.asList(
-                "invalid",
-                "role_1,role_2",
-                " | ",
-                "  ",
-                "|"
-        );
+        List<String> corruptedStrs = Arrays.asList("invalid", "role_1,role_2", " | ", "  ", "|");
 
         corruptedStrs.forEach(name -> {
             ThreadContext threadContext = new ThreadContext(Settings.EMPTY);

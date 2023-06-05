@@ -37,9 +37,14 @@ public class TaskTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_tasks?group_by=parents&pretty"
-                , encodeBasicHeader("nagilum", "nagilum")
-                , new BasicHeader(Task.X_OPAQUE_ID, "myOpaqueId12"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest(
+                "_tasks?group_by=parents&pretty",
+                encodeBasicHeader("nagilum", "nagilum"),
+                new BasicHeader(Task.X_OPAQUE_ID, "myOpaqueId12")
+            )).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().split("X-Opaque-Id").length > 2);
         Assert.assertTrue(!res.getBody().contains("failures"));
