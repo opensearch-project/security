@@ -54,51 +54,51 @@ public class SystemIndicesTests extends SingleClusterTest {
     private static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
     private static final String allAccessUser = "admin_all_access";
     private static final Header allAccessUserHeader = encodeBasicHeader(allAccessUser, allAccessUser);
-
-    private static final String extensionUser = "extensions_user";
-    private static final Header extensionUserHeader = encodeBasicHeader(extensionUser, allAccessUser);
-    private static final String extensionUserC = "extensions_user_c";
-    private static final Header extensionUserCHeader = encodeBasicHeader(extensionUserC, allAccessUser);
-    private static final String generalErrorMessage = String.format("no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]", allAccessUser);
+    private static final String generalErrorMessage = String.format(
+        "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]",
+        allAccessUser
+    );
 
     private void setupSystemIndicesDisabledWithSsl() throws Exception {
 
         Settings systemIndexSettings = Settings.builder()
-                .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, false)
-                .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
-                .put("plugins.security.ssl.http.enabled",true)
-                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .build();
-        setup(Settings.EMPTY,
-                new DynamicSecurityConfig()
-                        .setConfig("config_system_indices.yml")
-                        .setSecurityRoles("roles_system_indices.yml")
-                        .setSecurityInternalUsers("internal_users_system_indices.yml")
-                        .setSecurityRolesMapping("roles_mapping_system_indices.yml"),
-                systemIndexSettings,
-                true);
+            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, false)
+            .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
+            .build();
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_system_indices.yml")
+                .setSecurityRoles("roles_system_indices.yml")
+                .setSecurityInternalUsers("internal_users_system_indices.yml")
+                .setSecurityRolesMapping("roles_mapping_system_indices.yml"),
+            systemIndexSettings,
+            true
+        );
     }
 
     private void setupSystemIndicesEnabledWithSsl() throws Exception {
 
         Settings systemIndexSettings = Settings.builder()
-                .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, true)
-                .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
-                .put("plugins.security.ssl.http.enabled",true)
-                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .build();
-        setup(Settings.EMPTY,
-                new DynamicSecurityConfig()
-                        .setConfig("config_system_indices.yml")
-                        .setSecurityRoles("roles_system_indices.yml")
-                        .setSecurityInternalUsers("internal_users_system_indices.yml")
-                        .setSecurityRolesMapping("roles_mapping_system_indices.yml"),
-                systemIndexSettings,
-                true);
+            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, true)
+            .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
+            .build();
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_system_indices.yml")
+                .setSecurityRoles("roles_system_indices.yml")
+                .setSecurityInternalUsers("internal_users_system_indices.yml")
+                .setSecurityRolesMapping("roles_mapping_system_indices.yml"),
+            systemIndexSettings,
+            true
+        );
     }
 
     /**
@@ -110,7 +110,11 @@ public class SystemIndicesTests extends SingleClusterTest {
         try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
-                tc.index(new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).id("document1").source("{ \"foo\": \"bar\" }", XContentType.JSON)).actionGet();
+                tc.index(
+                    new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                        .id("document1")
+                        .source("{ \"foo\": \"bar\" }", XContentType.JSON)
+                ).actionGet();
             }
         }
     }
@@ -118,8 +122,19 @@ public class SystemIndicesTests extends SingleClusterTest {
     private void createSnapshots() {
         try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
-                tc.admin().cluster().putRepository(new PutRepositoryRequest(index).type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/" + index))).actionGet();
-                tc.admin().cluster().createSnapshot(new CreateSnapshotRequest(index, index + "_1").indices(index).includeGlobalState(true).waitForCompletion(true)).actionGet();
+                tc.admin()
+                    .cluster()
+                    .putRepository(
+                        new PutRepositoryRequest(index).type("fs")
+                            .settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/" + index))
+                    )
+                    .actionGet();
+                tc.admin()
+                    .cluster()
+                    .createSnapshot(
+                        new CreateSnapshotRequest(index, index + "_1").indices(index).includeGlobalState(true).waitForCompletion(true)
+                    )
+                    .actionGet();
             }
         }
     }
@@ -146,7 +161,8 @@ public class SystemIndicesTests extends SingleClusterTest {
     private void validateSearchResponse(RestHelper.HttpResponse response, int expectecdHits) throws IOException {
         assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
 
-        XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        XContentParser xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
         assertEquals(RestStatus.OK, searchResponse.status());
         assertEquals(expectecdHits, searchResponse.getHits().getHits().length);
@@ -160,12 +176,12 @@ public class SystemIndicesTests extends SingleClusterTest {
         createTestIndicesAndDocs();
         RestHelper restHelper = keyStoreRestHelper();
 
-        //search system indices
+        // search system indices
         for (String index : listOfIndexesToTest) {
             validateSearchResponse(restHelper.executePostRequest(index + "/_search", matchAllQuery), 1);
         }
 
-        //search all indices
+        // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery);
         assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
     }
@@ -176,12 +192,12 @@ public class SystemIndicesTests extends SingleClusterTest {
         createTestIndicesAndDocs();
         RestHelper restHelper = sslRestHelper();
 
-        //search system indices
+        // search system indices
         for (String index : listOfIndexesToTest) {
             validateSearchResponse(restHelper.executePostRequest(index + "/_search", matchAllQuery, allAccessUserHeader), 1);
         }
 
-        //search all indices
+        // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
         assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
     }
@@ -192,16 +208,15 @@ public class SystemIndicesTests extends SingleClusterTest {
         createTestIndicesAndDocs();
         RestHelper restHelper = keyStoreRestHelper();
 
-        //search system indices
+        // search system indices
         for (String index : listOfIndexesToTest) {
             validateSearchResponse(restHelper.executePostRequest(index + "/_search", matchAllQuery), 1);
         }
 
-        //search all indices
+        // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery);
         assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
     }
-
 
     @Test
     public void testSearchWithSystemIndicesShouldFailAsAdmin() throws Exception {
@@ -216,10 +231,11 @@ public class SystemIndicesTests extends SingleClusterTest {
 
             }
 
-        //search all indices
+        // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
         assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
-        XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+        XContentParser xcp = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
         assertEquals(RestStatus.OK, searchResponse.status());
         assertEquals(0, searchResponse.getHits().getHits().length);
@@ -276,7 +292,7 @@ public class SystemIndicesTests extends SingleClusterTest {
         createTestIndicesAndDocs();
         RestHelper sslRestHelper = sslRestHelper();
 
-        //as admin
+        // as admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseDoc = sslRestHelper.executeDeleteRequest(index + "/_doc/document1", allAccessUserHeader);
             assertEquals(RestStatus.OK.getStatus(), responseDoc.getStatusCode());
@@ -330,18 +346,18 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
         RestHelper sslRestHelper = sslRestHelper();
 
-        //as super-admin
+        // as super-admin
         for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse responseClose = keyStoreRestHelper.executePostRequest(index + "/_close","");
+            RestHelper.HttpResponse responseClose = keyStoreRestHelper.executePostRequest(index + "/_close", "");
             assertEquals(RestStatus.OK.getStatus(), responseClose.getStatusCode());
 
             RestHelper.HttpResponse responseOpen = keyStoreRestHelper.executePostRequest(index + "/_open", "");
             assertEquals(RestStatus.OK.getStatus(), responseOpen.getStatusCode());
         }
 
-        //as admin
+        // as admin
         for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse responseClose = sslRestHelper.executePostRequest(index + "/_close","", allAccessUserHeader);
+            RestHelper.HttpResponse responseClose = sslRestHelper.executePostRequest(index + "/_close", "", allAccessUserHeader);
             assertEquals(RestStatus.OK.getStatus(), responseClose.getStatusCode());
 
             RestHelper.HttpResponse responseOpen = sslRestHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
@@ -358,7 +374,7 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
 
         for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse responseClose = keyStoreRestHelper.executePostRequest(index + "/_close","");
+            RestHelper.HttpResponse responseClose = keyStoreRestHelper.executePostRequest(index + "/_close", "");
             assertEquals(RestStatus.OK.getStatus(), responseClose.getStatusCode());
 
             RestHelper.HttpResponse responseOpen = keyStoreRestHelper.executePostRequest(index + "/_open", "");
@@ -374,7 +390,7 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper sslRestHelper = sslRestHelper();
 
         for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse responseClose = sslRestHelper.executePostRequest(index + "/_close","", allAccessUserHeader);
+            RestHelper.HttpResponse responseClose = sslRestHelper.executePostRequest(index + "/_close", "", allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), responseClose.getStatusCode());
 
             RestHelper.HttpResponse responseOpen = sslRestHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
@@ -408,18 +424,14 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
         RestHelper sslRestHelper = sslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"index\" : {\n" +
-                "        \"refresh_interval\" : null\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n" + "    \"index\" : {\n" + "        \"refresh_interval\" : null\n" + "    }\n" + "}";
 
-        //as super-admin
+        // as super-admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = keyStoreRestHelper.executePutRequest(index + "/_settings", indexSettings);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
         }
-        //as admin
+        // as admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = sslRestHelper.executePutRequest(index + "/_settings", indexSettings, allAccessUserHeader);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
@@ -433,23 +445,20 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
         RestHelper sslRestHelper = sslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"index\" : {\n" +
-                "        \"refresh_interval\" : null\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n" + "    \"index\" : {\n" + "        \"refresh_interval\" : null\n" + "    }\n" + "}";
 
-        //as super-admin
+        // as super-admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = keyStoreRestHelper.executePutRequest(index + "/_settings", indexSettings);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
         }
-        //as admin
+        // as admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = sslRestHelper.executePutRequest(index + "/_settings", indexSettings, allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
         }
     }
+
     /***************************************************************************************************************************
      * Index mappings. indices:admin/mapping/put
      ************************************************************************************************************************** */
@@ -461,18 +470,15 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
         RestHelper sslRestHelper = sslRestHelper();
 
-        String newMappings = "{\"properties\": {" +
-                "\"user_name\": {" +
-                "\"type\": \"text\"" +
-                "}}}";
+        String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
 
-        //as super-admin
+        // as super-admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = keyStoreRestHelper.executePutRequest(index + "/_mapping", newMappings);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
 
         }
-        //as admin
+        // as admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = sslRestHelper.executePutRequest(index + "/_mapping", newMappings, allAccessUserHeader);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
@@ -486,18 +492,15 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
         RestHelper sslRestHelper = sslRestHelper();
 
-        String newMappings = "{\"properties\": {" +
-                "\"user_name\": {" +
-                "\"type\": \"text\"" +
-                "}}}";
+        String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
 
-        //as super-admin
+        // as super-admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = keyStoreRestHelper.executePutRequest(index + "/_mapping", newMappings);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
 
         }
-        //as admin
+        // as admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = sslRestHelper.executePutRequest(index + "/_mapping", newMappings, allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
@@ -515,16 +518,16 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
         RestHelper sslRestHelper = sslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"settings\" : {\n" +
-                "        \"index\" : {\n" +
-                "            \"number_of_shards\" : 3, \n" +
-                "            \"number_of_replicas\" : 2 \n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n"
+            + "    \"settings\" : {\n"
+            + "        \"index\" : {\n"
+            + "            \"number_of_shards\" : 3, \n"
+            + "            \"number_of_replicas\" : 2 \n"
+            + "        }\n"
+            + "    }\n"
+            + "}";
 
-//        as super-admin
+        // as super-admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseIndex = keyStoreRestHelper.executePutRequest(index, indexSettings);
             assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
@@ -537,7 +540,7 @@ public class SystemIndicesTests extends SingleClusterTest {
             keyStoreRestHelper.executeDeleteRequest(index);
         }
 
-//        as admin
+        // as admin
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseIndex = sslRestHelper.executePutRequest(index, indexSettings, allAccessUserHeader);
             assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
@@ -554,14 +557,14 @@ public class SystemIndicesTests extends SingleClusterTest {
         setupSystemIndicesEnabledWithSsl();
         RestHelper keyStoreRestHelper = keyStoreRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"settings\" : {\n" +
-                "        \"index\" : {\n" +
-                "            \"number_of_shards\" : 3, \n" +
-                "            \"number_of_replicas\" : 2 \n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n"
+            + "    \"settings\" : {\n"
+            + "        \"index\" : {\n"
+            + "            \"number_of_shards\" : 3, \n"
+            + "            \"number_of_replicas\" : 2 \n"
+            + "        }\n"
+            + "    }\n"
+            + "}";
 
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseIndex = keyStoreRestHelper.executePutRequest(index, indexSettings);
@@ -637,9 +640,26 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper sslRestHelper = sslRestHelper();
         // as admin
         for (String index : listOfIndexesToTest) {
-            assertEquals(HttpStatus.SC_OK,        sslRestHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1", allAccessUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_OK,        sslRestHelper.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }", allAccessUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_FORBIDDEN, sslRestHelper.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true", "", allAccessUserHeader).getStatusCode());
+            assertEquals(
+                HttpStatus.SC_OK,
+                sslRestHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1", allAccessUserHeader).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_OK,
+                sslRestHelper.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                    allAccessUserHeader
+                ).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_FORBIDDEN,
+                sslRestHelper.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "",
+                    allAccessUserHeader
+                ).getStatusCode()
+            );
         }
     }
 
