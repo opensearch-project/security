@@ -24,7 +24,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 public class CertFromTruststoreTests {
 
     @Test
-    public void testLoadSameCertForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testLoadSameCertForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
+        IOException {
         KeystoreProps props = new KeystoreProps(
             FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks").toString(),
             "JKS",
@@ -50,7 +51,8 @@ public class CertFromTruststoreTests {
         Assert.assertEquals(1, cert.getClientTrustedCerts().length);
     }
 
-    public void testLoadDifferentCertsForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testLoadDifferentCertsForClientServerUsage() throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
+        IOException {
         KeystoreProps props = new KeystoreProps(
             FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/truststore.jks").toString(),
             "JKS",

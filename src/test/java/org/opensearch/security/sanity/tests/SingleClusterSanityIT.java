@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-
 @SuppressWarnings("unchecked")
 public class SingleClusterSanityIT extends SecurityRestTestCase {
 
