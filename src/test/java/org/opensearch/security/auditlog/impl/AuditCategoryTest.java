@@ -42,19 +42,32 @@ public class AuditCategoryTest {
 
         @Parameterized.Parameters
         public static Collection<Object[]> data() {
-            return Arrays.asList(new Object[][]{
-                    {Arrays.asList(), EnumSet.noneOf(AuditCategory.class)},
-                    {Arrays.asList("BAD_HEADERS"), EnumSet.of(BAD_HEADERS)},
-                    {Arrays.asList("bad_headers"), EnumSet.of(BAD_HEADERS)},
-                    {Arrays.asList("bAd_HeAdErS"), EnumSet.of(BAD_HEADERS)},
-                    {Arrays.asList("bAd_HeAdErS"), EnumSet.of(BAD_HEADERS)},
-                    {Arrays.asList("BAD_HEADERS", "AUTHENTICATED"), EnumSet.of(BAD_HEADERS, AUTHENTICATED)},
-                    {Arrays.asList("BAD_HEADERS", "FAILED_LOGIN", "MISSING_PRIVILEGES", "GRANTED_PRIVILEGES",
-                            "OPENDISTRO_SECURITY_INDEX_ATTEMPT", "SSL_EXCEPTION", "AUTHENTICATED", "INDEX_EVENT",
-                            "COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE", "COMPLIANCE_EXTERNAL_CONFIG",
-                            "COMPLIANCE_INTERNAL_CONFIG_READ", "COMPLIANCE_INTERNAL_CONFIG_WRITE"
-                    ), EnumSet.allOf(AuditCategory.class)},
-            });
+            return Arrays.asList(
+                new Object[][] {
+                    { Arrays.asList(), EnumSet.noneOf(AuditCategory.class) },
+                    { Arrays.asList("BAD_HEADERS"), EnumSet.of(BAD_HEADERS) },
+                    { Arrays.asList("bad_headers"), EnumSet.of(BAD_HEADERS) },
+                    { Arrays.asList("bAd_HeAdErS"), EnumSet.of(BAD_HEADERS) },
+                    { Arrays.asList("bAd_HeAdErS"), EnumSet.of(BAD_HEADERS) },
+                    { Arrays.asList("BAD_HEADERS", "AUTHENTICATED"), EnumSet.of(BAD_HEADERS, AUTHENTICATED) },
+                    {
+                        Arrays.asList(
+                            "BAD_HEADERS",
+                            "FAILED_LOGIN",
+                            "MISSING_PRIVILEGES",
+                            "GRANTED_PRIVILEGES",
+                            "OPENDISTRO_SECURITY_INDEX_ATTEMPT",
+                            "SSL_EXCEPTION",
+                            "AUTHENTICATED",
+                            "INDEX_EVENT",
+                            "COMPLIANCE_DOC_READ",
+                            "COMPLIANCE_DOC_WRITE",
+                            "COMPLIANCE_EXTERNAL_CONFIG",
+                            "COMPLIANCE_INTERNAL_CONFIG_READ",
+                            "COMPLIANCE_INTERNAL_CONFIG_WRITE"
+                        ),
+                        EnumSet.allOf(AuditCategory.class) }, }
+            );
         }
 
         @Test
@@ -75,10 +88,9 @@ public class AuditCategoryTest {
 
         @Parameterized.Parameters
         public static Collection<Object[]> data() {
-            return Arrays.asList(new Object[][]{
-                    {Arrays.asList("BAD_INPUT")},
-                    {Arrays.asList("BAD_HEADERS", "bad_category", "AUTHENTICATED")},
-            });
+            return Arrays.asList(
+                new Object[][] { { Arrays.asList("BAD_INPUT") }, { Arrays.asList("BAD_HEADERS", "bad_category", "AUTHENTICATED") }, }
+            );
         }
 
         @Test(expected = IllegalArgumentException.class)

@@ -21,10 +21,9 @@ import org.opensearch.rest.RestRequest;
 
 public class FakeRestRequest extends RestRequest {
 
-    //private final Map<String, String> headers;
+    // private final Map<String, String> headers;
     private final BytesReference content;
     private final Method method;
-
 
     public FakeRestRequest() {
         this(new HashMap<>(), new HashMap<>(), null, Method.GET, "/");
@@ -35,10 +34,10 @@ public class FakeRestRequest extends RestRequest {
     }
 
     private FakeRestRequest(Map<String, String> headers, Map<String, String> params, BytesReference content, Method method, String path) {
-        //NamedXContentRegistry xContentRegistry, Map<String, String> params, String path,
-        //Map<String, List<String>> headers, HttpRequest httpRequest, HttpChannel httpChannel
+        // NamedXContentRegistry xContentRegistry, Map<String, String> params, String path,
+        // Map<String, List<String>> headers, HttpRequest httpRequest, HttpChannel httpChannel
         super(null, params, path, convert(headers), null, null);
-        //this.headers = headers;
+        // this.headers = headers;
         this.content = content;
         this.method = method;
     }
@@ -108,7 +107,7 @@ public class FakeRestRequest extends RestRequest {
 
     private static Map<String, List<String>> convert(Map<String, String> headers) {
         Map<String, List<String>> ret = new HashMap<String, List<String>>();
-        for (String h:headers.keySet()) {
+        for (String h : headers.keySet()) {
             ret.put(h, Collections.singletonList(headers.get(h)));
         }
         return ret;

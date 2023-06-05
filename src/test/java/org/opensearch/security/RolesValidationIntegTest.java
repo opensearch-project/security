@@ -57,14 +57,22 @@ public class RolesValidationIntegTest extends SingleClusterTest {
         }
 
         @Override
-        public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
-                                                   ResourceWatcherService resourceWatcherService, ScriptService scriptService,
-                                                   NamedXContentRegistry xContentRegistry, Environment environment,
-                                                   NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
-                                                   IndexNameExpressionResolver indexNameExpressionResolver,
-                                                   Supplier<RepositoriesService> repositoriesServiceSupplier) {
-            if(rolesValidation != null) {
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, "test|opendistro_security_all_access");
+        public Collection<Object> createComponents(
+            Client client,
+            ClusterService clusterService,
+            ThreadPool threadPool,
+            ResourceWatcherService resourceWatcherService,
+            ScriptService scriptService,
+            NamedXContentRegistry xContentRegistry,
+            Environment environment,
+            NodeEnvironment nodeEnvironment,
+            NamedWriteableRegistry namedWriteableRegistry,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<RepositoriesService> repositoriesServiceSupplier
+        ) {
+            if (rolesValidation != null) {
+                threadPool.getThreadContext()
+                    .putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, "test|opendistro_security_all_access");
                 threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION, rolesValidation);
             }
             return new ArrayList<>();
@@ -76,20 +84,27 @@ public class RolesValidationIntegTest extends SingleClusterTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles.yml"), Settings.EMPTY);
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
-                .put(minimumSecuritySettings(Settings.EMPTY).get(0))
-                .put("cluster.name", clusterInfo.clustername)
-                .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
-                .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
-                .put("path.home", "./target")
-                .put("node.name", "testclient")
-                .put("discovery.initial_state_timeout", "8s")
-                .put("plugins.security.allow_default_init_securityindex", "true")
-                .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
-                .build();
+            .put(minimumSecuritySettings(Settings.EMPTY).get(0))
+            .put("cluster.name", clusterInfo.clustername)
+            .put("path.data", "./target/data/" + clusterInfo.clustername + "/cert/data")
+            .put("path.logs", "./target/data/" + clusterInfo.clustername + "/cert/logs")
+            .put("path.home", "./target")
+            .put("node.name", "testclient")
+            .put("discovery.initial_state_timeout", "8s")
+            .put("plugins.security.allow_default_init_securityindex", "true")
+            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
+            .build();
 
         // 1. Without roles validation
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class, RolesValidationPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                RolesValidationPlugin.class
+            ).start()
+        ) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-1")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());
@@ -100,8 +115,15 @@ public class RolesValidationIntegTest extends SingleClusterTest {
         OpenSearchSecurityException exception = null;
         // 2. with roles invalid to the user
         RolesValidationPlugin.rolesValidation = "invalid_role";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class, RolesValidationPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                RolesValidationPlugin.class
+            ).start()
+        ) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-2")).actionGet();
         } catch (OpenSearchSecurityException ex) {
@@ -112,8 +134,15 @@ public class RolesValidationIntegTest extends SingleClusterTest {
 
         // 3. with roles valid to the user
         RolesValidationPlugin.rolesValidation = "opendistro_security_all_access";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class, RolesValidationPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                RolesValidationPlugin.class
+            ).start()
+        ) {
             waitForInit(node.client());
             CreateIndexResponse cir = node.client().admin().indices().create(new CreateIndexRequest("captain-logs-3")).actionGet();
             Assert.assertTrue(cir.isAcknowledged());

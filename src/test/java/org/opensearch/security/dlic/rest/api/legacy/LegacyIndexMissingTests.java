@@ -16,8 +16,8 @@ import org.opensearch.security.dlic.rest.api.IndexMissingTest;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 
 public class LegacyIndexMissingTests extends IndexMissingTest {
-	@Override
-	protected String getEndpointPrefix() {
-		return LEGACY_OPENDISTRO_PREFIX;
-	}
+    @Override
+    protected String getEndpointPrefix() {
+        return LEGACY_OPENDISTRO_PREFIX;
+    }
 }

@@ -23,17 +23,20 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class SecurityInfoActionTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
+
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
-    public SecurityInfoActionTest(){
+    public SecurityInfoActionTest() {
         ENDPOINT = getEndpointPrefix() + "/authinfo";
     }
 
     @Test
     public void testSecurityInfoAPI() throws Exception {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
+            .build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";

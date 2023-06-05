@@ -43,9 +43,7 @@ public class UserInjectorTest {
     @Before
     public void setup() {
         threadPool = mock(ThreadPool.class);
-        Settings settings = Settings.builder()
-                .put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true)
-                .build();
+        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_INJECT_USER_ENABLED, true).build();
         threadContext = new ThreadContext(settings);
         Mockito.when(threadPool.getThreadContext()).thenReturn(threadContext);
         transportRequest = mock(TransportRequest.class);

@@ -26,11 +26,12 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
+
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
-    public SecurityConfigApiTest(){
+    public SecurityConfigApiTest() {
         ENDPOINT = getEndpointPrefix() + "/api";
     }
 
@@ -61,7 +62,9 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testSecurityConfigApiWrite() throws Exception {
 
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
+            .build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
@@ -70,13 +73,25 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executeGetRequest(ENDPOINT + "/securityconfig", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/securityconfig/xxx", FileHelper.loadFile("restapi/securityconfig.json"), new Header[0]);
+        response = rh.executePutRequest(
+            ENDPOINT + "/securityconfig/xxx",
+            FileHelper.loadFile("restapi/securityconfig.json"),
+            new Header[0]
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/securityconfig/config", FileHelper.loadFile("restapi/securityconfig.json"), new Header[0]);
+        response = rh.executePutRequest(
+            ENDPOINT + "/securityconfig/config",
+            FileHelper.loadFile("restapi/securityconfig.json"),
+            new Header[0]
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/securityconfig/config", FileHelper.loadFile("restapi/invalid_config.json"), new Header[0]);
+        response = rh.executePutRequest(
+            ENDPOINT + "/securityconfig/config",
+            FileHelper.loadFile("restapi/invalid_config.json"),
+            new Header[0]
+        );
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response.getStatusCode());
         Assert.assertTrue(response.getContentType(), response.isJsonContentType());
         Assert.assertTrue(response.getBody().contains("Unrecognized field"));
@@ -87,7 +102,11 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
         response = rh.executePostRequest(ENDPOINT + "/securityconfig", "{\"xxx\": 1}", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
 
-        response = rh.executePatchRequest(ENDPOINT + "/securityconfig", "[{\"op\": \"replace\",\"path\": \"/config/dynamic/hosts_resolver_mode\",\"value\": \"other\"}]", new Header[0]);
+        response = rh.executePatchRequest(
+            ENDPOINT + "/securityconfig",
+            "[{\"op\": \"replace\",\"path\": \"/config/dynamic/hosts_resolver_mode\",\"value\": \"other\"}]",
+            new Header[0]
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executeDeleteRequest(ENDPOINT + "/securityconfig", new Header[0]);
@@ -98,30 +117,35 @@ public class SecurityConfigApiTest extends AbstractRestApiUnitTest {
     @Test
     public void testSecurityConfigForHTTPPatch() throws Exception {
 
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
+            .build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
 
-        //non-default config
+        // non-default config
         String updatedConfig = FileHelper.loadFile("restapi/securityconfig_nondefault.json");
 
-        //update config
+        // update config
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/securityconfig/config", updatedConfig, new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        //make patch request
-        response = rh.executePatchRequest(ENDPOINT + "/securityconfig", "[{\"op\": \"add\",\"path\": \"/config/dynamic/do_not_fail_on_forbidden\",\"value\": \"false\"}]", new Header[0]);
+        // make patch request
+        response = rh.executePatchRequest(
+            ENDPOINT + "/securityconfig",
+            "[{\"op\": \"add\",\"path\": \"/config/dynamic/do_not_fail_on_forbidden\",\"value\": \"false\"}]",
+            new Header[0]
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
-        //get config
+        // get config
         response = rh.executeGetRequest(ENDPOINT + "/securityconfig", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // verify configs are same
         Assert.assertEquals(DefaultObjectMapper.readTree(updatedConfig), DefaultObjectMapper.readTree(response.getBody()).get("config"));
-
 
     }
 }

@@ -45,90 +45,111 @@ import org.opensearch.security.test.plugin.UserInjectorPlugin;
 import org.opensearch.transport.Netty4ModulePlugin;
 
 public enum ClusterConfiguration {
-	//first one needs to be a cluster manager
-    //HUGE(new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(false, true,false), new NodeSettings(false, true, false)),
+    // first one needs to be a cluster manager
+    // HUGE(new NodeSettings(true, false, false), new NodeSettings(true, false, false), new NodeSettings(true, false, false), new
+    // NodeSettings(false, true,false), new NodeSettings(false, true, false)),
 
-    //3 nodes (1m, 2d)
+    // 3 nodes (1m, 2d)
     DEFAULT(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true)),
 
-	//2 nodes (1m, 3d)
-	ONE_CLUSTER_MANAGER_THREE_DATA(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, true)),
+    // 2 nodes (1m, 3d)
+    ONE_CLUSTER_MANAGER_THREE_DATA(
+        new NodeSettings(true, false),
+        new NodeSettings(false, true),
+        new NodeSettings(false, true),
+        new NodeSettings(false, true)
+    ),
 
-	DEFAULT_CLUSTER_MANAGER_WITHOUT_SECURITY_PLUGIN(new NodeSettings(true, false)
-			.removePluginIfPresent(OpenSearchSecurityPlugin.class)
-			, new NodeSettings(false, true)
-			, new NodeSettings(false, true)),
+    DEFAULT_CLUSTER_MANAGER_WITHOUT_SECURITY_PLUGIN(
+        new NodeSettings(true, false).removePluginIfPresent(OpenSearchSecurityPlugin.class),
+        new NodeSettings(false, true),
+        new NodeSettings(false, true)
+    ),
 
-	DEFAULT_ONE_DATA_NODE_WITHOUT_SECURITY_PLUGIN(new NodeSettings(true, false)
-			, new NodeSettings(false, true).removePluginIfPresent(OpenSearchSecurityPlugin.class)
-			, new NodeSettings(false, true)),
+    DEFAULT_ONE_DATA_NODE_WITHOUT_SECURITY_PLUGIN(
+        new NodeSettings(true, false),
+        new NodeSettings(false, true).removePluginIfPresent(OpenSearchSecurityPlugin.class),
+        new NodeSettings(false, true)
+    ),
 
-    //1 node (1md)
-	SINGLENODE(new NodeSettings(true, true)),
+    // 1 node (1md)
+    SINGLENODE(new NodeSettings(true, true)),
 
-	//4 node (1m, 2d, 1c)
-	CLIENTNODE(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, false)),
+    // 4 node (1m, 2d, 1c)
+    CLIENTNODE(new NodeSettings(true, false), new NodeSettings(false, true), new NodeSettings(false, true), new NodeSettings(false, false)),
 
-    //3 nodes (1m, 2d) plus additional UserInjectorPlugin
-    USERINJECTOR(new NodeSettings(true, false, Lists.newArrayList(UserInjectorPlugin.class)), new NodeSettings(false, true, Lists.newArrayList(UserInjectorPlugin.class)), new NodeSettings(false, true, Lists.newArrayList(UserInjectorPlugin.class)));
+    // 3 nodes (1m, 2d) plus additional UserInjectorPlugin
+    USERINJECTOR(
+        new NodeSettings(true, false, Lists.newArrayList(UserInjectorPlugin.class)),
+        new NodeSettings(false, true, Lists.newArrayList(UserInjectorPlugin.class)),
+        new NodeSettings(false, true, Lists.newArrayList(UserInjectorPlugin.class))
+    );
 
-	private List<NodeSettings> nodeSettings = new LinkedList<>();
+    private List<NodeSettings> nodeSettings = new LinkedList<>();
 
-	private ClusterConfiguration(NodeSettings ... settings) {
-		nodeSettings.addAll(Arrays.asList(settings));
-	}
-
-	public  List<NodeSettings> getNodeSettings() {
-		return Collections.unmodifiableList(nodeSettings);
-	}
-
-	public  List<NodeSettings> getClusterManagerNodeSettings() {
-        return Collections.unmodifiableList(nodeSettings.stream().filter(a->a.clusterManagerNode).collect(Collectors.toList()));
+    private ClusterConfiguration(NodeSettings... settings) {
+        nodeSettings.addAll(Arrays.asList(settings));
     }
 
-	public  List<NodeSettings> getNonClusterManagerNodeSettings() {
-        return Collections.unmodifiableList(nodeSettings.stream().filter(a->!a.clusterManagerNode).collect(Collectors.toList()));
+    public List<NodeSettings> getNodeSettings() {
+        return Collections.unmodifiableList(nodeSettings);
     }
 
-	public int getNodes() {
+    public List<NodeSettings> getClusterManagerNodeSettings() {
+        return Collections.unmodifiableList(nodeSettings.stream().filter(a -> a.clusterManagerNode).collect(Collectors.toList()));
+    }
+
+    public List<NodeSettings> getNonClusterManagerNodeSettings() {
+        return Collections.unmodifiableList(nodeSettings.stream().filter(a -> !a.clusterManagerNode).collect(Collectors.toList()));
+    }
+
+    public int getNodes() {
         return nodeSettings.size();
     }
 
-	public int getClusterManagerNodes() {
-        return (int) nodeSettings.stream().filter(a->a.clusterManagerNode).count();
+    public int getClusterManagerNodes() {
+        return (int) nodeSettings.stream().filter(a -> a.clusterManagerNode).count();
     }
 
-	public int getDataNodes() {
-        return (int) nodeSettings.stream().filter(a->a.dataNode).count();
+    public int getDataNodes() {
+        return (int) nodeSettings.stream().filter(a -> a.dataNode).count();
     }
 
-	public int getClientNodes() {
-        return (int) nodeSettings.stream().filter(a->!a.clusterManagerNode && !a.dataNode).count();
+    public int getClientNodes() {
+        return (int) nodeSettings.stream().filter(a -> !a.clusterManagerNode && !a.dataNode).count();
     }
 
-	public static class NodeSettings {
-		public boolean clusterManagerNode;
-		public boolean dataNode;
-		public List<Class<? extends Plugin>> plugins = Lists.newArrayList(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MatrixAggregationModulePlugin.class, MustacheModulePlugin.class, ParentJoinModulePlugin.class, PercolatorModulePlugin.class, ReindexModulePlugin.class);
+    public static class NodeSettings {
+        public boolean clusterManagerNode;
+        public boolean dataNode;
+        public List<Class<? extends Plugin>> plugins = Lists.newArrayList(
+            Netty4ModulePlugin.class,
+            OpenSearchSecurityPlugin.class,
+            MatrixAggregationModulePlugin.class,
+            MustacheModulePlugin.class,
+            ParentJoinModulePlugin.class,
+            PercolatorModulePlugin.class,
+            ReindexModulePlugin.class
+        );
 
-		public NodeSettings(boolean clusterManagerNode, boolean dataNode) {
-			super();
-			this.clusterManagerNode = clusterManagerNode;
-			this.dataNode = dataNode;
-		}
+        public NodeSettings(boolean clusterManagerNode, boolean dataNode) {
+            super();
+            this.clusterManagerNode = clusterManagerNode;
+            this.dataNode = dataNode;
+        }
 
-		public NodeSettings(boolean clusterManagerNode, boolean dataNode, List<Class<? extends Plugin>> additionalPlugins) {
+        public NodeSettings(boolean clusterManagerNode, boolean dataNode, List<Class<? extends Plugin>> additionalPlugins) {
             this(clusterManagerNode, dataNode);
             this.plugins.addAll(additionalPlugins);
         }
 
-        public NodeSettings removePluginIfPresent(Class<? extends Plugin> pluginToRemove){
-			this.plugins.remove(pluginToRemove);
-			return this;
-		}
+        public NodeSettings removePluginIfPresent(Class<? extends Plugin> pluginToRemove) {
+            this.plugins.remove(pluginToRemove);
+            return this;
+        }
 
-		public Class<? extends Plugin>[] getPlugins() {
-		    return plugins.toArray(new Class[0] );
-		}
-	}
+        public Class<? extends Plugin>[] getPlugins() {
+            return plugins.toArray(new Class[0]);
+        }
+    }
 }

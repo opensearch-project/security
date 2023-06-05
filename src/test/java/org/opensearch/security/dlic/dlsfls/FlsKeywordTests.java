@@ -32,20 +32,24 @@ import static org.hamcrest.core.StringContains.containsString;
 public class FlsKeywordTests extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
-        tc.index(new IndexRequest("movies").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{\"year\": 2013, \"title\": \"Rush\", \"actors\": [\"Daniel Br\u00FChl\", \"Chris Hemsworth\", \"Olivia Wilde\"]}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("movies").id("0")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"year\": 2013, \"title\": \"Rush\", \"actors\": [\"Daniel Br\u00FChl\", \"Chris Hemsworth\", \"Olivia Wilde\"]}",
+                    XContentType.JSON
+                )
+        ).actionGet();
     }
 
     private Header movieUser = encodeBasicHeader("user_aaa", "password");
     private Header movieNoActorUser = encodeBasicHeader("user_bbb", "password");
 
-    private String[] actors = new String[] {"Daniel Br\u00FChl", "Chris Hemsworth", "Olivia Wilde"};
+    private String[] actors = new String[] { "Daniel Br\u00FChl", "Chris Hemsworth", "Olivia Wilde" };
 
     @Test
     public void testKeywordsAreAutomaticallyFiltered() throws Exception {
-        setup(new DynamicSecurityConfig()
-            .setSecurityRoles("roles_keyword.yml")
-            .setSecurityRolesMapping("roles_mappings_keyword.yml"));
+        setup(new DynamicSecurityConfig().setSecurityRoles("roles_keyword.yml").setSecurityRolesMapping("roles_mappings_keyword.yml"));
 
         final String searchQuery = "/movies/_search?filter_path=hits.hits._source";
         final String aggQuery = "/movies/_search?filter_path=aggregations.actors.buckets.key";
@@ -73,14 +77,10 @@ public class FlsKeywordTests extends AbstractDlsFlsTest {
     }
 
     private void assertActorsPresent(final HttpResponse response) {
-        Arrays.stream(actors).forEach(actor -> {
-            assertThat(response.getBody(), containsString(actor));
-        });
+        Arrays.stream(actors).forEach(actor -> { assertThat(response.getBody(), containsString(actor)); });
     }
 
     private void assertActorsNotPresent(final HttpResponse response) {
-        Arrays.stream(actors).forEach(actor -> {
-            assertThat(response.getBody(), not(containsString(actor)));
-        });
+        Arrays.stream(actors).forEach(actor -> { assertThat(response.getBody(), not(containsString(actor))); });
     }
 }

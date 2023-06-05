@@ -69,19 +69,46 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
-            PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
-            NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
+    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(
+        Settings settings,
+        ThreadPool threadPool,
+        BigArrays bigArrays,
+        PageCacheRecycler pageCacheRecycler,
+        CircuitBreakerService circuitBreakerService,
+        NamedXContentRegistry xContentRegistry,
+        NetworkService networkService,
+        Dispatcher dispatcher,
+        ClusterSettings clusterSettings
+    ) {
 
         final UserInjectingDispatcher validatingDispatcher = new UserInjectingDispatcher(dispatcher);
-        return ImmutableMap.of("org.opensearch.security.http.UserInjectingServerTransport",
-                () -> new UserInjectingServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, validatingDispatcher, clusterSettings, sharedGroupFactory));
+        return ImmutableMap.of(
+            "org.opensearch.security.http.UserInjectingServerTransport",
+            () -> new UserInjectingServerTransport(
+                settings,
+                networkService,
+                bigArrays,
+                threadPool,
+                xContentRegistry,
+                validatingDispatcher,
+                clusterSettings,
+                sharedGroupFactory
+            )
+        );
     }
 
     class UserInjectingServerTransport extends Netty4HttpServerTransport {
 
-        public UserInjectingServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-                                            final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher, ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
+        public UserInjectingServerTransport(
+            final Settings settings,
+            final NetworkService networkService,
+            final BigArrays bigArrays,
+            final ThreadPool threadPool,
+            final NamedXContentRegistry namedXContentRegistry,
+            final Dispatcher dispatcher,
+            ClusterSettings clusterSettings,
+            SharedGroupFactory sharedGroupFactory
+        ) {
             super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
         }
     }
@@ -97,14 +124,20 @@ public class UserInjectorPlugin extends Plugin implements NetworkPlugin {
 
         @Override
         public void dispatchRequest(RestRequest request, RestChannel channel, ThreadContext threadContext) {
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, request.header(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER));
+            threadContext.putTransient(
+                ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+                request.header(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER)
+            );
             originalDispatcher.dispatchRequest(request, channel, threadContext);
 
         }
 
         @Override
         public void dispatchBadRequest(RestChannel channel, ThreadContext threadContext, Throwable cause) {
-            threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, channel.request().header(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER));
+            threadContext.putTransient(
+                ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER,
+                channel.request().header(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER)
+            );
             originalDispatcher.dispatchBadRequest(channel, threadContext, cause);
         }
     }
