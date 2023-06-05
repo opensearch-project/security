@@ -70,13 +70,21 @@ apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.testclusters'
-//apply from: 'gradle/formatting.gradle'
+// apply from: 'gradle/formatting.gradle'
 
 spotless {
     java {
         // Normally this isn't necessary, but we have Java sources in
         // non-standard places
         target '**/com/amazon/dlic/**/*.java'
+        target '**/com/amazon/security/**/*.java'
+        target '**/test/java/org/opensearch/security/a*/**/*.java'
+        target '**/test/java/org/opensearch/security/b*/**/*.java'
+        target '**/test/java/org/opensearch/security/c*/**/*.java'
+        target '**/test/java/org/opensearch/security/d*/**/*.java'
+        target '**/test/java/org/opensearch/security/f*/**/*.java'
+        target '**/test/java/org/opensearch/security/h*/**/*.java'
+        target '**/test/java/org/opensearch/security/m*/**/*.java'
 
         removeUnusedImports()
         eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
@@ -109,7 +117,15 @@ spotless {
         importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
         target '**/*.java'
         targetExclude '**/com/amazon/dlic/**/*.java'
-        targetExclude('src/integrationTest/**')
+        targetExclude '**/com/amazon/security/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/a*/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/b*/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/c*/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/d*/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/f*/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/h*/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/m*/**/*.java'
+        targetExclude 'src/integrationTest/**'
 
         trimTrailingWhitespace()
         endWithNewline();
