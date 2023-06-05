@@ -81,7 +81,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
         rh.sendAdminCertificate = false;
-        checkSuperAdminRoles(new Header[]{restApiAdminHeader});
+        checkSuperAdminRoles(new Header[] { restApiAdminHeader });
     }
 
     @Test
@@ -89,7 +89,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupWithRestRoles(Settings.builder().put(SECURITY_RESTAPI_ADMIN_ENABLED, true).build());
         final Header restApiAdminRolesHeader = encodeBasicHeader("rest_api_admin_roles", "rest_api_admin_roles");
         rh.sendAdminCertificate = false;
-        checkSuperAdminRoles(new Header[]{restApiAdminRolesHeader});
+        checkSuperAdminRoles(new Header[] { restApiAdminRolesHeader });
     }
 
     void checkSuperAdminRoles(final Header[] header) {
@@ -108,11 +108,13 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/dup", "{ \"cluster_permissions\": [\"*\"], \"cluster_permissions\": [\"*\"] }");
+        HttpResponse response = rh.executePutRequest(
+            ENDPOINT + "/roles/dup",
+            "{ \"cluster_permissions\": [\"*\"], \"cluster_permissions\": [\"*\"] }"
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         assertHealthy();
     }
-
 
     @Test
     public void testPutUnknownKey() throws Exception {
@@ -121,7 +123,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/dup", "{ \"unknownkey\": [\"*\"], \"cluster_permissions\": [\"*\"] }");
+        HttpResponse response = rh.executePutRequest(
+            ENDPOINT + "/roles/dup",
+            "{ \"unknownkey\": [\"*\"], \"cluster_permissions\": [\"*\"] }"
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("invalid_keys"));
         assertHealthy();
@@ -134,7 +139,10 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        HttpResponse response = rh.executePutRequest(ENDPOINT + "/roles/dup", "{ \"invalid\"::{{ [\"*\"], \"cluster_permissions\": [\"*\"] }");
+        HttpResponse response = rh.executePutRequest(
+            ENDPOINT + "/roles/dup",
+            "{ \"invalid\"::{{ [\"*\"], \"cluster_permissions\": [\"*\"] }"
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         assertHealthy();
     }
@@ -151,7 +159,7 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[] { "starfleet", "captains" }, HttpStatus.SC_CREATED);
         checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
         checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
@@ -242,25 +250,37 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(AbstractConfigurationValidator.ErrorType.PAYLOAD_MANDATORY.getMessage(), settings.get("reason").asText());
 
         // put new configuration with invalid payload, must fail
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                FileHelper.loadFile("restapi/roles_not_parseable.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet",
+            FileHelper.loadFile("restapi/roles_not_parseable.json"),
+            header
+        );
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertEquals(AbstractConfigurationValidator.ErrorType.BODY_NOT_PARSEABLE.getMessage(), settings.get("reason").asText());
 
         // put new configuration with invalid keys, must fail
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                FileHelper.loadFile("restapi/roles_invalid_keys.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet",
+            FileHelper.loadFile("restapi/roles_invalid_keys.json"),
+            header
+        );
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertEquals(AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage(), settings.get("reason").asText());
-        Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY).get("keys").asText().contains("indexx_permissions"));
         Assert.assertTrue(
-                settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY).get("keys").asText().contains("kluster_permissions"));
+            settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY).get("keys").asText().contains("indexx_permissions")
+        );
+        Assert.assertTrue(
+            settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY).get("keys").asText().contains("kluster_permissions")
+        );
 
         // put new configuration with wrong datatypes, must fail
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                FileHelper.loadFile("restapi/roles_wrong_datatype.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet",
+            FileHelper.loadFile("restapi/roles_wrong_datatype.json"),
+            header
+        );
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason").asText());
@@ -268,18 +288,27 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         // put read only role, must be forbidden
         // But SuperAdmin can still create it
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_transport_client",
-                FileHelper.loadFile("restapi/roles_captains.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_transport_client",
+            FileHelper.loadFile("restapi/roles_captains.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // put hidden role, must be forbidden, but allowed for super admin
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_internal",
-                FileHelper.loadFile("restapi/roles_captains.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_internal",
+            FileHelper.loadFile("restapi/roles_captains.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // restore starfleet role
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                FileHelper.loadFile("restapi/roles_starfleet.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet",
+            FileHelper.loadFile("restapi/roles_starfleet.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         rh.sendAdminCertificate = false;
         checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
@@ -287,53 +316,94 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         // now picard is only in opendistro_security_role_starfleet, which has write access to
         // all indices. We collapse all document types in ODFE7 so this permission in the
         // starfleet role grants all permissions:
-        //   _doc:
-        //       - 'indices:*'
+        // _doc:
+        // - 'indices:*'
         checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = sendAdminCert;
 
         // restore captains role
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                FileHelper.loadFile("restapi/roles_captains.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_captains.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         rh.sendAdminCertificate = false;
         checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
         checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
         rh.sendAdminCertificate = sendAdminCert;
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                FileHelper.loadFile("restapi/roles_complete_invalid.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_complete_invalid.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                FileHelper.loadFile("restapi/roles_multiple_2.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_multiple_2.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // check tenants
         rh.sendAdminCertificate = sendAdminCert;
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                FileHelper.loadFile("restapi/roles_captains_tenants.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_captains_tenants.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(2, settings.size());
         Assert.assertEquals(settings.get("status").asText(), "OK");
-
 
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         System.out.println(response.getBody());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(1, settings.size());
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(1).get("tenant_patterns").get(0).asString(), "tenant1");
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(1).get("allowed_actions").get(0).asString(), "kibana_all_read");
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(1)
+                .get("tenant_patterns")
+                .get(0)
+                .asString(),
+            "tenant1"
+        );
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(1)
+                .get("allowed_actions")
+                .get(0)
+                .asString(),
+            "kibana_all_read"
+        );
 
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(0).get("tenant_patterns").get(0).asString(), "tenant2");
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(0).get("allowed_actions").get(0).asString(), "kibana_all_write");
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(0)
+                .get("tenant_patterns")
+                .get(0)
+                .asString(),
+            "tenant2"
+        );
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(0)
+                .get("allowed_actions")
+                .get(0)
+                .asString(),
+            "kibana_all_write"
+        );
 
-
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                FileHelper.loadFile("restapi/roles_captains_tenants2.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_captains_tenants2.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(2, settings.size());
@@ -344,18 +414,63 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(1, settings.size());
 
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(0).get("tenant_patterns").get(0).asString(), "tenant2");
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(0).get("tenant_patterns").get(1).asString(), "tenant4");
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(0)
+                .get("tenant_patterns")
+                .get(0)
+                .asString(),
+            "tenant2"
+        );
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(0)
+                .get("tenant_patterns")
+                .get(1)
+                .asString(),
+            "tenant4"
+        );
 
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(0).get("allowed_actions").get(0).asString(), "kibana_all_write");
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(0)
+                .get("allowed_actions")
+                .get(0)
+                .asString(),
+            "kibana_all_write"
+        );
 
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(1).get("tenant_patterns").get(0).asString(), "tenant1");
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(1).get("tenant_patterns").get(1).asString(), "tenant3");
-        Assert.assertEquals(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(1).get("allowed_actions").get(0).asString(), "kibana_all_read");
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(1)
+                .get("tenant_patterns")
+                .get(0)
+                .asString(),
+            "tenant1"
+        );
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(1)
+                .get("tenant_patterns")
+                .get(1)
+                .asString(),
+            "tenant3"
+        );
+        Assert.assertEquals(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions")
+                .get(1)
+                .get("allowed_actions")
+                .get(0)
+                .asString(),
+            "kibana_all_read"
+        );
 
         // remove tenants from role
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                FileHelper.loadFile("restapi/roles_captains_no_tenants.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_captains_no_tenants.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(2, settings.size());
@@ -365,11 +480,18 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(1, settings.size());
-        Assert.assertFalse(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.cluster_permissions").get(0).isNull());
-        Assert.assertTrue(new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(0).isNull());
+        Assert.assertFalse(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.cluster_permissions").get(0).isNull()
+        );
+        Assert.assertTrue(
+            new SecurityJsonNode(settings).getDotted("opendistro_security_role_starfleet_captains.tenant_permissions").get(0).isNull()
+        );
 
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                FileHelper.loadFile("restapi/roles_captains_tenants_malformed.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_captains_tenants_malformed.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         settings = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(settings.get("status").asText(), "error");
@@ -381,36 +503,43 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         // PATCH on non-existing resource
         rh.sendAdminCertificate = sendAdminCert;
         HttpResponse response = rh.executePatchRequest(
-                ENDPOINT + "/roles/imnothere",
-                "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
-                header);
+            ENDPOINT + "/roles/imnothere",
+            "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // PATCH read only resource, must be forbidden
         // SuperAdmin can patch it
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles/opendistro_security_transport_client",
-                "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]",
-                header);
+            ENDPOINT + "/roles/opendistro_security_transport_client",
+            "[{ \"op\": \"add\", \"path\": \"/description\", \"value\": \"foo\" }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH hidden resource, must be not found, can be found for superadmin, but will fail with no path present exception
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles/opendistro_security_internal",
-                "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
-                header);
+            ENDPOINT + "/roles/opendistro_security_internal",
+            "[{ \"op\": \"add\", \"path\": \"/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles/opendistro_security_role_starfleet",
-                "[{ \"op\": \"add\", \"path\": \"/hidden\", \"value\": true }]",
-                header);
+            ENDPOINT + "/roles/opendistro_security_role_starfleet",
+            "[{ \"op\": \"add\", \"path\": \"/hidden\", \"value\": true }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertTrue(response.getBody(), response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
+        Assert.assertTrue(
+            response.getBody(),
+            response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*")
+        );
 
         List<String> permissions = null;
 
@@ -433,61 +562,69 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         // PATCH on non-existing resource
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                "[{ \"op\": \"add\", \"path\": \"/imnothere/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
-                header);
+            ENDPOINT + "/roles",
+            "[{ \"op\": \"add\", \"path\": \"/imnothere/a/b/c\", \"value\": [ \"foo\", \"bar\" ] }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH read only resource, must be forbidden
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                "[{ \"op\": \"add\", \"path\": \"/opendistro_security_transport_client/a\", \"value\": [ \"foo\", \"bar\" ] }]",
-                header);
+            ENDPOINT + "/roles",
+            "[{ \"op\": \"add\", \"path\": \"/opendistro_security_transport_client/a\", \"value\": [ \"foo\", \"bar\" ] }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH hidden resource, must be bad request
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/a\", \"value\": [ \"foo\", \"bar\" ] }]",
-                header);
+            ENDPOINT + "/roles",
+            "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/a\", \"value\": [ \"foo\", \"bar\" ] }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // PATCH delete read only resource, must be forbidden
         // SuperAdmin can delete read only user
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles", "[{ \"op\": \"remove\", \"path\": \"/opendistro_security_transport_client\" }]",
-                header);
+            ENDPOINT + "/roles",
+            "[{ \"op\": \"remove\", \"path\": \"/opendistro_security_transport_client\" }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // PATCH hidden resource, must be bad request, but allowed for superadmin
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                "[{ \"op\": \"remove\", \"path\": \"/opendistro_security_internal\"}]",
-                header);
+            ENDPOINT + "/roles",
+            "[{ \"op\": \"remove\", \"path\": \"/opendistro_security_internal\"}]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("\"message\":\"Resource updated."));
 
         // PATCH value of hidden flag, must fail with validation error
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                "[{ \"op\": \"add\", \"path\": \"/newnewnew\", \"value\": {  \"hidden\": true, \"index_permissions\" : " +
-                        "[ {\"index_patterns\" : [ \"sf\" ],\"allowed_actions\" : [ \"OPENDISTRO_SECURITY_READ\" ]}] }}]",
-                header);
+            ENDPOINT + "/roles",
+            "[{ \"op\": \"add\", \"path\": \"/newnewnew\", \"value\": {  \"hidden\": true, \"index_permissions\" : "
+                + "[ {\"index_patterns\" : [ \"sf\" ],\"allowed_actions\" : [ \"OPENDISTRO_SECURITY_READ\" ]}] }}]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Assert.assertTrue(response.getBody().matches(".*\"invalid_keys\"\\s*:\\s*\\{\\s*\"keys\"\\s*:\\s*\"hidden\"\\s*\\}.*"));
 
         // PATCH
         rh.sendAdminCertificate = sendAdminCert;
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {   \"index_permissions\" : " +
-                        "[ {\"index_patterns\" : [ \"sf\" ],\"allowed_actions\" : [ \"OPENDISTRO_SECURITY_READ\" ]}] }}]",
-                header);
+            ENDPOINT + "/roles",
+            "[{ \"op\": \"add\", \"path\": \"/bulknew1\", \"value\": {   \"index_permissions\" : "
+                + "[ {\"index_patterns\" : [ \"sf\" ],\"allowed_actions\" : [ \"OPENDISTRO_SECURITY_READ\" ]}] }}]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         response = rh.executeGetRequest(ENDPOINT + "/roles/bulknew1", header);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -505,13 +642,19 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // put valid field masks
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_field_mask_valid",
-                FileHelper.loadFile("restapi/roles_field_masks_valid.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_field_mask_valid",
+            FileHelper.loadFile("restapi/roles_field_masks_valid.json"),
+            header
+        );
         Assert.assertEquals(response.getBody(), HttpStatus.SC_CREATED, response.getStatusCode());
 
         // put invalid field masks
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_field_mask_invalid",
-                FileHelper.loadFile("restapi/roles_field_masks_invalid.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_field_mask_invalid",
+            FileHelper.loadFile("restapi/roles_field_masks_invalid.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
@@ -525,14 +668,14 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[] { "starfleet", "captains" }, HttpStatus.SC_CREATED);
         checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
         checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
-        verifyGetForSuperAdmin(new Header[]{restApiAdminHeader});
-        verifyDeleteForSuperAdmin(new Header[]{restApiAdminHeader}, false);
-        verifyPutForSuperAdmin(new Header[]{restApiAdminHeader}, false);
-        verifyPatchForSuperAdmin(new Header[]{restApiAdminHeader}, false);
+        verifyGetForSuperAdmin(new Header[] { restApiAdminHeader });
+        verifyDeleteForSuperAdmin(new Header[] { restApiAdminHeader }, false);
+        verifyPutForSuperAdmin(new Header[] { restApiAdminHeader }, false);
+        verifyPatchForSuperAdmin(new Header[] { restApiAdminHeader }, false);
     }
 
     @Test
@@ -545,15 +688,14 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         setupStarfleetIndex();
 
         // add user picard, role starfleet, maps to opendistro_security_role_starfleet
-        addUserWithPassword("picard", "picardpicardpicardpicard", new String[]{"starfleet", "captains"}, HttpStatus.SC_CREATED);
+        addUserWithPassword("picard", "picardpicardpicardpicard", new String[] { "starfleet", "captains" }, HttpStatus.SC_CREATED);
         checkReadAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
         checkWriteAccess(HttpStatus.SC_OK, "picard", "picardpicardpicardpicard", "sf", "_doc", 0);
 
-
-        verifyGetForSuperAdmin(new Header[]{restApiRolesHeader});
-        verifyDeleteForSuperAdmin(new Header[]{restApiRolesHeader}, false);
-        verifyPutForSuperAdmin(new Header[]{restApiRolesHeader}, false);
-        verifyPatchForSuperAdmin(new Header[]{restApiRolesHeader}, false);
+        verifyGetForSuperAdmin(new Header[] { restApiRolesHeader });
+        verifyDeleteForSuperAdmin(new Header[] { restApiRolesHeader }, false);
+        verifyPutForSuperAdmin(new Header[] { restApiRolesHeader }, false);
+        verifyPatchForSuperAdmin(new Header[] { restApiRolesHeader }, false);
     }
 
     @Test
@@ -567,63 +709,45 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
 
         final String restAdminPermissionsPayload = createRestAdminPermissionsPayload("cluster/*");
         HttpResponse response = rh.executePutRequest(
-                ENDPOINT + "/roles/new_rest_admin_role", restAdminPermissionsPayload, restApiAdminHeader);
+            ENDPOINT + "/roles/new_rest_admin_role",
+            restAdminPermissionsPayload,
+            restApiAdminHeader
+        );
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
-        response = rh.executePutRequest(
-                ENDPOINT + "/roles/rest_admin_role_to_delete", restAdminPermissionsPayload, restApiAdminHeader);
+        response = rh.executePutRequest(ENDPOINT + "/roles/rest_admin_role_to_delete", restAdminPermissionsPayload, restApiAdminHeader);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // attempt to create a new rest admin role by admin
-        response = rh.executePutRequest(
-                ENDPOINT + "/roles/some_rest_admin_role",
-                restAdminPermissionsPayload,
-                adminHeader);
+        response = rh.executePutRequest(ENDPOINT + "/roles/some_rest_admin_role", restAdminPermissionsPayload, adminHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // attempt to update exiting admin role
-        response = rh.executePutRequest(
-                ENDPOINT + "/roles/new_rest_admin_role",
-                restAdminPermissionsPayload,
-                adminHeader);
+        response = rh.executePutRequest(ENDPOINT + "/roles/new_rest_admin_role", restAdminPermissionsPayload, adminHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // attempt to patch exiting admin role
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles/new_rest_admin_role",
-                createPatchRestAdminPermissionsPayload("replace"),
-                adminHeader);
+            ENDPOINT + "/roles/new_rest_admin_role",
+            createPatchRestAdminPermissionsPayload("replace"),
+            adminHeader
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // attempt to update exiting admin role
-        response = rh.executePutRequest(
-                ENDPOINT + "/roles/new_rest_admin_role",
-                restAdminPermissionsPayload,
-                restApiHeader);
+        response = rh.executePutRequest(ENDPOINT + "/roles/new_rest_admin_role", restAdminPermissionsPayload, restApiHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // attempt to create a new rest admin role by admin
-        response = rh.executePutRequest(
-                ENDPOINT + "/roles/some_rest_admin_role",
-                restAdminPermissionsPayload,
-                restApiHeader);
+        response = rh.executePutRequest(ENDPOINT + "/roles/some_rest_admin_role", restAdminPermissionsPayload, restApiHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // attempt to patch exiting admin role and crate a new one
-        response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                createPatchRestAdminPermissionsPayload("replace"),
-                restApiHeader);
+        response = rh.executePatchRequest(ENDPOINT + "/roles", createPatchRestAdminPermissionsPayload("replace"), restApiHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
-        response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                createPatchRestAdminPermissionsPayload("add"),
-                restApiHeader);
+        response = rh.executePatchRequest(ENDPOINT + "/roles", createPatchRestAdminPermissionsPayload("add"), restApiHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executePatchRequest(
-                ENDPOINT + "/roles",
-                createPatchRestAdminPermissionsPayload("remove"),
-                restApiHeader);
+        response = rh.executePatchRequest(ENDPOINT + "/roles", createPatchRestAdminPermissionsPayload("remove"), restApiHeader);
         System.out.println("RESPONSE: " + response.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
@@ -640,23 +764,20 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         final String allRestAdminPermissionsPayload = createRestAdminPermissionsPayload("cluster/*");
 
         HttpResponse response = rh.executePutRequest(
-                ENDPOINT + "/roles/new_rest_admin_role", allRestAdminPermissionsPayload, restApiAdminHeader);
+            ENDPOINT + "/roles/new_rest_admin_role",
+            allRestAdminPermissionsPayload,
+            restApiAdminHeader
+        );
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
 
         // attempt to update exiting admin role
-        response = rh.executeDeleteRequest(
-                ENDPOINT + "/roles/new_rest_admin_role",
-                adminHeader);
+        response = rh.executeDeleteRequest(ENDPOINT + "/roles/new_rest_admin_role", adminHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
-        //true to change
-        response = rh.executeDeleteRequest(
-                ENDPOINT + "/roles/new_rest_admin_role",
-                allRestAdminPermissionsPayload,
-                restApiHeader);
+        // true to change
+        response = rh.executeDeleteRequest(ENDPOINT + "/roles/new_rest_admin_role", allRestAdminPermissionsPayload, restApiHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
     }
-
 
     private String createPatchRestAdminPermissionsPayload(final String op) throws JsonProcessingException {
         final ArrayNode rootNode = (ArrayNode) DefaultObjectMapper.objectMapper.createArrayNode();
@@ -664,27 +785,21 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         final ObjectNode clusterPermissionsNode = DefaultObjectMapper.objectMapper.createObjectNode();
         clusterPermissionsNode.set("cluster_permissions", clusterPermissionsForRestAdmin("cluster/*"));
         if ("add".equals(op)) {
-            opAddObjectNode
-                    .put("op", "add")
-                    .put("path", "/some_rest_admin_role")
-                    .set("value", clusterPermissionsNode);
+            opAddObjectNode.put("op", "add").put("path", "/some_rest_admin_role").set("value", clusterPermissionsNode);
             rootNode.add(opAddObjectNode);
         }
 
         if ("remove".equals(op)) {
             final ObjectNode opRemoveObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
-            opRemoveObjectNode
-                    .put("op", "remove")
-                    .put("path", "/rest_admin_role_to_delete");
+            opRemoveObjectNode.put("op", "remove").put("path", "/rest_admin_role_to_delete");
             rootNode.add(opRemoveObjectNode);
         }
 
         if ("replace".equals(op)) {
             final ObjectNode replaceRemoveObjectNode = DefaultObjectMapper.objectMapper.createObjectNode();
-            replaceRemoveObjectNode
-                    .put("op", "replace")
-                    .put("path", "/new_rest_admin_role/cluster_permissions")
-                    .set("value", clusterPermissionsForRestAdmin("*"));
+            replaceRemoveObjectNode.put("op", "replace")
+                .put("path", "/new_rest_admin_role/cluster_permissions")
+                .set("value", clusterPermissionsForRestAdmin("*"));
 
             rootNode.add(replaceRemoveObjectNode);
         }
@@ -709,21 +824,27 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // Put read only roles
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_transport_client",
-                FileHelper.loadFile("restapi/roles_captains.json"), header);
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_transport_client",
+            FileHelper.loadFile("restapi/roles_captains.json"),
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // Patch single read only roles
         response = rh.executePatchRequest(
-                ENDPOINT + "/roles/opendistro_security_transport_client",
-                "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]",
-                header);
+            ENDPOINT + "/roles/opendistro_security_transport_client",
+            "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // Patch multiple read only roles
-        response = rh.executePatchRequest(ENDPOINT + "/roles/",
-                "[{ \"op\": \"add\", \"path\": \"/opendistro_security_transport_client/description\", \"value\": \"foo\" }]",
-                header);
+        response = rh.executePatchRequest(
+            ENDPOINT + "/roles/",
+            "[{ \"op\": \"add\", \"path\": \"/opendistro_security_transport_client/description\", \"value\": \"foo\" }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // get hidden role
@@ -740,14 +861,19 @@ public class RolesApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Patch single hidden roles
-        response = rh.executePatchRequest(ENDPOINT + "/roles/opendistro_security_internal",
-                "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]", header);
+        response = rh.executePatchRequest(
+            ENDPOINT + "/roles/opendistro_security_internal",
+            "[{ \"op\": \"replace\", \"path\": \"/description\", \"value\": \"foo\" }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
 
         // Patch multiple hidden roles
-        response = rh.executePatchRequest(ENDPOINT + "/roles/",
-                "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/description\", \"value\": \"foo\" }]",
-                header);
+        response = rh.executePatchRequest(
+            ENDPOINT + "/roles/",
+            "[{ \"op\": \"add\", \"path\": \"/opendistro_security_internal/description\", \"value\": \"foo\" }]",
+            header
+        );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
     }
 

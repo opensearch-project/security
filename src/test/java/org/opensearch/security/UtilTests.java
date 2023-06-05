@@ -86,29 +86,29 @@ public class UtilTests {
 
     @Test
     public void testWildcardMatchers() {
-        assertTrue(!WildcardMatcher.from("a*?").test( "a"));
-        assertTrue(WildcardMatcher.from("a*?").test( "aa"));
-        assertTrue(WildcardMatcher.from("a*?").test( "ab"));
-        //assertTrue(WildcardMatcher.pattern("a*?").test( "abb"));
-        assertTrue(WildcardMatcher.from("*my*index").test( "myindex"));
-        assertTrue(!WildcardMatcher.from("*my*index").test( "myindex1"));
-        assertTrue(WildcardMatcher.from("*my*index?").test( "myindex1"));
-        assertTrue(WildcardMatcher.from("*my*index").test( "this_is_my_great_index"));
-        assertTrue(!WildcardMatcher.from("*my*index").test( "MYindex"));
-        assertTrue(!WildcardMatcher.from("?kibana").test( "kibana"));
-        assertTrue(WildcardMatcher.from("?kibana").test( ".kibana"));
-        assertTrue(!WildcardMatcher.from("?kibana").test( "kibana."));
-        assertTrue(WildcardMatcher.from("?kibana?").test( "?kibana."));
-        assertTrue(WildcardMatcher.from("/(\\d{3}-?\\d{2}-?\\d{4})/").test( "123-45-6789"));
-        assertTrue(!WildcardMatcher.from("(\\d{3}-?\\d{2}-?\\d{4})").test( "123-45-6789"));
-        assertTrue(WildcardMatcher.from("/\\S*/").test( "abc"));
-        assertTrue(WildcardMatcher.from("abc").test( "abc"));
-        assertTrue(!WildcardMatcher.from("ABC").test( "abc"));
+        assertTrue(!WildcardMatcher.from("a*?").test("a"));
+        assertTrue(WildcardMatcher.from("a*?").test("aa"));
+        assertTrue(WildcardMatcher.from("a*?").test("ab"));
+        // assertTrue(WildcardMatcher.pattern("a*?").test( "abb"));
+        assertTrue(WildcardMatcher.from("*my*index").test("myindex"));
+        assertTrue(!WildcardMatcher.from("*my*index").test("myindex1"));
+        assertTrue(WildcardMatcher.from("*my*index?").test("myindex1"));
+        assertTrue(WildcardMatcher.from("*my*index").test("this_is_my_great_index"));
+        assertTrue(!WildcardMatcher.from("*my*index").test("MYindex"));
+        assertTrue(!WildcardMatcher.from("?kibana").test("kibana"));
+        assertTrue(WildcardMatcher.from("?kibana").test(".kibana"));
+        assertTrue(!WildcardMatcher.from("?kibana").test("kibana."));
+        assertTrue(WildcardMatcher.from("?kibana?").test("?kibana."));
+        assertTrue(WildcardMatcher.from("/(\\d{3}-?\\d{2}-?\\d{4})/").test("123-45-6789"));
+        assertTrue(!WildcardMatcher.from("(\\d{3}-?\\d{2}-?\\d{4})").test("123-45-6789"));
+        assertTrue(WildcardMatcher.from("/\\S*/").test("abc"));
+        assertTrue(WildcardMatcher.from("abc").test("abc"));
+        assertTrue(!WildcardMatcher.from("ABC").test("abc"));
     }
 
     @Test
     public void testMapFromArray() {
-        Map<Object, Object> map = SecurityUtils.mapFromArray((Object)null);
+        Map<Object, Object> map = SecurityUtils.mapFromArray((Object) null);
         assertTrue(map == null);
 
         map = SecurityUtils.mapFromArray("key");
@@ -138,32 +138,35 @@ public class UtilTests {
     @Test
     public void testEnvReplace() {
         Settings settings = Settings.EMPTY;
-        assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
-        assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
-        assertEquals("abvtTtxyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
-        assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}",settings), "tTt".toCharArray()));
-        assertEquals("abvtTtxyzxxx", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
-        assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
-        assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
-        assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
-        //assertEquals("abvabcdefgxyz", SecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings));
+        assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings));
+        assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings));
+        assertEquals("abvtTtxyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings));
+        assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc.MYENV:-tTt}", settings), "tTt".toCharArray()));
+        assertEquals("abvtTtxyzxxx", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings));
+        assertTrue(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$2y$"));
+        assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings));
+        assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings));
+        // assertEquals("abvabcdefgxyz", SecurityUtils.replaceEnvVars("abv${envbase64.B64TEST}xyz",settings));
 
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
 
         boolean checked = false;
 
-        for(String k: env.keySet()) {
-            String val=System.getenv().get(k);
-            if(val == null || val.isEmpty()) {
+        for (String k : env.keySet()) {
+            String val = System.getenv().get(k);
+            if (val == null || val.isEmpty()) {
                 continue;
             }
-            assertEquals("abv"+val+"xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
-            assertEquals("abv${"+k+"}xyz", SecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
-            assertEquals("abv"+val+"xyz", SecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            assertEquals("abv"+val+"xyzabv"+val+"xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
-            assertEquals("abv"+val+"xyz", SecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc."+k+"}",settings), val.toCharArray()));
+            assertEquals("abv" + val + "xyz", SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings));
+            assertEquals("abv${" + k + "}xyz", SecurityUtils.replaceEnvVars("abv${" + k + "}xyz", settings));
+            assertEquals("abv" + val + "xyz", SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings));
+            assertEquals(
+                "abv" + val + "xyzabv" + val + "xyz",
+                SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings)
+            );
+            assertEquals("abv" + val + "xyz", SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings));
+            assertTrue(OpenBSDBCrypt.checkPassword(SecurityUtils.replaceEnvVars("${envbc." + k + "}", settings), val.toCharArray()));
             checked = true;
         }
 
@@ -173,22 +176,34 @@ public class UtilTests {
     @Test
     public void testNoEnvReplace() {
         Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, true).build();
-        assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz",settings));
-        assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz",settings));
-        assertEquals("abv${env.MYENV:-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz",settings));
-        assertEquals("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",settings));
-        assertFalse(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}",settings).startsWith("abvtTtxyz$2y$"));
-        assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz",settings));
-        assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz",settings));
+        assertEquals("abv${env.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV}xyz", settings));
+        assertEquals("abv${envbc.MYENV}xyz", SecurityUtils.replaceEnvVars("abv${envbc.MYENV}xyz", settings));
+        assertEquals("abv${env.MYENV:-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz", settings));
+        assertEquals(
+            "abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}",
+            SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${env.MYENV:-xxx}", settings)
+        );
+        assertFalse(SecurityUtils.replaceEnvVars("abv${env.MYENV:-tTt}xyz${envbc.MYENV:-xxx}", settings).startsWith("abvtTtxyz$2y$"));
+        assertEquals("abv${env.MYENV:tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV:tTt}xyz", settings));
+        assertEquals("abv${env.MYENV-tTt}xyz", SecurityUtils.replaceEnvVars("abv${env.MYENV-tTt}xyz", settings));
         Map<String, String> env = System.getenv();
         assertTrue(env.size() > 0);
 
-        for(String k: env.keySet()) {
-            assertEquals("abv${env."+k+"}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyz",settings));
-            assertEquals("abv${"+k+"}xyz", SecurityUtils.replaceEnvVars("abv${"+k+"}xyz",settings));
-            assertEquals("abv${env."+k+":-k182765ggh}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
-            assertEquals("abv${env."+k+"}xyzabv${env."+k+"}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+"}xyzabv${env."+k+"}xyz",settings));
-            assertEquals("abv${env."+k+":-k182765ggh}xyz", SecurityUtils.replaceEnvVars("abv${env."+k+":-k182765ggh}xyz",settings));
+        for (String k : env.keySet()) {
+            assertEquals("abv${env." + k + "}xyz", SecurityUtils.replaceEnvVars("abv${env." + k + "}xyz", settings));
+            assertEquals("abv${" + k + "}xyz", SecurityUtils.replaceEnvVars("abv${" + k + "}xyz", settings));
+            assertEquals(
+                "abv${env." + k + ":-k182765ggh}xyz",
+                SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings)
+            );
+            assertEquals(
+                "abv${env." + k + "}xyzabv${env." + k + "}xyz",
+                SecurityUtils.replaceEnvVars("abv${env." + k + "}xyzabv${env." + k + "}xyz", settings)
+            );
+            assertEquals(
+                "abv${env." + k + ":-k182765ggh}xyz",
+                SecurityUtils.replaceEnvVars("abv${env." + k + ":-k182765ggh}xyz", settings)
+            );
         }
     }
 }

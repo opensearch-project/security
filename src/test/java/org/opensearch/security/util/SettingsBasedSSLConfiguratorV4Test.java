@@ -84,25 +84,32 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testPemTrust() throws Exception {
 
-        try (TestServer testServer = new TestServer("sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node1-keystore.jks", "secret", false)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/pem/truststore.jks",
+                "sslConfigurator/pem/node1-keystore.jks",
+                "secret",
+                false
+            )
+        ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/root-ca.pem");
 
             Assert.assertTrue(rootCaPemPath.toFile().exists());
 
             Settings settings = Settings.builder()
-                    .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true")
-                    .put("path.home", rootCaPemPath.getParent().toString())
-                    .build();
+                .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
+                .put("prefix.enable_ssl", "true")
+                .put("path.home", rootCaPemPath.getParent().toString())
+                .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -115,23 +122,30 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testPemWrongTrust() throws Exception {
 
-        try (TestServer testServer = new TestServer("sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node1-keystore.jks", "secret", false)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/pem/truststore.jks",
+                "sslConfigurator/pem/node1-keystore.jks",
+                "secret",
+                false
+            )
+        ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/other-root-ca.pem");
 
             Settings settings = Settings.builder()
-                    .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true")
-                    .put("path.home", rootCaPemPath.getParent().toString())
-                    .build();
+                .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
+                .put("prefix.enable_ssl", "true")
+                .put("path.home", rootCaPemPath.getParent().toString())
+                .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 thrown.expect(SSLHandshakeException.class);
 
@@ -146,27 +160,34 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testPemClientAuth() throws Exception {
 
-        try (TestServer testServer = new TestServer("sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node1-keystore.jks", "secret", true)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/pem/truststore.jks",
+                "sslConfigurator/pem/node1-keystore.jks",
+                "secret",
+                true
+            )
+        ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/root-ca.pem");
 
             Settings settings = Settings.builder()
-                    .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true")
-                    .put("path.home", rootCaPemPath.getParent().toString())
-                    .put("prefix.enable_ssl_client_auth", "true")
-                    .put("prefix.pemcert_filepath", "kirk.pem")
-                    .put("prefix.pemkey_filepath", "kirk.key")
-                    .put("prefix.pemkey_password", "secret")
-                    .build();
+                .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
+                .put("prefix.enable_ssl", "true")
+                .put("path.home", rootCaPemPath.getParent().toString())
+                .put("prefix.enable_ssl_client_auth", "true")
+                .put("prefix.pemcert_filepath", "kirk.pem")
+                .put("prefix.pemkey_filepath", "kirk.key")
+                .put("prefix.pemkey_password", "secret")
+                .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -179,33 +200,43 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testPemClientAuthFailure() throws Exception {
 
-        try (TestServer testServer = new TestServer("sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node1-keystore.jks", "secret", true)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/pem/truststore.jks",
+                "sslConfigurator/pem/node1-keystore.jks",
+                "secret",
+                true
+            )
+        ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/root-ca.pem");
 
             Settings settings = Settings.builder()
-                    .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true")
-                    .put("path.home", rootCaPemPath.getParent().toString())
-                    .put("prefix.enable_ssl_client_auth", "true")
-                    .put("prefix.pemcert_filepath", "wrong-kirk.pem")
-                    .put("prefix.pemkey_filepath", "wrong-kirk.key")
-                    .put("prefix.pemkey_password", "G0CVtComen4a")
-                    .build();
+                .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
+                .put("prefix.enable_ssl", "true")
+                .put("path.home", rootCaPemPath.getParent().toString())
+                .put("prefix.enable_ssl_client_auth", "true")
+                .put("prefix.pemcert_filepath", "wrong-kirk.pem")
+                .put("prefix.pemkey_filepath", "wrong-kirk.key")
+                .put("prefix.pemkey_password", "G0CVtComen4a")
+                .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 // Due to some race condition in Java's internal network stack, this can be one
                 // of the following exceptions
 
-                thrown.expect(either(instanceOf(SocketException.class)).or(instanceOf(SSLHandshakeException.class))
-                        .or(instanceOf(SSLException.class)) // Java 11: javax.net.ssl.SSLException: readHandshakeRecord
+                thrown.expect(
+                    either(instanceOf(SocketException.class)).or(instanceOf(SSLHandshakeException.class)).or(instanceOf(SSLException.class)) // Java
+                                                                                                                                             // 11:
+                                                                                                                                             // javax.net.ssl.SSLException:
+                                                                                                                                             // readHandshakeRecord
                 );
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
@@ -218,24 +249,31 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testPemHostnameVerificationFailure() throws Exception {
 
-        try (TestServer testServer = new TestServer("sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node-wrong-hostname-keystore.jks", "secret", false)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/pem/truststore.jks",
+                "sslConfigurator/pem/node-wrong-hostname-keystore.jks",
+                "secret",
+                false
+            )
+        ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/root-ca.pem");
 
             Settings settings = Settings.builder()
-                    .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true")
-                    .put("prefix.verify_hostnames", "true")
-                    .put("path.home", rootCaPemPath.getParent().toString())
-                    .build();
+                .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
+                .put("prefix.enable_ssl", "true")
+                .put("prefix.verify_hostnames", "true")
+                .put("path.home", rootCaPemPath.getParent().toString())
+                .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 thrown.expect(SSLPeerUnverifiedException.class);
 
@@ -249,24 +287,31 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testPemHostnameVerificationOff() throws Exception {
 
-        try (TestServer testServer = new TestServer("sslConfigurator/pem/truststore.jks",
-                "sslConfigurator/pem/node-wrong-hostname-keystore.jks", "secret", false)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/pem/truststore.jks",
+                "sslConfigurator/pem/node-wrong-hostname-keystore.jks",
+                "secret",
+                false
+            )
+        ) {
             Path rootCaPemPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/pem/root-ca.pem");
 
             Settings settings = Settings.builder()
-                    .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true")
-                    .put("prefix.verify_hostnames", "false")
-                    .put("path.home", rootCaPemPath.getParent().toString())
-                    .build();
+                .put("prefix.pemtrustedcas_filepath", rootCaPemPath.getFileName().toString())
+                .put("prefix.enable_ssl", "true")
+                .put("prefix.verify_hostnames", "false")
+                .put("path.home", rootCaPemPath.getParent().toString())
+                .build();
             Path configPath = rootCaPemPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -278,26 +323,33 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testJksTrust() throws Exception {
 
-        try (TestServer testServer = new TestServer("sslConfigurator/jks/truststore.jks",
-                "sslConfigurator/jks/node1-keystore.jks", "secret", false)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/jks/truststore.jks",
+                "sslConfigurator/jks/node1-keystore.jks",
+                "secret",
+                false
+            )
+        ) {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/truststore.jks");
 
             MockSecureSettings mockSecureSettings = new MockSecureSettings();
             mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "secret");
             Settings settings = Settings.builder()
-                    .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, rootCaJksPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true")
-                    .put("path.home", rootCaJksPath.getParent().toString())
-                    .setSecureSettings(mockSecureSettings)
-                    .build();
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, rootCaJksPath.getFileName().toString())
+                .put("prefix.enable_ssl", "true")
+                .put("path.home", rootCaJksPath.getParent().toString())
+                .setSecureSettings(mockSecureSettings)
+                .build();
             Path configPath = rootCaJksPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -310,26 +362,33 @@ public class SettingsBasedSSLConfiguratorV4Test {
     @Test
     public void testJksWrongTrust() throws Exception {
 
-        try (TestServer testServer = new TestServer("sslConfigurator/jks/truststore.jks",
-                "sslConfigurator/jks/node1-keystore.jks", "secret", false)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/jks/truststore.jks",
+                "sslConfigurator/jks/node1-keystore.jks",
+                "secret",
+                false
+            )
+        ) {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/other-root-ca.jks");
 
             MockSecureSettings mockSecureSettings = new MockSecureSettings();
             mockSecureSettings.setString(SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.propertyName, "secret");
             Settings settings = Settings.builder()
-                    .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, rootCaJksPath.getFileName().toString())
-                    .put("prefix.enable_ssl", "true")
-                    .put("path.home", rootCaJksPath.getParent().toString())
-                    .setSecureSettings(mockSecureSettings)
-                    .build();
+                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, rootCaJksPath.getFileName().toString())
+                .put("prefix.enable_ssl", "true")
+                .put("path.home", rootCaJksPath.getParent().toString())
+                .setSecureSettings(mockSecureSettings)
+                .build();
             Path configPath = rootCaJksPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 thrown.expect(SSLHandshakeException.class);
 
@@ -342,23 +401,30 @@ public class SettingsBasedSSLConfiguratorV4Test {
 
     @Test
     public void testTrustAll() throws Exception {
-        try (TestServer testServer = new TestServer("sslConfigurator/jks/truststore.jks",
-                "sslConfigurator/jks/node1-keystore.jks", "secret", false)) {
+        try (
+            TestServer testServer = new TestServer(
+                "sslConfigurator/jks/truststore.jks",
+                "sslConfigurator/jks/node1-keystore.jks",
+                "secret",
+                false
+            )
+        ) {
             Path rootCaJksPath = FileHelper.getAbsoluteFilePathFromClassPath("sslConfigurator/jks/other-root-ca.jks");
 
             Settings settings = Settings.builder()
-                    .put("prefix.enable_ssl", "true")
-                    .put("prefix.trust_all", "true")
-                    .put("path.home", rootCaJksPath.getParent().toString())
-                    .build();
+                .put("prefix.enable_ssl", "true")
+                .put("prefix.trust_all", "true")
+                .put("path.home", rootCaJksPath.getParent().toString())
+                .build();
             Path configPath = rootCaJksPath.getParent();
 
             SettingsBasedSSLConfiguratorV4 sbsc = new SettingsBasedSSLConfiguratorV4(settings, configPath, "prefix");
 
             SSLConfig sslConfig = sbsc.buildSSLConfig();
 
-            try (CloseableHttpClient httpClient = HttpClients.custom()
-                    .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()) {
+            try (
+                CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory()).build()
+            ) {
 
                 try (CloseableHttpResponse response = httpClient.execute(new HttpGet(testServer.getUri()))) {
                     // Success
@@ -379,43 +445,50 @@ public class SettingsBasedSSLConfiguratorV4Test {
             return "https://localhost:" + port + "/test";
         }
 
-        private void createHttpServer(String trustStore, String keyStore, String password, boolean clientAuth)
-                throws IOException {
+        private void createHttpServer(String trustStore, String keyStore, String password, boolean clientAuth) throws IOException {
             this.port = SocketUtils.findAvailableTcpPort();
 
-            ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap().setListenerPort(port).registerHandler("test",
-                    new HttpRequestHandler() {
+            ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap()
+                .setListenerPort(port)
+                .registerHandler("test", new HttpRequestHandler() {
 
-                        @Override
-                        public void handle(HttpRequest request, HttpResponse response, HttpContext context)
-                                throws HttpException, IOException {
+                    @Override
+                    public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
 
-                        }
-                    });
+                    }
+                });
 
             serverBootstrap = serverBootstrap.setSslContext(createSSLContext(trustStore, keyStore, password))
-                    .setSslSetupHandler(new SSLServerSetupHandler() {
+                .setSslSetupHandler(new SSLServerSetupHandler() {
 
-                        @Override
-                        public void initialize(SSLServerSocket socket) throws SSLException {
-                            if (clientAuth) {
-                                socket.setNeedClientAuth(true);
-                            }
+                    @Override
+                    public void initialize(SSLServerSocket socket) throws SSLException {
+                        if (clientAuth) {
+                            socket.setNeedClientAuth(true);
                         }
-                    }).setConnectionFactory(new HttpConnectionFactory<DefaultBHttpServerConnection>() {
+                    }
+                })
+                .setConnectionFactory(new HttpConnectionFactory<DefaultBHttpServerConnection>() {
 
-                        private ConnectionConfig cconfig = ConnectionConfig.DEFAULT;
+                    private ConnectionConfig cconfig = ConnectionConfig.DEFAULT;
 
-                        @Override
-                        public DefaultBHttpServerConnection createConnection(final Socket socket) throws IOException {
-                            final SSLTestHttpServerConnection conn = new SSLTestHttpServerConnection(
-                                    this.cconfig.getBufferSize(), this.cconfig.getFragmentSizeHint(),
-                                    ConnSupport.createDecoder(this.cconfig), ConnSupport.createEncoder(this.cconfig),
-                                    this.cconfig.getMessageConstraints(), null, null, null, null);
-                            conn.bind(socket);
-                            return conn;
-                        }
-                    });
+                    @Override
+                    public DefaultBHttpServerConnection createConnection(final Socket socket) throws IOException {
+                        final SSLTestHttpServerConnection conn = new SSLTestHttpServerConnection(
+                            this.cconfig.getBufferSize(),
+                            this.cconfig.getFragmentSizeHint(),
+                            ConnSupport.createDecoder(this.cconfig),
+                            ConnSupport.createEncoder(this.cconfig),
+                            this.cconfig.getMessageConstraints(),
+                            null,
+                            null,
+                            null,
+                            null
+                        );
+                        conn.bind(socket);
+                        return conn;
+                    }
+                });
 
             this.httpServer = serverBootstrap.create();
 
@@ -434,8 +507,7 @@ public class SettingsBasedSSLConfiguratorV4Test {
             try {
                 TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 KeyStore trustStore = KeyStore.getInstance("JKS");
-                InputStream trustStream = new FileInputStream(
-                        FileHelper.getAbsoluteFilePathFromClassPath(trustStorePath).toFile());
+                InputStream trustStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(trustStorePath).toFile());
                 trustStore.load(trustStream, password.toCharArray());
                 tmf.init(trustStore);
 
@@ -472,14 +544,28 @@ public class SettingsBasedSSLConfiguratorV4Test {
         }
 
         static class SSLTestHttpServerConnection extends DefaultBHttpServerConnection {
-            public SSLTestHttpServerConnection(final int buffersize, final int fragmentSizeHint,
-                    final CharsetDecoder chardecoder, final CharsetEncoder charencoder,
-                    final MessageConstraints constraints, final ContentLengthStrategy incomingContentStrategy,
-                    final ContentLengthStrategy outgoingContentStrategy,
-                    final HttpMessageParserFactory<HttpRequest> requestParserFactory,
-                    final HttpMessageWriterFactory<HttpResponse> responseWriterFactory) {
-                super(buffersize, fragmentSizeHint, chardecoder, charencoder, constraints, incomingContentStrategy,
-                        outgoingContentStrategy, requestParserFactory, responseWriterFactory);
+            public SSLTestHttpServerConnection(
+                final int buffersize,
+                final int fragmentSizeHint,
+                final CharsetDecoder chardecoder,
+                final CharsetEncoder charencoder,
+                final MessageConstraints constraints,
+                final ContentLengthStrategy incomingContentStrategy,
+                final ContentLengthStrategy outgoingContentStrategy,
+                final HttpMessageParserFactory<HttpRequest> requestParserFactory,
+                final HttpMessageWriterFactory<HttpResponse> responseWriterFactory
+            ) {
+                super(
+                    buffersize,
+                    fragmentSizeHint,
+                    chardecoder,
+                    charencoder,
+                    constraints,
+                    incomingContentStrategy,
+                    outgoingContentStrategy,
+                    requestParserFactory,
+                    responseWriterFactory
+                );
             }
 
             public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {

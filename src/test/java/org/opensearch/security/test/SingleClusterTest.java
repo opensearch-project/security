@@ -48,10 +48,13 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
     private static final int DEFAULT_CLUSTER_MANAGER_NODE_NUM = 3;
     private static final int DEFAULT_FIRST_DATA_NODE_NUM = 2;
 
-    protected ClusterHelper clusterHelper = new ClusterHelper("utest_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
+    protected ClusterHelper clusterHelper = new ClusterHelper(
+        "utest_n" + num.incrementAndGet() + "_f" + System.getProperty("forkno") + "_t" + System.nanoTime()
+    );
     protected ClusterInfo clusterInfo;
-    private ClusterHelper remoteClusterHelper = withRemoteCluster ?
-            new ClusterHelper("crl2_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime()) : null;
+    private ClusterHelper remoteClusterHelper = withRemoteCluster
+        ? new ClusterHelper("crl2_n" + num.incrementAndGet() + "_f" + System.getProperty("forkno") + "_t" + System.nanoTime())
+        : null;
     private ClusterInfo remoteClusterInfo;
 
     protected void setup(Settings nodeOverride) throws Exception {
@@ -66,48 +69,71 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         setup(Settings.EMPTY, new DynamicSecurityConfig(), Settings.EMPTY, true);
     }
 
-    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride) throws Exception {
+    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride)
+        throws Exception {
         setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, true);
     }
 
-    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initSecurityIndex) throws Exception {
+    protected void setup(
+        Settings initTransportClientSettings,
+        DynamicSecurityConfig dynamicSecuritySettings,
+        Settings nodeOverride,
+        boolean initSecurityIndex
+    ) throws Exception {
         setup(initTransportClientSettings, dynamicSecuritySettings, nodeOverride, initSecurityIndex, ClusterConfiguration.DEFAULT);
     }
 
-    protected void restart(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initOpendistroSecurityIndex) throws Exception {
+    protected void restart(
+        Settings initTransportClientSettings,
+        DynamicSecurityConfig dynamicSecuritySettings,
+        Settings nodeOverride,
+        boolean initOpendistroSecurityIndex
+    ) throws Exception {
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), ClusterConfiguration.DEFAULT);
-        if(initOpendistroSecurityIndex && dynamicSecuritySettings != null) {
+        if (initOpendistroSecurityIndex && dynamicSecuritySettings != null) {
             initialize(clusterHelper, clusterInfo, dynamicSecuritySettings);
         }
     }
 
     private Settings ccs(Settings nodeOverride) throws Exception {
-        if(remoteClusterHelper != null) {
+        if (remoteClusterHelper != null) {
             Assert.assertNull("No remote clusters", remoteClusterInfo);
             remoteClusterInfo = remoteClusterHelper.startCluster(minimumSecuritySettings(Settings.EMPTY), ClusterConfiguration.SINGLENODE);
             Settings.Builder builder = Settings.builder()
-                    .put(nodeOverride)
-                    .putList("cluster.remote.cross_cluster_two.seeds", remoteClusterInfo.nodeHost+":"+remoteClusterInfo.nodePort);
+                .put(nodeOverride)
+                .putList("cluster.remote.cross_cluster_two.seeds", remoteClusterInfo.nodeHost + ":" + remoteClusterInfo.nodePort);
             return builder.build();
         } else {
             return nodeOverride;
         }
     }
 
-
-    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride, boolean initSecurityIndex, ClusterConfiguration clusterConfiguration) throws Exception {
+    protected void setup(
+        Settings initTransportClientSettings,
+        DynamicSecurityConfig dynamicSecuritySettings,
+        Settings nodeOverride,
+        boolean initSecurityIndex,
+        ClusterConfiguration clusterConfiguration
+    ) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration);
-        if(initSecurityIndex && dynamicSecuritySettings != null) {
+        if (initSecurityIndex && dynamicSecuritySettings != null) {
             initialize(clusterHelper, clusterInfo, dynamicSecuritySettings);
         }
     }
 
-    protected void setup(Settings initTransportClientSettings, DynamicSecurityConfig dynamicSecuritySettings, Settings nodeOverride
-            , boolean initSecurityIndex, ClusterConfiguration clusterConfiguration, int timeout, Integer nodes) throws Exception {
+    protected void setup(
+        Settings initTransportClientSettings,
+        DynamicSecurityConfig dynamicSecuritySettings,
+        Settings nodeOverride,
+        boolean initSecurityIndex,
+        ClusterConfiguration clusterConfiguration,
+        int timeout,
+        Integer nodes
+    ) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
         clusterInfo = clusterHelper.startCluster(minimumSecuritySettings(ccs(nodeOverride)), clusterConfiguration, timeout, nodes);
-        if(initSecurityIndex) {
+        if (initSecurityIndex) {
             initialize(clusterHelper, clusterInfo, dynamicSecuritySettings);
         }
     }
@@ -119,20 +145,24 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
 
     protected void setupSslOnlyModeWithClusterManagerNodeWithoutSSL(Settings nodeOverride) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
-        clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(nodeOverride,
-                DEFAULT_CLUSTER_MANAGER_NODE_NUM), ClusterConfiguration.DEFAULT_CLUSTER_MANAGER_WITHOUT_SECURITY_PLUGIN);
+        clusterInfo = clusterHelper.startCluster(
+            minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(nodeOverride, DEFAULT_CLUSTER_MANAGER_NODE_NUM),
+            ClusterConfiguration.DEFAULT_CLUSTER_MANAGER_WITHOUT_SECURITY_PLUGIN
+        );
     }
 
     protected void setupSslOnlyModeWithDataNodeWithoutSSL(Settings nodeOverride) throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
-        clusterInfo = clusterHelper.startCluster(minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(nodeOverride,
-                DEFAULT_FIRST_DATA_NODE_NUM), ClusterConfiguration.DEFAULT_ONE_DATA_NODE_WITHOUT_SECURITY_PLUGIN);
+        clusterInfo = clusterHelper.startCluster(
+            minimumSecuritySettingsSslOnlyWithOneNodeNonSSL(nodeOverride, DEFAULT_FIRST_DATA_NODE_NUM),
+            ClusterConfiguration.DEFAULT_ONE_DATA_NODE_WITHOUT_SECURITY_PLUGIN
+        );
     }
 
-    protected void setupGenericNodes(List<Settings> nodeOverride, List<Boolean> sslOnly, ClusterConfiguration clusterConfiguration) throws Exception {
+    protected void setupGenericNodes(List<Settings> nodeOverride, List<Boolean> sslOnly, ClusterConfiguration clusterConfiguration)
+        throws Exception {
         Assert.assertNull("No cluster", clusterInfo);
-        clusterInfo = clusterHelper.startCluster(genericMinimumSecuritySettings(nodeOverride, sslOnly),
-                clusterConfiguration);
+        clusterInfo = clusterHelper.startCluster(genericMinimumSecuritySettings(nodeOverride, sslOnly), clusterConfiguration);
     }
 
     protected RestHelper restHelper() {
@@ -147,11 +177,10 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
         return clusterHelper.nodeClient();
     }
 
-
     @After
     public void tearDown() {
 
-        if(remoteClusterInfo != null) {
+        if (remoteClusterInfo != null) {
             try {
                 remoteClusterHelper.stopCluster();
             } catch (Exception e) {
@@ -161,7 +190,7 @@ public abstract class SingleClusterTest extends AbstractSecurityUnitTest {
             remoteClusterInfo = null;
         }
 
-        if(clusterInfo != null) {
+        if (clusterInfo != null) {
             try {
                 clusterHelper.stopCluster();
             } catch (Exception e) {

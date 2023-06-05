@@ -19,11 +19,12 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class SecurityApiAccessTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
+
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
-    public SecurityApiAccessTest(){
+    public SecurityApiAccessTest() {
         ENDPOINT = getEndpointPrefix() + "/api/internalusers";
     }
 
@@ -33,22 +34,14 @@ public class SecurityApiAccessTest extends AbstractRestApiUnitTest {
         setup();
 
         // test with no cert, must fail
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED,
-                rh.executeGetRequest(ENDPOINT).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
-                rh.executeGetRequest(ENDPOINT,
-                        encodeBasicHeader("admin", "admin"))
-                        .getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest(ENDPOINT).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest(ENDPOINT, encodeBasicHeader("admin", "admin")).getStatusCode());
 
         // test with non-admin cert, must fail
         rh.keystore = "restapi/node-0-keystore.jks";
         rh.sendAdminCertificate = true;
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED,
-                rh.executeGetRequest(ENDPOINT).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN,
-                rh.executeGetRequest(ENDPOINT,
-                        encodeBasicHeader("admin", "admin"))
-                        .getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest(ENDPOINT).getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest(ENDPOINT, encodeBasicHeader("admin", "admin")).getStatusCode());
 
     }
 }

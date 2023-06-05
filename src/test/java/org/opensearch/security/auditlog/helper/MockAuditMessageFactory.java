@@ -26,14 +26,14 @@ import static org.mockito.Mockito.when;
 
 public class MockAuditMessageFactory {
 
-	public static AuditMessage validAuditMessage() {
-		return validAuditMessage(AuditCategory.FAILED_LOGIN);
-	}
+    public static AuditMessage validAuditMessage() {
+        return validAuditMessage(AuditCategory.FAILED_LOGIN);
+    }
 
-	public static AuditMessage validAuditMessage(AuditCategory category) {
+    public static AuditMessage validAuditMessage(AuditCategory category) {
 
-	    ClusterService cs = mock(ClusterService.class);
-	    DiscoveryNode dn = mock(DiscoveryNode.class);
+        ClusterService cs = mock(ClusterService.class);
+        DiscoveryNode dn = mock(DiscoveryNode.class);
 
         when(dn.getHostAddress()).thenReturn("hostaddress");
         when(dn.getId()).thenReturn("hostaddress");
@@ -41,13 +41,13 @@ public class MockAuditMessageFactory {
         when(cs.localNode()).thenReturn(dn);
         when(cs.getClusterName()).thenReturn(new ClusterName("testcluster"));
 
-		TransportAddress ta = new TransportAddress(new InetSocketAddress("8.8.8.8",80));
+        TransportAddress ta = new TransportAddress(new InetSocketAddress("8.8.8.8", 80));
 
-		AuditMessage msg = new AuditMessage(category, cs, Origin.TRANSPORT, Origin.TRANSPORT);
-		msg.addEffectiveUser("John Doe");
-		msg.addRemoteAddress(ta);
-		msg.addRequestType("IndexRequest");
-		return msg;
-	}
+        AuditMessage msg = new AuditMessage(category, cs, Origin.TRANSPORT, Origin.TRANSPORT);
+        msg.addEffectiveUser("John Doe");
+        msg.addRemoteAddress(ta);
+        msg.addRequestType("IndexRequest");
+        return msg;
+    }
 
 }

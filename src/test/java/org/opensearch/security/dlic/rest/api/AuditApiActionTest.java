@@ -53,11 +53,12 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private final String ENDPOINT;
     private final String CONFIG_ENDPOINT;
+
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
-    public AuditApiActionTest(){
+    public AuditApiActionTest() {
         ENDPOINT = getEndpointPrefix() + "/api/audit";
         CONFIG_ENDPOINT = ENDPOINT + "/config";
     }
@@ -106,16 +107,18 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         setup();
 
         final List<String> testCategories = ImmutableList.of("SSL_EXCEPTION", "AUTHENTICATED", "BAD_HEADERS");
-        final AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
-                ImmutableMap.of("disabled_rest_categories", testCategories)
-        ), ComplianceConfig.DEFAULT);
+        final AuditConfig auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(ImmutableMap.of("disabled_rest_categories", testCategories)),
+            ComplianceConfig.DEFAULT
+        );
         final ObjectNode json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
 
         testPutRequest(json, HttpStatus.SC_OK, true);
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         List<String> actual = Streams.stream(readTree(response.getBody()).at("/config/audit/disabled_rest_categories").iterator())
-                .map(JsonNode::textValue)
-                .collect(Collectors.toList());
+            .map(JsonNode::textValue)
+            .collect(Collectors.toList());
         assertEquals(testCategories, actual);
     }
 
@@ -125,36 +128,69 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // test bad request for REST disabled categories
-        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
-                ImmutableMap.of("disabled_rest_categories", ImmutableList.of("INDEX_EVENT", "COMPLIANCE_DOC_READ"))
-        ), ComplianceConfig.DEFAULT);
+        AuditConfig auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(ImmutableMap.of("disabled_rest_categories", ImmutableList.of("INDEX_EVENT", "COMPLIANCE_DOC_READ"))),
+            ComplianceConfig.DEFAULT
+        );
         ObjectNode json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
         RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test success for REST disabled categories
-        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
-                ImmutableMap.of("disabled_rest_categories",
-                        ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES"))
-        ), ComplianceConfig.DEFAULT);
+        auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(
+                ImmutableMap.of(
+                    "disabled_rest_categories",
+                    ImmutableList.of(
+                        "BAD_HEADERS",
+                        "SSL_EXCEPTION",
+                        "AUTHENTICATED",
+                        "FAILED_LOGIN",
+                        "GRANTED_PRIVILEGES",
+                        "MISSING_PRIVILEGES"
+                    )
+                )
+            ),
+            ComplianceConfig.DEFAULT
+        );
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
         response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // test bad request for transport disabled categories
-        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
-                ImmutableMap.of("disabled_transport_categories",
-                        ImmutableList.of("COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE"))
-        ), ComplianceConfig.DEFAULT);
+        auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(
+                ImmutableMap.of("disabled_transport_categories", ImmutableList.of("COMPLIANCE_DOC_READ", "COMPLIANCE_DOC_WRITE"))
+            ),
+            ComplianceConfig.DEFAULT
+        );
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
         response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
         // test success for transport disabled categories
-        auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
-                ImmutableMap.of("disabled_transport_categories",
-                        ImmutableList.of("BAD_HEADERS", "SSL_EXCEPTION", "AUTHENTICATED", "FAILED_LOGIN", "GRANTED_PRIVILEGES", "MISSING_PRIVILEGES", "INDEX_EVENT", "OPENDISTRO_SECURITY_INDEX_ATTEMPT"))
-        ), ComplianceConfig.DEFAULT);
+        auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(
+                ImmutableMap.of(
+                    "disabled_transport_categories",
+                    ImmutableList.of(
+                        "BAD_HEADERS",
+                        "SSL_EXCEPTION",
+                        "AUTHENTICATED",
+                        "FAILED_LOGIN",
+                        "GRANTED_PRIVILEGES",
+                        "MISSING_PRIVILEGES",
+                        "INDEX_EVENT",
+                        "OPENDISTRO_SECURITY_INDEX_ATTEMPT"
+                    )
+                )
+            ),
+            ComplianceConfig.DEFAULT
+        );
         json = DefaultObjectMapper.objectMapper.valueToTree(auditConfig);
         response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false));
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
@@ -162,7 +198,12 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     @Test
     public void testReadonlyApi() throws Exception {
-        final List<String> readonlyFields = ImmutableList.of("/audit/enable_rest", "/audit/disabled_rest_categories", "/audit/ignore_requests", "/compliance/read_watched_fields");
+        final List<String> readonlyFields = ImmutableList.of(
+            "/audit/enable_rest",
+            "/audit/disabled_rest_categories",
+            "/audit/ignore_requests",
+            "/compliance/read_watched_fields"
+        );
         updateStaticResourceReadonly(readonlyFields);
 
         setupWithRestRoles(null);
@@ -172,8 +213,8 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         RestHelper.HttpResponse response = rh.executeGetRequest(ENDPOINT, adminCredsHeader);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         List<String> actual = Streams.stream(readTree(response.getBody()).get("_readonly").iterator())
-                .map(JsonNode::textValue)
-                .collect(Collectors.toList());
+            .map(JsonNode::textValue)
+            .collect(Collectors.toList());
         assertEquals(readonlyFields, actual);
 
         // test config
@@ -209,13 +250,15 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private void updateStaticResourceReadonly(List<String> readonly) throws IOException {
         // create audit config
-        final Map<String, Object> result = ImmutableMap.of(
-                AuditApiAction.READONLY_FIELD, readonly
+        final Map<String, Object> result = ImmutableMap.of(AuditApiAction.READONLY_FIELD, readonly);
+        DefaultObjectMapper.YAML_MAPPER.writeValue(
+            FileHelper.getAbsoluteFilePathFromClassPath(AuditApiAction.STATIC_RESOURCE.substring(1)).toFile(),
+            result
         );
-        DefaultObjectMapper.YAML_MAPPER.writeValue(FileHelper.getAbsoluteFilePathFromClassPath(AuditApiAction.STATIC_RESOURCE.substring(1)).toFile(), result);
     }
 
-    private void testPutRequest(final JsonNode json, final int expectedStatus, final boolean sendAdminCertificate, final Header... header) throws Exception {
+    private void testPutRequest(final JsonNode json, final int expectedStatus, final boolean sendAdminCertificate, final Header... header)
+        throws Exception {
         rh.sendAdminCertificate = sendAdminCertificate;
         RestHelper.HttpResponse response = rh.executePutRequest(CONFIG_ENDPOINT, writeValueAsString(json, false), header);
         assertEquals(expectedStatus, response.getStatusCode());
@@ -223,12 +266,12 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private void testReadonlyBoolean(final ObjectNode json, final String config, final String resource) throws Exception {
         final String resourcePath = "/config" + config + "/" + resource;
-        ((ObjectNode)json.at(config)).put(resource, true);
+        ((ObjectNode) json.at(config)).put(resource, true);
         testPutRequest(json, HttpStatus.SC_OK, true);
-        ((ObjectNode)json.at(config)).put(resource, false);
+        ((ObjectNode) json.at(config)).put(resource, false);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testBooleanPatch(resourcePath, false, HttpStatus.SC_CONFLICT, adminCredsHeader);
-        ((ObjectNode)json.at(config)).put(resource, true);
+        ((ObjectNode) json.at(config)).put(resource, true);
         testPutRequest(json, HttpStatus.SC_OK, true);
         testBooleanPatch(resourcePath, true, HttpStatus.SC_OK, adminCredsHeader);
         testBooleanPatch(resourcePath, true, HttpStatus.SC_OK, adminCredsHeader);
@@ -236,79 +279,96 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
 
     private void testReadonlyList(final ObjectNode json, final String config, final String resource) throws Exception {
         final String resourcePath = "/config" + config + "/" + resource;
-        ((ObjectNode)json.at(config)).putPOJO(resource, ImmutableList.of("test-resource-1", "test-resource-2"));
+        ((ObjectNode) json.at(config)).putPOJO(resource, ImmutableList.of("test-resource-1", "test-resource-2"));
         testPutRequest(json, HttpStatus.SC_OK, true);
 
         // change order
         List<String> testList = ImmutableList.of("test-resource-2", "test-resource-1");
-        ((ObjectNode)json.at(config)).putPOJO(resource, testList);
+        ((ObjectNode) json.at(config)).putPOJO(resource, testList);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testList(resourcePath, testList, HttpStatus.SC_CONFLICT, adminCredsHeader);
 
         // change values
         testList = ImmutableList.of("test-resource-3", "test-resource-4");
-        ((ObjectNode)json.at(config)).putPOJO(resource, testList);
+        ((ObjectNode) json.at(config)).putPOJO(resource, testList);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testList(resourcePath, testList, HttpStatus.SC_CONFLICT, adminCredsHeader);
 
         // change values
         testList = Collections.emptyList();
-        ((ObjectNode)json.at(config)).putPOJO(resource, testList);
+        ((ObjectNode) json.at(config)).putPOJO(resource, testList);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testList(resourcePath, testList, HttpStatus.SC_CONFLICT, adminCredsHeader);
     }
 
     private void testReadonlyMap(final ObjectNode json, final String config, final String resource) throws Exception {
         final String resourcePath = "/config" + config + "/" + resource;
-        ((ObjectNode)json.at(config)).putPOJO(resource, ImmutableMap.of("test-read-index-1",  Collections.singletonList("test-field-1"), "test-read-index-2", Collections.singletonList("test-field-2")));
+        ((ObjectNode) json.at(config)).putPOJO(
+            resource,
+            ImmutableMap.of(
+                "test-read-index-1",
+                Collections.singletonList("test-field-1"),
+                "test-read-index-2",
+                Collections.singletonList("test-field-2")
+            )
+        );
         testPutRequest(json, HttpStatus.SC_OK, true);
         // change values
-        Map<String, List<String>> testMap = ImmutableMap.of("test-read-index-1",  Collections.singletonList("test-field-1"));
-        ((ObjectNode)json.at(config)).putPOJO(resource, testMap);
+        Map<String, List<String>> testMap = ImmutableMap.of("test-read-index-1", Collections.singletonList("test-field-1"));
+        ((ObjectNode) json.at(config)).putPOJO(resource, testMap);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testMap(resourcePath, testMap, HttpStatus.SC_CONFLICT, adminCredsHeader);
 
         // change values
-        testMap = ImmutableMap.of("test-read-index-1",  ImmutableList.of("test-field-1", "test-field-2"));
-        ((ObjectNode)json.at(config)).putPOJO(resource, testMap);
+        testMap = ImmutableMap.of("test-read-index-1", ImmutableList.of("test-field-1", "test-field-2"));
+        ((ObjectNode) json.at(config)).putPOJO(resource, testMap);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testMap(resourcePath, testMap, HttpStatus.SC_CONFLICT, adminCredsHeader);
 
         // change values
         testMap = ImmutableMap.of("test-read-index", ImmutableList.of("test-field"));
-        ((ObjectNode)json.at(config)).putPOJO(resource, testMap);
+        ((ObjectNode) json.at(config)).putPOJO(resource, testMap);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testMap(resourcePath, testMap, HttpStatus.SC_CONFLICT, adminCredsHeader);
 
         // same object different order is valid
-        testMap = ImmutableMap.of("test-read-index-2", Collections.singletonList("test-field-2"), "test-read-index-1",  Collections.singletonList("test-field-1"));
-        ((ObjectNode)json.at(config)).putPOJO(resource, testMap);
+        testMap = ImmutableMap.of(
+            "test-read-index-2",
+            Collections.singletonList("test-field-2"),
+            "test-read-index-1",
+            Collections.singletonList("test-field-1")
+        );
+        ((ObjectNode) json.at(config)).putPOJO(resource, testMap);
         testPutRequest(json, HttpStatus.SC_OK, false, adminCredsHeader);
-        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + resourcePath + "\",\"value\": " + writeValueAsString(testMap, false) + "}]", adminCredsHeader);
+        RestHelper.HttpResponse response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\",\"path\": \"" + resourcePath + "\",\"value\": " + writeValueAsString(testMap, false) + "}]",
+            adminCredsHeader
+        );
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
     private void testReadonlyCategories(final ObjectNode json, final String config, final String resource) throws Exception {
         final String resourcePath = "/config" + config + "/" + resource;
         // change disabled_rest_categories readonly property
-        ((ObjectNode)json.at(config)).putPOJO(resource, ImmutableList.of("SSL_EXCEPTION", "AUTHENTICATED"));
+        ((ObjectNode) json.at(config)).putPOJO(resource, ImmutableList.of("SSL_EXCEPTION", "AUTHENTICATED"));
         testPutRequest(json, HttpStatus.SC_OK, true);
 
         // change order
         List<String> testList = ImmutableList.of("AUTHENTICATED", "SSL_EXCEPTION");
-        ((ObjectNode)json.at(config)).putPOJO(resource, testList);
+        ((ObjectNode) json.at(config)).putPOJO(resource, testList);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testList(resourcePath, testList, HttpStatus.SC_CONFLICT, adminCredsHeader);
 
         // change values
         testList = ImmutableList.of("AUTHENTICATED", "SSL_EXCEPTION", "FAILED_LOGIN");
-        ((ObjectNode)json.at(config)).putPOJO(resource, testList);
+        ((ObjectNode) json.at(config)).putPOJO(resource, testList);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testList(resourcePath, testList, HttpStatus.SC_CONFLICT, adminCredsHeader);
 
         // change values
         testList = null;
-        ((ObjectNode)json.at(config)).putPOJO(resource, testList);
+        ((ObjectNode) json.at(config)).putPOJO(resource, testList);
         testPutRequest(json, HttpStatus.SC_CONFLICT, false, adminCredsHeader);
         testList(resourcePath, testList, HttpStatus.SC_CONFLICT, adminCredsHeader);
     }
@@ -332,9 +392,15 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         // incorrect category
         final String jsonValue = DefaultObjectMapper.writeValueAsString(ImmutableList.of("RANDOM", "Test"), true);
         RestHelper.HttpResponse response;
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/audit/disabled_rest_categories" + "\",\"value\": " + jsonValue + "}]");
+        response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\",\"path\": \"" + "/config/audit/disabled_rest_categories" + "\",\"value\": " + jsonValue + "}]"
+        );
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + "/config/audit/disabled_transport_categories" + "\",\"value\": " + jsonValue + "}]");
+        response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\",\"path\": \"" + "/config/audit/disabled_transport_categories" + "\",\"value\": " + jsonValue + "}]"
+        );
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
     }
 
@@ -432,15 +498,25 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         testBoolean("/config/compliance/external_config", expectedStatus, headers);
         testBoolean("/config/compliance/read_metadata_only", expectedStatus, headers);
         testList("/config/compliance/read_ignore_users", ImmutableList.of("test-user-1"), expectedStatus, headers);
-        testMap("/config/compliance/read_watched_fields", ImmutableMap.of("test-index-1", Collections.singletonList("test-field")), expectedStatus, headers);
+        testMap(
+            "/config/compliance/read_watched_fields",
+            ImmutableMap.of("test-index-1", Collections.singletonList("test-field")),
+            expectedStatus,
+            headers
+        );
         testBoolean("/config/compliance/write_metadata_only", expectedStatus, headers);
         testBoolean("/config/compliance/write_log_diffs", expectedStatus, headers);
         testList("/config/compliance/write_ignore_users", ImmutableList.of("test-user-1"), expectedStatus, headers);
         testList("/config/compliance/write_watched_indices", ImmutableList.of("test-index-1"), expectedStatus, headers);
     }
 
-    private void testBooleanPatch(final String patchResource, final boolean value, final int expected, final Header... headers) throws Exception {
-        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + value + "}]", headers);
+    private void testBooleanPatch(final String patchResource, final boolean value, final int expected, final Header... headers)
+        throws Exception {
+        RestHelper.HttpResponse response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + value + "}]",
+            headers
+        );
         assertEquals(expected, response.getStatusCode());
         if (expected == HttpStatus.SC_OK) {
             assertEquals(value, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).asBoolean());
@@ -458,22 +534,35 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         testBooleanPatch(patchResource, true, expected, headers);
     }
 
-    private void testList(final String patchResource, final List<String> expectedList, final int expectedStatus, final Header... headers) throws Exception {
+    private void testList(final String patchResource, final List<String> expectedList, final int expectedStatus, final Header... headers)
+        throws Exception {
         final String jsonValue = DefaultObjectMapper.writeValueAsString(expectedList, true);
 
         // make empty
-        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": []}]", headers);
+        RestHelper.HttpResponse response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": []}]",
+            headers
+        );
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
             assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
 
         // add value
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + jsonValue + "}]", headers);
+        response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + jsonValue + "}]",
+            headers
+        );
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
             final JsonNode responseJson = readTree(rh.executeGetRequest(ENDPOINT, headers).getBody());
-            final List<String> actualList = DefaultObjectMapper.readValue(responseJson.at(patchResource).toString(), new TypeReference<List<String>>(){});
+            final List<String> actualList = DefaultObjectMapper.readValue(
+                responseJson.at(patchResource).toString(),
+                new TypeReference<List<String>>() {
+                }
+            );
             assertEquals(expectedList.size(), actualList.size());
             assertTrue(actualList.containsAll(expectedList));
         }
@@ -486,22 +575,39 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         }
     }
 
-    private void testMap(final String patchResource, final Map<String, List<String>> expectedMap, final int expectedStatus, final Header... headers) throws Exception {
+    private void testMap(
+        final String patchResource,
+        final Map<String, List<String>> expectedMap,
+        final int expectedStatus,
+        final Header... headers
+    ) throws Exception {
         final String jsonValue = DefaultObjectMapper.writeValueAsString(expectedMap, true);
 
         // make empty
-        RestHelper.HttpResponse response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": {}}]", headers);
+        RestHelper.HttpResponse response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": {}}]",
+            headers
+        );
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
             assertEquals(0, readTree(rh.executeGetRequest(ENDPOINT, headers).getBody()).at(patchResource).size());
         }
 
         // add value
-        response = rh.executePatchRequest(ENDPOINT, "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + jsonValue + "}]", headers);
+        response = rh.executePatchRequest(
+            ENDPOINT,
+            "[{\"op\": \"add\",\"path\": \"" + patchResource + "\",\"value\": " + jsonValue + "}]",
+            headers
+        );
         assertEquals(expectedStatus, response.getStatusCode());
         if (expectedStatus == HttpStatus.SC_OK) {
             final JsonNode responseJson = readTree(rh.executeGetRequest(ENDPOINT, headers).getBody());
-            final Map<String, List<String>> actualMap = DefaultObjectMapper.readValue(responseJson.at(patchResource).toString(), new TypeReference<Map<String, List<String>>>(){});
+            final Map<String, List<String>> actualMap = DefaultObjectMapper.readValue(
+                responseJson.at(patchResource).toString(),
+                new TypeReference<Map<String, List<String>>>() {
+                }
+            );
             assertEquals(actualMap, expectedMap);
         }
 
@@ -520,32 +626,38 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
         rh.sendAdminCertificate = true;
 
         // update with non-default configuration
-        AuditConfig auditConfig = new AuditConfig(true, AuditConfig.Filter.from(
+        AuditConfig auditConfig = new AuditConfig(
+            true,
+            AuditConfig.Filter.from(
                 ImmutableMap.<String, Object>builder()
-                        .put("enable_rest", false)
-                        .put("disabled_rest_categories", Collections.emptyList())
-                        .put("enable_transport", false)
-                        .put("disabled_transport_categories", Collections.emptyList())
-                        .put("resolve_bulk_requests", false)
-                        .put("resolve_indices", false)
-                        .put("log_request_body", false)
-                        .put("exclude_sensitive_headers", false)
-                        .put("ignore_users", Collections.emptyList())
-                        .put("ignore_requests", Collections.emptyList())
-                        .build())
-        , ComplianceConfig.from(
+                    .put("enable_rest", false)
+                    .put("disabled_rest_categories", Collections.emptyList())
+                    .put("enable_transport", false)
+                    .put("disabled_transport_categories", Collections.emptyList())
+                    .put("resolve_bulk_requests", false)
+                    .put("resolve_indices", false)
+                    .put("log_request_body", false)
+                    .put("exclude_sensitive_headers", false)
+                    .put("ignore_users", Collections.emptyList())
+                    .put("ignore_requests", Collections.emptyList())
+                    .build()
+            ),
+            ComplianceConfig.from(
                 ImmutableMap.<String, Object>builder()
-                        .put("enabled", true)
-                        .put("external_config", false)
-                        .put("internal_config", false)
-                        .put("read_metadata_only", false)
-                        .put("read_watched_fields", Collections.emptyMap())
-                        .put("read_ignore_users", Collections.emptyList())
-                        .put("write_metadata_only", true)
-                        .put("write_log_diffs", true)
-                        .put("write_watched_indices", Collections.emptyList())
-                        .put("write_ignore_users", Collections.emptyList())
-                        .build(), Settings.EMPTY));
+                    .put("enabled", true)
+                    .put("external_config", false)
+                    .put("internal_config", false)
+                    .put("read_metadata_only", false)
+                    .put("read_watched_fields", Collections.emptyMap())
+                    .put("read_ignore_users", Collections.emptyList())
+                    .put("write_metadata_only", true)
+                    .put("write_log_diffs", true)
+                    .put("write_watched_indices", Collections.emptyList())
+                    .put("write_ignore_users", Collections.emptyList())
+                    .build(),
+                Settings.EMPTY
+            )
+        );
         final String payload = DefaultObjectMapper.writeValueAsString(auditConfig, false);
 
         // update config
@@ -566,18 +678,18 @@ public class AuditApiActionTest extends AbstractRestApiUnitTest {
     }
 
     private String getTestPayload() {
-        return "{" +
-                "\"enabled\":true," +
-                "\"audit\":{" +
-                    "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"]," +
-                    "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"]," +
-                    "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true," +
-                    "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]}," +
-                "\"compliance\":{" +
-                    "\"enabled\":true," +
-                    "\"internal_config\":true,\"external_config\":true," +
-                    "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field\":[]},\"read_ignore_users\":[\"test-user-2\"]," +
-                    "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}" +
-                "}";
+        return "{"
+            + "\"enabled\":true,"
+            + "\"audit\":{"
+            + "\"enable_rest\":true,\"disabled_rest_categories\":[\"AUTHENTICATED\"],"
+            + "\"enable_transport\":true,\"disabled_transport_categories\":[\"SSL_EXCEPTION\"],"
+            + "\"resolve_bulk_requests\":true,\"log_request_body\":true,\"resolve_indices\":true,\"exclude_sensitive_headers\":true,"
+            + "\"ignore_users\":[\"test-user-1\"],\"ignore_requests\":[\"test-request\"]},"
+            + "\"compliance\":{"
+            + "\"enabled\":true,"
+            + "\"internal_config\":true,\"external_config\":true,"
+            + "\"read_metadata_only\":true,\"read_watched_fields\":{\"test-read-watch-field\":[]},\"read_ignore_users\":[\"test-user-2\"],"
+            + "\"write_metadata_only\":true,\"write_log_diffs\":true,\"write_watched_indices\":[\"test-write-watch-index\"],\"write_ignore_users\":[\"test-user-3\"]}"
+            + "}";
     }
 }
