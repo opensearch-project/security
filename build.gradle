@@ -85,6 +85,7 @@ spotless {
         target '**/test/java/org/opensearch/security/f*/**/*.java'
         target '**/test/java/org/opensearch/security/h*/**/*.java'
         target '**/test/java/org/opensearch/security/m*/**/*.java'
+        target '**/test/java/org/opensearch/security/s*/**/*.java'
 
         removeUnusedImports()
         eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
@@ -125,6 +126,7 @@ spotless {
         targetExclude '**/test/java/org/opensearch/security/f*/**/*.java'
         targetExclude '**/test/java/org/opensearch/security/h*/**/*.java'
         targetExclude '**/test/java/org/opensearch/security/m*/**/*.java'
+        targetExclude '**/test/java/org/opensearch/security/s*/**/*.java'
         targetExclude 'src/integrationTest/**'
 
         trimTrailingWhitespace()
