@@ -108,7 +108,9 @@ public class IndexPatternTests {
     public void testExactNameWithNoMatches() {
         doReturn("index-17").when(ip).getUnresolvedIndexPattern(user);
         when(clusterService.state()).thenReturn(mock(ClusterState.class));
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"))).thenReturn(new String[]{});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"))).thenReturn(
+            new String[] {}
+        );
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -124,7 +126,9 @@ public class IndexPatternTests {
     public void testExactName() {
         doReturn("index-17").when(ip).getUnresolvedIndexPattern(user);
         when(clusterService.state()).thenReturn(mock(ClusterState.class));
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"))).thenReturn(new String[]{"resolved-index-17"});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-17"))).thenReturn(
+            new String[] { "resolved-index-17" }
+        );
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -140,7 +144,9 @@ public class IndexPatternTests {
     public void testMultipleConcreteIndices() {
         doReturn("index-1*").when(ip).getUnresolvedIndexPattern(user);
         doReturn(createClusterState()).when(clusterService).state();
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(
+            new String[] { "resolved-index-17", "resolved-index-18" }
+        );
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -156,12 +162,18 @@ public class IndexPatternTests {
     public void testMultipleConcreteIndicesWithOneAlias() {
         doReturn("index-1*").when(ip).getUnresolvedIndexPattern(user);
 
-        doReturn(createClusterState(
-            new IndexShorthand("index-100", Type.ALIAS), // Name and type match
-            new IndexShorthand("19", Type.ALIAS) // Type matches/wrong name
-            )).when(clusterService).state();
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"))).thenReturn(new String[]{"resolved-index-100"});
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
+        doReturn(
+            createClusterState(
+                new IndexShorthand("index-100", Type.ALIAS), // Name and type match
+                new IndexShorthand("19", Type.ALIAS) // Type matches/wrong name
+            )
+        ).when(clusterService).state();
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"))).thenReturn(
+            new String[] { "resolved-index-100" }
+        );
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(
+            new String[] { "resolved-index-17", "resolved-index-18" }
+        );
 
         final Set<String> results = ip.concreteIndexNames(user, resolver, clusterService);
 
@@ -177,13 +189,18 @@ public class IndexPatternTests {
     @Test
     public void testMultipleConcreteAliasedAndUnresolved() {
         doReturn("index-1*").when(ip).getUnresolvedIndexPattern(user);
-        doReturn(createClusterState(
-            new IndexShorthand("index-100", Type.ALIAS), // Name and type match
-            new IndexShorthand("index-101", Type.ALIAS), // Name and type match
-            new IndexShorthand("19", Type.ALIAS) // Type matches/wrong name
-            )).when(clusterService).state();
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"), eq("index-101"))).thenReturn(new String[]{"resolved-index-100", "resolved-index-101"});
-        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(new String[]{"resolved-index-17", "resolved-index-18"});
+        doReturn(
+            createClusterState(
+                new IndexShorthand("index-100", Type.ALIAS), // Name and type match
+                new IndexShorthand("index-101", Type.ALIAS), // Name and type match
+                new IndexShorthand("19", Type.ALIAS) // Type matches/wrong name
+            )
+        ).when(clusterService).state();
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-100"), eq("index-101")))
+            .thenReturn(new String[] { "resolved-index-100", "resolved-index-101" });
+        when(resolver.concreteIndexNames(any(), eq(IndicesOptions.lenientExpandOpen()), eq(true), eq("index-1*"))).thenReturn(
+            new String[] { "resolved-index-17", "resolved-index-18" }
+        );
 
         final Set<String> results = ip.attemptResolveIndexNames(user, resolver, clusterService);
 
@@ -215,6 +232,7 @@ public class IndexPatternTests {
     private class IndexShorthand {
         public final String name;
         public final Type type;
+
         public IndexShorthand(final String name, final Type type) {
             this.name = name;
             this.type = type;
