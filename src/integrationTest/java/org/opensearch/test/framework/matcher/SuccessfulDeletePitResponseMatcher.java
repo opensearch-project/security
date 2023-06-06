@@ -18,23 +18,25 @@ import org.opensearch.rest.RestStatus;
 
 class SuccessfulDeletePitResponseMatcher extends TypeSafeDiagnosingMatcher<DeletePitResponse> {
 
-	@Override
-	protected boolean matchesSafely(DeletePitResponse response, Description mismatchDescription) {
-		if(!RestStatus.OK.equals(response.status())) {
-			mismatchDescription.appendText("has status ").appendValue(response.status()).appendText(" which denotes failure.");
-			return false;
-		}
-		for(DeletePitInfo deletePitInfo : response.getDeletePitResults()) {
-			if (!deletePitInfo.isSuccessful()) {
-				mismatchDescription.appendValue("Pit: ").appendValue(deletePitInfo.getPitId()).appendText(" - delete result was not successful");
-				return false;
-			}
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(DeletePitResponse response, Description mismatchDescription) {
+        if (!RestStatus.OK.equals(response.status())) {
+            mismatchDescription.appendText("has status ").appendValue(response.status()).appendText(" which denotes failure.");
+            return false;
+        }
+        for (DeletePitInfo deletePitInfo : response.getDeletePitResults()) {
+            if (!deletePitInfo.isSuccessful()) {
+                mismatchDescription.appendValue("Pit: ")
+                    .appendValue(deletePitInfo.getPitId())
+                    .appendText(" - delete result was not successful");
+                return false;
+            }
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Successful delete pit response");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Successful delete pit response");
+    }
 }

@@ -30,5 +30,5 @@ import org.opensearch.common.settings.Settings;
 
 @FunctionalInterface
 public interface NodeSettingsSupplier {
-	Settings get(int i);
+    Settings get(int i);
 }

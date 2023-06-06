@@ -26,49 +26,51 @@ import static java.util.Objects.requireNonNull;
 
 class SearchHitsContainDocumentsInAnyOrderMatcher extends TypeSafeDiagnosingMatcher<SearchResponse> {
 
-	/**
-	* Pair contain index name and document id
-	*/
-	private final List<Pair<String, String>> documentIds;
+    /**
+    * Pair contain index name and document id
+    */
+    private final List<Pair<String, String>> documentIds;
 
-	/**
-	*
-	* @param documentIds Pair contain index name and document id
-	*/
-	public SearchHitsContainDocumentsInAnyOrderMatcher(List<Pair<String, String>> documentIds) {
-		this.documentIds = requireNonNull(documentIds, "Document ids are required.");
-	}
+    /**
+    *
+    * @param documentIds Pair contain index name and document id
+    */
+    public SearchHitsContainDocumentsInAnyOrderMatcher(List<Pair<String, String>> documentIds) {
+        this.documentIds = requireNonNull(documentIds, "Document ids are required.");
+    }
 
-	@Override
-	protected boolean matchesSafely(SearchResponse response, Description mismatchDescription) {
-		SearchHits hits = response.getHits();
-		if(hits == null) {
-			mismatchDescription.appendText("Search response does not contains hits (null).");
-			return false;
-		}
-		SearchHit[] hitsArray = hits.getHits();
-		if(hitsArray == null) {
-			mismatchDescription.appendText("Search hits array is null");
-			return false;
-		}
-		Set<Pair<String, String>> actualDocumentIds = Arrays.stream(hitsArray)
-			.map(result -> Pair.of(result.getIndex(), result.getId()))
-			.collect(Collectors.toSet());
-		for(Pair<String, String> desiredDocumentId : documentIds) {
-			if(actualDocumentIds.contains(desiredDocumentId) == false) {
-				mismatchDescription.appendText("search result does not contain document with id ")
-					.appendValue(desiredDocumentId.getKey()).appendText("/").appendValue(desiredDocumentId.getValue());
-				return false;
-			}
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(SearchResponse response, Description mismatchDescription) {
+        SearchHits hits = response.getHits();
+        if (hits == null) {
+            mismatchDescription.appendText("Search response does not contains hits (null).");
+            return false;
+        }
+        SearchHit[] hitsArray = hits.getHits();
+        if (hitsArray == null) {
+            mismatchDescription.appendText("Search hits array is null");
+            return false;
+        }
+        Set<Pair<String, String>> actualDocumentIds = Arrays.stream(hitsArray)
+            .map(result -> Pair.of(result.getIndex(), result.getId()))
+            .collect(Collectors.toSet());
+        for (Pair<String, String> desiredDocumentId : documentIds) {
+            if (actualDocumentIds.contains(desiredDocumentId) == false) {
+                mismatchDescription.appendText("search result does not contain document with id ")
+                    .appendValue(desiredDocumentId.getKey())
+                    .appendText("/")
+                    .appendValue(desiredDocumentId.getValue());
+                return false;
+            }
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		String documentIdsString = documentIds.stream()
-			.map(pair -> pair.getKey() + "/" + pair.getValue())
-			.collect(Collectors.joining(", "));
-		description.appendText("Search response should contains following documents ").appendValue(documentIdsString);
-	}
+    @Override
+    public void describeTo(Description description) {
+        String documentIdsString = documentIds.stream()
+            .map(pair -> pair.getKey() + "/" + pair.getValue())
+            .collect(Collectors.joining(", "));
+        description.appendText("Search response should contains following documents ").appendValue(documentIdsString);
+    }
 }

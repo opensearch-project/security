@@ -78,7 +78,7 @@ spotless {
         // non-standard places
         target '**/com/amazon/dlic/**/*.java'
         target '**/com/amazon/security/**/*.java'
-        target '**/test/java/org/opensearch/security/**/*.java'
+        target '**/test/**/*.java'
 
         removeUnusedImports()
         eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
@@ -112,7 +112,7 @@ spotless {
         target '**/*.java'
         targetExclude '**/com/amazon/dlic/**/*.java'
         targetExclude '**/com/amazon/security/**/*.java'
-        targetExclude '**/test/java/org/opensearch/security/**/*.java'
+        targetExclude '**/test/**/*.java'
         targetExclude 'src/integrationTest/**'
 
         trimTrailingWhitespace()

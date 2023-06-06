@@ -16,26 +16,24 @@ import org.opensearch.action.search.MultiSearchResponse;
 
 class NumberOfSearchItemResponsesIsEqualToMatcher extends TypeSafeDiagnosingMatcher<MultiSearchResponse> {
 
-	private final int expectedNumberOfResponses;
+    private final int expectedNumberOfResponses;
 
-	NumberOfSearchItemResponsesIsEqualToMatcher(int expectedNumberOfResponses) {
-		this.expectedNumberOfResponses = expectedNumberOfResponses;
-	}
+    NumberOfSearchItemResponsesIsEqualToMatcher(int expectedNumberOfResponses) {
+        this.expectedNumberOfResponses = expectedNumberOfResponses;
+    }
 
+    @Override
+    protected boolean matchesSafely(MultiSearchResponse response, Description mismatchDescription) {
+        if (expectedNumberOfResponses != response.getResponses().length) {
+            mismatchDescription.appendText("Actual number of responses: ").appendValue(response.getResponses().length);
+            return false;
+        }
 
-	@Override
-	protected boolean matchesSafely(MultiSearchResponse response, Description mismatchDescription) {
-		if (expectedNumberOfResponses != response.getResponses().length) {
-			mismatchDescription.appendText("Actual number of responses: ").appendValue(response.getResponses().length);
-			return false;
-		}
+        return true;
+    }
 
-		return true;
-	}
-
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Multi search response contains: ").appendValue(expectedNumberOfResponses)
-				.appendText(" item responses");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Multi search response contains: ").appendValue(expectedNumberOfResponses).appendText(" item responses");
+    }
 }
