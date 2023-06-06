@@ -37,7 +37,7 @@ public class SecuritySubject implements Subject {
         }
         final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         if (user == null) {
-            return NamedPrincipal.UNAUTHENTICATED;
+            return NamedPrincipal.ROOT;
         }
         return new NamedPrincipal(user.getName());
     }

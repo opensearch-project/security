@@ -100,6 +100,8 @@ import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
 import org.opensearch.identity.ScheduledJobIdentityManager;
 import org.opensearch.identity.Subject;
+import org.opensearch.identity.noop.NoopTokenManager;
+import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.index.Index;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
@@ -1207,6 +1209,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     @Override
     public ScheduledJobIdentityManager getScheduledJobIdentityManager() {
         return scheduledJobIdentityManager;
+    }
+
+    @Override
+    public TokenManager getTokenManager() {
+        return new NoopTokenManager();
     }
 
     public static class GuiceHolder implements LifecycleComponent {
