@@ -104,9 +104,8 @@ public class OpenSSLTest extends SSLTest {
         super.testHttpsV3Fail();
     }
 
-
     @Override
-    @Test(timeout=40000)
+    @Test(timeout = 40000)
     public void testNodeClientSSL() throws Exception {
         Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable());
         super.testNodeClientSSL();
@@ -175,37 +174,46 @@ public class OpenSSLTest extends SSLTest {
 
         Assume.assumeTrue(OpenSearchSecuritySSLPlugin.OPENSSL_SUPPORTED && OpenSsl.isAvailable() && OpenSsl.version() > 0x10101009L);
 
-        final Settings settings = Settings.builder().put("plugins.security.ssl.transport.enabled", true)
-                .put(ConfigConstants.SECURITY_SSL_ONLY, true)
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks"))
-                .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
-                .put("plugins.security.ssl.transport.resolve_hostname", false)
-                .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")
-                .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_CHACHA20_POLY1305_SHA256")
-                .put("node.max_local_storage_nodes",4)
-                .build();
+        final Settings settings = Settings.builder()
+            .put("plugins.security.ssl.transport.enabled", true)
+            .put(ConfigConstants.SECURITY_SSL_ONLY, true)
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
+            .put("plugins.security.ssl.transport.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/truststore.jks")
+            )
+            .put("plugins.security.ssl.transport.enforce_hostname_verification", false)
+            .put("plugins.security.ssl.transport.resolve_hostname", false)
+            .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, "TLSv1.3")
+            .putList(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, "TLS_CHACHA20_POLY1305_SHA256")
+            .put("node.max_local_storage_nodes", 4)
+            .build();
 
         setupSslOnlyMode(settings);
 
         RestHelper rh = nonSslRestHelper();
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
-                .put("cluster.name", clusterInfo.clustername).put("path.home", "/tmp")
-                .put("node.name", "client_node_" + new Random().nextInt())
-                .put("path.data", "./target/data/" + clusterInfo.clustername + "/ssl/data")
-                .put("path.logs", "./target/data/" + clusterInfo.clustername + "/ssl/logs")
-                .put("path.home", "./target")
-                .put("discovery.initial_state_timeout","8s")
-                .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost+":"+clusterInfo.nodePort)
-                .put(settings)// -----
-                .build();
+            .put("cluster.name", clusterInfo.clustername)
+            .put("path.home", "/tmp")
+            .put("node.name", "client_node_" + new Random().nextInt())
+            .put("path.data", "./target/data/" + clusterInfo.clustername + "/ssl/data")
+            .put("path.logs", "./target/data/" + clusterInfo.clustername + "/ssl/logs")
+            .put("path.home", "./target")
+            .put("discovery.initial_state_timeout", "8s")
+            .putList("discovery.zen.ping.unicast.hosts", clusterInfo.nodeHost + ":" + clusterInfo.nodePort)
+            .put(settings)// -----
+            .build();
 
         try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class).start()) {
-            ClusterHealthResponse res = node.client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(5))).actionGet();
+            ClusterHealthResponse res = node.client()
+                .admin()
+                .cluster()
+                .health(new ClusterHealthRequest().waitForNodes("4").timeout(TimeValue.timeValueSeconds(5)))
+                .actionGet();
             Assert.assertFalse(res.isTimedOut());
             Assert.assertEquals(4, res.getNumberOfNodes());
             Assert.assertEquals(4, node.client().admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());

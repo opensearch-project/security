@@ -25,11 +25,12 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
+
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
-    public GetConfigurationApiTest(){
+    public GetConfigurationApiTest() {
         ENDPOINT = getEndpointPrefix() + "/api";
     }
 
@@ -48,9 +49,7 @@ public class GetConfigurationApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(ENDPOINT + "/securityconfig");
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(
-                settings.getAsBoolean("config.dynamic.authc.authentication_domain_basic_internal.http_enabled", false),
-                true);
+        Assert.assertEquals(settings.getAsBoolean("config.dynamic.authc.authentication_domain_basic_internal.http_enabled", false), true);
         Assert.assertNull(settings.get("_opendistro_security_meta.type"));
 
         // internalusers

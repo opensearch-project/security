@@ -45,8 +45,10 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         // Separate the cluster defaults from audit settings that will be applied after the cluster is up
         settings.keySet().forEach(key -> {
             final boolean moveToAuditConfig = Arrays.stream(AuditConfig.Filter.FilterEntries.values())
-                    .anyMatch(entry -> entry.getKeyWithNamespace().equalsIgnoreCase(key) || entry.getLegacyKeyWithNamespace().equalsIgnoreCase(key))
-                    || DEPRECATED_KEYS.stream().anyMatch(key::equalsIgnoreCase);
+                .anyMatch(
+                    entry -> entry.getKeyWithNamespace().equalsIgnoreCase(key) || entry.getLegacyKeyWithNamespace().equalsIgnoreCase(key)
+                )
+                || DEPRECATED_KEYS.stream().anyMatch(key::equalsIgnoreCase);
             if (moveToAuditConfig) {
                 auditConfigSettings.put(key, settings.get(key));
             } else {
@@ -64,10 +66,8 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
         Settings.Builder builder = Settings.builder();
 
         builder.put("plugins.security.ssl.http.enabled", true)
-                .put("plugins.security.ssl.http.keystore_filepath",
-                        FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
-                .put("plugins.security.ssl.http.truststore_filepath",
-                        FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"));
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("auditlog/truststore.jks"));
 
         return builder.put(additionalSettings).build();
     }
@@ -87,7 +87,7 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
 
     protected boolean validateMsgs(final Collection<AuditMessage> msgs) {
         boolean valid = true;
-        for(AuditMessage msg: msgs) {
+        for (AuditMessage msg : msgs) {
             valid = validateMsg(msg) && valid;
         }
         return valid;
@@ -99,15 +99,15 @@ public abstract class AbstractAuditlogiUnitTest extends SingleClusterTest {
 
     protected boolean validateJson(final String json) {
 
-        if(json == null || json.isEmpty()) {
+        if (json == null || json.isEmpty()) {
             return false;
         }
 
         try {
             JsonNode node = DefaultObjectMapper.objectMapper.readTree(json);
 
-            if(node.get("audit_request_body") != null) {
-                System.out.println("    Check audit_request_body for validity: "+node.get("audit_request_body").asText());
+            if (node.get("audit_request_body") != null) {
+                System.out.println("    Check audit_request_body for validity: " + node.get("audit_request_body").asText());
                 DefaultObjectMapper.objectMapper.readTree(node.get("audit_request_body").asText());
             }
 

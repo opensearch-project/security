@@ -31,27 +31,28 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         final HttpResponse getSettingResponse = rh.executeGetRequest("/_plugins/_security/api/tenancy/config", header);
         assertThat(getSettingResponse.getBody(), getSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(
-                getSettingResponse.getBody(),
-                getSettingResponse.findValueInJson("default_tenant"),
-                equalTo(ConfigConstants.TENANCY_GLOBAL_TENANT_DEFAULT_NAME)
+            getSettingResponse.getBody(),
+            getSettingResponse.findValueInJson("default_tenant"),
+            equalTo(ConfigConstants.TENANCY_GLOBAL_TENANT_DEFAULT_NAME)
         );
 
         HttpResponse getDashboardsinfoResponse = rh.executeGetRequest("/_plugins/_security/dashboardsinfo", header);
         assertThat(getDashboardsinfoResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(
-                getDashboardsinfoResponse.getBody(),
-                getDashboardsinfoResponse.findValueInJson("default_tenant"),
-                equalTo(ConfigConstants.TENANCY_GLOBAL_TENANT_DEFAULT_NAME)
+            getDashboardsinfoResponse.getBody(),
+            getDashboardsinfoResponse.findValueInJson("default_tenant"),
+            equalTo(ConfigConstants.TENANCY_GLOBAL_TENANT_DEFAULT_NAME)
         );
 
         final HttpResponse setPrivateTenantAsDefaultResponse = rh.executePutRequest(
-                "/_plugins/_security/api/tenancy/config",
-                "{\"default_tenant\": \"Private\"}", header
+            "/_plugins/_security/api/tenancy/config",
+            "{\"default_tenant\": \"Private\"}",
+            header
         );
         assertThat(
-                setPrivateTenantAsDefaultResponse.getBody(),
-                setPrivateTenantAsDefaultResponse.getStatusCode(),
-                equalTo(HttpStatus.SC_OK)
+            setPrivateTenantAsDefaultResponse.getBody(),
+            setPrivateTenantAsDefaultResponse.getStatusCode(),
+            equalTo(HttpStatus.SC_OK)
         );
         getDashboardsinfoResponse = rh.executeGetRequest("/_plugins/_security/dashboardsinfo", ADMIN_FULL_ACCESS_USER);
         assertThat(getDashboardsinfoResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -73,67 +74,79 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         verifyTenantUpdate(ADMIN_FULL_ACCESS_USER);
     }
 
-
     private void verifyTenantUpdateFailed(final Header... header) throws Exception {
         final HttpResponse disablePrivateTenantResponse = rh.executePutRequest(
-                "/_plugins/_security/api/tenancy/config",
-                "{\"private_tenant_enabled\":false}", header
+            "/_plugins/_security/api/tenancy/config",
+            "{\"private_tenant_enabled\":false}",
+            header
         );
         assertThat(disablePrivateTenantResponse.getBody(), disablePrivateTenantResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
         final HttpResponse setPrivateTenantAsDefaultFailResponse = rh.executePutRequest(
-                "/_plugins/_security/api/tenancy/config",
-                "{\"default_tenant\": \"Private\"}", header
+            "/_plugins/_security/api/tenancy/config",
+            "{\"default_tenant\": \"Private\"}",
+            header
         );
-        assertThat(setPrivateTenantAsDefaultFailResponse.getBody(), setPrivateTenantAsDefaultFailResponse.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
         assertThat(
-                setPrivateTenantAsDefaultFailResponse.getBody(),
-                setPrivateTenantAsDefaultFailResponse.findValueInJson("error.reason"),
-                containsString("Private tenant can not be disabled if it is the default tenant.")
+            setPrivateTenantAsDefaultFailResponse.getBody(),
+            setPrivateTenantAsDefaultFailResponse.getStatusCode(),
+            equalTo(HttpStatus.SC_BAD_REQUEST)
+        );
+        assertThat(
+            setPrivateTenantAsDefaultFailResponse.getBody(),
+            setPrivateTenantAsDefaultFailResponse.findValueInJson("error.reason"),
+            containsString("Private tenant can not be disabled if it is the default tenant.")
         );
 
         final HttpResponse enablePrivateTenantResponse = rh.executePutRequest(
-                "/_plugins/_security/api/tenancy/config",
-                "{\"private_tenant_enabled\":true}",
-                header
+            "/_plugins/_security/api/tenancy/config",
+            "{\"private_tenant_enabled\":true}",
+            header
         );
         assertThat(enablePrivateTenantResponse.getBody(), enablePrivateTenantResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
         final HttpResponse setPrivateTenantAsDefaultResponse = rh.executePutRequest(
-                "/_plugins/_security/api/tenancy/config",
-                "{\"default_tenant\": \"Private\"}",
-                header
+            "/_plugins/_security/api/tenancy/config",
+            "{\"default_tenant\": \"Private\"}",
+            header
         );
-        assertThat(setPrivateTenantAsDefaultResponse.getBody(), setPrivateTenantAsDefaultResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        final HttpResponse updatePrivateSettingResponse =
-                rh.executePutRequest("/_plugins/_security/api/tenancy/config", "{\"private_tenant_enabled\":false}", header);
+        assertThat(
+            setPrivateTenantAsDefaultResponse.getBody(),
+            setPrivateTenantAsDefaultResponse.getStatusCode(),
+            equalTo(HttpStatus.SC_OK)
+        );
+        final HttpResponse updatePrivateSettingResponse = rh.executePutRequest(
+            "/_plugins/_security/api/tenancy/config",
+            "{\"private_tenant_enabled\":false}",
+            header
+        );
         assertThat(updatePrivateSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
-        assertThat(updatePrivateSettingResponse.findValueInJson("error.reason"), containsString("Private tenant can not be disabled if it is the default tenant."));
+        assertThat(
+            updatePrivateSettingResponse.findValueInJson("error.reason"),
+            containsString("Private tenant can not be disabled if it is the default tenant.")
+        );
 
         final HttpResponse getSettingResponseAfterUpdate = rh.executeGetRequest("/_plugins/_security/api/tenancy/config", header);
         assertThat(getSettingResponseAfterUpdate.getBody(), getSettingResponseAfterUpdate.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(
-                getSettingResponseAfterUpdate.getBody(),
-                getSettingResponseAfterUpdate.findValueInJson("default_tenant"),
-                equalTo("Private")
+            getSettingResponseAfterUpdate.getBody(),
+            getSettingResponseAfterUpdate.findValueInJson("default_tenant"),
+            equalTo("Private")
         );
 
         final HttpResponse getDashboardsinfoResponse = rh.executeGetRequest("/_plugins/_security/dashboardsinfo", header);
-        assertThat(
-                getDashboardsinfoResponse.getBody(),
-                getDashboardsinfoResponse.findValueInJson("default_tenant"),
-                equalTo("Private")
-        );
+        assertThat(getDashboardsinfoResponse.getBody(), getDashboardsinfoResponse.findValueInJson("default_tenant"), equalTo("Private"));
 
         final HttpResponse setRandomStringAsDefaultTenant = rh.executePutRequest(
-                "/_plugins/_security/api/tenancy/config",
-                "{\"default_tenant\": \"NonExistentTenant\"}",
-                header
+            "/_plugins/_security/api/tenancy/config",
+            "{\"default_tenant\": \"NonExistentTenant\"}",
+            header
         );
         assertThat(setRandomStringAsDefaultTenant.getStatusCode(), equalTo(HttpStatus.SC_BAD_REQUEST));
-        assertThat(setPrivateTenantAsDefaultFailResponse.getBody(),
-                setRandomStringAsDefaultTenant.findValueInJson("error.reason"),
-                containsString("Default tenant should be selected from one of the available tenants.")
+        assertThat(
+            setPrivateTenantAsDefaultFailResponse.getBody(),
+            setRandomStringAsDefaultTenant.findValueInJson("error.reason"),
+            containsString("Default tenant should be selected from one of the available tenants.")
         );
     }
 
@@ -160,11 +173,11 @@ public class MultiTenancyConfigApiTest extends AbstractRestApiUnitTest {
         HttpResponse getSettingResponse = rh.executeGetRequest("/_plugins/_security/api/tenancy/config", USER_NO_REST_API_ACCESS);
         assertThat(getSettingResponse.getBody(), getSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         HttpResponse updateSettingResponse = rh.executePutRequest(
-                "/_plugins/_security/api/tenancy/config",
-                "{\"default_tenant\": \"Private\"}", USER_NO_REST_API_ACCESS
+            "/_plugins/_security/api/tenancy/config",
+            "{\"default_tenant\": \"Private\"}",
+            USER_NO_REST_API_ACCESS
         );
         assertThat(getSettingResponse.getBody(), updateSettingResponse.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
     }
-
 
 }

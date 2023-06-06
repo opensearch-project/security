@@ -76,7 +76,6 @@ public class HeapBasedRateTrackerTest {
         assertFalse(tracker.track("c"));
         assertTrue(tracker.track("c"));
 
-
     }
 
     @Test

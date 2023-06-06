@@ -56,90 +56,62 @@ import static org.opensearch.security.dlic.rest.api.RestApiAdminPrivilegesEvalua
 
 public class SecurityRolesPermissionsTest {
 
-    static final Map<String, ObjectNode> NO_REST_ADMIN_PERMISSIONS_ROLES =
-            ImmutableMap.<String, ObjectNode>builder()
-                    .put(
-                            "all_access",
-                            role("*"))
-                    .put(
-                            "all_cluster_and_indices",
-                            role("custer:*", "indices:*")
-                    ).build();
+    static final Map<String, ObjectNode> NO_REST_ADMIN_PERMISSIONS_ROLES = ImmutableMap.<String, ObjectNode>builder()
+        .put("all_access", role("*"))
+        .put("all_cluster_and_indices", role("custer:*", "indices:*"))
+        .build();
 
-    static final Map<String, ObjectNode> REST_ADMIN_PERMISSIONS_FULL_ACCESS_ROLES =
-            ImmutableMap.<String, ObjectNode>builder()
-                    .put(
-                            "security_rest_api_full_access",
-                            role(allRestApiPermissions()))
-                    .put(
-                            "security_rest_api_full_access_with_star",
-                            role("restapi:admin/*"))
-                    .build();
-
+    static final Map<String, ObjectNode> REST_ADMIN_PERMISSIONS_FULL_ACCESS_ROLES = ImmutableMap.<String, ObjectNode>builder()
+        .put("security_rest_api_full_access", role(allRestApiPermissions()))
+        .put("security_rest_api_full_access_with_star", role("restapi:admin/*"))
+        .build();
 
     static String restAdminApiRoleName(final String endpoint) {
         return String.format("security_rest_api_%s_only", endpoint);
     }
 
-    static final Map<String, ObjectNode> REST_ADMIN_PERMISSIONS_ROLES =
-            ENDPOINTS_WITH_PERMISSIONS
-                    .entrySet()
-                    .stream()
-                    .flatMap(e -> {
-                        final String endpoint = e.getKey().name().toLowerCase(Locale.ROOT);
-                        final PermissionBuilder pb = e.getValue();
-                        if (e.getKey() == Endpoint.SSL) {
-                            return Stream.of(
-                                    new SimpleEntry<>(
-                                            restAdminApiRoleName(CERTS_INFO_ACTION),
-                                            role(pb.build(CERTS_INFO_ACTION))
-                                    ),
-                                    new SimpleEntry<>(
-                                            restAdminApiRoleName(RELOAD_CERTS_ACTION),
-                                            role(pb.build(RELOAD_CERTS_ACTION))
-                                    )
-                            );
-                        } else {
-                            return Stream.of(
-                                    new SimpleEntry<>(restAdminApiRoleName(endpoint), role(pb.build()))
-                            );
-                        }
-                    }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    static final Map<String, ObjectNode> REST_ADMIN_PERMISSIONS_ROLES = ENDPOINTS_WITH_PERMISSIONS.entrySet().stream().flatMap(e -> {
+        final String endpoint = e.getKey().name().toLowerCase(Locale.ROOT);
+        final PermissionBuilder pb = e.getValue();
+        if (e.getKey() == Endpoint.SSL) {
+            return Stream.of(
+                new SimpleEntry<>(restAdminApiRoleName(CERTS_INFO_ACTION), role(pb.build(CERTS_INFO_ACTION))),
+                new SimpleEntry<>(restAdminApiRoleName(RELOAD_CERTS_ACTION), role(pb.build(RELOAD_CERTS_ACTION)))
+            );
+        } else {
+            return Stream.of(new SimpleEntry<>(restAdminApiRoleName(endpoint), role(pb.build())));
+        }
+    }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     static ObjectNode role(final String... clusterPermissions) {
         final ArrayNode clusterPermissionsArrayNode = DefaultObjectMapper.objectMapper.createArrayNode();
         Arrays.stream(clusterPermissions).forEach(clusterPermissionsArrayNode::add);
-        return DefaultObjectMapper.objectMapper
-                .createObjectNode()
-                .put("reserved", true)
-                .set("cluster_permissions", clusterPermissionsArrayNode);
+        return DefaultObjectMapper.objectMapper.createObjectNode()
+            .put("reserved", true)
+            .set("cluster_permissions", clusterPermissionsArrayNode);
     }
 
     static String[] allRestApiPermissions() {
-        return ENDPOINTS_WITH_PERMISSIONS
-                .entrySet()
-                .stream()
-                .flatMap(entry -> {
-                    if (entry.getKey() == Endpoint.SSL) {
-                        return Stream.of(entry.getValue().build(CERTS_INFO_ACTION), entry.getValue().build(RELOAD_CERTS_ACTION));
-                    } else {
-                        return Stream.of(entry.getValue().build());
-                    }
-                }).toArray(String[]::new);
+        return ENDPOINTS_WITH_PERMISSIONS.entrySet().stream().flatMap(entry -> {
+            if (entry.getKey() == Endpoint.SSL) {
+                return Stream.of(entry.getValue().build(CERTS_INFO_ACTION), entry.getValue().build(RELOAD_CERTS_ACTION));
+            } else {
+                return Stream.of(entry.getValue().build());
+            }
+        }).toArray(String[]::new);
     }
 
     final ConfigModel configModel;
 
     public SecurityRolesPermissionsTest() throws IOException {
-        this.configModel =
-                new ConfigModelV7(
-                        createRolesConfig(),
-                        createRoleMappingsConfig(),
-                        createActionGroupsConfig(),
-                        createTenantsConfig(),
-                        Mockito.mock(DynamicConfigModel.class),
-                        Settings.EMPTY
-                );
+        this.configModel = new ConfigModelV7(
+            createRolesConfig(),
+            createRoleMappingsConfig(),
+            createActionGroupsConfig(),
+            createTenantsConfig(),
+            Mockito.mock(DynamicConfigModel.class),
+            Settings.EMPTY
+        );
     }
 
     @Test
@@ -151,17 +123,17 @@ public class SecurityRolesPermissionsTest {
                 final PermissionBuilder permissionBuilder = entry.getValue();
                 if (endpoint == Endpoint.SSL) {
                     Assert.assertFalse(
-                            endpoint.name(),
-                            securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION))
+                        endpoint.name(),
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION))
                     );
                     Assert.assertFalse(
-                            endpoint.name(),
-                            securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
+                        endpoint.name(),
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
                     );
                 } else {
                     Assert.assertFalse(
-                            endpoint.name(),
-                            securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build())
+                        endpoint.name(),
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build())
                     );
                 }
             }
@@ -176,10 +148,19 @@ public class SecurityRolesPermissionsTest {
                 final Endpoint endpoint = entry.getKey();
                 final PermissionBuilder permissionBuilder = entry.getValue();
                 if (endpoint == Endpoint.SSL) {
-                    Assert.assertTrue(endpoint.name() + "/" + CERTS_INFO_ACTION, securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION)));
-                    Assert.assertTrue(endpoint.name() + "/" + CERTS_INFO_ACTION, securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION)));
+                    Assert.assertTrue(
+                        endpoint.name() + "/" + CERTS_INFO_ACTION,
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION))
+                    );
+                    Assert.assertTrue(
+                        endpoint.name() + "/" + CERTS_INFO_ACTION,
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
+                    );
                 } else {
-                    Assert.assertTrue(endpoint.name(), securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build()));
+                    Assert.assertTrue(
+                        endpoint.name(),
+                        securityRolesForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build())
+                    );
                 }
             }
         }
@@ -188,60 +169,53 @@ public class SecurityRolesPermissionsTest {
     @Test
     public void hasExplicitClusterPermissionPermissionForRestAdmin() {
         // verify all endpoint except SSL
-        final Collection<Endpoint> noSslEndpoints =
-                ENDPOINTS_WITH_PERMISSIONS.keySet().stream()
-                        .filter(e -> e != Endpoint.SSL).collect(Collectors.toList());
+        final Collection<Endpoint> noSslEndpoints = ENDPOINTS_WITH_PERMISSIONS.keySet()
+            .stream()
+            .filter(e -> e != Endpoint.SSL)
+            .collect(Collectors.toList());
         for (final Endpoint endpoint : noSslEndpoints) {
             final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build();
-            final SecurityRoles allowOnePermissionRole =
-                    configModel.getSecurityRoles().filter(
-                            ImmutableSet.of(restAdminApiRoleName(endpoint.name().toLowerCase(Locale.ROOT))));
+            final SecurityRoles allowOnePermissionRole = configModel.getSecurityRoles()
+                .filter(ImmutableSet.of(restAdminApiRoleName(endpoint.name().toLowerCase(Locale.ROOT))));
             Assert.assertTrue(endpoint.name(), allowOnePermissionRole.hasExplicitClusterPermissionPermission(permission));
-            assertHasNoPermissionsForRestApiAdminOnePermissionRole(
-                    endpoint,
-                    allowOnePermissionRole
-            );
+            assertHasNoPermissionsForRestApiAdminOnePermissionRole(endpoint, allowOnePermissionRole);
         }
         // verify SSL endpoint with 2 actions
         for (final String sslAction : ImmutableSet.of(CERTS_INFO_ACTION, RELOAD_CERTS_ACTION)) {
-            final SecurityRoles sslAllowRole =
-                    configModel.getSecurityRoles().filter(ImmutableSet.of(restAdminApiRoleName(sslAction)));
+            final SecurityRoles sslAllowRole = configModel.getSecurityRoles().filter(ImmutableSet.of(restAdminApiRoleName(sslAction)));
             final PermissionBuilder permissionBuilder = ENDPOINTS_WITH_PERMISSIONS.get(Endpoint.SSL);
             Assert.assertTrue(
-                    Endpoint.SSL + "/" + sslAction,
-                    sslAllowRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(sslAction))
+                Endpoint.SSL + "/" + sslAction,
+                sslAllowRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(sslAction))
             );
             assertHasNoPermissionsForRestApiAdminOnePermissionRole(Endpoint.SSL, sslAllowRole);
         }
     }
 
     void assertHasNoPermissionsForRestApiAdminOnePermissionRole(final Endpoint allowEndpoint, final SecurityRoles allowOnlyRoleForRole) {
-        final Collection<Endpoint> noPermissionEndpoints =
-                ENDPOINTS_WITH_PERMISSIONS.keySet().stream()
-                        .filter(e -> e != allowEndpoint)
-                        .collect(Collectors.toList());
+        final Collection<Endpoint> noPermissionEndpoints = ENDPOINTS_WITH_PERMISSIONS.keySet()
+            .stream()
+            .filter(e -> e != allowEndpoint)
+            .collect(Collectors.toList());
         for (final Endpoint endpoint : noPermissionEndpoints) {
             final PermissionBuilder permissionBuilder = ENDPOINTS_WITH_PERMISSIONS.get(endpoint);
             if (endpoint == Endpoint.SSL) {
                 Assert.assertFalse(
-                        endpoint.name(),
-                        allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION)));
+                    endpoint.name(),
+                    allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(CERTS_INFO_ACTION))
+                );
                 Assert.assertFalse(
-                        endpoint.name(),
-                        allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION)));
+                    endpoint.name(),
+                    allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build(RELOAD_CERTS_ACTION))
+                );
             } else {
-                Assert.assertFalse(
-                        endpoint.name(),
-                        allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build()));
+                Assert.assertFalse(endpoint.name(), allowOnlyRoleForRole.hasExplicitClusterPermissionPermission(permissionBuilder.build()));
             }
         }
     }
 
     static ObjectNode meta(final String type) {
-        return DefaultObjectMapper.objectMapper
-                .createObjectNode()
-                .put("type", type)
-                .put("config_version", 2);
+        return DefaultObjectMapper.objectMapper.createObjectNode().put("type", type).put("config_version", 2);
     }
 
     static <T> SecurityDynamicConfiguration<T> createRolesConfig() throws IOException {

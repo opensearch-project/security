@@ -68,14 +68,20 @@ import static org.hamcrest.Matchers.not;
 
 public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
-    private final ClusterHelper cl1 = new ClusterHelper("crl1_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
-    private final ClusterHelper cl2 = new ClusterHelper("crl2_n"+num.incrementAndGet()+"_f"+System.getProperty("forkno")+"_t"+System.nanoTime());
+    private final ClusterHelper cl1 = new ClusterHelper(
+        "crl1_n" + num.incrementAndGet() + "_f" + System.getProperty("forkno") + "_t" + System.nanoTime()
+    );
+    private final ClusterHelper cl2 = new ClusterHelper(
+        "crl2_n" + num.incrementAndGet() + "_f" + System.getProperty("forkno") + "_t" + System.nanoTime()
+    );
     private ClusterInfo cl1Info;
     private ClusterInfo cl2Info;
     private RestHelper rh1;
     private RestHelper rh2;
 
-    protected boolean ccsMinimizeRoundtrips() { return false; };
+    protected boolean ccsMinimizeRoundtrips() {
+        return false;
+    };
 
     private static class ClusterTransportClientSettings extends Tuple<Settings, Settings> {
 
@@ -84,9 +90,7 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         }
 
         public ClusterTransportClientSettings(Settings clusterSettings, Settings transportSettings) {
-            super(Settings.builder()
-                .put(clusterSettings)
-                .putList("node.roles", "remote_cluster_client").build(), transportSettings);
+            super(Settings.builder().put(clusterSettings).putList("node.roles", "remote_cluster_client").build(), transportSettings);
         }
 
         public Settings clusterSettings() {
@@ -106,10 +110,13 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         setupCcs(dynamicSecurityConfig, new ClusterTransportClientSettings(), new ClusterTransportClientSettings());
     }
 
-    private void setupCcs(DynamicSecurityConfig dynamicSecurityConfig,
-        ClusterTransportClientSettings cluster1Settings, ClusterTransportClientSettings cluster2Settings) throws Exception {
+    private void setupCcs(
+        DynamicSecurityConfig dynamicSecurityConfig,
+        ClusterTransportClientSettings cluster1Settings,
+        ClusterTransportClientSettings cluster2Settings
+    ) throws Exception {
 
-        System.setProperty("security.display_lic_none","true");
+        System.setProperty("security.display_lic_none", "true");
 
         Tuple<ClusterInfo, RestHelper> cluster2 = setupCluster(cl2, cluster2Settings, dynamicSecurityConfig);
         cl2Info = cluster2.v1();
@@ -120,19 +127,17 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         rh1 = cluster1.v2();
 
         final String seed = cl2Info.nodeHost + ":" + cl2Info.nodePort;
-        String json =
-            "{" +
-                "\"persistent\" : {" +
-                    "\"cluster.remote.cross_cluster_two.seeds\" : [\"" + seed + "\"]" +
-            "}" +
-        "}";
-
+        String json = "{" + "\"persistent\" : {" + "\"cluster.remote.cross_cluster_two.seeds\" : [\"" + seed + "\"]" + "}" + "}";
 
         HttpResponse response = rh1.executePutRequest("_cluster/settings", json, encodeBasicHeader("sarek", "sarek"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
-    private Tuple<ClusterInfo, RestHelper> setupCluster(ClusterHelper ch, ClusterTransportClientSettings cluster, DynamicSecurityConfig dynamicSecurityConfig) throws Exception {
+    private Tuple<ClusterInfo, RestHelper> setupCluster(
+        ClusterHelper ch,
+        ClusterTransportClientSettings cluster,
+        DynamicSecurityConfig dynamicSecurityConfig
+    ) throws Exception {
         NodeSettingsSupplier settings = minimumSecuritySettings(cluster.clusterSettings());
         ClusterInfo clusterInfo = ch.startCluster(settings, ClusterConfiguration.DEFAULT);
         initialize(ch, clusterInfo, dynamicSecurityConfig);
@@ -154,52 +159,82 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcs() throws Exception {
         setupCcs();
 
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("nagilum", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("nagilum","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("nagilum", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("crl1"));
         Assert.assertTrue(ccs.getBody().contains("crl2"));
         Assert.assertTrue(ccs.getBody().contains("twitter"));
 
-
         System.out.println("###################### query 4");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:xx,xx/xx/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:xx,xx/xx/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         System.out.println(ccs.getBody());
-        //TODO fix exception nesting
-        //Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, ccs.getStatusCode());
-        //Assert.assertTrue(ccs.getBody().contains("Can not filter indices; index cross_cluster_two:xx exists but there is also a remote cluster named: cross_cluster_two"));
+        // TODO fix exception nesting
+        // Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, ccs.getStatusCode());
+        // Assert.assertTrue(ccs.getBody().contains("Can not filter indices; index cross_cluster_two:xx exists but there is also a remote
+        // cluster named: cross_cluster_two"));
 
         System.out.println("###################### query 5");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:abcnonext/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:abcnonext/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("index_not_found_exception"));
 
         System.out.println("###################### query 6");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twutter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter,twutter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
@@ -213,168 +248,279 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcsNonadmin() throws Exception {
         setupCcs();
 
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("coordalias"))).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.admin()
+                .indices()
+                .aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("coordalias")))
+                .actionGet();
 
         }
 
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("remotealias"))).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.admin()
+                .indices()
+                .aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("remotealias")))
+                .actionGet();
 
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         System.out.println("###################### query 2");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twit*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twit*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
-
 
         System.out.println("###################### query 3");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twitter,twutter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter,twitter,twutter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         System.out.println("###################### query 4");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
         System.out.println("###################### query 5");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twutter,twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twutter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         System.out.println("###################### query 6");
-        String msearchBody =
-                "{}"+System.lineSeparator()+
-                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+        String msearchBody = "{}"
+            + System.lineSeparator()
+            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
+            + System.lineSeparator();
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter,twitter/_msearch?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), msearchBody, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:twitter,twitter/_msearch?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            msearchBody,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         System.out.println("###################### query 7");
-        msearchBody =
-                "{}"+System.lineSeparator()+
-                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+        msearchBody = "{}"
+            + System.lineSeparator()
+            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
+            + System.lineSeparator();
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter/_msearch?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), msearchBody, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:twitter/_msearch?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            msearchBody,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("_all/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "_all/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("*:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "*:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("hfghgtdhfhuth/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "hfghgtdhfhuth/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("hfghgtdhfhuth*/_search", encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "hfghgtdhfhuth*/_search",
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
-        Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); //TODO: Change for 25.0 to be forbidden (Indices options)
+        Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); // TODO: Change for 25.0 to be forbidden (Indices options)
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(":*/_search", encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(":*/_search", encodeBasicHeader("worf", "worf"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
-        Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); //TODO: Change for 25.0 to be forbidden (Indices options)
+        Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); // TODO: Change for 25.0 to be forbidden (Indices options)
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("*:/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "*:/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E,%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E,%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips="
+                + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         System.out.println("#### Alias both");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("notexist,coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "notexist,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
-        //TODO Fix for 25.0 to resolve coordalias (Indices options)
+        // TODO Fix for 25.0 to resolve coordalias (Indices options)
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("crusherw","crusherw"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("crusherw", "crusherw")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
@@ -384,176 +530,291 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcsNonadminDnfof() throws Exception {
         setupCcs(new DynamicSecurityConfig().setConfig("config_dnfof.yml"));
 
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("coordalias"))).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.admin()
+                .indices()
+                .aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("coordalias")))
+                .actionGet();
 
         }
 
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("remotealias"))).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("twutter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.admin()
+                .indices()
+                .aliases(new IndicesAliasesRequest().addAliasAction(AliasActions.add().indices("twitter").alias("remotealias")))
+                .actionGet();
 
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
         System.out.println("###################### query 2");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twit*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twit*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-
         System.out.println("###################### query 3");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twitter,twutter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter,twitter,twutter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("twutter"));
 
         System.out.println("###################### query 4");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
         System.out.println("###################### query 5");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twutter,twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twutter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         System.out.println("###################### query 6");
-        String msearchBody =
-                "{}"+System.lineSeparator()+
-                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+        String msearchBody = "{}"
+            + System.lineSeparator()
+            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
+            + System.lineSeparator();
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter,twitter/_msearch?pretty", msearchBody, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:twitter,twitter/_msearch?pretty",
+            msearchBody,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
         System.out.println("###################### query 7");
-        msearchBody =
-                "{}"+System.lineSeparator()+
-                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+        msearchBody = "{}"
+            + System.lineSeparator()
+            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
+            + System.lineSeparator();
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:twitter/_msearch?pretty", msearchBody, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:twitter/_msearch?pretty",
+            msearchBody,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("_all/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "_all/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter,twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
         System.out.println("#####*");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:*,*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:*,*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertTrue(ccs.getBody().contains("crl1_"));
         Assert.assertTrue(ccs.getBody().contains("crl2_"));
 
-        //wildcard in remote cluster names
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("*cross*:*twit*,*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        // wildcard in remote cluster names
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "*cross*:*twit*,*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter,t*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter,t*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("*:*/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "*:*/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("hfghgtdhfhuth/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "hfghgtdhfhuth/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("hfghgtdhfhuth*/_search", encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "hfghgtdhfhuth*/_search",
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
-        Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); //TODO: Change for 25.0 to be forbidden (Indices options)
+        Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); // TODO: Change for 25.0 to be forbidden (Indices options)
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(":*/_search", encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(":*/_search", encodeBasicHeader("worf", "worf"));
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
-        Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); //TODO: Change for 25.0 to be forbidden (Indices options)
+        Assert.assertTrue(ccs.getBody().contains("\"hits\":[]")); // TODO: Change for 25.0 to be forbidden (Indices options)
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("*:/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "*:/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E,%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:%3Clogstash-%7Bnow%2Fd%7D%3E,%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty&ccs_minimize_roundtrips="
+                + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("worf","worf"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("worf", "worf")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:remotealias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:remotealias,coordalias/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
 
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("crusherw","crusherw"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("crusherw", "crusherw")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
     }
@@ -562,21 +823,33 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcsEmptyCoord() throws Exception {
         setupCcs();
 
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### query 1");
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips="+ccsMinimizeRoundtrips(), encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "cross_cluster_two:twitter/_search?pretty&ccs_minimize_roundtrips=" + ccsMinimizeRoundtrips(),
+            encodeBasicHeader("twitter", "nagilum")
+        );
         System.out.println(ccs.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
@@ -590,74 +863,120 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcsDashboardsAggregations() throws Exception {
         setupCcs();
 
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
-
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### kibana indices agg");
         String dashboardsIndicesAgg = "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":100}}}}";
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertFalse(ccs.getBody().contains("cross_cluster_two"));
         Assert.assertTrue(ccs.getBody().contains("coordinating"));
         Assert.assertTrue(ccs.getBody().contains("abc"));
         Assert.assertFalse(ccs.getBody().contains("remote"));
-        ccs = new RestHelper(cl2Info, false, false, getResourceFolder()).executePostRequest("*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl2Info, false, false, getResourceFolder()).executePostRequest(
+            "*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertFalse(ccs.getBody().contains("cross_cluster_two"));
         Assert.assertFalse(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
         Assert.assertTrue(ccs.getBody().contains("remote"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:remo*,coo*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:remo*,coo*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two"));
         Assert.assertTrue(ccs.getBody().contains("remote"));
         Assert.assertTrue(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:remote/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:remote/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two"));
         Assert.assertTrue(ccs.getBody().contains("remote"));
         Assert.assertFalse(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two"));
         Assert.assertTrue(ccs.getBody().contains("remote"));
         Assert.assertFalse(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:*,*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:*,*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two"));
         Assert.assertTrue(ccs.getBody().contains("remote"));
         Assert.assertTrue(ccs.getBody().contains("coordinating"));
         Assert.assertTrue(ccs.getBody().contains("abc"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:remo*,ab*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:remo*,ab*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two"));
@@ -670,35 +989,59 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcsDashboardsAggregationsNonAdminDnfof() throws Exception {
         setupCcs(new DynamicSecurityConfig().setConfig("config_dnfof.yml"));
 
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
-
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
 
-            tc.index(new IndexRequest("analytics").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("analytics").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### kibana indices agg");
         String dashboardsIndicesAgg = "{\"size\":0,\"aggs\":{\"indices\":{\"terms\":{\"field\":\"_index\",\"size\":100}}}}";
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertFalse(ccs.getBody().contains("cross_cluster_two"));
@@ -708,7 +1051,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
         Assert.assertFalse(ccs.getBody().contains("remote"));
-        ccs = new RestHelper(cl2Info, false, false, getResourceFolder()).executePostRequest("*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl2Info, false, false, getResourceFolder()).executePostRequest(
+            "*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertFalse(ccs.getBody().contains("cross_cluster_two"));
@@ -718,7 +1065,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
         Assert.assertFalse(ccs.getBody().contains("remote"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:*,*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:*,*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two:analytics"));
@@ -726,9 +1077,17 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
         Assert.assertFalse(ccs.getBody().contains("remote"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:remo*,coo*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:remo*,coo*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:ana*,twi*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:ana*,twi*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two:analytics"));
@@ -736,7 +1095,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
         Assert.assertFalse(ccs.getBody().contains("remote"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:ana*,xyz*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:ana*,xyz*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two:analytics"));
@@ -744,9 +1107,17 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("coordinating"));
         Assert.assertFalse(ccs.getBody().contains("abc"));
         Assert.assertFalse(ccs.getBody().contains("remote"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:ana*,xyz/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:ana*,xyz/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:*/_search?pretty", dashboardsIndicesAgg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:*/_search?pretty",
+            dashboardsIndicesAgg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("cross_cluster_two:analytics"));
@@ -760,30 +1131,48 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcsAggregations() throws Exception {
         setupCcs();
 
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
-
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### aggs");
         final String agg = "{\"size\":0,\"aggs\":{\"clusteragg\":{\"terms\":{\"field\":\"cluster.keyword\",\"size\":100}}}}";
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("*:*,*/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "*:*,*/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("\"timed_out\" : false"));
@@ -791,7 +1180,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(ccs.getBody().contains("crl2"));
         Assert.assertTrue(ccs.getBody().contains("\"doc_count\" : 2"));
         Assert.assertTrue(ccs.getBody().contains("\"doc_count\" : 1"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("coordin*/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "coordin*/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("\"timed_out\" : false"));
@@ -799,7 +1192,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("crl2"));
         Assert.assertFalse(ccs.getBody().contains("\"doc_count\" : 2"));
         Assert.assertTrue(ccs.getBody().contains("\"doc_count\" : 1"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:remo*/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:remo*/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("\"timed_out\" : false"));
@@ -807,55 +1204,107 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(ccs.getBody().contains("crl2"));
         Assert.assertFalse(ccs.getBody().contains("\"doc_count\" : 2"));
         Assert.assertTrue(ccs.getBody().contains("\"doc_count\" : 1"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:notfound,*/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:notfound,*/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:*,notfound/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:*,notfound/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:notfound,notfound/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:notfound,notfound/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:notfou*,*/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());//TODO: Change for 25.0 to be forbidden (Indices options)
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:*,notfou*/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());//TODO: Change for 25.0 to be forbidden (Indices options)
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:not*,notf*/_search?pretty", agg, encodeBasicHeader("nagilum","nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());//TODO: Change for 25.0 to be forbidden (Indices options)
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:notfou*,*/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
+        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());// TODO: Change for 25.0 to be forbidden (Indices options)
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:*,notfou*/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
+        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());// TODO: Change for 25.0 to be forbidden (Indices options)
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:not*,notf*/_search?pretty",
+            agg,
+            encodeBasicHeader("nagilum", "nagilum")
+        );
+        Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());// TODO: Change for 25.0 to be forbidden (Indices options)
     }
 
     @Test
     public void testCcsAggregationsDnfof() throws Exception {
         setupCcs(new DynamicSecurityConfig().setConfig("config_dnfof.yml"));
 
-        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl1BodyMain = new RestHelper(cl1Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl1BodyMain.contains("crl1"));
 
-        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl2BodyMain = new RestHelper(cl2Info, false, false, getResourceFolder()).executeGetRequest(
+            "",
+            encodeBasicHeader("twitter", "nagilum")
+        ).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("coordinating").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("abc").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
-
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("remote").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
 
-            tc.index(new IndexRequest("analytics").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("analytics").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
         HttpResponse ccs = null;
 
         System.out.println("###################### aggs");
         final String agg = "{\"size\":0,\"aggs\":{\"clusteragg\":{\"terms\":{\"field\":\"cluster.keyword\",\"size\":100}}}}";
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:notfound,*/_search?pretty", agg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:notfound,*/_search?pretty",
+            agg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:notfound*,*/_search?pretty", agg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:notfound*,*/_search?pretty",
+            agg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
         Assert.assertFalse(ccs.getBody().contains("security_exception"));
         Assert.assertTrue(ccs.getBody().contains("\"timed_out\" : false"));
@@ -863,58 +1312,97 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertFalse(ccs.getBody().contains("crl2"));
         Assert.assertFalse(ccs.getBody().contains("\"doc_count\" : 2"));
         Assert.assertTrue(ccs.getBody().contains("\"doc_count\" : 1"));
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:*,notfound/_search?pretty", agg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:*,notfound/_search?pretty",
+            agg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:notfound,notfound/_search?pretty", agg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:notfound,notfound/_search?pretty",
+            agg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:notfou*,*/_search?pretty", agg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:notfou*,*/_search?pretty",
+            agg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:*,notfou*/_search?pretty", agg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:*,notfou*/_search?pretty",
+            agg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
-        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest("cross_cluster_two:not*,notf*/_search?pretty", agg, encodeBasicHeader("twitter","nagilum"));
+        ccs = new RestHelper(cl1Info, false, false, getResourceFolder()).executePostRequest(
+            "cross_cluster_two:not*,notf*/_search?pretty",
+            agg,
+            encodeBasicHeader("twitter", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, ccs.getStatusCode());
     }
-
 
     private ClusterTransportClientSettings getBaseSettingsWithDifferentCert() {
         Settings cluster = Settings.builder()
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true)
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks"))
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks"))
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("restapi/node-0-keystore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("restapi/truststore.jks")
+            )
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec5-keystore.p12")
+            )
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "1")
             .put(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, true)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, "PKCS12")
-            .putList(ConfigConstants.SECURITY_NODES_DN,
-                "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE")//, "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE")
-            .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN,
+            .putList(
+                ConfigConstants.SECURITY_NODES_DN,
+                "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE"
+            )// , "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE")
+            .putList(
+                ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN,
                 "EMAILADDRESS=unt@xxx.com,CN=node-untspec6.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE",
-                "CN=kirk,OU=client,O=client,l=tEst, C=De")
-            .put(ConfigConstants.SECURITY_CERT_OID,"1.2.3.4.5.6")
+                "CN=kirk,OU=client,O=client,l=tEst, C=De"
+            )
+            .put(ConfigConstants.SECURITY_CERT_OID, "1.2.3.4.5.6")
             .build();
         Settings transport = Settings.builder()
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("node-untspec6-keystore.p12")
+            )
             .build();
         return new ClusterTransportClientSettings(cluster, transport);
     }
 
     private void populateBaseData(ClusterTransportClientSettings cluster1, ClusterTransportClientSettings cluster2) throws Exception {
-        final String cl1BodyMain = rh1.executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl1BodyMain = rh1.executeGetRequest("", encodeBasicHeader("twitter", "nagilum")).getBody();
         Assert.assertTrue(cl1BodyMain, cl1BodyMain.contains("crl1"));
 
-        final String cl2BodyMain = rh2.executeGetRequest("", encodeBasicHeader("twitter","nagilum")).getBody();
+        final String cl2BodyMain = rh2.executeGetRequest("", encodeBasicHeader("twitter", "nagilum")).getBody();
         Assert.assertTrue(cl2BodyMain.contains("crl2"));
 
         try (Client tc = cl1.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                .source("{\"cluster\": \""+cl1Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl1Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
     }
 
@@ -939,9 +1427,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         ClusterTransportClientSettings cluster2 = getBaseSettingsWithDifferentCert();
         Settings updatedCluster2 = Settings.builder()
             .put(cluster2.clusterSettings())
-            .putList(ConfigConstants.SECURITY_NODES_DN,
+            .putList(
+                ConfigConstants.SECURITY_NODES_DN,
                 "EMAILADDRESS=unt@tst.com,CN=node-untspec5.example.com,OU=SSL,O=Te\\, st,L=Test,C=DE",
-                "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE")
+                "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE"
+            )
             .build();
         cluster2 = new ClusterTransportClientSettings(updatedCluster2, cluster2.transportClientSettings());
 
@@ -966,9 +1456,11 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
 
         setupCcs(new DynamicSecurityConfig().setSecurityNodesDn("nodes_dn_empty.yml"), cluster1, cluster2);
 
-        HttpResponse response = rh2.executePutRequest("_opendistro/_security/api/nodesdn/connection1",
+        HttpResponse response = rh2.executePutRequest(
+            "_opendistro/_security/api/nodesdn/connection1",
             "{\"nodes_dn\": [\"CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE\"]}",
-            encodeBasicHeader("sarek", "sarek"));
+            encodeBasicHeader("sarek", "sarek")
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_CREATED));
 
         populateBaseData(cluster1, cluster2);
@@ -988,41 +1480,59 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
     public void testCcsWithRoleInjection() throws Exception {
         setupCcs(new DynamicSecurityConfig().setSecurityRoles("roles.yml"));
 
-        Assert.assertEquals(cl1Info.numNodes, cl1.nodeClient().admin().cluster().health(
-                new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
-        Assert.assertEquals(ClusterHealthStatus.GREEN, cl1.nodeClient().admin().cluster().
-                health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+        Assert.assertEquals(
+            cl1Info.numNodes,
+            cl1.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes()
+        );
+        Assert.assertEquals(
+            ClusterHealthStatus.GREEN,
+            cl1.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+        );
 
-        Assert.assertEquals(cl2Info.numNodes, cl2.nodeClient().admin().cluster().health(
-                new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
-        Assert.assertEquals(ClusterHealthStatus.GREEN, cl2.nodeClient().admin().cluster().
-                health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+        Assert.assertEquals(
+            cl2Info.numNodes,
+            cl2.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes()
+        );
+        Assert.assertEquals(
+            ClusterHealthStatus.GREEN,
+            cl2.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+        );
 
         try (Client tc = cl2.nodeClient()) {
-            tc.index(new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("0")
-                    .source("{\"cluster\": \""+cl2Info.clustername+"\"}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("twitter").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("0")
+                    .source("{\"cluster\": \"" + cl2Info.clustername + "\"}", XContentType.JSON)
+            ).actionGet();
         }
 
         final Settings.Builder clusterClientSettings = Settings.builder().putList("node.roles", "remote_cluster_client");
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(clusterClientSettings, false, false)
-                .put(minimumSecuritySettings(Settings.EMPTY).get(0))
-                .put("cluster.name", cl1Info.clustername)
-                .put("path.data", "./target/data/" + cl1Info.clustername + "/cert/data")
-                .put("path.logs", "./target/data/" + cl1Info.clustername + "/cert/logs")
-                .put("path.home", "./target")
-                .put("node.name", "testclient")
-                .put("discovery.initial_state_timeout", "8s")
-                .put("plugins.security.allow_default_init_securityindex", "true")
-                .putList("discovery.zen.ping.unicast.hosts", cl1Info.nodeHost + ":" + cl1Info.nodePort)
-                .build();
+            .put(minimumSecuritySettings(Settings.EMPTY).get(0))
+            .put("cluster.name", cl1Info.clustername)
+            .put("path.data", "./target/data/" + cl1Info.clustername + "/cert/data")
+            .put("path.logs", "./target/data/" + cl1Info.clustername + "/cert/logs")
+            .put("path.home", "./target")
+            .put("node.name", "testclient")
+            .put("discovery.initial_state_timeout", "8s")
+            .put("plugins.security.allow_default_init_securityindex", "true")
+            .putList("discovery.zen.ping.unicast.hosts", cl1Info.nodeHost + ":" + cl1Info.nodePort)
+            .build();
 
         OpenSearchSecurityException exception = null;
 
         System.out.println("###################### with invalid role injection");
-        //1. With invalid roles injection
+        // 1. With invalid roles injection
         RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "invalid_user|invalid_role";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                RolesInjectorIntegTest.RolesInjectorPlugin.class
+            ).start()
+        ) {
             waitForInit(node.client());
             Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
             GetRequest getReq = new GetRequest("twitter", "0");
@@ -1039,10 +1549,17 @@ public class CrossClusterSearchTests extends AbstractSecurityUnitTest {
         Assert.assertTrue(exception.getMessage().contains("no permissions for"));
 
         System.out.println("###################### with valid role injection");
-        //2. With valid roles injection
+        // 2. With valid roles injection
         RolesInjectorIntegTest.RolesInjectorPlugin.injectedRoles = "valid_user|opendistro_security_all_access";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class,
-                OpenSearchSecurityPlugin.class, RolesInjectorIntegTest.RolesInjectorPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                RolesInjectorIntegTest.RolesInjectorPlugin.class
+            ).start()
+        ) {
             waitForInit(node.client());
             Client remoteClient = node.client().getRemoteClusterClient("cross_cluster_two");
             GetRequest getReq = new GetRequest("twitter", "0");

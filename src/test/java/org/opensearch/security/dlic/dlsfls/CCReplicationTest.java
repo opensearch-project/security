@@ -73,18 +73,24 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
     public static class MockReplicationPlugin extends Plugin implements ActionPlugin {
         public static String injectedRoles = null;
 
-        public MockReplicationPlugin() {
-        }
+        public MockReplicationPlugin() {}
 
         @Override
-        public Collection<Object> createComponents(Client client, ClusterService clusterService, ThreadPool threadPool,
-            ResourceWatcherService resourceWatcherService, ScriptService scriptService,
-            NamedXContentRegistry xContentRegistry, Environment environment,
-            NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
+        public Collection<Object> createComponents(
+            Client client,
+            ClusterService clusterService,
+            ThreadPool threadPool,
+            ResourceWatcherService resourceWatcherService,
+            ScriptService scriptService,
+            NamedXContentRegistry xContentRegistry,
+            Environment environment,
+            NodeEnvironment nodeEnvironment,
+            NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<RepositoriesService> repositoriesServiceSupplier) {
-            if(injectedRoles != null)
-                threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRoles);
+            Supplier<RepositoriesService> repositoriesServiceSupplier
+        ) {
+            if (injectedRoles != null) threadPool.getThreadContext()
+                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRoles);
             return new ArrayList<>();
         }
 
@@ -97,6 +103,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
     public static class MockReplicationAction extends ActionType<AcknowledgedResponse> {
         public static final MockReplicationAction INSTANCE = new MockReplicationAction();
         public static final String NAME = "indices:admin/plugins/replication/file_chunk";
+
         private MockReplicationAction() {
             super(NAME, AcknowledgedResponse::new);
         }
@@ -104,6 +111,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
 
     public static class MockReplicationRequest extends AcknowledgedRequest<MockReplicationRequest> implements Replaceable {
         private String index;
+
         public MockReplicationRequest(String index) {
             this.index = index;
         }
@@ -131,7 +139,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
 
         @Override
         public String[] indices() {
-            return new String[]{index};
+            return new String[] { index };
         }
 
         @Override
@@ -148,8 +156,7 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
     public static class TransportMockReplicationAction extends HandledTransportAction<MockReplicationRequest, AcknowledgedResponse> {
 
         @Inject
-        public TransportMockReplicationAction(TransportService transportService,
-            ActionFilters actionFilters) {
+        public TransportMockReplicationAction(TransportService transportService, ActionFilters actionFilters) {
             super(MockReplicationAction.NAME, transportService, actionFilters, MockReplicationRequest::new);
         }
 
@@ -159,31 +166,52 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
         }
     }
 
-    //Wait for the security plugin to load roles.
+    // Wait for the security plugin to load roles.
     private void waitOrThrow(Client client, String index) throws Exception {
         waitForInit(client);
         client.execute(MockReplicationAction.INSTANCE, new MockReplicationRequest(index)).actionGet();
     }
 
     void populateData(Client tc) {
-        tc.index(new IndexRequest("hr-dls").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{\"User\": \"testuser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"HR\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("hr-fls").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{\"User\": \"adminuser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"CEO\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("hr-masking").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{\"User\": \"maskeduser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"CEO\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("hr-normal").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{\"User\": \"employee1\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"EMPLOYEE\"}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("hr-dls").id("0")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"User\": \"testuser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"HR\"}", XContentType.JSON)
+        ).actionGet();
+        tc.index(
+            new IndexRequest("hr-fls").id("1")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"User\": \"adminuser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"CEO\"}", XContentType.JSON)
+        ).actionGet();
+        tc.index(
+            new IndexRequest("hr-masking").id("1")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"User\": \"maskeduser\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"CEO\"}", XContentType.JSON)
+        ).actionGet();
+        tc.index(
+            new IndexRequest("hr-normal").id("1")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"User\": \"employee1\",\"Date\":\"2021-01-18T17:27:20Z\",\"Designation\":\"EMPLOYEE\"}", XContentType.JSON)
+        ).actionGet();
     }
 
     @Test
     public void testReplication() throws Exception {
         setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityRoles("roles_ccreplication.yml"), Settings.EMPTY);
 
-        Assert.assertEquals(clusterInfo.numNodes, clusterHelper.nodeClient().admin().cluster().health(
-            new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
-        Assert.assertEquals(ClusterHealthStatus.GREEN, clusterHelper.nodeClient().admin().cluster().
-        health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+        Assert.assertEquals(
+            clusterInfo.numNodes,
+            clusterHelper.nodeClient()
+                .admin()
+                .cluster()
+                .health(new ClusterHealthRequest().waitForGreenStatus())
+                .actionGet()
+                .getNumberOfNodes()
+        );
+        Assert.assertEquals(
+            ClusterHealthStatus.GREEN,
+            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+        );
 
         final Settings tcSettings = AbstractSecurityUnitTest.nodeRolesSettings(Settings.builder(), false, false)
             .put(minimumSecuritySettings(Settings.EMPTY).get(0))
@@ -199,39 +227,79 @@ public class CCReplicationTest extends AbstractDlsFlsTest {
 
         // Set roles for the user
         MockReplicationPlugin.injectedRoles = "ccr_user|opendistro_security_human_resources_trainee";
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                MockReplicationPlugin.class
+            ).start()
+        ) {
             waitOrThrow(node.client(), "hr-dls");
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             log.warn(ex.getMessage());
             Assert.assertNotNull(ex);
-            Assert.assertTrue(ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated"));
+            Assert.assertTrue(
+                ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
+            );
             Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
         }
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                MockReplicationPlugin.class
+            ).start()
+        ) {
             waitOrThrow(node.client(), "hr-fls");
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             log.warn(ex.getMessage());
             Assert.assertNotNull(ex);
-            Assert.assertTrue(ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated"));
+            Assert.assertTrue(
+                ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
+            );
             Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
         }
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                MockReplicationPlugin.class
+            ).start()
+        ) {
             waitOrThrow(node.client(), "hr-masking");
             Assert.fail("Expecting exception");
         } catch (OpenSearchSecurityException ex) {
             log.warn(ex.getMessage());
             Assert.assertNotNull(ex);
-            Assert.assertTrue(ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated"));
+            Assert.assertTrue(
+                ex.getMessage().contains("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated")
+            );
             Assert.assertEquals(ex.status(), RestStatus.FORBIDDEN);
         }
 
-        try (Node node = new PluginAwareNode(false, tcSettings, Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class, MockReplicationPlugin.class).start()) {
+        try (
+            Node node = new PluginAwareNode(
+                false,
+                tcSettings,
+                Netty4ModulePlugin.class,
+                OpenSearchSecurityPlugin.class,
+                MockReplicationPlugin.class
+            ).start()
+        ) {
             waitOrThrow(node.client(), "hr-normal");
-            AcknowledgedResponse res = node.client().execute(MockReplicationAction.INSTANCE, new MockReplicationRequest("hr-normal")).actionGet();
+            AcknowledgedResponse res = node.client()
+                .execute(MockReplicationAction.INSTANCE, new MockReplicationRequest("hr-normal"))
+                .actionGet();
             Assert.assertTrue(res.isAcknowledged());
         }
     }

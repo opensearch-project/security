@@ -21,13 +21,12 @@ public class SlowSink extends AuditLogSink {
         super(name, settings, null, fallbackSink);
     }
 
-
     public boolean doStore(AuditMessage msg) {
-    	try {
-			Thread.sleep(3000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         return true;
     }

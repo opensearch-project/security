@@ -50,20 +50,31 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
 
     private final List<Map<String, String>> NODE_CERT_DETAILS = ImmutableList.of(
         ImmutableMap.of(
-        "issuer_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
-        "subject_dn", "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
-            "san", "[[8, 1.2.3.4.5.5], [0, [2.5.4.3, node-1.example.com]], [2, node-1.example.com], [2, localhost], [7, 127.0.0.1]]",
-        "not_before", "2023-04-14T13:22:53Z",
-        "not_after", "2033-04-11T13:22:53Z"
-        ));
+            "issuer_dn",
+            "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
+            "subject_dn",
+            "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
+            "san",
+            "[[8, 1.2.3.4.5.5], [0, [2.5.4.3, node-1.example.com]], [2, node-1.example.com], [2, localhost], [7, 127.0.0.1]]",
+            "not_before",
+            "2023-04-14T13:22:53Z",
+            "not_after",
+            "2033-04-11T13:22:53Z"
+        )
+    );
 
     private final List<Map<String, String>> NEW_NODE_CERT_DETAILS = ImmutableList.of(
         ImmutableMap.of(
-            "issuer_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
-            "subject_dn", "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
-            "san", "[[8, 1.2.3.4.5.5], [0, [2.5.4.3, node-1.example.com]], [2, node-1.example.com], [2, localhost], [7, 127.0.0.1]]",
-            "not_before", "2023-04-14T13:23:00Z",
-            "not_after", "2033-04-11T13:23:00Z"
+            "issuer_dn",
+            "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
+            "subject_dn",
+            "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE",
+            "san",
+            "[[8, 1.2.3.4.5.5], [0, [2.5.4.3, node-1.example.com]], [2, node-1.example.com], [2, localhost], [7, 127.0.0.1]]",
+            "not_before",
+            "2023-04-14T13:23:00Z",
+            "not_after",
+            "2033-04-11T13:23:00Z"
         )
     );
 
@@ -71,7 +82,7 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
     private String pemKeyFilePath;
     private final String defaultCertFilePath = "ssl/reload/node.crt.pem";
     private final String defaultKeyFilePath = "ssl/reload/node.key.pem";
-    private final String newCertFilePath =  "ssl/reload/node-new.crt.pem";
+    private final String newCertFilePath = "ssl/reload/node-new.crt.pem";
     private final String newKeyFilePath = "ssl/reload/node-new.key.pem";
 
     @Before
@@ -138,8 +149,11 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
         RestHelper.HttpResponse reloadCertsResponse = rh.executePutRequest(RELOAD_TRANSPORT_CERTS_ENDPOINT, null);
         Assert.assertEquals(500, reloadCertsResponse.getStatusCode());
         JSONObject expectedResponse = new JSONObject();
-        expectedResponse.appendField("error", "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: " +
-            "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];");
+        expectedResponse.appendField(
+            "error",
+            "OpenSearchSecurityException[Error while initializing transport SSL layer from PEM: java.lang.Exception: "
+                + "New Certs do not have valid Issuer DN, Subject DN or SAN.]; nested: Exception[New Certs do not have valid Issuer DN, Subject DN or SAN.];"
+        );
         Assert.assertEquals(expectedResponse.toString(), reloadCertsResponse.getBody());
     }
 
@@ -261,7 +275,13 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
      * @param httpPemKeyFilePath Absolute Path to transport pem key file
      * @param sslCertReload Sets the ssl cert reload flag
      */
-    private void initTestCluster(final String transportPemCertFilePath, final String transportPemKeyFilePath, final String httpPemCertFilePath, final String httpPemKeyFilePath, final boolean sslCertReload) throws Exception {
+    private void initTestCluster(
+        final String transportPemCertFilePath,
+        final String transportPemKeyFilePath,
+        final String httpPemCertFilePath,
+        final String httpPemKeyFilePath,
+        final boolean sslCertReload
+    ) throws Exception {
         final Settings settings = Settings.builder()
             .putList(ConfigConstants.SECURITY_AUTHCZ_ADMIN_DN, "CN=kirk,OU=client,O=client,L=Test,C=DE")
             .putList(ConfigConstants.SECURITY_NODES_DN, "CN=node-1.example.com,OU=SSL,O=Test,L=Test,C=DE")
@@ -271,19 +291,29 @@ public class SecuritySSLReloadCertsActionTests extends SingleClusterTest {
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, false)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, transportPemCertFilePath)
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, transportPemKeyFilePath)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/root-ca.pem"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/root-ca.pem")
+            )
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, httpPemCertFilePath) // "ssl/reload/node.crt.pem"
             .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, httpPemKeyFilePath) // "ssl/reload/node.key.pem"
-            .put(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/root-ca.pem"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/root-ca.pem")
+            )
             .put(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, sslCertReload)
             .build();
 
         final Settings initTransportClientSettings = Settings.builder()
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/truststore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/truststore.jks")
+            )
             .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, false)
-            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/kirk-keystore.jks"))
+            .put(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                FileHelper.getAbsoluteFilePathFromClassPath("ssl/reload/kirk-keystore.jks")
+            )
             .build();
 
         setup(initTransportClientSettings, new DynamicSecurityConfig(), settings, true, clusterConfiguration);
