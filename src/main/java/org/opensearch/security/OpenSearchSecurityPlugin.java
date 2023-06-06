@@ -73,6 +73,7 @@ import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.component.Lifecycle.State;
@@ -209,6 +210,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
+    private static volatile DiscoveryNode localNode;
     private volatile AuditLog auditLog;
     private volatile BackendRegistry backendRegistry;
     private volatile SslExceptionHandler sslExceptionHandler;
@@ -1107,11 +1109,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     }
 
     @Override
-    public void onNodeStarted() {
+    public void onNodeStarted(DiscoveryNode localNode) {
         log.info("Node started");
         if(!SSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
         }
+        this.localNode = localNode;
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -1187,13 +1190,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         return field;
     }
 
+    public static DiscoveryNode getLocalNode(){
+        return localNode;
+    }
+
     public static class GuiceHolder implements LifecycleComponent {
 
         private static RepositoriesService repositoriesService;
         private static RemoteClusterService remoteClusterService;
         private static IndicesService indicesService;
         private static PitService pitService;
-        private static TransportService transportService;
 
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         private static ExtensionsManager extensionsManager;
@@ -1206,7 +1212,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             GuiceHolder.indicesService = indicesService;
             GuiceHolder.pitService = pitService;
             GuiceHolder.extensionsManager = extensionsManager;
-            GuiceHolder.transportService = remoteClusterService;
         }
         // CS-ENFORCE-SINGLE
 
@@ -1227,8 +1232,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used to allow/disallow TLS connections to extensions
         public static ExtensionsManager getExtensionsManager() { return extensionsManager; }
         // CS-ENFORCE-SINGLE
-
-        public static TransportService getTransportService() { return transportService; }
 
         @Override
         public void close() {

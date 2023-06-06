@@ -128,14 +128,8 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-        final DiscoveryNode localNode = OpenSearchSecurityPlugin.GuiceHolder.getTransportService().getLocalNode();
+        final DiscoveryNode localNode = OpenSearchSecurityPlugin.getLocalNode();
         boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
-//        try {
-//            isSameNodeRequest = cs.localNode().equals(connection.getNode()); // using DiscoveryNode equals comparison here
-//        } catch (AssertionError e) {
-//            // do nothing
-//            log.info(e);
-//        }
 
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
