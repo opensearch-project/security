@@ -221,6 +221,10 @@ public class TestSecurityConfig {
 			xContentBuilder.startObject();
 			xContentBuilder.startObject("dynamic");
 
+			if (onBehalfOfConfig != null) {
+				xContentBuilder.field("on_behalf_of", onBehalfOfConfig);
+			}
+
 			if (anonymousAuth || (xffConfig != null)) {
 				xContentBuilder.startObject("http");
 				xContentBuilder.field("anonymous_auth_enabled", anonymousAuth);
