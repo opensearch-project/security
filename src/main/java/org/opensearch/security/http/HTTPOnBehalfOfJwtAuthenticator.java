@@ -32,7 +32,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
@@ -42,7 +41,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.AuthCredentials;
 
 public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
