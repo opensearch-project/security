@@ -29,12 +29,12 @@ import org.apache.cxf.rs.security.jose.jwt.JoseJwtProducer;
 import org.apache.cxf.rs.security.jose.jwt.JwtClaims;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.cxf.rs.security.jose.jwt.JwtUtils;
+import org.apache.kafka.common.utils.SystemTime;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -51,10 +51,8 @@ public class JwtVendor {
     private final LongSupplier timeProvider;
 
     //TODO: Relocate/Remove them at once we make the descisions about the `roles`
-    private ConfigModel configModel;
-    private ThreadContext threadContext;
+    private ConfigModel configModel; // This never gets assigned, how does this work at all?
 
-    //For testing the expiration in the future
     public JwtVendor(Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
         try {
@@ -108,22 +106,7 @@ public class JwtVendor {
         }
     }
 
-    //TODO:Getting roles from User
-    public Map<String, String> prepareClaimsForUser(User user, ThreadPool threadPool) {
-        Map<String, String> claims = new HashMap<>();
-        this.threadContext = threadPool.getThreadContext();
-        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        Set<String> mappedRoles = mapRoles(user, caller);
-        claims.put("sub", user.getName());
-        claims.put("roles", String.join(",", mappedRoles));
-        return claims;
-    }
-
-    public Set<String> mapRoles(final User user, final TransportAddress caller) {
-        return this.configModel.mapSecurityRoles(user, caller);
-    }
-
-    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles) throws Exception {
+     String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles) throws Exception {
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
