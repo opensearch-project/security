@@ -44,7 +44,7 @@ import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.AuthCredentials;
 
-public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
+public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -58,13 +58,13 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
     private String signingKey;
     private String encryptionKey;
 
-    public HTTPOnBehalfOfJwtAuthenticator() {
+    public OnBehalfOfAuthenticator() {
         super();
         init();
     }
 
     // FOR TESTING
-    public HTTPOnBehalfOfJwtAuthenticator(String signingKey, String encryptionKey){
+    public OnBehalfOfAuthenticator(String signingKey, String encryptionKey){
         this.signingKey = signingKey;
         this.encryptionKey = encryptionKey;
         init();

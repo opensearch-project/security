@@ -141,7 +141,7 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.http.HTTPOnBehalfOfJwtAuthenticator;
+import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
@@ -839,7 +839,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
                 
-        HTTPOnBehalfOfJwtAuthenticator acInstance = new HTTPOnBehalfOfJwtAuthenticator();
+        final OnBehalfOfAuthenticator onBehalfOfAuthenticator = new OnBehalfOfAuthenticator();
 
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
@@ -848,7 +848,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(securityRestHandler);
-        dcf.registerDCFListener(acInstance);
+        dcf.registerDCFListener(onBehalfOfAuthenticator);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
