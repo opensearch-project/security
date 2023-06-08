@@ -1,6 +1,7 @@
 package org.opensearch.security.http;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.util.Base64;
 import java.util.List;
@@ -22,6 +23,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.test.framework.JwtConfigBuilder;
+import org.opensearch.test.framework.OnBehalfOfConfig;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.cluster.ClusterManager;
 import org.opensearch.test.framework.cluster.LocalCluster;
@@ -54,14 +56,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 	public static final String CLAIM_ROLES = "backend-user-roles";
 
 	public static final String USER_SUPERHERO = "superhero";
-	public static final String USERNAME_ROOT = "root";
-	public static final String ROLE_ADMIN = "role_admin";
-	public static final String ROLE_DEVELOPER = "role_developer";
-	public static final String ROLE_QA = "role_qa";
-	public static final String ROLE_CTO = "role_cto";
-	public static final String ROLE_CEO = "role_ceo";
 	public static final String ROLE_VP = "role_vp";
-	public static final String POINTER_BACKEND_ROLES = "/backend_roles";
 	public static final String POINTER_USERNAME = "/user_name";
 
 	public static final String QA_DEPARTMENT = "qa-department";
@@ -73,17 +68,31 @@ public class OnBehalfOfJwtAuthenticationTest {
 	public static final String QA_SONG_INDEX_NAME = String.format("song_lyrics_%s", QA_DEPARTMENT);
 
 	private static final KeyPair KEY_PAIR = Keys.keyPairFor(SignatureAlgorithm.RS256);
-	private static final String PUBLIC_KEY = new String(Base64.getEncoder().encode(KEY_PAIR.getPublic().getEncoded()), US_ASCII);
 
 	static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
 	private static final String JWT_AUTH_HEADER = "jwt-auth";
 
-	private static final JwtAuthorizationHeaderFactory tokenFactory = new JwtAuthorizationHeaderFactory(
-			KEY_PAIR.getPrivate(),
-			CLAIM_USERNAME,
-			CLAIM_ROLES,
-			JWT_AUTH_HEADER);
+	public static final String issuer = "cluster_0";
+	public static final String subject = "testUser";
+	public static final String audience = "audience_0";
+	public static final Integer expirySeconds = 100000;
+	public static final String headerName = "Bearer";
+	public static final List<String> roles = List.of("admin", "HR");
+
+	private static final String signingKey = Base64.getEncoder().encodeToString("jwt signing key for an on behalf of token authentication backend for testing of extensions".getBytes(StandardCharsets.UTF_8));
+	private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
+
+	private static final OnBehalfOfJwtAuthorizationHeaderFactory tokenFactory = new OnBehalfOfJwtAuthorizationHeaderFactory(
+			signingKey,
+			issuer,
+			subject,
+			audience,
+			roles,
+			expirySeconds,
+			headerName,
+			encryptionKey
+	);
 
 	public static final String SONG_ID_1 = "song-id-01";
 
@@ -94,7 +103,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 	public static final LocalCluster cluster = new LocalCluster.Builder()
 			.clusterManager(ClusterManager.SINGLENODE).anonymousAuth(false)
 			.nodeSettings(Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName()  +"__" + ALL_ACCESS.getName())))
-			.authc(AUTHC_HTTPBASIC_INTERNAL).users(ADMIN_USER).roles(DEPARTMENT_SONG_LISTENER_ROLE).config()
+			.authc(AUTHC_HTTPBASIC_INTERNAL).onBehalfOf(new OnBehalfOfConfig().signing_key(signingKey).encryption_key(encryptionKey))
 			.build();
 
 	@Rule
@@ -112,13 +121,15 @@ public class OnBehalfOfJwtAuthenticationTest {
 
 	@Test
 	public void shouldAuthenticateWithJwtToken_positive() {
-		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken(USER_SUPERHERO))){
+		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken())){
 
 			TestRestClient.HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(200);
 			String username = response.getTextFromJsonBody(POINTER_USERNAME);
-			assertThat(username, equalTo(username));
+			assertThat("testUser", equalTo(username));
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

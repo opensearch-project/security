@@ -33,7 +33,7 @@ class OnBehalfOfJwtAuthorizationHeaderFactory {
 
 
 	public OnBehalfOfJwtAuthorizationHeaderFactory(String signing_key, String issuer, String subject, String audience, List roles ,Integer expirySeconds, String headerName, String encryption_key) {
-		this.signing_key = requireNonNull(signing_key, "signing key is required");
+		this.signing_key = requireNonNull(signing_key, "Signing key is required");
 		this.issuer = requireNonNull(issuer, "Issuer is required");
 		this.subject = requireNonNull(subject, "Subject is required");
 		this.audience = requireNonNull(audience, "Audience is required.");
