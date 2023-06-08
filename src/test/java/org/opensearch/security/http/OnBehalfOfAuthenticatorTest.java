@@ -31,6 +31,7 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
@@ -43,8 +44,8 @@ public class OnBehalfOfAuthenticatorTest {
         new SecureRandom().nextBytes(secretKeyBytes);
         secretKey = Keys.hmacShaKeyFor(secretKeyBytes);
     }
-
     final static String signingKey = BaseEncoding.base64().encode(secretKeyBytes);
+
 
     @Test
     public void testNoKey() throws Exception {
@@ -85,7 +86,7 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testTokenMissing() throws Exception {
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(signingKey, claimsEncryptionKey);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
         Map<String, String> headers = new HashMap<String, String>();
 
         AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
@@ -98,7 +99,7 @@ public class OnBehalfOfAuthenticatorTest {
 
         String jwsToken = "123invalidtoken..";
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(signingKey, claimsEncryptionKey);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer "+jwsToken);
 
@@ -111,7 +112,7 @@ public class OnBehalfOfAuthenticatorTest {
 
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("ext_0").signWith(secretKey, SignatureAlgorithm.HS512).compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(signingKey, claimsEncryptionKey);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer "+jwsToken);
 
@@ -127,7 +128,7 @@ public class OnBehalfOfAuthenticatorTest {
     public void testBearerWrongPosition() throws Exception {
 
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("ext_0").signWith(secretKey, SignatureAlgorithm.HS512).compact();
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(signingKey, claimsEncryptionKey);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
 
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", jwsToken + "Bearer " + " 123");
@@ -141,7 +142,7 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testBasicAuthHeader() throws Exception {
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("ext_0").signWith(secretKey, SignatureAlgorithm.HS512).compact();
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(signingKey, claimsEncryptionKey);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
 
         Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Basic " + jwsToken);
 
@@ -274,8 +275,15 @@ public class OnBehalfOfAuthenticatorTest {
             final JwtBuilder jwtBuilder,
             final Boolean bwcPluginCompatibilityMode) {
         final String jwsToken = jwtBuilder.signWith(secretKey, SignatureAlgorithm.HS512).compact();
-        final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(signingKey, encryptionKey);
+        final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
         final Map<String, String> headers = Map.of("Authorization", "Bearer " + jwsToken);
         return jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<>()), null);
+    }
+
+    private Settings defaultSettings() {
+        return Settings.builder()
+                .put("signing_key", signingKey)
+                .put("encryption_key", claimsEncryptionKey)
+                .build();
     }
 }
