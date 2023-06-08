@@ -12,6 +12,7 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,24 +54,8 @@ public class JwtVendor {
     private ConfigModel configModel;
     private ThreadContext threadContext;
 
-    public JwtVendor(Settings settings) {
-        JoseJwtProducer jwtProducer = new JoseJwtProducer();
-        try {
-            this.signingKey = createJwkFromSettings(settings);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        this.jwtProducer = jwtProducer;
-        if (settings.get("encryption_key") == null) {
-            throw new RuntimeException("encryption_key cannot be null");
-        } else {
-            this.claimsEncryptionKey = settings.get("encryption_key");
-        }
-        timeProvider = System::currentTimeMillis;
-    }
-
     //For testing the expiration in the future
-    public JwtVendor(Settings settings, final LongSupplier timeProvider) {
+    public JwtVendor(Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
         try {
             this.signingKey = createJwkFromSettings(settings);
@@ -83,7 +68,7 @@ public class JwtVendor {
         } else {
             this.claimsEncryptionKey = settings.get("encryption_key");
         }
-        this.timeProvider = timeProvider;
+        this.timeProvider = timeProvider.orElseGet(() -> System::currentTimeMillis);
     }
 
     /*
