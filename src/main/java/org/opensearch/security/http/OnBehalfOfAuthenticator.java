@@ -20,6 +20,7 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -49,75 +50,51 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";
+    private static final String SUBJECT_CLAIM = "sub";
 
-    //TODO: TO SEE IF WE NEED THE FINAL FOR FOLLOWING
-    private JwtParser jwtParser;
-    private String subjectKey;
+    private final JwtParser jwtParser;
+    private final String encryptionKey;
 
-    private String signingKey;
-    private String encryptionKey;
-    private volatile boolean initialized;
-
-    public OnBehalfOfAuthenticator() {
-        super();
-        init();
+    public OnBehalfOfAuthenticator(Settings settings) {
+        encryptionKey = settings.get("encryption_key");
+        jwtParser = initParser(settings.get("signing_key"));
     }
 
-    public HTTPOnBehalfOfJwtAuthenticator(Settings settings){
-        this.signingKey = settings.get("signing_key");
-        this.encryptionKey = settings.get("encryption_key");
-        init();
-    }
-
-    // FOR TESTING
-    public OnBehalfOfAuthenticator(String signingKey, String encryptionKey){
-        this.signingKey = signingKey;
-        this.encryptionKey = encryptionKey;
-        init();
-    }
-
-    public boolean isInitialized(){
-        return initialized;
-    }
-
-    private void init() {
+    private JwtParser initParser(final String signingKey) {
+        if (signingKey == null || signingKey.length() == 0) {
+            throw new RuntimeException("Unable to find on behalf of authenticator signing key");
+        }
 
         try {
-            if(signingKey == null || signingKey.length() == 0) {
-                log.error("signingKey must not be null or empty. JWT authentication will not work");
-            } else {
+            final String minmalKeyFormat = signingKey
+                .replace("-----BEGIN PUBLIC KEY-----\n", "")
+                .replace("-----END PUBLIC KEY-----", "");
 
-                signingKey = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "");
-                signingKey = signingKey.replace("-----END PUBLIC KEY-----", "");
+            final byte[] decoded = Decoders.BASE64.decode(minmalKeyFormat);
+            Key key = null;
 
-                byte[] decoded = Decoders.BASE64.decode(signingKey);
-                Key key = null;
-
-                try {
-                    key = getPublicKey(decoded, "RSA");
-                } catch (Exception e) {
-                    log.debug("No public RSA key, try other algos ({})", e.toString());
-                }
-
-                try {
-                    key = getPublicKey(decoded, "EC");
-                } catch (Exception e) {
-                    log.debug("No public ECDSA key, try other algos ({})", e.toString());
-                }
-
-                if(key != null) {
-                    jwtParser = Jwts.parser().setSigningKey(key);
-                } else {
-                    jwtParser = Jwts.parser().setSigningKey(decoded);
-                }
-
+            try {
+                key = getPublicKey(decoded, "RSA");
+            } catch (Exception e) {
+                log.debug("No public RSA key, try other algos ({})", e.toString());
             }
+
+            try {
+                key = getPublicKey(decoded, "EC");
+            } catch (Exception e) {
+                log.debug("No public ECDSA key, try other algos ({})", e.toString());
+            }
+
+            if (Objects.nonNull(key)) {
+                return Jwts.parser().setSigningKey(key);
+            }
+            // Fallback to the decoded signing key
+            // TODO: Should we ever do this, I think no??
+            return Jwts.parser().setSigningKey(decoded);
         } catch (Throwable e) {
             log.error("Error while creating JWT authenticator", e);
             throw new RuntimeException(e);
         }
-
-        subjectKey = "sub";
     }
 
     @Override
@@ -170,9 +147,17 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         try {
             final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
 
-            final String subject = extractSubject(claims, request);
+            final String subject = claims.getSubject();
+            if (Objects.isNull(subject)) {
+                log.error("Valid jwt on behalf of token with no subject");
+                return null;
+            }
 
             final String audience = claims.getAudience();
+            if (Objects.isNull(subject)) {
+                log.error("Valid jwt on behalf of token with no audience");
+                return null;
+            }
 
             String[] roles;
 
@@ -191,15 +176,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                     decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
                 }
                 roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
-            }
-
-            if (subject == null) {
-                log.error("No subject found in JWT token");
-                return null;
-            }
-
-            if (audience == null) {
-                log.error("No audience found in JWT token");
             }
 
             final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
@@ -232,26 +208,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     @Override
     public String getType() {
         return "onbehalfof_jwt";
-    }
-
-    //TODO: Extract the audience (ext_id) and inject it into thread context
-
-    protected String extractSubject(final Claims claims, final RestRequest request) {
-        String subject = claims.getSubject();
-        if(subjectKey != null) {
-            // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
-            Object subjectObject = claims.get(subjectKey, Object.class);
-            if(subjectObject == null) {
-                log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
-                return null;
-            }
-            // We expect a String. If we find something else, convert to String but issue a warning
-            if(!(subjectObject instanceof String)) {
-                log.warn("Expected type String in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.", subjectKey, subjectObject, subjectObject.getClass());
-            }
-            subject = String.valueOf(subjectObject);
-        }
-        return subject;
     }
 
     private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException, InvalidKeySpecException {
