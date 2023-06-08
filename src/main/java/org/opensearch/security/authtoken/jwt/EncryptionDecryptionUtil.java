@@ -19,38 +19,39 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.opensaml.xmlsec.encryption.P;
+
 public class EncryptionDecryptionUtil {
 
     public static String encrypt(final String secret, final String data) {
-
-        byte[] decodedKey = Base64.getDecoder().decode(secret);
-
-        try {
-            Cipher cipher = Cipher.getInstance("AES");
-            // rebuild key using SecretKeySpec
-            SecretKey originalKey = new SecretKeySpec(Arrays.copyOf(decodedKey, 16), "AES");
-            cipher.init(Cipher.ENCRYPT_MODE, originalKey);
-            byte[] cipherText = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(cipherText);
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Error occured while encrypting data", e);
-        }
+        final Cipher cipher = createCipherFromSecret(secret);
+        final byte[] cipherText = createCipherText(cipher, data.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(cipherText);
     }
 
     public static String decrypt(final String secret, final String encryptedString) {
+        final Cipher cipher = createCipherFromSecret(secret);
+        final byte[] cipherText = createCipherText(cipher, Base64.getDecoder().decode(encryptedString));
+        return new String(cipherText, StandardCharsets.UTF_8);
+    }
 
-        byte[] decodedKey = Base64.getDecoder().decode(secret);
-
+    private static Cipher createCipherFromSecret(final String secret) {
         try {
-            Cipher cipher = Cipher.getInstance("AES");
-            // rebuild key using SecretKeySpec
-            SecretKey originalKey = new SecretKeySpec(Arrays.copyOf(decodedKey, 16), "AES");
+            final byte[] decodedKey = Base64.getDecoder().decode(secret);
+            final Cipher cipher = Cipher.getInstance("AES");
+            final SecretKey originalKey = new SecretKeySpec(Arrays.copyOf(decodedKey, 16), "AES");
             cipher.init(Cipher.DECRYPT_MODE, originalKey);
-            byte[] cipherText = cipher.doFinal(Base64.getDecoder().decode(encryptedString));
-            return new String(cipherText, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new RuntimeException("Error occured while decrypting data", e);
+            return cipher;
+        } catch (final Exception e) {
+            throw new RuntimeException("Error creating cipher from secret");
+        }
+    }
+    
+    private static byte[] createCipherText(final Cipher cipher, final byte[] data) {
+        try {
+            return cipher.doFinal(data);
+        } catch (final Exception e) {
+            throw new RuntimeException("The cipher was unable to perform pass over data");
         }
     }
 }
