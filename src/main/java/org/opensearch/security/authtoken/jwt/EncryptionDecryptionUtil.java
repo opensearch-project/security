@@ -19,8 +19,6 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.opensaml.xmlsec.encryption.P;
-
 public class EncryptionDecryptionUtil {
 
     public static String encrypt(final String secret, final String data) {
