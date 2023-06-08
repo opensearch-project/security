@@ -216,6 +216,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
             return null;
         } catch (Exception e) {
             System.out.println("Error MSG2!" + e.getMessage());
+            e.printStackTrace();
             if(log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
             }

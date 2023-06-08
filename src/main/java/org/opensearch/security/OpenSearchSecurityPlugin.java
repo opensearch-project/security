@@ -838,8 +838,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
-                
-        HTTPOnBehalfOfJwtAuthenticator acInstance = new HTTPOnBehalfOfJwtAuthenticator();
 
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
@@ -848,7 +846,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(securityRestHandler);
-        dcf.registerDCFListener(acInstance);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
