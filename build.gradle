@@ -113,15 +113,9 @@ spotless {
         targetExclude '**/com/amazon/dlic/**/*.java'
         targetExclude '**/com/amazon/security/**/*.java'
         targetExclude '**/test/**/*.java'
-        targetExclude 'src/integrationTest/**'
 
         trimTrailingWhitespace()
         endWithNewline();
-    }
-    format("integrationTest", JavaExtension) {
-        target('src/integrationTest/java/**/*.java')
-        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
-        indentWithTabs(4)
     }
 }
 
