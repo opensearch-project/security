@@ -13,7 +13,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 ## Current Maintainers
 
 | Maintainer       | GitHub ID                                             | Affiliation |
-| ---------------- | ----------------------------------------------------- | ----------- |
+|------------------|-------------------------------------------------------| ----------- |
 | Chang Liu        | [cliu123](https://github.com/cliu123)                 | Amazon      |
 | Darshit Chanpura | [DarshitChanpura](https://github.com/DarshitChanpura) | Amazon      |
 | Dave Lago        | [davidlago](https://github.com/davidlago)             | Amazon      |
@@ -22,6 +22,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Ryan Liang       | [RyanL1997](https://github.com/RyanL1997)             | Amazon      |
 | Stephen Crawford | [scrawfor99](https://github.com/scrawfor99)           | Amazon      |
 | Andriy Redko     | [reta](https://github.com/reta)                       | Aiven       |
+| Andrey Pleskach  | [willyborankin](https://github.com/willyborankin)     | Aiven       |
 
 ## Practices
 
