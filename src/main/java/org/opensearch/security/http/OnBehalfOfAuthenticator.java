@@ -28,20 +28,19 @@ import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.WeakKeyException;
-import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
-import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.user.AuthCredentials;
 
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
@@ -57,9 +56,16 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private String signingKey;
     private String encryptionKey;
+    private volatile boolean initialized;
 
     public OnBehalfOfAuthenticator() {
         super();
+        init();
+    }
+
+    public OnBehalfOfAuthenticator(Settings settings){
+        this.signingKey = settings.get("signing_key");
+        this.encryptionKey = settings.get("encryption_key");
         init();
     }
 
@@ -68,6 +74,10 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         this.signingKey = signingKey;
         this.encryptionKey = encryptionKey;
         init();
+    }
+
+    public boolean isInitialized(){
+        return initialized;
     }
 
     private void init() {
@@ -149,7 +159,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
 
         final int index;
-        if((index = jwtToken.toLowerCase().indexOf(BEARER_PREFIX)) > -1) { //detect Bearer
+        if(jwtToken != null && (index = jwtToken.toLowerCase().indexOf(BEARER_PREFIX)) > -1) { //detect Bearer
             jwtToken = jwtToken.substring(index+BEARER_PREFIX.length());
         } else {
             if(log.isDebugEnabled()) {
@@ -164,21 +174,9 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
             final String audience = claims.getAudience();
 
-            //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
-            Object rolesObject = null;
             String[] roles;
 
-            try {
-                rolesObject = claims.get("er");
-            } catch (Throwable e) {
-                    log.debug("No encrypted role founded in the claim, continue searching for decrypted roles.");
-            }
-
-            try {
-                rolesObject = claims.get("dr");
-            } catch (Throwable e) {
-                log.debug("No decrypted role founded in the claim.");
-            }
+            Object rolesObject = ObjectUtils.firstNonNull(claims.get("er"), claims.get("dr"));
 
             if (rolesObject == null) {
                 log.warn(
@@ -190,7 +188,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                 // Extracting roles based on the compatbility mode
                 String decryptedRoles = rolesClaim;
                 if (rolesObject == claims.get("er")) {
-                    //TODO: WHERE TO GET THE ENCRYTION KEY
                     decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
                 }
                 roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
@@ -214,9 +211,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return ac;
 
         } catch (WeakKeyException e) {
+            System.out.println("Error MSG1!" + e.getMessage());
             log.error("Cannot authenticate user with JWT because of ", e);
             return null;
         } catch (Exception e) {
+            System.out.println("Error MSG2!" + e.getMessage());
+            e.printStackTrace();
             if(log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
             }
@@ -258,15 +258,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(algo);
         return kf.generatePublic(spec);
-    }
-
-    @Subscribe
-    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
-
-        //TODO: #2615 FOR CONFIGURATION
-        //For Testing
-        signingKey = "abcd1234";
-        encryptionKey = RandomStringUtils.randomAlphanumeric(16);
     }
 
 }

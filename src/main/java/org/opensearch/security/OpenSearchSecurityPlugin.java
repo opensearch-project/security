@@ -838,9 +838,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
-                
-        final OnBehalfOfAuthenticator onBehalfOfAuthenticator = new OnBehalfOfAuthenticator();
-
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
@@ -848,7 +845,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(securityRestHandler);
-        dcf.registerDCFListener(onBehalfOfAuthenticator);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
