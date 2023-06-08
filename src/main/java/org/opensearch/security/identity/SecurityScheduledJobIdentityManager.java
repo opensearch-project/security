@@ -195,7 +195,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
         if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
             throw new OpenSearchSecurityException("Scheduled Job Identity Index (" + SCHEDULED_JOB_IDENTITY_INDEX + ") does not exist.");
         }
-        BearerAuthToken bearerAuthToken = new BearerAuthToken("encodedJwt");
+        BearerAuthToken bearerAuthToken = new BearerAuthToken("header.payload.signature");
         return bearerAuthToken;
     }
 }
