@@ -53,6 +53,6 @@ class OnBehalfOfJwtAuthorizationHeaderFactory {
 	}
 
 	private BasicHeader toHeader(String token) {
-		return new BasicHeader(headerName, token);
+		return new BasicHeader(headerName, "Bearer " + token);
 	}
 }
