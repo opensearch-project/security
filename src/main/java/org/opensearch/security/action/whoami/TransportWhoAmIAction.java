@@ -65,10 +65,10 @@ HandledTransportAction<WhoAmIRequest, WhoAmIResponse> {
         final String dn = user==null?threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL):user.getName();
         final boolean isAdmin = adminDNs.isAdminDN(dn);
         final boolean isAuthenticated = isAdmin?true: user != null;
-        final boolean isNodeCertificateRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext()) || 
+        final boolean isNodeCertificateRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext()) ||
                 HeaderHelper.isTrustedClusterRequest(threadPool.getThreadContext());
-        
+
         listener.onResponse(new WhoAmIResponse(dn, isAdmin, isAuthenticated, isNodeCertificateRequest));
-        
+
     }
 }

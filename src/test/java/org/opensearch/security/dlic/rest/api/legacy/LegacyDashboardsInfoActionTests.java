@@ -16,7 +16,7 @@ import org.opensearch.security.dlic.rest.api.DashboardsInfoActionTest;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 
 public class LegacyDashboardsInfoActionTests extends DashboardsInfoActionTest {
-	@Override
+    @Override
     protected String getEndpoint() {
         return LEGACY_OPENDISTRO_PREFIX + "/kibanainfo";
     }

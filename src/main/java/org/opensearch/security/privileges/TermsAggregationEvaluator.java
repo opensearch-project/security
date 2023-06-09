@@ -56,12 +56,12 @@ public class TermsAggregationEvaluator {
             "indices:data/read/field_caps*"
             //"indices:admin/mappings/fields/get*"
             };
-    
+
     private static final QueryBuilder NONE_QUERY = new MatchNoneQueryBuilder();
-    
+
     public TermsAggregationEvaluator() {
     }
-    
+
     public PrivilegesEvaluatorResponse evaluate(final Resolved resolved, final ActionRequest request, ClusterService clusterService, User user, SecurityRoles securityRoles, IndexNameExpressionResolver resolver, PrivilegesEvaluatorResponse presponse) {
         try {
             if(request instanceof SearchRequest) {
@@ -81,14 +81,14 @@ public class TermsAggregationEvaluator {
                                && ab.getPipelineAggregations().isEmpty()
                                && ab.getSubAggregations().isEmpty()) {
 
-                           
+
                            final Set<String> allPermittedIndices = securityRoles.getAllPermittedIndicesForDashboards(resolved, user, READ_ACTIONS, resolver, clusterService);
                            if(allPermittedIndices == null || allPermittedIndices.isEmpty()) {
                                sr.source().query(NONE_QUERY);
                            } else {
                                sr.source().query(new TermsQueryBuilder("_index", allPermittedIndices));
-                           }                 
-                           
+                           }
+
                            presponse.allowed = true;
                            return presponse.markComplete();
                        }
@@ -99,7 +99,7 @@ public class TermsAggregationEvaluator {
             log.warn("Unable to evaluate terms aggregation",e);
             return presponse;
         }
-        
+
         return presponse;
     }
 }

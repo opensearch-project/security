@@ -38,17 +38,25 @@ import static org.mockito.Mockito.when;
 public class AuditMessageTest {
 
     private static final Map<String, List<String>> TEST_REST_HEADERS = ImmutableMap.of(
-            "authorization", ImmutableList.of("test-1"),
-            "Authorization", ImmutableList.of("test-2"),
-            "AuThOrIzAtIoN", ImmutableList.of("test-3"),
-            "test-header", ImmutableList.of("test-4")
+        "authorization",
+        ImmutableList.of("test-1"),
+        "Authorization",
+        ImmutableList.of("test-2"),
+        "AuThOrIzAtIoN",
+        ImmutableList.of("test-3"),
+        "test-header",
+        ImmutableList.of("test-4")
     );
 
     private static final Map<String, String> TEST_TRANSPORT_HEADERS = ImmutableMap.of(
-            "authorization", "test-1",
-            "Authorization", "test-2",
-            "AuThOrIzAtIoN","test-3",
-            "test-header", "test-4"
+        "authorization",
+        "test-1",
+        "Authorization",
+        "test-2",
+        "AuThOrIzAtIoN",
+        "test-3",
+        "test-header",
+        "test-4"
     );
 
     private AuditMessage message;
@@ -58,10 +66,7 @@ public class AuditMessageTest {
         final ClusterService clusterServiceMock = mock(ClusterService.class);
         when(clusterServiceMock.localNode()).thenReturn(mock(DiscoveryNode.class));
         when(clusterServiceMock.getClusterName()).thenReturn(mock(ClusterName.class));
-        message = new AuditMessage(AuditCategory.AUTHENTICATED,
-                clusterServiceMock,
-                AuditLog.Origin.REST,
-                AuditLog.Origin.REST);
+        message = new AuditMessage(AuditCategory.AUTHENTICATED, clusterServiceMock, AuditLog.Origin.REST, AuditLog.Origin.REST);
     }
 
     @Test
@@ -131,7 +136,7 @@ public class AuditMessageTest {
         assertEquals("Diff is __HASH__", message.getAsMap().get(AuditMessage.COMPLIANCE_DIFF_CONTENT));
 
         // test tuple redaction
-        final ByteBuffer[] byteBuffers = new ByteBuffer[]{ ByteBuffer.wrap(("Hash in tuple is " + hash1).getBytes()) };
+        final ByteBuffer[] byteBuffers = new ByteBuffer[] { ByteBuffer.wrap(("Hash in tuple is " + hash1).getBytes()) };
         BytesReference ref = BytesReference.fromByteBuffers(byteBuffers);
         message.addSecurityConfigTupleToRequestBody(new Tuple<>(XContentType.JSON, ref), internalUsersDocId);
         assertEquals("Hash in tuple is __HASH__", message.getAsMap().get(AuditMessage.REQUEST_BODY));

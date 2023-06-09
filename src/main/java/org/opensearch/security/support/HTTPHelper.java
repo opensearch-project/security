@@ -55,7 +55,7 @@ public class HTTPHelper {
                 //   username:pass:word
                 //blank password
                 //   username:
-                
+
                 final int firstColonIndex = decodedBasicHeader.indexOf(':');
 
                 String username = null;
@@ -63,7 +63,7 @@ public class HTTPHelper {
 
                 if (firstColonIndex > 0) {
                     username = decodedBasicHeader.substring(0, firstColonIndex);
-                    
+
                     if(decodedBasicHeader.length() - 1 != firstColonIndex) {
                         password = decodedBasicHeader.substring(firstColonIndex + 1);
                     } else {
@@ -83,20 +83,20 @@ public class HTTPHelper {
             return null;
         }
     }
-    
+
     public static boolean containsBadHeader(final RestRequest request) {
-        
+
         final Map<String, List<String>> headers;
-        
+
         if (request != null && ( headers = request.getHeaders()) != null) {
             for (final String key: headers.keySet()) {
-                if (    key != null 
+                if (    key != null
                         && key.trim().toLowerCase().startsWith(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX.toLowerCase())) {
                     return true;
                 }
             }
         }
-        
+
         return false;
     }
 }

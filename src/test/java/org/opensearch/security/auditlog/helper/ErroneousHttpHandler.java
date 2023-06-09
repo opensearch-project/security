@@ -17,8 +17,8 @@ import org.apache.hc.core5.http.io.HttpRequestHandler;
 import org.apache.hc.core5.http.protocol.HttpContext;
 
 public class ErroneousHttpHandler implements HttpRequestHandler {
-	@Override
-	public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) {
-		response.setCode(404);
-	}
+    @Override
+    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) {
+        response.setCode(404);
+    }
 }

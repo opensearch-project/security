@@ -24,28 +24,28 @@ import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 
-
 public class PerfTest extends AbstractAuditlogiUnitTest {
 
-	@Test
-	@Ignore(value="jvm crash on cci")
-	public void testPerf() throws Exception {
-		Settings.Builder settingsBuilder = Settings.builder().loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/perftest.yml"));
+    @Test
+    @Ignore(value = "jvm crash on cci")
+    public void testPerf() throws Exception {
+        Settings.Builder settingsBuilder = Settings.builder()
+            .loadFromPath(FileHelper.getAbsoluteFilePathFromClassPath("auditlog/endpoints/routing/perftest.yml"));
 
-		Settings settings = settingsBuilder.put("path.home", ".")
-				.put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
-				.build();
+        Settings settings = settingsBuilder.put("path.home", ".")
+            .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES, "NONE")
+            .build();
 
-		AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
-		int limit = 150000;
-		while(limit > 0) {
-			AuditMessage msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES);
-			router.route(msg);
-			limit--;
-		}
-		LoggingSink loggingSink = (LoggingSink)router.defaultSink.getFallbackSink();
-		int currentSize = loggingSink.messages.size();
-		Assert.assertTrue(currentSize > 0);
-	}
+        AuditMessageRouter router = createMessageRouterComplianceEnabled(settings);
+        int limit = 150000;
+        while (limit > 0) {
+            AuditMessage msg = MockAuditMessageFactory.validAuditMessage(AuditCategory.MISSING_PRIVILEGES);
+            router.route(msg);
+            limit--;
+        }
+        LoggingSink loggingSink = (LoggingSink) router.defaultSink.getFallbackSink();
+        int currentSize = loggingSink.messages.size();
+        Assert.assertTrue(currentSize > 0);
+    }
 
 }

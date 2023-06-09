@@ -117,7 +117,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         return original;
     }
-    
+
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
@@ -127,7 +127,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
 
     SecurityDynamicConfiguration<?> config;
-    
+
     public DynamicConfigFactory(ConfigurationRepository cr, final Settings opensearchSettings,
             final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih) {
         super();
@@ -144,11 +144,11 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         } else {
             log.info("Static resources will not be loaded.");
         }
-        
+
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);
     }
-    
+
     @Override
     public void onChange(Map<CType, SecurityDynamicConfiguration<?>> typeToConfig) {
 
@@ -187,7 +187,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         if(config.getImplementingClass() == ConfigV7.class) {
                 //statics
-                
+
                 if(roles.containsAny(staticRoles)) {
                     throw new StaticResourceException("Cannot override static roles");
                 }
@@ -205,24 +205,24 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
                 if(!actionGroups.add(staticActionGroups) && !staticActionGroups.getCEntries().isEmpty()) {
                     throw new StaticResourceException("Unable to load static action groups");
                 }
-                
+
 
                 log.debug("Static action groups loaded ({})", staticActionGroups.getCEntries().size());
-                
+
                 if(tenants.containsAny(staticTenants)) {
                     throw new StaticResourceException("Cannot override static tenants");
                 }
                 if(!tenants.add(staticTenants) && !staticTenants.getCEntries().isEmpty()) {
                     throw new StaticResourceException("Unable to load static tenants");
                 }
-                
+
 
                 log.debug("Static tenants loaded ({})", staticTenants.getCEntries().size());
 
                 log.debug("Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
                     roles.getCEntries().size(), actionGroups.getCEntries().size(), tenants.getCEntries().size());
 
-            
+
 
             //rebuild v7 Models
             dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab);
@@ -252,26 +252,26 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         }
 
         initialized.set(true);
-        
+
     }
-    
+
     private static ConfigV6 getConfigV6(SecurityDynamicConfiguration<?> sdc) {
         @SuppressWarnings("unchecked")
         SecurityDynamicConfiguration<ConfigV6> c = (SecurityDynamicConfiguration<ConfigV6>) sdc;
         return c.getCEntry("opendistro_security");
     }
-    
+
     private static ConfigV7 getConfigV7(SecurityDynamicConfiguration<?> sdc) {
         @SuppressWarnings("unchecked")
         SecurityDynamicConfiguration<ConfigV7> c = (SecurityDynamicConfiguration<ConfigV7>) sdc;
         return c.getCEntry("config");
     }
-    
+
     @Override
     public final boolean isInitialized() {
         return initialized.get();
     }
-    
+
     public void registerDCFListener(Object listener) {
         eventBus.register(listener);
     }
@@ -279,15 +279,15 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     public void unregisterDCFListener(Object listener) {
         eventBus.unregister(listener);
     }
-    
+
     private static class InternalUsersModelV7 extends InternalUsersModel {
-        
+
         private final SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration;
 
         private final SecurityDynamicConfiguration<RoleV7> rolesV7SecurityDynamicConfiguration;
 
         private final SecurityDynamicConfiguration<RoleMappingsV7> rolesMappingsV7SecurityDynamicConfiguration;
-        
+
         public InternalUsersModelV7(SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration,
                                     SecurityDynamicConfiguration<RoleV7> rolesV7SecurityDynamicConfiguration,
                                     SecurityDynamicConfiguration<RoleMappingsV7> rolesMappingsV7SecurityDynamicConfiguration) {
@@ -325,7 +325,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
             return tmp==null?null:tmp.getHash();
         }
-        
+
         public List<String> getSecurityRoles(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
 
@@ -341,11 +341,11 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             return roleMapping!=null && roleMapping.isHidden();
         }
     }
-    
+
     private static class InternalUsersModelV6 extends InternalUsersModel {
-        
+
         SecurityDynamicConfiguration<InternalUserV6> configuration;
-        
+
 
         public InternalUsersModelV6(SecurityDynamicConfiguration<InternalUserV6> configuration) {
             super();
@@ -379,7 +379,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             InternalUserV6 tmp = configuration.getCEntry(user);
             return tmp==null?null:tmp.getHash();
         }
-        
+
         public List<String> getSecurityRoles(String user) {
             return Collections.emptyList();
         }
