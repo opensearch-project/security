@@ -10,7 +10,6 @@
  */
 
 
-import com.diffplug.gradle.spotless.JavaExtension
 import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
@@ -70,22 +69,10 @@ apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.testclusters'
+apply from: 'gradle/formatting.gradle'
 
 licenseFile = rootProject.file('LICENSE.txt')
 noticeFile = rootProject.file('NOTICE.txt')
-
-spotless {
-    java {
-        // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
-        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
-        targetExclude('src/integrationTest/**')
-    }
-    format("integrationTest", JavaExtension) {
-        target('src/integrationTest/java/**/*.java')
-        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
-        indentWithTabs(4)
-    }
-}
 
 spotbugs {
     includeFilter = file('spotbugs-include.xml')
