@@ -192,7 +192,6 @@ public class BackendRegistry {
 
         if(adminDns.isAdminDN(sslPrincipal)) {
             User adminUser = new User(sslPrincipal);
-            adminUser.setInternal(false);
             adminUser.setAuthDomain("admin_certificate");
             //PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, adminUser);
@@ -326,9 +325,6 @@ public class BackendRegistry {
                 log.debug("securitytenant '{}'", tenant);
             }
 
-            if (InternalAuthenticationBackend.INTERNAL.equals(authDomain.getBackend().getType())) {
-                authenticatedUser.setInternal(true);
-            }
             authenticatedUser.setAuthDomain(authDomain.getName());
             authenticatedUser.setRequestedTenant(tenant);
             authenticated = true;
