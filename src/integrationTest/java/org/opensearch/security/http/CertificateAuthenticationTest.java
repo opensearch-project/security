@@ -32,7 +32,10 @@ import org.opensearch.test.framework.cluster.TestRestClient.HttpResponse;
 import static org.apache.hc.core5.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -61,7 +64,7 @@ public class CertificateAuthenticationTest {
 
 	@ClassRule
 	public static final LocalCluster cluster = new LocalCluster.Builder()
-		.nodeSettings(Map.of("plugins.security.ssl.http.clientauth_mode", "OPTIONAL"))
+		.nodeSettings(Map.of("plugins.security.ssl.http.clientauth_mode", "OPTIONAL", "plugins.security.authcz.admin_dn", List.of("CN=kirk,OU=client,O=client,L=test,C=de")))
 		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
 		.authc(new AuthcDomain("clientcert_auth_domain", -1, true)
 			.httpAuthenticator(new HttpAuthenticator("clientcert").challenge(false)
@@ -78,6 +81,22 @@ public class CertificateAuthenticationTest {
 			HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(SC_OK);
+		}
+	}
+
+	@Test
+	public void shouldAuthenticateUserWithAdminCertificate() {
+		try (TestRestClient client = cluster.getRestClient(TEST_CERTIFICATES.getAdminCertificateData())) {
+
+			HttpResponse response = client.getAuthInfo();
+
+			response.assertStatusCode(SC_OK);
+
+			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+
+			assertThat(authInfo, is(notNullValue()));
+			assertThat(false, equalTo(authInfo.isInternal()));
+			assertThat("admin_certificate", equalTo(authInfo.getAuthDomain()));
 		}
 	}
 
@@ -124,6 +143,12 @@ public class CertificateAuthenticationTest {
 			List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
 			assertThat(roles, hasSize(1));
 			assertThat(roles, containsInAnyOrder(ROLE_ALL_INDEX_SEARCH.getName()));
+
+			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+
+			assertThat(authInfo, is(notNullValue()));
+			assertThat(false, equalTo(authInfo.isInternal()));
+			assertThat("clientcert_auth_domain", equalTo(authInfo.getAuthDomain()));
 		}
 	}
 
@@ -140,6 +165,12 @@ public class CertificateAuthenticationTest {
 			assertThat(backendRoles, containsInAnyOrder(BACKEND_ROLE_CAPTAIN));
 			List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
 			assertThat(roles, hasSize(0));
+
+			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+
+			assertThat(authInfo, is(notNullValue()));
+			assertThat(false, equalTo(authInfo.isInternal()));
+			assertThat("clientcert_auth_domain", equalTo(authInfo.getAuthDomain()));
 		}
 	}
 }

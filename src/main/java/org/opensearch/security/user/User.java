@@ -67,6 +67,8 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     private String requestedTenant;
     private Map<String, String> attributes = Collections.synchronizedMap(new HashMap<>());
     private boolean isInjected = false;
+    private boolean isInternal;
+    private String authDomain;
 
     public User(final StreamInput in) throws IOException {
         super();
@@ -75,6 +77,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         requestedTenant = in.readString();
         attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
         securityRoles.addAll(in.readList(StreamInput::readString));
+        isInternal = in.readBoolean();
     }
 
     /**
@@ -82,7 +85,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      *
      * @param name The username (must not be null or empty)
      * @param roles Roles of which the user is a member off (maybe null)
-     * @param customAttributes Custom attributes associated with this (maybe null)
+     * @param customAttributes custom attributes associated with this (maybe null)
      * @throws IllegalArgumentException if name is null or empty
      */
     public User(final String name, final Collection<String> roles, final AuthCredentials customAttributes) {
@@ -175,6 +178,18 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         this.requestedTenant = requestedTenant;
     }
 
+    public String getAuthDomain() {
+        return authDomain;
+    }
+    public final void setAuthDomain(String authDomain) {
+        this.authDomain = authDomain;
+    }
+    public boolean isInternal() {
+        return isInternal;
+    }
+    public final void setInternal(boolean isInternal) {
+        this.isInternal = isInternal;
+    }
 
     public boolean isInjected() {
         return isInjected;
@@ -190,7 +205,8 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
 
     @Override
     public final String toString() {
-        return "User [name=" + name + ", backend_roles=" + roles + ", requestedTenant=" + requestedTenant + "]";
+        return "User [name=" + name + ", backend_roles=" + roles + ", requestedTenant=" + requestedTenant
+                + ", isInternal=" + isInternal + ", authDomain=" + authDomain + "]";
     }
 
     @Override
@@ -241,6 +257,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         out.writeString(requestedTenant);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
         out.writeStringCollection(securityRoles ==null?Collections.emptyList():new ArrayList<String>(securityRoles));
+        out.writeBoolean(isInternal);
     }
 
     /**

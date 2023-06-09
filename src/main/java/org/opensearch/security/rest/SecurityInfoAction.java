@@ -104,6 +104,8 @@ public class SecurityInfoAction extends BaseRestHandler {
                     builder.field("user", user==null?null:user.toString());
                     builder.field("user_name", user==null?null:user.getName());
                     builder.field("user_requested_tenant", user==null?null:user.getRequestedTenant());
+                    builder.field("user_is_internal", user==null?null:user.isInternal());
+                    builder.field("user_auth_domain", user==null?null:user.getAuthDomain());
                     builder.field("remote_address", remoteAddress);
                     builder.field("backend_roles", user==null?null:user.getRoles());
                     builder.field("custom_attribute_names", user==null?null:user.getCustomAttributesMap().keySet());

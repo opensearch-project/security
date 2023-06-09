@@ -32,6 +32,10 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import org.opensearch.test.framework.ldap.EmbeddedLDAPServer;
 import org.opensearch.test.framework.log.LogsRule;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.security.http.DirectoryInformationTrees.DN_CAPTAIN_SPOCK_PEOPLE_TEST_ORG;
 import static org.opensearch.security.http.DirectoryInformationTrees.DN_OPEN_SEARCH_PEOPLE_TEST_ORG;
 import static org.opensearch.security.http.DirectoryInformationTrees.DN_PEOPLE_TEST_ORG;
@@ -95,6 +99,12 @@ public class LdapAuthenticationTest {
 			TestRestClient.HttpResponse response = client.getAuthInfo();
 
 			response.assertStatusCode(200);
+
+			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+
+			assertThat(authInfo, is(notNullValue()));
+			assertThat(false, equalTo(authInfo.isInternal()));
+			assertThat("ldap", equalTo(authInfo.getAuthDomain()));
 		}
 	}
 

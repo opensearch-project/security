@@ -95,6 +95,24 @@ public class BasicAuthTests {
 	}
 
 	@Test
+	public void testUserShouldBeInternalAndBasicAuthDomain() {
+		try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
+
+			HttpResponse response = client.getAuthInfo();
+
+			assertThat(response, is(notNullValue()));
+
+			response.assertStatusCode(SC_OK);
+
+			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+
+			assertThat(authInfo, is(notNullValue()));
+			assertThat(true, equalTo(authInfo.isInternal()));
+			assertThat("basic", equalTo(authInfo.getAuthDomain()));
+		}
+	}
+
+	@Test
 	public void testBrowserShouldRequestForCredentials() {
 		try (TestRestClient client = cluster.getRestClient()) {
 

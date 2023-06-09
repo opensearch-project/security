@@ -58,6 +58,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
+import org.opensearch.security.auth.internal.InternalAuthenticationBackend;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.http.XFFResolver;
@@ -190,8 +191,11 @@ public class BackendRegistry {
         final String sslPrincipal = (String) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_PRINCIPAL);
 
         if(adminDns.isAdminDN(sslPrincipal)) {
+            User adminUser = new User(sslPrincipal);
+            adminUser.setInternal(false);
+            adminUser.setAuthDomain("admin_certificate");
             //PKI authenticated REST call
-            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, adminUser);
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
@@ -322,6 +326,10 @@ public class BackendRegistry {
                 log.debug("securitytenant '{}'", tenant);
             }
 
+            if (InternalAuthenticationBackend.INTERNAL.equals(authDomain.getBackend().getType())) {
+                authenticatedUser.setInternal(true);
+            }
+            authenticatedUser.setAuthDomain(authDomain.getName());
             authenticatedUser.setRequestedTenant(tenant);
             authenticated = true;
             break;

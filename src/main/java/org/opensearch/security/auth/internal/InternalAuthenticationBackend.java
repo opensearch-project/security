@@ -47,6 +47,8 @@ import org.opensearch.security.user.User;
 
 public class InternalAuthenticationBackend implements AuthenticationBackend, AuthorizationBackend {
 
+    public static final String INTERNAL = "internal";
+
     private InternalUsersModel internalUsersModel;
 
     @Override
@@ -157,7 +159,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
 
     @Override
     public String getType() {
-        return "internal";
+        return INTERNAL;
     }
 
     @Override

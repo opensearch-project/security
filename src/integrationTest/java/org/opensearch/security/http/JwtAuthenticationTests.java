@@ -45,6 +45,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
 import static org.opensearch.rest.RestStatus.FORBIDDEN;
@@ -142,6 +144,12 @@ public class JwtAuthenticationTests {
 			response.assertStatusCode(200);
 			String username = response.getTextFromJsonBody(POINTER_USERNAME);
 			assertThat(username, equalTo(username));
+
+			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+
+			assertThat(authInfo, is(notNullValue()));
+			assertThat(false, equalTo(authInfo.isInternal()));
+			assertThat("jwt", equalTo(authInfo.getAuthDomain()));
 		}
 	}
 

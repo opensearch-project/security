@@ -48,6 +48,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class ExtendedProxyAuthenticationTest extends CommonProxyAuthenticationTests {
 
+	private static final String PROXY_AUTH_DOMAIN = "proxy_auth_domain";
 
 	public static final String ID_ONE_1 = "one#1";
 	public static final String ID_TWO_2 = "two#2";
@@ -61,7 +62,7 @@ public class ExtendedProxyAuthenticationTest extends CommonProxyAuthenticationTe
 	public static final LocalCluster cluster = new LocalCluster.Builder()
 		.clusterManager(ClusterManager.SINGLENODE).anonymousAuth(false)
 		.xff(new XffConfig(true).internalProxiesRegexp("127\\.0\\.0\\.10"))
-		.authc(new AuthcDomain("proxy_auth_domain", -5, true)
+		.authc(new AuthcDomain(PROXY_AUTH_DOMAIN, -5, true)
 			.httpAuthenticator(new HttpAuthenticator("extended-proxy").challenge(false).config(PROXY_AUTHENTICATOR_CONFIG))
 			.backend(new AuthenticationBackend("noop")))
 		.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_ADMIN).roles(ROLE_ALL_INDEX_SEARCH, ROLE_PERSONAL_INDEX_SEARCH)
@@ -70,6 +71,11 @@ public class ExtendedProxyAuthenticationTest extends CommonProxyAuthenticationTe
 	@Override
 	protected LocalCluster getCluster() {
 		return cluster;
+	}
+
+	@Override
+	protected String getAuthDomain() {
+		return PROXY_AUTH_DOMAIN;
 	}
 
 	@BeforeClass

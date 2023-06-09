@@ -24,6 +24,8 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
 /**
@@ -85,6 +87,8 @@ abstract class CommonProxyAuthenticationTests {
 	
 	protected abstract LocalCluster getCluster();
 
+	protected abstract String getAuthDomain();
+
 	protected void shouldAuthenticateWithBasicAuthWhenProxyAuthenticationIsConfigured() {
 		try(TestRestClient client = getCluster().getRestClient(USER_ADMIN)) {
 			TestRestClient.HttpResponse response = client.get(RESOURCE_AUTH_INFO);
@@ -106,6 +110,14 @@ abstract class CommonProxyAuthenticationTests {
 			response.assertStatusCode(200);
 			String username = response.getTextFromJsonBody(POINTER_USERNAME);
 			assertThat(username, equalTo(USER_KIRK));
+
+			// TODO This test is failing with java.net.BindException: Can't assign requested address
+			// Figure out why
+			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+
+			assertThat(authInfo, is(notNullValue()));
+			assertThat(false, equalTo(authInfo.isInternal()));
+			assertThat(getAuthDomain(), equalTo(authInfo.getAuthDomain()));
 		}
 	}
 
