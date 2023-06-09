@@ -54,7 +54,7 @@ public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport
     }
 
     protected class NonSslHttpChannelHandler extends Netty4HttpServerTransport.HttpChannelHandler {
-        
+
         protected NonSslHttpChannelHandler(Netty4HttpServerTransport transport, final HttpHandlingSettings handlingSettings) {
             super(transport, handlingSettings);
         }

@@ -28,8 +28,8 @@ public class RetrySink extends AuditLogSink {
 
     @Override
     protected synchronized boolean doStore(AuditMessage msg) {
-        if(failCount++ < 5) {
-            log.debug("Fail "+failCount);
+        if (failCount++ < 5) {
+            log.debug("Fail " + failCount);
             return false;
         }
         log.debug("doStore ok");

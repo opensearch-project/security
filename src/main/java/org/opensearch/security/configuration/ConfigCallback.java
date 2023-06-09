@@ -30,7 +30,7 @@ import org.opensearch.action.get.MultiGetResponse.Failure;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 
 public interface ConfigCallback {
-    
+
     void success(SecurityDynamicConfiguration<?> dConf);
     void noData(String id);
     void singleFailure(Failure failure);

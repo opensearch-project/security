@@ -41,7 +41,7 @@ public class LdapUser extends User {
 
     /**
      * May return null because ldapEntry is transient
-     * 
+     *
      * @return ldapEntry or null if object was deserialized
      */
     public LdapEntry getUserEntry() {
@@ -55,7 +55,7 @@ public class LdapUser extends User {
     public String getOriginalUsername() {
         return originalUsername;
     }
-    
+
     public static Map<String, String> extractLdapAttributes(String originalUsername, final LdapEntry userEntry,
             int customAttrMaxValueLen, WildcardMatcher allowlistedCustomLdapAttrMatcher) {
         Map<String, String> attributes = new HashMap<>();

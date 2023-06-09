@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package org.opensearch.security.tools;
@@ -48,7 +48,7 @@ public class Migrater {
         final CommandLineParser parser = new DefaultParser();
         try {
             final CommandLine line = parser.parse(options, args);
-            
+
             if(line.hasOption("dir")) {
                 final File dir = new File(line.getOptionValue("dir"));
                 if(!migrateDirectory(dir, true)) {
@@ -61,21 +61,21 @@ public class Migrater {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
             formatter.printHelp("migrater.sh", options, true);
         }
-        
+
         System.exit(-1);
     }
-    
+
     public static boolean migrateDirectory(File dir, boolean backup) {
         if(!dir.exists()) {
             System.out.println(dir.getAbsolutePath()+" does not exist");
             return false;
         }
-        
+
         if(!dir.isDirectory()) {
             System.out.println(dir.getAbsolutePath()+" is not a directory");
             return false;
         }
-        
+
         boolean retVal = migrateFile(new File(dir, "config.yml"), CType.CONFIG, backup);
         retVal = migrateFile(new File(dir, "action_groups.yml"), CType.ACTIONGROUPS, backup)  && retVal;
         retVal = migrateFile(new File(dir, "roles.yml"), CType.ROLES, backup)  && retVal;
@@ -94,7 +94,7 @@ public class Migrater {
             System.out.println("Skip "+absolutePath+" because it does not exist");
             return false;
         }
-        
+
         if(!file.isFile()) {
             System.out.println("Skip "+absolutePath+" because it is a directory or a special file");
             return false;
@@ -110,7 +110,7 @@ public class Migrater {
                 }
                 return backupAndWrite(file, val, backup);
             }
-            
+
             if(cType == CType.CONFIG) {
                 SecurityDynamicConfiguration<?> val = Migration.migrateConfig(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.CONFIG, 1, 0, 0));
                 return backupAndWrite(file, val, backup);
@@ -121,12 +121,12 @@ public class Migrater {
                 boolean roles = backupAndWrite(file, tup.v1(), backup);
                 return roles && backupAndWrite(new File(file.getParent(),"tenants.yml"), tup.v2(), backup);
             }
-            
+
             if(cType == CType.ROLESMAPPING) {
                 SecurityDynamicConfiguration<?> val = Migration.migrateRoleMappings(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.ROLESMAPPING, 1, 0, 0));
                 return backupAndWrite(file, val, backup);
             }
-            
+
             if(cType == CType.INTERNALUSERS) {
                 SecurityDynamicConfiguration<?> val = Migration.migrateInternalUsers(SecurityDynamicConfiguration.fromNode(DefaultObjectMapper.YAML_MAPPER.readTree(file), CType.INTERNALUSERS, 1, 0, 0));
                 return backupAndWrite(file, val, backup);
@@ -147,11 +147,11 @@ public class Migrater {
         } catch (Exception e) {
             System.out.println("Can not migrate "+file+" due to "+e);
         }
-        
-        
+
+
         return false;
     }
-    
+
     private static boolean backupAndWrite(File file, SecurityDynamicConfiguration<?> val, boolean backup) {
         try {
             if(val == null) {
@@ -169,7 +169,7 @@ public class Migrater {
             System.out.println("    Details: "+e.getMessage());
             e.printStackTrace();
         }
-        
+
         return false;
     }
 }

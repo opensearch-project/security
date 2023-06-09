@@ -16,8 +16,8 @@ import org.opensearch.security.dlic.rest.api.SecurityConfigApiTest;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 
 public class LegacySecurityConfigApiTests extends SecurityConfigApiTest {
-	@Override
-	protected String getEndpointPrefix() {
-		return LEGACY_OPENDISTRO_PREFIX;
-	}
+    @Override
+    protected String getEndpointPrefix() {
+        return LEGACY_OPENDISTRO_PREFIX;
+    }
 }

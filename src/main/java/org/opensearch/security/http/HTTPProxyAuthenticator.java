@@ -57,14 +57,14 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
 
     @Override
     public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
-    	
+
         if(context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) !=  Boolean.TRUE) {
             throw new OpenSearchSecurityException("xff not done");
         }
-        
+
         final String userHeader = settings.get("user_header");
         final String rolesHeader = settings.get("roles_header");
-        
+
         if (log.isDebugEnabled()) {
             log.debug("Headers {}", request.getHeaders());
             log.debug("UserHeader {}, value {}", userHeader, userHeader == null ? null : request.header(userHeader));

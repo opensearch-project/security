@@ -37,6 +37,7 @@ public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
     public static EmbeddedKafkaRule embeddedKafka = new EmbeddedKafkaRule(1, true, 1, "compliance") {
         // Prevents test exceptions from randomized runner, see https://bit.ly/3y17IkI
         private UncaughtExceptionHandler currentHandler;
+
         @Override
         public void before() {
             currentHandler = Thread.getDefaultUncaughtExceptionHandler();
@@ -53,9 +54,9 @@ public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
     @Test
     public void testKafka() throws Exception {
         String configYml = FileHelper.loadFile("auditlog/endpoints/sink/configuration_kafka.yml");
-        configYml = configYml.replace("_RPLC_BOOTSTRAP_SERVERS_",embeddedKafka.getEmbeddedKafka().getBrokersAsString());
+        configYml = configYml.replace("_RPLC_BOOTSTRAP_SERVERS_", embeddedKafka.getEmbeddedKafka().getBrokersAsString());
         Settings.Builder settingsBuilder = Settings.builder().loadFromSource(configYml, YamlXContent.yamlXContent.mediaType());
-        try(KafkaConsumer<Long, String> consumer = createConsumer()) {
+        try (KafkaConsumer<Long, String> consumer = createConsumer()) {
             consumer.subscribe(Arrays.asList("compliance"));
 
             Settings settings = settingsBuilder.put("path.home", ".").build();
@@ -78,7 +79,7 @@ public class KafkaSinkTest extends AbstractAuditlogiUnitTest {
         Properties props = new Properties();
         props.put("bootstrap.servers", embeddedKafka.getEmbeddedKafka().getBrokersAsString());
         props.put("auto.offset.reset", "earliest");
-        props.put("group.id", "mygroup"+System.currentTimeMillis()+"_"+new Random().nextDouble());
+        props.put("group.id", "mygroup" + System.currentTimeMillis() + "_" + new Random().nextDouble());
         props.put("key.deserializer", "org.apache.kafka.common.serialization.LongDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         return new KafkaConsumer<>(props);

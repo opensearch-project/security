@@ -217,13 +217,13 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             ldapConnection = this.connectionFactory.getConnection();
             ldapConnection.open();
             LdapEntry userEntry = this.userSearcher.exists(ldapConnection, userName, this.returnAttributes, this.shouldFollowReferrals);
-            
+
             boolean exists = userEntry != null;
-            
+
             if(exists) {
                 user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher));
             }
-            
+
             return exists;
         } catch (final Exception e) {
             log.warn("User {} does not exist due to exception", userName, e);

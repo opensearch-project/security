@@ -27,8 +27,7 @@ public class JwtVendorTest {
 
     @Test
     public void testCreateJwkFromSettings() throws Exception {
-        Settings settings = Settings.builder()
-                .put("signing_key", "abc123").build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").build();
 
         JsonWebKey jwk = JwtVendor.createJwkFromSettings(settings);
         Assert.assertEquals("HS512", jwk.getAlgorithm());
@@ -36,10 +35,9 @@ public class JwtVendorTest {
         Assert.assertEquals("abc123", jwk.getProperty("k"));
     }
 
-    @Test (expected = Exception.class)
-    public void testCreateJwkFromSettingsWithoutSigningKey() throws Exception{
-        Settings settings = Settings.builder()
-                .put("jwt", "").build();
+    @Test(expected = Exception.class)
+    public void testCreateJwkFromSettingsWithoutSigningKey() throws Exception {
+        Settings settings = Settings.builder().put("jwt", "").build();
         JwtVendor.createJwkFromSettings(settings);
     }
 
@@ -51,9 +49,9 @@ public class JwtVendorTest {
         List<String> roles = List.of("IT", "HR");
         String expectedRoles = "IT,HR";
         Integer expirySeconds = 300;
-        LongSupplier currentTime = () -> (int)100;
+        LongSupplier currentTime = () -> (int) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
-        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         Long expectedExp = currentTime.getAsLong() + (expirySeconds * 1000);
 
         JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
@@ -72,45 +70,45 @@ public class JwtVendorTest {
         Assert.assertEquals(expectedRoles, EncryptionDecryptionUtil.decrypt(claimsEncryptionKey, jwt.getClaim("er").toString()));
     }
 
-    @Test (expected = Exception.class)
+    @Test(expected = Exception.class)
     public void testCreateJwtWithBadExpiry() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List <String> roles = List.of("admin");
+        List<String> roles = List.of("admin");
         Integer expirySeconds = -300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
 
-        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings);
 
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
     }
 
-    @Test (expected = Exception.class)
+    @Test(expected = Exception.class)
     public void testCreateJwtWithBadEncryptionKey() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List <String> roles = List.of("admin");
+        List<String> roles = List.of("admin");
         Integer expirySeconds = 300;
 
-        Settings settings =  Settings.builder().put("signing_key", "abc123").build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").build();
         JwtVendor jwtVendor = new JwtVendor(settings);
 
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
     }
 
-    @Test (expected = Exception.class)
+    @Test(expected = Exception.class)
     public void testCreateJwtWithBadRoles() throws Exception {
         String issuer = "cluster_0";
         String subject = "admin";
         String audience = "audience_0";
-        List <String> roles = null;
+        List<String> roles = null;
         Integer expirySecond = 300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
 
-        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
 
         JwtVendor jwtVendor = new JwtVendor(settings);
 

@@ -15,23 +15,22 @@ import org.opensearch.common.settings.Settings;
 
 public class MockWebhookAuditLog extends WebhookSink {
 
-	public String payload = null;
-	public String url = null;
+    public String payload = null;
+    public String url = null;
 
-	public MockWebhookAuditLog(Settings settings, String settingsPrefix, AuditLogSink fallback) throws Exception {
-		super("test", settings, settingsPrefix, null, fallback);
-	}
+    public MockWebhookAuditLog(Settings settings, String settingsPrefix, AuditLogSink fallback) throws Exception {
+        super("test", settings, settingsPrefix, null, fallback);
+    }
 
-	@Override
-	protected boolean doPost(String url, String payload) {
-		this.payload = payload;
-		return true;
-	}
+    @Override
+    protected boolean doPost(String url, String payload) {
+        this.payload = payload;
+        return true;
+    }
 
-
-	@Override
-	protected boolean doGet(String url) {
-		this.url = url;
-		return true;
-	}
+    @Override
+    protected boolean doGet(String url) {
+        this.url = url;
+        return true;
+    }
 }

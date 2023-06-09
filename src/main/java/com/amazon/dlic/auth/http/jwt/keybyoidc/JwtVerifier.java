@@ -50,13 +50,13 @@ public class JwtVerifier {
 				kid = StringEscapeUtils.unescapeJava(escapedKid);
 			}
 			JsonWebKey key = keyProvider.getKey(kid);
-			
+
 			// Algorithm is not mandatory for the key material, so we set it to the same as the JWT
 			if (key.getAlgorithm() == null && key.getPublicKeyUse() == PublicKeyUse.SIGN && key.getKeyType() == KeyType.RSA)
 			{
 				key.setAlgorithm(jwt.getJwsHeaders().getAlgorithm());
 			}
-			
+
 			JwsSignatureVerifier signatureVerifier = getInitializedSignatureVerifier(key, jwt);
 
 

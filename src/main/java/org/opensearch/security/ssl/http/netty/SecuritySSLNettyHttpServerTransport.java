@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package org.opensearch.security.ssl.http.netty;
@@ -45,7 +45,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     private static final Logger logger = LogManager.getLogger(SecuritySSLNettyHttpServerTransport.class);
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
-    
+
     public SecuritySSLNettyHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
                                                final ThreadPool threadPool, final SecurityKeyStore sks, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher,
                                                final SslExceptionHandler errorHandler, ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
@@ -94,7 +94,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
                     throw new IllegalStateException("Unknown application protocol: " + protocol);
                 }
             }
-            
+
             @Override
             public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
                 super.exceptionCaught(ctx, cause);
@@ -119,7 +119,7 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
             final SslHandler sslHandler = new SslHandler(SecuritySSLNettyHttpServerTransport.this.sks.createHTTPSSLEngine());
             ch.pipeline().addFirst("ssl_http", sslHandler);
         }
-        
+
         @Override
         protected void configurePipeline(Channel ch) {
             ch.pipeline().addLast(new Http2OrHttpHandler());

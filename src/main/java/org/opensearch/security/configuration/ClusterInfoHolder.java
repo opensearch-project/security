@@ -40,7 +40,7 @@ public class ClusterInfoHolder implements ClusterStateListener {
     private volatile DiscoveryNodes nodes = null;
     private volatile Boolean isLocalNodeElectedClusterManager = null;
     private volatile boolean initialized;
-    
+
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if(nodes == null || event.nodesChanged()) {
@@ -50,7 +50,7 @@ public class ClusterInfoHolder implements ClusterStateListener {
             }
             initialized = true;
         }
-        
+
         isLocalNodeElectedClusterManager = event.localNodeClusterManager()?Boolean.TRUE:Boolean.FALSE;
     }
 
@@ -69,7 +69,7 @@ public class ClusterInfoHolder implements ClusterStateListener {
             }
             return null;
         }
-        
+
         return nodes.nodeExists(node)?Boolean.TRUE:Boolean.FALSE;
     }
 }

@@ -21,15 +21,26 @@ import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-public class MFlsTest extends AbstractDlsFlsTest{
-
+public class MFlsTest extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"customer\": {\"name\":\"cust1\"}, \"zip\": \"12345\",\"secret\": \"tellnoone\",\"amount\": 10}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("finance").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"finfield2\":\"fff\",\"xcustomer\": {\"name\":\"cust2\", \"ctype\":\"industry\"}, \"famount\": 1500}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("deals").id("0")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"customer\": {\"name\":\"cust1\"}, \"zip\": \"12345\",\"secret\": \"tellnoone\",\"amount\": 10}",
+                    XContentType.JSON
+                )
+        ).actionGet();
+        tc.index(
+            new IndexRequest("finance").id("1")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"finfield2\":\"fff\",\"xcustomer\": {\"name\":\"cust2\", \"ctype\":\"industry\"}, \"famount\": 1500}",
+                    XContentType.JSON
+                )
+        ).actionGet();
     }
 
     @Test
@@ -40,7 +51,10 @@ public class MFlsTest extends AbstractDlsFlsTest{
         HttpResponse res;
 
         System.out.println("### normal search");
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("deals,finance/_search?pretty", encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("deals,finance/_search?pretty", encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode()
+        );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertFalse(res.getBody().contains("xception"));
@@ -50,16 +64,22 @@ public class MFlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(res.getBody().contains("amount"));
         Assert.assertFalse(res.getBody().contains("secret"));
 
-        //mget
-        //msearch
-        String msearchBody =
-                "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
-                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
-                "{\"index\":\"finance\", \"ignore_unavailable\": true}"+System.lineSeparator()+
-                "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
+        // mget
+        // msearch
+        String msearchBody = "{\"index\":\"deals\", \"ignore_unavailable\": true}"
+            + System.lineSeparator()
+            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
+            + System.lineSeparator()
+            + "{\"index\":\"finance\", \"ignore_unavailable\": true}"
+            + System.lineSeparator()
+            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
+            + System.lineSeparator();
 
         System.out.println("### msearch");
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode()
+        );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertFalse(res.getBody().contains("xception"));
@@ -69,22 +89,24 @@ public class MFlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(res.getBody().contains("amount"));
         Assert.assertFalse(res.getBody().contains("secret"));
 
-
-        String mgetBody = "{"+
-                "\"docs\" : ["+
-                    "{"+
-                         "\"_index\" : \"deals\","+
-                        "\"_id\" : \"0\""+
-                   " },"+
-                   " {"+
-                       "\"_index\" : \"finance\","+
-                       " \"_id\" : \"1\""+
-                    "}"+
-                "]"+
-            "}";
+        String mgetBody = "{"
+            + "\"docs\" : ["
+            + "{"
+            + "\"_index\" : \"deals\","
+            + "\"_id\" : \"0\""
+            + " },"
+            + " {"
+            + "\"_index\" : \"finance\","
+            + " \"_id\" : \"1\""
+            + "}"
+            + "]"
+            + "}";
 
         System.out.println("### mget");
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager_fls", "password"))).getStatusCode()
+        );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
         Assert.assertFalse(res.getBody().contains("\"found\" : false"));

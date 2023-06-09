@@ -132,7 +132,7 @@ public class LDAPConnectionFactoryFactory {
 
         checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, ConfigConstants.LDAP_POOL_PRUNING_PERIOD);
         checkForDeprecatedSetting(settings, ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, ConfigConstants.LDAP_POOL_IDLE_TIME);
-          
+
         result.setPruneStrategy(new IdlePruneStrategy(
             Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_PRUNING_PERIOD, this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_PRUNING_PERIOD, 5l))),
             Duration.ofMinutes(this.settings.getAsLong(ConfigConstants.LDAP_POOL_IDLE_TIME, this.settings.getAsLong(ConfigConstants.LDAP_LEGACY_POOL_IDLE_TIME, 10l))))

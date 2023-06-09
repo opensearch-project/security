@@ -55,11 +55,10 @@ public class SecurityIndexAccessEvaluatorTest {
     @Mock
     private Logger log;
 
-
     private SecurityIndexAccessEvaluator evaluator;
 
-    private static final String UNPROTECTED_ACTION = "indices:data/read"; 
-    private static final String PROTECTED_ACTION = "indices:data/write"; 
+    private static final String UNPROTECTED_ACTION = "indices:data/read";
+    private static final String PROTECTED_ACTION = "indices:data/write";
 
     @Before
     public void before() {
@@ -69,7 +68,8 @@ public class SecurityIndexAccessEvaluatorTest {
                 .put("plugins.security.system_indices.enabled", true)
                 .build(),
             auditLog,
-            irr);
+            irr
+        );
         evaluator.log = log;
 
         when(log.isDebugEnabled()).thenReturn(true);
@@ -79,7 +79,7 @@ public class SecurityIndexAccessEvaluatorTest {
     public void after() {
         verifyNoMoreInteractions(auditLog, irr, request, task, presponse, log);
     }
-    
+
     @Test
     public void actionIsNotProtected_noSystemIndexInvolved() {
         final Resolved resolved = createResolved(".test");
@@ -140,13 +140,16 @@ public class SecurityIndexAccessEvaluatorTest {
         verify(presponse).markComplete();
 
         verify(log).isDebugEnabled();
-        verify(log).warn(
-            "{} for '{}' index is not allowed for a regular user",
-            "indices:data/write",
-            ".opendistro_security, .test");
+        verify(log).warn("{} for '{}' index is not allowed for a regular user", "indices:data/write", ".opendistro_security, .test");
     }
 
     private Resolved createResolved(final String... indexes) {
-        return new Resolved(ImmutableSet.of(), ImmutableSet.copyOf(indexes), ImmutableSet.copyOf(indexes), ImmutableSet.of(), IndicesOptions.STRICT_EXPAND_OPEN);
+        return new Resolved(
+            ImmutableSet.of(),
+            ImmutableSet.copyOf(indexes),
+            ImmutableSet.copyOf(indexes),
+            ImmutableSet.of(),
+            IndicesOptions.STRICT_EXPAND_OPEN
+        );
     }
 }

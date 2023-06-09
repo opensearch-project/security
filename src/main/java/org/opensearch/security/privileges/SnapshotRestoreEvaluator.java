@@ -47,7 +47,7 @@ public class SnapshotRestoreEvaluator {
     private final String securityIndex;
     private final AuditLog auditLog;
     private final boolean restoreSecurityIndexEnabled;
-    
+
     public SnapshotRestoreEvaluator(final Settings settings, AuditLog auditLog) {
         this.enableSnapshotRestorePrivilege = settings.getAsBoolean(ConfigConstants.SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
                 ConfigConstants.SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
@@ -63,27 +63,27 @@ public class SnapshotRestoreEvaluator {
         if (!(request instanceof RestoreSnapshotRequest)) {
             return presponse;
         }
-        
+
         // snapshot restore for regular users not enabled
         if (!enableSnapshotRestorePrivilege) {
             log.warn("{} is not allowed for a regular user", action);
             presponse.allowed = false;
-            return presponse.markComplete();            
+            return presponse.markComplete();
         }
 
         // if this feature is enabled, users can also snapshot and restore
         // the Security index and the global state
         if (restoreSecurityIndexEnabled) {
             presponse.allowed = true;
-            return presponse;            
+            return presponse;
         }
 
-        
+
         if (clusterInfoHolder.isLocalNodeElectedClusterManager() == Boolean.FALSE) {
             presponse.allowed = true;
-            return presponse.markComplete();            
+            return presponse.markComplete();
         }
-        
+
         final RestoreSnapshotRequest restoreRequest = (RestoreSnapshotRequest) request;
 
         // Do not allow restore of global state
@@ -91,7 +91,7 @@ public class SnapshotRestoreEvaluator {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn("{} with 'include_global_state' enabled is not allowed", action);
             presponse.allowed = false;
-            return presponse.markComplete();            
+            return presponse.markComplete();
         }
 
         final List<String> rs = SnapshotRestoreHelper.resolveOriginalIndices(restoreRequest);
@@ -100,7 +100,7 @@ public class SnapshotRestoreEvaluator {
             auditLog.logSecurityIndexAttempt(request, action, task);
             log.warn("{} for '{}' as source index is not allowed", action, securityIndex);
             presponse.allowed = false;
-            return presponse.markComplete();            
+            return presponse.markComplete();
         }
         return presponse;
     }

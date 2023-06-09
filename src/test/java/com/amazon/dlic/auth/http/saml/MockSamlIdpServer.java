@@ -464,7 +464,7 @@ class MockSamlIdpServer implements Closeable {
                     attribute.getAttributeValues().add(createXSAny(AttributeValue.DEFAULT_ELEMENT_NAME, role));
                 }
             }
-            
+
             if (signResponses) {
                 Signature signature = createSamlElement(Signature.class);
                 assertion.setSignature(signature);

@@ -108,9 +108,9 @@ class TestJwts {
 	static String createMcCoySignedOct1(long nbf, long exp)
 	{
 		JwtToken jwt_token = create(
-			MCCOY_SUBJECT, TEST_AUDIENCE, 
-			ROLES_CLAIM, TEST_ROLES_STRING, 
-			JwtConstants.CLAIM_NOT_BEFORE, nbf, 
+			MCCOY_SUBJECT, TEST_AUDIENCE,
+			ROLES_CLAIM, TEST_ROLES_STRING,
+			JwtConstants.CLAIM_NOT_BEFORE, nbf,
 			JwtConstants.CLAIM_EXPIRY, exp);
 
 		return createSigned(jwt_token, TestJwk.OCT_1);

@@ -112,14 +112,14 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		Settings settings = Settings.builder().put("openid_connect_url", mockIdpServer.getDiscoverUri()).build();
 
 		HTTPJwtKeyByOpenIdConnectAuthenticator jwtAuth = new HTTPJwtKeyByOpenIdConnectAuthenticator(settings, null);
-		
+
 		AuthCredentials creds = jwtAuth.extractCredentials(
 				new FakeRestRequest(ImmutableMap.of("Authorization", "Bearer " + TestJwts.MC_COY_EXPIRED_SIGNED_OCT_1),
 						new HashMap<String, String>()),
 				null);
 
 		Assert.assertNull(creds);
-	}	
+	}
 
 	@Test
 	public void testExpInSkew() throws Exception {
@@ -136,7 +136,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		AuthCredentials creds = jwtAuth.extractCredentials(
 			new FakeRestRequest(
 				ImmutableMap.of(
-					"Authorization", 
+					"Authorization",
 					"Bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
 				new HashMap<String, String>()),
 			null);
@@ -159,7 +159,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 		AuthCredentials creds = jwtAuth.extractCredentials(
 			new FakeRestRequest(
 				ImmutableMap.of(
-					"Authorization", 
+					"Authorization",
 					"Bearer "+TestJwts.createMcCoySignedOct1(notBeforeDate, expiringDate)),
 				new HashMap<String, String>()),
 			null);
@@ -186,7 +186,7 @@ public class HTTPJwtKeyByOpenIdConnectAuthenticatorTest {
 				null);
 
 		Assert.assertNotNull(creds);
-	}	
+	}
 
 
 	@Test
