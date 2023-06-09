@@ -56,8 +56,7 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
         }
     }
 
-    private static SettingsBasedSSLConfiguratorV4.SSLConfig getSSLConfig(Settings settings, Path configPath)
-            throws Exception {
+    private static SettingsBasedSSLConfiguratorV4.SSLConfig getSSLConfig(Settings settings, Path configPath) throws Exception {
         return new SettingsBasedSSLConfiguratorV4(settings, configPath, "idp").buildSSLConfig();
     }
 

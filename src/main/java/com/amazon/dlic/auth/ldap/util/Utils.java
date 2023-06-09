@@ -83,8 +83,10 @@ public final class Utils {
 
             @Override
             public int compare(Map.Entry<String, Settings> o1, Map.Entry<String, Settings> o2) {
-                int attributeOrder = Integer.compare(o1.getValue().getAsInt("order", Integer.MAX_VALUE),
-                        o2.getValue().getAsInt("order", Integer.MAX_VALUE));
+                int attributeOrder = Integer.compare(
+                    o1.getValue().getAsInt("order", Integer.MAX_VALUE),
+                    o2.getValue().getAsInt("order", Integer.MAX_VALUE)
+                );
 
                 if (attributeOrder != 0) {
                     return attributeOrder;
@@ -96,12 +98,12 @@ public final class Utils {
     }
 
     public static String getSingleStringValue(LdapAttribute attribute) {
-        if(attribute == null) {
+        if (attribute == null) {
             return null;
         }
 
-        if(attribute.size() > 1) {
-            if(log.isDebugEnabled()) {
+        if (attribute.size() > 1) {
+            if (log.isDebugEnabled()) {
                 log.debug("Multiple values found for {} ({})", attribute.getName(), attribute);
             }
         }

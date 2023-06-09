@@ -13,26 +13,25 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 public class BadCredentialsException extends Exception {
 
-	private static final long serialVersionUID = 9092575587366580869L;
+    private static final long serialVersionUID = 9092575587366580869L;
 
-	public BadCredentialsException() {
-		super();
-	}
+    public BadCredentialsException() {
+        super();
+    }
 
-	public BadCredentialsException(String message, Throwable cause, boolean enableSuppression,
-			boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
-	}
+    public BadCredentialsException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 
-	public BadCredentialsException(String message, Throwable cause) {
-		super(message, cause);
-	}
+    public BadCredentialsException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-	public BadCredentialsException(String message) {
-		super(message);
-	}
+    public BadCredentialsException(String message) {
+        super(message);
+    }
 
-	public BadCredentialsException(Throwable cause) {
-		super(cause);
-	}
+    public BadCredentialsException(Throwable cause) {
+        super(cause);
+    }
 }

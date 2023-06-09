@@ -58,7 +58,7 @@ import org.opensearch.security.user.AuthCredentials;
 public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
     private static final String EMPTY_STRING = "";
-    private static final Oid[] KRB_OIDS = new Oid[] {KrbConstants.SPNEGO, KrbConstants.KRB5MECH};
+    private static final Oid[] KRB_OIDS = new Oid[] { KrbConstants.SPNEGO, KrbConstants.KRB5MECH };
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -98,17 +98,17 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                         }
                     } catch (Throwable e) {
                         log.error("Unable to enable krb_debug due to ", e);
-                        System.err.println("Unable to enable krb_debug due to "+ExceptionsHelper.stackTrace(e));
-                        System.out.println("Unable to enable krb_debug due to "+ExceptionsHelper.stackTrace(e));
+                        System.err.println("Unable to enable krb_debug due to " + ExceptionsHelper.stackTrace(e));
+                        System.out.println("Unable to enable krb_debug due to " + ExceptionsHelper.stackTrace(e));
                     }
 
                     System.setProperty(KrbConstants.USE_SUBJECT_CREDS_ONLY_PROP, "false");
 
                     String krb5Path = krb5PathSetting;
 
-                    if(!Strings.isNullOrEmpty(krb5Path)) {
+                    if (!Strings.isNullOrEmpty(krb5Path)) {
 
-                        if(Paths.get(krb5Path).isAbsolute()) {
+                        if (Paths.get(krb5Path).isAbsolute()) {
                             log.debug("krb5_filepath: {}", krb5Path);
                             System.setProperty(KrbConstants.KRB5_CONF_PROP, krb5Path);
                         } else {
@@ -118,29 +118,36 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
                         System.setProperty(KrbConstants.KRB5_CONF_PROP, krb5Path);
                     } else {
-                        if(Strings.isNullOrEmpty(System.getProperty(KrbConstants.KRB5_CONF_PROP))) {
+                        if (Strings.isNullOrEmpty(System.getProperty(KrbConstants.KRB5_CONF_PROP))) {
                             System.setProperty(KrbConstants.KRB5_CONF_PROP, "/etc/krb5.conf");
                             log.debug("krb5_filepath (was not set or configured, set to default): /etc/krb5.conf");
                         }
                     }
 
                     stripRealmFromPrincipalName = settings.getAsBoolean("strip_realm_from_principal", true);
-                    acceptorPrincipal = new HashSet<>(settings.getAsList("plugins.security.kerberos.acceptor_principal", Collections.emptyList()));
+                    acceptorPrincipal = new HashSet<>(
+                        settings.getAsList("plugins.security.kerberos.acceptor_principal", Collections.emptyList())
+                    );
                     final String _acceptorKeyTabPath = settings.get("plugins.security.kerberos.acceptor_keytab_filepath");
 
-                    if(acceptorPrincipal == null || acceptorPrincipal.size() == 0) {
+                    if (acceptorPrincipal == null || acceptorPrincipal.size() == 0) {
                         log.error("acceptor_principal must not be null or empty. Kerberos authentication will not work");
                         acceptorPrincipal = null;
                     }
 
-                    if(_acceptorKeyTabPath == null || _acceptorKeyTabPath.length() == 0) {
-                        log.error("plugins.security.kerberos.acceptor_keytab_filepath must not be null or empty. Kerberos authentication will not work");
+                    if (_acceptorKeyTabPath == null || _acceptorKeyTabPath.length() == 0) {
+                        log.error(
+                            "plugins.security.kerberos.acceptor_keytab_filepath must not be null or empty. Kerberos authentication will not work"
+                        );
                         acceptorKeyTabPath = null;
                     } else {
                         acceptorKeyTabPath = configDir.resolve(settings.get("plugins.security.kerberos.acceptor_keytab_filepath"));
 
-                        if(!Files.exists(acceptorKeyTabPath)) {
-                            log.error("Unable to read keytab from {} - Maybe the file does not exist or is not readable. Kerberos authentication will not work", acceptorKeyTabPath);
+                        if (!Files.exists(acceptorKeyTabPath)) {
+                            log.error(
+                                "Unable to read keytab from {} - Maybe the file does not exist or is not readable. Kerberos authentication will not work",
+                                acceptorKeyTabPath
+                            );
                             acceptorKeyTabPath = null;
                         }
                     }
@@ -155,7 +162,9 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
 
         } catch (Throwable e) {
             log.error("Cannot construct HTTPSpnegoAuthenticator due to {}", e.getMessage(), e);
-            log.error("Please make sure you configured 'plugins.security.kerberos.acceptor_keytab_filepath' realtive to the ES config/ dir!");
+            log.error(
+                "Please make sure you configured 'plugins.security.kerberos.acceptor_keytab_filepath' realtive to the ES config/ dir!"
+            );
             throw e;
         }
 
@@ -252,11 +261,13 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
                     return new AuthCredentials("_incomplete_", (Object) outToken);
                 }
 
-
                 final String username = ((SimpleUserPrincipal) principal).getName();
 
-                if(username == null || username.length() == 0) {
-                    log.error("Got empty or null user from kerberos. Normally this means that you acceptor principal {} does not match the server hostname", acceptorPrincipal);
+                if (username == null || username.length() == 0) {
+                    log.error(
+                        "Got empty or null user from kerberos. Normally this means that you acceptor principal {} does not match the server hostname",
+                        acceptorPrincipal
+                    );
                 }
 
                 return new AuthCredentials(username, (Object) outToken).markComplete();
@@ -272,19 +283,22 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     @Override
     public boolean reRequestAuthentication(final RestChannel channel, AuthCredentials creds) {
 
-    	final BytesRestResponse wwwAuthenticateResponse;
-    	XContentBuilder response = getNegotiateResponseBody();
+        final BytesRestResponse wwwAuthenticateResponse;
+        XContentBuilder response = getNegotiateResponseBody();
 
-    	if (response != null) {
-        	wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, response);
+        if (response != null) {
+            wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, response);
         } else {
-        	wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, EMPTY_STRING);
+            wwwAuthenticateResponse = new BytesRestResponse(RestStatus.UNAUTHORIZED, EMPTY_STRING);
         }
 
-        if(creds == null || creds.getNativeCredentials() == null) {
+        if (creds == null || creds.getNativeCredentials() == null) {
             wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Negotiate");
         } else {
-            wwwAuthenticateResponse.addHeader("WWW-Authenticate", "Negotiate "+Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials()));
+            wwwAuthenticateResponse.addHeader(
+                "WWW-Authenticate",
+                "Negotiate " + Base64.getEncoder().encodeToString((byte[]) creds.getNativeCredentials())
+            );
         }
         channel.sendResponse(wwwAuthenticateResponse);
         return true;
@@ -298,7 +312,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
     /**
      * This class gets a gss credential via a privileged action.
      */
-    //borrowed from Apache Tomcat 8 http://svn.apache.org/repos/asf/tomcat/tc8.0.x/trunk/
+    // borrowed from Apache Tomcat 8 http://svn.apache.org/repos/asf/tomcat/tc8.0.x/trunk/
     private static class AcceptAction implements PrivilegedExceptionAction<byte[]> {
 
         GSSContext gssContext;
@@ -316,7 +330,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         }
     }
 
-    //borrowed from Apache Tomcat 8 http://svn.apache.org/repos/asf/tomcat/tc8.0.x/trunk/
+    // borrowed from Apache Tomcat 8 http://svn.apache.org/repos/asf/tomcat/tc8.0.x/trunk/
     private static class AuthenticateAction implements PrivilegedAction<Principal> {
 
         private final Logger logger;
@@ -336,7 +350,7 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         }
     }
 
-    //borrowed from Apache Tomcat 8 http://svn.apache.org/repos/asf/tomcat/tc8.0.x/trunk/
+    // borrowed from Apache Tomcat 8 http://svn.apache.org/repos/asf/tomcat/tc8.0.x/trunk/
     private static String getUsernameFromGSSContext(final GSSContext gssContext, final boolean strip, final Logger logger) {
         if (gssContext.isEstablished()) {
             GSSName gssName = null;
@@ -359,26 +373,26 @@ public class HTTPSpnegoAuthenticator implements HTTPAuthenticator {
         return null;
     }
 
-	private XContentBuilder getNegotiateResponseBody() {
-		try {
-			XContentBuilder negotiateResponseBody = XContentFactory.jsonBuilder();
-			negotiateResponseBody.startObject();
-			negotiateResponseBody.field("error");
-			negotiateResponseBody.startObject();
-			negotiateResponseBody.field("header");
-			negotiateResponseBody.startObject();
-			negotiateResponseBody.field("WWW-Authenticate", "Negotiate");
-			negotiateResponseBody.endObject();
-			negotiateResponseBody.endObject();
-			negotiateResponseBody.endObject();
-			return negotiateResponseBody;
-		} catch (Exception ex) {
-			log.error("Can't construct response body", ex);
-			return null;
-		}
-	}
+    private XContentBuilder getNegotiateResponseBody() {
+        try {
+            XContentBuilder negotiateResponseBody = XContentFactory.jsonBuilder();
+            negotiateResponseBody.startObject();
+            negotiateResponseBody.field("error");
+            negotiateResponseBody.startObject();
+            negotiateResponseBody.field("header");
+            negotiateResponseBody.startObject();
+            negotiateResponseBody.field("WWW-Authenticate", "Negotiate");
+            negotiateResponseBody.endObject();
+            negotiateResponseBody.endObject();
+            negotiateResponseBody.endObject();
+            return negotiateResponseBody;
+        } catch (Exception ex) {
+            log.error("Can't construct response body", ex);
+            return null;
+        }
+    }
 
-    private static String stripRealmName(String name, boolean strip){
+    private static String stripRealmName(String name, boolean strip) {
         if (strip && name != null) {
             final int i = name.indexOf('@');
             if (i > 0) {
