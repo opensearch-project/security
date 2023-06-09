@@ -126,7 +126,6 @@ public class ConfigV7 {
         public String hosts_resolver_mode = "ip-only";
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
-        public OnBehalfOf on_behalf_of = new OnBehalfOf();
 
         @Override
         public String toString() {
@@ -464,42 +463,7 @@ public class ConfigV7 {
                     + ", authorization_backend=" + authorization_backend + ", description=" + description + "]";
         }
 
+
     }
 
-    public static class OnBehalfOf {
-        @JsonProperty("signing_key")
-        private String signingKey;
-        @JsonProperty("encryption_key")
-        private String encryptionKey;
-
-        @JsonIgnore
-        public String configAsJson() {
-            try {
-                return DefaultObjectMapper.writeValueAsString(this, false);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public String getSigningKey() {
-            return signingKey;
-        }
-
-        public void setSigningKey(String signingKey) {
-            this.signingKey = signingKey;
-        }
-
-        public String getEncryptionKey() {
-            return encryptionKey;
-        }
-
-        public void setEncryptionKey(String encryptionKey) {
-            this.encryptionKey = encryptionKey;
-        }
-
-        @Override
-        public String toString() {
-            return "OnBehalfOf [signing_key=" + signingKey + ", encryption_key=" + encryptionKey +"]";
-        }
-    }
 }

@@ -65,8 +65,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     public LDAPAuthenticationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
 
-        LDAPConnectionFactoryFactory ldapConnectionFactoryFactory = new LDAPConnectionFactoryFactory(settings,
-                configPath);
+        LDAPConnectionFactoryFactory ldapConnectionFactoryFactory = new LDAPConnectionFactoryFactory(settings, configPath);
 
         this.connectionPool = ldapConnectionFactoryFactory.createConnectionPool();
         this.connectionFactory = ldapConnectionFactoryFactory.createConnectionFactory(this.connectionPool);
@@ -78,11 +77,13 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
         }
 
         this.userSearcher = new LDAPUserSearcher(settings);
-        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
+        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value()))
+            .toArray(new String[0]);
         this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT);
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
-        whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
-                Collections.singletonList("*")));
+        whitelistedCustomLdapAttrMatcher = WildcardMatcher.from(
+            settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST, Collections.singletonList("*"))
+        );
     }
 
     @Override
@@ -112,7 +113,6 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
         }
     }
 
-
     private User authenticate0(final AuthCredentials credentials) throws OpenSearchSecurityException {
 
         Connection ldapConnection = null;
@@ -130,11 +130,12 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             // makes guessing if a user exists or not harder when looking on the
             // authentication delay time
             if (entry == null && settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)) {
-                String fakeLognDn = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_DN,
-                        "CN=faketomakebindfail,DC=" + UUID.randomUUID().toString());
+                String fakeLognDn = settings.get(
+                    ConfigConstants.LDAP_FAKE_LOGIN_DN,
+                    "CN=faketomakebindfail,DC=" + UUID.randomUUID().toString()
+                );
                 entry = new LdapEntry(fakeLognDn);
-                password = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_PASSWORD, "fakeLoginPwd123")
-                        .getBytes(StandardCharsets.UTF_8);
+                password = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_PASSWORD, "fakeLoginPwd123").getBytes(StandardCharsets.UTF_8);
             } else if (entry == null) {
                 throw new OpenSearchSecurityException("No user " + user + " found");
             }
@@ -195,7 +196,6 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
             sm.checkPermission(new SpecialPermission());
         }
 
-
         return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
             @Override
             public Boolean run() {
@@ -220,8 +220,10 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
 
             boolean exists = userEntry != null;
 
-            if(exists) {
-                user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher));
+            if (exists) {
+                user.addAttributes(
+                    LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, whitelistedCustomLdapAttrMatcher)
+                );
             }
 
             return exists;
@@ -234,8 +236,7 @@ public class LDAPAuthenticationBackend2 implements AuthenticationBackend, Destro
     }
 
     @SuppressWarnings("removal")
-    private void authenticateByLdapServer(final Connection connection, final String dn, byte[] password)
-            throws LdapException {
+    private void authenticateByLdapServer(final Connection connection, final String dn, byte[] password) throws LdapException {
         final SecurityManager sm = System.getSecurityManager();
 
         if (sm != null) {

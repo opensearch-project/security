@@ -81,7 +81,6 @@ public abstract class DynamicConfigModel {
     public abstract Multimap<String, AuthFailureListener> getAuthBackendFailureListeners();
     public abstract List<ClientBlockRegistry<InetAddress>> getIpClientBlockRegistries();
     public abstract Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries();
-    public abstract Settings getDynamicOnBehalfOfSettings();
     protected final Map<String, String> authImplMap = new HashMap<>();
 
     public DynamicConfigModel() {

@@ -189,12 +189,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
     }
 
-    @Override
-    public Settings getDynamicOnBehalfOfSettings() {
-        return Settings.builder()
-                .put(Settings.builder().loadFromSource(config.dynamic.on_behalf_of.configAsJson(), XContentType.JSON).build())
-                .build();
-    }
 
     private void buildAAA() {
 
