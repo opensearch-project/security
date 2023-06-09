@@ -61,6 +61,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
 	@Test
 	public void shouldAuthenticateWithJwtToken_positive() {
+		// TODO: This integration test should use an endpoint to get an OnBehalfOf token, not generate it 
 		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken())){
 
 			TestRestClient.HttpResponse response = client.getAuthInfo();

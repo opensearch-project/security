@@ -45,15 +45,15 @@ public class JwtVendor {
 
     private static JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
 
-    private String claimsEncryptionKey;
-    private JsonWebKey signingKey;
-    private JoseJwtProducer jwtProducer;
+    private final String claimsEncryptionKey;
+    private final JsonWebKey signingKey;
+    private final JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
 
     //TODO: Relocate/Remove them at once we make the descisions about the `roles`
     private ConfigModel configModel; // This never gets assigned, how does this work at all?
 
-    public JwtVendor(Settings settings, final Optional<LongSupplier> timeProvider) {
+    public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
         try {
             this.signingKey = createJwkFromSettings(settings);
@@ -67,6 +67,7 @@ public class JwtVendor {
             this.claimsEncryptionKey = settings.get("encryption_key");
         }
         this.timeProvider = timeProvider.orElseGet(() -> System::currentTimeMillis);
+        this.configModel = null;
     }
 
     /*
@@ -106,7 +107,7 @@ public class JwtVendor {
         }
     }
 
-     String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles) throws Exception {
+    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles) throws Exception {
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
