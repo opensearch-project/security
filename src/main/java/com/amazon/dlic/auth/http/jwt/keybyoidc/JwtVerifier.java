@@ -35,7 +35,7 @@ public class JwtVerifier {
 	private final int clockSkewToleranceSeconds;
 	private final String requiredIssuer;
 	private final String requiredAudience;
-	
+
 	public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, String requiredAudience) {
 		this.keyProvider = keyProvider;
 		this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
