@@ -113,14 +113,28 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
             public void accept(RestChannel channel) throws Exception {
                 final XContentBuilder builder = channel.newBuilder();
                 BytesRestResponse response;
-        
                 try {
-                    builder.startObject();
+                    final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
+                    final String reason = (String)requestBody.getOrDefault("reason", null);
+
+                    final Integer tokenDuration = Optional.ofNullable(requestBody.get("duration"))
+                        .map(value -> (String)value)
+                        .map(Integer::parseInt)
+                        .map(value -> Math.min(value, 72)) // Max duration is 72 hours
+                        .orElse(24); // Fallback to default;
+
+                    final String source = "self-issued";
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    builder.field("user_name", "nothing");
-                    builder.field("user", user.toString());
-                    final String token = vendor.createJwt("me", user.getName(), "self-issued", 60, List.of("1", "2", "3"));
-                    builder.field("field_token", token);
+        
+                    builder.startObject();
+                    builder.field("user", user.getName());
+                    final String token = vendor.createJwt(/* TODO: Update the issuer to represent the cluster */"OpenSearch",
+                        user.getName(),
+                        source,
+                        tokenDuration,
+                        user.getSecurityRoles().stream().collect(Collectors.toList()));
+                    builder.field("onBehalfOfToken", token);
+                    builder.field("duration", tokenDuration);
                     builder.endObject();
         
                     response = new BytesRestResponse(RestStatus.OK, builder);

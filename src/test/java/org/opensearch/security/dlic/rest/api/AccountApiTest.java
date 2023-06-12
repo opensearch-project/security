@@ -74,7 +74,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertNotNull(body.getAsSettings("tenants"));
         assertNotNull(body.getAsList("roles"));
         
-        response = rh.executePostRequest(getEndpointPrefix() + "/api/user/onbehalfof", "", encodeBasicHeader(testUser, testPass));
+        response = rh.executePostRequest(getEndpointPrefix() + "/api/user/onbehalfof", "{\"reason\":\"Test generation\"}", encodeBasicHeader(testUser, testPass));
         System.out.println(response.getBody());
     }
 
