@@ -39,7 +39,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         BASE_ENDPOINT = getEndpointPrefix() + "/api/";
         ENDPOINT = getEndpointPrefix() + "/api/account";
     }
-
+    
     @Test
     public void testGetAccount() throws Exception {
         // arrange
@@ -73,6 +73,9 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertNotNull(body.getAsList("custom_attribute_names").size());
         assertNotNull(body.getAsSettings("tenants"));
         assertNotNull(body.getAsList("roles"));
+        
+        response = rh.executePostRequest(getEndpointPrefix() + "/api/user/onbehalfof", "{\"reason\":\"Test generation\"}", encodeBasicHeader(testUser, testPass));
+        System.out.println(response.getBody());
     }
 
     @Test

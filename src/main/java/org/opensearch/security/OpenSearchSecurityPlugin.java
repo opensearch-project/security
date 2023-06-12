@@ -117,6 +117,7 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
+import org.opensearch.security.action.onbehalf.CreateOnBehalfOfToken;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -141,7 +142,7 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.http.HTTPOnBehalfOfJwtAuthenticator;
+import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
@@ -477,6 +478,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
                 handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.add(new CreateOnBehalfOfToken(settings, threadPool));
                 handlers.addAll(
                         SecurityRestApiActions.getHandler(
                                 settings,
@@ -838,7 +840,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
                 principalExtractor, settings, configPath, compatConfig);
-
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
