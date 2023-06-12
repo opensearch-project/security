@@ -13,7 +13,7 @@ import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.8.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.9.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -50,7 +50,7 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.diffplug.spotless' version '6.16.0'
+    id 'com.diffplug.spotless' version '6.19.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage'  version "11.0.0"
     id "org.gradle.test-retry" version "1.5.2"
@@ -285,6 +285,7 @@ configurations.all {
         force "io.netty:netty-transport:${versions.netty}"
         force "io.netty:netty-transport-native-unix-common:${versions.netty}"
         force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
+        force "com.github.luben:zstd-jni:${versions.zstd}"
     }
 }
 
@@ -365,7 +366,7 @@ dependencies {
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.4.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
-    runtimeOnly 'com.github.luben:zstd-jni:1.5.2-1'
+    runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
     runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
 
