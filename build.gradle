@@ -12,6 +12,7 @@
 
 import com.diffplug.gradle.spotless.JavaExtension
 import org.opensearch.gradle.test.RestIntegTestTask
+import groovy.json.JsonBuilder
 
 buildscript {
     ext {
@@ -105,12 +106,79 @@ tasks.whenTaskAdded {task ->
     }
 }
 
+def splitTestConfig = [
+    dlicDlsflsTest: [
+        includeTestsMatching: [
+            "org.opensearch.security.dlic.dlsfls.*"
+        ]
+    ],
+    dlicRestApiTest: [
+        includeTestsMatching: [
+            "org.opensearch.security.dlic.rest.*"
+        ]
+    ],
+    crossClusterTest: [
+        includeTestsMatching: [
+            "org.opensearch.security.ccstest.*"
+        ]
+    ],
+    sslTest: [
+        includeTestsMatching: [
+            "org.opensearch.security.ssl.*"
+        ]
+    ],
+    securityIntegrationTest: [
+        includeTestsMatching: [
+            "org.opensearch.security.*Integ*"
+        ],
+        excludeTestsMatching: [
+            "org.opensearch.security.sanity.tests.*",
+            "org.opensearch.security.ssl.OpenSSL*",
+        ]
+    ],
+    indicesTest: [
+        includeTestsMatching: [
+            "org.opensearch.security.*indices*"
+        ],
+        excludeTestsMatching: [
+            "org.opensearch.security.sanity.tests.*",
+            "org.opensearch.security.ssl.OpenSSL*",
+        ]
+    ]
+] as ConfigObject
+
+List<String> taskNames = splitTestConfig.keySet() as List
+
+task listTasksAsJSON {
+    doLast {
+        System.out.println(new JsonBuilder(taskNames))
+    }
+}
+
+task listTasksAsParam {
+    doLast {
+        System.out.println('-x ' + (taskNames).join(' -x '))
+    }
+}
 
 test {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
         excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
+        splitTestConfig.each { entry ->
+            entry.value.each{ test ->
+                if (test.key == "includeTestsMatching") {
+                    test.value.each{ 
+                        excludeTestsMatching "${it}"
+                    }
+                } else if (test.key == "includeTest") {
+                    test.value.each{
+                        excludeTest "${it}"
+                    }
+                }
+            }
+        }
     }
     maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
@@ -162,13 +230,50 @@ task opensslTest(type: Test) {
     }
 }
 
+splitTestConfig.each{ testName, filterCfg ->
+    task "${testName}"(type: Test) {
+        include '**/*.class'
+        filter {
+            filterCfg.each{ filter, values ->
+                values.each{ value ->
+                    "${filter}" "${value}"
+                }
+            }
+        }
+        maxParallelForks = 8
+        jvmArgs += "-Xmx3072m"
+        if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
+            jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+        }
+        retry {
+            failOnPassedAfterRetry = false
+            maxRetries = 5
+        }
+        jacoco {
+            excludes = [
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
+            ]
+        }
+    }
+}
+
 task copyExtraTestResources(dependsOn: testClasses) {
     copy {
         from 'src/test/resources'
         into 'build/testrun/test/src/test/resources'
     }
 }
-tasks.test.dependsOn(copyExtraTestResources, opensslTest)
+tasks.test.dependsOn(copyExtraTestResources, opensslTest, taskNames)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")
