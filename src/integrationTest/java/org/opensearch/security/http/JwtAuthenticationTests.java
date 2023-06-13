@@ -143,13 +143,13 @@ public class JwtAuthenticationTests {
 
 			response.assertStatusCode(200);
 			String username = response.getTextFromJsonBody(POINTER_USERNAME);
-			assertThat(username, equalTo(username));
 
 			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
 
 			assertThat(authInfo, is(notNullValue()));
 			assertThat(false, equalTo(authInfo.isInternal()));
 			assertThat("jwt", equalTo(authInfo.getAuthDomain()));
+			assertThat(username, equalTo(USER_SUPERHERO));
 		}
 	}
 
