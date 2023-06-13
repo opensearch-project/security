@@ -78,7 +78,7 @@ spotless {
         // non-standard places
         target '**/com/amazon/dlic/**/*.java'
         target '**/com/amazon/security/**/*.java'
-        target '**/test/java/org/opensearch/security/**/*.java'
+        target '**/test/**/*.java'
 
         removeUnusedImports()
         eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
@@ -112,16 +112,10 @@ spotless {
         target '**/*.java'
         targetExclude '**/com/amazon/dlic/**/*.java'
         targetExclude '**/com/amazon/security/**/*.java'
-        targetExclude '**/test/java/org/opensearch/security/**/*.java'
-        targetExclude 'src/integrationTest/**'
+        targetExclude '**/test/**/*.java'
 
         trimTrailingWhitespace()
         endWithNewline();
-    }
-    format("integrationTest", JavaExtension) {
-        target('src/integrationTest/java/**/*.java')
-        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
-        indentWithTabs(4)
     }
 }
 

@@ -17,35 +17,35 @@ import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.sink.AuditLogSink;
 
 public class TestRuleAuditLogSink extends AuditLogSink {
-	private static final Logger log = LogManager.getLogger(TestRuleAuditLogSink.class);
+    private static final Logger log = LogManager.getLogger(TestRuleAuditLogSink.class);
 
-	private static volatile AuditLogsRule listener;
+    private static volatile AuditLogsRule listener;
 
-	public TestRuleAuditLogSink(String name, Settings settings, String settingsPrefix, AuditLogSink fallbackSink) {
-		super(name, settings, settingsPrefix, fallbackSink);
-		log.info("Test rule audit log sink created");
-	}
+    public TestRuleAuditLogSink(String name, Settings settings, String settingsPrefix, AuditLogSink fallbackSink) {
+        super(name, settings, settingsPrefix, fallbackSink);
+        log.info("Test rule audit log sink created");
+    }
 
-	@Override
-	protected boolean doStore(AuditMessage auditMessage) {
-		log.debug("New audit message received '{}'.", auditMessage);
-		AuditLogsRule currentListener = listener;
-		if(currentListener != null) {
-			currentListener.onAuditMessage(auditMessage);
-		}
-		return true;
-	}
+    @Override
+    protected boolean doStore(AuditMessage auditMessage) {
+        log.debug("New audit message received '{}'.", auditMessage);
+        AuditLogsRule currentListener = listener;
+        if (currentListener != null) {
+            currentListener.onAuditMessage(auditMessage);
+        }
+        return true;
+    }
 
-	public static void registerListener(AuditLogsRule auditLogsRule) {
-		listener = auditLogsRule;
-	}
+    public static void registerListener(AuditLogsRule auditLogsRule) {
+        listener = auditLogsRule;
+    }
 
-	public static void unregisterListener() {
-		listener = null;
-	}
+    public static void unregisterListener() {
+        listener = null;
+    }
 
-	@Override
-	public boolean isHandlingBackpressure() {
-		return true;
-	}
+    @Override
+    public boolean isHandlingBackpressure() {
+        return true;
+    }
 }
