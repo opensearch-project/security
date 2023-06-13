@@ -22,27 +22,27 @@ import static java.util.Objects.isNull;
 
 class GetAllPitsContainsExactlyIdsResponseMatcher extends TypeSafeDiagnosingMatcher<GetAllPitNodesResponse> {
 
-	private final Set<String> expectedPitIds;
+    private final Set<String> expectedPitIds;
 
-	GetAllPitsContainsExactlyIdsResponseMatcher(String[] expectedPitIds) {
-		if (isNull(expectedPitIds) || 0 == expectedPitIds.length) {
-			throw new IllegalArgumentException("expectedPitIds cannot be null or empty");
-		}
-		this.expectedPitIds = Set.of(expectedPitIds);
-	}
+    GetAllPitsContainsExactlyIdsResponseMatcher(String[] expectedPitIds) {
+        if (isNull(expectedPitIds) || 0 == expectedPitIds.length) {
+            throw new IllegalArgumentException("expectedPitIds cannot be null or empty");
+        }
+        this.expectedPitIds = Set.of(expectedPitIds);
+    }
 
-	@Override
-	protected boolean matchesSafely(GetAllPitNodesResponse response, Description mismatchDescription) {
-		Set<String> actualPitIds = response.getPitInfos().stream().map(ListPitInfo::getPitId).collect(Collectors.toSet());
-		if (!actualPitIds.equals(expectedPitIds)) {
-			mismatchDescription.appendText("Actual pit ids: ").appendValue(actualPitIds);
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(GetAllPitNodesResponse response, Description mismatchDescription) {
+        Set<String> actualPitIds = response.getPitInfos().stream().map(ListPitInfo::getPitId).collect(Collectors.toSet());
+        if (!actualPitIds.equals(expectedPitIds)) {
+            mismatchDescription.appendText("Actual pit ids: ").appendValue(actualPitIds);
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Should contain exactly pit with ids: ").appendValue(expectedPitIds);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Should contain exactly pit with ids: ").appendValue(expectedPitIds);
+    }
 }

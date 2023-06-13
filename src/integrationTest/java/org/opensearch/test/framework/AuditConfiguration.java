@@ -15,41 +15,42 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 public class AuditConfiguration implements ToXContentObject {
-	private final boolean enabled;
+    private final boolean enabled;
 
-	private AuditFilters filters;
+    private AuditFilters filters;
 
-	private AuditCompliance compliance;
+    private AuditCompliance compliance;
 
-	public AuditConfiguration(boolean enabled) {
-		this.filters = new AuditFilters();
-		this.compliance = new AuditCompliance();
-		this.enabled = enabled;
-	}
+    public AuditConfiguration(boolean enabled) {
+        this.filters = new AuditFilters();
+        this.compliance = new AuditCompliance();
+        this.enabled = enabled;
+    }
 
-	public boolean isEnabled() {
-		return enabled;
-	}
+    public boolean isEnabled() {
+        return enabled;
+    }
 
-	public AuditConfiguration filters(AuditFilters filters) {
-		this.filters = filters;
-		return this;
-	}
+    public AuditConfiguration filters(AuditFilters filters) {
+        this.filters = filters;
+        return this;
+    }
 
-	public AuditConfiguration compliance(AuditCompliance auditCompliance) {
-		this.compliance = auditCompliance;
-		return this;
-	}
+    public AuditConfiguration compliance(AuditCompliance auditCompliance) {
+        this.compliance = auditCompliance;
+        return this;
+    }
 
-	@Override public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-		// json built here must be deserialized to org.opensearch.security.auditlog.config.AuditConfig
-		xContentBuilder.startObject();
-		xContentBuilder.field("enabled", enabled);
+    @Override
+    public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
+        // json built here must be deserialized to org.opensearch.security.auditlog.config.AuditConfig
+        xContentBuilder.startObject();
+        xContentBuilder.field("enabled", enabled);
 
-		xContentBuilder.field("audit", filters);
-		xContentBuilder.field("compliance", compliance);
+        xContentBuilder.field("audit", filters);
+        xContentBuilder.field("compliance", compliance);
 
-		xContentBuilder.endObject();
-		return xContentBuilder;
-	}
+        xContentBuilder.endObject();
+        return xContentBuilder;
+    }
 }

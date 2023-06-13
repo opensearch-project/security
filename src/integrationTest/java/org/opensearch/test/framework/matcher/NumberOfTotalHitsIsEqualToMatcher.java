@@ -21,37 +21,39 @@ import org.opensearch.search.SearchHits;
 
 class NumberOfTotalHitsIsEqualToMatcher extends TypeSafeDiagnosingMatcher<SearchResponse> {
 
-	private final int expectedNumberOfHits;
+    private final int expectedNumberOfHits;
 
-	NumberOfTotalHitsIsEqualToMatcher(int expectedNumberOfHits) {
-		this.expectedNumberOfHits = expectedNumberOfHits;
-	}
+    NumberOfTotalHitsIsEqualToMatcher(int expectedNumberOfHits) {
+        this.expectedNumberOfHits = expectedNumberOfHits;
+    }
 
-	@Override
-	protected boolean matchesSafely(SearchResponse searchResponse, Description mismatchDescription) {
-		SearchHits hits = searchResponse.getHits();
-		if(hits == null) {
-			mismatchDescription.appendText("contains null hits");
-			return false;
-		}
-		TotalHits totalHits = hits.getTotalHits();
-		if(totalHits == null) {
-			mismatchDescription.appendText("Total hits number is null.");
-			return false;
-		}
-		if(expectedNumberOfHits != totalHits.value) {
-			String documentIds = Arrays.stream(searchResponse.getHits().getHits())
-					.map(hit -> hit.getIndex() + "/" + hit.getId())
-					.collect(Collectors.joining(","));
-			mismatchDescription.appendText( "contains ").appendValue(hits.getHits().length).appendText(" hits, found document ids ")
-				.appendValue(documentIds);
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(SearchResponse searchResponse, Description mismatchDescription) {
+        SearchHits hits = searchResponse.getHits();
+        if (hits == null) {
+            mismatchDescription.appendText("contains null hits");
+            return false;
+        }
+        TotalHits totalHits = hits.getTotalHits();
+        if (totalHits == null) {
+            mismatchDescription.appendText("Total hits number is null.");
+            return false;
+        }
+        if (expectedNumberOfHits != totalHits.value) {
+            String documentIds = Arrays.stream(searchResponse.getHits().getHits())
+                .map(hit -> hit.getIndex() + "/" + hit.getId())
+                .collect(Collectors.joining(","));
+            mismatchDescription.appendText("contains ")
+                .appendValue(hits.getHits().length)
+                .appendText(" hits, found document ids ")
+                .appendValue(documentIds);
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Search response should contains ").appendValue(expectedNumberOfHits).appendText(" hits");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Search response should contains ").appendValue(expectedNumberOfHits).appendText(" hits");
+    }
 }

@@ -18,32 +18,34 @@ import static java.util.Objects.requireNonNull;
 
 class SuccessfulResizeResponseMatcher extends TypeSafeDiagnosingMatcher<ResizeResponse> {
 
-	private final String expectedIndexName;
+    private final String expectedIndexName;
 
-	SuccessfulResizeResponseMatcher(String expectedIndexName) {
-		this.expectedIndexName = requireNonNull(expectedIndexName);
-	}
+    SuccessfulResizeResponseMatcher(String expectedIndexName) {
+        this.expectedIndexName = requireNonNull(expectedIndexName);
+    }
 
-	@Override
-	protected boolean matchesSafely(ResizeResponse response, Description mismatchDescription) {
-		if (!expectedIndexName.equals(response.index())) {
-			mismatchDescription.appendText("Index name ").appendValue(response.index())
-					.appendText(" does not match expected index name ").appendValue(expectedIndexName);
-			return false;
-		}
-		if (!response.isShardsAcknowledged()) {
-			mismatchDescription.appendText("shardsAcknowledged is equal to ").appendValue(response.isShardsAcknowledged());
-			return false;
-		}
-		if (!response.isAcknowledged()) {
-			mismatchDescription.appendText("acknowledged is equal to ").appendValue(response.isShardsAcknowledged());
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(ResizeResponse response, Description mismatchDescription) {
+        if (!expectedIndexName.equals(response.index())) {
+            mismatchDescription.appendText("Index name ")
+                .appendValue(response.index())
+                .appendText(" does not match expected index name ")
+                .appendValue(expectedIndexName);
+            return false;
+        }
+        if (!response.isShardsAcknowledged()) {
+            mismatchDescription.appendText("shardsAcknowledged is equal to ").appendValue(response.isShardsAcknowledged());
+            return false;
+        }
+        if (!response.isAcknowledged()) {
+            mismatchDescription.appendText("acknowledged is equal to ").appendValue(response.isShardsAcknowledged());
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Successful create index response");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Successful create index response");
+    }
 }

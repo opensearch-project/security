@@ -47,118 +47,119 @@ import org.opensearch.test.framework.cluster.SocketUtils.SocketType;
 */
 public class PortAllocator {
 
-	public static final PortAllocator TCP = new PortAllocator(SocketType.TCP, Duration.ofSeconds(100));
-	public static final PortAllocator UDP = new PortAllocator(SocketType.UDP, Duration.ofSeconds(100));
+    public static final PortAllocator TCP = new PortAllocator(SocketType.TCP, Duration.ofSeconds(100));
+    public static final PortAllocator UDP = new PortAllocator(SocketType.UDP, Duration.ofSeconds(100));
 
-	private final SocketType socketType;
-	private final Duration timeoutDuration;
-	private final Map<Integer, AllocatedPort> allocatedPorts = new HashMap<>();
+    private final SocketType socketType;
+    private final Duration timeoutDuration;
+    private final Map<Integer, AllocatedPort> allocatedPorts = new HashMap<>();
 
-	PortAllocator(SocketType socketType, Duration timeoutDuration) {
-		this.socketType = socketType;
-		this.timeoutDuration = timeoutDuration;
-	}
+    PortAllocator(SocketType socketType, Duration timeoutDuration) {
+        this.socketType = socketType;
+        this.timeoutDuration = timeoutDuration;
+    }
 
-	public SortedSet<Integer> allocate(String clientName, int numRequested, int minPort) {
+    public SortedSet<Integer> allocate(String clientName, int numRequested, int minPort) {
 
-		int startPort = minPort;
+        int startPort = minPort;
 
-		while (!isAvailable(startPort)) {
-			startPort += 10;
-		}
+        while (!isAvailable(startPort)) {
+            startPort += 10;
+        }
 
-		SortedSet<Integer> foundPorts = new TreeSet<>();
+        SortedSet<Integer> foundPorts = new TreeSet<>();
 
-		for (int currentPort = startPort; foundPorts.size() < numRequested && currentPort < SocketUtils.PORT_RANGE_MAX
-				&& (currentPort - startPort) < 10000; currentPort++) {
-			if (allocate(clientName, currentPort)) {
-				foundPorts.add(currentPort);
-			}
-		}
+        for (int currentPort = startPort; foundPorts.size() < numRequested
+            && currentPort < SocketUtils.PORT_RANGE_MAX
+            && (currentPort - startPort) < 10000; currentPort++) {
+            if (allocate(clientName, currentPort)) {
+                foundPorts.add(currentPort);
+            }
+        }
 
-		if (foundPorts.size() < numRequested) {
-			throw new IllegalStateException("Could not find " + numRequested + " free ports starting at " + minPort + " for " + clientName);
-		}
+        if (foundPorts.size() < numRequested) {
+            throw new IllegalStateException("Could not find " + numRequested + " free ports starting at " + minPort + " for " + clientName);
+        }
 
-		return foundPorts;
-	}
+        return foundPorts;
+    }
 
-	public int allocateSingle(String clientName, int minPort) {
+    public int allocateSingle(String clientName, int minPort) {
 
-		int startPort = minPort;
+        int startPort = minPort;
 
-		for (int currentPort = startPort; currentPort < SocketUtils.PORT_RANGE_MAX && (currentPort - startPort) < 10000; currentPort++) {
-			if (allocate(clientName, currentPort)) {
-				return currentPort;
-			}
-		}
+        for (int currentPort = startPort; currentPort < SocketUtils.PORT_RANGE_MAX && (currentPort - startPort) < 10000; currentPort++) {
+            if (allocate(clientName, currentPort)) {
+                return currentPort;
+            }
+        }
 
-		throw new IllegalStateException("Could not find free port starting at " + minPort + " for " + clientName);
+        throw new IllegalStateException("Could not find free port starting at " + minPort + " for " + clientName);
 
-	}
+    }
 
-	public void reserve(int... ports) {
+    public void reserve(int... ports) {
 
-		for (int port : ports) {
-			allocate("reserved", port);
-		}
-	}
+        for (int port : ports) {
+            allocate("reserved", port);
+        }
+    }
 
-	private boolean isInUse(int port) {
-		boolean result = !this.socketType.isPortAvailable(port);
+    private boolean isInUse(int port) {
+        boolean result = !this.socketType.isPortAvailable(port);
 
-		if (result) {
-			synchronized (this) {
-				allocatedPorts.put(port, new AllocatedPort("external"));
-			}
-		}
+        if (result) {
+            synchronized (this) {
+                allocatedPorts.put(port, new AllocatedPort("external"));
+            }
+        }
 
-		return result;
-	}
+        return result;
+    }
 
-	private boolean isAvailable(int port) {
-		return !isAllocated(port) && !isInUse(port);
-	}
+    private boolean isAvailable(int port) {
+        return !isAllocated(port) && !isInUse(port);
+    }
 
-	private synchronized boolean isAllocated(int port) {
-		AllocatedPort allocatedPort = this.allocatedPorts.get(port);
+    private synchronized boolean isAllocated(int port) {
+        AllocatedPort allocatedPort = this.allocatedPorts.get(port);
 
-		return allocatedPort != null && !allocatedPort.isTimedOut();
-	}
+        return allocatedPort != null && !allocatedPort.isTimedOut();
+    }
 
-	private synchronized boolean allocate(String clientName, int port) {
+    private synchronized boolean allocate(String clientName, int port) {
 
-		AllocatedPort allocatedPort = allocatedPorts.get(port);
+        AllocatedPort allocatedPort = allocatedPorts.get(port);
 
-		if (allocatedPort != null && allocatedPort.isTimedOut()) {
-			allocatedPort = null;
-			allocatedPorts.remove(port);
-		}
+        if (allocatedPort != null && allocatedPort.isTimedOut()) {
+            allocatedPort = null;
+            allocatedPorts.remove(port);
+        }
 
-		if (allocatedPort == null && !isInUse(port)) {
-			allocatedPorts.put(port, new AllocatedPort(clientName));
-			return true;
-		} else {
-			return false;
-		}
-	}
+        if (allocatedPort == null && !isInUse(port)) {
+            allocatedPorts.put(port, new AllocatedPort(clientName));
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-	private class AllocatedPort {
-		final String client;
-		final Instant allocatedAt;
+    private class AllocatedPort {
+        final String client;
+        final Instant allocatedAt;
 
-		AllocatedPort(String client) {
-			this.client = client;
-			this.allocatedAt = Instant.now();
-		}
+        AllocatedPort(String client) {
+            this.client = client;
+            this.allocatedAt = Instant.now();
+        }
 
-		boolean isTimedOut() {
-			return allocatedAt.plus(timeoutDuration).isBefore(Instant.now());
-		}
+        boolean isTimedOut() {
+            return allocatedAt.plus(timeoutDuration).isBefore(Instant.now());
+        }
 
-		@Override
-		public String toString() {
-			return "AllocatedPort [client=" + client + ", allocatedAt=" + allocatedAt + "]";
-		}
-	}
+        @Override
+        public String toString() {
+            return "AllocatedPort [client=" + client + ", allocatedAt=" + allocatedAt + "]";
+        }
+    }
 }

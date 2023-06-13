@@ -12,15 +12,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableMap;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 
 import org.opensearch.Version;
-import org.opensearch.client.Response;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestStatus;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -56,14 +52,13 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
     @Override
     protected final Settings restClientSettings() {
-        return Settings
-                .builder()
-                .put(super.restClientSettings())
-                // increase the timeout here to 90 seconds to handle long waits for a green
-                // cluster health. the waits for green need to be longer than a minute to
-                // account for delayed shards
-                .put(OpenSearchRestTestCase.CLIENT_SOCKET_TIMEOUT, "90s")
-                .build();
+        return Settings.builder()
+            .put(super.restClientSettings())
+            // increase the timeout here to 90 seconds to handle long waits for a green
+            // cluster health. the waits for green need to be longer than a minute to
+            // account for delayed shards
+            .put(OpenSearchRestTestCase.CLIENT_SOCKET_TIMEOUT, "90s")
+            .build();
     }
 
     public void testBasicBackwardsCompatibility() throws Exception {

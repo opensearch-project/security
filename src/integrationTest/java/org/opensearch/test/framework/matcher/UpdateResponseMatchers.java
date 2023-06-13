@@ -15,9 +15,9 @@ import org.opensearch.action.update.UpdateResponse;
 
 public class UpdateResponseMatchers {
 
-	private UpdateResponseMatchers() {}
+    private UpdateResponseMatchers() {}
 
-	public static Matcher<UpdateResponse> isSuccessfulUpdateResponse() {
-		return new SuccessfulUpdateResponseMatcher();
-	}
+    public static Matcher<UpdateResponse> isSuccessfulUpdateResponse() {
+        return new SuccessfulUpdateResponseMatcher();
+    }
 }

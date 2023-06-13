@@ -47,9 +47,9 @@ public class SecurityRolesTests {
 			HttpResponse response = client.getAuthInfo();
 			response.assertStatusCode(HttpStatus.SC_OK);
 
-			// Check username		
+			// Check username
 			assertThat(response.getTextFromJsonBody("/user_name"), equalTo("sr_user"));
-			
+
 			// Check security roles
 			assertThat(response.getTextFromJsonBody("/roles/0"), equalTo("user_sr_user__abc_ber"));
 			assertThat(response.getTextFromJsonBody("/roles/1"), equalTo("user_sr_user__def_efg"));

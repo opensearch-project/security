@@ -40,50 +40,50 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 */
 public class CertificateData {
 
-	private final X509CertificateHolder certificate;
-	private final KeyPair keyPair;
+    private final X509CertificateHolder certificate;
+    private final KeyPair keyPair;
 
-	public CertificateData(X509CertificateHolder certificate, KeyPair keyPair) {
-		this.certificate = certificate;
-		this.keyPair = keyPair;
-	}
+    public CertificateData(X509CertificateHolder certificate, KeyPair keyPair) {
+        this.certificate = certificate;
+        this.keyPair = keyPair;
+    }
 
-	/**
-	* The method returns X.509 certificate encoded in PEM format. PEM format is defined by
-	* <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>.
-	* @return Certificate in PEM format
-	*/
-	public String certificateInPemFormat() {
-		return PemConverter.toPem(certificate);
-	}
+    /**
+    * The method returns X.509 certificate encoded in PEM format. PEM format is defined by
+    * <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>.
+    * @return Certificate in PEM format
+    */
+    public String certificateInPemFormat() {
+        return PemConverter.toPem(certificate);
+    }
 
-	public X509Certificate certificate() {
-		try {
-			return new JcaX509CertificateConverter().getCertificate(certificate);
-		} catch (CertificateException e) {
-			throw new RuntimeException("Cannot retrieve certificate", e);
-		}
-	}
+    public X509Certificate certificate() {
+        try {
+            return new JcaX509CertificateConverter().getCertificate(certificate);
+        } catch (CertificateException e) {
+            throw new RuntimeException("Cannot retrieve certificate", e);
+        }
+    }
 
-	/**
-	* It returns the private key associated with certificate encoded in PEM format. PEM format is defined by
-	* <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>.
-	* @param privateKeyPassword password used for private key encryption. <code>null</code> for unencrypted key.
-	* @return private key encoded in PEM format
-	*/
-	public String privateKeyInPemFormat(String privateKeyPassword) {
-		return PemConverter.toPem(keyPair.getPrivate(), privateKeyPassword);
-	}
+    /**
+    * It returns the private key associated with certificate encoded in PEM format. PEM format is defined by
+    * <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>.
+    * @param privateKeyPassword password used for private key encryption. <code>null</code> for unencrypted key.
+    * @return private key encoded in PEM format
+    */
+    public String privateKeyInPemFormat(String privateKeyPassword) {
+        return PemConverter.toPem(keyPair.getPrivate(), privateKeyPassword);
+    }
 
-	X500Name getCertificateSubject() {
-		return certificate.getSubject();
-	}
+    X500Name getCertificateSubject() {
+        return certificate.getSubject();
+    }
 
-	KeyPair getKeyPair() {
-		return keyPair;
-	}
+    KeyPair getKeyPair() {
+        return keyPair;
+    }
 
-	public Key getKey() {
-		return keyPair.getPrivate();
-	}
+    public Key getKey() {
+        return keyPair.getPrivate();
+    }
 }

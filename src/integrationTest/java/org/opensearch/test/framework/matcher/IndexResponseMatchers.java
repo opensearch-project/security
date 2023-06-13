@@ -22,36 +22,36 @@ import org.opensearch.client.indices.ResizeResponse;
 
 public class IndexResponseMatchers {
 
-	public static Matcher<CreateIndexResponse> isSuccessfulCreateIndexResponse(String expectedIndexName) {
-		return new SuccessfulCreateIndexResponseMatcher(expectedIndexName);
-	}
+    public static Matcher<CreateIndexResponse> isSuccessfulCreateIndexResponse(String expectedIndexName) {
+        return new SuccessfulCreateIndexResponseMatcher(expectedIndexName);
+    }
 
-	public static Matcher<GetIndexResponse> getIndexResponseContainsIndices(String... expectedIndices) {
-		return new GetIndexResponseContainsIndicesMatcher(expectedIndices);
-	}
+    public static Matcher<GetIndexResponse> getIndexResponseContainsIndices(String... expectedIndices) {
+        return new GetIndexResponseContainsIndicesMatcher(expectedIndices);
+    }
 
-	public static Matcher<CloseIndexResponse> isSuccessfulCloseIndexResponse() {
-		return new SuccessfulCloseIndexResponseMatcher();
-	}
+    public static Matcher<CloseIndexResponse> isSuccessfulCloseIndexResponse() {
+        return new SuccessfulCloseIndexResponseMatcher();
+    }
 
-	public static Matcher<OpenIndexResponse> isSuccessfulOpenIndexResponse() {
-		return new SuccessfulOpenIndexResponseMatcher();
-	}
+    public static Matcher<OpenIndexResponse> isSuccessfulOpenIndexResponse() {
+        return new SuccessfulOpenIndexResponseMatcher();
+    }
 
-	public static Matcher<ResizeResponse> isSuccessfulResizeResponse(String expectedIndexName) {
-		return new SuccessfulResizeResponseMatcher(expectedIndexName);
-	}
+    public static Matcher<ResizeResponse> isSuccessfulResizeResponse(String expectedIndexName) {
+        return new SuccessfulResizeResponseMatcher(expectedIndexName);
+    }
 
-	public static Matcher<GetSettingsResponse> getSettingsResponseContainsIndices(String... expectedIndices) {
-		return new GetSettingsResponseContainsIndicesMatcher(expectedIndices);
-	}
+    public static Matcher<GetSettingsResponse> getSettingsResponseContainsIndices(String... expectedIndices) {
+        return new GetSettingsResponseContainsIndicesMatcher(expectedIndices);
+    }
 
-	public static Matcher<ClearIndicesCacheResponse> isSuccessfulClearIndicesCacheResponse() {
-		return new SuccessfulClearIndicesCacheResponseMatcher();
-	}
+    public static Matcher<ClearIndicesCacheResponse> isSuccessfulClearIndicesCacheResponse() {
+        return new SuccessfulClearIndicesCacheResponseMatcher();
+    }
 
-	public static Matcher<GetMappingsResponse> getMappingsResponseContainsIndices(String... expectedIndices) {
-		return new GetMappingsResponseContainsIndicesMatcher(expectedIndices);
-	}
+    public static Matcher<GetMappingsResponse> getMappingsResponseContainsIndices(String... expectedIndices) {
+        return new GetMappingsResponseContainsIndicesMatcher(expectedIndices);
+    }
 
 }

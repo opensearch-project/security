@@ -17,21 +17,21 @@ import org.opensearch.rest.RestStatus;
 
 class SuccessfulClearIndicesCacheResponseMatcher extends TypeSafeDiagnosingMatcher<ClearIndicesCacheResponse> {
 
-	@Override
-	protected boolean matchesSafely(ClearIndicesCacheResponse response, Description mismatchDescription) {
-		if(!RestStatus.OK.equals(response.getStatus())) {
-			mismatchDescription.appendText("Status is equal to ").appendValue(response.getStatus());
-			return false;
-		}
-		if(response.getShardFailures().length != 0) {
-			mismatchDescription.appendText("Contains ").appendValue(response.getShardFailures().length).appendText(" shard failures");
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(ClearIndicesCacheResponse response, Description mismatchDescription) {
+        if (!RestStatus.OK.equals(response.getStatus())) {
+            mismatchDescription.appendText("Status is equal to ").appendValue(response.getStatus());
+            return false;
+        }
+        if (response.getShardFailures().length != 0) {
+            mismatchDescription.appendText("Contains ").appendValue(response.getShardFailures().length).appendText(" shard failures");
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Successful clear index cache response");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Successful clear index cache response");
+    }
 }
