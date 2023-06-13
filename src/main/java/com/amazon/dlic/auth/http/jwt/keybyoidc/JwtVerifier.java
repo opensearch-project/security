@@ -35,7 +35,7 @@ public class JwtVerifier {
 	private final int clockSkewToleranceSeconds;
 	private final String requiredIssuer;
 	private final String requiredAudience;
-	
+
 	public JwtVerifier(KeyProvider keyProvider, int clockSkewToleranceSeconds, String requiredIssuer, String requiredAudience) {
 		this.keyProvider = keyProvider;
 		this.clockSkewToleranceSeconds = clockSkewToleranceSeconds;
@@ -54,13 +54,13 @@ public class JwtVerifier {
 				kid = StringEscapeUtils.unescapeJava(escapedKid);
 			}
 			JsonWebKey key = keyProvider.getKey(kid);
-			
+
 			// Algorithm is not mandatory for the key material, so we set it to the same as the JWT
 			if (key.getAlgorithm() == null && key.getPublicKeyUse() == PublicKeyUse.SIGN && key.getKeyType() == KeyType.RSA)
 			{
 				key.setAlgorithm(jwt.getJwsHeaders().getAlgorithm());
 			}
-			
+
 			JwsSignatureVerifier signatureVerifier = getInitializedSignatureVerifier(key, jwt);
 
 

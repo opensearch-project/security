@@ -47,9 +47,9 @@ import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
 
 public class SecurityIndexAccessEvaluator {
-    
+
     Logger log = LogManager.getLogger(this.getClass());
-    
+
     private final String securityIndex;
     private final AuditLog auditLog;
     private final WildcardMatcher securityDeniedActionMatcher;
@@ -86,7 +86,7 @@ public class SecurityIndexAccessEvaluator {
 
         securityDeniedActionMatcher = WildcardMatcher.from(restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
     }
-    
+
     public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final Resolved requestedResolved,
             final PrivilegesEvaluatorResponse presponse)  {
         final boolean isDebugEnabled = log.isDebugEnabled();

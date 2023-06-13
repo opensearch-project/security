@@ -19,14 +19,12 @@ import org.opensearch.security.auth.AuthenticationBackend;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-
 public class DummyAuthenticationBackend implements AuthenticationBackend {
 
     private static volatile long authCount;
     private static volatile long existsCount;
 
-    public DummyAuthenticationBackend(final Settings settings, final Path configPath) {
-    }
+    public DummyAuthenticationBackend(final Settings settings, final Path configPath) {}
 
     @Override
     public String getType() {
@@ -54,7 +52,7 @@ public class DummyAuthenticationBackend implements AuthenticationBackend {
     }
 
     public static void reset() {
-        authCount=0;
-        existsCount=0;
+        authCount = 0;
+        existsCount = 0;
     }
 }

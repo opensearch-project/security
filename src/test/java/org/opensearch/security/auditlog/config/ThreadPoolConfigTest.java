@@ -74,9 +74,9 @@ public class ThreadPoolConfigTest {
     public void testGenerationFromSettings() {
         // arrange
         Settings settings = Settings.builder()
-                .put("plugins.security.audit.threadpool.size", "8")
-                .put("plugins.security.audit.threadpool.max_queue_len", "50")
-                .build();
+            .put("plugins.security.audit.threadpool.size", "8")
+            .put("plugins.security.audit.threadpool.max_queue_len", "50")
+            .build();
 
         // assert
         ThreadPoolConfig config = ThreadPoolConfig.getConfig(settings);

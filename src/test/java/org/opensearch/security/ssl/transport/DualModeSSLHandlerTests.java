@@ -76,10 +76,8 @@ public class DualModeSSLHandlerTests {
         handler.decode(ctx, buffer, null);
         // ensure ssl handler is added
         Mockito.verify(ctx, Mockito.times(1)).pipeline();
-        Mockito.verify(pipeline, Mockito.times(1))
-                .addAfter("port_unification_handler", "ssl_server", sslHandler);
-        Mockito.verify(pipeline,
-                Mockito.times(1)).remove(handler);
+        Mockito.verify(pipeline, Mockito.times(1)).addAfter("port_unification_handler", "ssl_server", sslHandler);
+        Mockito.verify(pipeline, Mockito.times(1)).remove(handler);
     }
 
     @Test
@@ -95,10 +93,8 @@ public class DualModeSSLHandlerTests {
         handler.decode(ctx, buffer, null);
         // ensure ssl handler is added
         Mockito.verify(ctx, Mockito.times(1)).pipeline();
-        Mockito.verify(pipeline, Mockito.times(0))
-                .addAfter("port_unification_handler", "ssl_server", sslHandler);
-        Mockito.verify(pipeline,
-                Mockito.times(1)).remove(handler);
+        Mockito.verify(pipeline, Mockito.times(0)).addAfter("port_unification_handler", "ssl_server", sslHandler);
+        Mockito.verify(pipeline, Mockito.times(1)).remove(handler);
     }
 
     @Test

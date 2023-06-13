@@ -82,7 +82,7 @@ public class RoleMappingsV6 extends RoleMappings implements Hideable {
         return "RoleMappings [readonly=" + readonly + ", hidden=" + hidden + ", backendroles=" + backendroles + ", hosts=" + getHosts() + ", users="
                 + getUsers() + ", andBackendroles=" + andBackendroles + "]";
     }
-    
+
     @JsonIgnore
     public boolean isReserved() {
         return readonly;

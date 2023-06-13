@@ -21,10 +21,10 @@ public class FailingSink extends AuditLogSink {
         super(name, settings, null, fallbackSink);
     }
 
-	@Override
-	protected boolean doStore(AuditMessage msg) {
-		return false;
-	}
+    @Override
+    protected boolean doStore(AuditMessage msg) {
+        return false;
+    }
 
     @Override
     public boolean isHandlingBackpressure() {

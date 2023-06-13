@@ -275,7 +275,7 @@ public class AuditConfig {
 
             final boolean foundDefault = stringSetOfKey.stream().anyMatch(defaultDetectorValue::equals);
             if (!foundDefault) {
-                return stringSetOfKey; 
+                return stringSetOfKey;
             }
 
             // Fallback to the legacy keyname

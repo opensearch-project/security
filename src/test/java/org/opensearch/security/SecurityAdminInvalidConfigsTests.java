@@ -42,133 +42,153 @@ import org.opensearch.security.tools.SecurityAdmin;
 
 public class SecurityAdminInvalidConfigsTests extends SingleClusterTest {
 
-	@Test
-	public void testSecurityAdminDuplicateKey() throws Exception {
-		final Settings settings = Settings.builder()
-				.put("plugins.security.ssl.http.enabled",true)
-				.put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-				.put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-				.build();
-		setup(settings);
+    @Test
+    public void testSecurityAdminDuplicateKey() throws Exception {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .build();
+        setup(settings);
 
-		final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+        final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 
-		List<String> argsAsList = new ArrayList<>();
-		argsAsList.add("-ts");
-		argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
-		argsAsList.add("-ks");
-		argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
-		argsAsList.add("-p");
-		argsAsList.add(String.valueOf(clusterInfo.httpPort));
-		argsAsList.add("-cn");
-		argsAsList.add(clusterInfo.clustername);
-		argsAsList.add("-cd");
-		argsAsList.add(new File("./src/test/resources/invalid_dupkey").getAbsolutePath());
-		argsAsList.add("-nhnv");
+        List<String> argsAsList = new ArrayList<>();
+        argsAsList.add("-ts");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix + "truststore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-ks");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix + "kirk-keystore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-p");
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
+        argsAsList.add("-cn");
+        argsAsList.add(clusterInfo.clustername);
+        argsAsList.add("-cd");
+        argsAsList.add(new File("./src/test/resources/invalid_dupkey").getAbsolutePath());
+        argsAsList.add("-nhnv");
 
+        int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        Assert.assertNotEquals(0, returnCode);
 
-		int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-		Assert.assertNotEquals(0, returnCode);
+        RestHelper rh = restHelper();
 
-		RestHelper rh = restHelper();
+        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+        );
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+        );
+    }
 
-		Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
-		Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-		Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-	}
+    @Test
+    public void testSecurityAdminDuplicateKeyReload() throws Exception {
+        testSecurityAdminDuplicateKey();
 
-	@Test
-	public void testSecurityAdminDuplicateKeyReload() throws Exception {
-		testSecurityAdminDuplicateKey();
+        final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 
-		final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+        List<String> argsAsList = new ArrayList<>();
+        argsAsList.add("-ts");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix + "truststore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-ks");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix + "kirk-keystore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-p");
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
+        argsAsList.add("-cn");
+        argsAsList.add(clusterInfo.clustername);
+        argsAsList.add("-rl");
+        argsAsList.add("-nhnv");
 
-		List<String> argsAsList = new ArrayList<>();
-		argsAsList.add("-ts");
-		argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
-		argsAsList.add("-ks");
-		argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
-		argsAsList.add("-p");
-		argsAsList.add(String.valueOf(clusterInfo.httpPort));
-		argsAsList.add("-cn");
-		argsAsList.add(clusterInfo.clustername);
-		argsAsList.add("-rl");
-		argsAsList.add("-nhnv");
+        int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        Assert.assertEquals(0, returnCode);
 
+        RestHelper rh = restHelper();
 
-		int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-		Assert.assertEquals(0, returnCode);
+        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+        );
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+        );
+    }
 
-		RestHelper rh = restHelper();
+    @Test
+    public void testSecurityAdminDuplicateKeySingleFile() throws Exception {
+        final Settings settings = Settings.builder()
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .build();
+        setup(settings);
 
-		Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
-		Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-		Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-	}
+        final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 
-	@Test
-	public void testSecurityAdminDuplicateKeySingleFile() throws Exception {
-		final Settings settings = Settings.builder()
-				.put("plugins.security.ssl.http.enabled",true)
-				.put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-				.put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-				.build();
-		setup(settings);
+        List<String> argsAsList = new ArrayList<>();
+        argsAsList.add("-ts");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix + "truststore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-ks");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix + "kirk-keystore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-p");
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
+        argsAsList.add("-cn");
+        argsAsList.add(clusterInfo.clustername);
+        argsAsList.add("-f");
+        argsAsList.add(new File("./src/test/resources/invalid_dupkey/roles_mapping.yml").getAbsolutePath());
+        argsAsList.add("-t");
+        argsAsList.add("rolesmapping");
+        argsAsList.add("-nhnv");
 
-		final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+        int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        Assert.assertNotEquals(0, returnCode);
 
-		List<String> argsAsList = new ArrayList<>();
-		argsAsList.add("-ts");
-		argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
-		argsAsList.add("-ks");
-		argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
-		argsAsList.add("-p");
-		argsAsList.add(String.valueOf(clusterInfo.httpPort));
-		argsAsList.add("-cn");
-		argsAsList.add(clusterInfo.clustername);
-		argsAsList.add("-f");
-		argsAsList.add(new File("./src/test/resources/invalid_dupkey/roles_mapping.yml").getAbsolutePath());
-		argsAsList.add("-t");
-		argsAsList.add("rolesmapping");
-		argsAsList.add("-nhnv");
+        RestHelper rh = restHelper();
 
+        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+        );
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+        );
+    }
 
-		int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-		Assert.assertNotEquals(0, returnCode);
+    @Test
+    public void testSecurityAdminDuplicateKeyReloadSingleFile() throws Exception {
+        testSecurityAdminDuplicateKeySingleFile();
 
-		RestHelper rh = restHelper();
+        final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 
-		Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
-		Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-		Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-	}
+        List<String> argsAsList = new ArrayList<>();
+        argsAsList.add("-ts");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix + "truststore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-ks");
+        argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix + "kirk-keystore.jks").toFile().getAbsolutePath());
+        argsAsList.add("-p");
+        argsAsList.add(String.valueOf(clusterInfo.httpPort));
+        argsAsList.add("-cn");
+        argsAsList.add(clusterInfo.clustername);
+        argsAsList.add("-rl");
+        argsAsList.add("-nhnv");
 
-	@Test
-	public void testSecurityAdminDuplicateKeyReloadSingleFile() throws Exception {
-		testSecurityAdminDuplicateKeySingleFile();
+        int returnCode = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
+        Assert.assertEquals(0, returnCode);
 
-		final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+        RestHelper rh = restHelper();
 
-		List<String> argsAsList = new ArrayList<>();
-		argsAsList.add("-ts");
-		argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks").toFile().getAbsolutePath());
-		argsAsList.add("-ks");
-		argsAsList.add(FileHelper.getAbsoluteFilePathFromClassPath(prefix+"kirk-keystore.jks").toFile().getAbsolutePath());
-		argsAsList.add("-p");
-		argsAsList.add(String.valueOf(clusterInfo.httpPort));
-		argsAsList.add("-cn");
-		argsAsList.add(clusterInfo.clustername);
-		argsAsList.add("-rl");
-		argsAsList.add("-nhnv");
-
-
-		int returnCode  = SecurityAdmin.execute(argsAsList.toArray(new String[0]));
-		Assert.assertEquals(0, returnCode);
-
-		RestHelper rh = restHelper();
-
-		Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
-		Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-		Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode());
-	}
+        Assert.assertEquals(HttpStatus.SC_OK, (rh.executeGetRequest("_opendistro/_security/health?pretty")).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("_opendistro/_security/authinfo?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+        );
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            rh.executeGetRequest("*/_search?pretty", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
+        );
+    }
 }

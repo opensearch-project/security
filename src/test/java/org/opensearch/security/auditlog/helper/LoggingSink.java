@@ -20,16 +20,15 @@ import org.opensearch.security.auditlog.sink.AuditLogSink;
 
 public class LoggingSink extends AuditLogSink {
 
-	public List<AuditMessage> messages = new ArrayList<AuditMessage>(100);
+    public List<AuditMessage> messages = new ArrayList<AuditMessage>(100);
     public StringBuffer sb = new StringBuffer();
 
     public LoggingSink(String name, Settings settings, String settingsPrefix, AuditLogSink fallbackSink) {
         super(name, settings, null, fallbackSink);
     }
 
-
     public boolean doStore(AuditMessage msg) {
-        sb.append(msg.toPrettyString()+System.lineSeparator());
+        sb.append(msg.toPrettyString() + System.lineSeparator());
         messages.add(msg);
         return true;
     }

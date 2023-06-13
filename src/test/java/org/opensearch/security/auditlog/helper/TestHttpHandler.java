@@ -23,22 +23,22 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.protocol.HttpContext;
 
 public class TestHttpHandler implements HttpRequestHandler {
-	public String method;
-	public String uri;
-	public String body;
+    public String method;
+    public String uri;
+    public String body;
 
-	@Override
-	public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-		this.method = request.getMethod();
-		this.uri = request.getRequestUri();
+    @Override
+    public void handle(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
+        this.method = request.getMethod();
+        this.uri = request.getRequestUri();
 
-		HttpEntity entity = request.getEntity();
-		body = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-	}
+        HttpEntity entity = request.getEntity();
+        body = EntityUtils.toString(entity, StandardCharsets.UTF_8);
+    }
 
-	public void reset() {
-		this.body = null;
-		this.uri = null;
-		this.method = null;
-	}
+    public void reset() {
+        this.body = null;
+        this.uri = null;
+        this.method = null;
+    }
 }

@@ -97,7 +97,7 @@ public class SourceFieldsContext implements Serializable {
     public boolean hasIncludesOrExcludes() {
         return (includes != null && includes.length > 0) || (excludes != null && excludes.length > 0);
     }
-    
+
     public boolean isFetchSource() {
         return fetchSource;
     }

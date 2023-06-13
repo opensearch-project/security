@@ -34,12 +34,14 @@ public class RestApiPrivilegesEvaluatorTest {
 
     @Before
     public void setUp() {
-        this.privilegesEvaluator = new RestApiPrivilegesEvaluator(Settings.EMPTY,
-                mock(AdminDNs.class),
-                mock(PrivilegesEvaluator.class),
-                mock(PrincipalExtractor.class),
-                mock(Path.class),
-                mock(ThreadPool.class));
+        this.privilegesEvaluator = new RestApiPrivilegesEvaluator(
+            Settings.EMPTY,
+            mock(AdminDNs.class),
+            mock(PrivilegesEvaluator.class),
+            mock(PrincipalExtractor.class),
+            mock(Path.class),
+            mock(ThreadPool.class)
+        );
     }
 
     @Test

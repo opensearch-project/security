@@ -20,8 +20,8 @@ import org.opensearch.rest.RestRequest;
 public class MockRestRequest extends RestRequest {
 
     public MockRestRequest() {
-        //NamedXContentRegistry xContentRegistry, Map<String, String> params, String path,
-        //Map<String, List<String>> headers, HttpRequest httpRequest, HttpChannel httpChannel
+        // NamedXContentRegistry xContentRegistry, Map<String, String> params, String path,
+        // Map<String, List<String>> headers, HttpRequest httpRequest, HttpChannel httpChannel
         super(NamedXContentRegistry.EMPTY, Collections.emptyMap(), "", Collections.emptyMap(), null, null);
     }
 

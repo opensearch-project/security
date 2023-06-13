@@ -74,7 +74,7 @@ public interface AuditLog extends Closeable {
 
     // set config
     void setConfig(AuditConfig auditConfig);
-    
+
     public enum Origin {
         REST, TRANSPORT, LOCAL
     }

@@ -168,13 +168,13 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
             LdapEntry userEntry = exists(userName, ldapConnection, settings, userBaseSettings, this.returnAttributes, this.shouldFollowReferrals);
             boolean exists = userEntry != null;
-            
+
             if(exists) {
                 user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
             }
-            
+
             return exists;
-            
+
         } catch (final Exception e) {
             log.warn("User {} does not exist due to ", userName, e);
             return false;

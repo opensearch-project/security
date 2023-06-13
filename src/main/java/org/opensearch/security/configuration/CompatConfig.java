@@ -50,13 +50,13 @@ public class CompatConfig {
         this.staticSettings = environment.settings();
         this.transportPassiveAuthSetting = transportPassiveAuthSetting;
     }
-    
+
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         this.dcm = dcm;
         log.debug("dynamicSecurityConfig updated?: {}", (dcm != null));
     }
-    
+
     //true is default
     public boolean restAuthEnabled() {
         final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
@@ -79,7 +79,7 @@ public class CompatConfig {
         }
 
     }
-    
+
     //true is default
     public boolean transportInterClusterAuthEnabled() {
         final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
