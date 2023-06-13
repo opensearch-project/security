@@ -27,23 +27,29 @@ import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 */
 public class ContextHeaderDecoratorClient extends FilterClient {
 
-	private Map<String, String> headers;
+    private Map<String, String> headers;
 
-	public ContextHeaderDecoratorClient(Client in, Map<String, String> headers) {
-		super(in);
-		this.headers = headers != null ? headers : Collections.emptyMap();
-	}
+    public ContextHeaderDecoratorClient(Client in, Map<String, String> headers) {
+        super(in);
+        this.headers = headers != null ? headers : Collections.emptyMap();
+    }
 
-	@Override
-	protected <Request extends ActionRequest, Response extends ActionResponse> void doExecute(ActionType<Response> action, Request request,
-			ActionListener<Response> listener) {
+    @Override
+    protected <Request extends ActionRequest, Response extends ActionResponse> void doExecute(
+        ActionType<Response> action,
+        Request request,
+        ActionListener<Response> listener
+    ) {
 
-		ThreadContext threadContext = threadPool().getThreadContext();
-		ContextPreservingActionListener<Response> wrappedListener = new ContextPreservingActionListener<>(threadContext.newRestorableContext(true), listener);
-		
-		try (StoredContext ctx = threadContext.stashContext()) {
-			threadContext.putHeader(this.headers);
-			super.doExecute(action, request, wrappedListener);
-		}
-	}
+        ThreadContext threadContext = threadPool().getThreadContext();
+        ContextPreservingActionListener<Response> wrappedListener = new ContextPreservingActionListener<>(
+            threadContext.newRestorableContext(true),
+            listener
+        );
+
+        try (StoredContext ctx = threadContext.stashContext()) {
+            threadContext.putHeader(this.headers);
+            super.doExecute(action, request, wrappedListener);
+        }
+    }
 }

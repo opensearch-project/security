@@ -47,84 +47,89 @@ import static org.opensearch.test.framework.log.LogCapturingAppender.PLUGIN_NAME
 @Plugin(name = PLUGIN_NAME, category = Core.CATEGORY_NAME, elementType = Appender.ELEMENT_TYPE, printObject = true)
 public class LogCapturingAppender extends AbstractAppender {
 
-	public final static String PLUGIN_NAME = "LogCapturingAppender";
-	/**
-	* Appender stores only last <code>MAX_SIZE</code> messages to avoid excessive RAM memory usage.
-	*/
-	public static final int MAX_SIZE = 100;
+    public final static String PLUGIN_NAME = "LogCapturingAppender";
+    /**
+    * Appender stores only last <code>MAX_SIZE</code> messages to avoid excessive RAM memory usage.
+    */
+    public static final int MAX_SIZE = 100;
 
-	/**
-	* Buffer for captured log messages
-	*/
-	private static final Buffer messages = BufferUtils.synchronizedBuffer(new CircularFifoBuffer(MAX_SIZE));
+    /**
+    * Buffer for captured log messages
+    */
+    private static final Buffer messages = BufferUtils.synchronizedBuffer(new CircularFifoBuffer(MAX_SIZE));
 
-	/**
-	* Log messages are stored in buffer {@link #messages} only for classes which are added to the {@link #activeLoggers} set.
-	*/
-	private static final Set<String> activeLoggers = Collections.synchronizedSet(new HashSet<>());
+    /**
+    * Log messages are stored in buffer {@link #messages} only for classes which are added to the {@link #activeLoggers} set.
+    */
+    private static final Set<String> activeLoggers = Collections.synchronizedSet(new HashSet<>());
 
-	protected LogCapturingAppender(String name, Filter filter, Layout<? extends Serializable> layout, boolean ignoreExceptions, Property[] properties) {
-		super(name, filter, layout, ignoreExceptions, properties);
-	}
+    protected LogCapturingAppender(
+        String name,
+        Filter filter,
+        Layout<? extends Serializable> layout,
+        boolean ignoreExceptions,
+        Property[] properties
+    ) {
+        super(name, filter, layout, ignoreExceptions, properties);
+    }
 
-	/**
-	* Method used by Log4j2 to create appender
-	* @param name appender name from Log4j2 configuration
-	* @return newly created appender
-	*/
-	@PluginFactory
-	public static LogCapturingAppender createAppender(@PluginAttribute(value = "name", defaultString = "logCapturingAppender") String name) {
-		return new LogCapturingAppender(name,  null, null, true, Property.EMPTY_ARRAY);
-	}
+    /**
+    * Method used by Log4j2 to create appender
+    * @param name appender name from Log4j2 configuration
+    * @return newly created appender
+    */
+    @PluginFactory
+    public static LogCapturingAppender createAppender(
+        @PluginAttribute(value = "name", defaultString = "logCapturingAppender") String name
+    ) {
+        return new LogCapturingAppender(name, null, null, true, Property.EMPTY_ARRAY);
+    }
 
-	/**
-	* Method invoked by Log4j2 to append log events
-	* @param event The LogEvent, represents log message.
-	*/
-	@Override
-	public void append(LogEvent event) {
-		String loggerName = event.getLoggerName();
-		boolean loggable = activeLoggers.contains(loggerName);
-		if(loggable) {
-			event.getThrown();
-			messages.add(new LogMessage(event.getMessage().getFormattedMessage(), event.getThrown()));
-		}
-	}
+    /**
+    * Method invoked by Log4j2 to append log events
+    * @param event The LogEvent, represents log message.
+    */
+    @Override
+    public void append(LogEvent event) {
+        String loggerName = event.getLoggerName();
+        boolean loggable = activeLoggers.contains(loggerName);
+        if (loggable) {
+            event.getThrown();
+            messages.add(new LogMessage(event.getMessage().getFormattedMessage(), event.getThrown()));
+        }
+    }
 
-	/**
-	* To collect log messages form given logger the logger name must be passed to {@link #enable(String...)} method.
-	* @param loggerNames logger names
-	*/
-	public static void enable(String...loggerNames) {
-		disable();
-		activeLoggers.addAll(Arrays.asList(loggerNames));
-	}
+    /**
+    * To collect log messages form given logger the logger name must be passed to {@link #enable(String...)} method.
+    * @param loggerNames logger names
+    */
+    public static void enable(String... loggerNames) {
+        disable();
+        activeLoggers.addAll(Arrays.asList(loggerNames));
+    }
 
-	/**
-	* Invocation cause that appender stops collecting log messages. Additionally, memory used by collected messages so far is released.
-	*/
-	public static void disable() {
-		activeLoggers.clear();
-		messages.clear();
-	}
+    /**
+    * Invocation cause that appender stops collecting log messages. Additionally, memory used by collected messages so far is released.
+    */
+    public static void disable() {
+        activeLoggers.clear();
+        messages.clear();
+    }
 
-	/**
-	* Is used to obtain gathered log messages
-	* @return Log messages
-	*/
-	public static List<LogMessage> getLogMessages() {
-		return new ArrayList<>(messages);
-	}
+    /**
+    * Is used to obtain gathered log messages
+    * @return Log messages
+    */
+    public static List<LogMessage> getLogMessages() {
+        return new ArrayList<>(messages);
+    }
 
-	public static List<String> getLogMessagesAsString() {
-		return getLogMessages()
-			.stream()
-			.map(LogMessage::getMessage)
-			.collect(Collectors.toList());
-	}
+    public static List<String> getLogMessagesAsString() {
+        return getLogMessages().stream().map(LogMessage::getMessage).collect(Collectors.toList());
+    }
 
-	@Override
-	public String toString() {
-		return "LogCapturingAppender{}";
-	}
+    @Override
+    public String toString() {
+        return "LogCapturingAppender{}";
+    }
 }

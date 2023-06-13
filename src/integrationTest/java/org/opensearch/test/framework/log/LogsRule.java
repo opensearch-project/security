@@ -27,66 +27,67 @@ import static org.hamcrest.Matchers.hasItem;
 */
 public class LogsRule extends ExternalResource {
 
-	private final String[] loggerNames;
+    private final String[] loggerNames;
 
-	/**
-	* Constructor used to start gathering log messages from certain loggers
-	* @param loggerNames Loggers names. Log messages are collected only if the log message is associated with the logger with a name which
-	*                    is present in <code>loggerNames</code> parameter.
-	*/
-	public LogsRule(String...loggerNames) {
-		this.loggerNames = Objects.requireNonNull(loggerNames, "Logger names are required");
-	}
+    /**
+    * Constructor used to start gathering log messages from certain loggers
+    * @param loggerNames Loggers names. Log messages are collected only if the log message is associated with the logger with a name which
+    *                    is present in <code>loggerNames</code> parameter.
+    */
+    public LogsRule(String... loggerNames) {
+        this.loggerNames = Objects.requireNonNull(loggerNames, "Logger names are required");
+    }
 
-	@Override
-	protected void before() {
-		LogCapturingAppender.enable(loggerNames);
-	}
+    @Override
+    protected void before() {
+        LogCapturingAppender.enable(loggerNames);
+    }
 
-	@Override
-	protected void after() {
-		LogCapturingAppender.disable();
-	}
+    @Override
+    protected void after() {
+        LogCapturingAppender.disable();
+    }
 
-	/**
-	* Check if during the tests certain log message was logged
-	* @param expectedLogMessage expected log message
-	*/
-	public void assertThatContainExactly(String expectedLogMessage) {
-		List<String> messages = LogCapturingAppender.getLogMessagesAsString();
-		String reason = reasonMessage(expectedLogMessage, messages);
-		assertThat(reason, messages, hasItem(expectedLogMessage));
-	}
+    /**
+    * Check if during the tests certain log message was logged
+    * @param expectedLogMessage expected log message
+    */
+    public void assertThatContainExactly(String expectedLogMessage) {
+        List<String> messages = LogCapturingAppender.getLogMessagesAsString();
+        String reason = reasonMessage(expectedLogMessage, messages);
+        assertThat(reason, messages, hasItem(expectedLogMessage));
+    }
 
-	/**
-	* Check if during the tests certain log message was logged
-	* @param messageFragment expected log message fragment
-	*/
-	public void assertThatContain(String messageFragment) {
-		List<String> messages = LogCapturingAppender.getLogMessagesAsString();;
-		String reason = reasonMessage(messageFragment, messages);
-		assertThat(reason, messages, hasItem(containsString(messageFragment)));
-	}
+    /**
+    * Check if during the tests certain log message was logged
+    * @param messageFragment expected log message fragment
+    */
+    public void assertThatContain(String messageFragment) {
+        List<String> messages = LogCapturingAppender.getLogMessagesAsString();
+        ;
+        String reason = reasonMessage(messageFragment, messages);
+        assertThat(reason, messages, hasItem(containsString(messageFragment)));
+    }
 
-	/**
-	* Check if during the tests a stack trace was logged which contain given fragment
-	* @param stackTraceFragment stack trace fragment
-	*/
-	public void assertThatStackTraceContain(String stackTraceFragment) {
-		long count = LogCapturingAppender.getLogMessages()
-			.stream()
-			.filter(logMessage -> logMessage.stackTraceContains(stackTraceFragment))
-			.count();
-		String reason = "Stack trace does not contain element " + stackTraceFragment;
-		assertThat(reason, count, greaterThan(0L));
-	}
+    /**
+    * Check if during the tests a stack trace was logged which contain given fragment
+    * @param stackTraceFragment stack trace fragment
+    */
+    public void assertThatStackTraceContain(String stackTraceFragment) {
+        long count = LogCapturingAppender.getLogMessages()
+            .stream()
+            .filter(logMessage -> logMessage.stackTraceContains(stackTraceFragment))
+            .count();
+        String reason = "Stack trace does not contain element " + stackTraceFragment;
+        assertThat(reason, count, greaterThan(0L));
+    }
 
-	private static String reasonMessage(String expectedLogMessage, List<String> messages) {
-		String concatenatedLogMessages = messages.stream()
-			.map(message -> String.format("'%s'", message))
-			.collect(Collectors.joining(", "));
-		return String.format("Expected message '%s' has not been found in logs. All captured log messages: %s",
-			expectedLogMessage,
-			concatenatedLogMessages);
-	}
+    private static String reasonMessage(String expectedLogMessage, List<String> messages) {
+        String concatenatedLogMessages = messages.stream().map(message -> String.format("'%s'", message)).collect(Collectors.joining(", "));
+        return String.format(
+            "Expected message '%s' has not been found in logs. All captured log messages: %s",
+            expectedLogMessage,
+            concatenatedLogMessages
+        );
+    }
 }

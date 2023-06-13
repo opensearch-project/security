@@ -36,7 +36,7 @@ abstract class CommonProxyAuthenticationTests {
 
 	protected static final String ATTRIBUTE_DEPARTMENT = "department";
 	protected static final String ATTRIBUTE_SKILLS = "skills";
-	
+
 	protected static final String USER_ATTRIBUTE_DEPARTMENT_NAME = "attr.proxy." + ATTRIBUTE_DEPARTMENT;
 	protected static final String USER_ATTRIBUTE_SKILLS_NAME = "attr.proxy." + ATTRIBUTE_SKILLS;
 	protected static final String USER_ATTRIBUTE_USERNAME_NAME = "attr.proxy.username";
@@ -82,7 +82,7 @@ abstract class CommonProxyAuthenticationTests {
 
 	protected static final RolesMapping ROLES_MAPPING_FIRST_MATE = new RolesMapping(ROLE_ALL_INDEX_SEARCH)
 		.backendRoles(BACKEND_ROLE_FIRST_MATE);
-	
+
 	protected abstract LocalCluster getCluster();
 
 	protected void shouldAuthenticateWithBasicAuthWhenProxyAuthenticationIsConfigured() {
