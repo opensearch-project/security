@@ -262,6 +262,7 @@ ml_read_access:
     - 'cluster:admin/opensearch/ml/models/search'
     - 'cluster:admin/opensearch/ml/tasks/get'
     - 'cluster:admin/opensearch/ml/tasks/search'
+    - 'cluster:admin/opensearch/ml/model_groups/search'
 
 # Allows users to use all ML functionality
 ml_full_access:
