@@ -79,197 +79,203 @@ import static org.opensearch.test.framework.cluster.TestRestClientConfiguration.
 */
 public interface OpenSearchClientProvider {
 
-	String getClusterName();
+    String getClusterName();
 
-	TestCertificates getTestCertificates();
+    TestCertificates getTestCertificates();
 
-	InetSocketAddress getHttpAddress();
+    InetSocketAddress getHttpAddress();
 
-	InetSocketAddress getTransportAddress();
+    InetSocketAddress getTransportAddress();
 
-	default URI getHttpAddressAsURI() {
-		InetSocketAddress address = getHttpAddress();
-		return URI.create("https://" + address.getHostString() + ":" + address.getPort());
-	}
+    default URI getHttpAddressAsURI() {
+        InetSocketAddress address = getHttpAddress();
+        return URI.create("https://" + address.getHostString() + ":" + address.getPort());
+    }
 
-	/**
-	* Returns a REST client that sends requests with basic authentication for the specified User object. Optionally,
-	* additional HTTP headers can be specified which will be sent with each request.
-	*
-	* This method should be usually preferred. The other getRestClient() methods shall be only used for specific
-	* situations.
-	*/
-	default TestRestClient getRestClient(UserCredentialsHolder user, CertificateData useCertificateData, Header... headers) {
-		return getRestClient(user.getName(), user.getPassword(), useCertificateData, headers);
-	}
+    /**
+    * Returns a REST client that sends requests with basic authentication for the specified User object. Optionally,
+    * additional HTTP headers can be specified which will be sent with each request.
+    *
+    * This method should be usually preferred. The other getRestClient() methods shall be only used for specific
+    * situations.
+    */
+    default TestRestClient getRestClient(UserCredentialsHolder user, CertificateData useCertificateData, Header... headers) {
+        return getRestClient(user.getName(), user.getPassword(), useCertificateData, headers);
+    }
 
-	default TestRestClient getRestClient(UserCredentialsHolder user, Header... headers) {
-		return getRestClient(user.getName(), user.getPassword(), null, headers);
-	}
+    default TestRestClient getRestClient(UserCredentialsHolder user, Header... headers) {
+        return getRestClient(user.getName(), user.getPassword(), null, headers);
+    }
 
-	default RestHighLevelClient getRestHighLevelClient(String username, String password, Header... headers) {
-		return getRestHighLevelClient(new UserCredentialsHolder() {
-			@Override
-			public String getName() {
-				return username;
-			}
+    default RestHighLevelClient getRestHighLevelClient(String username, String password, Header... headers) {
+        return getRestHighLevelClient(new UserCredentialsHolder() {
+            @Override
+            public String getName() {
+                return username;
+            }
 
-			@Override
-			public String getPassword() {
-				return password;
-			}
-		}, Arrays.asList(headers));
-	}
+            @Override
+            public String getPassword() {
+                return password;
+            }
+        }, Arrays.asList(headers));
+    }
 
+    default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
+        return getRestHighLevelClient(user, Collections.emptySet());
+    }
 
-	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user) {
-		return getRestHighLevelClient(user, Collections.emptySet());
-	}
+    default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user, Collection<? extends Header> defaultHeaders) {
 
-	default RestHighLevelClient getRestHighLevelClient(UserCredentialsHolder user, Collection<? extends Header> defaultHeaders) {
+        BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(
+            new AuthScope(null, -1),
+            new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray())
+        );
 
-		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-		credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(user.getName(), user.getPassword().toCharArray()));
+        return getRestHighLevelClient(credentialsProvider, defaultHeaders);
+    }
 
-		return getRestHighLevelClient(credentialsProvider, defaultHeaders);
-	}
+    default RestHighLevelClient getRestHighLevelClient(Collection<? extends Header> defaultHeaders) {
+        return getRestHighLevelClient((BasicCredentialsProvider) null, defaultHeaders);
+    }
 
-	default RestHighLevelClient getRestHighLevelClient(Collection<? extends Header> defaultHeaders) {
-		return getRestHighLevelClient((BasicCredentialsProvider)null, defaultHeaders);
-	}
+    default RestHighLevelClient getRestHighLevelClient(
+        BasicCredentialsProvider credentialsProvider,
+        Collection<? extends Header> defaultHeaders
+    ) {
+        RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
+            TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                .setSslContext(getSSLContext())
+                .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+                    @Override
+                    public TlsDetails create(final SSLEngine sslEngine) {
+                        return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+                    }
+                })
+                .build();
 
-	default RestHighLevelClient getRestHighLevelClient(BasicCredentialsProvider credentialsProvider, Collection<? extends Header> defaultHeaders) {
-		RestClientBuilder.HttpClientConfigCallback configCallback = httpClientBuilder -> {
-			TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
-				.create()
-				.setSslContext(getSSLContext())
-				.setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-				// See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-				.setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
-					@Override
-					public TlsDetails create(final SSLEngine sslEngine) {
-						return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
-					}
-				})
-				.build();
+            final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create().setTlsStrategy(tlsStrategy).build();
 
-				final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
-						.setTlsStrategy(tlsStrategy)
-						.build();
+            if (credentialsProvider != null) {
+                httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+            }
+            httpClientBuilder.setDefaultHeaders(defaultHeaders);
+            httpClientBuilder.setConnectionManager(cm);
+            httpClientBuilder.setDefaultHeaders(defaultHeaders);
+            return httpClientBuilder;
+        };
 
-			if(credentialsProvider != null) {
-				httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-			}
-			httpClientBuilder.setDefaultHeaders(defaultHeaders);
-			httpClientBuilder.setConnectionManager(cm);
-			httpClientBuilder.setDefaultHeaders(defaultHeaders);
-			return httpClientBuilder;
-		};
+        InetSocketAddress httpAddress = getHttpAddress();
+        RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
+            .setHttpClientConfigCallback(configCallback);
 
-		InetSocketAddress httpAddress = getHttpAddress();
-		RestClientBuilder builder = RestClient.builder(new HttpHost("https", httpAddress.getHostString(), httpAddress.getPort()))
-			.setHttpClientConfigCallback(configCallback);
+        return new RestHighLevelClient(builder);
+    }
 
+    default CloseableHttpClient getClosableHttpClient(String[] supportedCipherSuit) {
+        CloseableHttpClientFactory factory = new CloseableHttpClientFactory(getSSLContext(), null, null, supportedCipherSuit);
+        return factory.getHTTPClient();
+    }
 
-		return new RestHighLevelClient(builder);
-	}
+    /**
+    * Returns a REST client that sends requests with basic authentication for the specified user name and password. Optionally,
+    * additional HTTP headers can be specified which will be sent with each request.
+    *
+    * Normally, you should use the method with the User object argument instead. Use this only if you need more
+    * control over username and password - for example, when you want to send a wrong password.
+    */
+    default TestRestClient getRestClient(String user, String password, Header... headers) {
+        return createGenericClientRestClient(new TestRestClientConfiguration().username(user).password(password).headers(headers));
+    }
 
-	default CloseableHttpClient getClosableHttpClient(String[] supportedCipherSuit) {
-		CloseableHttpClientFactory factory = new CloseableHttpClientFactory(getSSLContext(), null, null, supportedCipherSuit);
-		return factory.getHTTPClient();
-	}
+    default TestRestClient getRestClient(String user, String password, CertificateData useCertificateData, Header... headers) {
+        Header basicAuthHeader = getBasicAuthHeader(user, password);
+        if (headers != null && headers.length > 0) {
+            List<Header> concatenatedHeaders = Stream.concat(Stream.of(basicAuthHeader), Stream.of(headers)).collect(Collectors.toList());
+            return getRestClient(concatenatedHeaders, useCertificateData);
+        }
+        return getRestClient(useCertificateData, basicAuthHeader);
+    }
 
-	/**
-	* Returns a REST client that sends requests with basic authentication for the specified user name and password. Optionally,
-	* additional HTTP headers can be specified which will be sent with each request.
-	*
-	* Normally, you should use the method with the User object argument instead. Use this only if you need more
-	* control over username and password - for example, when you want to send a wrong password.
-	*/
-	default TestRestClient getRestClient(String user, String password, Header... headers) {
-		return createGenericClientRestClient(new TestRestClientConfiguration().username(user).password(password).headers(headers));
-	}
-	default TestRestClient getRestClient(String user, String password, CertificateData useCertificateData, Header... headers) {
-		Header basicAuthHeader = getBasicAuthHeader(user, password);
-		if (headers != null && headers.length > 0) {
-			List<Header> concatenatedHeaders = Stream.concat(Stream.of(basicAuthHeader), Stream.of(headers)).collect(Collectors.toList());
-			return getRestClient(concatenatedHeaders, useCertificateData);
-		}
-		return getRestClient(useCertificateData, basicAuthHeader);
-	}
-	/**
-	* Returns a REST client. You can specify additional HTTP headers that will be sent with each request. Use this
-	* method to test non-basic authentication, such as JWT bearer authentication.
-	*/
-	default TestRestClient getRestClient(CertificateData useCertificateData, Header... headers) {
-		return getRestClient(Arrays.asList(headers), useCertificateData);
-	}
+    /**
+    * Returns a REST client. You can specify additional HTTP headers that will be sent with each request. Use this
+    * method to test non-basic authentication, such as JWT bearer authentication.
+    */
+    default TestRestClient getRestClient(CertificateData useCertificateData, Header... headers) {
+        return getRestClient(Arrays.asList(headers), useCertificateData);
+    }
 
-	default TestRestClient getRestClient(Header... headers) {
-		return getRestClient((CertificateData) null, headers);
-	}
+    default TestRestClient getRestClient(Header... headers) {
+        return getRestClient((CertificateData) null, headers);
+    }
 
+    default TestRestClient getRestClient(List<Header> headers) {
+        return createGenericClientRestClient(new TestRestClientConfiguration().headers(headers));
 
-	default TestRestClient getRestClient(List<Header> headers) {
-		return createGenericClientRestClient(new TestRestClientConfiguration().headers(headers));
+    }
 
-	}
+    default TestRestClient getRestClient(List<Header> headers, CertificateData useCertificateData) {
+        return createGenericClientRestClient(headers, useCertificateData, null);
+    }
 
-	default TestRestClient getRestClient(List<Header> headers, CertificateData useCertificateData) {
-		return createGenericClientRestClient(headers, useCertificateData, null);
-	}
+    default TestRestClient createGenericClientRestClient(
+        List<Header> headers,
+        CertificateData useCertificateData,
+        InetAddress sourceInetAddress
+    ) {
+        return new TestRestClient(getHttpAddress(), headers, getSSLContext(useCertificateData), sourceInetAddress);
+    }
 
-	default TestRestClient createGenericClientRestClient(List<Header> headers, CertificateData useCertificateData,
-		InetAddress sourceInetAddress) {
-		return new TestRestClient(getHttpAddress(), headers, getSSLContext(useCertificateData), sourceInetAddress);
-	}
+    default TestRestClient createGenericClientRestClient(TestRestClientConfiguration configuration) {
+        return new TestRestClient(getHttpAddress(), configuration.getHeaders(), getSSLContext(), configuration.getSourceInetAddress());
+    }
 
-	default TestRestClient createGenericClientRestClient(TestRestClientConfiguration configuration) {
-		return new TestRestClient(getHttpAddress(), configuration.getHeaders(), getSSLContext(), configuration.getSourceInetAddress());
-	}
+    private SSLContext getSSLContext() {
+        return getSSLContext(null);
+    }
 
-	private SSLContext getSSLContext() {
-		return getSSLContext(null);
-	}
+    private SSLContext getSSLContext(CertificateData useCertificateData) {
+        X509Certificate[] trustCertificates;
 
-	private SSLContext getSSLContext(CertificateData useCertificateData) {
-		X509Certificate[] trustCertificates;
-					
-		try {
-			trustCertificates =  PemKeyReader.loadCertificatesFromFile(getTestCertificates().getRootCertificate() );
+        try {
+            trustCertificates = PemKeyReader.loadCertificatesFromFile(getTestCertificates().getRootCertificate());
 
-			TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-			KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
 
-			ks.load(null);
-			
-			for (int i = 0; i < trustCertificates.length; i++) {
-				ks.setCertificateEntry("caCert-" + i, trustCertificates[i]);	
-			}
-			KeyManager[] keyManagers = null;
-			if(useCertificateData != null) {
-				Certificate[] chainOfTrust = {useCertificateData.certificate()};
-				ks.setKeyEntry("admin-certificate", useCertificateData.getKey(), null, chainOfTrust);
-				KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-				keyManagerFactory.init(ks, null);
-				keyManagers = keyManagerFactory.getKeyManagers();
-			}
+            ks.load(null);
 
-			tmf.init(ks);
+            for (int i = 0; i < trustCertificates.length; i++) {
+                ks.setCertificateEntry("caCert-" + i, trustCertificates[i]);
+            }
+            KeyManager[] keyManagers = null;
+            if (useCertificateData != null) {
+                Certificate[] chainOfTrust = { useCertificateData.certificate() };
+                ks.setKeyEntry("admin-certificate", useCertificateData.getKey(), null, chainOfTrust);
+                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                keyManagerFactory.init(ks, null);
+                keyManagers = keyManagerFactory.getKeyManagers();
+            }
 
-			SSLContext sslContext = SSLContext.getInstance("TLS");
+            tmf.init(ks);
 
-			sslContext.init(keyManagers, tmf.getTrustManagers(), null);
-			return sslContext;
+            SSLContext sslContext = SSLContext.getInstance("TLS");
 
-		} catch (Exception e) {
-			throw new RuntimeException("Error loading root CA ", e);
-		}
-	}    
-	
-	public interface UserCredentialsHolder {
-		String getName();
-		String getPassword();
-	}
+            sslContext.init(keyManagers, tmf.getTrustManagers(), null);
+            return sslContext;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error loading root CA ", e);
+        }
+    }
+
+    public interface UserCredentialsHolder {
+        String getName();
+
+        String getPassword();
+    }
 
 }

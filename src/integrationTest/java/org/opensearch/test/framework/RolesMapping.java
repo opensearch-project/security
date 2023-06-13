@@ -27,71 +27,69 @@ import static java.util.Objects.requireNonNull;
 */
 public class RolesMapping implements ToXContentObject {
 
-	/**
-	* OpenSearch role name
-	*/
-	private String roleName;
+    /**
+    * OpenSearch role name
+    */
+    private String roleName;
 
-	/**
-	* Backend role names
-	*/
-	private List<String> backendRoles;
+    /**
+    * Backend role names
+    */
+    private List<String> backendRoles;
 
-	private boolean reserved = false;
+    private boolean reserved = false;
 
-	/**
-	* Creates roles mapping to OpenSearch role defined by parameter <code>role</code>
-	* @param role OpenSearch role, must not be <code>null</code>.
-	*/
-	public RolesMapping(Role role) {
-		requireNonNull(role);
-		this.roleName = requireNonNull(role.getName());
-		this.backendRoles = new ArrayList<>();
-	}
+    /**
+    * Creates roles mapping to OpenSearch role defined by parameter <code>role</code>
+    * @param role OpenSearch role, must not be <code>null</code>.
+    */
+    public RolesMapping(Role role) {
+        requireNonNull(role);
+        this.roleName = requireNonNull(role.getName());
+        this.backendRoles = new ArrayList<>();
+    }
 
+    /**
+    * Defines backend role names
+    * @param backendRoles backend roles names
+    * @return current {@link RolesMapping} instance
+    */
+    public RolesMapping backendRoles(String... backendRoles) {
+        this.backendRoles.addAll(Arrays.asList(backendRoles));
+        return this;
+    }
 
-	/**
-	* Defines backend role names
-	* @param backendRoles backend roles names
-	* @return current {@link RolesMapping} instance
-	*/
-	public RolesMapping backendRoles(String...backendRoles) {
-		this.backendRoles.addAll(Arrays.asList(backendRoles));
-		return this;
-	}
+    /**
+    * Determines if role is reserved
+    * @param reserved <code>true</code> for reserved roles
+    * @return current {@link RolesMapping} instance
+    */
+    public RolesMapping reserved(boolean reserved) {
+        this.reserved = reserved;
+        return this;
+    }
 
-	/**
-	* Determines if role is reserved
-	* @param reserved <code>true</code> for reserved roles
-	* @return current {@link RolesMapping} instance
-	*/
-	public RolesMapping reserved(boolean reserved) {
-		this.reserved = reserved;
-		return this;
-	}
+    /**
+    * Returns OpenSearch role name
+    * @return role name
+    */
+    public String getRoleName() {
+        return roleName;
+    }
 
-
-	/**
-	* Returns OpenSearch role name
-	* @return role name
-	*/
-	public String getRoleName() {
-		return roleName;
-	}
-
-	/**
-	* Controls serialization to JSON
-	* @param xContentBuilder must not be <code>null</code>
-	* @param params not used parameter, but required by the interface {@link ToXContentObject}
-	* @return builder form parameter <code>xContentBuilder</code>
-	* @throws IOException denotes error during serialization to JSON
-	*/
-	@Override
-	public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-		xContentBuilder.startObject();
-		xContentBuilder.field("reserved", reserved);
-		xContentBuilder.field("backend_roles", backendRoles);
-		xContentBuilder.endObject();
-		return xContentBuilder;
-	}
+    /**
+    * Controls serialization to JSON
+    * @param xContentBuilder must not be <code>null</code>
+    * @param params not used parameter, but required by the interface {@link ToXContentObject}
+    * @return builder form parameter <code>xContentBuilder</code>
+    * @throws IOException denotes error during serialization to JSON
+    */
+    @Override
+    public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
+        xContentBuilder.startObject();
+        xContentBuilder.field("reserved", reserved);
+        xContentBuilder.field("backend_roles", backendRoles);
+        xContentBuilder.endObject();
+        return xContentBuilder;
+    }
 }

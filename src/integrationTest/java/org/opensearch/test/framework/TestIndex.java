@@ -34,51 +34,50 @@ import org.opensearch.common.settings.Settings;
 
 public class TestIndex {
 
-	private final String name;
-	private final Settings settings;
-	
-	public TestIndex(String name, Settings settings) {
-		this.name = name;
-		this.settings = settings;
-		
-	}
+    private final String name;
+    private final Settings settings;
 
-	public void create(Client client) {
-		client.admin().indices().create(new CreateIndexRequest(name).settings(settings)).actionGet();
-	}
+    public TestIndex(String name, Settings settings) {
+        this.name = name;
+        this.settings = settings;
 
-	public String getName() {
-		return name;
-	}
+    }
 
+    public void create(Client client) {
+        client.admin().indices().create(new CreateIndexRequest(name).settings(settings)).actionGet();
+    }
 
-	public static Builder name(String name) {
-		return new Builder().name(name);
-	}
+    public String getName() {
+        return name;
+    }
 
-	public static class Builder {
-		private String name;
-		private Settings.Builder settings = Settings.builder();
+    public static Builder name(String name) {
+        return new Builder().name(name);
+    }
 
-		public Builder name(String name) {
-			this.name = name;
-			return this;
-		}
+    public static class Builder {
+        private String name;
+        private Settings.Builder settings = Settings.builder();
 
-		public Builder setting(String name, int value) {
-			settings.put(name, value);
-			return this;
-		}
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
 
-		public Builder shards(int value) {
-			settings.put("index.number_of_shards", 5);
-			return this;
-		}
-		
-		public TestIndex build() {
-			return new TestIndex(name, settings.build());
-		}        
+        public Builder setting(String name, int value) {
+            settings.put(name, value);
+            return this;
+        }
 
-	}
+        public Builder shards(int value) {
+            settings.put("index.number_of_shards", 5);
+            return this;
+        }
+
+        public TestIndex build() {
+            return new TestIndex(name, settings.build());
+        }
+
+    }
 
 }

@@ -53,68 +53,67 @@ import static java.util.Objects.requireNonNull;
 */
 class PemConverter {
 
-	private PemConverter() {
-	}
+    private PemConverter() {}
 
-	private static final Logger log = LogManager.getLogger(PemConverter.class);
-	private static final SecureRandom secureRandom = new SecureRandom();
+    private static final Logger log = LogManager.getLogger(PemConverter.class);
+    private static final SecureRandom secureRandom = new SecureRandom();
 
-	/**
-	* It converts certificate represented by {@link X509CertificateHolder} object to PEM format
-	* @param certificate is a certificate to convert
-	* @return {@link String} which contains PEM encoded certificate
-	*/
-	public static String toPem(X509CertificateHolder certificate) {
-		StringWriter stringWriter = new StringWriter();
-		try (JcaPEMWriter writer = new JcaPEMWriter(stringWriter)) {
-			writer.writeObject(requireNonNull(certificate, "Certificate is required."));
-		} catch (Exception e) {
-			throw new RuntimeException("Cannot write certificate in PEM format", e);
-		}
-		return stringWriter.toString();
-	}
+    /**
+    * It converts certificate represented by {@link X509CertificateHolder} object to PEM format
+    * @param certificate is a certificate to convert
+    * @return {@link String} which contains PEM encoded certificate
+    */
+    public static String toPem(X509CertificateHolder certificate) {
+        StringWriter stringWriter = new StringWriter();
+        try (JcaPEMWriter writer = new JcaPEMWriter(stringWriter)) {
+            writer.writeObject(requireNonNull(certificate, "Certificate is required."));
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot write certificate in PEM format", e);
+        }
+        return stringWriter.toString();
+    }
 
-	/**
-	* It converts private key represented by class {@link PrivateKey} to PEM format.
-	* @param privateKey is a private key, cannot be <code>null</code>
-	* @param privateKeyPassword is a password used to encode private key, <code>null</code> for unencrypted private key
-	* @return {@link String} which contains PEM encoded private key
-	*/
-	public static String toPem(PrivateKey privateKey, String privateKeyPassword) {
-		try(StringWriter stringWriter = new StringWriter()){
-			savePrivateKey(stringWriter, requireNonNull(privateKey, "Private key is required."), privateKeyPassword);
-			return stringWriter.toString();
-		} catch (IOException e) {
-			throw new RuntimeException("Cannot convert private key into PEM format.", e);
-		}
-	}
+    /**
+    * It converts private key represented by class {@link PrivateKey} to PEM format.
+    * @param privateKey is a private key, cannot be <code>null</code>
+    * @param privateKeyPassword is a password used to encode private key, <code>null</code> for unencrypted private key
+    * @return {@link String} which contains PEM encoded private key
+    */
+    public static String toPem(PrivateKey privateKey, String privateKeyPassword) {
+        try (StringWriter stringWriter = new StringWriter()) {
+            savePrivateKey(stringWriter, requireNonNull(privateKey, "Private key is required."), privateKeyPassword);
+            return stringWriter.toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot convert private key into PEM format.", e);
+        }
+    }
 
-	private static void savePrivateKey(Writer out, PrivateKey privateKey, String privateKeyPassword) {
-		try (JcaPEMWriter writer = new JcaPEMWriter(out)) {
-			writer.writeObject(createPkcs8PrivateKeyPem(privateKey, privateKeyPassword));
-		} catch (Exception e) {
-			log.error("Error while writing private key.", e);
-			throw new RuntimeException("Error while writing private key ", e);
-		}
-	}
+    private static void savePrivateKey(Writer out, PrivateKey privateKey, String privateKeyPassword) {
+        try (JcaPEMWriter writer = new JcaPEMWriter(out)) {
+            writer.writeObject(createPkcs8PrivateKeyPem(privateKey, privateKeyPassword));
+        } catch (Exception e) {
+            log.error("Error while writing private key.", e);
+            throw new RuntimeException("Error while writing private key ", e);
+        }
+    }
 
-	private static PemObject createPkcs8PrivateKeyPem(PrivateKey privateKey, String password) {
-		try {
-			OutputEncryptor outputEncryptor = password == null ? null : getPasswordEncryptor(password);
-			return new PKCS8Generator(PrivateKeyInfo.getInstance(privateKey.getEncoded()), outputEncryptor).generate();
-		} catch (PemGenerationException | OperatorCreationException e) {
-			log.error("Creating PKCS8 private key failed", e);
-			throw new RuntimeException("Creating PKCS8 private key failed", e);
-		}
-	}
+    private static PemObject createPkcs8PrivateKeyPem(PrivateKey privateKey, String password) {
+        try {
+            OutputEncryptor outputEncryptor = password == null ? null : getPasswordEncryptor(password);
+            return new PKCS8Generator(PrivateKeyInfo.getInstance(privateKey.getEncoded()), outputEncryptor).generate();
+        } catch (PemGenerationException | OperatorCreationException e) {
+            log.error("Creating PKCS8 private key failed", e);
+            throw new RuntimeException("Creating PKCS8 private key failed", e);
+        }
+    }
 
-	private static OutputEncryptor getPasswordEncryptor(String password) throws OperatorCreationException {
-		if (!Strings.isNullOrEmpty(password)) {
-			JceOpenSSLPKCS8EncryptorBuilder encryptorBuilder = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.PBE_SHA1_3DES);
-			encryptorBuilder.setRandom(secureRandom);
-			encryptorBuilder.setPassword(password.toCharArray());
-			return encryptorBuilder.build();
-		}
-		return null;
-	}
+    private static OutputEncryptor getPasswordEncryptor(String password) throws OperatorCreationException {
+        if (!Strings.isNullOrEmpty(password)) {
+            JceOpenSSLPKCS8EncryptorBuilder encryptorBuilder = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.PBE_SHA1_3DES);
+            encryptorBuilder.setRandom(secureRandom);
+            encryptorBuilder.setPassword(password.toCharArray());
+            return encryptorBuilder.build();
+        }
+        return null;
+    }
 }

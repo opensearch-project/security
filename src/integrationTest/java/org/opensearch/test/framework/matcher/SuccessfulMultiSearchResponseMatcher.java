@@ -16,20 +16,20 @@ import org.opensearch.action.search.MultiSearchResponse;
 
 class SuccessfulMultiSearchResponseMatcher extends TypeSafeDiagnosingMatcher<MultiSearchResponse> {
 
-	@Override
-	protected boolean matchesSafely(MultiSearchResponse response, Description mismatchDescription) {
-		for (MultiSearchResponse.Item itemResponse : response.getResponses()) {
-			if (itemResponse.isFailure()) {
-				mismatchDescription.appendValue("Get an item failed: ").appendValue(itemResponse.getFailureMessage());
-				return false;
-			}
-		}
+    @Override
+    protected boolean matchesSafely(MultiSearchResponse response, Description mismatchDescription) {
+        for (MultiSearchResponse.Item itemResponse : response.getResponses()) {
+            if (itemResponse.isFailure()) {
+                mismatchDescription.appendValue("Get an item failed: ").appendValue(itemResponse.getFailureMessage());
+                return false;
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Successful multi search response");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Successful multi search response");
+    }
 }

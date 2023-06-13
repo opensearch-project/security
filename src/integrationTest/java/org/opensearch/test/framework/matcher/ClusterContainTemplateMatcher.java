@@ -9,7 +9,6 @@
 */
 package org.opensearch.test.framework.matcher;
 
-
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -20,25 +19,25 @@ import static java.util.Objects.requireNonNull;
 
 class ClusterContainTemplateMatcher extends TypeSafeDiagnosingMatcher<Client> {
 
-	private final String templateName;
+    private final String templateName;
 
-	public ClusterContainTemplateMatcher(String templateName) {
-		this.templateName = requireNonNull(templateName, "Index template name is required.");
+    public ClusterContainTemplateMatcher(String templateName) {
+        this.templateName = requireNonNull(templateName, "Index template name is required.");
 
-	}
+    }
 
-	@Override
-	protected boolean matchesSafely(Client client, Description mismatchDescription) {
-		var response = client.admin().indices().getTemplates(new GetIndexTemplatesRequest(templateName)).actionGet();
-		if(response.getIndexTemplates().isEmpty()) {
-			mismatchDescription.appendText("But template does not exists");
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(Client client, Description mismatchDescription) {
+        var response = client.admin().indices().getTemplates(new GetIndexTemplatesRequest(templateName)).actionGet();
+        if (response.getIndexTemplates().isEmpty()) {
+            mismatchDescription.appendText("But template does not exists");
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("template ").appendValue(templateName).appendText(" exists");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("template ").appendValue(templateName).appendText(" exists");
+    }
 }

@@ -24,35 +24,34 @@ import static java.util.Objects.requireNonNull;
 
 class ClusterContainsDocumentMatcher extends TypeSafeDiagnosingMatcher<Client> {
 
-	private static final Logger log = LogManager.getLogger(ClusterContainsDocumentMatcher.class);
+    private static final Logger log = LogManager.getLogger(ClusterContainsDocumentMatcher.class);
 
-	private final String indexName;
-	private final String documentId;
+    private final String indexName;
+    private final String documentId;
 
-	ClusterContainsDocumentMatcher(String indexName, String documentId) {
-		this.indexName = requireNonNull(indexName, "Index name is required.");
-		this.documentId = requireNonNull(documentId, "Document id is required.");
-	}
+    ClusterContainsDocumentMatcher(String indexName, String documentId) {
+        this.indexName = requireNonNull(indexName, "Index name is required.");
+        this.documentId = requireNonNull(documentId, "Document id is required.");
+    }
 
-	@Override
-	protected boolean matchesSafely(Client client, Description mismatchDescription) {
-		try{
-			GetResponse response = client.get(new GetRequest(indexName, documentId)).get();
-			if(response.isExists() == false) {
-				mismatchDescription.appendText("Document does not exists");
-				return false;
-			}
-		} catch (InterruptedException | ExecutionException e) {
-			log.error("Cannot verify if cluster contains document '{}' in index '{}'.", documentId, indexName, e);
-			mismatchDescription.appendText("Exception occured during verification if cluster contain document").appendValue(e);
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(Client client, Description mismatchDescription) {
+        try {
+            GetResponse response = client.get(new GetRequest(indexName, documentId)).get();
+            if (response.isExists() == false) {
+                mismatchDescription.appendText("Document does not exists");
+                return false;
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Cannot verify if cluster contains document '{}' in index '{}'.", documentId, indexName, e);
+            mismatchDescription.appendText("Exception occured during verification if cluster contain document").appendValue(e);
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Cluster contain document in index ").appendValue(indexName).appendText(" with id ")
-			.appendValue(documentId);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Cluster contain document in index ").appendValue(indexName).appendText(" with id ").appendValue(documentId);
+    }
 }

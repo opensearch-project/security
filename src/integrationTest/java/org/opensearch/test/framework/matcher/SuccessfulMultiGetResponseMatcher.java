@@ -17,21 +17,23 @@ import org.opensearch.action.get.MultiGetResponse;
 
 class SuccessfulMultiGetResponseMatcher extends TypeSafeDiagnosingMatcher<MultiGetResponse> {
 
-	@Override
-	protected boolean matchesSafely(MultiGetResponse response, Description mismatchDescription) {
-		for (MultiGetItemResponse getItemResponse : response.getResponses()) {
-			if (getItemResponse.isFailed()) {
-				mismatchDescription.appendValue("Get an item from index: ").appendValue(getItemResponse.getIndex())
-						.appendText(" failed: ").appendValue(getItemResponse.getFailure().getMessage());
-				return false;
-			}
-		}
+    @Override
+    protected boolean matchesSafely(MultiGetResponse response, Description mismatchDescription) {
+        for (MultiGetItemResponse getItemResponse : response.getResponses()) {
+            if (getItemResponse.isFailed()) {
+                mismatchDescription.appendValue("Get an item from index: ")
+                    .appendValue(getItemResponse.getIndex())
+                    .appendText(" failed: ")
+                    .appendValue(getItemResponse.getFailure().getMessage());
+                return false;
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Successful multi get response");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Successful multi get response");
+    }
 }

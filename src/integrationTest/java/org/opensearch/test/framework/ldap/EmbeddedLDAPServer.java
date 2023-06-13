@@ -19,38 +19,38 @@ import org.opensearch.test.framework.certificate.CertificateData;
 
 public class EmbeddedLDAPServer extends ExternalResource {
 
-	private final LdapServer server;
+    private final LdapServer server;
 
-	private final LdifData ldifData;
+    private final LdifData ldifData;
 
-	public EmbeddedLDAPServer(CertificateData trustAnchor, CertificateData ldapCertificate, LdifData ldifData) {
-		this.ldifData = Objects.requireNonNull(ldifData, "Ldif data is required");
-		this.server = new LdapServer(trustAnchor, ldapCertificate);
-	}
+    public EmbeddedLDAPServer(CertificateData trustAnchor, CertificateData ldapCertificate, LdifData ldifData) {
+        this.ldifData = Objects.requireNonNull(ldifData, "Ldif data is required");
+        this.server = new LdapServer(trustAnchor, ldapCertificate);
+    }
 
-	@Override
-	protected void before() {
-		try {
-			server.start(ldifData);
-		} catch (Exception e) {
-			throw new RuntimeException("Cannot start ldap server", e);
-		}
-	}
+    @Override
+    protected void before() {
+        try {
+            server.start(ldifData);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot start ldap server", e);
+        }
+    }
 
-	@Override
-	protected void after() {
-		try {
-			server.stop();
-		} catch (InterruptedException e) {
-			throw new RuntimeException("Cannot stop LDAP server.", e);
-		}
-	}
+    @Override
+    protected void after() {
+        try {
+            server.stop();
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Cannot stop LDAP server.", e);
+        }
+    }
 
-	public int getLdapNonTlsPort() {
-		return server.getLdapNonTlsPort();
-	}
+    public int getLdapNonTlsPort() {
+        return server.getLdapNonTlsPort();
+    }
 
-	public int getLdapTlsPort() {
-		return server.getLdapsTlsPort();
-	}
+    public int getLdapTlsPort() {
+        return server.getLdapsTlsPort();
+    }
 }
