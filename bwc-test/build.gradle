@@ -73,7 +73,7 @@ dependencies {
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
 }
 
-String bwcVersion = "2.6.0.0";
+String bwcVersion = "2.8.0.0";
 String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
 String projectVersion = "2.9.0.0"
@@ -82,7 +82,7 @@ String projectVersion = "2.9.0.0"
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-            versions = ["2.6.0","2.9.0"]
+            versions = ["2.8.0","2.9.0"]
             numberOfNodes = 3
             plugin(provider(new Callable<RegularFile>() {
                 @Override
