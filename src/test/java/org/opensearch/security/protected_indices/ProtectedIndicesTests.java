@@ -67,7 +67,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     private static final String indexAccessNoRoleUser = "indexAccessNoRoleUser";
     private static final Header indexAccessNoRoleUserHeader = encodeBasicHeader(indexAccessNoRoleUser, indexAccessNoRoleUser);
     private static final String generalErrorMessage = String.format(
-        "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null",
+        "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null, isInternal=true, authDomain=authentication_domain_basic_internal]",
         indexAccessNoRoleUser
     );
     // This user is mapped to all_access and protected_index_role1

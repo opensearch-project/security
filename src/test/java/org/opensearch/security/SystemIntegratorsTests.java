@@ -132,7 +132,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin||127.0.0:80|")
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[], requestedTenant=null"));
+        Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[], requestedTenant=null, isInternal=false, authDomain=null]"));
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"127.0.0.0:80\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[]"));
@@ -142,7 +142,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1|127.0.0:80|key1,value1")
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[role1], requestedTenant=null"));
+        Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[role1], requestedTenant=null, isInternal=false, authDomain=null]"));
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"127.0.0.0:80\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\"]"));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\"]"));
@@ -152,7 +152,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1,role2||key1,value1")
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[role1, role2], requestedTenant=null"));
+        Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[role1, role2], requestedTenant=null, isInternal=false, authDomain=null]"));
         // remote IP is assigned by XFFResolver
         Assert.assertFalse(resc.getBody().contains("\"remote_address\":null"));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"role2\"]"));
@@ -163,7 +163,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "admin|role1,role2|8.8.8.8:8|key1,value1,key2,value2")
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[role1, role2], requestedTenant=null"));
+        Assert.assertTrue(resc.getBody().contains("User [name=admin, backend_roles=[role1, role2], requestedTenant=null, isInternal=false, authDomain=null]"));
         // remote IP is assigned by XFFResolver
         Assert.assertFalse(resc.getBody().contains("\"remote_address\":null"));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"role2\"]"));
@@ -174,7 +174,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "nagilum|role1,role2|8.8.8.8:8|key1,value1,key2,value2")
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody().contains("User [name=nagilum, backend_roles=[role1, role2], requestedTenant=null"));
+        Assert.assertTrue(resc.getBody().contains("User [name=nagilum, backend_roles=[role1, role2], requestedTenant=null, isInternal=false, authDomain=null]"));
         // remote IP is assigned by XFFResolver
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"role2\"]"));
@@ -187,7 +187,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             new BasicHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, "myuser|role1,vulcanadmin|8.8.8.8:8|key1,value1,key2,value2")
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=null"));
+        Assert.assertTrue(resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=null, isInternal=false, authDomain=null]"));
         // remote IP is assigned by XFFResolver
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"vulcanadmin\"]"));
@@ -204,7 +204,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             )
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=null"));
+        Assert.assertTrue(resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=null, isInternal=false, authDomain=null]"));
         // remote IP is assigned by XFFResolver
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"vulcanadmin\"]"));
@@ -220,7 +220,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
             )
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        Assert.assertTrue(resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=mytenant"));
+        Assert.assertTrue(resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=mytenant, isInternal=false, authDomain=null]"));
         // remote IP is assigned by XFFResolver
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"vulcanadmin\"]"));
@@ -237,7 +237,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         );
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertTrue(
-            resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=mytenant with whitespace")
+            resc.getBody().contains("User [name=myuser, backend_roles=[role1, vulcanadmin], requestedTenant=mytenant with whitespace, isInternal=false, authDomain=null]")
         );
         // remote IP is assigned by XFFResolver
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
