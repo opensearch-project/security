@@ -93,7 +93,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(false);
         when(securityRoles.impliesLegacyPermission(action)).thenReturn(false);
 
-        PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, action);
+        PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
         assertNotNull(response);
         assertFalse(response.isAllowed());
@@ -105,7 +105,7 @@ public class RestLayerPrivilegesEvaluatorTest {
     @Test(expected = OpenSearchSecurityException.class)
     public void testEvaluate_NotInitialized_ExceptionThrown() throws Exception {
         String action = "action";
-        privilegesEvaluator.evaluate(TEST_USER, action);
+        privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
     }
 
     @Test
@@ -128,7 +128,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(true);
         when(securityRoles.impliesLegacyPermission(action)).thenReturn(true);
 
-        PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, action);
+        PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
         assertTrue(response.allowed);
         verify(securityRoles).impliesClusterPermissionPermission(any());
@@ -144,7 +144,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(false);
         when(securityRoles.impliesLegacyPermission(action)).thenReturn(true);
 
-        PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, action);
+        PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
         assertTrue(response.allowed);
         verify(securityRoles).impliesClusterPermissionPermission(any());
@@ -160,7 +160,7 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(false);
         when(securityRoles.impliesLegacyPermission(action)).thenReturn(false);
 
-        PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, action);
+        PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
         assertFalse(response.allowed);
         verify(securityRoles).impliesClusterPermissionPermission(any());
