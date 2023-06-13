@@ -141,7 +141,7 @@ public class JwtAuthenticationTests {
 
 			response.assertStatusCode(200);
 			String username = response.getTextFromJsonBody(POINTER_USERNAME);
-			assertThat(username, equalTo(username));
+			assertThat(username, equalTo(USER_SUPERHERO));
 		}
 	}
 
