@@ -75,7 +75,7 @@ public class RestLayerPrivilegesEvaluator {
         return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
-    public PrivilegesEvaluatorResponse evaluate(final User user, String action0) {
+    public PrivilegesEvaluatorResponse evaluate(final User user, Set<String> action0) {
 
         if (!isInitialized()) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
@@ -97,18 +97,24 @@ public class RestLayerPrivilegesEvaluator {
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
-        if (!securityRoles.impliesClusterPermissionPermission(action0)
-                && !securityRoles.impliesLegacyPermission(action0)) {
-            presponse.missingPrivileges.add(action0);
-            presponse.allowed = false;
-            log.info("No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",  user, action0,
-                    securityRoles.getRoleNames(), presponse.missingPrivileges);
-        } else {
-            if (isDebugEnabled) {
-                log.debug("Allowed because we have ext permissions for {}", action0);
+        for (String action : action0) {
+            if (!securityRoles.impliesClusterPermissionPermission(action)
+                    && !securityRoles.impliesLegacyPermission(action)) {
+                presponse.missingPrivileges.add(action);
+                presponse.allowed = false;
+                log.info("No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}", user, action,
+                        securityRoles.getRoleNames(), presponse.missingPrivileges);
+            } else {
+                if (isDebugEnabled) {
+                    log.debug("Allowed because we have ext permissions for {}", action0);
+                }
+                presponse.allowed = true;
+
+                // break the loop as we found the matching permission
+                break;
             }
-            presponse.allowed = true;
         }
+
         return presponse;
     }
 

@@ -26,10 +26,10 @@
 
 package org.opensearch.security.filter;
 
-// CS-SUPPRESS-SINGLE: RegexpSingleline Extension is used to refer to certificate extensions, keeping this rule disable for the whole file
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,7 +40,6 @@ import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
@@ -50,7 +49,6 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
-import org.opensearch.rest.extensions.RestSendToExtensionAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.AuditLog.Origin;
 import org.opensearch.security.auth.BackendRegistry;
@@ -127,7 +125,7 @@ public class SecurityRestFilter {
     public RestHandler wrap(RestHandler original, AdminDNs adminDNs) {
         return (request, channel, client) -> {
             org.apache.logging.log4j.ThreadContext.clearAll();
-            if (!checkAndAuthenticateRequest(request, channel, client)) {
+            if (!checkAndAuthenticateRequest(request, channel)) {
                 User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
                     if (!authorizeRequest(original, request, channel, user)) {
@@ -145,44 +143,52 @@ public class SecurityRestFilter {
         return user != null && adminDNs.isAdmin(user);
     }
 
-    private boolean authorizeRequest(RestHandler original, RestRequest request, RestChannel channel, User user) throws Exception {
-        if (original instanceof RestSendToExtensionAction) {
-            List<RestHandler.Route> extensionRoutes = original.routes();
-            Optional<RestHandler.Route> handler = extensionRoutes.stream()
-                    .filter(rh -> rh.getMethod().equals(request.method()))
-                    .filter(rh -> restPathMatches(request.path(), rh.getPath()))
-                    .findFirst();
-            if (handler.isPresent() && handler.get() instanceof NamedRoute) {
-                String action = ((NamedRoute)handler.get()).name();
-                PrivilegesEvaluatorResponse pres = evaluator.evaluate(user, action);
-                if (log.isDebugEnabled()) {
-                    log.debug(pres.toString());
-                }
+    private boolean authorizeRequest(RestHandler original, RestRequest request, RestChannel channel, User user) {
 
-                if (pres.isAllowed()) {
-                    // TODO make sure this is audit logged
-                    log.debug("Request has been granted");
-                    // auditLog.logGrantedPrivileges(action, request, task);
+        List<RestHandler.Route> restRoutes = original.routes();
+        Optional<RestHandler.Route> handler = restRoutes.stream()
+                .filter(rh -> rh.getMethod().equals(request.method()))
+                .filter(rh -> restPathMatches(request.path(), rh.getPath()))
+                .findFirst();
+        if (handler.isPresent() && handler.get() instanceof NamedRoute) {
+            PrivilegesEvaluatorResponse pres = new PrivilegesEvaluatorResponse();
+            // if actionNames are present evaluate those first
+            Set<String> actionNames = ((NamedRoute) handler.get()).actionNames();
+            if (!actionNames.isEmpty()) {
+                pres = evaluator.evaluate(user, actionNames);
+            }
+
+            // now if pres.allowed is still false check for the NamedRoute name as a permission\
+            if (!pres.isAllowed()) {
+                String action = ((NamedRoute) handler.get()).name();
+                pres = evaluator.evaluate(user, Set.of(action));
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug(pres.toString());
+            }
+            if (pres.isAllowed()) {
+                // TODO make sure this is audit logged
+                log.debug("Request has been granted");
+                // auditLog.logGrantedPrivileges(action, request, task);
+            } else {
+                // auditLog.logMissingPrivileges(action, request, task);
+                String err;
+                if(!pres.getMissingSecurityRoles().isEmpty()) {
+                    err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
                 } else {
-                    // auditLog.logMissingPrivileges(action, request, task);
-                    String err;
-                    if(!pres.getMissingSecurityRoles().isEmpty()) {
-                        err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
-                    } else {
-                        err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
-                    }
-                    log.debug(err);
-                    // TODO Figure out why ext hangs intermittently after single unauthorized request
-                    channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
-                    return true;
+                    err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
+                log.debug(err);
+                // TODO Figure out why ext hangs intermittently after single unauthorized request
+                channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
+                return false;
             }
         }
         return false;
     }
 
-    private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel,
-                                                NodeClient client) throws Exception {
+    private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel) throws Exception {
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
 
