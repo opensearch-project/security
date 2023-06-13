@@ -27,7 +27,9 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest 
         "{ \"index_patterns\": [\"sem1234*\"], \"template\": { \"settings\": { \"number_of_shards\": 2, \"number_of_replicas\": 1 }, \"mappings\": { \"properties\": { \"timestamp\": { \"type\": \"date\", \"format\": \"yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis\" }, \"value\": { \"type\": \"double\" } } } } }";
 
     private String getFailureResponseReason(String user) {
-        return "no permissions for [indices:admin/index_template/put] and User [name=" + user + ", backend_roles=[], requestedTenant=null, isInternal=true, authDomain=authentication_domain_basic_internal]";
+        return "no permissions for [indices:admin/index_template/put] and User [name="
+            + user
+            + ", backend_roles=[], requestedTenant=null, isInternal=true, authDomain=authentication_domain_basic_internal]";
     }
 
     @Before
