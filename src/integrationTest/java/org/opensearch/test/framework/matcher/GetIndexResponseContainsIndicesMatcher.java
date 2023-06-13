@@ -21,31 +21,29 @@ import static java.util.Objects.isNull;
 
 class GetIndexResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatcher<GetIndexResponse> {
 
-	private final String[] expectedIndices;
+    private final String[] expectedIndices;
 
-	GetIndexResponseContainsIndicesMatcher(String[] expectedIndices) {
-		if (isNull(expectedIndices) || 0 == expectedIndices.length) {
-			throw new IllegalArgumentException("expectedIndices cannot be null or empty");
-		}
-		this.expectedIndices = expectedIndices;
-	}
+    GetIndexResponseContainsIndicesMatcher(String[] expectedIndices) {
+        if (isNull(expectedIndices) || 0 == expectedIndices.length) {
+            throw new IllegalArgumentException("expectedIndices cannot be null or empty");
+        }
+        this.expectedIndices = expectedIndices;
+    }
 
-	@Override
-	protected boolean matchesSafely(GetIndexResponse response, Description mismatchDescription) {
-		List<String> actual = Arrays.asList(response.getIndices());
-		for (String index : expectedIndices) {
-			if (!actual.contains(index)) {
-				mismatchDescription
-						.appendText("Actual indices: ")
-						.appendValue(response.getIndices());
-				return false;
-			}
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(GetIndexResponse response, Description mismatchDescription) {
+        List<String> actual = Arrays.asList(response.getIndices());
+        for (String index : expectedIndices) {
+            if (!actual.contains(index)) {
+                mismatchDescription.appendText("Actual indices: ").appendValue(response.getIndices());
+                return false;
+            }
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Response should contain indices: ").appendValue(expectedIndices);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Response should contain indices: ").appendValue(expectedIndices);
+    }
 }

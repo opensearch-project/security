@@ -67,13 +67,16 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         this.settings = settings;
         this.configPath = configPath;
         this.userBaseSettings = getUserBaseSettings(settings);
-        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
+        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value()))
+            .toArray(new String[0]);
         this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT);
 
         customAttrMaxValueLen = settings.getAsInt(ConfigConstants.LDAP_CUSTOM_ATTR_MAXVAL_LEN, 36);
         checkForDeprecatedSetting(settings, ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST, ConfigConstants.LDAP_CUSTOM_ATTR_ALLOWLIST);
-        final List<String> customAttrAllowList = settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_ALLOWLIST, settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST,
-                Collections.singletonList("*")));
+        final List<String> customAttrAllowList = settings.getAsList(
+            ConfigConstants.LDAP_CUSTOM_ATTR_ALLOWLIST,
+            settings.getAsList(ConfigConstants.LDAP_CUSTOM_ATTR_WHITELIST, Collections.singletonList("*"))
+        );
         allowlistedCustomLdapAttrMatcher = WildcardMatcher.from(customAttrAllowList);
     }
 
@@ -81,7 +84,7 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     public User authenticate(final AuthCredentials credentials) throws OpenSearchSecurityException {
 
         Connection ldapConnection = null;
-        final String user =credentials.getUsername();
+        final String user = credentials.getUsername();
         byte[] password = credentials.getPassword();
 
         try {
@@ -98,11 +101,12 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
                 // makes guessing if a user exists or not harder when looking on the
                 // authentication delay time
                 if (entry == null && settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)) {
-                    String fakeLognDn = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_DN,
-                            "CN=faketomakebindfail,DC=" + UUID.randomUUID().toString());
+                    String fakeLognDn = settings.get(
+                        ConfigConstants.LDAP_FAKE_LOGIN_DN,
+                        "CN=faketomakebindfail,DC=" + UUID.randomUUID().toString()
+                    );
                     entry = new LdapEntry(fakeLognDn);
-                    password = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_PASSWORD, "fakeLoginPwd123")
-                            .getBytes(StandardCharsets.UTF_8);
+                    password = settings.get(ConfigConstants.LDAP_FAKE_LOGIN_PASSWORD, "fakeLoginPwd123").getBytes(StandardCharsets.UTF_8);
                 } else if (entry == null) {
                     throw new OpenSearchSecurityException("No user " + user + " found");
                 }
@@ -166,15 +170,24 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
         try {
             ldapConnection = LDAPAuthorizationBackend.getConnection(settings, configPath);
-            LdapEntry userEntry = exists(userName, ldapConnection, settings, userBaseSettings, this.returnAttributes, this.shouldFollowReferrals);
+            LdapEntry userEntry = exists(
+                userName,
+                ldapConnection,
+                settings,
+                userBaseSettings,
+                this.returnAttributes,
+                this.shouldFollowReferrals
+            );
             boolean exists = userEntry != null;
-            
-            if(exists) {
-                user.addAttributes(LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher));
+
+            if (exists) {
+                user.addAttributes(
+                    LdapUser.extractLdapAttributes(userName, userEntry, customAttrMaxValueLen, allowlistedCustomLdapAttrMatcher)
+                );
             }
-            
+
             return exists;
-            
+
         } catch (final Exception e) {
             log.warn("User {} does not exist due to ", userName, e);
             return false;
@@ -184,33 +197,39 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
     }
 
     static List<Map.Entry<String, Settings>> getUserBaseSettings(Settings settings) {
-        Map<String, Settings> userBaseSettingsMap = new HashMap<>(
-                settings.getGroups(ConfigConstants.LDAP_AUTHCZ_USERS));
+        Map<String, Settings> userBaseSettingsMap = new HashMap<>(settings.getGroups(ConfigConstants.LDAP_AUTHCZ_USERS));
 
         if (!userBaseSettingsMap.isEmpty()) {
             if (settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
                 throw new RuntimeException(
-                        "Both old-style and new-style configuration defined for LDAP authentication backend: "
-                                + settings);
+                    "Both old-style and new-style configuration defined for LDAP authentication backend: " + settings
+                );
             }
 
             return Utils.getOrderedBaseSettings(userBaseSettingsMap);
         } else {
             Settings.Builder settingsBuilder = Settings.builder();
-            settingsBuilder.put(ConfigConstants.LDAP_AUTHCZ_BASE,
-                    settings.get(ConfigConstants.LDAP_AUTHC_USERBASE, DEFAULT_USERBASE));
-            settingsBuilder.put(ConfigConstants.LDAP_AUTHCZ_SEARCH,
-                    settings.get(ConfigConstants.LDAP_AUTHC_USERSEARCH, DEFAULT_USERSEARCH_PATTERN));
+            settingsBuilder.put(ConfigConstants.LDAP_AUTHCZ_BASE, settings.get(ConfigConstants.LDAP_AUTHC_USERBASE, DEFAULT_USERBASE));
+            settingsBuilder.put(
+                ConfigConstants.LDAP_AUTHCZ_SEARCH,
+                settings.get(ConfigConstants.LDAP_AUTHC_USERSEARCH, DEFAULT_USERSEARCH_PATTERN)
+            );
 
             return Collections.singletonList(Pair.of("_legacyConfig", settingsBuilder.build()));
         }
     }
 
-    static LdapEntry exists(final String user, Connection ldapConnection, Settings settings,
-            List<Map.Entry<String, Settings>> userBaseSettings, String[] returnAttributes, final boolean shouldFollowReferrals) throws Exception {
+    static LdapEntry exists(
+        final String user,
+        Connection ldapConnection,
+        Settings settings,
+        List<Map.Entry<String, Settings>> userBaseSettings,
+        String[] returnAttributes,
+        final boolean shouldFollowReferrals
+    ) throws Exception {
         if (settings.getAsBoolean(ConfigConstants.LDAP_FAKE_LOGIN_ENABLED, false)
-                || settings.getAsBoolean(ConfigConstants.LDAP_SEARCH_ALL_BASES, false)
-                || settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
+            || settings.getAsBoolean(ConfigConstants.LDAP_SEARCH_ALL_BASES, false)
+            || settings.hasValue(ConfigConstants.LDAP_AUTHC_USERBASE)) {
             return existsSearchingAllBases(user, ldapConnection, userBaseSettings, returnAttributes, shouldFollowReferrals);
         } else {
             return existsSearchingUntilFirstHit(user, ldapConnection, userBaseSettings, returnAttributes, shouldFollowReferrals);
@@ -218,8 +237,13 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
 
     }
 
-    private static LdapEntry existsSearchingUntilFirstHit(final String user, Connection ldapConnection,
-            List<Map.Entry<String, Settings>> userBaseSettings, final String[] returnAttributes, final boolean shouldFollowReferrals) throws Exception {
+    private static LdapEntry existsSearchingUntilFirstHit(
+        final String user,
+        Connection ldapConnection,
+        List<Map.Entry<String, Settings>> userBaseSettings,
+        final String[] returnAttributes,
+        final boolean shouldFollowReferrals
+    ) throws Exception {
         final String username = user;
 
         final boolean isDebugEnabled = log.isDebugEnabled();
@@ -230,11 +254,14 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             f.setFilter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN));
             f.setParameter(ZERO_PLACEHOLDER, username);
 
-            List<LdapEntry> result = LdapHelper.search(ldapConnection,
-                    baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
-                    f,
-                    SearchScope.SUBTREE,
-                    returnAttributes, shouldFollowReferrals);
+            List<LdapEntry> result = LdapHelper.search(
+                ldapConnection,
+                baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
+                f,
+                SearchScope.SUBTREE,
+                returnAttributes,
+                shouldFollowReferrals
+            );
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for {} in base {} is {}", user, entry.getKey(), result);
@@ -248,8 +275,13 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
         return null;
     }
 
-    private static LdapEntry existsSearchingAllBases(final String user, Connection ldapConnection,
-            List<Map.Entry<String, Settings>> userBaseSettings, final String[] returnAttributes, final boolean shouldFollowReferrals) throws Exception {
+    private static LdapEntry existsSearchingAllBases(
+        final String user,
+        Connection ldapConnection,
+        List<Map.Entry<String, Settings>> userBaseSettings,
+        final String[] returnAttributes,
+        final boolean shouldFollowReferrals
+    ) throws Exception {
         final String username = user;
         Set<LdapEntry> result = new HashSet<>();
 
@@ -261,11 +293,14 @@ public class LDAPAuthenticationBackend implements AuthenticationBackend {
             f.setFilter(baseSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_USERSEARCH_PATTERN));
             f.setParameter(ZERO_PLACEHOLDER, username);
 
-            List<LdapEntry> foundEntries = LdapHelper.search(ldapConnection,
-                    baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
-                    f,
-                    SearchScope.SUBTREE,
-                    returnAttributes, shouldFollowReferrals);
+            List<LdapEntry> foundEntries = LdapHelper.search(
+                ldapConnection,
+                baseSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_USERBASE),
+                f,
+                SearchScope.SUBTREE,
+                returnAttributes,
+                shouldFollowReferrals
+            );
 
             if (isDebugEnabled) {
                 log.debug("Results for LDAP search for " + user + " in base " + entry.getKey() + ":\n" + result);

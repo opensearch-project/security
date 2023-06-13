@@ -26,15 +26,15 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
     private static final Header NegatedRegexUserHeader = encodeBasicHeader("negated_regex_user", "negated_regex_user");
 
     public void setupSettingsIndexPattern() throws Exception {
-        Settings settings = Settings.builder()
-                .build();
-        setup(Settings.EMPTY,
-                new DynamicSecurityConfig()
-                        .setSecurityRoles("roles_index_patterns.yml")
-                        .setSecurityInternalUsers("internal_users_index_patterns.yml")
-                        .setSecurityRolesMapping("roles_mapping_index_patterns.yml"),
-                settings,
-                true);
+        Settings settings = Settings.builder().build();
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setSecurityRoles("roles_index_patterns.yml")
+                .setSecurityInternalUsers("internal_users_index_patterns.yml")
+                .setSecurityRolesMapping("roles_mapping_index_patterns.yml"),
+            settings,
+            true
+        );
     }
 
     @Test
@@ -42,9 +42,9 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
         setupSettingsIndexPattern();
 
         RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse response = rh.executeGetRequest( "*/_search", NegativeLookaheadUserHeader);
+        RestHelper.HttpResponse response = rh.executeGetRequest("*/_search", NegativeLookaheadUserHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executeGetRequest( "r*/_search", NegativeLookaheadUserHeader);
+        response = rh.executeGetRequest("r*/_search", NegativeLookaheadUserHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 
@@ -53,9 +53,9 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
         setupSettingsIndexPattern();
 
         RestHelper rh = nonSslRestHelper();
-        RestHelper.HttpResponse response = rh.executeGetRequest( "*/_search", NegatedRegexUserHeader);
+        RestHelper.HttpResponse response = rh.executeGetRequest("*/_search", NegatedRegexUserHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-        response = rh.executeGetRequest( "r*/_search", NegatedRegexUserHeader);
+        response = rh.executeGetRequest("r*/_search", NegatedRegexUserHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
 }

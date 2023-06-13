@@ -28,7 +28,7 @@ public class ReflectiveAttributeAccessors {
     public static <O, R> Function<O, R> objectAttr(String name, Class<R> type) {
         return new ReflectiveAttributeGetter<O, R>(name, type);
     }
-    
+
     public static <O, R> Function<O, R> protectedObjectAttr(String name, Class<R> type) {
         return new ProtectedReflectiveAttributeGetter<O, R>(name, type);
     }
@@ -114,7 +114,7 @@ public class ReflectiveAttributeAccessors {
         }
     }
 
-    
+
     static class ReflectiveAttributeSetter<O, R> implements BiFunction<O, R, Void> {
         private final String attribute;
         private final String methodName;

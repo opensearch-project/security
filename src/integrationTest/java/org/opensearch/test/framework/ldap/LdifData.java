@@ -11,39 +11,38 @@ package org.opensearch.test.framework.ldap;
 
 import org.apache.commons.lang3.StringUtils;
 
-
 /**
 * Value object which represents LDIF file data and some metadata. Ensure type safety.
 */
 public class LdifData {
-	
-	private final String rootDistinguishedName;
 
-	private final String content;
+    private final String rootDistinguishedName;
 
-	LdifData(String rootDistinguishedName, String content) {
-		this.rootDistinguishedName = requireNotBlank(rootDistinguishedName, "Root distinguished name is required");
-		this.content = requireNotBlank(content, "Ldif file content is required");
+    private final String content;
 
-	}
+    LdifData(String rootDistinguishedName, String content) {
+        this.rootDistinguishedName = requireNotBlank(rootDistinguishedName, "Root distinguished name is required");
+        this.content = requireNotBlank(content, "Ldif file content is required");
 
-	private static String requireNotBlank(String string, String message) {
-		if(StringUtils.isBlank(string)) {
-			throw new IllegalArgumentException(message);
-		}
-		return string;
-	}
+    }
 
-	String getContent() {
-		return content;
-	}
+    private static String requireNotBlank(String string, String message) {
+        if (StringUtils.isBlank(string)) {
+            throw new IllegalArgumentException(message);
+        }
+        return string;
+    }
 
-	String getRootDistinguishedName() {
-		return rootDistinguishedName;
-	}
+    String getContent() {
+        return content;
+    }
 
-	@Override
-	public String toString() {
-		return "LdifData{" + "content='" + content + '\'' + '}';
-	}
+    String getRootDistinguishedName() {
+        return rootDistinguishedName;
+    }
+
+    @Override
+    public String toString() {
+        return "LdifData{" + "content='" + content + '\'' + '}';
+    }
 }

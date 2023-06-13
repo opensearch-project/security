@@ -57,12 +57,12 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     private final Provider<BackendRegistry> backendRegistry;
     private final ConfigurationRepository configurationRepository;
     private DynamicConfigFactory dynamicConfigFactory;
-    
+
     @Inject
     public TransportConfigUpdateAction(final Settings settings,
             final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
             final ConfigurationRepository configurationRepository, final ActionFilters actionFilters,
-            Provider<BackendRegistry> backendRegistry, DynamicConfigFactory dynamicConfigFactory) {        
+            Provider<BackendRegistry> backendRegistry, DynamicConfigFactory dynamicConfigFactory) {
         super(ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
                 ConfigUpdateRequest::new, TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
                 ThreadPool.Names.MANAGEMENT, ConfigUpdateNodeResponse.class);
@@ -96,14 +96,14 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     protected ConfigUpdateNodeResponse newNodeResponse(StreamInput in) throws IOException {
         return new ConfigUpdateNodeResponse(in);
     }
-    
+
     @Override
     protected ConfigUpdateResponse newResponse(ConfigUpdateRequest request, List<ConfigUpdateNodeResponse> responses,
             List<FailedNodeException> failures) {
         return new ConfigUpdateResponse(this.clusterService.getClusterName(), responses, failures);
 
     }
-	
+
     @Override
     protected ConfigUpdateNodeResponse nodeOperation(final NodeConfigUpdateRequest request) {
         configurationRepository.reloadConfiguration(CType.fromStringValues((request.request.getConfigTypes())));

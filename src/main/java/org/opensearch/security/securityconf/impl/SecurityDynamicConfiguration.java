@@ -52,7 +52,7 @@ import org.opensearch.security.securityconf.Hideable;
 import org.opensearch.security.securityconf.StaticDefinable;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
-    
+
     private static final TypeReference<HashMap<String,Object>> typeRefMSO = new TypeReference<HashMap<String,Object>>() {};
 
     @JsonIgnore
@@ -61,7 +61,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     private long primaryTerm= -1;
     private CType ctype;
     private int version = -1;
-    
+
     public static <T> SecurityDynamicConfiguration<T> empty() {
         return new SecurityDynamicConfiguration<T>();
     }
@@ -83,11 +83,11 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
                 sdc = DefaultObjectMapper.readValue(json, DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass));
             }
             validate(sdc, version, ctype);
-        
+
         } else {
             sdc = new SecurityDynamicConfiguration<T>();
         }
-        
+
         sdc.ctype = ctype;
         sdc.seqNo = seqNo;
         sdc.primaryTerm = primaryTerm;
@@ -95,35 +95,35 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
         return sdc;
     }
-    
+
     public static void validate(SecurityDynamicConfiguration sdc, int version, CType ctype) throws IOException {
         if(version < 2 && sdc.get_meta() != null) {
             throw new IOException("A version of "+version+" can not have a _meta key for "+ctype);
         }
-        
+
         if(version >= 2 && sdc.get_meta() == null) {
             throw new IOException("A version of "+version+" must have a _meta key for "+ctype);
         }
-        
+
         if(version < 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("opendistro_security"))) {
             throw new IOException("A version of "+version+" must have a single toplevel key named 'opendistro_security' for "+ctype);
         }
-        
+
         if(version >= 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("config"))) {
             throw new IOException("A version of "+version+" must have a single toplevel key named 'config' for "+ctype);
         }
-        
+
     }
 
     public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
         return fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, seqNo, primaryTerm);
     }
-    
+
     //for Jackson
     private SecurityDynamicConfiguration() {
         super();
     }
-    
+
     private Meta _meta;
 
     public Meta get_meta() {
@@ -134,17 +134,17 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         this._meta = _meta;
     }
 
-    
+
     @JsonAnySetter
     void setCEntries(String key, T value) {
         putCEntry(key, value);
     }
-    
+
     @JsonAnyGetter
     public Map<String, T> getCEntries() {
         return centries;
     }
-    
+
     @JsonIgnore
     public void removeHidden() {
         for(Entry<String, T> entry: new HashMap<String, T>(centries).entrySet()) {
@@ -153,7 +153,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
             }
         }
     }
-    
+
     @JsonIgnore
     public void removeStatic() {
         for(Entry<String, T> entry: new HashMap<String, T>(centries).entrySet()) {
@@ -162,38 +162,38 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
             }
         }
     }
-    
+
     @JsonIgnore
     public void clearHashes() {
         for(Entry<String, T> entry: centries.entrySet()) {
             if(entry.getValue() instanceof Hashed) {
-               ((Hashed) entry.getValue()).clearHash(); 
+               ((Hashed) entry.getValue()).clearHash();
             }
         }
     }
-    
+
 
     public void removeOthers(String key) {
         T tmp = this.centries.get(key);
         this.centries.clear();
         this.centries.put(key, tmp);
     }
-    
+
     @JsonIgnore
     public T putCEntry(String key, T value) {
         return centries.put(key, value);
     }
-    
+
     @JsonIgnore
     public void putCObject(String key, Object value) {
         centries.put(key, (T) value);
     }
-    
+
     @JsonIgnore
     public T getCEntry(String key) {
         return centries.get(key);
     }
-    
+
     @JsonIgnore
     public boolean exists(String key) {
         return centries.containsKey(key);
@@ -216,7 +216,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         final boolean omitDefaults = params != null && params.paramAsBoolean("omit_defaults", false);
         return builder.map(DefaultObjectMapper.readValue(DefaultObjectMapper.writeValueAsString(this, omitDefaults), typeRefMSO));
     }
-    
+
     @Override
     @JsonIgnore
     public boolean isFragment() {
@@ -237,7 +237,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     public CType getCType() {
         return ctype;
     }
-    
+
     @JsonIgnore
     public void setCType(CType ctype) {
         this.ctype = ctype;
@@ -247,7 +247,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     public int getVersion() {
         return version;
     }
-    
+
     @JsonIgnore
     public Class<?> getImplementingClass() {
         return ctype==null?null:ctype.getImplementationClass().get(getVersion());
@@ -265,7 +265,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public void remove(String key) {
        centries.remove(key);
-        
+
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -273,19 +273,19 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         if(other.ctype == null || !other.ctype.equals(this.ctype)) {
             return false;
         }
-        
+
         if(other.getImplementingClass() == null || !other.getImplementingClass().equals(this.getImplementingClass())) {
             return false;
         }
-        
+
         if(other.version != this.version) {
             return false;
         }
-        
+
         this.centries.putAll(other.centries);
         return true;
     }
-    
+
     @JsonIgnore
     @SuppressWarnings({ "rawtypes" })
     public boolean containsAny(SecurityDynamicConfiguration other) {

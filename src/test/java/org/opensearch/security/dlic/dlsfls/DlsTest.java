@@ -24,16 +24,16 @@ import org.opensearch.common.Strings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-public class DlsTest extends AbstractDlsFlsTest{
-
+public class DlsTest extends AbstractDlsFlsTest {
 
     @Override
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"amount\": 10}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"amount\": 1500}", XContentType.JSON)).actionGet();
+        tc.index(new IndexRequest("deals").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"amount\": 10}", XContentType.JSON))
+            .actionGet();
+        tc.index(
+            new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"amount\": 1500}", XContentType.JSON)
+        ).actionGet();
 
         try {
             Thread.sleep(3000);
@@ -51,23 +51,28 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         setup();
 
-
-        String query = "{"+
-                "\"query\" : {"+
-                "\"match_all\": {}"+
-                "},"+
-                "\"aggs\" : {"+
-                "\"thesum\" : { \"sum\" : { \"field\" : \"amount\" } }"+
-                "}"+
-                "}";
+        String query = "{"
+            + "\"query\" : {"
+            + "\"match_all\": {}"
+            + "},"
+            + "\"aggs\" : {"
+            + "\"thesum\" : { \"sum\" : { \"field\" : \"amount\" } }"
+            + "}"
+            + "}";
 
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1500.0"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"value\" : 1510.0"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -93,67 +98,88 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
         Assert.assertEquals(res.getHeaders().toString(), 2, res.getHeaders().size());
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?pretty&size=0", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
 
         String query =
 
-                "{"+
-                        "\"query\": {"+
-                        "\"range\" : {"+
-                        "\"amount\" : {"+
-                        "\"gte\" : 8,"+
-                        "\"lte\" : 20,"+
-                        "\"boost\" : 3.0"+
-                        "}"+
-                        "}"+
-                        "}"+
-                        "}";
+            "{"
+                + "\"query\": {"
+                + "\"range\" : {"
+                + "\"amount\" : {"
+                + "\"gte\" : 8,"
+                + "\"lte\" : 20,"
+                + "\"boost\" : 3.0"
+                + "}"
+                + "}"
+                + "}"
+                + "}";
 
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
         query =
 
-                "{"+
-                        "\"query\": {"+
-                        "\"range\" : {"+
-                        "\"amount\" : {"+
-                        "\"gte\" : 100,"+
-                        "\"lte\" : 2000,"+
-                        "\"boost\" : 2.0"+
-                        "}"+
-                        "}"+
-                        "}"+
-                        "}";
+            "{"
+                + "\"query\": {"
+                + "\"range\" : {"
+                + "\"amount\" : {"
+                + "\"gte\" : 100,"
+                + "\"lte\" : 2000,"
+                + "\"boost\" : 2.0"
+                + "}"
+                + "}"
+                + "}"
+                + "}";
 
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?q=amount:10&pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?q=amount:10&pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 0,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
@@ -166,45 +192,57 @@ public class DlsTest extends AbstractDlsFlsTest{
         res = rh.executeGetRequest("/deals/_doc/1?pretty", encodeBasicHeader("dept_manager", "password"));
         Assert.assertTrue(res.getBody().contains("\"found\" : true"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"count\" : 2,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_count?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"count\" : 1,"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
+        // mget
+        // msearch
+        String msearchBody = "{\"index\":\"deals\", \"ignore_unavailable\": true}"
+            + System.lineSeparator()
+            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
+            + System.lineSeparator()
+            + "{\"index\":\"deals\", \"ignore_unavailable\": true}"
+            + System.lineSeparator()
+            + "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"
+            + System.lineSeparator();
 
-        //mget
-        //msearch
-        String msearchBody =
-                "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
-                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator()+
-                        "{\"index\":\"deals\", \"ignore_unavailable\": true}"+System.lineSeparator()+
-                        "{\"size\":10, \"query\":{\"bool\":{\"must\":{\"match_all\":{}}}}}"+System.lineSeparator();
-
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("_msearch?pretty", msearchBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
         Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
         Assert.assertTrue(res.getBody().contains("\"amount\" : 1500"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
+        String mgetBody = "{"
+            + "\"docs\" : ["
+            + "{"
+            + "\"_index\" : \"deals\","
+            + "\"_id\" : \"1\""
+            + " },"
+            + " {"
+            + "\"_index\" : \"deals\","
+            + " \"_id\" : \"2\""
+            + "}"
+            + "]"
+            + "}";
 
-        String mgetBody = "{"+
-                "\"docs\" : ["+
-                "{"+
-                "\"_index\" : \"deals\","+
-                "\"_id\" : \"1\""+
-                " },"+
-                " {"+
-                "\"_index\" : \"deals\","+
-                " \"_id\" : \"2\""+
-                "}"+
-                "]"+
-                "}";
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("_mget?pretty", mgetBody, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertFalse(res.getBody().contains("_opendistro_security_dls_query"));
         Assert.assertFalse(res.getBody().contains("_opendistro_security_fls_fields"));
         Assert.assertTrue(res.getBody().contains("amount"));
@@ -220,25 +258,25 @@ public class DlsTest extends AbstractDlsFlsTest{
         HttpResponse res;
         String query =
 
-                "{"+
-                        "\"_source\": false,"+
-                        "\"query\": {"+
-                        "\"range\" : {"+
-                        "\"amount\" : {"+
-                        "\"gte\" : 100,"+
-                        "\"lte\" : 2000,"+
-                        "\"boost\" : 2.0"+
-                        "}"+
-                        "}"+
-                        "}"+
-                        "}";
+            "{"
+                + "\"_source\": false,"
+                + "\"query\": {"
+                + "\"range\" : {"
+                + "\"amount\" : {"
+                + "\"gte\" : 100,"
+                + "\"lte\" : 2000,"
+                + "\"boost\" : 2.0"
+                + "}"
+                + "}"
+                + "}"
+                + "}";
 
-
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/deals/_search?pretty", query,encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("/deals/_search?pretty", query, encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-
-
 
     }
 
@@ -248,11 +286,17 @@ public class DlsTest extends AbstractDlsFlsTest{
         setup();
 
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/deals/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
@@ -271,69 +315,86 @@ public class DlsTest extends AbstractDlsFlsTest{
             client.admin().indices().create(new CreateIndexRequest("logs").simpleMapping("termX", "type=keyword")).actionGet();
 
             for (int i = 0; i < 3; i++) {
-                client.index(new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("amount", i, "termX", "A", "timestamp", "2022-01-06T09:05:00Z")).actionGet();
-                client.index(new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("amount", i, "termX", "B", "timestamp", "2022-01-06T09:08:00Z")).actionGet();
-                client.index(new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("amount", i, "termX", "C", "timestamp", "2022-01-06T09:09:00Z")).actionGet();
-                client.index(new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("amount", i, "termX", "D", "timestamp", "2022-01-06T09:10:00Z")).actionGet();
+                client.index(
+                    new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .source("amount", i, "termX", "A", "timestamp", "2022-01-06T09:05:00Z")
+                ).actionGet();
+                client.index(
+                    new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .source("amount", i, "termX", "B", "timestamp", "2022-01-06T09:08:00Z")
+                ).actionGet();
+                client.index(
+                    new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .source("amount", i, "termX", "C", "timestamp", "2022-01-06T09:09:00Z")
+                ).actionGet();
+                client.index(
+                    new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                        .source("amount", i, "termX", "D", "timestamp", "2022-01-06T09:10:00Z")
+                ).actionGet();
             }
-            client.index(new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("amount", 0, "termX", "E", "timestamp", "2022-01-06T09:11:00Z")).actionGet();
+            client.index(
+                new IndexRequest("logs").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .source("amount", 0, "termX", "E", "timestamp", "2022-01-06T09:11:00Z")
+            ).actionGet();
         }
         // Terms Aggregation
-        // Non-admin user with setting "min_doc_count":0. Expected to get error message "min_doc_count 0 is not supported when DLS is activated".
+        // Non-admin user with setting "min_doc_count":0. Expected to get error message "min_doc_count 0 is not supported when DLS is
+        // activated".
         String query1 = "{\n"
-                + "  \"size\":0,\n"
-                + "  \"query\":{\n"
-                + "    \"bool\":{\n"
-                + "      \"must\":[\n"
-                + "        {\n"
-                + "          \"range\":{\n"
-                + "            \"amount\":{\"gte\":1,\"lte\":100}\n"
-                + "          }\n"
-                + "        }\n"
-                + "      ]\n"
-                + "    }\n"
-                + "  },\n"
-                + "  \"aggs\":{\n"
-                + "    \"a\": {\n"
-                + "      \"terms\": {\n"
-                + "        \"field\": \"termX\",\n"
-                + "        \"min_doc_count\":0,\n"
-                + "\"size\": 10,\n"
-                + "\"order\": { \"_count\": \"desc\" }\n"
-                + "      }\n"
-                + "    }\n"
-                + "  }\n"
-                + "}";
+            + "  \"size\":0,\n"
+            + "  \"query\":{\n"
+            + "    \"bool\":{\n"
+            + "      \"must\":[\n"
+            + "        {\n"
+            + "          \"range\":{\n"
+            + "            \"amount\":{\"gte\":1,\"lte\":100}\n"
+            + "          }\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
+            + "  },\n"
+            + "  \"aggs\":{\n"
+            + "    \"a\": {\n"
+            + "      \"terms\": {\n"
+            + "        \"field\": \"termX\",\n"
+            + "        \"min_doc_count\":0,\n"
+            + "\"size\": 10,\n"
+            + "\"order\": { \"_count\": \"desc\" }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
 
         HttpResponse response1 = rh.executePostRequest("logs*/_search", query1, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_INTERNAL_SERVER_ERROR, response1.getStatusCode());
         Assert.assertTrue(response1.getBody(), response1.getBody().contains("min_doc_count 0 is not supported when DLS is activated"));
 
-        // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager excluding E with 0 doc_count".
+        // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager excluding E with 0
+        // doc_count".
         String query2 = "{\n"
-                + "  \"size\":0,\n"
-                + "  \"query\":{\n"
-                + "    \"bool\":{\n"
-                + "      \"must\":[\n"
-                + "        {\n"
-                + "          \"range\":{\n"
-                + "            \"amount\":{\"gte\":1,\"lte\":100}\n"
-                + "          }\n"
-                + "        }\n"
-                + "      ]\n"
-                + "    }\n"
-                + "  },\n"
-                + "  \"aggs\":{\n"
-                + "    \"a\": {\n"
-                + "      \"terms\": {\n"
-                + "        \"field\": \"termX\",\n"
-                + "\"size\": 10,\n"
-                + "\"order\": { \"_count\": \"desc\" }\n"
-                + "      }\n"
-                + "    }\n"
-                + "  }\n"
-                + "}";
+            + "  \"size\":0,\n"
+            + "  \"query\":{\n"
+            + "    \"bool\":{\n"
+            + "      \"must\":[\n"
+            + "        {\n"
+            + "          \"range\":{\n"
+            + "            \"amount\":{\"gte\":1,\"lte\":100}\n"
+            + "          }\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
+            + "  },\n"
+            + "  \"aggs\":{\n"
+            + "    \"a\": {\n"
+            + "      \"terms\": {\n"
+            + "        \"field\": \"termX\",\n"
+            + "\"size\": 10,\n"
+            + "\"order\": { \"_count\": \"desc\" }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
 
         HttpResponse response2 = rh.executePostRequest("logs*/_search", query2, encodeBasicHeader("dept_manager", "password"));
 
@@ -366,7 +427,8 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         // Significant Text Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
-        String query3 = "{\"size\":100,\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\",\"min_doc_count\":0}}}}";
+        String query3 =
+            "{\"size\":100,\"aggregations\":{\"significant_termX\":{\"significant_terms\":{\"field\":\"termX.keyword\",\"min_doc_count\":0}}}}";
         HttpResponse response5 = rh.executePostRequest("logs*/_search", query3, encodeBasicHeader("dept_manager", "password"));
 
         Assert.assertEquals(HttpStatus.SC_OK, response5.getStatusCode());
@@ -443,7 +505,6 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertTrue(response11.getBody(), response11.getBody().contains("\"termX\":\"D\""));
         Assert.assertTrue(response11.getBody(), response11.getBody().contains("\"termX\":\"E\""));
 
-
         // Admin without setting "min_doc_count". Expected to have access to all buckets".
         HttpResponse response12 = rh.executePostRequest("logs*/_search", query6, encodeBasicHeader("admin", "admin"));
 
@@ -456,7 +517,8 @@ public class DlsTest extends AbstractDlsFlsTest{
 
         // Date Histogram Aggregation is not impacted.
         // Non-admin user with setting "min_doc_count=0". Expected to only have access to buckets for dept_manager".
-        String query7 = "{\"size\":100,\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\",\"min_doc_count\":0}}}}";
+        String query7 =
+            "{\"size\":100,\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\",\"min_doc_count\":0}}}}";
 
         HttpResponse response13 = rh.executePostRequest("logs*/_search", query7, encodeBasicHeader("dept_manager", "password"));
 
@@ -468,7 +530,8 @@ public class DlsTest extends AbstractDlsFlsTest{
         Assert.assertFalse(response13.getBody(), response13.getBody().contains("\"termX\":\"E\""));
 
         // Non-admin user without setting "min_doc_count". Expected to only have access to buckets for dept_manager".
-        String query8 = "{\"size\":100,\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\"}}}}";
+        String query8 =
+            "{\"size\":100,\"aggs\":{\"timestamp\":{\"date_histogram\":{\"field\":\"timestamp\",\"calendar_interval\":\"month\"}}}}";
 
         HttpResponse response14 = rh.executePostRequest("logs*/_search", query8, encodeBasicHeader("dept_manager", "password"));
 

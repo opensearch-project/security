@@ -192,7 +192,7 @@ public class SecurityFilter implements ActionFilter {
             if (user != null) {
                 org.apache.logging.log4j.ThreadContext.put("user", user.getName());
             }
-                        
+
             if (isActionTraceEnabled()) {
 
                 String count = "";
@@ -232,12 +232,12 @@ public class SecurityFilter implements ActionFilter {
                 chain.proceed(task, action, request, listener);
                 return;
             }
-            
-            
+
+
             if(immutableIndicesMatcher != WildcardMatcher.NONE) {
-            
+
                 boolean isImmutable = false;
-                
+
                 if(request instanceof BulkShardRequest) {
                     for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
                         isImmutable = checkImmutableIndices(bsr.request(), listener);
@@ -248,7 +248,7 @@ public class SecurityFilter implements ActionFilter {
                 } else {
                     isImmutable = checkImmutableIndices(request, listener);
                 }
-    
+
                 if(isImmutable) {
                     return;
                 }
@@ -301,7 +301,7 @@ public class SecurityFilter implements ActionFilter {
             }
 
             final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, injectedRoles);
-            
+
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
             }
@@ -384,7 +384,7 @@ public class SecurityFilter implements ActionFilter {
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
-        
+
         if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
             if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
@@ -397,7 +397,7 @@ public class SecurityFilter implements ActionFilter {
             }
         }
     }
-    
+
     @SuppressWarnings("rawtypes")
     private boolean checkImmutableIndices(Object request, ActionListener listener) {
         final boolean isModifyIndexRequest = request instanceof DeleteRequest
@@ -413,11 +413,11 @@ public class SecurityFilter implements ActionFilter {
             listener.onFailure(new OpenSearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }
-        
+
         if ((request instanceof IndexRequest) && isRequestIndexImmutable(request)) {
             ((IndexRequest) request).opType(OpType.CREATE);
         }
-        
+
         return false;
     }
 

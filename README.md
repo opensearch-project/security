@@ -1,10 +1,10 @@
-[![CI](https://github.com/opensearch-project/security/workflows/CI/badge.svg?branch=main)](https://github.com/opensearch-project/security/actions) [![](https://img.shields.io/github/issues/opensearch-project/security/untriaged?labelColor=red)](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3A"untriaged") [![](https://img.shields.io/github/issues/opensearch-project/security/security%20vulnerability?labelColor=red)](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3A"security%20vulnerability") [![](https://img.shields.io/github/issues/opensearch-project/security)](https://github.com/opensearch-project/security/issues) [![](https://img.shields.io/github/issues-pr/opensearch-project/security)](https://github.com/opensearch-project/security/pulls) 
+[![CI](https://github.com/opensearch-project/security/workflows/CI/badge.svg?branch=main)](https://github.com/opensearch-project/security/actions) [![](https://img.shields.io/github/issues/opensearch-project/security/untriaged?labelColor=red)](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3A"untriaged") [![](https://img.shields.io/github/issues/opensearch-project/security/security%20vulnerability?labelColor=red)](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3A"security%20vulnerability") [![](https://img.shields.io/github/issues/opensearch-project/security)](https://github.com/opensearch-project/security/issues) [![](https://img.shields.io/github/issues-pr/opensearch-project/security)](https://github.com/opensearch-project/security/pulls)
 [![](https://img.shields.io/codecov/c/gh/opensearch-project/security)](https://app.codecov.io/gh/opensearch-project/security) [![](https://img.shields.io/github/issues/opensearch-project/security/v2.4.0)](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3A"v2.4.0") [![](https://img.shields.io/github/issues/opensearch-project/security/v3.0.0)](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3A"v3.0.0")
 [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://opensearch.slack.com/archives/C051Y637FKK)
 
 
 
-## Announcement: The Slack workspace is live! Please join the [conversation](https://opensearch.slack.com/archives/C051Y637FKK). 
+## Announcement: The Slack workspace is live! Please join the [conversation](https://opensearch.slack.com/archives/C051Y637FKK).
 
 <img src="https://opensearch.org/assets/img/opensearch-logo-themed.svg" height="64px">
 
@@ -37,7 +37,7 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
 * Full data in transit encryption
 * Node-to-node encryption
 * Certificate revocation lists
-* Hot Certificate renewal 
+* Hot Certificate renewal
 
 ### Authentication
 * Internal user database
@@ -60,7 +60,7 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
 * REST management API
 
 ### Audit/Compliance logging
-* Audit logging 
+* Audit logging
 * Compliance logging for GDPR, HIPAA, PCI, SOX and ISO compliance
 
 ### OpenSearch Dashboards multi-tenancy
@@ -126,7 +126,7 @@ sequenceDiagram
     participant OpenSearch
     participant SecurityPlugin
     participant Cluster as Plugin
-    
+
     Client->>OpenSearch: Request
     OpenSearch->>SecurityPlugin: Request
     SecurityPlugin->>SecurityPlugin: Add Auth information to request context
@@ -188,7 +188,7 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## License
 
-This code is licensed under the Apache 2.0 License. 
+This code is licensed under the Apache 2.0 License.
 
 ## Copyright
 

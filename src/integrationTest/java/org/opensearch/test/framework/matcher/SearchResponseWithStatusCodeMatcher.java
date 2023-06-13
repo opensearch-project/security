@@ -17,23 +17,23 @@ import org.opensearch.rest.RestStatus;
 
 class SearchResponseWithStatusCodeMatcher extends TypeSafeDiagnosingMatcher<SearchResponse> {
 
-	private final RestStatus expectedRestStatus;
+    private final RestStatus expectedRestStatus;
 
-	public SearchResponseWithStatusCodeMatcher(RestStatus expectedRestStatus) {
-		this.expectedRestStatus = expectedRestStatus;
-	}
+    public SearchResponseWithStatusCodeMatcher(RestStatus expectedRestStatus) {
+        this.expectedRestStatus = expectedRestStatus;
+    }
 
-	@Override
-	protected boolean matchesSafely(SearchResponse searchResponse, Description mismatchDescription) {
-		if(expectedRestStatus.equals(searchResponse.status()) == false) {
-			mismatchDescription.appendText("actual response status is ").appendValue(searchResponse.status());
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(SearchResponse searchResponse, Description mismatchDescription) {
+        if (expectedRestStatus.equals(searchResponse.status()) == false) {
+            mismatchDescription.appendText("actual response status is ").appendValue(searchResponse.status());
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Expected response status is ").appendValue(expectedRestStatus);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Expected response status is ").appendValue(expectedRestStatus);
+    }
 }

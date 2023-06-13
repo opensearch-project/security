@@ -37,10 +37,10 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 public class ConfigUpdateNodeResponse extends BaseNodeResponse implements ToXContentObject {
-    
+
     private String[] updatedConfigTypes;
     private String message;
-    
+
     public ConfigUpdateNodeResponse(StreamInput in) throws IOException {
         super(in);
         this.updatedConfigTypes = in.readStringArray();
@@ -52,11 +52,11 @@ public class ConfigUpdateNodeResponse extends BaseNodeResponse implements ToXCon
         this.updatedConfigTypes = updatedConfigTypes;
         this.message = message;
     }
-    
+
     public static ConfigUpdateNodeResponse readNodeResponse(StreamInput in) throws IOException {
         return new ConfigUpdateNodeResponse(in);
     }
-    
+
     public String[] getUpdatedConfigTypes() {
         return updatedConfigTypes==null?null:Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
     }
@@ -64,7 +64,7 @@ public class ConfigUpdateNodeResponse extends BaseNodeResponse implements ToXCon
     public String getMessage() {
         return message;
     }
-    
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);

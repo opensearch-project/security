@@ -193,7 +193,7 @@ public class DocumentAllowList {
             if (index.indexOf('/') != -1 || index.indexOf('|') != -1) {
                 throw new IllegalArgumentException("Invalid index name: " + index);
             }
-            
+
             this.index = index;
             this.id = id;
         }

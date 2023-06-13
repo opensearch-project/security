@@ -1,10 +1,10 @@
 /*
  * Copyright 2017 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package org.opensearch.security.ssl.http.netty;
@@ -47,7 +47,7 @@ public class ValidatingDispatcher implements Dispatcher {
     private final Settings settings;
     private final Path configPath;
 
-    public ValidatingDispatcher(final ThreadContext threadContext, final Dispatcher originalDispatcher, 
+    public ValidatingDispatcher(final ThreadContext threadContext, final Dispatcher originalDispatcher,
             final Settings settings, final Path configPath, final SslExceptionHandler errorHandler) {
         super();
         this.threadContext = threadContext;
@@ -68,15 +68,15 @@ public class ValidatingDispatcher implements Dispatcher {
         checkRequest(channel.request(), channel);
         originalDispatcher.dispatchBadRequest(channel, threadContext, cause);
     }
-    
+
     protected void checkRequest(final RestRequest request, final RestChannel channel) {
-        
+
         if(SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             errorHandler.logError(exception, request, 1);
             throw exception;
         }
-        
+
         try {
             if(SSLRequestHelper.getSSLInfo(settings, configPath, request, null) == null) {
                 logger.error("Not an SSL request");

@@ -16,24 +16,23 @@ import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
 
 class NumberOfFieldsIsEqualToMatcher extends TypeSafeDiagnosingMatcher<FieldCapabilitiesResponse> {
 
-	private final int expectedNumberOfFields;
+    private final int expectedNumberOfFields;
 
-	NumberOfFieldsIsEqualToMatcher(int expectedNumberOfFields) {
-		this.expectedNumberOfFields = expectedNumberOfFields;
-	}
+    NumberOfFieldsIsEqualToMatcher(int expectedNumberOfFields) {
+        this.expectedNumberOfFields = expectedNumberOfFields;
+    }
 
-	@Override
-	protected boolean matchesSafely(FieldCapabilitiesResponse response, Description mismatchDescription) {
-		if (expectedNumberOfFields != response.get().size()) {
-			mismatchDescription.appendText("Actual number of fields: ").appendValue(response.get().size());
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(FieldCapabilitiesResponse response, Description mismatchDescription) {
+        if (expectedNumberOfFields != response.get().size()) {
+            mismatchDescription.appendText("Actual number of fields: ").appendValue(response.get().size());
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Response contains information about ")
-				.appendValue(expectedNumberOfFields).appendText(" fields");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Response contains information about ").appendValue(expectedNumberOfFields).appendText(" fields");
+    }
 }

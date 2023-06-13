@@ -53,169 +53,162 @@ import static org.opensearch.test.framework.certificate.PublicKeyUsage.SERVER_AU
 */
 public class TestCertificates {
 
-	private static final Logger log = LogManager.getLogger(TestCertificates.class);
+    private static final Logger log = LogManager.getLogger(TestCertificates.class);
 
-	public static final Integer MAX_NUMBER_OF_NODE_CERTIFICATES = 3;
+    public static final Integer MAX_NUMBER_OF_NODE_CERTIFICATES = 3;
 
-	private static final String CA_SUBJECT = "DC=com,DC=example,O=Example Com Inc.,OU=Example Com Inc. Root CA,CN=Example Com Inc. Root CA";
-	private static final String ADMIN_DN = "CN=kirk,OU=client,O=client,L=test,C=de";
-	private static final int CERTIFICATE_VALIDITY_DAYS = 365;
-	private static final String CERTIFICATE_FILE_EXT = ".cert";
-	private static final String KEY_FILE_EXT = ".key";
-	private final CertificateData caCertificate;
-	private final CertificateData adminCertificate;
-	private final List<CertificateData> nodeCertificates;
+    private static final String CA_SUBJECT = "DC=com,DC=example,O=Example Com Inc.,OU=Example Com Inc. Root CA,CN=Example Com Inc. Root CA";
+    private static final String ADMIN_DN = "CN=kirk,OU=client,O=client,L=test,C=de";
+    private static final int CERTIFICATE_VALIDITY_DAYS = 365;
+    private static final String CERTIFICATE_FILE_EXT = ".cert";
+    private static final String KEY_FILE_EXT = ".key";
+    private final CertificateData caCertificate;
+    private final CertificateData adminCertificate;
+    private final List<CertificateData> nodeCertificates;
 
-	private final CertificateData ldapCertificate;
+    private final CertificateData ldapCertificate;
 
-	public TestCertificates() {
-		this.caCertificate = createCaCertificate();
-		this.nodeCertificates = IntStream.range(0, MAX_NUMBER_OF_NODE_CERTIFICATES)
-			.mapToObj(this::createNodeCertificate)
-			.collect(Collectors.toList());
-		this.ldapCertificate = createLdapCertificate();
-		this.adminCertificate = createAdminCertificate(ADMIN_DN);
-		log.info("Test certificates successfully generated");
-	}
+    public TestCertificates() {
+        this.caCertificate = createCaCertificate();
+        this.nodeCertificates = IntStream.range(0, MAX_NUMBER_OF_NODE_CERTIFICATES)
+            .mapToObj(this::createNodeCertificate)
+            .collect(Collectors.toList());
+        this.ldapCertificate = createLdapCertificate();
+        this.adminCertificate = createAdminCertificate(ADMIN_DN);
+        log.info("Test certificates successfully generated");
+    }
 
-	private CertificateData createCaCertificate() {
-		CertificateMetadata metadata = CertificateMetadata.basicMetadata(CA_SUBJECT, CERTIFICATE_VALIDITY_DAYS)
-				.withKeyUsage(true, DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN);
-		return CertificatesIssuerFactory
-				.rsaBaseCertificateIssuer()
-				.issueSelfSignedCertificate(metadata);
-	}
+    private CertificateData createCaCertificate() {
+        CertificateMetadata metadata = CertificateMetadata.basicMetadata(CA_SUBJECT, CERTIFICATE_VALIDITY_DAYS)
+            .withKeyUsage(true, DIGITAL_SIGNATURE, KEY_CERT_SIGN, CRL_SIGN);
+        return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSelfSignedCertificate(metadata);
+    }
 
-	public CertificateData createAdminCertificate(String adminDn) {
-		CertificateMetadata metadata = CertificateMetadata.basicMetadata(adminDn, CERTIFICATE_VALIDITY_DAYS)
-				.withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH);
-		return CertificatesIssuerFactory
-				.rsaBaseCertificateIssuer()
-				.issueSignedCertificate(metadata, caCertificate);
-	}
+    public CertificateData createAdminCertificate(String adminDn) {
+        CertificateMetadata metadata = CertificateMetadata.basicMetadata(adminDn, CERTIFICATE_VALIDITY_DAYS)
+            .withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH);
+        return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSignedCertificate(metadata, caCertificate);
+    }
 
-	public CertificateData createSelfSignedCertificate(String distinguishedName) {
-		CertificateMetadata metadata = CertificateMetadata.basicMetadata(distinguishedName, CERTIFICATE_VALIDITY_DAYS);
-		return CertificatesIssuerFactory
-			.rsaBaseCertificateIssuer()
-			.issueSelfSignedCertificate(metadata);
-	}
+    public CertificateData createSelfSignedCertificate(String distinguishedName) {
+        CertificateMetadata metadata = CertificateMetadata.basicMetadata(distinguishedName, CERTIFICATE_VALIDITY_DAYS);
+        return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSelfSignedCertificate(metadata);
+    }
 
-	/**
-	* It returns the most trusted certificate. Certificates for nodes and users are derived from this certificate.
-	* @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
-	*/
-	public File getRootCertificate() {
-		return createTempFile("root", CERTIFICATE_FILE_EXT, caCertificate.certificateInPemFormat());
-	}
+    /**
+    * It returns the most trusted certificate. Certificates for nodes and users are derived from this certificate.
+    * @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
+    */
+    public File getRootCertificate() {
+        return createTempFile("root", CERTIFICATE_FILE_EXT, caCertificate.certificateInPemFormat());
+    }
 
-	public CertificateData getRootCertificateData() {
-		return caCertificate;
-	}
+    public CertificateData getRootCertificateData() {
+        return caCertificate;
+    }
 
-	/**
-	* Certificate for Open Search node. The certificate is derived from root certificate, returned by method {@link #getRootCertificate()}
-	* @param node is a node index. It has to be less than {@link #MAX_NUMBER_OF_NODE_CERTIFICATES}
-	* @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
-	*/
-	public File getNodeCertificate(int node) {
-		CertificateData certificateData = getNodeCertificateData(node);
-		return createTempFile("node-" + node, CERTIFICATE_FILE_EXT, certificateData.certificateInPemFormat());
-	}
+    /**
+    * Certificate for Open Search node. The certificate is derived from root certificate, returned by method {@link #getRootCertificate()}
+    * @param node is a node index. It has to be less than {@link #MAX_NUMBER_OF_NODE_CERTIFICATES}
+    * @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
+    */
+    public File getNodeCertificate(int node) {
+        CertificateData certificateData = getNodeCertificateData(node);
+        return createTempFile("node-" + node, CERTIFICATE_FILE_EXT, certificateData.certificateInPemFormat());
+    }
 
-	public CertificateData getNodeCertificateData(int node) {
-		isCorrectNodeNumber(node);
-		return nodeCertificates.get(node);
-	}
+    public CertificateData getNodeCertificateData(int node) {
+        isCorrectNodeNumber(node);
+        return nodeCertificates.get(node);
+    }
 
-	private void isCorrectNodeNumber(int node) {
-		if (node >= MAX_NUMBER_OF_NODE_CERTIFICATES) {
-			String message = String.format("Cannot get certificate for node %d, number of created certificates for nodes is %d", node,
-					MAX_NUMBER_OF_NODE_CERTIFICATES);
-			throw new RuntimeException(message);
-		}
-	}
+    private void isCorrectNodeNumber(int node) {
+        if (node >= MAX_NUMBER_OF_NODE_CERTIFICATES) {
+            String message = String.format(
+                "Cannot get certificate for node %d, number of created certificates for nodes is %d",
+                node,
+                MAX_NUMBER_OF_NODE_CERTIFICATES
+            );
+            throw new RuntimeException(message);
+        }
+    }
 
-	private CertificateData createNodeCertificate(Integer node) {
-		String subject = String.format("DC=de,L=test,O=node,OU=node,CN=node-%d.example.com", node);
-		String domain = String.format("node-%d.example.com", node);
-		CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
-				.withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH)
-				.withSubjectAlternativeName("1.2.3.4.5.5", List.of(domain, "localhost"), "127.0.0.1");
-		return CertificatesIssuerFactory
-				.rsaBaseCertificateIssuer()
-				.issueSignedCertificate(metadata, caCertificate);
-	}
+    private CertificateData createNodeCertificate(Integer node) {
+        String subject = String.format("DC=de,L=test,O=node,OU=node,CN=node-%d.example.com", node);
+        String domain = String.format("node-%d.example.com", node);
+        CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
+            .withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH)
+            .withSubjectAlternativeName("1.2.3.4.5.5", List.of(domain, "localhost"), "127.0.0.1");
+        return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSignedCertificate(metadata, caCertificate);
+    }
 
-	public CertificateData issueUserCertificate(String organizationUnit, String username) {
-		String subject = String.format("DC=de,L=test,O=users,OU=%s,CN=%s", organizationUnit, username);
-		CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS).withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH);
-		return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSignedCertificate(metadata, caCertificate);
-	}
+    public CertificateData issueUserCertificate(String organizationUnit, String username) {
+        String subject = String.format("DC=de,L=test,O=users,OU=%s,CN=%s", organizationUnit, username);
+        CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
+            .withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH);
+        return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSignedCertificate(metadata, caCertificate);
+    }
 
-	private CertificateData createLdapCertificate() {
-		String subject = "DC=de,L=test,O=node,OU=node,CN=ldap.example.com";
-		CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
-			.withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH)
-			.withSubjectAlternativeName(null, List.of("localhost"), "127.0.0.1");
-		return CertificatesIssuerFactory
-			.rsaBaseCertificateIssuer()
-			.issueSignedCertificate(metadata, caCertificate);
-	}
+    private CertificateData createLdapCertificate() {
+        String subject = "DC=de,L=test,O=node,OU=node,CN=ldap.example.com";
+        CertificateMetadata metadata = CertificateMetadata.basicMetadata(subject, CERTIFICATE_VALIDITY_DAYS)
+            .withKeyUsage(false, DIGITAL_SIGNATURE, NON_REPUDIATION, KEY_ENCIPHERMENT, CLIENT_AUTH, SERVER_AUTH)
+            .withSubjectAlternativeName(null, List.of("localhost"), "127.0.0.1");
+        return CertificatesIssuerFactory.rsaBaseCertificateIssuer().issueSignedCertificate(metadata, caCertificate);
+    }
 
+    public CertificateData getLdapCertificateData() {
+        return ldapCertificate;
+    }
 
-	public CertificateData getLdapCertificateData() {
-		return ldapCertificate;
-	}
+    /**
+    * It returns private key associated with node certificate returned by method {@link #getNodeCertificate(int)}
+    *
+    * @param node is a node index. It has to be less than {@link #MAX_NUMBER_OF_NODE_CERTIFICATES}
+    * @param privateKeyPassword is a password used to encode private key, can be <code>null</code> to retrieve unencrypted key.
+    * @return file which contains private key encoded in PEM format, defined
+    * by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
+    */
+    public File getNodeKey(int node, String privateKeyPassword) {
+        CertificateData certificateData = nodeCertificates.get(node);
+        return createTempFile("node-" + node, KEY_FILE_EXT, certificateData.privateKeyInPemFormat(privateKeyPassword));
+    }
 
-	/**
-	* It returns private key associated with node certificate returned by method {@link #getNodeCertificate(int)}
-	*
-	* @param node is a node index. It has to be less than {@link #MAX_NUMBER_OF_NODE_CERTIFICATES}
-	* @param privateKeyPassword is a password used to encode private key, can be <code>null</code> to retrieve unencrypted key.
-	* @return file which contains private key encoded in PEM format, defined
-	* by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
-	*/
-	public File getNodeKey(int node, String privateKeyPassword) {
-		CertificateData certificateData = nodeCertificates.get(node);
-		return createTempFile("node-" + node, KEY_FILE_EXT, certificateData.privateKeyInPemFormat(privateKeyPassword));
-	}
+    /**
+    * Certificate which proofs admin user identity. Certificate is derived from root certificate returned by
+    * method {@link #getRootCertificate()}
+    * @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
+    */
+    public File getAdminCertificate() {
+        return createTempFile("admin", CERTIFICATE_FILE_EXT, adminCertificate.certificateInPemFormat());
+    }
 
-	/**
-	* Certificate which proofs admin user identity. Certificate is derived from root certificate returned by
-	* method {@link #getRootCertificate()}
-	* @return file which contains certificate in PEM format, defined by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
-	*/
-	public File getAdminCertificate() {
-		return createTempFile("admin", CERTIFICATE_FILE_EXT, adminCertificate.certificateInPemFormat());
-	}
+    public CertificateData getAdminCertificateData() {
+        return adminCertificate;
+    }
 
-	public CertificateData getAdminCertificateData() {
-		return adminCertificate;
-	}
+    /**
+    * It returns private key associated with admin certificate returned by {@link #getAdminCertificate()}.
+    *
+    * @param privateKeyPassword is a password used to encode private key, can be <code>null</code> to retrieve unencrypted key.
+    * @return file which contains private key encoded in PEM format, defined
+    * by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
+    */
+    public File getAdminKey(String privateKeyPassword) {
+        return createTempFile("admin", KEY_FILE_EXT, adminCertificate.privateKeyInPemFormat(privateKeyPassword));
+    }
 
-	/**
-	* It returns private key associated with admin certificate returned by {@link #getAdminCertificate()}.
-	*
-	* @param privateKeyPassword is a password used to encode private key, can be <code>null</code> to retrieve unencrypted key.
-	* @return file which contains private key encoded in PEM format, defined
-	* by <a href="https://www.rfc-editor.org/rfc/rfc1421.txt">RFC 1421</a>
-	*/
-	public File getAdminKey(String privateKeyPassword) {
-		return createTempFile("admin", KEY_FILE_EXT, adminCertificate.privateKeyInPemFormat(privateKeyPassword));
-	}
+    public String[] getAdminDNs() {
+        return new String[] { ADMIN_DN };
+    }
 
-	public String[] getAdminDNs() {
-		return new String[] {ADMIN_DN};
-	}
-
-	private File createTempFile(String name, String suffix, String contents) {
-		try {
-			Path path = Files.createTempFile(name, suffix);
-			Files.writeString(path, contents);
-			return path.toFile();
-		} catch (IOException ex) {
-			throw new RuntimeException("Cannot create temp file with name " + name + " and suffix " + suffix);
-		}
-	}
+    private File createTempFile(String name, String suffix, String contents) {
+        try {
+            Path path = Files.createTempFile(name, suffix);
+            Files.writeString(path, contents);
+            return path.toFile();
+        } catch (IOException ex) {
+            throw new RuntimeException("Cannot create temp file with name " + name + " and suffix " + suffix);
+        }
+    }
 }

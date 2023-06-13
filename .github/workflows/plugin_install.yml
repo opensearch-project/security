@@ -38,7 +38,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           cat > setup.sh <<'EOF'
-          chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh 
+          chmod +x  ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh
           /bin/bash -c "yes | ./opensearch-${{ env.OPENSEARCH_VERSION }}-SNAPSHOT/plugins/${{ env.PLUGIN_NAME }}/tools/install_demo_configuration.sh"
           EOF
 

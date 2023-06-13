@@ -54,7 +54,7 @@ import org.opensearch.security.http.HTTPProxyAuthenticator;
 import org.opensearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
 
 public abstract class DynamicConfigModel {
-    
+
     protected final Logger log = LogManager.getLogger(this.getClass());
     public abstract SortedSet<AuthDomain> getRestAuthDomains();
     public abstract Set<AuthorizationBackend> getRestAuthorizers();
@@ -76,17 +76,18 @@ public abstract class DynamicConfigModel {
     public abstract String getFilteredAliasMode();
     public abstract String getHostsResolverMode();
     public abstract boolean isDnfofForEmptyResultsEnabled();
-    
+
     public abstract List<AuthFailureListener> getIpAuthFailureListeners();
     public abstract Multimap<String, AuthFailureListener> getAuthBackendFailureListeners();
     public abstract List<ClientBlockRegistry<InetAddress>> getIpClientBlockRegistries();
     public abstract Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries();
     public abstract Settings getDynamicOnBehalfOfSettings();
+
     protected final Map<String, String> authImplMap = new HashMap<>();
 
     public DynamicConfigModel() {
         super();
-        
+
         authImplMap.put("intern_c", InternalAuthenticationBackend.class.getName());
         authImplMap.put("intern_z", NoOpAuthorizationBackend.class.getName());
 
@@ -98,7 +99,7 @@ public abstract class DynamicConfigModel {
 
         authImplMap.put("ldap_c", "com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
         authImplMap.put("ldap_z", "com.amazon.dlic.auth.ldap.backend.LDAPAuthorizationBackend");
-        
+
         authImplMap.put("ldap2_c", "com.amazon.dlic.auth.ldap2.LDAPAuthenticationBackend2");
         authImplMap.put("ldap2_z", "com.amazon.dlic.auth.ldap2.LDAPAuthorizationBackend2");
 
@@ -110,11 +111,11 @@ public abstract class DynamicConfigModel {
         authImplMap.put("jwt_h", "com.amazon.dlic.auth.http.jwt.HTTPJwtAuthenticator");
         authImplMap.put("openid_h", "com.amazon.dlic.auth.http.jwt.keybyoidc.HTTPJwtKeyByOpenIdConnectAuthenticator");
         authImplMap.put("saml_h", "com.amazon.dlic.auth.http.saml.HTTPSamlAuthenticator");
-        
+
         authImplMap.put("ip_authFailureListener", AddressBasedRateLimiter.class.getName());
         authImplMap.put("username_authFailureListener", UserNameBasedRateLimiter.class.getName());
     }
-    
-    
-    
+
+
+
 }

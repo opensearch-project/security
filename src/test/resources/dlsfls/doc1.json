@@ -1,5 +1,5 @@
 {
- 
+
   "customer": {
                "name": "<name>",
                "type": "normal",
@@ -9,8 +9,8 @@
                              "street": "street1",
                              "zip": "12345",
                              "city": "mycity"
-                
-                          }               
+
+                          }
             },
 
   "secret": "a secret value",
@@ -34,7 +34,7 @@
   "boolfield5": true,
   "boolfield6": false,
   "nullfield": null,
-  
+
   "@timestamp": "<date>",
   "timestamp": "<date>"
 

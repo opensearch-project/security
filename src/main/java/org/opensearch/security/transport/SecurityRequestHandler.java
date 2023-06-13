@@ -296,7 +296,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             }
         }
     }
-    
+
     private void putInitialActionClassHeader(String initialActionClassValue, String resolvedActionClass) {
         if(initialActionClassValue == null) {
             if(getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER) == null) {

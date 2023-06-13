@@ -23,19 +23,26 @@ import org.opensearch.threadpool.ThreadPool;
 
 public class MyOwnAuditLog extends AuditLogSink {
 
-	public MyOwnAuditLog(final String name, final Settings settings, final String settingsPrefix, final Path configPath, final ThreadPool threadPool,
-	        final IndexNameExpressionResolver resolver, final ClusterService clusterService, AuditLogSink fallbackSink) {
+    public MyOwnAuditLog(
+        final String name,
+        final Settings settings,
+        final String settingsPrefix,
+        final Path configPath,
+        final ThreadPool threadPool,
+        final IndexNameExpressionResolver resolver,
+        final ClusterService clusterService,
+        AuditLogSink fallbackSink
+    ) {
         super(name, settings, settingsPrefix, fallbackSink);
     }
 
     @Override
-	public void close() throws IOException {
+    public void close() throws IOException {
 
-	}
+    }
 
-
-	public boolean doStore(AuditMessage msg) {
-		return true;
-	}
+    public boolean doStore(AuditMessage msg) {
+        return true;
+    }
 
 }

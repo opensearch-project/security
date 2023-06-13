@@ -13,5 +13,7 @@ package org.opensearch.security.dlic.dlsfls;
 
 public class DlsFlsCrossClusterMinimalRoundtripSearchTests extends DlsFlsCrossClusterSearchTest {
     @Override
-    protected boolean ccsMinimizeRoundtrips() { return true; }
+    protected boolean ccsMinimizeRoundtrips() {
+        return true;
+    }
 }

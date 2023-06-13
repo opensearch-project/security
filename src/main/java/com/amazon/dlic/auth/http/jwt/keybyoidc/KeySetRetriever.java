@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import joptsimple.internal.Strings;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
 import org.apache.cxf.rs.security.jose.jwk.JwkUtils;
 import org.apache.hc.client5.http.cache.HttpCacheContext;
@@ -38,185 +39,218 @@ import com.amazon.dlic.util.SettingsBasedSSLConfigurator.SSLConfig;
 
 import org.opensearch.security.DefaultObjectMapper;
 
-
 public class KeySetRetriever implements KeySetProvider {
-	private final static Logger log = LogManager.getLogger(KeySetRetriever.class);
-	private static final long CACHE_STATUS_LOG_INTERVAL_MS = 60L * 60L * 1000L;
+    private final static Logger log = LogManager.getLogger(KeySetRetriever.class);
+    private static final long CACHE_STATUS_LOG_INTERVAL_MS = 60L * 60L * 1000L;
 
-	private String openIdConnectEndpoint;
-	private SSLConfig sslConfig;
-	private int requestTimeoutMs = 10000;
-	private CacheConfig cacheConfig;
-	private HttpCacheStorage oidcHttpCacheStorage;
-	private int oidcCacheHits = 0;
-	private int oidcCacheMisses = 0;
-	private int oidcCacheHitsValidated = 0;
-	private int oidcCacheModuleResponses = 0;
-	private long oidcRequests = 0;
-	private long lastCacheStatusLog = 0;
+    private String openIdConnectEndpoint;
+    private SSLConfig sslConfig;
+    private int requestTimeoutMs = 10000;
+    private CacheConfig cacheConfig;
+    private HttpCacheStorage oidcHttpCacheStorage;
+    private int oidcCacheHits = 0;
+    private int oidcCacheMisses = 0;
+    private int oidcCacheHitsValidated = 0;
+    private int oidcCacheModuleResponses = 0;
+    private long oidcRequests = 0;
+    private long lastCacheStatusLog = 0;
+    private String jwksUri;
 
-	KeySetRetriever(String openIdConnectEndpoint, SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint) {
-		this.openIdConnectEndpoint = openIdConnectEndpoint;
-		this.sslConfig = sslConfig;
+    KeySetRetriever(String openIdConnectEndpoint, SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint) {
+        this.openIdConnectEndpoint = openIdConnectEndpoint;
+        this.sslConfig = sslConfig;
 
-		if (useCacheForOidConnectEndpoint) {
-			cacheConfig = CacheConfig.custom().setMaxCacheEntries(10).setMaxObjectSize(1024L * 1024L).build();
-			oidcHttpCacheStorage = new BasicHttpCacheStorage(cacheConfig);
-		}
-	}
+        configureCache(useCacheForOidConnectEndpoint);
+    }
 
-	public JsonWebKeys get() throws AuthenticatorUnavailableException {
-		String uri = getJwksUri();
+    KeySetRetriever(SSLConfig sslConfig, boolean useCacheForOidConnectEndpoint, String jwksUri) {
+        this.jwksUri = jwksUri;
+        this.sslConfig = sslConfig;
 
-		try (CloseableHttpClient httpClient = createHttpClient(null)) {
+        configureCache(useCacheForOidConnectEndpoint);
+    }
 
-			HttpGet httpGet = new HttpGet(uri);
+    public JsonWebKeys get() throws AuthenticatorUnavailableException {
+        String uri = getJwksUri();
 
-			RequestConfig requestConfig = RequestConfig.custom().setConnectionRequestTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
-					.setConnectTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS).build();
+        try (CloseableHttpClient httpClient = createHttpClient(null)) {
 
-			httpGet.setConfig(requestConfig);
+            HttpGet httpGet = new HttpGet(uri);
 
-			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-				if (response.getCode() < 200 || response.getCode() >= 300) {
-					throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + response.getReasonPhrase());
-				}
+            RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectionRequestTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
+                .setConnectTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
+                .build();
 
-				HttpEntity httpEntity = response.getEntity();
+            httpGet.setConfig(requestConfig);
 
-				if (httpEntity == null) {
-					throw new AuthenticatorUnavailableException(
-							"Error while getting " + uri + ": Empty response entity");
-				}
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+                if (response.getCode() < 200 || response.getCode() >= 300) {
+                    throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + response.getReasonPhrase());
+                }
 
-				JsonWebKeys keySet = JwkUtils.readJwkSet(httpEntity.getContent());
+                HttpEntity httpEntity = response.getEntity();
 
-				return keySet;
-			}
-		} catch (IOException e) {
-			throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + e, e);
-		}
+                if (httpEntity == null) {
+                    throw new AuthenticatorUnavailableException("Error while getting " + uri + ": Empty response entity");
+                }
 
-	}
+                JsonWebKeys keySet = JwkUtils.readJwkSet(httpEntity.getContent());
 
-	String getJwksUri() throws AuthenticatorUnavailableException {
+                return keySet;
+            }
+        } catch (IOException e) {
+            throw new AuthenticatorUnavailableException("Error while getting " + uri + ": " + e, e);
+        }
 
-		try (CloseableHttpClient httpClient = createHttpClient(oidcHttpCacheStorage)) {
+    }
 
-			HttpGet httpGet = new HttpGet(openIdConnectEndpoint);
+    String getJwksUri() throws AuthenticatorUnavailableException {
 
-			RequestConfig requestConfig = RequestConfig.custom().setConnectionRequestTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
-					.setConnectTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS).build();
+        if (!Strings.isNullOrEmpty(jwksUri)) {
+            return jwksUri;
+        }
 
-			httpGet.setConfig(requestConfig);
+        if (Strings.isNullOrEmpty(openIdConnectEndpoint)) {
+            throw new AuthenticatorUnavailableException(
+                "Either openid_connect_url or jwks_uri must be configured for OIDC Authentication backend"
+            );
+        }
 
-			HttpCacheContext httpContext = null;
+        try (CloseableHttpClient httpClient = createHttpClient(oidcHttpCacheStorage)) {
 
-			if (oidcHttpCacheStorage != null) {
-				httpContext = new HttpCacheContext();
-			}
+            HttpGet httpGet = new HttpGet(openIdConnectEndpoint);
 
-			try (CloseableHttpResponse response = httpClient.execute(httpGet, httpContext)) {
-				if (httpContext != null) {
-					logCacheResponseStatus(httpContext);
-				}
+            RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectionRequestTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
+                .setConnectTimeout(getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
+                .build();
 
-				if (response.getCode() < 200 || response.getCode() >= 300) {
-					throw new AuthenticatorUnavailableException(
-							"Error while getting " + openIdConnectEndpoint + ": " + response.getReasonPhrase());
-				}
+            httpGet.setConfig(requestConfig);
 
-				HttpEntity httpEntity = response.getEntity();
+            HttpCacheContext httpContext = null;
 
-				if (httpEntity == null) {
-					throw new AuthenticatorUnavailableException(
-							"Error while getting " + openIdConnectEndpoint + ": Empty response entity");
-				}
+            if (oidcHttpCacheStorage != null) {
+                httpContext = new HttpCacheContext();
+            }
 
-				OpenIdProviderConfiguration parsedEntity = DefaultObjectMapper.objectMapper.readValue(httpEntity.getContent(),
-						OpenIdProviderConfiguration.class);
+            try (CloseableHttpResponse response = httpClient.execute(httpGet, httpContext)) {
+                if (httpContext != null) {
+                    logCacheResponseStatus(httpContext);
+                }
 
-				return parsedEntity.getJwksUri();
+                if (response.getCode() < 200 || response.getCode() >= 300) {
+                    throw new AuthenticatorUnavailableException(
+                        "Error while getting " + openIdConnectEndpoint + ": " + response.getReasonPhrase()
+                    );
+                }
 
-			}
+                HttpEntity httpEntity = response.getEntity();
 
-		} catch (IOException e) {
-			throw new AuthenticatorUnavailableException("Error while getting " + openIdConnectEndpoint + ": " + e, e);
-		}
+                if (httpEntity == null) {
+                    throw new AuthenticatorUnavailableException("Error while getting " + openIdConnectEndpoint + ": Empty response entity");
+                }
 
-	}
+                OpenIdProviderConfiguration parsedEntity = DefaultObjectMapper.objectMapper.readValue(
+                    httpEntity.getContent(),
+                    OpenIdProviderConfiguration.class
+                );
 
-	public int getRequestTimeoutMs() {
-		return requestTimeoutMs;
-	}
+                return parsedEntity.getJwksUri();
 
-	public void setRequestTimeoutMs(int httpTimeoutMs) {
-		this.requestTimeoutMs = httpTimeoutMs;
-	}
+            }
 
-	private void logCacheResponseStatus(HttpCacheContext httpContext) {
-		this.oidcRequests++;
+        } catch (IOException e) {
+            throw new AuthenticatorUnavailableException("Error while getting " + openIdConnectEndpoint + ": " + e, e);
+        }
 
-		switch (httpContext.getCacheResponseStatus()) {
-		case CACHE_HIT:
-			this.oidcCacheHits++;
-			break;
-		case CACHE_MODULE_RESPONSE:
-			this.oidcCacheModuleResponses++;
-			break;
-		case CACHE_MISS:
-			this.oidcCacheMisses++;
-			break;
-		case VALIDATED:
-			this.oidcCacheHitsValidated++;
-			break;
-		}
+    }
 
-		long now = System.currentTimeMillis();
+    public int getRequestTimeoutMs() {
+        return requestTimeoutMs;
+    }
 
-		if (this.oidcRequests >= 2 && now - lastCacheStatusLog > CACHE_STATUS_LOG_INTERVAL_MS) {
-			log.info("Cache status for KeySetRetriever:\noidcCacheHits: {}\noidcCacheHitsValidated: {}"
-					+ "\noidcCacheModuleResponses: {}" + "\noidcCacheMisses: {}", oidcCacheHits, oidcCacheHitsValidated, oidcCacheModuleResponses, oidcCacheMisses);
-			lastCacheStatusLog = now;
-		}
+    public void setRequestTimeoutMs(int httpTimeoutMs) {
+        this.requestTimeoutMs = httpTimeoutMs;
+    }
 
-	}
+    private void logCacheResponseStatus(HttpCacheContext httpContext) {
+        this.oidcRequests++;
 
-	private CloseableHttpClient createHttpClient(HttpCacheStorage httpCacheStorage) {
-		HttpClientBuilder builder;
+        switch (httpContext.getCacheResponseStatus()) {
+            case CACHE_HIT:
+                this.oidcCacheHits++;
+                break;
+            case CACHE_MODULE_RESPONSE:
+                this.oidcCacheModuleResponses++;
+                break;
+            case CACHE_MISS:
+                this.oidcCacheMisses++;
+                break;
+            case VALIDATED:
+                this.oidcCacheHitsValidated++;
+                break;
+        }
 
-		if (httpCacheStorage != null) {
-			builder = CachingHttpClients.custom().setCacheConfig(cacheConfig).setHttpCacheStorage(httpCacheStorage);
-		} else {
-			builder = HttpClients.custom();
-		}
+        long now = System.currentTimeMillis();
 
-		builder.useSystemProperties();
+        if (this.oidcRequests >= 2 && now - lastCacheStatusLog > CACHE_STATUS_LOG_INTERVAL_MS) {
+            log.info(
+                "Cache status for KeySetRetriever:\noidcCacheHits: {}\noidcCacheHitsValidated: {}"
+                    + "\noidcCacheModuleResponses: {}"
+                    + "\noidcCacheMisses: {}",
+                oidcCacheHits,
+                oidcCacheHitsValidated,
+                oidcCacheModuleResponses,
+                oidcCacheMisses
+            );
+            lastCacheStatusLog = now;
+        }
 
-		if (sslConfig != null) {
-			final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-					.setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
-					.build();
+    }
 
-			builder.setConnectionManager(cm);
-		}
+    private CloseableHttpClient createHttpClient(HttpCacheStorage httpCacheStorage) {
+        HttpClientBuilder builder;
 
-		return builder.build();
-	}
+        if (httpCacheStorage != null) {
+            builder = CachingHttpClients.custom().setCacheConfig(cacheConfig).setHttpCacheStorage(httpCacheStorage);
+        } else {
+            builder = HttpClients.custom();
+        }
 
-	public int getOidcCacheHits() {
-		return oidcCacheHits;
-	}
+        builder.useSystemProperties();
 
-	public int getOidcCacheMisses() {
-		return oidcCacheMisses;
-	}
+        if (sslConfig != null) {
+            final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+                .setSSLSocketFactory(sslConfig.toSSLConnectionSocketFactory())
+                .build();
 
-	public int getOidcCacheHitsValidated() {
-		return oidcCacheHitsValidated;
-	}
+            builder.setConnectionManager(cm);
+        }
 
-	public int getOidcCacheModuleResponses() {
-		return oidcCacheModuleResponses;
-	}
+        return builder.build();
+    }
+
+    private void configureCache(boolean useCacheForOidConnectEndpoint) {
+        if (useCacheForOidConnectEndpoint) {
+            cacheConfig = CacheConfig.custom().setMaxCacheEntries(10).setMaxObjectSize(1024L * 1024L).build();
+            oidcHttpCacheStorage = new BasicHttpCacheStorage(cacheConfig);
+        }
+    }
+
+    public int getOidcCacheHits() {
+        return oidcCacheHits;
+    }
+
+    public int getOidcCacheMisses() {
+        return oidcCacheMisses;
+    }
+
+    public int getOidcCacheHitsValidated() {
+        return oidcCacheHitsValidated;
+    }
+
+    public int getOidcCacheModuleResponses() {
+        return oidcCacheModuleResponses;
+    }
 }

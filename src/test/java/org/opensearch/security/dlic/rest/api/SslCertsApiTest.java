@@ -36,32 +36,38 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
 
     static final String TRANSPORT_CERTS = "transport";
 
-    private final static List<Map<String, String>> EXPECTED_CERTIFICATES =
-            ImmutableList.of(
-                    ImmutableMap.of(
-                            "issuer_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
-                            "subject_dn", "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE",
-                            "san", "[[2, node-0.example.com], [2, localhost], [7, 127.0.0.1], [8, 1.2.3.4.5.5]]",
-                            "not_before", "2018-05-05T14:37:09Z",
-                            "not_after", "2028-05-02T14:37:09Z"
-                    ),
-                    ImmutableMap.of(
-                            "issuer_dn", "CN=Example Com Inc. Root CA,OU=Example Com Inc. Root CA,O=Example Com Inc.,DC=example,DC=com",
-                            "subject_dn", "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
-                            "san", "",
-                            "not_before", "2018-05-05T14:37:08Z",
-                            "not_after", "2028-05-04T14:37:08Z"
-                    )
-            );
+    private final static List<Map<String, String>> EXPECTED_CERTIFICATES = ImmutableList.of(
+        ImmutableMap.of(
+            "issuer_dn",
+            "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
+            "subject_dn",
+            "CN=node-0.example.com,OU=SSL,O=Test,L=Test,C=DE",
+            "san",
+            "[[2, node-0.example.com], [2, localhost], [7, 127.0.0.1], [8, 1.2.3.4.5.5]]",
+            "not_before",
+            "2018-05-05T14:37:09Z",
+            "not_after",
+            "2028-05-02T14:37:09Z"
+        ),
+        ImmutableMap.of(
+            "issuer_dn",
+            "CN=Example Com Inc. Root CA,OU=Example Com Inc. Root CA,O=Example Com Inc.,DC=example,DC=com",
+            "subject_dn",
+            "CN=Example Com Inc. Signing CA,OU=Example Com Inc. Signing CA,O=Example Com Inc.,DC=example,DC=com",
+            "san",
+            "",
+            "not_before",
+            "2018-05-05T14:37:08Z",
+            "not_after",
+            "2028-05-04T14:37:08Z"
+        )
+    );
 
     private final static String EXPECTED_CERTIFICATES_BY_TYPE;
     static {
         try {
             EXPECTED_CERTIFICATES_BY_TYPE = DefaultObjectMapper.objectMapper.writeValueAsString(
-                    ImmutableMap.of(
-                            "http_certificates_list", EXPECTED_CERTIFICATES,
-                            "transport_certificates_list", EXPECTED_CERTIFICATES
-                    )
+                ImmutableMap.of("http_certificates_list", EXPECTED_CERTIFICATES, "transport_certificates_list", EXPECTED_CERTIFICATES)
             );
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -71,10 +77,12 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
     private final Header restApiAdminHeader = encodeBasicHeader("rest_api_admin_user", "rest_api_admin_user");
     private final Header restApiCertsInfoAdminHeader = encodeBasicHeader("rest_api_admin_ssl_info", "rest_api_admin_ssl_info");
 
-    private final Header restApiReloadCertsAdminHeader = encodeBasicHeader("rest_api_admin_ssl_reloadcerts", "rest_api_admin_ssl_reloadcerts");
+    private final Header restApiReloadCertsAdminHeader = encodeBasicHeader(
+        "rest_api_admin_ssl_reloadcerts",
+        "rest_api_admin_ssl_reloadcerts"
+    );
 
     private final Header restApiHeader = encodeBasicHeader("test", "test");
-
 
     public String certsInfoEndpoint() {
         return PLUGINS_PREFIX + "/api/ssl/certs";
@@ -165,9 +173,7 @@ public class SslCertsApiTest extends AbstractRestApiUnitTest {
     }
 
     Settings reloadEnabled() {
-        return Settings.builder()
-                .put(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, true)
-                .build();
+        return Settings.builder().put(ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED, true).build();
     }
 
 }
