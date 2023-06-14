@@ -174,6 +174,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                 String decryptedRoles = rolesClaim;
                 if (rolesObject == claims.get("er")) {
                     decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
+                    System.out.println("This is the decrypted roles: " + decryptedRoles);
                 }
                 roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
             }

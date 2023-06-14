@@ -66,7 +66,11 @@ public class JwtVendor {
         } else {
             this.claimsEncryptionKey = settings.get("encryption_key");
         }
-        this.timeProvider = timeProvider.orElseGet(() -> System::currentTimeMillis);
+        if (timeProvider.isPresent()) {
+            this.timeProvider = timeProvider.get();
+        } else {
+            this.timeProvider = () -> System.currentTimeMillis() / 1000;
+        }
         this.configModel = null;
     }
 

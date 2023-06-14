@@ -7,6 +7,7 @@ import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.action.FailedNodeException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.nodes.TransportNodesAction;
@@ -20,6 +21,7 @@ import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
+import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
@@ -33,6 +35,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -71,15 +74,23 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class CreateOnBehalfOfToken extends BaseRestHandler {
 
-    private final JwtVendor vendor;
+    private JwtVendor vendor;
     private final ThreadPool threadPool;
+    private DynamicConfigModel dcm;
+
+    @Subscribe
+    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+        this.dcm = dcm;
+        this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
+        //TODO: NULL CHECK\
+    }
 
     public CreateOnBehalfOfToken(final Settings settings, final ThreadPool threadPool) {
-        Settings testSettings =  Settings.builder()
-        .put("signing_key", "1234567890123456")
-        .put("encryption_key", "1234567890123456").build();
+//        Settings testSettings =  Settings.builder()
+//        .put("signing_key", "VGhpcyBpcyB0aGUgc2lnbmluZyBrZXkgZm9yIHRlc3Rpbmc===")
+//        .put("encryption_key", "ZW5jcnlwdGlvbktleQ==").build();
 
-        this.vendor = new JwtVendor(testSettings, Optional.empty());
+        //this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
         this.threadPool = threadPool;
     }
 
@@ -120,8 +131,8 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
                     final Integer tokenDuration = Optional.ofNullable(requestBody.get("duration"))
                         .map(value -> (String)value)
                         .map(Integer::parseInt)
-                        .map(value -> Math.min(value, 72)) // Max duration is 72 hours
-                        .orElse(24); // Fallback to default;
+                        .map(value -> Math.min(value, 72 * 3600)) // Max duration is 72 hours
+                        .orElse(24 * 3600); // Fallback to default;
 
                     final String source = "self-issued";
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
