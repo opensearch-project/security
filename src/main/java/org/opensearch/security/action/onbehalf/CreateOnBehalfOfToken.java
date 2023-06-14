@@ -86,11 +86,11 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
     }
 
     public CreateOnBehalfOfToken(final Settings settings, final ThreadPool threadPool) {
-//        Settings testSettings =  Settings.builder()
-//        .put("signing_key", "VGhpcyBpcyB0aGUgc2lnbmluZyBrZXkgZm9yIHRlc3Rpbmc===")
-//        .put("encryption_key", "ZW5jcnlwdGlvbktleQ==").build();
+        Settings testSettings =  Settings.builder()
+        .put("signing_key", "VGhpcyBpcyB0aGUgand0IHNpZ25pbmcga2V5IGZvciBhbiBvbiBiZWhhbGYgb2YgdG9rZW4gYXV0aGVudGljYXRpb24gYmFja2VuZCBmb3IgdGVzdGluZyBvZiBleHRlbnNpb25z")
+        .put("encryption_key", "ZW5jcnlwdGlvbktleQ==").build();
 
-        //this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
+        this.vendor = new JwtVendor(testSettings, Optional.empty());
         this.threadPool = threadPool;
     }
 

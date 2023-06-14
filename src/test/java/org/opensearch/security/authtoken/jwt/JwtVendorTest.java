@@ -130,7 +130,7 @@ public class JwtVendorTest {
         Integer expirySeconds = 100000;
         Optional<LongSupplier> currentTime = Optional.of(() -> System.currentTimeMillis() / 1000);
 
-        String signingKey = Base64.getEncoder().encodeToString("This is the signing key for testing".getBytes(StandardCharsets.UTF_8));
+        String signingKey = Base64.getEncoder().encodeToString("This is the jwt signing key for an on behalf of token authentication backend for testing of extensions".getBytes(StandardCharsets.UTF_8));
         System.out.println("The signingKey is: " + signingKey);
 
         String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
