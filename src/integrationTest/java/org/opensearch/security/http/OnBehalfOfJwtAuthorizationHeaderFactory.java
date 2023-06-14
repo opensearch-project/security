@@ -10,6 +10,7 @@
 package org.opensearch.security.http;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import org.apache.hc.core5.http.Header;
@@ -44,7 +45,7 @@ class OnBehalfOfJwtAuthorizationHeaderFactory {
 	}
 
 	Header generateValidToken() throws Exception {
-		LongSupplier currentTime = () -> (System.currentTimeMillis() / 1000);
+		Optional<LongSupplier> currentTime = Optional.of(() -> System.currentTimeMillis() / 1000);
 		Settings settings = Settings.builder().put("signing_key", signing_key).put("encryption_key", encryption_key).build();
 		JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
 		String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
