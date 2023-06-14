@@ -169,7 +169,7 @@ test {
         splitTestConfig.each { entry ->
             entry.value.each{ test ->
                 if (test.key == "includeTestsMatching") {
-                    test.value.each{ 
+                    test.value.each{
                         excludeTestsMatching "${it}"
                     }
                 } else if (test.key == "includeTest") {
