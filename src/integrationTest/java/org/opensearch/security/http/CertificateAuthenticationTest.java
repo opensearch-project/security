@@ -40,106 +40,109 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class CertificateAuthenticationTest {
 
-	private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
+    private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
 
-	public static final String POINTER_BACKEND_ROLES = "/backend_roles";
-	public static final String POINTER_ROLES = "/roles";
+    public static final String POINTER_BACKEND_ROLES = "/backend_roles";
+    public static final String POINTER_ROLES = "/roles";
 
-	private static final String USER_SPOCK = "spock";
-	private static final String USER_KIRK = "kirk";
+    private static final String USER_SPOCK = "spock";
+    private static final String USER_KIRK = "kirk";
 
-	private static final String BACKEND_ROLE_BRIDGE = "bridge";
-	private static final String BACKEND_ROLE_CAPTAIN = "captain";
+    private static final String BACKEND_ROLE_BRIDGE = "bridge";
+    private static final String BACKEND_ROLE_CAPTAIN = "captain";
 
-	private static final Role ROLE_ALL_INDEX_SEARCH = new Role("all-index-search").indexPermissions("indices:data/read/search")
-		.on("*");
+    private static final Role ROLE_ALL_INDEX_SEARCH = new Role("all-index-search").indexPermissions("indices:data/read/search").on("*");
 
-	private static final Map<String, Object> CERT_AUTH_CONFIG = Map.of(
-		"username_attribute", "cn",
-		"roles_attribute", "ou"
-	);
+    private static final Map<String, Object> CERT_AUTH_CONFIG = Map.of("username_attribute", "cn", "roles_attribute", "ou");
 
-	@ClassRule
-	public static final LocalCluster cluster = new LocalCluster.Builder()
-		.nodeSettings(Map.of("plugins.security.ssl.http.clientauth_mode", "OPTIONAL"))
-		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
-		.authc(new AuthcDomain("clientcert_auth_domain", -1, true)
-			.httpAuthenticator(new HttpAuthenticator("clientcert").challenge(false)
-				.config(CERT_AUTH_CONFIG)).backend("noop"))
-		.authc(AUTHC_HTTPBASIC_INTERNAL).roles(ROLE_ALL_INDEX_SEARCH).users(USER_ADMIN)
-		.rolesMapping(new RolesMapping(ROLE_ALL_INDEX_SEARCH).backendRoles(BACKEND_ROLE_BRIDGE)).build();
+    @ClassRule
+    public static final LocalCluster cluster = new LocalCluster.Builder().nodeSettings(
+        Map.of("plugins.security.ssl.http.clientauth_mode", "OPTIONAL")
+    )
+        .clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+        .anonymousAuth(false)
+        .authc(
+            new AuthcDomain("clientcert_auth_domain", -1, true).httpAuthenticator(
+                new HttpAuthenticator("clientcert").challenge(false).config(CERT_AUTH_CONFIG)
+            ).backend("noop")
+        )
+        .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .roles(ROLE_ALL_INDEX_SEARCH)
+        .users(USER_ADMIN)
+        .rolesMapping(new RolesMapping(ROLE_ALL_INDEX_SEARCH).backendRoles(BACKEND_ROLE_BRIDGE))
+        .build();
 
-	private static final TestCertificates TEST_CERTIFICATES = cluster.getTestCertificates();
+    private static final TestCertificates TEST_CERTIFICATES = cluster.getTestCertificates();
 
-	@Test
-	public void shouldAuthenticateUserWithBasicAuthWhenCertificateAuthenticationIsConfigured() {
-		try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+    @Test
+    public void shouldAuthenticateUserWithBasicAuthWhenCertificateAuthenticationIsConfigured() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			response.assertStatusCode(SC_OK);
-		}
-	}
+            response.assertStatusCode(SC_OK);
+        }
+    }
 
-	@Test
-	public void shouldAuthenticateUserWithCertificate_positiveUserSpoke() {
-		CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
-		try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
+    @Test
+    public void shouldAuthenticateUserWithCertificate_positiveUserSpoke() {
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_SPOCK);
+        try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
 
-			client.assertCorrectCredentials(USER_SPOCK);
-		}
-	}
+            client.assertCorrectCredentials(USER_SPOCK);
+        }
+    }
 
-	@Test
-	public void shouldAuthenticateUserWithCertificate_positiveUserKirk() {
-		CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_KIRK);
-		try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
+    @Test
+    public void shouldAuthenticateUserWithCertificate_positiveUserKirk() {
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_KIRK);
+        try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
 
-			client.assertCorrectCredentials(USER_KIRK);
-		}
-	}
+            client.assertCorrectCredentials(USER_KIRK);
+        }
+    }
 
-	@Test
-	public void shouldAuthenticateUserWithCertificate_negative() {
-		CertificateData untrustedUserCertificate = TEST_CERTIFICATES.createSelfSignedCertificate("CN=untrusted");
-		try (TestRestClient client = cluster.getRestClient(untrustedUserCertificate)) {
+    @Test
+    public void shouldAuthenticateUserWithCertificate_negative() {
+        CertificateData untrustedUserCertificate = TEST_CERTIFICATES.createSelfSignedCertificate("CN=untrusted");
+        try (TestRestClient client = cluster.getRestClient(untrustedUserCertificate)) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			response.assertStatusCode(401);
-		}
-	}
+            response.assertStatusCode(401);
+        }
+    }
 
-	@Test
-	public void shouldRetrieveBackendRoleFromCertificate_positiveRoleBridge() {
-		CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_KIRK);
-		try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
+    @Test
+    public void shouldRetrieveBackendRoleFromCertificate_positiveRoleBridge() {
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_BRIDGE, USER_KIRK);
+        try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			response.assertStatusCode(200);
-			List<String> backendRoles = response.getTextArrayFromJsonBody(POINTER_BACKEND_ROLES);
-			assertThat(backendRoles, hasSize(1));
-			assertThat(backendRoles, containsInAnyOrder(BACKEND_ROLE_BRIDGE));
-			List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
-			assertThat(roles, hasSize(1));
-			assertThat(roles, containsInAnyOrder(ROLE_ALL_INDEX_SEARCH.getName()));
-		}
-	}
+            response.assertStatusCode(200);
+            List<String> backendRoles = response.getTextArrayFromJsonBody(POINTER_BACKEND_ROLES);
+            assertThat(backendRoles, hasSize(1));
+            assertThat(backendRoles, containsInAnyOrder(BACKEND_ROLE_BRIDGE));
+            List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
+            assertThat(roles, hasSize(1));
+            assertThat(roles, containsInAnyOrder(ROLE_ALL_INDEX_SEARCH.getName()));
+        }
+    }
 
-	@Test
-	public void shouldRetrieveBackendRoleFromCertificate_positiveRoleCaptain() {
-		CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_CAPTAIN, USER_KIRK);
-		try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
+    @Test
+    public void shouldRetrieveBackendRoleFromCertificate_positiveRoleCaptain() {
+        CertificateData userSpockCertificate = TEST_CERTIFICATES.issueUserCertificate(BACKEND_ROLE_CAPTAIN, USER_KIRK);
+        try (TestRestClient client = cluster.getRestClient(userSpockCertificate)) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			response.assertStatusCode(200);
-			List<String> backendRoles = response.getTextArrayFromJsonBody(POINTER_BACKEND_ROLES);
-			assertThat(backendRoles, hasSize(1));
-			assertThat(backendRoles, containsInAnyOrder(BACKEND_ROLE_CAPTAIN));
-			List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
-			assertThat(roles, hasSize(0));
-		}
-	}
+            response.assertStatusCode(200);
+            List<String> backendRoles = response.getTextArrayFromJsonBody(POINTER_BACKEND_ROLES);
+            assertThat(backendRoles, hasSize(1));
+            assertThat(backendRoles, containsInAnyOrder(BACKEND_ROLE_CAPTAIN));
+            List<String> roles = response.getTextArrayFromJsonBody(POINTER_ROLES);
+            assertThat(roles, hasSize(0));
+        }
+    }
 }
