@@ -17,14 +17,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 class AuthInfo {
 
-	private final List<String> customAttributeNames;
+    private final List<String> customAttributeNames;
 
-	@ConstructorProperties("custom_attribute_names")
-	public AuthInfo(List<String> customAttributeNames) {
-		this.customAttributeNames = customAttributeNames;
-	}
+    @ConstructorProperties("custom_attribute_names")
+    public AuthInfo(List<String> customAttributeNames) {
+        this.customAttributeNames = customAttributeNames;
+    }
 
-	public List<String> getCustomAttributeNames() {
-		return customAttributeNames;
-	}
+    public List<String> getCustomAttributeNames() {
+        return customAttributeNames;
+    }
 }
