@@ -154,7 +154,7 @@ public class SecurityRestFilter {
             PrivilegesEvaluatorResponse pres = new PrivilegesEvaluatorResponse();
             // if actionNames are present evaluate those first
             Set<String> actionNames = ((NamedRoute) handler.get()).actionNames();
-            if (!actionNames.isEmpty()) {
+            if (actionNames != null && !actionNames.isEmpty()) {
                 pres = evaluator.evaluate(user, actionNames);
             }
 
