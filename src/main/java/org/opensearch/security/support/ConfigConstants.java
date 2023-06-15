@@ -296,6 +296,13 @@ public class ConfigConstants {
     public static final String TENANCY_GLOBAL_TENANT_NAME = "global";
     public static final String TENANCY_GLOBAL_TENANT_DEFAULT_NAME = "";
 
+    // Extension Settings
+    public static final String EXTENSIONS_SETTING = "extensions";
+    public static final String EXTENSIONS_BWC_PLUGIN_MODE = "bwcPluginMode";
+    public static final boolean EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT = false;
+    public static final String EXTENSIONS_DISTIGUISHED_NAMES = "extensionDistinguishedNames";
+    public static final List<String> EXTENSIONS_DISTINGUISHED_NAMES_DEFAULT = Collections.emptyList();
+
     public static Set<String> getSettingAsSet(final Settings settings, final String key, final List<String> defaultList, final boolean ignoreCaseForNone) {
         final List<String> list = settings.getAsList(key, defaultList);
         if (list.size() == 1 && "NONE".equals(ignoreCaseForNone? list.get(0).toUpperCase() : list.get(0))) {
