@@ -65,7 +65,11 @@ public abstract class QueryBuilderTraverser {
     }
 
     public boolean check(String query, NamedXContentRegistry namedXContentRegistry) throws IOException {
-        XContentParser parser = JsonXContent.jsonXContent.createParser(namedXContentRegistry, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, query);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            namedXContentRegistry,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            query
+        );
         QueryBuilder queryBuilder = AbstractQueryBuilder.parseInnerQueryBuilder(parser);
 
         return check(queryBuilder);
@@ -95,8 +99,10 @@ public abstract class QueryBuilderTraverser {
 
             if (queryBuilder instanceof BoolQueryBuilder) {
                 BoolQueryBuilder boolQueryBuilder = (BoolQueryBuilder) queryBuilder;
-                return check(boolQueryBuilder.must()) || check(boolQueryBuilder.mustNot()) || check(boolQueryBuilder.should())
-                        || check(boolQueryBuilder.filter());
+                return check(boolQueryBuilder.must())
+                    || check(boolQueryBuilder.mustNot())
+                    || check(boolQueryBuilder.should())
+                    || check(boolQueryBuilder.filter());
             } else if (queryBuilder instanceof BoostingQueryBuilder) {
                 BoostingQueryBuilder boostingQueryBuilder = (BoostingQueryBuilder) queryBuilder;
                 return check(boostingQueryBuilder.positiveQuery()) || check(boostingQueryBuilder.negativeQuery());
@@ -174,8 +180,9 @@ public abstract class QueryBuilderTraverser {
             if (queryBuilder instanceof BoolQueryBuilder) {
                 BoolQueryBuilder boolQueryBuilder = (BoolQueryBuilder) queryBuilder;
 
-                matched = check(boolQueryBuilder.must()) & check(boolQueryBuilder.mustNot()) & check(boolQueryBuilder.should())
-                        & check(boolQueryBuilder.filter());
+                matched = check(boolQueryBuilder.must()) & check(boolQueryBuilder.mustNot()) & check(boolQueryBuilder.should()) & check(
+                    boolQueryBuilder.filter()
+                );
             } else if (queryBuilder instanceof BoostingQueryBuilder) {
                 BoostingQueryBuilder boostingQueryBuilder = (BoostingQueryBuilder) queryBuilder;
 

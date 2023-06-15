@@ -36,7 +36,7 @@ public final class SecurityJsonNode {
     }
 
     public SecurityJsonNode get(String name) {
-        if(isNull(node)) {
+        if (isNull(node)) {
             return new SecurityJsonNode(null);
         }
 
@@ -45,7 +45,7 @@ public final class SecurityJsonNode {
     }
 
     public String asString() {
-        if(isNull(node)) {
+        if (isNull(node)) {
             return null;
         } else {
             return node.asText(null);
@@ -61,7 +61,7 @@ public final class SecurityJsonNode {
     }
 
     public SecurityJsonNode get(int i) {
-        if(isNull(node) || node.getNodeType() != JsonNodeType.ARRAY || i > (node.size() -1)) {
+        if (isNull(node) || node.getNodeType() != JsonNodeType.ARRAY || i > (node.size() - 1)) {
             return new SecurityJsonNode(null);
         }
 
@@ -70,7 +70,7 @@ public final class SecurityJsonNode {
 
     public SecurityJsonNode getDotted(String string) {
         SecurityJsonNode tmp = this;
-        for(String part: string.split("\\.")) {
+        for (String part : string.split("\\.")) {
             tmp = tmp.get(part);
         }
 
@@ -79,13 +79,13 @@ public final class SecurityJsonNode {
     }
 
     public List<String> asList() {
-        if(isNull(node) || node.getNodeType() != JsonNodeType.ARRAY) {
+        if (isNull(node) || node.getNodeType() != JsonNodeType.ARRAY) {
             return null;
         }
 
         List<String> retVal = new ArrayList<String>();
 
-        for(int i=0; i<node.size(); i++) {
+        for (int i = 0; i < node.size(); i++) {
             retVal.add(node.get(i).asText());
         }
 
