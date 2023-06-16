@@ -120,7 +120,7 @@ public class SecurityIndexAccessEvaluator {
                 if (filterSecurityIndex) {
                     irr.replace(request, false, "*", "-" + securityIndex);
                     if (isDebugEnabled) {
-                        log.debug("Filtered '{}'from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex,
+                        log.debug("Filtered '{}' from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex,
                                 irr.resolveRequest(request));
                     }
                     return presponse;

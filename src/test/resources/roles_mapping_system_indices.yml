@@ -21,7 +21,7 @@ extensions_role:
   users:
     - "extensions_user"
   and_backend_roles: []
-  description: "System  index permissions"
+  description: "System index permissions"
 
 extensions_role_c:
   reserved: false
@@ -31,5 +31,5 @@ extensions_role_c:
   users:
     - "extensions_user_c"
   and_backend_roles: []
-  description: "System  index permissions"
+  description: "System index permissions"
 
