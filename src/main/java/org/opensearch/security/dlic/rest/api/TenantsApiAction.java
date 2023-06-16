@@ -54,26 +54,40 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantsApiAction extends PatchableResourceApiAction {
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(
             new Route(Method.GET, "/tenants/{name}"),
             new Route(Method.GET, "/tenants/"),
             new Route(Method.DELETE, "/tenants/{name}"),
             new Route(Method.PUT, "/tenants/{name}"),
             new Route(Method.PATCH, "/tenants/"),
             new Route(Method.PATCH, "/tenants/{name}")
-    ));
+        )
+    );
 
     @Inject
-    public TenantsApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
-                            final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
-                            final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
+    public TenantsApiAction(
+        final Settings settings,
+        final Path configPath,
+        final RestController controller,
+        final Client client,
+        final AdminDNs adminDNs,
+        final ConfigurationRepository cl,
+        final ClusterService cs,
+        final PrincipalExtractor principalExtractor,
+        final PrivilegesEvaluator evaluator,
+        ThreadPool threadPool,
+        AuditLog auditLog
+    ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-                                             final Object content,
-                                             final String resourceName) {
+    protected boolean hasPermissionsToCreate(
+        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+        final Object content,
+        final String resourceName
+    ) {
         return true;
     }
 

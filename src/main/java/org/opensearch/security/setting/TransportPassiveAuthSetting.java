@@ -24,10 +24,7 @@ public class TransportPassiveAuthSetting extends OpensearchDynamicSetting<Boolea
     }
 
     private static Setting<Boolean> getSetting() {
-        return Setting.boolSetting(
-                SETTING,
-                false,
-                Setting.Property.NodeScope, Setting.Property.Dynamic);
+        return Setting.boolSetting(SETTING, false, Setting.Property.NodeScope, Setting.Property.Dynamic);
     }
 
     private static Boolean getSettingInitialValue(final Settings settings) {
@@ -36,6 +33,9 @@ public class TransportPassiveAuthSetting extends OpensearchDynamicSetting<Boolea
 
     @Override
     protected String getClusterChangeMessage(final Boolean dynamicSettingNewValue) {
-        return String.format("Detected change in settings, cluster setting for transportPassiveAuth is %s", dynamicSettingNewValue ? "enabled" : "disabled");
+        return String.format(
+            "Detected change in settings, cluster setting for transportPassiveAuth is %s",
+            dynamicSettingNewValue ? "enabled" : "disabled"
+        );
     }
 }

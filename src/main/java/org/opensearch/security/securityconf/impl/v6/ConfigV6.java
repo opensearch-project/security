@@ -25,7 +25,6 @@
  * GitHub history for details.
  */
 
-
 package org.opensearch.security.securityconf.impl.v6;
 
 import java.util.Collections;
@@ -47,15 +46,12 @@ public class ConfigV6 {
 
     public Dynamic dynamic;
 
-
-
     @Override
     public String toString() {
         return "Config [dynamic=" + dynamic + "]";
     }
 
     public static class Dynamic {
-
 
         public String filtered_alias_mode = "warn";
         public boolean disable_rest_auth;
@@ -78,8 +74,17 @@ public class ConfigV6 {
 
         @Override
         public String toString() {
-            return "Dynamic [filtered_alias_mode=" + filtered_alias_mode + ", kibana=" + kibana + ", http=" + http + ", authc=" + authc + ", authz="
-                    + authz + ", on_behalf_of=" + on_behalf_of + "]";
+            return "Dynamic [filtered_alias_mode="
+                + filtered_alias_mode
+                + ", kibana="
+                + kibana
+                + ", http="
+                + http
+                + ", authc="
+                + authc
+                + ", authz="
+                + authz
+                + "]";
         }
     }
 
@@ -95,24 +100,32 @@ public class ConfigV6 {
         public String opendistro_role = null;
         public String index = ".kibana";
         public boolean do_not_fail_on_forbidden;
+
         @Override
         public String toString() {
-            return "Kibana [multitenancy_enabled=" + multitenancy_enabled + ", server_username=" + server_username + ", opendistro_role=" + opendistro_role
-                    + ", index=" + index + ", do_not_fail_on_forbidden=" + do_not_fail_on_forbidden + "]";
+            return "Kibana [multitenancy_enabled="
+                + multitenancy_enabled
+                + ", server_username="
+                + server_username
+                + ", opendistro_role="
+                + opendistro_role
+                + ", index="
+                + index
+                + ", do_not_fail_on_forbidden="
+                + do_not_fail_on_forbidden
+                + "]";
         }
-
-
 
     }
 
     public static class Http {
         public boolean anonymous_auth_enabled = false;
         public Xff xff = new Xff();
+
         @Override
         public String toString() {
             return "Http [anonymous_auth_enabled=" + anonymous_auth_enabled + ", xff=" + xff + "]";
         }
-
 
     }
 
@@ -129,7 +142,6 @@ public class ConfigV6 {
         public Map<String, AuthFailureListener> getListeners() {
             return listeners;
         }
-
 
     }
 
@@ -160,22 +172,32 @@ public class ConfigV6 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public String internalProxies = Pattern.compile(
-                "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|" +
-                        "192\\.168\\.\\d{1,3}\\.\\d{1,3}|" +
-                        "169\\.254\\.\\d{1,3}\\.\\d{1,3}|" +
-                        "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|" +
-                        "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
-                        "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
-                        "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}").toString();
-        public String remoteIpHeader="X-Forwarded-For";
-        public String proxiesHeader="X-Forwarded-By";
+            "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "192\\.168\\.\\d{1,3}\\.\\d{1,3}|"
+                + "169\\.254\\.\\d{1,3}\\.\\d{1,3}|"
+                + "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
+        ).toString();
+        public String remoteIpHeader = "X-Forwarded-For";
+        public String proxiesHeader = "X-Forwarded-By";
         public String trustedProxies;
+
         @Override
         public String toString() {
-            return "Xff [enabled=" + enabled + ", internalProxies=" + internalProxies + ", remoteIpHeader=" + remoteIpHeader + ", proxiesHeader="
-                    + proxiesHeader + ", trustedProxies=" + trustedProxies + "]";
+            return "Xff [enabled="
+                + enabled
+                + ", internalProxies="
+                + internalProxies
+                + ", remoteIpHeader="
+                + remoteIpHeader
+                + ", proxiesHeader="
+                + proxiesHeader
+                + ", trustedProxies="
+                + trustedProxies
+                + "]";
         }
-
 
     }
 
@@ -199,25 +221,35 @@ public class ConfigV6 {
             return "Authc [domains=" + domains + "]";
         }
 
-
     }
 
     public static class AuthcDomain {
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean http_enabled= true;
+        public boolean http_enabled = true;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean transport_enabled= true;
+        public boolean transport_enabled = true;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        public boolean enabled= true;
+        public boolean enabled = true;
         public int order = 0;
         public HttpAuthenticator http_authenticator = new HttpAuthenticator();
         public AuthcBackend authentication_backend = new AuthcBackend();
+
         @Override
         public String toString() {
-            return "AuthcDomain [http_enabled=" + http_enabled + ", transport_enabled=" + transport_enabled + ", enabled=" + enabled + ", order="
-                    + order + ", http_authenticator=" + http_authenticator + ", authentication_backend=" + authentication_backend + "]";
+            return "AuthcDomain [http_enabled="
+                + http_enabled
+                + ", transport_enabled="
+                + transport_enabled
+                + ", enabled="
+                + enabled
+                + ", order="
+                + order
+                + ", http_authenticator="
+                + http_authenticator
+                + ", authentication_backend="
+                + authentication_backend
+                + "]";
         }
-
 
     }
 
@@ -241,7 +273,6 @@ public class ConfigV6 {
             return "HttpAuthenticator [challenge=" + challenge + ", type=" + type + ", config=" + config + "]";
         }
 
-
     }
 
     public static class AuthzBackend {
@@ -262,7 +293,6 @@ public class ConfigV6 {
             return "AuthzBackend [type=" + type + ", config=" + config + "]";
         }
 
-
     }
 
     public static class AuthcBackend {
@@ -282,7 +312,6 @@ public class ConfigV6 {
         public String toString() {
             return "AuthcBackend [type=" + type + ", config=" + config + "]";
         }
-
 
     }
 
@@ -305,7 +334,6 @@ public class ConfigV6 {
             return "Authz [domains=" + domains + "]";
         }
 
-
     }
 
     public static class AuthzDomain {
@@ -316,11 +344,19 @@ public class ConfigV6 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public AuthzBackend authorization_backend = new AuthzBackend();
+
         @Override
         public String toString() {
-            return "AuthzDomain [http_enabled=" + http_enabled + ", transport_enabled=" + transport_enabled + ", enabled=" + enabled + ", authorization_backend=" + authorization_backend + "]";
+            return "AuthzDomain [http_enabled="
+                + http_enabled
+                + ", transport_enabled="
+                + transport_enabled
+                + ", enabled="
+                + enabled
+                + ", authorization_backend="
+                + authorization_backend
+                + "]";
         }
-
 
     }
 

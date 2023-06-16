@@ -49,9 +49,11 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportService;
 
-public class TransportConfigUpdateAction
-extends
-TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigUpdateAction.NodeConfigUpdateRequest, ConfigUpdateNodeResponse> {
+public class TransportConfigUpdateAction extends TransportNodesAction<
+    ConfigUpdateRequest,
+    ConfigUpdateResponse,
+    TransportConfigUpdateAction.NodeConfigUpdateRequest,
+    ConfigUpdateNodeResponse> {
 
     protected Logger logger = LogManager.getLogger(getClass());
     private final Provider<BackendRegistry> backendRegistry;
@@ -59,13 +61,27 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     private DynamicConfigFactory dynamicConfigFactory;
 
     @Inject
-    public TransportConfigUpdateAction(final Settings settings,
-            final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
-            final ConfigurationRepository configurationRepository, final ActionFilters actionFilters,
-            Provider<BackendRegistry> backendRegistry, DynamicConfigFactory dynamicConfigFactory) {
-        super(ConfigUpdateAction.NAME, threadPool, clusterService, transportService, actionFilters,
-                ConfigUpdateRequest::new, TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
-                ThreadPool.Names.MANAGEMENT, ConfigUpdateNodeResponse.class);
+    public TransportConfigUpdateAction(
+        final Settings settings,
+        final ThreadPool threadPool,
+        final ClusterService clusterService,
+        final TransportService transportService,
+        final ConfigurationRepository configurationRepository,
+        final ActionFilters actionFilters,
+        Provider<BackendRegistry> backendRegistry,
+        DynamicConfigFactory dynamicConfigFactory
+    ) {
+        super(
+            ConfigUpdateAction.NAME,
+            threadPool,
+            clusterService,
+            transportService,
+            actionFilters,
+            ConfigUpdateRequest::new,
+            TransportConfigUpdateAction.NodeConfigUpdateRequest::new,
+            ThreadPool.Names.MANAGEMENT,
+            ConfigUpdateNodeResponse.class
+        );
 
         this.configurationRepository = configurationRepository;
         this.backendRegistry = backendRegistry;
@@ -76,7 +92,7 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
 
         ConfigUpdateRequest request;
 
-        public NodeConfigUpdateRequest(StreamInput in) throws IOException{
+        public NodeConfigUpdateRequest(StreamInput in) throws IOException {
             super(in);
             request = new ConfigUpdateRequest(in);
         }
@@ -98,8 +114,11 @@ TransportNodesAction<ConfigUpdateRequest, ConfigUpdateResponse, TransportConfigU
     }
 
     @Override
-    protected ConfigUpdateResponse newResponse(ConfigUpdateRequest request, List<ConfigUpdateNodeResponse> responses,
-            List<FailedNodeException> failures) {
+    protected ConfigUpdateResponse newResponse(
+        ConfigUpdateRequest request,
+        List<ConfigUpdateNodeResponse> responses,
+        List<FailedNodeException> failures
+    ) {
         return new ConfigUpdateResponse(this.clusterService.getClusterName(), responses, failures);
 
     }

@@ -40,9 +40,29 @@ import org.opensearch.transport.SharedGroupFactory;
 
 public class SecurityHttpServerTransport extends SecuritySSLNettyHttpServerTransport {
 
-    public SecurityHttpServerTransport(final Settings settings, final NetworkService networkService,
-                                       final BigArrays bigArrays, final ThreadPool threadPool, final SecurityKeyStore odsks,
-                                       final SslExceptionHandler sslExceptionHandler, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher, final ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
-        super(settings, networkService, bigArrays, threadPool, odsks, namedXContentRegistry, dispatcher, sslExceptionHandler, clusterSettings, sharedGroupFactory);
+    public SecurityHttpServerTransport(
+        final Settings settings,
+        final NetworkService networkService,
+        final BigArrays bigArrays,
+        final ThreadPool threadPool,
+        final SecurityKeyStore odsks,
+        final SslExceptionHandler sslExceptionHandler,
+        final NamedXContentRegistry namedXContentRegistry,
+        final ValidatingDispatcher dispatcher,
+        final ClusterSettings clusterSettings,
+        SharedGroupFactory sharedGroupFactory
+    ) {
+        super(
+            settings,
+            networkService,
+            bigArrays,
+            threadPool,
+            odsks,
+            namedXContentRegistry,
+            dispatcher,
+            sslExceptionHandler,
+            clusterSettings,
+            sharedGroupFactory
+        );
     }
 }
