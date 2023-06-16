@@ -190,6 +190,26 @@ test {
     }
 }
 
+task copyExtraTestResources(dependsOn: testClasses) {
+
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/test/src/test/resources'
+    }
+
+    taskNames.each { testName ->
+        copy {
+            from 'src/test/resources'
+            into "build/testrun/${testName}/src/test/resources"
+        }
+    }
+
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/citest/src/test/resources'
+    }
+}
+
 task citest(type: Test) {
 //    onlyIf { !project.gradle.taskGraph.hasTask(':test') }
     include '**/*.class'
@@ -233,6 +253,7 @@ task citest(type: Test) {
                 "sun.util.resources.provider.*"
         ]
     }
+    dependsOn copyExtraTestResources
 }
 
 splitTestConfig.each{ testName, filterCfg ->
@@ -269,17 +290,11 @@ splitTestConfig.each{ testName, filterCfg ->
                 "sun.util.resources.provider.*"
             ]
         }
+        dependsOn copyExtraTestResources
     }
 }
 
-task copyExtraTestResources(dependsOn: testClasses) {
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/test/src/test/resources'
-    }
-}
 tasks.test.dependsOn(copyExtraTestResources)
-tasks.citest.dependsOn(copyExtraTestResources, taskNames)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")

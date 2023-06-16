@@ -25,7 +25,6 @@ jobs:
       id: set-matrix
       run: |
         echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
-        echo "testsNamesExclude=$(./gradlew listTasksAsParam -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
   build:
     name: build
@@ -51,7 +50,7 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         arguments: |
-          build citest ${{ needs.generate-test-list.outputs.testsNamesExclude }} -Dbuild.snapshot=false
+          build citest -Dbuild.snapshot=false
           -x integrationTest
           -x spotlessCheck
           -x checkstyleMain
@@ -111,7 +110,6 @@ jobs:
           -x spotbugsMain
           -x spotbugsIntegrationTest
           -x checkstyleIntegrationTest
-          -x citest
           -x test
 
     - uses: actions/upload-artifact@v3
