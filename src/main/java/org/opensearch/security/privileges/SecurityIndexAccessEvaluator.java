@@ -110,7 +110,7 @@ public class SecurityIndexAccessEvaluator {
             final boolean isDebugEnabled = log.isDebugEnabled();
 
             if( matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)){
-            log.warn("An account without the {} permission  is trying to access a System Index. Related indexes: {}", ConfigConstants.SYSTEM_INDEX_PERMISSION, requestedResolved.getAllIndices() );
+            log.warn("An account without the {} permission  is trying to access a System Index. Related indexes: {}", ConfigConstants.SYSTEM_INDEX_PERMISSION, getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", ")) );
             presponse.allowed = false;
             return presponse.markComplete();
         }
