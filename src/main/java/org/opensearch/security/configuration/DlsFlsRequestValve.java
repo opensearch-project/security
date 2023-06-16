@@ -37,7 +37,13 @@ import org.opensearch.threadpool.ThreadPool;
 
 public interface DlsFlsRequestValve {
 
-    boolean invoke(String action, ActionRequest request, ActionListener<?> listener, EvaluatedDlsFlsConfig evaluatedDlsFlsConfig, Resolved resolved);
+    boolean invoke(
+        String action,
+        ActionRequest request,
+        ActionListener<?> listener,
+        EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
+        Resolved resolved
+    );
 
     void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry);
 
@@ -45,9 +51,14 @@ public interface DlsFlsRequestValve {
 
     public static class NoopDlsFlsRequestValve implements DlsFlsRequestValve {
 
-    	@Override
-        public boolean invoke(String action, ActionRequest request, ActionListener<?> listener, EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
-                Resolved resolved) {
+        @Override
+        public boolean invoke(
+            String action,
+            ActionRequest request,
+            ActionListener<?> listener,
+            EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
+            Resolved resolved
+        ) {
             return true;
         }
 

@@ -59,34 +59,37 @@ import static org.opensearch.security.dlic.rest.support.Utils.hash;
  */
 public class AccountApiAction extends AbstractApiAction {
     private static final String RESOURCE_NAME = "account";
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
-            new Route(Method.GET, "/account"),
-            new Route(Method.PUT, "/account")
-    ));
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(new Route(Method.GET, "/account"), new Route(Method.PUT, "/account"))
+    );
 
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
 
-    public AccountApiAction(Settings settings,
-                            Path configPath,
-                            RestController controller,
-                            Client client,
-                            AdminDNs adminDNs,
-                            ConfigurationRepository cl,
-                            ClusterService cs,
-                            PrincipalExtractor principalExtractor,
-                            PrivilegesEvaluator privilegesEvaluator,
-                            ThreadPool threadPool,
-                            AuditLog auditLog) {
+    public AccountApiAction(
+        Settings settings,
+        Path configPath,
+        RestController controller,
+        Client client,
+        AdminDNs adminDNs,
+        ConfigurationRepository cl,
+        ClusterService cs,
+        PrincipalExtractor principalExtractor,
+        PrivilegesEvaluator privilegesEvaluator,
+        ThreadPool threadPool,
+        AuditLog auditLog
+    ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-                                             final Object content,
-                                             final String resourceName) {
+    protected boolean hasPermissionsToCreate(
+        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+        final Object content,
+        final String resourceName
+    ) {
         return true;
     }
 
@@ -138,14 +141,14 @@ public class AccountApiAction extends AbstractApiAction {
                 final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
 
                 builder.field("user_name", user.getName())
-                        .field("is_reserved", isReserved(configuration, user.getName()))
-                        .field("is_hidden", configuration.isHidden(user.getName()))
-                        .field("is_internal_user", configuration.exists(user.getName()))
-                        .field("user_requested_tenant", user.getRequestedTenant())
-                        .field("backend_roles", user.getRoles())
-                        .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
-                        .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
-                        .field("roles", securityRoles);
+                    .field("is_reserved", isReserved(configuration, user.getName()))
+                    .field("is_hidden", configuration.isHidden(user.getName()))
+                    .field("is_internal_user", configuration.exists(user.getName()))
+                    .field("user_requested_tenant", user.getRequestedTenant())
+                    .field("backend_roles", user.getRoles())
+                    .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
+                    .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
+                    .field("roles", securityRoles);
             }
             builder.endObject();
 
@@ -153,9 +156,7 @@ public class AccountApiAction extends AbstractApiAction {
         } catch (final Exception exception) {
             log.error(exception.toString());
 
-            builder.startObject()
-                    .field("error", exception.toString())
-                    .endObject();
+            builder.startObject().field("error", exception.toString()).endObject();
 
             response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
         }
@@ -185,7 +186,8 @@ public class AccountApiAction extends AbstractApiAction {
      * @throws IOException
      */
     @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
+    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
+        throws IOException {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String username = user.getName();
         final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
@@ -224,12 +226,18 @@ public class AccountApiAction extends AbstractApiAction {
 
         internalUserEntry.setHash(hash);
 
-        AccountApiAction.saveAndUpdateConfigs(this.securityIndexName, client, CType.INTERNALUSERS, internalUser, new OnSucessActionListener<IndexResponse>(channel) {
-            @Override
-            public void onResponse(IndexResponse response) {
-                successResponse(channel, "'" + username + "' updated.");
+        AccountApiAction.saveAndUpdateConfigs(
+            this.securityIndexName,
+            client,
+            CType.INTERNALUSERS,
+            internalUser,
+            new OnSucessActionListener<IndexResponse>(channel) {
+                @Override
+                public void onResponse(IndexResponse response) {
+                    successResponse(channel, "'" + username + "' updated.");
+                }
             }
-        });
+        );
     }
 
     @Override

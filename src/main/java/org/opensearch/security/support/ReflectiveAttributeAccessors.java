@@ -19,7 +19,6 @@ import java.util.function.Function;
 
 import org.opensearch.SpecialPermission;
 
-
 public class ReflectiveAttributeAccessors {
     public static <O> Function<O, Object> objectAttr(String name) {
         return new ReflectiveAttributeGetter<O, Object>(name, Object.class);
@@ -113,7 +112,6 @@ public class ReflectiveAttributeAccessors {
             });
         }
     }
-
 
     static class ReflectiveAttributeSetter<O, R> implements BiFunction<O, R, Void> {
         private final String attribute;

@@ -40,7 +40,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
     @Override
     public void setIs(final IndexService is) {
-        if(this.is != null) {
+        if (this.is != null) {
             throw new OpenSearchException("Index service already set");
         }
         this.is = is;
@@ -66,7 +66,9 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
         final ComplianceConfig complianceConfig = auditlog.getComplianceConfig();
         if (isLoggingWriteEnabled(complianceConfig, shardId.getIndexName())) {
             Objects.requireNonNull(is);
-            if(result.getFailure() == null && result.isFound() && delete.origin() == org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
+            if (result.getFailure() == null
+                && result.isFound()
+                && delete.origin() == org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 auditlog.logDocumentDeleted(shardId, delete, result);
             }
         }
@@ -83,15 +85,14 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
                 return index;
             }
 
-            if((shard = is.getShardOrNull(shardId.getId())) == null) {
+            if ((shard = is.getShardOrNull(shardId.getId())) == null) {
                 return index;
             }
 
             if (shard.isReadAllowed()) {
                 try {
 
-                    final GetResult getResult = shard.getService().getForUpdate(index.id(),
-                            index.getIfSeqNo(), index.getIfPrimaryTerm());
+                    final GetResult getResult = shard.getService().getForUpdate(index.id(), index.getIfSeqNo(), index.getIfPrimaryTerm());
 
                     if (getResult.isExists()) {
                         threadContext.set(new Context(getResult));
@@ -113,7 +114,6 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
         return index;
     }
 
-
     @Override
     public void postIndex(final ShardId shardId, final Index index, final Exception ex) {
         if (isLoggingWriteDiffEnabled(auditlog.getComplianceConfig(), shardId.getIndexName())) {
@@ -130,7 +130,7 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
 
         if (complianceConfig.shouldLogDiffsForWrite()) {
             final Context context = threadContext.get();
-            final GetResult previousContent = context==null?null:context.getGetResult();
+            final GetResult previousContent = context == null ? null : context.getGetResult();
             threadContext.remove();
             Objects.requireNonNull(is);
 
@@ -138,26 +138,31 @@ public final class ComplianceIndexingOperationListenerImpl extends ComplianceInd
                 return;
             }
 
-            if(is.getShardOrNull(shardId.getId()) == null) {
+            if (is.getShardOrNull(shardId.getId()) == null) {
                 return;
             }
 
-            if(previousContent == null) {
-                //no previous content
-                if(!result.isCreated()) {
-                    log.warn("No previous content and not created (its an update but do not find orig source) for {}/{}/{}", index.startTime(), shardId, index.id());
+            if (previousContent == null) {
+                // no previous content
+                if (!result.isCreated()) {
+                    log.warn(
+                        "No previous content and not created (its an update but do not find orig source) for {}/{}/{}",
+                        index.startTime(),
+                        shardId,
+                        index.id()
+                    );
                 }
-                assert result.isCreated():"No previous content and not created";
+                assert result.isCreated() : "No previous content and not created";
             } else {
-                if(result.isCreated()) {
+                if (result.isCreated()) {
                     log.warn("Previous content and created for {}/{}/{}", index.startTime(), shardId, index.id());
                 }
-                assert !result.isCreated():"Previous content and created";
+                assert !result.isCreated() : "Previous content and created";
             }
 
             auditlog.logDocumentWritten(shardId, previousContent, index, result);
         } else {
-            //no diffs
+            // no diffs
             if (result.getFailure() != null || index.origin() != org.opensearch.index.engine.Engine.Operation.Origin.PRIMARY) {
                 return;
             }
