@@ -36,7 +36,13 @@ public class AuthDomain implements Comparable<AuthDomain> {
     private final int order;
     private final boolean challenge;
 
-    public AuthDomain(final String name, final AuthenticationBackend backend, final HTTPAuthenticator httpAuthenticator, boolean challenge, final int order) {
+    public AuthDomain(
+        final String name,
+        final AuthenticationBackend backend,
+        final HTTPAuthenticator httpAuthenticator,
+        boolean challenge,
+        final int order
+    ) {
         super();
         this.name = name;
         this.backend = Objects.requireNonNull(backend);
@@ -48,6 +54,7 @@ public class AuthDomain implements Comparable<AuthDomain> {
     public boolean isChallenge() {
         return challenge;
     }
+
     public String getName() {
         return name;
     }
@@ -66,8 +73,17 @@ public class AuthDomain implements Comparable<AuthDomain> {
 
     @Override
     public String toString() {
-        return "AuthDomain [name=" + name + ", backend=" + backend + ", httpAuthenticator=" + httpAuthenticator + ", order="
-                + order + ", challenge=" + challenge + "]";
+        return "AuthDomain [name="
+            + name
+            + ", backend="
+            + backend
+            + ", httpAuthenticator="
+            + httpAuthenticator
+            + ", order="
+            + order
+            + ", challenge="
+            + challenge
+            + "]";
     }
 
     @Override

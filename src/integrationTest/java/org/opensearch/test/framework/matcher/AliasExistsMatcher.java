@@ -31,37 +31,36 @@ import static java.util.Spliterators.spliteratorUnknownSize;
 
 class AliasExistsMatcher extends TypeSafeDiagnosingMatcher<Client> {
 
-	private final String aliasName;
+    private final String aliasName;
 
-	public AliasExistsMatcher(String aliasName) {
-		this.aliasName = requireNonNull(aliasName, "Alias name is required");
-	}
+    public AliasExistsMatcher(String aliasName) {
+        this.aliasName = requireNonNull(aliasName, "Alias name is required");
+    }
 
-	@Override
-	protected boolean matchesSafely(Client client, Description mismatchDescription) {
-		try {
-			GetAliasesResponse response = client.admin().indices().getAliases(new GetAliasesRequest(aliasName)).get();
+    @Override
+    protected boolean matchesSafely(Client client, Description mismatchDescription) {
+        try {
+            GetAliasesResponse response = client.admin().indices().getAliases(new GetAliasesRequest(aliasName)).get();
 
-			Map<String, List<AliasMetadata>> aliases = response.getAliases();
-			Set<String> actualAliasNames = StreamSupport.stream(spliteratorUnknownSize(aliases.values().iterator(), IMMUTABLE), false)
-					.flatMap(Collection::stream)
-					.map(AliasMetadata::getAlias)
-					.collect(Collectors.toSet());
-			if(actualAliasNames.contains(aliasName) == false) {
-				String existingAliases = String.join(", ", actualAliasNames);
-				mismatchDescription.appendText(" alias does not exist, defined aliases ").appendValue(existingAliases);
-				return false;
-			}
-			return true;
-		} catch (InterruptedException | ExecutionException e) {
-			mismatchDescription.appendText("Error occurred during checking if cluster contains alias ")
-					.appendValue(e);
-			return false;
-		}
-	}
+            Map<String, List<AliasMetadata>> aliases = response.getAliases();
+            Set<String> actualAliasNames = StreamSupport.stream(spliteratorUnknownSize(aliases.values().iterator(), IMMUTABLE), false)
+                .flatMap(Collection::stream)
+                .map(AliasMetadata::getAlias)
+                .collect(Collectors.toSet());
+            if (actualAliasNames.contains(aliasName) == false) {
+                String existingAliases = String.join(", ", actualAliasNames);
+                mismatchDescription.appendText(" alias does not exist, defined aliases ").appendValue(existingAliases);
+                return false;
+            }
+            return true;
+        } catch (InterruptedException | ExecutionException e) {
+            mismatchDescription.appendText("Error occurred during checking if cluster contains alias ").appendValue(e);
+            return false;
+        }
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Cluster should contain ").appendValue(aliasName).appendText(" alias");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Cluster should contain ").appendValue(aliasName).appendText(" alias");
+    }
 }

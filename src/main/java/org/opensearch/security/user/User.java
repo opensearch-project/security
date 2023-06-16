@@ -50,12 +50,22 @@ import org.opensearch.common.io.stream.Writeable;
  */
 public class User implements Serializable, Writeable, CustomAttributesAware {
 
-    public static final User ANONYMOUS = new User("opendistro_security_anonymous", Lists.newArrayList("opendistro_security_anonymous_backendrole"), null);
+    public static final User ANONYMOUS = new User(
+        "opendistro_security_anonymous",
+        Lists.newArrayList("opendistro_security_anonymous_backendrole"),
+        null
+    );
 
-    // This is a default user that is injected into a transport request when a user info is not present and passive_intertransport_auth is enabled.
-    // This is to be used in scenarios where some of the nodes do not have security enabled, and therefore do not pass any user information in threadcontext, yet we need the communication to not break between the nodes.
+    // This is a default user that is injected into a transport request when a user info is not present and passive_intertransport_auth is
+    // enabled.
+    // This is to be used in scenarios where some of the nodes do not have security enabled, and therefore do not pass any user information
+    // in threadcontext, yet we need the communication to not break between the nodes.
     // Attach the required permissions to either the user or the backend role.
-    public static final User DEFAULT_TRANSPORT_USER = new User("opendistro_security_default_transport_user", Lists.newArrayList("opendistro_security_default_transport_backendrole"), null);
+    public static final User DEFAULT_TRANSPORT_USER = new User(
+        "opendistro_security_default_transport_user",
+        Lists.newArrayList("opendistro_security_default_transport_backendrole"),
+        null
+    );
 
     private static final long serialVersionUID = -5500938501822658596L;
     private final String name;
@@ -101,7 +111,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
             this.addRoles(roles);
         }
 
-        if(customAttributes != null) {
+        if (customAttributes != null) {
             this.attributes.putAll(customAttributes.getAttributes());
         }
 
@@ -144,7 +154,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      * @param roles The backend roles
      */
     public final void addRoles(final Collection<String> roles) {
-        if(roles != null) {
+        if (roles != null) {
             this.roles.addAll(roles);
         }
     }
@@ -164,8 +174,8 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      *
      * @param roles The backend roles
      */
-    public final void addAttributes(final Map<String,String> attributes) {
-        if(attributes != null) {
+    public final void addAttributes(final Map<String, String> attributes) {
+        if (attributes != null) {
             this.attributes.putAll(attributes);
         }
     }
@@ -181,12 +191,15 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     public String getAuthDomain() {
         return authDomain;
     }
+
     public final void setAuthDomain(String authDomain) {
         this.authDomain = authDomain;
     }
+
     public boolean isInternal() {
         return isInternal;
     }
+
     public final void setInternal(boolean isInternal) {
         this.isInternal = isInternal;
     }
@@ -200,13 +213,30 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
     }
 
     public final String toStringWithAttributes() {
-        return "User [name=" + name + ", backend_roles=" + roles + ", requestedTenant=" + requestedTenant + ", attributes=" + attributes + "]";
+        return "User [name="
+            + name
+            + ", backend_roles="
+            + roles
+            + ", requestedTenant="
+            + requestedTenant
+            + ", attributes="
+            + attributes
+            + "]";
     }
 
     @Override
     public final String toString() {
-        return "User [name=" + name + ", backend_roles=" + roles + ", requestedTenant=" + requestedTenant
-                + ", isInternal=" + isInternal + ", authDomain=" + authDomain + "]";
+        return "User [name="
+            + name
+            + ", backend_roles="
+            + roles
+            + ", requestedTenant="
+            + requestedTenant
+            + ", isInternal="
+            + isInternal
+            + ", authDomain="
+            + authDomain
+            + "]";
     }
 
     @Override
@@ -245,7 +275,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      * @param user The user from which the backend roles should be copied over
      */
     public final void copyRolesFrom(final User user) {
-        if(user != null) {
+        if (user != null) {
             this.addRoles(user.getRoles());
         }
     }
@@ -256,7 +286,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         out.writeStringCollection(new ArrayList<String>(roles));
         out.writeString(requestedTenant);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
-        out.writeStringCollection(securityRoles ==null?Collections.emptyList():new ArrayList<String>(securityRoles));
+        out.writeStringCollection(securityRoles == null ? Collections.emptyList() : new ArrayList<String>(securityRoles));
         out.writeBoolean(isInternal);
     }
 
@@ -266,19 +296,21 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      * @return A modifiable map with all the current custom attributes associated with this user
      */
     public synchronized final Map<String, String> getCustomAttributesMap() {
-        if(attributes == null) {
+        if (attributes == null) {
             attributes = Collections.synchronizedMap(new HashMap<>());
         }
         return attributes;
     }
 
     public final void addSecurityRoles(final Collection<String> securityRoles) {
-        if(securityRoles != null && this.securityRoles != null) {
+        if (securityRoles != null && this.securityRoles != null) {
             this.securityRoles.addAll(securityRoles);
         }
     }
 
     public final Set<String> getSecurityRoles() {
-        return this.securityRoles == null ? Collections.synchronizedSet(Collections.emptySet()) : Collections.unmodifiableSet(this.securityRoles);
+        return this.securityRoles == null
+            ? Collections.synchronizedSet(Collections.emptySet())
+            : Collections.unmodifiableSet(this.securityRoles);
     }
 }

@@ -41,7 +41,8 @@ public class CertFromTruststore {
         return new CertFromTruststore();
     }
 
-    public CertFromTruststore(KeystoreProps keystoreProps, String truststoreAlias) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public CertFromTruststore(KeystoreProps keystoreProps, String truststoreAlias) throws CertificateException, NoSuchAlgorithmException,
+        KeyStoreException, IOException {
         this.keystoreProps = keystoreProps;
         final KeyStore ts = keystoreProps.loadKeystore();
 
@@ -54,7 +55,8 @@ public class CertFromTruststore {
         validate();
     }
 
-    public CertFromTruststore(KeystoreProps keystoreProps, String serverTruststoreAlias, String clientTruststoreAlias) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public CertFromTruststore(KeystoreProps keystoreProps, String serverTruststoreAlias, String clientTruststoreAlias)
+        throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
         this.keystoreProps = keystoreProps;
         final KeyStore ts = this.keystoreProps.loadKeystore();
 

@@ -117,8 +117,18 @@ public class HttpClient implements Closeable {
         }
 
         public HttpClient build() throws Exception {
-            return new HttpClient(trustStore, basicCredentials, keystore, keyPassword, keystoreAlias, verifyHostnames, ssl,
-                    supportedProtocols, supportedCipherSuites, servers);
+            return new HttpClient(
+                trustStore,
+                basicCredentials,
+                keystore,
+                keyPassword,
+                keystoreAlias,
+                verifyHostnames,
+                ssl,
+                supportedProtocols,
+                supportedCipherSuites,
+                servers
+            );
         }
 
         private static String encodeBasicHeader(final String username, final String password) {
@@ -143,10 +153,19 @@ public class HttpClient implements Closeable {
     private String[] supportedProtocols;
     private String[] supportedCipherSuites;
 
-    private HttpClient(final KeyStore trustStore, final String basicCredentials, final KeyStore keystore,
-            final char[] keyPassword, final String keystoreAlias, final boolean verifyHostnames, final boolean ssl, String[] supportedProtocols, String[] supportedCipherSuites, final String... servers)
-            throws UnrecoverableKeyException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException, CertificateException,
-            IOException {
+    private HttpClient(
+        final KeyStore trustStore,
+        final String basicCredentials,
+        final KeyStore keystore,
+        final char[] keyPassword,
+        final String keystoreAlias,
+        final boolean verifyHostnames,
+        final boolean ssl,
+        String[] supportedProtocols,
+        String[] supportedCipherSuites,
+        final String... servers
+    ) throws UnrecoverableKeyException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException, CertificateException,
+        IOException {
         super();
         this.trustStore = trustStore;
         this.basicCredentials = basicCredentials;
@@ -159,13 +178,13 @@ public class HttpClient implements Closeable {
         this.keystoreAlias = keystoreAlias;
 
         HttpHost[] hosts = Arrays.stream(servers)
-                .map(s->s.split(":"))
-                .map(s->new HttpHost(ssl?"https":"http", s[0], Integer.parseInt(s[1])))
-                .collect(Collectors.toList()).toArray(new HttpHost[0]);
-
+            .map(s -> s.split(":"))
+            .map(s -> new HttpHost(ssl ? "https" : "http", s[0], Integer.parseInt(s[1])))
+            .collect(Collectors.toList())
+            .toArray(new HttpHost[0]);
 
         RestClientBuilder builder = RestClient.builder(hosts);
-        //builder.setMaxRetryTimeoutMillis(10000);
+        // builder.setMaxRetryTimeoutMillis(10000);
 
         builder.setFailureListener(new RestClient.FailureListener() {
             @Override
@@ -181,7 +200,7 @@ public class HttpClient implements Closeable {
                 try {
                     return asyncClientBuilder(httpClientBuilder);
                 } catch (Exception e) {
-                    log.error("Unable to build http client",e);
+                    log.error("Unable to build http client", e);
                     throw new RuntimeException(e);
                 }
             }
@@ -192,24 +211,25 @@ public class HttpClient implements Closeable {
 
     public boolean index(final String content, final String index, final String type, final boolean refresh) {
 
-            try {
+        try {
 
-                final IndexRequest ir = new IndexRequest(index);
+            final IndexRequest ir = new IndexRequest(index);
 
-                final IndexResponse response = rclient.index(ir
-                              .setRefreshPolicy(refresh?RefreshPolicy.IMMEDIATE:RefreshPolicy.NONE)
-                              .source(content, XContentType.JSON), RequestOptions.DEFAULT);
+            final IndexResponse response = rclient.index(
+                ir.setRefreshPolicy(refresh ? RefreshPolicy.IMMEDIATE : RefreshPolicy.NONE).source(content, XContentType.JSON),
+                RequestOptions.DEFAULT
+            );
 
-                return response.getShardInfo().getSuccessful() > 0 && response.getShardInfo().getFailed() == 0;
+            return response.getShardInfo().getSuccessful() > 0 && response.getShardInfo().getFailed() == 0;
 
-            } catch (Exception e) {
-                log.error(e.toString(),e);
-                return false;
-            }
+        } catch (Exception e) {
+            log.error(e.toString(), e);
+            return false;
+        }
     }
 
-    private final HttpAsyncClientBuilder asyncClientBuilder(HttpAsyncClientBuilder httpClientBuilder)
-            throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, KeyManagementException {
+    private final HttpAsyncClientBuilder asyncClientBuilder(HttpAsyncClientBuilder httpClientBuilder) throws NoSuchAlgorithmException,
+        KeyStoreException, UnrecoverableKeyException, KeyManagementException {
 
         // basic auth
         // pki auth
@@ -231,11 +251,11 @@ public class HttpClient implements Closeable {
 
                     @Override
                     public String chooseAlias(Map<String, PrivateKeyDetails> aliases, SSLParameters sslParameters) {
-                        if(aliases == null || aliases.isEmpty()) {
+                        if (aliases == null || aliases.isEmpty()) {
                             return keystoreAlias;
                         }
 
-                        if(keystoreAlias == null || keystoreAlias.isEmpty()) {
+                        if (keystoreAlias == null || keystoreAlias.isEmpty()) {
                             return aliases.keySet().iterator().next();
                         }
 
@@ -248,35 +268,36 @@ public class HttpClient implements Closeable {
 
             final SSLContext sslContext = sslContextBuilder.build();
             TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
-                    .setSslContext(sslContext)
-                    .setTlsVersions(supportedProtocols)
-                    .setCiphers(supportedCipherSuites)
-                    .setHostnameVerifier(hnv)
-                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                    .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
-                        @Override
-                        public TlsDetails create(final SSLEngine sslEngine) {
-                            return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
-                        }
-                    })
-                    .build();
+                .setSslContext(sslContext)
+                .setTlsVersions(supportedProtocols)
+                .setCiphers(supportedCipherSuites)
+                .setHostnameVerifier(hnv)
+                // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+                    @Override
+                    public TlsDetails create(final SSLEngine sslEngine) {
+                        return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+                    }
+                })
+                .build();
 
-            final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
-                    .setTlsStrategy(tlsStrategy)
-                    .build();
+            final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create().setTlsStrategy(tlsStrategy).build();
             httpClientBuilder.setConnectionManager(cm);
         }
 
         if (basicCredentials != null) {
-            httpClientBuilder.setDefaultHeaders(Lists.newArrayList(new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + basicCredentials)));
+            httpClientBuilder.setDefaultHeaders(
+                Lists.newArrayList(new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + basicCredentials))
+            );
         }
 
         // TODO: set a timeout until we have a proper way to deal with back pressure
         int timeout = 5;
 
         RequestConfig config = RequestConfig.custom()
-          .setConnectTimeout(timeout, TimeUnit.SECONDS)
-          .setConnectionRequestTimeout(timeout, TimeUnit.SECONDS).build();
+            .setConnectTimeout(timeout, TimeUnit.SECONDS)
+            .setConnectionRequestTimeout(timeout, TimeUnit.SECONDS)
+            .build();
 
         httpClientBuilder.setDefaultRequestConfig(config);
 

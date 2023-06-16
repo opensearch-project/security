@@ -17,25 +17,27 @@ import static java.util.Objects.requireNonNull;
 
 class ExceptionErrorMessageMatcher extends TypeSafeDiagnosingMatcher<Throwable> {
 
-	private final Matcher<String> errorMessageMatcher;
+    private final Matcher<String> errorMessageMatcher;
 
-	public ExceptionErrorMessageMatcher(Matcher<String> errorMessageMatcher) {
-		this.errorMessageMatcher = requireNonNull(errorMessageMatcher, "Error message matcher is required");
-	}
+    public ExceptionErrorMessageMatcher(Matcher<String> errorMessageMatcher) {
+        this.errorMessageMatcher = requireNonNull(errorMessageMatcher, "Error message matcher is required");
+    }
 
-	@Override
-	protected boolean matchesSafely(Throwable ex, Description mismatchDescription) {
-		boolean matches = errorMessageMatcher.matches(ex.getMessage());
-		if(matches == false) {
-			mismatchDescription.appendText("Exception of class ").appendValue(ex.getClass().getCanonicalName())
-				.appendText("contains unexpected error message which is ").appendValue(ex.getMessage());
-		}
-		return matches;
+    @Override
+    protected boolean matchesSafely(Throwable ex, Description mismatchDescription) {
+        boolean matches = errorMessageMatcher.matches(ex.getMessage());
+        if (matches == false) {
+            mismatchDescription.appendText("Exception of class ")
+                .appendValue(ex.getClass().getCanonicalName())
+                .appendText("contains unexpected error message which is ")
+                .appendValue(ex.getMessage());
+        }
+        return matches;
 
-	}
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Error message in exception matches").appendValue(errorMessageMatcher);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Error message in exception matches").appendValue(errorMessageMatcher);
+    }
 }

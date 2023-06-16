@@ -155,9 +155,8 @@ public abstract class WildcardMatcher implements Predicate<String> {
         } else if (pattern.startsWith("/") && pattern.endsWith("/")) {
             return new RegexMatcher(pattern, caseSensitive);
         } else if (pattern.indexOf('?') >= 0 || pattern.indexOf('*') >= 0) {
-            return caseSensitive ?  new SimpleMatcher(pattern) : new CasefoldingMatcher(pattern,  SimpleMatcher::new);
-        }
-        else {
+            return caseSensitive ? new SimpleMatcher(pattern) : new CasefoldingMatcher(pattern, SimpleMatcher::new);
+        } else {
             return caseSensitive ? new Exact(pattern) : new CasefoldingMatcher(pattern, Exact::new);
         }
     }
@@ -175,8 +174,7 @@ public abstract class WildcardMatcher implements Predicate<String> {
                 return ((WildcardMatcher) t);
             }
             throw new UnsupportedOperationException("WildcardMatcher can't be constructed from " + t.getClass().getSimpleName());
-        })
-        .collect(ImmutableSet.toImmutableSet());
+        }).collect(ImmutableSet.toImmutableSet());
 
         if (matchers.isEmpty()) {
             return NONE;
@@ -281,8 +279,7 @@ public abstract class WildcardMatcher implements Predicate<String> {
     }
 
     public static List<WildcardMatcher> matchers(Collection<String> patterns) {
-        return patterns.stream().map(p -> WildcardMatcher.from(p, true))
-                .collect(Collectors.toList());
+        return patterns.stream().map(p -> WildcardMatcher.from(p, true)).collect(Collectors.toList());
     }
 
     public static List<String> getAllMatchingPatterns(final Collection<WildcardMatcher> matchers, final String candidate) {
@@ -371,7 +368,9 @@ public abstract class WildcardMatcher implements Predicate<String> {
         private RegexMatcher(String pattern, boolean caseSensitive) {
             Preconditions.checkArgument(pattern.length() > 1 && pattern.startsWith("/") && pattern.endsWith("/"));
             final String stripSlashesPattern = pattern.substring(1, pattern.length() - 1);
-            this.pattern = caseSensitive ? Pattern.compile(stripSlashesPattern) : Pattern.compile(stripSlashesPattern, Pattern.CASE_INSENSITIVE);
+            this.pattern = caseSensitive
+                ? Pattern.compile(stripSlashesPattern)
+                : Pattern.compile(stripSlashesPattern, Pattern.CASE_INSENSITIVE);
         }
 
         @Override
@@ -393,7 +392,9 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public String toString(){ return "/" + pattern.pattern() + "/"; }
+        public String toString() {
+            return "/" + pattern.pattern() + "/";
+        }
     }
 
     // Simple implementation of WildcardMatcher matcher with * and ? without
@@ -428,7 +429,8 @@ public abstract class WildcardMatcher implements Predicate<String> {
                     j = wild_backup;
                 }
             }
-            while (j < m && pattern.charAt(j) == '*') j++;
+            while (j < m && pattern.charAt(j) == '*')
+                j++;
             return j >= m;
         }
 
@@ -446,7 +448,9 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public String toString(){ return pattern; }
+        public String toString() {
+            return pattern;
+        }
     }
 
     // MatcherCombiner is a combination of a set of matchers
@@ -487,6 +491,8 @@ public abstract class WildcardMatcher implements Predicate<String> {
         }
 
         @Override
-        public String toString() { return wildcardMatchers.toString(); }
+        public String toString() {
+            return wildcardMatchers.toString();
+        }
     }
 }

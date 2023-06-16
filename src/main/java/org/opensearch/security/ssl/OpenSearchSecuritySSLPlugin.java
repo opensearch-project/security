@@ -89,7 +89,10 @@ import org.opensearch.watcher.ResourceWatcherService;
 //For ES5 this class has only effect when SSL only plugin is installed
 public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPlugin, NetworkPlugin {
 
-    private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(System.getProperty("opensearch.unsafe.use_netty_default_allocator"), false);
+    private static boolean USE_NETTY_DEFAULT_ALLOCATOR = Booleans.parseBoolean(
+        System.getProperty("opensearch.unsafe.use_netty_default_allocator"),
+        false
+    );
     public static final boolean OPENSSL_SUPPORTED = (PlatformDependent.javaVersion() < 12) && USE_NETTY_DEFAULT_ALLOCATOR;
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected static final String CLIENT_TYPE = "client.type";
@@ -102,17 +105,18 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     protected final SecurityKeyStore sks;
     protected PrincipalExtractor principalExtractor;
     protected final Path configPath;
-    private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {};
+    private final static SslExceptionHandler NOOP_SSL_EXCEPTION_HANDLER = new SslExceptionHandler() {
+    };
     protected final SSLConfig SSLConfig;
 
-//    public OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath) {
-//        this(settings, configPath, false);
-//    }
+    // public OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath) {
+    // this(settings, configPath, false);
+    // }
 
     @SuppressWarnings("removal")
     protected OpenSearchSecuritySSLPlugin(final Settings settings, final Path configPath, boolean disabled) {
 
-        if(disabled) {
+        if (disabled) {
             this.settings = null;
             this.sharedGroupFactory = null;
             this.client = false;
@@ -131,28 +135,33 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                 }
             });
 
-
             return;
         }
         SSLConfig = new SSLConfig(settings);
         this.configPath = configPath;
 
-        if(this.configPath != null) {
+        if (this.configPath != null) {
             log.info("OpenSearch Config path is {}", this.configPath.toAbsolutePath());
         } else {
             log.info("OpenSearch Config path is not set");
         }
 
-        final boolean allowClientInitiatedRenegotiation = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION, false);
-        final boolean rejectClientInitiatedRenegotiation = Boolean.parseBoolean(System.getProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION));
+        final boolean allowClientInitiatedRenegotiation = settings.getAsBoolean(
+            SSLConfigConstants.SECURITY_SSL_ALLOW_CLIENT_INITIATED_RENEGOTIATION,
+            false
+        );
+        final boolean rejectClientInitiatedRenegotiation = Boolean.parseBoolean(
+            System.getProperty(SSLConfigConstants.JDK_TLS_REJECT_CLIENT_INITIATED_RENEGOTIATION)
+        );
 
-        if(allowClientInitiatedRenegotiation && !rejectClientInitiatedRenegotiation) {
-            final String renegoMsg = "Client side initiated TLS renegotiation enabled. This can open a vulnerablity for DoS attacks through client side initiated TLS renegotiation.";
+        if (allowClientInitiatedRenegotiation && !rejectClientInitiatedRenegotiation) {
+            final String renegoMsg =
+                "Client side initiated TLS renegotiation enabled. This can open a vulnerablity for DoS attacks through client side initiated TLS renegotiation.";
             log.warn(renegoMsg);
             System.out.println(renegoMsg);
             System.err.println(renegoMsg);
         } else {
-            if(!rejectClientInitiatedRenegotiation) {
+            if (!rejectClientInitiatedRenegotiation) {
 
                 final SecurityManager sm = System.getSecurityManager();
 
@@ -167,7 +176,9 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
                         return null;
                     }
                 });
-                log.debug("Client side initiated TLS renegotiation forcibly disabled. This can prevent DoS attacks. (jdk.tls.rejectClientInitiatedRenegotiation set to true).");
+                log.debug(
+                    "Client side initiated TLS renegotiation forcibly disabled. This can prevent DoS attacks. (jdk.tls.rejectClientInitiatedRenegotiation set to true)."
+                );
             } else {
                 log.debug("Client side initiated TLS renegotiation already disabled.");
             }
@@ -179,7 +190,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             sm.checkPermission(new SpecialPermission());
         }
 
-        //TODO check initialize native netty open ssl libs still neccessary
+        // TODO check initialize native netty open ssl libs still neccessary
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
@@ -199,12 +210,18 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
 
         client = !"node".equals(this.settings.get(OpenSearchSecuritySSLPlugin.CLIENT_TYPE));
 
-        httpSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED,
-                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT);
-        transportSSLEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED,
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT);
-        extendedKeyUsageEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED,
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT);
+        httpSSLEnabled = settings.getAsBoolean(
+            SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED,
+            SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT
+        );
+        transportSSLEnabled = settings.getAsBoolean(
+            SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED,
+            SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT
+        );
+        extendedKeyUsageEnabled = settings.getAsBoolean(
+            SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED,
+            SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT
+        );
 
         if (!httpSSLEnabled && !transportSSLEnabled) {
             log.error("SSL not activated for http and/or transport.");
@@ -212,7 +229,7 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
             System.err.println("SSL not activated for http and/or transport.");
         }
 
-        if(ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
+        if (ExternalSecurityKeyStore.hasExternalSslContext(settings)) {
             this.sks = new ExternalSecurityKeyStore(settings);
         } else {
             this.sks = new DefaultSecurityKeyStore(settings, configPath);
@@ -220,17 +237,39 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     }
 
     @Override
-    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
-            PageCacheRecycler pageCacheRecycler, CircuitBreakerService circuitBreakerService, NamedXContentRegistry xContentRegistry,
-            NetworkService networkService, Dispatcher dispatcher, ClusterSettings clusterSettings) {
+    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(
+        Settings settings,
+        ThreadPool threadPool,
+        BigArrays bigArrays,
+        PageCacheRecycler pageCacheRecycler,
+        CircuitBreakerService circuitBreakerService,
+        NamedXContentRegistry xContentRegistry,
+        NetworkService networkService,
+        Dispatcher dispatcher,
+        ClusterSettings clusterSettings
+    ) {
 
         if (!client && httpSSLEnabled) {
 
-            final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(threadPool.getThreadContext(), dispatcher, settings, configPath, NOOP_SSL_EXCEPTION_HANDLER);
-            final SecuritySSLNettyHttpServerTransport sgsnht =
-                    new SecuritySSLNettyHttpServerTransport(settings, networkService, bigArrays, threadPool,
-                            sks, xContentRegistry, validatingDispatcher, NOOP_SSL_EXCEPTION_HANDLER, clusterSettings,
-                            sharedGroupFactory);
+            final ValidatingDispatcher validatingDispatcher = new ValidatingDispatcher(
+                threadPool.getThreadContext(),
+                dispatcher,
+                settings,
+                configPath,
+                NOOP_SSL_EXCEPTION_HANDLER
+            );
+            final SecuritySSLNettyHttpServerTransport sgsnht = new SecuritySSLNettyHttpServerTransport(
+                settings,
+                networkService,
+                bigArrays,
+                threadPool,
+                sks,
+                xContentRegistry,
+                validatingDispatcher,
+                NOOP_SSL_EXCEPTION_HANDLER,
+                clusterSettings,
+                sharedGroupFactory
+            );
 
             return Collections.singletonMap("org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport", () -> sgsnht);
 
@@ -240,9 +279,15 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     }
 
     @Override
-    public List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
-            IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
-            IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
+    public List<RestHandler> getRestHandlers(
+        Settings settings,
+        RestController restController,
+        ClusterSettings clusterSettings,
+        IndexScopedSettings indexScopedSettings,
+        SettingsFilter settingsFilter,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<DiscoveryNodes> nodesInCluster
+    ) {
 
         final List<RestHandler> handlers = new ArrayList<RestHandler>(1);
 
@@ -253,30 +298,45 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         return handlers;
     }
 
-
-
     @Override
     public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry, ThreadContext threadContext) {
         List<TransportInterceptor> interceptors = new ArrayList<TransportInterceptor>(1);
 
-        if(transportSSLEnabled && !client) {
+        if (transportSSLEnabled && !client) {
             interceptors.add(new SecuritySSLTransportInterceptor(settings, null, null, SSLConfig, NOOP_SSL_EXCEPTION_HANDLER));
         }
 
         return interceptors;
     }
 
-
-
     @Override
-    public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, PageCacheRecycler pageCacheRecycler,
-            CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService) {
+    public Map<String, Supplier<Transport>> getTransports(
+        Settings settings,
+        ThreadPool threadPool,
+        PageCacheRecycler pageCacheRecycler,
+        CircuitBreakerService circuitBreakerService,
+        NamedWriteableRegistry namedWriteableRegistry,
+        NetworkService networkService
+    ) {
 
         Map<String, Supplier<Transport>> transports = new HashMap<String, Supplier<Transport>>();
         if (transportSSLEnabled) {
-            transports.put("org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
-                    () -> new SecuritySSLNettyTransport(settings, Version.CURRENT, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, sks, NOOP_SSL_EXCEPTION_HANDLER, sharedGroupFactory,
-                            SSLConfig));
+            transports.put(
+                "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport",
+                () -> new SecuritySSLNettyTransport(
+                    settings,
+                    Version.CURRENT,
+                    threadPool,
+                    networkService,
+                    pageCacheRecycler,
+                    namedWriteableRegistry,
+                    circuitBreakerService,
+                    sks,
+                    NOOP_SSL_EXCEPTION_HANDLER,
+                    sharedGroupFactory,
+                    SSLConfig
+                )
+            );
 
         }
         return transports;
@@ -284,20 +344,29 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
     }
 
     @Override
-    public Collection<Object> createComponents(Client localClient, ClusterService clusterService, ThreadPool threadPool,
-            ResourceWatcherService resourceWatcherService, ScriptService scriptService, NamedXContentRegistry xContentRegistry,
-            Environment environment, NodeEnvironment nodeEnvironment, NamedWriteableRegistry namedWriteableRegistry,
-            IndexNameExpressionResolver indexNameExpressionResolver, Supplier<RepositoriesService> repositoriesServiceSupplier) {
+    public Collection<Object> createComponents(
+        Client localClient,
+        ClusterService clusterService,
+        ThreadPool threadPool,
+        ResourceWatcherService resourceWatcherService,
+        ScriptService scriptService,
+        NamedXContentRegistry xContentRegistry,
+        Environment environment,
+        NodeEnvironment nodeEnvironment,
+        NamedWriteableRegistry namedWriteableRegistry,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<RepositoriesService> repositoriesServiceSupplier
+    ) {
 
         final List<Object> components = new ArrayList<>(1);
 
-        if(client) {
+        if (client) {
             return components;
         }
 
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 
-        if(principalExtractorClass == null) {
+        if (principalExtractorClass == null) {
             principalExtractor = new DefaultPrincipalExtractor();
         } else {
             try {
@@ -330,79 +399,255 @@ public class OpenSearchSecuritySSLPlugin extends Plugin implements SystemIndexPl
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, OPENSSL_SUPPORTED, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, OPENSSL_SUPPORTED,Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED, SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE,
+                OPENSSL_SUPPORTED,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED,
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_DEFAULT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE,
+                OPENSSL_SUPPORTED,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED,
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_DEFAULT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH, Property.NodeScope, Property.Filtered)
+        );
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.listSetting(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.listSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS, Collections.emptyList(), Function.identity(), Property.NodeScope));//not filtered here
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, Property.NodeScope, Property.Filtered));
+        settings.add(
+            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, Property.NodeScope, Property.Filtered)
+        );
+        settings.add(
+            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE, Property.NodeScope, Property.Filtered)
+        );
+        settings.add(
+            Setting.listSetting(
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_CIPHERS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );// not filtered here
+        settings.add(
+            Setting.listSetting(
+                SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED_PROTOCOLS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );// not filtered here
+        settings.add(
+            Setting.listSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_CIPHERS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );// not filtered here
+        settings.add(
+            Setting.listSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLED_PROTOCOLS,
+                Collections.emptyList(),
+                Function.identity(),
+                Property.NodeScope
+            )
+        );// not filtered here
+        settings.add(
+            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, Property.NodeScope, Property.Filtered)
+        );
+        settings.add(
+            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, Property.NodeScope, Property.Filtered)
+        );
 
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED,
+                SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        if (extendedKeyUsageEnabled) {
+            settings.add(
+                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered)
+            );
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
 
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED, SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED_DEFAULT, Property.NodeScope, Property.Filtered));
-        if(extendedKeyUsageEnabled) {
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(
+                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered)
+            );
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
 
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
 
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_SERVER_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
-
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMCERT_FILEPATH,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMKEY_FILEPATH,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_CLIENT_PEMTRUSTEDCAS_FILEPATH,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
         } else {
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered));
+            settings.add(
+                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, Property.NodeScope, Property.Filtered)
+            );
+            settings.add(
+                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_ALIAS, Property.NodeScope, Property.Filtered)
+            );
 
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-            settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+            settings.add(
+                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered)
+            );
+            settings.add(
+                Setting.simpleString(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered)
+            );
+            settings.add(
+                Setting.simpleString(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
         }
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH, Property.NodeScope, Property.Filtered));
         settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered));
+        settings.add(
+            Setting.simpleString(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, Property.NodeScope, Property.Filtered)
+        );
 
         settings.add(Setting.simpleString(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE, Property.NodeScope, Property.Filtered));
         settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATE, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false, Property.NodeScope, Property.Filtered));
-        settings.add(Setting.longSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered));
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP,
+                false,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(
+                SSLConfigConstants.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES,
+                true,
+                Property.NodeScope,
+                Property.Filtered
+            )
+        );
+        settings.add(
+            Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false, Property.NodeScope, Property.Filtered)
+        );
+        settings.add(
+            Setting.boolSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false, Property.NodeScope, Property.Filtered)
+        );
+        settings.add(
+            Setting.longSetting(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, -1, -1, Property.NodeScope, Property.Filtered)
+        );
 
         return settings;
     }
 
     @Override
     public Settings additionalSettings() {
-       final Settings.Builder builder = Settings.builder();
+        final Settings.Builder builder = Settings.builder();
 
-       if(!client && httpSSLEnabled) {
+        if (!client && httpSSLEnabled) {
 
-           if(settings.get("http.compression") == null) {
-               builder.put("http.compression", false);
-               log.info("Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in opensearch.yml");
-           }
+            if (settings.get("http.compression") == null) {
+                builder.put("http.compression", false);
+                log.info(
+                    "Disabled https compression by default to mitigate BREACH attacks. You can enable it by setting 'http.compression: true' in opensearch.yml"
+                );
+            }
 
-           builder.put(NetworkModule.HTTP_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport");
-       }
+            builder.put(NetworkModule.HTTP_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyHttpServerTransport");
+        }
 
-       if (transportSSLEnabled) {
-           builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
-       }
+        if (transportSSLEnabled) {
+            builder.put(NetworkModule.TRANSPORT_TYPE_KEY, "org.opensearch.security.ssl.http.netty.SecuritySSLNettyTransport");
+        }
 
         return builder.build();
     }

@@ -44,19 +44,24 @@ public class PrivilegesEvaluatorResponse {
     CreateIndexRequestBuilder createIndexRequestBuilder;
 
     public Resolved getResolved() {
-		return resolved;
-	}
+        return resolved;
+    }
 
     public boolean isAllowed() {
         return allowed;
     }
+
     public Set<String> getMissingPrivileges() {
         return new HashSet<String>(missingPrivileges);
     }
 
-    public Set<String> getMissingSecurityRoles() {return new HashSet<>(missingSecurityRoles); }
+    public Set<String> getMissingSecurityRoles() {
+        return new HashSet<>(missingSecurityRoles);
+    }
 
-    public Set<String> getResolvedSecurityRoles() {return new HashSet<>(resolvedSecurityRoles); }
+    public Set<String> getResolvedSecurityRoles() {
+        return new HashSet<>(resolvedSecurityRoles);
+    }
 
     public EvaluatedDlsFlsConfig getEvaluatedDlsFlsConfig() {
         return evaluatedDlsFlsConfig;
@@ -86,8 +91,13 @@ public class PrivilegesEvaluatorResponse {
 
     @Override
     public String toString() {
-        return "PrivEvalResponse [allowed=" + allowed + ", missingPrivileges=" + missingPrivileges + ", evaluatedDlsFlsConfig="
-                + evaluatedDlsFlsConfig + "]";
+        return "PrivEvalResponse [allowed="
+            + allowed
+            + ", missingPrivileges="
+            + missingPrivileges
+            + ", evaluatedDlsFlsConfig="
+            + evaluatedDlsFlsConfig
+            + "]";
     }
 
     public static enum PrivilegesEvaluatorResponseState {

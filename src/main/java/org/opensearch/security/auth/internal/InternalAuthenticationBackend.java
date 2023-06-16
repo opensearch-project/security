@@ -52,27 +52,27 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     @Override
     public boolean exists(User user) {
 
-        if(user == null || internalUsersModel == null) {
+        if (user == null || internalUsersModel == null) {
             return false;
         }
 
         final boolean exists = internalUsersModel.exists(user.getName());
 
-        if(exists) {
+        if (exists) {
             user.addRoles(internalUsersModel.getBackenRoles(user.getName()));
-            //FIX https://github.com/opendistro-for-elasticsearch/security/pull/23
-            //Credits to @turettn
+            // FIX https://github.com/opendistro-for-elasticsearch/security/pull/23
+            // Credits to @turettn
             final Map<String, String> customAttributes = internalUsersModel.getAttributes(user.getName());
             Map<String, String> attributeMap = new HashMap<>();
 
-            if(customAttributes != null) {
-                for(Entry<String, String> attributeEntry: customAttributes.entrySet()) {
-                    attributeMap.put("attr.internal."+attributeEntry.getKey(), attributeEntry.getValue());
+            if (customAttributes != null) {
+                for (Entry<String, String> attributeEntry : customAttributes.entrySet()) {
+                    attributeMap.put("attr.internal." + attributeEntry.getKey(), attributeEntry.getValue());
                 }
             }
 
             final List<String> securityRoles = internalUsersModel.getSecurityRoles(user.getName());
-            if(securityRoles != null) {
+            if (securityRoles != null) {
                 user.addSecurityRoles(securityRoles);
             }
 
@@ -104,10 +104,11 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
 
         final byte[] password;
         String hash;
-        if(!internalUsersModel.exists(credentials.getUsername())) {
+        if (!internalUsersModel.exists(credentials.getUsername())) {
             userExists = false;
             password = credentials.getPassword();
-            hash = "$2y$12$NmKhjNssNgSIj8iXT7SYxeXvMA1E95a9tCt4cySY9FrQ4fB18xEc2"; // Ensure the same cryptographic complexity for users not found and invalid password
+            hash = "$2y$12$NmKhjNssNgSIj8iXT7SYxeXvMA1E95a9tCt4cySY9FrQ4fB18xEc2"; // Ensure the same cryptographic complexity for users not
+                                                                                   // found and invalid password
         } else {
             userExists = true;
             password = credentials.getPassword();
@@ -123,22 +124,22 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
         char[] array = new char[buf.limit()];
         buf.get(array);
 
-        Arrays.fill(password, (byte)0);
+        Arrays.fill(password, (byte) 0);
 
         try {
             if (passwordMatchesHash(hash, array) && userExists) {
                 final List<String> roles = internalUsersModel.getBackenRoles(credentials.getUsername());
                 final Map<String, String> customAttributes = internalUsersModel.getAttributes(credentials.getUsername());
-                if(customAttributes != null) {
-                    for(Entry<String, String> attributeName: customAttributes.entrySet()) {
-                        credentials.addAttribute("attr.internal."+attributeName.getKey(), attributeName.getValue());
+                if (customAttributes != null) {
+                    for (Entry<String, String> attributeName : customAttributes.entrySet()) {
+                        credentials.addAttribute("attr.internal." + attributeName.getKey(), attributeName.getValue());
                     }
                 }
 
                 final User user = new User(credentials.getUsername(), roles, credentials);
 
                 final List<String> securityRoles = internalUsersModel.getSecurityRoles(credentials.getUsername());
-                if(securityRoles != null) {
+                if (securityRoles != null) {
                     user.addSecurityRoles(securityRoles);
                 }
                 user.setInternal(true);
@@ -150,7 +151,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
                 throw new OpenSearchSecurityException("password does not match");
             }
         } finally {
-            Arrays.fill(wrap.array(), (byte)0);
+            Arrays.fill(wrap.array(), (byte) 0);
             Arrays.fill(buf.array(), '\0');
             Arrays.fill(array, '\0');
         }
@@ -165,17 +166,18 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     public void fillRoles(User user, AuthCredentials credentials) throws OpenSearchSecurityException {
 
         if (internalUsersModel == null) {
-            throw new OpenSearchSecurityException("Internal authentication backend not configured. May be OpenSearch Security is not initialized.");
+            throw new OpenSearchSecurityException(
+                "Internal authentication backend not configured. May be OpenSearch Security is not initialized."
+            );
 
         }
 
-        if(exists(user)) {
+        if (exists(user)) {
             final List<String> roles = internalUsersModel.getBackenRoles(user.getName());
-            if(roles != null && !roles.isEmpty() && user != null) {
+            if (roles != null && !roles.isEmpty() && user != null) {
                 user.addRoles(roles);
             }
         }
-
 
     }
 
@@ -183,6 +185,5 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
     public void onInternalUsersModelChanged(InternalUsersModel ium) {
         this.internalUsersModel = ium;
     }
-
 
 }

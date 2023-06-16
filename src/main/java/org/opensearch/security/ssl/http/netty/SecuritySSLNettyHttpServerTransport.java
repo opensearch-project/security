@@ -46,9 +46,18 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
     private final SecurityKeyStore sks;
     private final SslExceptionHandler errorHandler;
 
-    public SecuritySSLNettyHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
-                                               final ThreadPool threadPool, final SecurityKeyStore sks, final NamedXContentRegistry namedXContentRegistry, final ValidatingDispatcher dispatcher,
-                                               final SslExceptionHandler errorHandler, ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
+    public SecuritySSLNettyHttpServerTransport(
+        final Settings settings,
+        final NetworkService networkService,
+        final BigArrays bigArrays,
+        final ThreadPool threadPool,
+        final SecurityKeyStore sks,
+        final NamedXContentRegistry namedXContentRegistry,
+        final ValidatingDispatcher dispatcher,
+        final SslExceptionHandler errorHandler,
+        ClusterSettings clusterSettings,
+        SharedGroupFactory sharedGroupFactory
+    ) {
         super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
         this.sks = sks;
         this.errorHandler = errorHandler;
@@ -66,7 +75,6 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
         if (cause0 instanceof DecoderException && cause0 != null) {
             cause = cause0.getCause();
         }
-
 
         errorHandler.logError(cause, true);
         logger.error("Exception during establishing a SSL connection: " + cause, cause);
@@ -109,7 +117,11 @@ public class SecuritySSLNettyHttpServerTransport extends Netty4HttpServerTranspo
             }
         }
 
-        protected SSLHttpChannelHandler(Netty4HttpServerTransport transport, final HttpHandlingSettings handlingSettings, final SecurityKeyStore odsks) {
+        protected SSLHttpChannelHandler(
+            Netty4HttpServerTransport transport,
+            final HttpHandlingSettings handlingSettings,
+            final SecurityKeyStore odsks
+        ) {
             super(transport, handlingSettings);
         }
 

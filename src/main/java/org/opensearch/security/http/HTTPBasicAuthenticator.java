@@ -55,7 +55,7 @@ public class HTTPBasicAuthenticator implements HTTPAuthenticator {
 
         final boolean forceLogin = request.paramAsBoolean("force_login", false);
 
-        if(forceLogin) {
+        if (forceLogin) {
             return null;
         }
 

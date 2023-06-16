@@ -1,10 +1,10 @@
 /*
 * Copyright 2015-2017 floragunn GmbH
-* 
+*
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
 * You may obtain a copy of the License at
-* 
+*
 *     http://www.apache.org/licenses/LICENSE-2.0
 *
 * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 */
 
 /*
@@ -52,105 +52,121 @@ import static org.opensearch.test.framework.cluster.NodeType.CLUSTER_MANAGER;
 import static org.opensearch.test.framework.cluster.NodeType.DATA;
 
 public enum ClusterManager {
-	//3 nodes (1m, 2d)
-	DEFAULT(new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.DATA), new NodeSettings(NodeRole.DATA)),
+    // 3 nodes (1m, 2d)
+    DEFAULT(new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.DATA), new NodeSettings(NodeRole.DATA)),
 
-	//1 node (1md)
-	SINGLENODE(new NodeSettings(NodeRole.CLUSTER_MANAGER, NodeRole.DATA)),
+    // 1 node (1md)
+    SINGLENODE(new NodeSettings(NodeRole.CLUSTER_MANAGER, NodeRole.DATA)),
 
-	SINGLE_REMOTE_CLIENT(new NodeSettings(NodeRole.CLUSTER_MANAGER, NodeRole.DATA, NodeRole.REMOTE_CLUSTER_CLIENT)),
+    SINGLE_REMOTE_CLIENT(new NodeSettings(NodeRole.CLUSTER_MANAGER, NodeRole.DATA, NodeRole.REMOTE_CLUSTER_CLIENT)),
 
-	//4 node (1m, 2d, 1c)
-	CLIENTNODE(new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.DATA), new NodeSettings(NodeRole.DATA), new NodeSettings()),
+    // 4 node (1m, 2d, 1c)
+    CLIENTNODE(
+        new NodeSettings(NodeRole.CLUSTER_MANAGER),
+        new NodeSettings(NodeRole.DATA),
+        new NodeSettings(NodeRole.DATA),
+        new NodeSettings()
+    ),
 
-	THREE_CLUSTER_MANAGERS(new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.CLUSTER_MANAGER), new NodeSettings(NodeRole.DATA), new NodeSettings(NodeRole.DATA));
+    THREE_CLUSTER_MANAGERS(
+        new NodeSettings(NodeRole.CLUSTER_MANAGER),
+        new NodeSettings(NodeRole.CLUSTER_MANAGER),
+        new NodeSettings(NodeRole.CLUSTER_MANAGER),
+        new NodeSettings(NodeRole.DATA),
+        new NodeSettings(NodeRole.DATA)
+    );
 
-	private List<NodeSettings> nodeSettings = new LinkedList<>();
+    private List<NodeSettings> nodeSettings = new LinkedList<>();
 
-	private ClusterManager(NodeSettings... settings) {
-		nodeSettings.addAll(Arrays.asList(settings));
-	}
+    private ClusterManager(NodeSettings... settings) {
+        nodeSettings.addAll(Arrays.asList(settings));
+    }
 
-	public List<NodeSettings> getNodeSettings() {
-		return unmodifiableList(nodeSettings);
-	}
+    public List<NodeSettings> getNodeSettings() {
+        return unmodifiableList(nodeSettings);
+    }
 
-	public List<NodeSettings> getClusterManagerNodeSettings() {
-		return unmodifiableList(nodeSettings.stream().filter(a -> a.containRole(NodeRole.CLUSTER_MANAGER)).collect(Collectors.toList()));
-	}
+    public List<NodeSettings> getClusterManagerNodeSettings() {
+        return unmodifiableList(nodeSettings.stream().filter(a -> a.containRole(NodeRole.CLUSTER_MANAGER)).collect(Collectors.toList()));
+    }
 
-	public List<NodeSettings> getNonClusterManagerNodeSettings() {
-		return unmodifiableList(nodeSettings.stream().filter(a -> !a.containRole(NodeRole.CLUSTER_MANAGER)).collect(Collectors.toList()));
-	}
+    public List<NodeSettings> getNonClusterManagerNodeSettings() {
+        return unmodifiableList(nodeSettings.stream().filter(a -> !a.containRole(NodeRole.CLUSTER_MANAGER)).collect(Collectors.toList()));
+    }
 
-	public int getNodes() {
-		return nodeSettings.size();
-	}
+    public int getNodes() {
+        return nodeSettings.size();
+    }
 
-	public int getClusterManagerNodes() {
-		return (int) nodeSettings.stream().filter(a -> a.containRole(NodeRole.CLUSTER_MANAGER)).count();
-	}
+    public int getClusterManagerNodes() {
+        return (int) nodeSettings.stream().filter(a -> a.containRole(NodeRole.CLUSTER_MANAGER)).count();
+    }
 
-	public int getDataNodes() {
-		return (int) nodeSettings.stream().filter(a -> a.containRole(NodeRole.DATA)).count();
-	}
+    public int getDataNodes() {
+        return (int) nodeSettings.stream().filter(a -> a.containRole(NodeRole.DATA)).count();
+    }
 
-	public int getClientNodes() {
-		return (int) nodeSettings.stream().filter(a -> a.isClientNode()).count();
-	}
+    public int getClientNodes() {
+        return (int) nodeSettings.stream().filter(a -> a.isClientNode()).count();
+    }
 
+    public static class NodeSettings {
 
-	public static class NodeSettings {
+        private final static List<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(
+            Netty4ModulePlugin.class,
+            OpenSearchSecurityPlugin.class,
+            MatrixAggregationModulePlugin.class,
+            ParentJoinModulePlugin.class,
+            PercolatorModulePlugin.class,
+            ReindexModulePlugin.class
+        );
 
-		private final static List<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(Netty4ModulePlugin.class, OpenSearchSecurityPlugin.class,
-			MatrixAggregationModulePlugin.class, ParentJoinModulePlugin.class, PercolatorModulePlugin.class, ReindexModulePlugin.class);
+        private final Set<NodeRole> roles;
+        public final List<Class<? extends Plugin>> plugins;
 
-		private final Set<NodeRole> roles;
-		public final List<Class<? extends Plugin>> plugins;
+        public NodeSettings(NodeRole... roles) {
+            this(roles.length == 0 ? Collections.emptySet() : EnumSet.copyOf(Arrays.asList(roles)), Collections.emptyList());
+        }
 
-		public NodeSettings(NodeRole...roles) {
-			this(roles.length == 0 ? Collections.emptySet() : EnumSet.copyOf(Arrays.asList(roles)), Collections.emptyList());
-		}
+        public NodeSettings(Set<NodeRole> roles, List<Class<? extends Plugin>> additionalPlugins) {
+            super();
+            this.roles = Objects.requireNonNull(roles, "Node roles set must not be null");
+            this.plugins = mergePlugins(additionalPlugins, DEFAULT_PLUGINS);
+        }
 
-		public NodeSettings(Set<NodeRole> roles, List<Class<? extends Plugin>> additionalPlugins) {
-			super();
-			this.roles = Objects.requireNonNull(roles, "Node roles set must not be null");
-			this.plugins = mergePlugins(additionalPlugins, DEFAULT_PLUGINS);
-		}
+        public boolean containRole(NodeRole nodeRole) {
+            return roles.contains(nodeRole);
+        }
 
-		public boolean containRole(NodeRole nodeRole) {
-			return roles.contains(nodeRole);
-		}
+        public boolean isClientNode() {
+            return (roles.contains(NodeRole.DATA) == false) && (roles.contains(NodeRole.CLUSTER_MANAGER));
+        }
 
-		public boolean isClientNode() {
-			return (roles.contains(NodeRole.DATA) == false) && (roles.contains(NodeRole.CLUSTER_MANAGER));
-		}
+        NodeType recognizeNodeType() {
+            if (roles.contains(NodeRole.CLUSTER_MANAGER)) {
+                return CLUSTER_MANAGER;
+            } else if (roles.contains(NodeRole.DATA)) {
+                return DATA;
+            } else {
+                return CLIENT;
+            }
+        }
 
-		NodeType recognizeNodeType() {
-			if (roles.contains(NodeRole.CLUSTER_MANAGER)) {
-				return CLUSTER_MANAGER;
-			} else if (roles.contains(NodeRole.DATA)) {
-				return DATA;
-			} else {
-				return CLIENT;
-			}
-		}
+        private List<Class<? extends Plugin>> mergePlugins(Collection<Class<? extends Plugin>>... plugins) {
+            List<Class<? extends Plugin>> mergedPlugins = Arrays.stream(plugins)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+            return unmodifiableList(mergedPlugins);
+        }
 
-		private List<Class<? extends Plugin>> mergePlugins(Collection<Class<? extends Plugin>>...plugins) {
-			List<Class<? extends Plugin>> mergedPlugins = Arrays.stream(plugins)
-				.filter(Objects::nonNull)
-				.flatMap(Collection::stream)
-				.collect(Collectors.toList());
-			return unmodifiableList(mergedPlugins);
-		}
+        @SuppressWarnings("unchecked")
+        public Class<? extends Plugin>[] getPlugins() {
+            return plugins.toArray(new Class[0]);
+        }
 
-		@SuppressWarnings("unchecked")
-		public Class<? extends Plugin>[] getPlugins() {
-			return plugins.toArray(new Class[0]);
-		}
-
-		public Class<? extends Plugin>[] pluginsWithAddition(List<Class<? extends Plugin>> additionalPlugins) {
-			return mergePlugins(plugins, additionalPlugins).toArray(Class[]::new);
-		}
-	}
+        public Class<? extends Plugin>[] pluginsWithAddition(List<Class<? extends Plugin>> additionalPlugins) {
+            return mergePlugins(plugins, additionalPlugins).toArray(Class[]::new);
+        }
+    }
 }

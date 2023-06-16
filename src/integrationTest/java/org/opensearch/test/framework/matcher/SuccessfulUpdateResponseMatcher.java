@@ -17,21 +17,23 @@ import org.opensearch.rest.RestStatus;
 
 class SuccessfulUpdateResponseMatcher extends TypeSafeDiagnosingMatcher<UpdateResponse> {
 
-	@Override
-	protected boolean matchesSafely(UpdateResponse response, Description mismatchDescription) {
-		if(!RestStatus.OK.equals(response.status())) {
-			mismatchDescription.appendText("has status ").appendValue(response.status()).appendText(" which denotes failure.");
-			return false;
-		}
-		if(response.getShardInfo().getFailures().length != 0) {
-			mismatchDescription.appendText("contains ").appendValue(response.getShardInfo().getFailures().length).appendText(" shard failures");
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(UpdateResponse response, Description mismatchDescription) {
+        if (!RestStatus.OK.equals(response.status())) {
+            mismatchDescription.appendText("has status ").appendValue(response.status()).appendText(" which denotes failure.");
+            return false;
+        }
+        if (response.getShardInfo().getFailures().length != 0) {
+            mismatchDescription.appendText("contains ")
+                .appendValue(response.getShardInfo().getFailures().length)
+                .appendText(" shard failures");
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Successful update response");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Successful update response");
+    }
 }

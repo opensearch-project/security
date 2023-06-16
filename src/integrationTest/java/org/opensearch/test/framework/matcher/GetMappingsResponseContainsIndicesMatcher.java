@@ -21,31 +21,29 @@ import static java.util.Objects.isNull;
 
 class GetMappingsResponseContainsIndicesMatcher extends TypeSafeDiagnosingMatcher<GetMappingsResponse> {
 
-	private final String[] expectedIndices;
+    private final String[] expectedIndices;
 
-	GetMappingsResponseContainsIndicesMatcher(String[] expectedIndices) {
-		if (isNull(expectedIndices) || 0 == expectedIndices.length) {
-			throw new IllegalArgumentException("expectedIndices cannot be null or empty");
-		}
-		this.expectedIndices = expectedIndices;
-	}
+    GetMappingsResponseContainsIndicesMatcher(String[] expectedIndices) {
+        if (isNull(expectedIndices) || 0 == expectedIndices.length) {
+            throw new IllegalArgumentException("expectedIndices cannot be null or empty");
+        }
+        this.expectedIndices = expectedIndices;
+    }
 
-	@Override
-	protected boolean matchesSafely(GetMappingsResponse response, Description mismatchDescription) {
-		Map<String, MappingMetadata> indicesMappings = response.mappings();
-		for (String index : expectedIndices) {
-			if (!indicesMappings.containsKey(index)) {
-				mismatchDescription
-						.appendText("Response contains mappings of indices: ")
-						.appendValue(indicesMappings.keySet());
-				return false;
-			}
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(GetMappingsResponse response, Description mismatchDescription) {
+        Map<String, MappingMetadata> indicesMappings = response.mappings();
+        for (String index : expectedIndices) {
+            if (!indicesMappings.containsKey(index)) {
+                mismatchDescription.appendText("Response contains mappings of indices: ").appendValue(indicesMappings.keySet());
+                return false;
+            }
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Response should contain mappings of indices: ").appendValue(expectedIndices);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Response should contain mappings of indices: ").appendValue(expectedIndices);
+    }
 }

@@ -17,26 +17,26 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 class AuthInfo {
 
-	private final List<String> customAttributeNames;
-	private final boolean isInternal;
-	private final String authDomain;
+    private final List<String> customAttributeNames;
+    private final boolean isInternal;
+    private final String authDomain;
 
-	@ConstructorProperties({"custom_attribute_names", "user_is_internal", "user_auth_domain"})
-	public AuthInfo(List<String> customAttributeNames, boolean isInternal, String authDomain) {
-		this.customAttributeNames = customAttributeNames;
-		this.isInternal = isInternal;
-		this.authDomain = authDomain;
-	}
+    @ConstructorProperties({ "custom_attribute_names", "user_is_internal", "user_auth_domain" })
+    public AuthInfo(List<String> customAttributeNames, boolean isInternal, String authDomain) {
+        this.customAttributeNames = customAttributeNames;
+        this.isInternal = isInternal;
+        this.authDomain = authDomain;
+    }
 
-	public List<String> getCustomAttributeNames() {
-		return customAttributeNames;
-	}
+    public List<String> getCustomAttributeNames() {
+        return customAttributeNames;
+    }
 
-	public boolean isInternal() {
-		return isInternal;
-	}
+    public boolean isInternal() {
+        return isInternal;
+    }
 
-	public String getAuthDomain() {
-		return authDomain;
-	}
+    public String getAuthDomain() {
+        return authDomain;
+    }
 }

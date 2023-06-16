@@ -39,44 +39,44 @@ import org.opensearch.core.xcontent.XContentBuilder;
 */
 public class XffConfig implements ToXContentObject {
 
-	private final boolean enabled;
+    private final boolean enabled;
 
-	/**
-	* Regular expression used to determine if HTTP proxy is trusted or not. IP address of trusted proxies must match the regular
-	* expression defined by the below field.
-	*/
-	private String internalProxiesRegexp;
+    /**
+    * Regular expression used to determine if HTTP proxy is trusted or not. IP address of trusted proxies must match the regular
+    * expression defined by the below field.
+    */
+    private String internalProxiesRegexp;
 
-	private String remoteIpHeader;
+    private String remoteIpHeader;
 
-	public XffConfig(boolean enabled) {
-		this.enabled = enabled;
-	}
+    public XffConfig(boolean enabled) {
+        this.enabled = enabled;
+    }
 
-	/**
-	* Builder-like method used to set value of the field {@link #internalProxiesRegexp}
-	* @param internalProxiesRegexp regular expression which matches IP address of a HTTP proxies if the proxies are trusted.
-	* @return builder
-	*/
-	public XffConfig internalProxiesRegexp(String internalProxiesRegexp) {
-		this.internalProxiesRegexp = internalProxiesRegexp;
-		return this;
-	}
+    /**
+    * Builder-like method used to set value of the field {@link #internalProxiesRegexp}
+    * @param internalProxiesRegexp regular expression which matches IP address of a HTTP proxies if the proxies are trusted.
+    * @return builder
+    */
+    public XffConfig internalProxiesRegexp(String internalProxiesRegexp) {
+        this.internalProxiesRegexp = internalProxiesRegexp;
+        return this;
+    }
 
-	public XffConfig remoteIpHeader(String remoteIpHeader) {
-		this.remoteIpHeader = remoteIpHeader;
-		return this;
-	}
+    public XffConfig remoteIpHeader(String remoteIpHeader) {
+        this.remoteIpHeader = remoteIpHeader;
+        return this;
+    }
 
-	@Override
-	public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-		xContentBuilder.startObject();
-		xContentBuilder.field("enabled", enabled);
-		xContentBuilder.field("internalProxies", internalProxiesRegexp);
-		if(StringUtils.isNoneBlank(remoteIpHeader)) {
-			xContentBuilder.field("remoteIpHeader", remoteIpHeader);
-		}
-		xContentBuilder.endObject();
-		return xContentBuilder;
-	}
+    @Override
+    public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
+        xContentBuilder.startObject();
+        xContentBuilder.field("enabled", enabled);
+        xContentBuilder.field("internalProxies", internalProxiesRegexp);
+        if (StringUtils.isNoneBlank(remoteIpHeader)) {
+            xContentBuilder.field("remoteIpHeader", remoteIpHeader);
+        }
+        xContentBuilder.endObject();
+        return xContentBuilder;
+    }
 }

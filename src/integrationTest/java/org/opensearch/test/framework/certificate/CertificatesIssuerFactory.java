@@ -24,45 +24,45 @@ import static org.opensearch.test.framework.certificate.AlgorithmKit.rsaSha256wi
 */
 class CertificatesIssuerFactory {
 
-	private static final int KEY_SIZE = 2048;
+    private static final int KEY_SIZE = 2048;
 
-	private CertificatesIssuerFactory() {
+    private CertificatesIssuerFactory() {
 
-	}
+    }
 
-	private static final Provider DEFAULT_SECURITY_PROVIDER = new BouncyCastleProvider();
+    private static final Provider DEFAULT_SECURITY_PROVIDER = new BouncyCastleProvider();
 
-	/**
-	* @see {@link #rsaBaseCertificateIssuer(Provider)}
-	*/
-	public static CertificatesIssuer rsaBaseCertificateIssuer() {
-		return rsaBaseCertificateIssuer(null);
-	}
+    /**
+    * @see {@link #rsaBaseCertificateIssuer(Provider)}
+    */
+    public static CertificatesIssuer rsaBaseCertificateIssuer() {
+        return rsaBaseCertificateIssuer(null);
+    }
 
-	/**
-	* The method creates {@link CertificatesIssuer} which uses RSA algorithm for certificate creation.
-	* @param securityProvider determines cryptographic algorithm implementation, can be <code>null</code>.
-	* @return new instance of {@link CertificatesIssuer}
-	*/
-	public static CertificatesIssuer rsaBaseCertificateIssuer(Provider securityProvider) {
-		Provider provider = Optional.ofNullable(securityProvider).orElse(DEFAULT_SECURITY_PROVIDER);
-		return new CertificatesIssuer(provider, rsaSha256withRsa(provider, KEY_SIZE));
-	}
+    /**
+    * The method creates {@link CertificatesIssuer} which uses RSA algorithm for certificate creation.
+    * @param securityProvider determines cryptographic algorithm implementation, can be <code>null</code>.
+    * @return new instance of {@link CertificatesIssuer}
+    */
+    public static CertificatesIssuer rsaBaseCertificateIssuer(Provider securityProvider) {
+        Provider provider = Optional.ofNullable(securityProvider).orElse(DEFAULT_SECURITY_PROVIDER);
+        return new CertificatesIssuer(provider, rsaSha256withRsa(provider, KEY_SIZE));
+    }
 
-	/**
-	* {@link #rsaBaseCertificateIssuer(Provider)}
-	*/
-	public static CertificatesIssuer ecdsaBaseCertificatesIssuer() {
-		return ecdsaBaseCertificatesIssuer(null);
-	}
+    /**
+    * {@link #rsaBaseCertificateIssuer(Provider)}
+    */
+    public static CertificatesIssuer ecdsaBaseCertificatesIssuer() {
+        return ecdsaBaseCertificatesIssuer(null);
+    }
 
-	/**
-	* It creates {@link CertificatesIssuer} which uses asymmetric cryptography algorithm which relays on elliptic curves.
-	* @param securityProvider determines cryptographic algorithm implementation, can be <code>null</code>.
-	* @return new instance of {@link CertificatesIssuer}
-	*/
-	public static CertificatesIssuer ecdsaBaseCertificatesIssuer(Provider securityProvider) {
-		Provider provider = Optional.ofNullable(securityProvider).orElse(DEFAULT_SECURITY_PROVIDER);
-		return new CertificatesIssuer(provider, ecdsaSha256withEcdsa(securityProvider, "P-384"));
-	}
+    /**
+    * It creates {@link CertificatesIssuer} which uses asymmetric cryptography algorithm which relays on elliptic curves.
+    * @param securityProvider determines cryptographic algorithm implementation, can be <code>null</code>.
+    * @return new instance of {@link CertificatesIssuer}
+    */
+    public static CertificatesIssuer ecdsaBaseCertificatesIssuer(Provider securityProvider) {
+        Provider provider = Optional.ofNullable(securityProvider).orElse(DEFAULT_SECURITY_PROVIDER);
+        return new CertificatesIssuer(provider, ecdsaSha256withEcdsa(securityProvider, "P-384"));
+    }
 }

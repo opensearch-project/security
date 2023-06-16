@@ -37,128 +37,128 @@ import static org.hamcrest.Matchers.notNullValue;
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class BasicAuthTests {
-	static final User TEST_USER = new User("test_user").password("s3cret");
+    static final User TEST_USER = new User("test_user").password("s3cret");
 
-	public static final String CUSTOM_ATTRIBUTE_NAME = "superhero";
-	static final User SUPER_USER = new User("super-user").password("super-password")
-		.attr(CUSTOM_ATTRIBUTE_NAME, true);
-	public static final String NOT_EXISTING_USER = "not-existing-user";
-	public static final String INVALID_PASSWORD = "secret-password";
+    public static final String CUSTOM_ATTRIBUTE_NAME = "superhero";
+    static final User SUPER_USER = new User("super-user").password("super-password").attr(CUSTOM_ATTRIBUTE_NAME, true);
+    public static final String NOT_EXISTING_USER = "not-existing-user";
+    public static final String INVALID_PASSWORD = "secret-password";
 
-	public static final AuthcDomain AUTHC_DOMAIN = new AuthcDomain("basic", 0)
-		.httpAuthenticatorWithChallenge("basic").backend("internal");
+    public static final AuthcDomain AUTHC_DOMAIN = new AuthcDomain("basic", 0).httpAuthenticatorWithChallenge("basic").backend("internal");
 
-	@ClassRule
-	public static final LocalCluster cluster = new LocalCluster.Builder()
-		.clusterManager(ClusterManager.SINGLENODE).anonymousAuth(false)
-		.authc(AUTHC_DOMAIN).users(TEST_USER, SUPER_USER).build();
+    @ClassRule
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
+        .anonymousAuth(false)
+        .authc(AUTHC_DOMAIN)
+        .users(TEST_USER, SUPER_USER)
+        .build();
 
-	@Test
-	public void shouldRespondWith401WhenUserDoesNotExist() {
-		try (TestRestClient client = cluster.getRestClient(NOT_EXISTING_USER, INVALID_PASSWORD)) {
-			HttpResponse response = client.getAuthInfo();
+    @Test
+    public void shouldRespondWith401WhenUserDoesNotExist() {
+        try (TestRestClient client = cluster.getRestClient(NOT_EXISTING_USER, INVALID_PASSWORD)) {
+            HttpResponse response = client.getAuthInfo();
 
-			assertThat(response, is(notNullValue()));
-			response.assertStatusCode(SC_UNAUTHORIZED);
-		}
-	}
+            assertThat(response, is(notNullValue()));
+            response.assertStatusCode(SC_UNAUTHORIZED);
+        }
+    }
 
-	@Test
-	public void shouldRespondWith401WhenUserNameIsIncorrect() {
-		try (TestRestClient client = cluster.getRestClient(NOT_EXISTING_USER, TEST_USER.getPassword())) {
-			HttpResponse response = client.getAuthInfo();
+    @Test
+    public void shouldRespondWith401WhenUserNameIsIncorrect() {
+        try (TestRestClient client = cluster.getRestClient(NOT_EXISTING_USER, TEST_USER.getPassword())) {
+            HttpResponse response = client.getAuthInfo();
 
-			assertThat(response, is(notNullValue()));
-			response.assertStatusCode(SC_UNAUTHORIZED);
-		}
-	}
+            assertThat(response, is(notNullValue()));
+            response.assertStatusCode(SC_UNAUTHORIZED);
+        }
+    }
 
-	@Test
-	public void shouldRespondWith401WhenPasswordIsIncorrect() {
-		try (TestRestClient client = cluster.getRestClient(TEST_USER.getName(), INVALID_PASSWORD)) {
-			HttpResponse response = client.getAuthInfo();
+    @Test
+    public void shouldRespondWith401WhenPasswordIsIncorrect() {
+        try (TestRestClient client = cluster.getRestClient(TEST_USER.getName(), INVALID_PASSWORD)) {
+            HttpResponse response = client.getAuthInfo();
 
-			assertThat(response, is(notNullValue()));
-			response.assertStatusCode(SC_UNAUTHORIZED);
-		}
-	}
+            assertThat(response, is(notNullValue()));
+            response.assertStatusCode(SC_UNAUTHORIZED);
+        }
+    }
 
-	@Test
-	public void shouldRespondWith200WhenCredentialsAreCorrect() {
-		try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
+    @Test
+    public void shouldRespondWith200WhenCredentialsAreCorrect() {
+        try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			assertThat(response, is(notNullValue()));
-			response.assertStatusCode(SC_OK);
-		}
-	}
+            assertThat(response, is(notNullValue()));
+            response.assertStatusCode(SC_OK);
+        }
+    }
 
-	@Test
-	public void testUserShouldBeInternalAndBasicAuthDomain() {
-		try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
+    @Test
+    public void testUserShouldBeInternalAndBasicAuthDomain() {
+        try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			assertThat(response, is(notNullValue()));
+            assertThat(response, is(notNullValue()));
 
-			response.assertStatusCode(SC_OK);
+            response.assertStatusCode(SC_OK);
 
-			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+            AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
 
-			assertThat(authInfo, is(notNullValue()));
-			assertThat(true, equalTo(authInfo.isInternal()));
-			assertThat("basic", equalTo(authInfo.getAuthDomain()));
-		}
-	}
+            assertThat(authInfo, is(notNullValue()));
+            assertThat(true, equalTo(authInfo.isInternal()));
+            assertThat("basic", equalTo(authInfo.getAuthDomain()));
+        }
+    }
 
-	@Test
-	public void testBrowserShouldRequestForCredentials() {
-		try (TestRestClient client = cluster.getRestClient()) {
+    @Test
+    public void testBrowserShouldRequestForCredentials() {
+        try (TestRestClient client = cluster.getRestClient()) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			assertThat(response, is(notNullValue()));
-			response.assertStatusCode(SC_UNAUTHORIZED);
-			assertThatBrowserAskUserForCredentials(response);
-		}
-	}
+            assertThat(response, is(notNullValue()));
+            response.assertStatusCode(SC_UNAUTHORIZED);
+            assertThatBrowserAskUserForCredentials(response);
+        }
+    }
 
-	@Test
-	public void testUserShouldNotHaveAssignedCustomAttributes() {
-		try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
+    @Test
+    public void testUserShouldNotHaveAssignedCustomAttributes() {
+        try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			assertThat(response, is(notNullValue()));
-			response.assertStatusCode(SC_OK);
-			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
-			assertThat(authInfo, is(notNullValue()));
-			assertThat(authInfo.getCustomAttributeNames(), is(notNullValue()));
-			assertThat(authInfo.getCustomAttributeNames(), hasSize(0));
-		}
-	}
+            assertThat(response, is(notNullValue()));
+            response.assertStatusCode(SC_OK);
+            AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+            assertThat(authInfo, is(notNullValue()));
+            assertThat(authInfo.getCustomAttributeNames(), is(notNullValue()));
+            assertThat(authInfo.getCustomAttributeNames(), hasSize(0));
+        }
+    }
 
-	@Test
-	public void testUserShouldHaveAssignedCustomAttributes() {
-		try (TestRestClient client = cluster.getRestClient(SUPER_USER)) {
+    @Test
+    public void testUserShouldHaveAssignedCustomAttributes() {
+        try (TestRestClient client = cluster.getRestClient(SUPER_USER)) {
 
-			HttpResponse response = client.getAuthInfo();
+            HttpResponse response = client.getAuthInfo();
 
-			assertThat(response, is(notNullValue()));
-			response.assertStatusCode(SC_OK);
-			AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
-			assertThat(authInfo, is(notNullValue()));
-			List<String> customAttributeNames = authInfo.getCustomAttributeNames();
-			assertThat(customAttributeNames, is(notNullValue()));
-			assertThat(customAttributeNames, hasSize(1));
-			assertThat(customAttributeNames.get(0), Matchers.equalTo("attr.internal." + CUSTOM_ATTRIBUTE_NAME));
-		}
-	}
+            assertThat(response, is(notNullValue()));
+            response.assertStatusCode(SC_OK);
+            AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+            assertThat(authInfo, is(notNullValue()));
+            List<String> customAttributeNames = authInfo.getCustomAttributeNames();
+            assertThat(customAttributeNames, is(notNullValue()));
+            assertThat(customAttributeNames, hasSize(1));
+            assertThat(customAttributeNames.get(0), Matchers.equalTo("attr.internal." + CUSTOM_ATTRIBUTE_NAME));
+        }
+    }
 
-	private void assertThatBrowserAskUserForCredentials(HttpResponse response) {
-		String reason = "Browser does not ask user for credentials";
-		assertThat(reason, response.containHeader(HttpHeaders.WWW_AUTHENTICATE), equalTo(true));
-		assertThat(response.getHeader(HttpHeaders.WWW_AUTHENTICATE).getValue(), containsStringIgnoringCase("basic"));
-	}
+    private void assertThatBrowserAskUserForCredentials(HttpResponse response) {
+        String reason = "Browser does not ask user for credentials";
+        assertThat(reason, response.containHeader(HttpHeaders.WWW_AUTHENTICATE), equalTo(true));
+        assertThat(response.getHeader(HttpHeaders.WWW_AUTHENTICATE).getValue(), containsStringIgnoringCase("basic"));
+    }
 }

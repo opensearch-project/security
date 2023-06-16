@@ -20,100 +20,100 @@ import java.util.function.Function;
 *           {@link LdapAuthorizationConfigBuilder}
 */
 public class LdapAuthenticationConfigBuilder<T extends LdapAuthenticationConfigBuilder> {
-	private boolean enableSsl = false;
-	private boolean enableStartTls = false;
-	private boolean enableSslClientAuth = false;
-	private boolean verifyHostnames = false;
-	private List<String> hosts;
-	private String bindDn;
-	private String password;
-	private String userBase;
-	private String userSearch;
-	private String usernameAttribute;
+    private boolean enableSsl = false;
+    private boolean enableStartTls = false;
+    private boolean enableSslClientAuth = false;
+    private boolean verifyHostnames = false;
+    private List<String> hosts;
+    private String bindDn;
+    private String password;
+    private String userBase;
+    private String userSearch;
+    private String usernameAttribute;
 
-	private String penTrustedCasFilePath;
+    private String penTrustedCasFilePath;
 
-	/**
-	* Subclass of <code>this</code>
-	*/
-	private final T builderSubclass;
+    /**
+    * Subclass of <code>this</code>
+    */
+    private final T builderSubclass;
 
-	protected LdapAuthenticationConfigBuilder(Function<LdapAuthenticationConfigBuilder, T> thisCastFunction) {
-		this.builderSubclass = thisCastFunction.apply(this);
-	}
+    protected LdapAuthenticationConfigBuilder(Function<LdapAuthenticationConfigBuilder, T> thisCastFunction) {
+        this.builderSubclass = thisCastFunction.apply(this);
+    }
 
-	public static LdapAuthenticationConfigBuilder<LdapAuthenticationConfigBuilder> config() {
-		return new LdapAuthenticationConfigBuilder<>(Function.identity());
-	}
+    public static LdapAuthenticationConfigBuilder<LdapAuthenticationConfigBuilder> config() {
+        return new LdapAuthenticationConfigBuilder<>(Function.identity());
+    }
 
-	public T enableSsl(boolean enableSsl) {
-		this.enableSsl = enableSsl;
-		return builderSubclass;
-	}
+    public T enableSsl(boolean enableSsl) {
+        this.enableSsl = enableSsl;
+        return builderSubclass;
+    }
 
-	public T enableStartTls(boolean enableStartTls) {
-		this.enableStartTls = enableStartTls;
-		return builderSubclass;
-	}
+    public T enableStartTls(boolean enableStartTls) {
+        this.enableStartTls = enableStartTls;
+        return builderSubclass;
+    }
 
-	public T enableSslClientAuth(boolean enableSslClientAuth) {
-		this.enableSslClientAuth = enableSslClientAuth;
-		return builderSubclass;
-	}
+    public T enableSslClientAuth(boolean enableSslClientAuth) {
+        this.enableSslClientAuth = enableSslClientAuth;
+        return builderSubclass;
+    }
 
-	public T verifyHostnames(boolean verifyHostnames) {
-		this.verifyHostnames = verifyHostnames;
-		return builderSubclass;
-	}
+    public T verifyHostnames(boolean verifyHostnames) {
+        this.verifyHostnames = verifyHostnames;
+        return builderSubclass;
+    }
 
-	public T hosts(List<String> hosts) {
-		this.hosts = hosts;
-		return builderSubclass;
-	}
+    public T hosts(List<String> hosts) {
+        this.hosts = hosts;
+        return builderSubclass;
+    }
 
-	public T bindDn(String bindDn) {
-		this.bindDn = bindDn;
-		return builderSubclass;
-	}
+    public T bindDn(String bindDn) {
+        this.bindDn = bindDn;
+        return builderSubclass;
+    }
 
-	public T password(String password) {
-		this.password = password;
-		return builderSubclass;
-	}
+    public T password(String password) {
+        this.password = password;
+        return builderSubclass;
+    }
 
-	public T userBase(String userBase) {
-		this.userBase = userBase;
-		return builderSubclass;
-	}
+    public T userBase(String userBase) {
+        this.userBase = userBase;
+        return builderSubclass;
+    }
 
-	public T userSearch(String userSearch) {
-		this.userSearch = userSearch;
-		return builderSubclass;
-	}
+    public T userSearch(String userSearch) {
+        this.userSearch = userSearch;
+        return builderSubclass;
+    }
 
-	public T usernameAttribute(String usernameAttribute) {
-		this.usernameAttribute = usernameAttribute;
-		return builderSubclass;
-	}
+    public T usernameAttribute(String usernameAttribute) {
+        this.usernameAttribute = usernameAttribute;
+        return builderSubclass;
+    }
 
-	public T penTrustedCasFilePath(String penTrustedCasFilePath) {
-		this.penTrustedCasFilePath = penTrustedCasFilePath;
-		return builderSubclass;
-	}
+    public T penTrustedCasFilePath(String penTrustedCasFilePath) {
+        this.penTrustedCasFilePath = penTrustedCasFilePath;
+        return builderSubclass;
+    }
 
-	public Map<String, Object> build() {
-		HashMap<String, Object> config = new HashMap<>();
-		config.put("enable_ssl", enableSsl);
-		config.put("enable_start_tls", enableStartTls);
-		config.put("enable_ssl_client_auth", enableSslClientAuth);
-		config.put("verify_hostnames", verifyHostnames);
-		config.put("hosts", hosts);
-		config.put("bind_dn", bindDn);
-		config.put("password", password);
-		config.put("userbase", userBase);
-		config.put("usersearch", userSearch);
-		config.put("username_attribute", usernameAttribute);
-		config.put("pemtrustedcas_filepath", penTrustedCasFilePath);
-		return config;
-	}
+    public Map<String, Object> build() {
+        HashMap<String, Object> config = new HashMap<>();
+        config.put("enable_ssl", enableSsl);
+        config.put("enable_start_tls", enableStartTls);
+        config.put("enable_ssl_client_auth", enableSslClientAuth);
+        config.put("verify_hostnames", verifyHostnames);
+        config.put("hosts", hosts);
+        config.put("bind_dn", bindDn);
+        config.put("password", password);
+        config.put("userbase", userBase);
+        config.put("usersearch", userSearch);
+        config.put("username_attribute", usernameAttribute);
+        config.put("pemtrustedcas_filepath", penTrustedCasFilePath);
+        return config;
+    }
 }

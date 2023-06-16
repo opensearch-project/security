@@ -85,14 +85,18 @@ public class SecurityInterceptor {
     private final ClusterInfoHolder clusterInfoHolder;
     private final SSLConfig SSLConfig;
 
-    public SecurityInterceptor(final Settings settings,
-            final ThreadPool threadPool, final BackendRegistry backendRegistry,
-            final AuditLog auditLog, final PrincipalExtractor principalExtractor,
-            final InterClusterRequestEvaluator requestEvalProvider,
-            final ClusterService cs,
-            final SslExceptionHandler sslExceptionHandler,
-            final ClusterInfoHolder clusterInfoHolder,
-            final SSLConfig SSLConfig) {
+    public SecurityInterceptor(
+        final Settings settings,
+        final ThreadPool threadPool,
+        final BackendRegistry backendRegistry,
+        final AuditLog auditLog,
+        final PrincipalExtractor principalExtractor,
+        final InterClusterRequestEvaluator requestEvalProvider,
+        final ClusterService cs,
+        final SslExceptionHandler sslExceptionHandler,
+        final ClusterInfoHolder clusterInfoHolder,
+        final SSLConfig SSLConfig
+    ) {
         this.backendRegistry = backendRegistry;
         this.auditLog = auditLog;
         this.threadPool = threadPool;
@@ -105,21 +109,36 @@ public class SecurityInterceptor {
         this.SSLConfig = SSLConfig;
     }
 
-    public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action,
-            TransportRequestHandler<T> actualHandler) {
-        return new SecurityRequestHandler<T>(action, actualHandler, threadPool, auditLog,
-                principalExtractor, requestEvalProvider, cs, SSLConfig, sslExceptionHandler);
+    public <T extends TransportRequest> SecurityRequestHandler<T> getHandler(String action, TransportRequestHandler<T> actualHandler) {
+        return new SecurityRequestHandler<T>(
+            action,
+            actualHandler,
+            threadPool,
+            auditLog,
+            principalExtractor,
+            requestEvalProvider,
+            cs,
+            SSLConfig,
+            sslExceptionHandler
+        );
     }
 
-
-    public <T extends TransportResponse> void sendRequestDecorate(AsyncSender sender, Connection connection, String action,
-            TransportRequest request, TransportRequestOptions options, TransportResponseHandler<T> handler) {
+    public <T extends TransportResponse> void sendRequestDecorate(
+        AsyncSender sender,
+        Connection connection,
+        String action,
+        TransportRequest request,
+        TransportRequestOptions options,
+        TransportResponseHandler<T> handler
+    ) {
 
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
         final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String injectedUserString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
         final String injectedRolesString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES);
-        final String injectedRolesValidationString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION);
+        final String injectedRolesValidationString = getThreadContext().getTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION
+        );
         final String origin0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN);
         final Object remoteAddress0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         final String origCCSTransientDls = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_CCS);
@@ -131,8 +150,11 @@ public class SecurityInterceptor {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
 
-            final Map<String, String> headerMap = new HashMap<>(Maps.filterKeys(origHeaders0, k->k!=null && (
-                    k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
+            final Map<String, String> headerMap = new HashMap<>(
+                Maps.filterKeys(
+                    origHeaders0,
+                    k -> k != null
+                        && (k.equals(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER)
@@ -143,17 +165,18 @@ public class SecurityInterceptor {
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_FILTER_LEVEL_DLS_DONE)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
                             || k.equals(ConfigConstants.OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER)
-                            || (k.equals("_opendistro_security_source_field_context") && ! (request instanceof SearchRequest) && !(request instanceof GetRequest))
+                            || (k.equals("_opendistro_security_source_field_context")
+                                && !(request instanceof SearchRequest)
+                                && !(request instanceof GetRequest))
                             || k.startsWith("_opendistro_security_trace")
-                            || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER)
-            )));
+                            || k.startsWith(ConfigConstants.OPENDISTRO_SECURITY_INITIAL_ACTION_CLASS_HEADER))
+                )
+            );
 
             if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
-                    && clusterInfoHolder.isInitialized()
-                    && (action.equals(ClusterSearchShardsAction.NAME)
-                    || action.equals(SearchAction.NAME)
-            )
-                    && !clusterInfoHolder.hasNode(connection.getNode())) {
+                && clusterInfoHolder.isInitialized()
+                && (action.equals(ClusterSearchShardsAction.NAME) || action.equals(SearchAction.NAME))
+                && !clusterInfoHolder.hasNode(connection.getNode())) {
                 if (isDebugEnabled) {
                     log.debug("remove dls/fls/mf because we sent a ccs request to a remote cluster");
                 }
@@ -167,10 +190,10 @@ public class SecurityInterceptor {
             }
 
             if (OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
-                    && clusterInfoHolder.isInitialized()
-                    && !action.startsWith("internal:")
-                    && !action.equals(ClusterSearchShardsAction.NAME)
-                    && !clusterInfoHolder.hasNode(connection.getNode())) {
+                && clusterInfoHolder.isInitialized()
+                && !action.startsWith("internal:")
+                && !action.equals(ClusterSearchShardsAction.NAME)
+                && !clusterInfoHolder.hasNode(connection.getNode())) {
 
                 if (isDebugEnabled) {
                     log.debug("add dls/fls/mf from transient");
@@ -187,12 +210,15 @@ public class SecurityInterceptor {
                 }
             }
 
-            if(StringUtils.isNotEmpty(injectedRolesValidationString)
-                    && OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
-                    && !clusterInfoHolder.hasNode(connection.getNode())
-                    && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER) == null) {
+            if (StringUtils.isNotEmpty(injectedRolesValidationString)
+                && OpenSearchSecurityPlugin.GuiceHolder.getRemoteClusterService().isCrossClusterSearchEnabled()
+                && !clusterInfoHolder.hasNode(connection.getNode())
+                && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER) == null) {
                 // Sending roles validation for only cross cluster requests
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER, injectedRolesValidationString);
+                getThreadContext().putHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER,
+                    injectedRolesValidationString
+                );
             }
 
             getThreadContext().putHeader(headerMap);
@@ -200,22 +226,40 @@ public class SecurityInterceptor {
             ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString);
 
             if (isActionTraceEnabled()) {
-                getThreadContext().putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" IC -> "+action+" "+getThreadContext().getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
+                getThreadContext().putHeader(
+                    "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
+                    Thread.currentThread().getName()
+                        + " IC -> "
+                        + action
+                        + " "
+                        + getThreadContext().getHeaders()
+                            .entrySet()
+                            .stream()
+                            .filter(p -> !p.getKey().startsWith("_opendistro_security_trace"))
+                            .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()))
+                );
             }
 
             sender.sendRequest(connection, action, request, options, restoringHandler);
         }
     }
 
-    private void ensureCorrectHeaders(final Object remoteAdr, final User origUser, final String origin,
-                                      final String injectedUserString, final String injectedRolesString) {
+    private void ensureCorrectHeaders(
+        final Object remoteAdr,
+        final User origUser,
+        final String origin,
+        final String injectedUserString,
+        final String injectedRolesString
+    ) {
         // keep original address
 
-        if(origin != null && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/ && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
+        if (origin != null
+            && !origin.isEmpty() /*&& !Origin.LOCAL.toString().equalsIgnoreCase(origin)*/
+            && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, origin);
         }
 
-        if(origin == null && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
+        if (origin == null && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
         }
 
@@ -223,22 +267,22 @@ public class SecurityInterceptor {
 
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
 
-            if(remoteAddressHeader == null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(((TransportAddress) remoteAdr).address()));
+            if (remoteAddressHeader == null) {
+                getThreadContext().putHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER,
+                    Base64Helper.serializeObject(((TransportAddress) remoteAdr).address())
+                );
             }
         }
 
-
         String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
 
-        if(userHeader == null) {
-            if(origUser != null) {
+        if (userHeader == null) {
+            if (origUser != null) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
-            }
-            else if(StringUtils.isNotEmpty(injectedRolesString)) {
+            } else if (StringUtils.isNotEmpty(injectedRolesString)) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
-            }
-            else if(StringUtils.isNotEmpty(injectedUserString)) {
+            } else if (StringUtils.isNotEmpty(injectedUserString)) {
                 getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
             }
         }
@@ -249,9 +293,9 @@ public class SecurityInterceptor {
         return threadPool.getThreadContext();
     }
 
-    //based on
-    //org.opensearch.transport.TransportService.ContextRestoreResponseHandler<T>
-    //which is private scoped
+    // based on
+    // org.opensearch.transport.TransportService.ContextRestoreResponseHandler<T>
+    // which is private scoped
     private class RestoringTransportResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
         private final ThreadContext.StoredContext contextToRestore;
