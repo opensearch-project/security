@@ -163,7 +163,38 @@ test {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
+    }
+    maxParallelForks = 8
+    jvmArgs += "-Xmx3072m"
+    if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
+        jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+    }
+    retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 5
+    }
+    jacoco {
+        excludes = [
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
+        ]
+    }
+}
+
+task citest(type: Test) {
+//    onlyIf { !project.gradle.taskGraph.hasTask(':test') }
+    include '**/*.class'
+    filter {
+        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
         splitTestConfig.each { entry ->
             entry.value.each{ test ->
                 if (test.key == "includeTestsMatching") {
@@ -247,7 +278,8 @@ task copyExtraTestResources(dependsOn: testClasses) {
         into 'build/testrun/test/src/test/resources'
     }
 }
-tasks.test.dependsOn(copyExtraTestResources, taskNames)
+tasks.test.dependsOn(copyExtraTestResources)
+tasks.citest.dependsOn(copyExtraTestResources, taskNames)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")

@@ -51,7 +51,7 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         arguments: |
-          build test ${{ needs.generate-test-list.outputs.testsNamesExclude }} -Dbuild.snapshot=false
+          build citest ${{ needs.generate-test-list.outputs.testsNamesExclude }} -Dbuild.snapshot=false
           -x integrationTest
           -x spotlessCheck
           -x checkstyleMain
@@ -59,6 +59,7 @@ jobs:
           -x spotbugsMain
           -x spotbugsIntegrationTest
           -x checkstyleIntegrationTest
+          -x test
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -110,6 +111,7 @@ jobs:
           -x spotbugsMain
           -x spotbugsIntegrationTest
           -x checkstyleIntegrationTest
+          -x citest
           -x test
 
     - uses: actions/upload-artifact@v3
