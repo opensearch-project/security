@@ -25,7 +25,10 @@ import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.user.AuthCredentials;
 
-public class AddressBasedRateLimiter extends AbstractRateLimiter<InetAddress> implements AuthFailureListener, ClientBlockRegistry<InetAddress> {
+public class AddressBasedRateLimiter extends AbstractRateLimiter<InetAddress>
+    implements
+        AuthFailureListener,
+        ClientBlockRegistry<InetAddress> {
 
     public AddressBasedRateLimiter(Settings settings, Path configPath) {
         super(settings, configPath, InetAddress.class);

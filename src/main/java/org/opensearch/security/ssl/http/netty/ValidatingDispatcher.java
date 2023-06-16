@@ -47,8 +47,13 @@ public class ValidatingDispatcher implements Dispatcher {
     private final Settings settings;
     private final Path configPath;
 
-    public ValidatingDispatcher(final ThreadContext threadContext, final Dispatcher originalDispatcher,
-            final Settings settings, final Path configPath, final SslExceptionHandler errorHandler) {
+    public ValidatingDispatcher(
+        final ThreadContext threadContext,
+        final Dispatcher originalDispatcher,
+        final Settings settings,
+        final Path configPath,
+        final SslExceptionHandler errorHandler
+    ) {
         super();
         this.threadContext = threadContext;
         this.originalDispatcher = originalDispatcher;
@@ -71,14 +76,14 @@ public class ValidatingDispatcher implements Dispatcher {
 
     protected void checkRequest(final RestRequest request, final RestChannel channel) {
 
-        if(SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
+        if (SSLRequestHelper.containsBadHeader(threadContext, "_opendistro_security_ssl_")) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             errorHandler.logError(exception, request, 1);
             throw exception;
         }
 
         try {
-            if(SSLRequestHelper.getSSLInfo(settings, configPath, request, null) == null) {
+            if (SSLRequestHelper.getSSLInfo(settings, configPath, request, null) == null) {
                 logger.error("Not an SSL request");
                 throw new OpenSearchSecurityException("Not an SSL request", RestStatus.INTERNAL_SERVER_ERROR);
             }

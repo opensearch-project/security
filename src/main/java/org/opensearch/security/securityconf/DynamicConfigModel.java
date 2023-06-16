@@ -55,30 +55,53 @@ import org.opensearch.security.http.proxy.HTTPExtendedProxyAuthenticator;
 public abstract class DynamicConfigModel {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
+
     public abstract SortedSet<AuthDomain> getRestAuthDomains();
+
     public abstract Set<AuthorizationBackend> getRestAuthorizers();
+
     public abstract boolean isAnonymousAuthenticationEnabled();
+
     public abstract boolean isXffEnabled();
+
     public abstract String getInternalProxies();
+
     public abstract String getRemoteIpHeader();
+
     public abstract boolean isRestAuthDisabled();
+
     public abstract boolean isInterTransportAuthDisabled();
+
     public abstract boolean isRespectRequestIndicesEnabled();
+
     public abstract String getDashboardsServerUsername();
+
     public abstract String getDashboardsOpenSearchRole();
+
     public abstract String getDashboardsIndexname();
+
     public abstract boolean isDashboardsMultitenancyEnabled();
+
     public abstract boolean isDashboardsPrivateTenantEnabled();
+
     public abstract String getDashboardsDefaultTenant();
+
     public abstract boolean isDnfofEnabled();
+
     public abstract boolean isMultiRolespanEnabled();
+
     public abstract String getFilteredAliasMode();
+
     public abstract String getHostsResolverMode();
+
     public abstract boolean isDnfofForEmptyResultsEnabled();
 
     public abstract List<AuthFailureListener> getIpAuthFailureListeners();
+
     public abstract Multimap<String, AuthFailureListener> getAuthBackendFailureListeners();
+
     public abstract List<ClientBlockRegistry<InetAddress>> getIpClientBlockRegistries();
+
     public abstract Multimap<String, ClientBlockRegistry<String>> getAuthBackendClientBlockRegistries();
 
     protected final Map<String, String> authImplMap = new HashMap<>();
@@ -113,7 +136,5 @@ public abstract class DynamicConfigModel {
         authImplMap.put("ip_authFailureListener", AddressBasedRateLimiter.class.getName());
         authImplMap.put("username_authFailureListener", UserNameBasedRateLimiter.class.getName());
     }
-
-
 
 }

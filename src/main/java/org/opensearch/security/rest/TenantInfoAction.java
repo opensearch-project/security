@@ -65,11 +65,10 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class TenantInfoAction extends BaseRestHandler {
     private static final List<Route> routes = addRoutesPrefix(
-            ImmutableList.of(
-                new Route(GET, "/tenantinfo"),
-                new Route(POST, "/tenantinfo")
-            ),
-            "/_opendistro/_security", "/_plugins/_security");
+        ImmutableList.of(new Route(GET, "/tenantinfo"), new Route(POST, "/tenantinfo")),
+        "/_opendistro/_security",
+        "/_plugins/_security"
+    );
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
@@ -78,9 +77,15 @@ public class TenantInfoAction extends BaseRestHandler {
     private final AdminDNs adminDns;
     private final ConfigurationRepository configurationRepository;
 
-    public TenantInfoAction(final Settings settings, final RestController controller,
-    		final PrivilegesEvaluator evaluator, final ThreadPool threadPool, final ClusterService clusterService, final AdminDNs adminDns,
-                            final ConfigurationRepository configurationRepository) {
+    public TenantInfoAction(
+        final Settings settings,
+        final RestController controller,
+        final PrivilegesEvaluator evaluator,
+        final ThreadPool threadPool,
+        final ClusterService clusterService,
+        final AdminDNs adminDns,
+        final ConfigurationRepository configurationRepository
+    ) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
@@ -100,41 +105,41 @@ public class TenantInfoAction extends BaseRestHandler {
 
             @Override
             public void accept(RestChannel channel) throws Exception {
-                XContentBuilder builder = channel.newBuilder(); //NOSONAR
+                XContentBuilder builder = channel.newBuilder(); // NOSONAR
                 BytesRestResponse response = null;
 
                 try {
 
-                    final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+                    final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-                    //only allowed for admins or the kibanaserveruser
-                    if(!isAuthorized()) {
-                        response = new BytesRestResponse(RestStatus.FORBIDDEN,"");
+                    // only allowed for admins or the kibanaserveruser
+                    if (!isAuthorized()) {
+                        response = new BytesRestResponse(RestStatus.FORBIDDEN, "");
                     } else {
 
-                    	builder.startObject();
+                        builder.startObject();
 
-                    	final SortedMap<String, IndexAbstraction> lookup = clusterService.state().metadata().getIndicesLookup();
-                    	for(final String indexOrAlias: lookup.keySet()) {
-                    		final String tenant = tenantNameForIndex(indexOrAlias);
-                    		if(tenant != null) {
-                    			builder.field(indexOrAlias, tenant);
-                    		}
-                    	}
+                        final SortedMap<String, IndexAbstraction> lookup = clusterService.state().metadata().getIndicesLookup();
+                        for (final String indexOrAlias : lookup.keySet()) {
+                            final String tenant = tenantNameForIndex(indexOrAlias);
+                            if (tenant != null) {
+                                builder.field(indexOrAlias, tenant);
+                            }
+                        }
 
-	                    builder.endObject();
+                        builder.endObject();
 
-	                    response = new BytesRestResponse(RestStatus.OK, builder);
+                        response = new BytesRestResponse(RestStatus.OK, builder);
                     }
                 } catch (final Exception e1) {
                     log.error(e1.toString());
-                    builder = channel.newBuilder(); //NOSONAR
+                    builder = channel.newBuilder(); // NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());
                     builder.endObject();
                     response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
                 } finally {
-                    if(builder != null) {
+                    if (builder != null) {
                         builder.close();
                     }
                 }
@@ -145,7 +150,7 @@ public class TenantInfoAction extends BaseRestHandler {
     }
 
     private boolean isAuthorized() {
-        final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
         if (user == null) {
             return false;
@@ -173,44 +178,43 @@ public class TenantInfoAction extends BaseRestHandler {
     }
 
     private final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
-        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent).get(config).deepClone();
+        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
+            Collections.singleton(config),
+            logComplianceEvent
+        ).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 
     private String tenantNameForIndex(String index) {
-    	String[] indexParts;
-    	if(index == null
-    			|| (indexParts = index.split("_")).length != 3
-    			) {
-    		return null;
-    	}
+        String[] indexParts;
+        if (index == null || (indexParts = index.split("_")).length != 3) {
+            return null;
+        }
 
+        if (!indexParts[0].equals(evaluator.dashboardsIndex())) {
+            return null;
+        }
 
-    	if(!indexParts[0].equals(evaluator.dashboardsIndex())) {
-    		return null;
-    	}
+        try {
+            final int expectedHash = Integer.parseInt(indexParts[1]);
+            final String sanitizedName = indexParts[2];
 
-    	try {
-			final int expectedHash = Integer.parseInt(indexParts[1]);
-			final String sanitizedName = indexParts[2];
+            for (String tenant : evaluator.getAllConfiguredTenantNames()) {
+                if (tenant.hashCode() == expectedHash && sanitizedName.equals(tenant.toLowerCase().replaceAll("[^a-z0-9]+", ""))) {
+                    return tenant;
+                }
+            }
 
-			for(String tenant: evaluator.getAllConfiguredTenantNames()) {
-				if(tenant.hashCode() == expectedHash && sanitizedName.equals(tenant.toLowerCase().replaceAll("[^a-z0-9]+",""))) {
-					return tenant;
-				}
-			}
-
-			return "__private__";
-		} catch (NumberFormatException e) {
-			log.warn("Index {} looks like a Security tenant index but we cannot parse the hashcode so we ignore it.", index);
-			return null;
-		}
+            return "__private__";
+        } catch (NumberFormatException e) {
+            log.warn("Index {} looks like a Security tenant index but we cannot parse the hashcode so we ignore it.", index);
+            return null;
+        }
     }
 
     @Override
     public String getName() {
         return "Tenant Info Action";
     }
-
 
 }

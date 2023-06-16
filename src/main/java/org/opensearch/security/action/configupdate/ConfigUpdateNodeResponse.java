@@ -58,7 +58,7 @@ public class ConfigUpdateNodeResponse extends BaseNodeResponse implements ToXCon
     }
 
     public String[] getUpdatedConfigTypes() {
-        return updatedConfigTypes==null?null:Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
+        return updatedConfigTypes == null ? null : Arrays.copyOf(updatedConfigTypes, updatedConfigTypes.length);
     }
 
     public String getMessage() {
@@ -81,7 +81,7 @@ public class ConfigUpdateNodeResponse extends BaseNodeResponse implements ToXCon
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.field("updated_config_types", updatedConfigTypes);
-        builder.field("updated_config_size", updatedConfigTypes == null ? 0: updatedConfigTypes.length);
+        builder.field("updated_config_size", updatedConfigTypes == null ? 0 : updatedConfigTypes.length);
         builder.field("message", message);
         builder.endObject();
         return builder;

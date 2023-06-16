@@ -46,8 +46,8 @@ import org.opensearch.security.support.WildcardMatcher;
 public final class FieldReadCallback {
 
     private static final Logger log = LogManager.getLogger(FieldReadCallback.class);
-    //private final ThreadContext threadContext;
-    //private final ClusterService clusterService;
+    // private final ThreadContext threadContext;
+    // private final ClusterService clusterService;
     private final Index index;
     private final WildcardMatcher maskedFieldsMatcher;
     private final AuditLog auditLog;
@@ -56,19 +56,24 @@ public final class FieldReadCallback {
     private Doc doc;
     private final ShardId shardId;
 
-    public FieldReadCallback(final ThreadContext threadContext, final IndexService indexService,
-            final ClusterService clusterService, final AuditLog auditLog,
-            final WildcardMatcher maskedFieldsMatcher, ShardId shardId) {
+    public FieldReadCallback(
+        final ThreadContext threadContext,
+        final IndexService indexService,
+        final ClusterService clusterService,
+        final AuditLog auditLog,
+        final WildcardMatcher maskedFieldsMatcher,
+        ShardId shardId
+    ) {
         super();
-        //this.threadContext = Objects.requireNonNull(threadContext);
-        //this.clusterService = Objects.requireNonNull(clusterService);
+        // this.threadContext = Objects.requireNonNull(threadContext);
+        // this.clusterService = Objects.requireNonNull(clusterService);
         this.index = Objects.requireNonNull(indexService).index();
         this.auditLog = auditLog;
         this.maskedFieldsMatcher = maskedFieldsMatcher;
         this.shardId = shardId;
         try {
             sfc = (SourceFieldsContext) HeaderHelper.deserializeSafeFromHeader(threadContext, "_opendistro_security_source_field_context");
-            if(sfc != null && sfc.hasIncludesOrExcludes()) {
+            if (sfc != null && sfc.hasIncludesOrExcludes()) {
                 if (log.isTraceEnabled()) {
                     log.trace("_opendistro_security_source_field_context: {}", sfc);
                 }
@@ -76,39 +81,40 @@ public final class FieldReadCallback {
                 filterFunction = XContentMapValues.filter(sfc.getIncludes(), sfc.getExcludes());
             }
         } catch (Exception e) {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("Cannot deserialize _opendistro_security_source_field_context because of {}", e.toString());
             }
         }
     }
 
     private boolean recordField(final String fieldName, boolean isStringField) {
-        return !(isStringField && maskedFieldsMatcher.test(fieldName)) && auditLog.getComplianceConfig().readHistoryEnabledForField(index.getName(), fieldName);
+        return !(isStringField && maskedFieldsMatcher.test(fieldName))
+            && auditLog.getComplianceConfig().readHistoryEnabledForField(index.getName(), fieldName);
     }
 
     public void binaryFieldRead(final FieldInfo fieldInfo, byte[] fieldValue) {
         try {
-            if(!recordField(fieldInfo.name, false) && !fieldInfo.name.equals("_source") && !fieldInfo.name.equals("_id")) {
+            if (!recordField(fieldInfo.name, false) && !fieldInfo.name.equals("_source") && !fieldInfo.name.equals("_id")) {
                 return;
             }
 
-            if(fieldInfo.name.equals("_source")) {
+            if (fieldInfo.name.equals("_source")) {
 
-                if(filterFunction != null) {
+                if (filterFunction != null) {
                     final Map<String, Object> filteredSource = filterFunction.apply(Utils.byteArrayToMutableJsonMap(fieldValue));
                     fieldValue = Utils.jsonMapToByteArray(filteredSource);
                 }
 
                 Map<String, Object> filteredSource = new JsonFlattener(new String(fieldValue, StandardCharsets.UTF_8)).flattenAsMap();
-                for(String k: filteredSource.keySet()) {
-                    if(!recordField(k, filteredSource.get(k) instanceof String)) {
+                for (String k : filteredSource.keySet()) {
+                    if (!recordField(k, filteredSource.get(k) instanceof String)) {
                         continue;
                     }
                     fieldRead0(k, filteredSource.get(k));
                 }
             } else if (fieldInfo.name.equals("_id")) {
                 fieldRead0(fieldInfo.name, Uid.decodeId(fieldValue));
-            }  else {
+            } else {
                 fieldRead0(fieldInfo.name, new String(fieldValue, StandardCharsets.UTF_8));
             }
         } catch (Exception e) {
@@ -118,7 +124,7 @@ public final class FieldReadCallback {
 
     public void stringFieldRead(final FieldInfo fieldInfo, final String fieldValue) {
         try {
-            if(!recordField(fieldInfo.name, true)) {
+            if (!recordField(fieldInfo.name, true)) {
                 return;
             }
             fieldRead0(fieldInfo.name, fieldValue);
@@ -129,7 +135,7 @@ public final class FieldReadCallback {
 
     public void numericFieldRead(final FieldInfo fieldInfo, final Number fieldValue) {
         try {
-            if(!recordField(fieldInfo.name, false)) {
+            if (!recordField(fieldInfo.name, false)) {
                 return;
             }
             fieldRead0(fieldInfo.name, fieldValue);
@@ -139,15 +145,15 @@ public final class FieldReadCallback {
     }
 
     private void fieldRead0(final String fieldName, final Object fieldValue) {
-        if(doc != null) {
-            if(fieldName.equals("_id")) {
+        if (doc != null) {
+            if (fieldName.equals("_id")) {
                 doc.setId(fieldValue.toString());
             } else {
                 doc.addField(new Field(fieldName, fieldValue));
             }
         } else {
             final String indexName = index.getName();
-            if(fieldName.equals("_id")) {
+            if (fieldName.equals("_id")) {
                 doc = new Doc(indexName, fieldValue.toString());
             } else {
                 doc = new Doc(indexName, null);
@@ -157,12 +163,12 @@ public final class FieldReadCallback {
     }
 
     public void finished() {
-        if(doc == null) {
+        if (doc == null) {
             return;
         }
         try {
             Map<String, String> f = new HashMap<String, String>();
-            for(Field fi: doc.fields) {
+            for (Field fi : doc.fields) {
                 f.put(fi.fieldName, String.valueOf(fi.fieldValue));
             }
             auditLog.logDocumentRead(doc.indexName, doc.id, shardId, f);
@@ -202,11 +208,13 @@ public final class FieldReadCallback {
     private class Field {
         final String fieldName;
         final Object fieldValue;
+
         public Field(String fieldName, Object fieldValue) {
             super();
             this.fieldName = fieldName;
             this.fieldValue = fieldValue;
         }
+
         @Override
         public String toString() {
             return "Field [fieldName=" + fieldName + ", fieldValue=" + fieldValue + "]";
