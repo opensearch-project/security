@@ -24,43 +24,46 @@ import static java.util.Objects.requireNonNull;
 
 class ClusterContainSuccessSnapshotMatcher extends TypeSafeDiagnosingMatcher<Client> {
 
-	private final String repositoryName;
-	private final String snapshotName;
+    private final String repositoryName;
+    private final String snapshotName;
 
-	public ClusterContainSuccessSnapshotMatcher(String repositoryName, String snapshotName) {
-		this.repositoryName = requireNonNull(repositoryName, "Snapshot repository name is required.");
-		this.snapshotName = requireNonNull(snapshotName, "Snapshot name is required.");
-	}
+    public ClusterContainSuccessSnapshotMatcher(String repositoryName, String snapshotName) {
+        this.repositoryName = requireNonNull(repositoryName, "Snapshot repository name is required.");
+        this.snapshotName = requireNonNull(snapshotName, "Snapshot name is required.");
+    }
 
-	@Override
-	protected boolean matchesSafely(Client client, Description mismatchDescription) {
-		try {
-			GetSnapshotsRequest request = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
-			GetSnapshotsResponse response = client.admin().cluster().getSnapshots(request).actionGet();
-			long count = response.getSnapshots()
-					.stream()
-					.map(snapshot -> snapshot.state())
-					.filter(status -> SnapshotState.SUCCESS.equals(status))
-					.count();
-			if(count != 1){
-				String snapshotStatuses = response.getSnapshots()
-					.stream()
-					.map(info -> String.format("%s %s", info.snapshotId().getName(), info.state()))
-					.collect(Collectors.joining(", "));
-				mismatchDescription.appendText("snapshot is not present or has incorrect state, snapshots statuses ")
-					.appendValue(snapshotStatuses);
-				return false;
-			}
-		}catch (SnapshotMissingException e) {
-			mismatchDescription.appendText(" snapshot does not exist");
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(Client client, Description mismatchDescription) {
+        try {
+            GetSnapshotsRequest request = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
+            GetSnapshotsResponse response = client.admin().cluster().getSnapshots(request).actionGet();
+            long count = response.getSnapshots()
+                .stream()
+                .map(snapshot -> snapshot.state())
+                .filter(status -> SnapshotState.SUCCESS.equals(status))
+                .count();
+            if (count != 1) {
+                String snapshotStatuses = response.getSnapshots()
+                    .stream()
+                    .map(info -> String.format("%s %s", info.snapshotId().getName(), info.state()))
+                    .collect(Collectors.joining(", "));
+                mismatchDescription.appendText("snapshot is not present or has incorrect state, snapshots statuses ")
+                    .appendValue(snapshotStatuses);
+                return false;
+            }
+        } catch (SnapshotMissingException e) {
+            mismatchDescription.appendText(" snapshot does not exist");
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Cluster contain snapshot ").appendValue(snapshotName).appendText(" in repository ")
-			.appendValue(repositoryName).appendText(" with success status");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Cluster contain snapshot ")
+            .appendValue(snapshotName)
+            .appendText(" in repository ")
+            .appendValue(repositoryName)
+            .appendText(" with success status");
+    }
 }

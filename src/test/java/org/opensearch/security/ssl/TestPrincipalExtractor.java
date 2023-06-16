@@ -26,16 +26,15 @@ public class TestPrincipalExtractor implements PrincipalExtractor {
     private static int transportCount = 0;
     private static int httpCount = 0;
 
-    public TestPrincipalExtractor() {
-    }
+    public TestPrincipalExtractor() {}
 
     @Override
     public String extractPrincipal(X509Certificate x509Certificate, Type type) {
-        if(type == Type.HTTP) {
+        if (type == Type.HTTP) {
             httpCount++;
         }
 
-        if(type == Type.TRANSPORT) {
+        if (type == Type.TRANSPORT) {
             transportCount++;
         }
 
@@ -51,8 +50,8 @@ public class TestPrincipalExtractor implements PrincipalExtractor {
     }
 
     public static void reset() {
-       httpCount = 0;
-       transportCount = 0;
+        httpCount = 0;
+        transportCount = 0;
     }
 
 }

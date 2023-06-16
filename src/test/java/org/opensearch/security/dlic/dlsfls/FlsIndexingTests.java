@@ -32,16 +32,24 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
     protected void populateData(final Client tc) {
         // Create several documents in different indices with shared field names,
         // different roles will have different levels of FLS restrictions
-        tc.index(new IndexRequest("yellow-pages").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{\"phone-all\":1001,\"phone-some\":1002,\"phone-one\":1003}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("green-pages").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{\"phone-all\":2001,\"phone-some\":2002,\"phone-one\":2003}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("blue-book").id("3").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{\"phone-all\":3001,\"phone-some\":3002,\"phone-one\":3003}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("yellow-pages").id("1")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"phone-all\":1001,\"phone-some\":1002,\"phone-one\":1003}", XContentType.JSON)
+        ).actionGet();
+        tc.index(
+            new IndexRequest("green-pages").id("2")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"phone-all\":2001,\"phone-some\":2002,\"phone-one\":2003}", XContentType.JSON)
+        ).actionGet();
+        tc.index(
+            new IndexRequest("blue-book").id("3")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"phone-all\":3001,\"phone-some\":3002,\"phone-one\":3003}", XContentType.JSON)
+        ).actionGet();
 
-            // Seperate index used to test aliasing
-        tc.index(new IndexRequest(".hidden").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-            .source("{}", XContentType.JSON)).actionGet();
+        // Seperate index used to test aliasing
+        tc.index(new IndexRequest(".hidden").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{}", XContentType.JSON)).actionGet();
     }
 
     private Header asPhoneOneUser = encodeBasicHeader("user_aaa", "password");
@@ -52,9 +60,9 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
 
     @Test
     public void testSingleIndexFlsApplied() throws Exception {
-        setup(new DynamicSecurityConfig()
-            .setSecurityRoles("roles_fls_indexing.yml")
-            .setSecurityRolesMapping("roles_mapping_fls_indexing.yml"));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_fls_indexing.yml").setSecurityRolesMapping("roles_mapping_fls_indexing.yml")
+        );
 
         final HttpResponse phoneOneFilteredResponse = rh.executeGetRequest(searchQuery, asPhoneOneUser);
         assertThat(phoneOneFilteredResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -73,11 +81,14 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
 
     @Test
     public void testSingleIndexFlsAppliedForLimitedResults() throws Exception {
-        setup(new DynamicSecurityConfig()
-            .setSecurityRoles("roles_fls_indexing.yml")
-            .setSecurityRolesMapping("roles_mapping_fls_indexing.yml"));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_fls_indexing.yml").setSecurityRolesMapping("roles_mapping_fls_indexing.yml")
+        );
 
-        final HttpResponse phoneOneFilteredResponse = rh.executeGetRequest("/yellow-pages/_search?filter_path=hits.hits&pretty", asPhoneOneUser);
+        final HttpResponse phoneOneFilteredResponse = rh.executeGetRequest(
+            "/yellow-pages/_search?filter_path=hits.hits&pretty",
+            asPhoneOneUser
+        );
         assertThat(phoneOneFilteredResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(phoneOneFilteredResponse.getBody(), not(containsString("1003")));
         assertThat(phoneOneFilteredResponse.getBody(), containsString("1002"));
@@ -94,9 +105,9 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
 
     @Test
     public void testSeveralIndexFlsApplied() throws Exception {
-        setup(new DynamicSecurityConfig()
-            .setSecurityRoles("roles_fls_indexing.yml")
-            .setSecurityRolesMapping("roles_mapping_fls_indexing.yml"));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_fls_indexing.yml").setSecurityRolesMapping("roles_mapping_fls_indexing.yml")
+        );
 
         final HttpResponse phoneSomeFilteredResponse = rh.executeGetRequest(searchQuery, asPhoneSomeUser);
         assertThat(phoneSomeFilteredResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -115,9 +126,9 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
 
     @Test
     public void testAllIndexFlsApplied() throws Exception {
-        setup(new DynamicSecurityConfig()
-            .setSecurityRoles("roles_fls_indexing.yml")
-            .setSecurityRolesMapping("roles_mapping_fls_indexing.yml"));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_fls_indexing.yml").setSecurityRolesMapping("roles_mapping_fls_indexing.yml")
+        );
 
         final HttpResponse phoneAllFilteredResponse = rh.executeGetRequest(searchQuery, asPhoneAllUser);
         assertThat(phoneAllFilteredResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -136,11 +147,15 @@ public class FlsIndexingTests extends AbstractDlsFlsTest {
 
     @Test
     public void testAllIndexFlsAppliedWithAlias() throws Exception {
-        setup(new DynamicSecurityConfig()
-            .setSecurityRoles("roles_fls_indexing.yml")
-            .setSecurityRolesMapping("roles_mapping_fls_indexing.yml"));
+        setup(
+            new DynamicSecurityConfig().setSecurityRoles("roles_fls_indexing.yml").setSecurityRolesMapping("roles_mapping_fls_indexing.yml")
+        );
 
-        final HttpResponse createAlias = rh.executePostRequest("_aliases", "{\"actions\":[{\"add\":{\"index\":\".hidden\",\"alias\":\"ducky\"}}]}", asPhoneAllUser);
+        final HttpResponse createAlias = rh.executePostRequest(
+            "_aliases",
+            "{\"actions\":[{\"add\":{\"index\":\".hidden\",\"alias\":\"ducky\"}}]}",
+            asPhoneAllUser
+        );
         assertThat(createAlias.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
         final HttpResponse phoneAllFilteredResponse = rh.executeGetRequest(searchQuery, asPhoneAllUser);

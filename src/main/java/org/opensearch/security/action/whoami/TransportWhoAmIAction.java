@@ -40,17 +40,20 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 
-public class TransportWhoAmIAction
-extends
-HandledTransportAction<WhoAmIRequest, WhoAmIResponse> {
+public class TransportWhoAmIAction extends HandledTransportAction<WhoAmIRequest, WhoAmIResponse> {
 
     private final AdminDNs adminDNs;
     private final ThreadPool threadPool;
 
     @Inject
-    public TransportWhoAmIAction(final Settings settings,
-            final ThreadPool threadPool, final ClusterService clusterService, final TransportService transportService,
-            final AdminDNs adminDNs, final ActionFilters actionFilters) {
+    public TransportWhoAmIAction(
+        final Settings settings,
+        final ThreadPool threadPool,
+        final ClusterService clusterService,
+        final TransportService transportService,
+        final AdminDNs adminDNs,
+        final ActionFilters actionFilters
+    ) {
 
         super(WhoAmIAction.NAME, transportService, actionFilters, WhoAmIRequest::new);
 
@@ -58,15 +61,16 @@ HandledTransportAction<WhoAmIRequest, WhoAmIResponse> {
         this.threadPool = threadPool;
     }
 
-
     @Override
     protected void doExecute(Task task, WhoAmIRequest request, ActionListener<WhoAmIResponse> listener) {
         final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final String dn = user==null?threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL):user.getName();
+        final String dn = user == null
+            ? threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL)
+            : user.getName();
         final boolean isAdmin = adminDNs.isAdminDN(dn);
-        final boolean isAuthenticated = isAdmin?true: user != null;
-        final boolean isNodeCertificateRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext()) ||
-                HeaderHelper.isTrustedClusterRequest(threadPool.getThreadContext());
+        final boolean isAuthenticated = isAdmin ? true : user != null;
+        final boolean isNodeCertificateRequest = HeaderHelper.isInterClusterRequest(threadPool.getThreadContext())
+            || HeaderHelper.isTrustedClusterRequest(threadPool.getThreadContext());
 
         listener.onResponse(new WhoAmIResponse(dn, isAdmin, isAuthenticated, isNodeCertificateRequest));
 

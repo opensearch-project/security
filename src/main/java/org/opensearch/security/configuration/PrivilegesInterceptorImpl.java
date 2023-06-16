@@ -56,18 +56,30 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
     private static final String USER_TENANT = "__user__";
     private static final String EMPTY_STRING = "";
     private static final Map<String, Object> KIBANA_INDEX_SETTINGS = ImmutableMap.of(
-            IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1,
-            IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "0-1"
+        IndexMetadata.SETTING_NUMBER_OF_SHARDS,
+        1,
+        IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS,
+        "0-1"
     );
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
-    public PrivilegesInterceptorImpl(IndexNameExpressionResolver resolver, ClusterService clusterService, Client client, ThreadPool threadPool) {
+    public PrivilegesInterceptorImpl(
+        IndexNameExpressionResolver resolver,
+        ClusterService clusterService,
+        Client client,
+        ThreadPool threadPool
+    ) {
         super(resolver, clusterService, client, threadPool);
     }
 
-    private boolean isTenantAllowed(final ActionRequest request, final String action, final User user, final Map<String, Boolean> tenants,
-                                    final String requestedTenant) {
+    private boolean isTenantAllowed(
+        final ActionRequest request,
+        final String action,
+        final User user,
+        final Map<String, Boolean> tenants,
+        final String requestedTenant
+    ) {
 
         if (!tenants.keySet().contains(requestedTenant)) {
             log.warn("Tenant {} is not allowed for user {}", requestedTenant, user.getName());
@@ -94,23 +106,29 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
      *
      */
     @Override
-    public ReplaceResult replaceDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
-                                                final Resolved requestedResolved, final Map<String, Boolean> tenants) {
+    public ReplaceResult replaceDashboardsIndex(
+        final ActionRequest request,
+        final String action,
+        final User user,
+        final DynamicConfigModel config,
+        final Resolved requestedResolved,
+        final Map<String, Boolean> tenants
+    ) {
 
-        final boolean enabled = config.isDashboardsMultitenancyEnabled();//config.dynamic.kibana.multitenancy_enabled;
+        final boolean enabled = config.isDashboardsMultitenancyEnabled();// config.dynamic.kibana.multitenancy_enabled;
 
         if (!enabled) {
             return CONTINUE_EVALUATION_REPLACE_RESULT;
         }
 
-        //next two lines needs to be retrieved from configuration
-        final String dashboardsServerUsername = config.getDashboardsServerUsername();//config.dynamic.kibana.server_username;
-        final String dashboardsIndexName = config.getDashboardsIndexname();//config.dynamic.kibana.index;
+        // next two lines needs to be retrieved from configuration
+        final String dashboardsServerUsername = config.getDashboardsServerUsername();// config.dynamic.kibana.server_username;
+        final String dashboardsIndexName = config.getDashboardsIndexname();// config.dynamic.kibana.index;
 
         String requestedTenant = user.getRequestedTenant();
-        if(USER_TENANT.equals(requestedTenant)) {
+        if (USER_TENANT.equals(requestedTenant)) {
             final boolean private_tenant_enabled = config.isDashboardsPrivateTenantEnabled();
-            if(!private_tenant_enabled) {
+            if (!private_tenant_enabled) {
                 return ACCESS_DENIED_REPLACE_RESULT;
             }
         }
@@ -120,8 +138,10 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             log.debug("raw requestedTenant: '" + requestedTenant + "'");
         }
 
-        //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
-        final boolean dashboardsIndexOnly = !user.getName().equals(dashboardsServerUsername) && resolveToDashboardsIndexOrAlias(requestedResolved, dashboardsIndexName);
+        // intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias
+        // involved
+        final boolean dashboardsIndexOnly = !user.getName().equals(dashboardsServerUsername)
+            && resolveToDashboardsIndexOrAlias(requestedResolved, dashboardsIndexName);
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (requestedTenant == null || requestedTenant.length() == 0) {
             if (isTraceEnabled) {
@@ -140,21 +160,23 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
 
         if (isDebugEnabled && !user.getName().equals(dashboardsServerUsername)) {
-            //log statements only here
+            // log statements only here
             log.debug("requestedResolved: " + requestedResolved);
         }
 
-        //request not made by the kibana server and user index is the only index/alias involved
+        // request not made by the kibana server and user index is the only index/alias involved
         if (!user.getName().equals(dashboardsServerUsername) && !requestedResolved.isLocalAll()) {
             final Set<String> indices = requestedResolved.getAllIndices();
             final String tenantIndexName = toUserIndexName(dashboardsIndexName, requestedTenant);
-            if (indices.size() == 1 && indices.iterator().next().startsWith(tenantIndexName) &&
-                    isTenantAllowed(request, action, user, tenants, requestedTenant)) {
-                    return ACCESS_GRANTED_REPLACE_RESULT;
+            if (indices.size() == 1
+                && indices.iterator().next().startsWith(tenantIndexName)
+                && isTenantAllowed(request, action, user, tenants, requestedTenant)) {
+                return ACCESS_GRANTED_REPLACE_RESULT;
             }
         }
 
-        //intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias involved
+        // intercept when requests are not made by the kibana server and if the kibana index/alias (.kibana) is the only index/alias
+        // involved
         if (dashboardsIndexOnly) {
 
             if (isDebugEnabled) {
@@ -211,7 +233,8 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         }
         String concreteName = getConcreteIndexName(name, indicesLookup);
         if (concreteName != null) {
-            return client.admin().indices()
+            return client.admin()
+                .indices()
                 .prepareCreate(concreteName)
                 .addAlias(new Alias(name))
                 .setSettings(KIBANA_INDEX_SETTINGS)
@@ -220,7 +243,12 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
         return null;
     }
 
-    private CreateIndexRequestBuilder replaceIndex(final ActionRequest request, final String oldIndexName, final String newIndexName, final String action) {
+    private CreateIndexRequestBuilder replaceIndex(
+        final ActionRequest request,
+        final String oldIndexName,
+        final String newIndexName,
+        final String action
+    ) {
         boolean kibOk = false;
         CreateIndexRequestBuilder createIndexRequestBuilder = null;
 
@@ -228,10 +256,10 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             log.debug("{} index will be replaced with {} in this {} request", oldIndexName, newIndexName, request.getClass().getName());
         }
 
-        //handle msearch and mget
-        //in case of GET change the .kibana index to the userskibanaindex
-        //in case of Search add the usersDashboardsindex
-        //if (request instanceof CompositeIndicesRequest) {
+        // handle msearch and mget
+        // in case of GET change the .kibana index to the userskibanaindex
+        // in case of Search add the usersDashboardsindex
+        // if (request instanceof CompositeIndicesRequest) {
         String[] newIndexNames = new String[] { newIndexName };
 
         // CreateIndexRequest
@@ -312,7 +340,7 @@ public class PrivilegesInterceptorImpl extends PrivilegesInterceptor {
             ((SingleShardRequest<?>) request).index(newIndexName);
             kibOk = true;
         } else if (request instanceof RefreshRequest) {
-            ((RefreshRequest) request).indices(newIndexNames); //???
+            ((RefreshRequest) request).indices(newIndexNames); // ???
             kibOk = true;
         } else if (request instanceof ReplicationRequest) {
             ((ReplicationRequest<?>) request).index(newIndexName);

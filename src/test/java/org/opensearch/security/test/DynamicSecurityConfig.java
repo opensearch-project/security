@@ -45,8 +45,8 @@ public class DynamicSecurityConfig {
     private String securityInternalUsers = "internal_users.yml";
     private String securityActionGroups = "action_groups.yml";
     private String securityNodesDn = "nodes_dn.yml";
-    private String securityWhitelist= "whitelist.yml";
-    private String securityAllowlist= "allowlist.yml";
+    private String securityWhitelist = "whitelist.yml";
+    private String securityAllowlist = "allowlist.yml";
     private String securityAudit = "audit.yml";
     private String securityConfigAsYamlString = null;
     private String legacyConfigFolder = "";
@@ -95,12 +95,12 @@ public class DynamicSecurityConfig {
         return this;
     }
 
-    public DynamicSecurityConfig setSecurityWhitelist(String whitelist){
+    public DynamicSecurityConfig setSecurityWhitelist(String whitelist) {
         this.securityWhitelist = whitelist;
         return this;
     }
 
-    public DynamicSecurityConfig setSecurityAllowlist(String allowlist){
+    public DynamicSecurityConfig setSecurityAllowlist(String allowlist) {
         this.securityAllowlist = allowlist;
         return this;
     }
@@ -117,71 +117,86 @@ public class DynamicSecurityConfig {
 
     public List<IndexRequest> getDynamicConfig(String folder) {
 
-        final String prefix = legacyConfigFolder+(folder == null?"":folder+"/");
+        final String prefix = legacyConfigFolder + (folder == null ? "" : folder + "/");
 
         List<IndexRequest> ret = new ArrayList<IndexRequest>();
 
-        ret.add(new IndexRequest(securityIndexName)
-                .id(CType.CONFIG.toLCString())
+        ret.add(
+            new IndexRequest(securityIndexName).id(CType.CONFIG.toLCString())
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(CType.CONFIG.toLCString(), securityConfigAsYamlString==null? FileHelper.readYamlContent(prefix+securityConfig):FileHelper.readYamlContentFromString(securityConfigAsYamlString)));
+                .source(
+                    CType.CONFIG.toLCString(),
+                    securityConfigAsYamlString == null
+                        ? FileHelper.readYamlContent(prefix + securityConfig)
+                        : FileHelper.readYamlContentFromString(securityConfigAsYamlString)
+                )
+        );
 
-        ret.add(new IndexRequest(securityIndexName)
-                .id(CType.ACTIONGROUPS.toLCString())
+        ret.add(
+            new IndexRequest(securityIndexName).id(CType.ACTIONGROUPS.toLCString())
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(CType.ACTIONGROUPS.toLCString(), FileHelper.readYamlContent(prefix+securityActionGroups)));
+                .source(CType.ACTIONGROUPS.toLCString(), FileHelper.readYamlContent(prefix + securityActionGroups))
+        );
 
-        ret.add(new IndexRequest(securityIndexName)
-                .id(CType.INTERNALUSERS.toLCString())
+        ret.add(
+            new IndexRequest(securityIndexName).id(CType.INTERNALUSERS.toLCString())
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(CType.INTERNALUSERS.toLCString(), FileHelper.readYamlContent(prefix+securityInternalUsers)));
+                .source(CType.INTERNALUSERS.toLCString(), FileHelper.readYamlContent(prefix + securityInternalUsers))
+        );
 
-        ret.add(new IndexRequest(securityIndexName)
-                .id(CType.ROLES.toLCString())
+        ret.add(
+            new IndexRequest(securityIndexName).id(CType.ROLES.toLCString())
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(CType.ROLES.toLCString(), FileHelper.readYamlContent(prefix+securityRoles)));
+                .source(CType.ROLES.toLCString(), FileHelper.readYamlContent(prefix + securityRoles))
+        );
 
-        ret.add(new IndexRequest(securityIndexName)
-                .id(CType.ROLESMAPPING.toLCString())
+        ret.add(
+            new IndexRequest(securityIndexName).id(CType.ROLESMAPPING.toLCString())
                 .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source(CType.ROLESMAPPING.toLCString(), FileHelper.readYamlContent(prefix+securityRolesMapping)));
-        if("".equals(legacyConfigFolder)) {
-            ret.add(new IndexRequest(securityIndexName)
-                    .id(CType.TENANTS.toLCString())
+                .source(CType.ROLESMAPPING.toLCString(), FileHelper.readYamlContent(prefix + securityRolesMapping))
+        );
+        if ("".equals(legacyConfigFolder)) {
+            ret.add(
+                new IndexRequest(securityIndexName).id(CType.TENANTS.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(CType.TENANTS.toLCString(), FileHelper.readYamlContent(prefix+securityTenants)));
+                    .source(CType.TENANTS.toLCString(), FileHelper.readYamlContent(prefix + securityTenants))
+            );
         }
 
         if (null != FileHelper.getAbsoluteFilePathFromClassPath(prefix + securityNodesDn)) {
-            ret.add(new IndexRequest(securityIndexName)
-                    .id(CType.NODESDN.toLCString())
+            ret.add(
+                new IndexRequest(securityIndexName).id(CType.NODESDN.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix + securityNodesDn)));
+                    .source(CType.NODESDN.toLCString(), FileHelper.readYamlContent(prefix + securityNodesDn))
+            );
 
         }
 
         final String whitelistYmlFile = prefix + securityWhitelist;
         if (null != FileHelper.getAbsoluteFilePathFromClassPath(whitelistYmlFile)) {
-            ret.add(new IndexRequest(securityIndexName)
-                    .id(CType.WHITELIST.toLCString())
+            ret.add(
+                new IndexRequest(securityIndexName).id(CType.WHITELIST.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(CType.WHITELIST.toLCString(), FileHelper.readYamlContent(whitelistYmlFile)));
+                    .source(CType.WHITELIST.toLCString(), FileHelper.readYamlContent(whitelistYmlFile))
+            );
         }
 
         final String allowlistYmlFile = prefix + securityAllowlist;
         if (null != FileHelper.getAbsoluteFilePathFromClassPath(allowlistYmlFile)) {
-            ret.add(new IndexRequest(securityIndexName)
-                    .id(CType.ALLOWLIST.toLCString())
+            ret.add(
+                new IndexRequest(securityIndexName).id(CType.ALLOWLIST.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(CType.ALLOWLIST.toLCString(), FileHelper.readYamlContent(allowlistYmlFile)));
+                    .source(CType.ALLOWLIST.toLCString(), FileHelper.readYamlContent(allowlistYmlFile))
+            );
         }
 
         final String auditYmlFile = prefix + securityAudit;
         if (null != FileHelper.getAbsoluteFilePathFromClassPath(auditYmlFile)) {
-            ret.add(new IndexRequest(securityIndexName)
-                    .id(CType.AUDIT.toLCString())
+            ret.add(
+                new IndexRequest(securityIndexName).id(CType.AUDIT.toLCString())
                     .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                    .source(CType.AUDIT.toLCString(), FileHelper.readYamlContent(auditYmlFile)));
+                    .source(CType.AUDIT.toLCString(), FileHelper.readYamlContent(auditYmlFile))
+            );
         }
 
         return Collections.unmodifiableList(ret);

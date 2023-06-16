@@ -23,12 +23,12 @@ public class ExceptionUtils {
 
     public static Throwable getRootCause(final Throwable e) {
 
-        if(e == null) {
+        if (e == null) {
             return null;
         }
 
         final Throwable cause = e.getCause();
-        if(cause == null) {
+        if (cause == null) {
             return e;
         }
         return getRootCause(cause);
@@ -36,27 +36,32 @@ public class ExceptionUtils {
 
     public static Throwable findMsg(final Throwable e, String msg) {
 
-        if(e == null) {
+        if (e == null) {
             return null;
         }
 
-        if(e.getMessage() != null && e.getMessage().contains(msg)) {
+        if (e.getMessage() != null && e.getMessage().contains(msg)) {
             return e;
         }
 
         final Throwable cause = e.getCause();
-        if(cause == null) {
+        if (cause == null) {
             return null;
         }
         return findMsg(cause, msg);
     }
 
     public static OpenSearchException createBadHeaderException() {
-        return new OpenSearchException("Illegal parameter in http or transport request found."+System.lineSeparator()
-                + "This means that one node is trying to connect to another with "+System.lineSeparator()
-                + "a non-node certificate (no OID or security.nodes_dn incorrect configured) or that someone "+System.lineSeparator()
+        return new OpenSearchException(
+            "Illegal parameter in http or transport request found."
+                + System.lineSeparator()
+                + "This means that one node is trying to connect to another with "
+                + System.lineSeparator()
+                + "a non-node certificate (no OID or security.nodes_dn incorrect configured) or that someone "
+                + System.lineSeparator()
                 + "is spoofing requests. Check your TLS certificate setup as described here: "
-                + "See https://opendistro.github.io/for-elasticsearch-docs/docs/troubleshoot/tls/");
+                + "See https://opendistro.github.io/for-elasticsearch-docs/docs/troubleshoot/tls/"
+        );
     }
 
     public static OpenSearchException createTransportClientNoLongerSupportedException() {

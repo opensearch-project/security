@@ -17,22 +17,21 @@ import org.opensearch.action.search.GetAllPitNodesResponse;
 
 public class PitResponseMatchers {
 
-	private PitResponseMatchers() {
-	}
+    private PitResponseMatchers() {}
 
-	public static Matcher<CreatePitResponse> isSuccessfulCreatePitResponse() {
-		return new SuccessfulCreatePitResponseMatcher();
-	}
+    public static Matcher<CreatePitResponse> isSuccessfulCreatePitResponse() {
+        return new SuccessfulCreatePitResponseMatcher();
+    }
 
-	public static Matcher<GetAllPitNodesResponse> getAllResponseContainsExactlyPitWithIds(String... expectedPitIds) {
-		return new GetAllPitsContainsExactlyIdsResponseMatcher(expectedPitIds);
-	}
+    public static Matcher<GetAllPitNodesResponse> getAllResponseContainsExactlyPitWithIds(String... expectedPitIds) {
+        return new GetAllPitsContainsExactlyIdsResponseMatcher(expectedPitIds);
+    }
 
-	public static Matcher<DeletePitResponse> isSuccessfulDeletePitResponse() {
-		return new SuccessfulDeletePitResponseMatcher();
-	}
+    public static Matcher<DeletePitResponse> isSuccessfulDeletePitResponse() {
+        return new SuccessfulDeletePitResponseMatcher();
+    }
 
-	public static Matcher<DeletePitResponse> deleteResponseContainsExactlyPitWithIds(String... expectedPitIds) {
-		return new DeletePitContainsExactlyIdsResponseMatcher(expectedPitIds);
-	}
+    public static Matcher<DeletePitResponse> deleteResponseContainsExactlyPitWithIds(String... expectedPitIds) {
+        return new DeletePitContainsExactlyIdsResponseMatcher(expectedPitIds);
+    }
 }

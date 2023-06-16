@@ -32,7 +32,13 @@ import org.apache.logging.log4j.Logger;
 public class SSLConnectionTestUtil {
 
     private static final Logger logger = LogManager.getLogger(SSLConnectionTestUtil.class);
-    public static final byte[] OPENSEARCH_PING_MSG = new byte[]{(byte) 'E', (byte) 'S', (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+    public static final byte[] OPENSEARCH_PING_MSG = new byte[] {
+        (byte) 'E',
+        (byte) 'S',
+        (byte) 0xFF,
+        (byte) 0xFF,
+        (byte) 0xFF,
+        (byte) 0xFF };
     public static final String DUAL_MODE_CLIENT_HELLO_MSG = "DUALCM";
     public static final String DUAL_MODE_SERVER_HELLO_MSG = "DUALSM";
     private static final int SOCKET_TIMEOUT_MILLIS = 10 * 1000;
@@ -52,8 +58,13 @@ public class SSLConnectionTestUtil {
     }
 
     @VisibleForTesting
-    protected SSLConnectionTestUtil(final String host, final int port, final Socket overriddenSocket, final OutputStreamWriter testOutputStreamWriter,
-        final InputStreamReader testInputStreamReader) {
+    protected SSLConnectionTestUtil(
+        final String host,
+        final int port,
+        final Socket overriddenSocket,
+        final OutputStreamWriter testOutputStreamWriter,
+        final InputStreamReader testInputStreamReader
+    ) {
         this.overriddenSocket = overriddenSocket;
         this.testOutputStreamWriter = testOutputStreamWriter;
         this.testInputStreamReader = testInputStreamReader;
@@ -89,7 +100,7 @@ public class SSLConnectionTestUtil {
         try {
             OutputStreamWriter outputStreamWriter;
             InputStreamReader inputStreamReader;
-            if(overriddenSocket != null) {
+            if (overriddenSocket != null) {
                 socket = overriddenSocket;
                 outputStreamWriter = testOutputStreamWriter;
                 inputStreamReader = testInputStreamReader;
@@ -122,7 +133,11 @@ public class SSLConnectionTestUtil {
                 try {
                     socket.close();
                 } catch (IOException e) {
-                    logger.error("Exception occurred while closing DualSSL check client socket for {}. Exception: {}", host, e.getMessage());
+                    logger.error(
+                        "Exception occurred while closing DualSSL check client socket for {}. Exception: {}",
+                        host,
+                        e.getMessage()
+                    );
                 }
             }
         }
@@ -134,7 +149,7 @@ public class SSLConnectionTestUtil {
         boolean pingSucceeded = false;
         Socket socket = null;
         try {
-            if(overriddenSocket != null) {
+            if (overriddenSocket != null) {
                 socket = overriddenSocket;
             } else {
                 socket = new Socket(host, port);
@@ -158,7 +173,7 @@ public class SSLConnectionTestUtil {
             if (byteBufIndex == 6) {
                 logger.debug("Received reply for OpenSearch Ping. from {}", host);
                 pingSucceeded = true;
-                for(int i = 0; i < 6; i++) {
+                for (int i = 0; i < 6; i++) {
                     if (response[i] != OPENSEARCH_PING_MSG[i]) {
                         // Unexpected byte in response
                         logger.error("Received unexpected byte in OpenSearch Ping reply from {}", host);

@@ -50,10 +50,8 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 
 public enum CType {
 
-    INTERNALUSERS(toMap(1, InternalUserV6.class, 2,
-            InternalUserV7.class)),
-    ACTIONGROUPS(toMap(0, List.class, 1, ActionGroupsV6.class, 2,
-            ActionGroupsV7.class)),
+    INTERNALUSERS(toMap(1, InternalUserV6.class, 2, InternalUserV7.class)),
+    ACTIONGROUPS(toMap(0, List.class, 1, ActionGroupsV6.class, 2, ActionGroupsV7.class)),
     CONFIG(toMap(1, ConfigV6.class, 2, ConfigV7.class)),
     ROLES(toMap(1, RoleV6.class, 2, RoleV7.class)),
     ROLESMAPPING(toMap(1, RoleMappingsV6.class, 2, RoleMappingsV7.class)),

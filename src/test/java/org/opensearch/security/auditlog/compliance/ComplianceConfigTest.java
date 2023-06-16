@@ -50,19 +50,21 @@ public class ComplianceConfigTest {
         // arrange
         final String testSalt = "abcdefghijklmnop";
         final Settings settings = Settings.builder()
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true)
-                .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, true)
-                .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
-                .put(ConfigConstants.SECURITY_COMPLIANCE_SALT, testSalt)
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "write_index1", "write_index_pattern*")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS, "read_index1,field1,field2", "read_index_pattern*,field1,field_pattern*")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-                        "test-user-1", "test-user-2")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-                        "test-user-3", "test-user-4")
-                .build();
+            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, true)
+            .put(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, true)
+            .put(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, true)
+            .put(ConfigConstants.SECURITY_COMPLIANCE_SALT, testSalt)
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, "write_index1", "write_index_pattern*")
+            .putList(
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+                "read_index1,field1,field2",
+                "read_index_pattern*,field1,field_pattern*"
+            )
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, "test-user-1", "test-user-2")
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, "test-user-3", "test-user-4")
+            .build();
 
         // act
         final ComplianceConfig complianceConfig = ComplianceConfig.from(settings);
@@ -74,8 +76,14 @@ public class ComplianceConfigTest {
         assertTrue(complianceConfig.shouldLogReadMetadataOnly());
         assertTrue(complianceConfig.shouldLogWriteMetadataOnly());
         assertFalse(complianceConfig.shouldLogDiffsForWrite());
-        assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-1", "test-user-2")), complianceConfig.getIgnoredComplianceUsersForReadMatcher());
-        assertEquals(WildcardMatcher.from(ImmutableSet.of("test-user-3", "test-user-4")), complianceConfig.getIgnoredComplianceUsersForWriteMatcher());
+        assertEquals(
+            WildcardMatcher.from(ImmutableSet.of("test-user-1", "test-user-2")),
+            complianceConfig.getIgnoredComplianceUsersForReadMatcher()
+        );
+        assertEquals(
+            WildcardMatcher.from(ImmutableSet.of("test-user-3", "test-user-4")),
+            complianceConfig.getIgnoredComplianceUsersForWriteMatcher()
+        );
 
         // test write history
         assertTrue(complianceConfig.writeHistoryEnabledForIndex(".opendistro_security"));
@@ -105,11 +113,9 @@ public class ComplianceConfigTest {
     public void testNone() {
         // arrange
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-                        "NONE")
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-                        "NONE")
-                .build();
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, "NONE")
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, "NONE")
+            .build();
         // act
         final ComplianceConfig complianceConfig = ComplianceConfig.from(settings);
         // assert
@@ -121,11 +127,9 @@ public class ComplianceConfigTest {
     public void testEmpty() {
         // arrange
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-                        Collections.emptyList())
-                .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-                        Collections.emptyList())
-                .build();
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS, Collections.emptyList())
+            .putList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS, Collections.emptyList())
+            .build();
         // act
         final ComplianceConfig complianceConfig = ComplianceConfig.from(settings);
         // assert

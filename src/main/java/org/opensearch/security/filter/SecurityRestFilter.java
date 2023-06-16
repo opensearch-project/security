@@ -89,13 +89,19 @@ public class SecurityRestFilter {
     private static final String HEALTH_SUFFIX = "health";
     private static final String WHO_AM_I_SUFFIX = "whoami";
 
-    private static final String REGEX_PATH_PREFIX = "/("+ LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" +"(.*)";
+    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
-
-    public SecurityRestFilter(final BackendRegistry registry, final RestLayerPrivilegesEvaluator evaluator,
-                              final AuditLog auditLog, final ThreadPool threadPool, final PrincipalExtractor principalExtractor,
-                              final Settings settings, final Path configPath, final CompatConfig compatConfig) {
+    public SecurityRestFilter(
+        final BackendRegistry registry,
+        final RestLayerPrivilegesEvaluator evaluator,
+        final AuditLog auditLog,
+        final ThreadPool threadPool,
+        final PrincipalExtractor principalExtractor,
+        final Settings settings,
+        final Path configPath,
+        final CompatConfig compatConfig
+    ) {
         super();
         this.registry = registry;
         this.evaluator = evaluator;
@@ -192,7 +198,7 @@ public class SecurityRestFilter {
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.REST.toString());
 
-        if(HTTPHelper.containsBadHeader(request)) {
+        if (HTTPHelper.containsBadHeader(request)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
             auditLog.logBadHeaders(request);
@@ -200,7 +206,7 @@ public class SecurityRestFilter {
             return true;
         }
 
-        if(SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
+        if (SSLRequestHelper.containsBadHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX)) {
             final OpenSearchException exception = ExceptionUtils.createBadHeaderException();
             log.error(exception.toString());
             auditLog.logBadHeaders(request);
@@ -210,13 +216,13 @@ public class SecurityRestFilter {
 
         final SSLInfo sslInfo;
         try {
-            if((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
-                if(sslInfo.getPrincipal() != null) {
+            if ((sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor)) != null) {
+                if (sslInfo.getPrincipal() != null) {
                     threadContext.putTransient("_opendistro_security_ssl_principal", sslInfo.getPrincipal());
                 }
 
-                if(sslInfo.getX509Certs() != null) {
-                     threadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
+                if (sslInfo.getX509Certs() != null) {
+                    threadContext.putTransient("_opendistro_security_ssl_peer_certificates", sslInfo.getX509Certs());
                 }
                 threadContext.putTransient("_opendistro_security_ssl_protocol", sslInfo.getProtocol());
                 threadContext.putTransient("_opendistro_security_ssl_cipher", sslInfo.getCipher());
@@ -228,22 +234,23 @@ public class SecurityRestFilter {
             return true;
         }
 
-        if(!compatConfig.restAuthEnabled()) {
+        if (!compatConfig.restAuthEnabled()) {
             return false;
         }
 
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if(request.method() != Method.OPTIONS
-                && !(HEALTH_SUFFIX.equals(suffix))
-                && !(WHO_AM_I_SUFFIX.equals(suffix))) {
+        if (request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");
                 return true;
             } else {
                 // make it possible to filter logs by username
-                org.apache.logging.log4j.ThreadContext.put("user", ((User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName());
+                org.apache.logging.log4j.ThreadContext.put(
+                    "user",
+                    ((User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER)).getName()
+                );
             }
         }
 

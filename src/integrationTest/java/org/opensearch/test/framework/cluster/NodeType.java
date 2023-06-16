@@ -11,5 +11,7 @@
 package org.opensearch.test.framework.cluster;
 
 enum NodeType {
-	CLIENT, DATA, CLUSTER_MANAGER
+    CLIENT,
+    DATA,
+    CLUSTER_MANAGER
 }

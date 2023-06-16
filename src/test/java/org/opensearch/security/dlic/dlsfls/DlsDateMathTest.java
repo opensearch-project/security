@@ -27,41 +27,52 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-public class DlsDateMathTest extends AbstractDlsFlsTest{
-
+public class DlsDateMathTest extends AbstractDlsFlsTest {
 
     @Override
     protected void populateData(Client tc) {
-
-
 
         LocalDateTime yesterday = LocalDateTime.now(ZoneId.of("UTC")).minusDays(1);
         LocalDateTime today = LocalDateTime.now(ZoneId.of("UTC"));
         LocalDateTime tomorrow = LocalDateTime.now(ZoneId.of("UTC")).plusDays(1);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
-        tc.index(new IndexRequest("logstash").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"@timestamp\": \""+formatter.format(yesterday)+"\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("logstash").id("2").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"@timestamp\": \""+formatter.format(today)+"\"}", XContentType.JSON)).actionGet();
-        tc.index(new IndexRequest("logstash").id("3").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"@timestamp\": \""+formatter.format(tomorrow)+"\"}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("logstash").id("1")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"@timestamp\": \"" + formatter.format(yesterday) + "\"}", XContentType.JSON)
+        ).actionGet();
+        tc.index(
+            new IndexRequest("logstash").id("2")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"@timestamp\": \"" + formatter.format(today) + "\"}", XContentType.JSON)
+        ).actionGet();
+        tc.index(
+            new IndexRequest("logstash").id("3")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"@timestamp\": \"" + formatter.format(tomorrow) + "\"}", XContentType.JSON)
+        ).actionGet();
     }
-
 
     @Test
     public void testDlsDateMathQuery() throws Exception {
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS,true).build();
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_ALLOW_NOW_IN_DLS, true).build();
         setup(settings);
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -73,12 +84,18 @@ public class DlsDateMathTest extends AbstractDlsFlsTest{
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_BAD_REQUEST,
+            (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("date_math", "password"))).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("'now' is not allowed in DLS queries"));
         Assert.assertTrue(res.getBody().contains("error"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/logstash/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 3,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));

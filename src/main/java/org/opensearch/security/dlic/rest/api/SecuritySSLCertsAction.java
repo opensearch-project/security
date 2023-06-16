@@ -51,7 +51,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-
 /**
  * Rest API action to get SSL certificate information related to http and transport encryption.
  * Only super admin users are allowed to access this API.
@@ -60,10 +59,7 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  */
 public class SecuritySSLCertsAction extends AbstractApiAction {
     private static final List<Route> ROUTES = addRoutesPrefix(
-            ImmutableList.of(
-                    new Route(Method.GET, "/ssl/certs"),
-                    new Route(Method.PUT, "/ssl/{certType}/reloadcerts")
-            )
+        ImmutableList.of(new Route(Method.GET, "/ssl/certs"), new Route(Method.PUT, "/ssl/{certType}/reloadcerts"))
     );
 
     private final Logger log = LogManager.getLogger(this.getClass());
@@ -74,19 +70,21 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
 
     private final boolean httpsEnabled;
 
-    public SecuritySSLCertsAction(final Settings settings,
-                                  final Path configPath,
-                                  final RestController controller,
-                                  final Client client,
-                                  final AdminDNs adminDNs,
-                                  final ConfigurationRepository cl,
-                                  final ClusterService cs,
-                                  final PrincipalExtractor principalExtractor,
-                                  final PrivilegesEvaluator privilegesEvaluator,
-                                  final ThreadPool threadPool,
-                                  final AuditLog auditLog,
-                                  final SecurityKeyStore securityKeyStore,
-                                  final boolean certificatesReloadEnabled) {
+    public SecuritySSLCertsAction(
+        final Settings settings,
+        final Path configPath,
+        final RestController controller,
+        final Client client,
+        final AdminDNs adminDNs,
+        final ConfigurationRepository cl,
+        final ClusterService cs,
+        final PrincipalExtractor principalExtractor,
+        final PrivilegesEvaluator privilegesEvaluator,
+        final ThreadPool threadPool,
+        final AuditLog auditLog,
+        final SecurityKeyStore securityKeyStore,
+        final boolean certificatesReloadEnabled
+    ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.securityKeyStore = securityKeyStore;
         this.certificatesReloadEnabled = certificatesReloadEnabled;
@@ -94,9 +92,11 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-                                             final Object content,
-                                             final String resourceName) {
+    protected boolean hasPermissionsToCreate(
+        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+        final Object content,
+        final String resourceName
+    ) {
         return true;
     }
 
@@ -122,13 +122,13 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
                 }
                 if (!certificatesReloadEnabled) {
                     badRequestResponse(
-                            channel,
-                            String.format(
-                                    "no handler found for uri [%s] and method [%s]. In order to use SSL reload functionality set %s to true",
-                                    request.path(),
-                                    request.method(),
-                                    ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED
-                            )
+                        channel,
+                        String.format(
+                            "no handler found for uri [%s] and method [%s]. In order to use SSL reload functionality set %s to true",
+                            request.path(),
+                            request.method(),
+                            ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED
+                        )
                     );
                     return;
                 }
@@ -172,28 +172,21 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
      * @throws IOException
      */
     @Override
-    protected void handleGet(final RestChannel channel,
-                             final RestRequest request,
-                             final Client client,
-                             final JsonNode content) throws IOException {
+    protected void handleGet(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
+        throws IOException {
         if (securityKeyStore == null) {
             noKeyStoreResponse(channel);
             return;
         }
         try (final XContentBuilder contentBuilder = channel.newBuilder()) {
             channel.sendResponse(
-                    new BytesRestResponse(
-                            RestStatus.OK,
-                            contentBuilder
-                                    .startObject()
-                                    .field(
-                                            "http_certificates_list",
-                                            httpsEnabled ? generateCertDetailList(securityKeyStore.getHttpCerts()) : null
-                                    ).field(
-                                            "transport_certificates_list",
-                                            generateCertDetailList(securityKeyStore.getTransportCerts())
-                                    ).endObject()
-                    )
+                new BytesRestResponse(
+                    RestStatus.OK,
+                    contentBuilder.startObject()
+                        .field("http_certificates_list", httpsEnabled ? generateCertDetailList(securityKeyStore.getHttpCerts()) : null)
+                        .field("transport_certificates_list", generateCertDetailList(securityKeyStore.getTransportCerts()))
+                        .endObject()
+                )
             );
         } catch (final Exception e) {
             internalErrorResponse(channel, e.getMessage());
@@ -219,10 +212,8 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
      * @throws IOException
      */
     @Override
-    protected void handlePut(final RestChannel channel,
-                             final RestRequest request,
-                             final Client client,
-                             final JsonNode content) throws IOException {
+    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
+        throws IOException {
         if (securityKeyStore == null) {
             noKeyStoreResponse(channel);
             return;
@@ -237,44 +228,37 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
                     }
                     securityKeyStore.initHttpSSLConfig();
                     channel.sendResponse(
-                            new BytesRestResponse(
-                                    RestStatus.OK,
-                                    contentBuilder
-                                            .startObject()
-                                            .field("message", "updated http certs")
-                                            .endObject()
-                            )
+                        new BytesRestResponse(
+                            RestStatus.OK,
+                            contentBuilder.startObject().field("message", "updated http certs").endObject()
+                        )
                     );
                     break;
                 case "transport":
                     securityKeyStore.initTransportSSLConfig();
                     channel.sendResponse(
-                            new BytesRestResponse(
-                                    RestStatus.OK,
-                                    contentBuilder
-                                            .startObject()
-                                            .field("message", "updated transport certs")
-                                            .endObject()
-                            )
+                        new BytesRestResponse(
+                            RestStatus.OK,
+                            contentBuilder.startObject().field("message", "updated transport certs").endObject()
+                        )
                     );
                     break;
                 default:
-                    forbidden(channel,
-                            "invalid uri path, please use /_plugins/_security/api/ssl/http/reload or "
-                                    + "/_plugins/_security/api/ssl/transport/reload"
+                    forbidden(
+                        channel,
+                        "invalid uri path, please use /_plugins/_security/api/ssl/http/reload or "
+                            + "/_plugins/_security/api/ssl/transport/reload"
                     );
                     break;
             }
         } catch (final Exception e) {
             log.error("Reload of certificates for {} failed", certType, e);
             try (final XContentBuilder contentBuilder = channel.newBuilder()) {
-                channel.sendResponse(new BytesRestResponse(
-                                RestStatus.INTERNAL_SERVER_ERROR,
-                                contentBuilder
-                                        .startObject()
-                                        .field("error", e.toString())
-                                        .endObject()
-                        )
+                channel.sendResponse(
+                    new BytesRestResponse(
+                        RestStatus.INTERNAL_SERVER_ERROR,
+                        contentBuilder.startObject().field("error", e.toString()).endObject()
+                    )
                 );
             }
         }
@@ -284,25 +268,27 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
         if (certs == null) {
             return null;
         }
-        return Arrays
-                .stream(certs)
-                .map(cert -> {
-                    final String issuerDn = cert != null && cert.getIssuerX500Principal() != null ? cert.getIssuerX500Principal().getName() : "";
-                    final String subjectDn = cert != null && cert.getSubjectX500Principal() != null ? cert.getSubjectX500Principal().getName() : "";
+        return Arrays.stream(certs).map(cert -> {
+            final String issuerDn = cert != null && cert.getIssuerX500Principal() != null ? cert.getIssuerX500Principal().getName() : "";
+            final String subjectDn = cert != null && cert.getSubjectX500Principal() != null ? cert.getSubjectX500Principal().getName() : "";
 
-                    final String san = securityKeyStore.getSubjectAlternativeNames(cert);
+            final String san = securityKeyStore.getSubjectAlternativeNames(cert);
 
-                    final String notBefore = cert != null && cert.getNotBefore() != null ? cert.getNotBefore().toInstant().toString() : "";
-                    final String notAfter = cert != null && cert.getNotAfter() != null ? cert.getNotAfter().toInstant().toString() : "";
-                    return ImmutableMap.of(
-                            "issuer_dn", issuerDn,
-                            "subject_dn", subjectDn,
-                            "san", san,
-                            "not_before", notBefore,
-                            "not_after", notAfter
-                    );
-                })
-                .collect(Collectors.toList());
+            final String notBefore = cert != null && cert.getNotBefore() != null ? cert.getNotBefore().toInstant().toString() : "";
+            final String notAfter = cert != null && cert.getNotAfter() != null ? cert.getNotAfter().toInstant().toString() : "";
+            return ImmutableMap.of(
+                "issuer_dn",
+                issuerDn,
+                "subject_dn",
+                subjectDn,
+                "san",
+                san,
+                "not_before",
+                notBefore,
+                "not_after",
+                notAfter
+            );
+        }).collect(Collectors.toList());
     }
 
     private void noKeyStoreResponse(final RestChannel channel) throws IOException {

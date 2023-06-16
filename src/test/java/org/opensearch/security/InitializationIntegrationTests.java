@@ -67,23 +67,31 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testEnsureInitViaRestDoesWork() throws Exception {
 
         final Settings settings = Settings.builder()
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
-                .put("plugins.security.ssl.http.enabled",true)
-                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .build();
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_CLIENTAUTH_MODE, "REQUIRE")
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .build();
         setup(Settings.EMPTY, null, settings, false);
-        final RestHelper rh = restHelper(); //ssl resthelper
+        final RestHelper rh = restHelper(); // ssl resthelper
 
         rh.enableHTTPClientSSL = true;
         rh.trustHTTPServerCertificate = true;
         rh.sendAdminCertificate = true;
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
-
+        Assert.assertEquals(
+            HttpStatus.SC_SERVICE_UNAVAILABLE,
+            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        );
+        Assert.assertEquals(
+            HttpStatus.SC_SERVICE_UNAVAILABLE,
+            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        );
 
         rh.keystore = "kirk-keystore.jks";
-        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_CREATED,
+            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        );
 
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"tx_size_in_bytes\" : 0"));
         Assert.assertFalse(rh.executeSimpleRequest("_nodes/stats?pretty").contains("\"rx_count\" : 0"));
@@ -96,28 +104,38 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     public void testInitWithInjectedUser() throws Exception {
 
         final Settings settings = Settings.builder()
-                .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put("plugins.security.unsupported.inject_user.enabled", true)
-                .build();
+            .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
+            .put("plugins.security.unsupported.inject_user.enabled", true)
+            .build();
 
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfig("config_disable_all.yml"), settings, true);
 
         RestHelper rh = nonSslRestHelper();
 
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_UNAUTHORIZED,
+            rh.executePutRequest(".opendistro_security/_doc/0", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        );
+        Assert.assertEquals(
+            HttpStatus.SC_UNAUTHORIZED,
+            rh.executePutRequest(".opendistro_security/_doc/config", "{}", encodeBasicHeader("___", "")).getStatusCode()
+        );
 
     }
 
     @Test
     public void testWhoAmI() throws Exception {
         final Settings settings = Settings.builder()
-                .put("plugins.security.ssl.http.enabled",true)
-                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .build();
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml")
-                .setSecurityRoles("roles_deny.yml"), settings, true);
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .build();
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml").setSecurityRoles("roles_deny.yml"),
+            settings,
+            true
+        );
 
         try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "spock-keystore.jks", "truststore.jks")) {
             Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
@@ -135,14 +153,25 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testWhoAmIForceHttp1() throws Exception {
         final Settings settings = Settings.builder()
-                .put("plugins.security.ssl.http.enabled",true)
-                .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-                .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-                .build();
-        setup(Settings.EMPTY, new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml")
-                .setSecurityRoles("roles_deny.yml"), settings, true);
+            .put("plugins.security.ssl.http.enabled", true)
+            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
+            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
+            .build();
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml").setSecurityRoles("roles_deny.yml"),
+            settings,
+            true
+        );
 
-        try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "spock-keystore.jks", "truststore.jks", HttpVersionPolicy.FORCE_HTTP_1)) {
+        try (
+            RestHighLevelClient restHighLevelClient = getRestClient(
+                clusterInfo,
+                "spock-keystore.jks",
+                "truststore.jks",
+                HttpVersionPolicy.FORCE_HTTP_1
+            )
+        ) {
             Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
             Assert.assertEquals(whoAmIRes.getStatusLine().getStatusCode(), 200);
             // The HTTP/1.1 is forced and should be used instead
@@ -164,7 +193,17 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
-            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"), spock);
+            HttpResponse res = rh.executeRequest(
+                new HttpGet(
+                    "http://"
+                        + TransportAddress.getAddress()
+                        + ":"
+                        + TransportAddress.getPort()
+                        + "/"
+                        + "_opendistro/_security/authinfo?pretty=true"
+                ),
+                spock
+            );
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertFalse(res.getBody().contains("additionalrole"));
             Assert.assertTrue(res.getBody().contains("vulcan"));
@@ -172,15 +211,32 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
         try (Client tc = getClient()) {
             Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-            tc.index(new IndexRequest(".opendistro_security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("internalusers").source("internalusers", FileHelper.readYamlContent("internal_users_spock_add_roles.yml"))).actionGet();
-            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config","roles","rolesmapping","internalusers","actiongroups"})).actionGet();
+            tc.index(
+                new IndexRequest(".opendistro_security").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("internalusers")
+                    .source("internalusers", FileHelper.readYamlContent("internal_users_spock_add_roles.yml"))
+            ).actionGet();
+            ConfigUpdateResponse cur = tc.execute(
+                ConfigUpdateAction.INSTANCE,
+                new ConfigUpdateRequest(new String[] { "config", "roles", "rolesmapping", "internalusers", "actiongroups" })
+            ).actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
         }
 
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
-            log.debug("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort());
-            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"), spock);
+            log.debug("http://" + TransportAddress.getAddress() + ":" + TransportAddress.getPort());
+            HttpResponse res = rh.executeRequest(
+                new HttpGet(
+                    "http://"
+                        + TransportAddress.getAddress()
+                        + ":"
+                        + TransportAddress.getPort()
+                        + "/"
+                        + "_opendistro/_security/authinfo?pretty=true"
+                ),
+                spock
+            );
             Assert.assertTrue(res.getBody().contains("spock"));
             Assert.assertTrue(res.getBody().contains("additionalrole1"));
             Assert.assertTrue(res.getBody().contains("additionalrole2"));
@@ -189,14 +245,28 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
         try (Client tc = getClient()) {
             Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
-            tc.index(new IndexRequest(".opendistro_security").setRefreshPolicy(RefreshPolicy.IMMEDIATE).id("config").source("config", FileHelper.readYamlContent("config_anon.yml"))).actionGet();
-            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[]{"config"})).actionGet();
+            tc.index(
+                new IndexRequest(".opendistro_security").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                    .id("config")
+                    .source("config", FileHelper.readYamlContent("config_anon.yml"))
+            ).actionGet();
+            ConfigUpdateResponse cur = tc.execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(new String[] { "config" }))
+                .actionGet();
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
         }
 
         for (Iterator<TransportAddress> iterator = clusterInfo.httpAdresses.iterator(); iterator.hasNext();) {
             TransportAddress TransportAddress = (TransportAddress) iterator.next();
-            HttpResponse res = rh.executeRequest(new HttpGet("http://"+TransportAddress.getAddress()+":"+TransportAddress.getPort() + "/" + "_opendistro/_security/authinfo?pretty=true"));
+            HttpResponse res = rh.executeRequest(
+                new HttpGet(
+                    "http://"
+                        + TransportAddress.getAddress()
+                        + ":"
+                        + TransportAddress.getPort()
+                        + "/"
+                        + "_opendistro/_security/authinfo?pretty=true"
+                )
+            );
             log.debug(res.getBody());
             Assert.assertTrue(res.getBody().contains("role_host1"));
             Assert.assertTrue(res.getBody().contains("opendistro_security_anonymous"));
@@ -208,9 +278,7 @@ public class InitializationIntegrationTests extends SingleClusterTest {
 
     @Test
     public void testDefaultConfig() throws Exception {
-        final Settings settings = Settings.builder()
-                .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
-                .build();
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
         setup(Settings.EMPTY, null, settings, false);
         RestHelper rh = nonSslRestHelper();
         Thread.sleep(10000);
@@ -223,14 +291,17 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testInvalidDefaultConfig() throws Exception {
         try {
-            final String defaultInitDirectory = ClusterHelper.updateDefaultDirectory(new File(TEST_RESOURCE_RELATIVE_PATH + "invalid_config").getAbsolutePath());
-            final Settings settings = Settings.builder()
-                    .put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true)
-                    .build();
+            final String defaultInitDirectory = ClusterHelper.updateDefaultDirectory(
+                new File(TEST_RESOURCE_RELATIVE_PATH + "invalid_config").getAbsolutePath()
+            );
+            final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ALLOW_DEFAULT_INIT_SECURITYINDEX, true).build();
             setup(Settings.EMPTY, null, settings, false);
             RestHelper rh = nonSslRestHelper();
             Thread.sleep(10000);
-            Assert.assertEquals(HttpStatus.SC_SERVICE_UNAVAILABLE, rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode());
+            Assert.assertEquals(
+                HttpStatus.SC_SERVICE_UNAVAILABLE,
+                rh.executeGetRequest("", encodeBasicHeader("admin", "admin")).getStatusCode()
+            );
 
             ClusterHelper.updateDefaultDirectory(defaultInitDirectory);
             restart(Settings.EMPTY, null, settings, false);
@@ -258,7 +329,18 @@ public class InitializationIntegrationTests extends SingleClusterTest {
     @Test
     public void testDiscoveryWithoutInitialization() throws Exception {
         setup(Settings.EMPTY, null, Settings.EMPTY, false);
-        Assert.assertEquals(clusterInfo.numNodes, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getNumberOfNodes());
-        Assert.assertEquals(ClusterHealthStatus.GREEN, clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus());
+        Assert.assertEquals(
+            clusterInfo.numNodes,
+            clusterHelper.nodeClient()
+                .admin()
+                .cluster()
+                .health(new ClusterHealthRequest().waitForGreenStatus())
+                .actionGet()
+                .getNumberOfNodes()
+        );
+        Assert.assertEquals(
+            ClusterHealthStatus.GREEN,
+            clusterHelper.nodeClient().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()).actionGet().getStatus()
+        );
     }
 }

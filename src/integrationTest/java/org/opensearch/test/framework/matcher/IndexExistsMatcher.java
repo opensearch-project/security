@@ -21,26 +21,29 @@ import static java.util.Objects.requireNonNull;
 
 class IndexExistsMatcher extends TypeSafeDiagnosingMatcher<LocalCluster> {
 
-	private final String expectedIndexName;
+    private final String expectedIndexName;
 
-	IndexExistsMatcher(String expectedIndexName) {
-		this.expectedIndexName = requireNonNull(expectedIndexName);
-	}
+    IndexExistsMatcher(String expectedIndexName) {
+        this.expectedIndexName = requireNonNull(expectedIndexName);
+    }
 
-	@Override
-	protected boolean matchesSafely(LocalCluster cluster, Description mismatchDescription) {
-		try(Client client = cluster.getInternalNodeClient()) {
-			IndicesExistsResponse indicesExistsResponse = client.admin().indices().exists(new IndicesExistsRequest(expectedIndexName)).actionGet();
-			if (!indicesExistsResponse.isExists()) {
-				mismatchDescription.appendText("Index ").appendValue(expectedIndexName).appendValue(" does not exist");
-				return false;
-			}
-			return true;
-		}
-	}
+    @Override
+    protected boolean matchesSafely(LocalCluster cluster, Description mismatchDescription) {
+        try (Client client = cluster.getInternalNodeClient()) {
+            IndicesExistsResponse indicesExistsResponse = client.admin()
+                .indices()
+                .exists(new IndicesExistsRequest(expectedIndexName))
+                .actionGet();
+            if (!indicesExistsResponse.isExists()) {
+                mismatchDescription.appendText("Index ").appendValue(expectedIndexName).appendValue(" does not exist");
+                return false;
+            }
+            return true;
+        }
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Index ").appendValue(expectedIndexName).appendText(" exists");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Index ").appendValue(expectedIndexName).appendText(" exists");
+    }
 }

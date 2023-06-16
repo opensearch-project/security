@@ -50,26 +50,26 @@ public class CertificateValidatorTest {
 
         File staticCrl = FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl").toFile();
         Collection<? extends CRL> crls = null;
-        try(FileInputStream crlin = new FileInputStream(staticCrl)) {
+        try (FileInputStream crlin = new FileInputStream(staticCrl)) {
             crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
         }
 
         Assert.assertEquals(crls.size(), 1);
 
-        //trust chain incl intermediate certificates (root + intermediates)
+        // trust chain incl intermediate certificates (root + intermediates)
         Collection<? extends Certificate> rootCas;
         final File trustedCas = FileHelper.getAbsoluteFilePathFromClassPath("ssl/chain-ca.pem").toFile();
-        try(FileInputStream trin = new FileInputStream(trustedCas)) {
-            rootCas =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
+        try (FileInputStream trin = new FileInputStream(trustedCas)) {
+            rootCas = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
         Assert.assertEquals(rootCas.size(), 2);
 
-        //certificate chain to validate (client cert + intermediates but without root)
+        // certificate chain to validate (client cert + intermediates but without root)
         Collection<? extends Certificate> certsToValidate;
         final File certs = FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crt.pem").toFile();
-        try(FileInputStream trin = new FileInputStream(certs)) {
-            certsToValidate =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
+        try (FileInputStream trin = new FileInputStream(certs)) {
+            certsToValidate = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
         Assert.assertEquals(certsToValidate.size(), 2);
@@ -89,26 +89,26 @@ public class CertificateValidatorTest {
 
         File staticCrl = FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crl").toFile();
         Collection<? extends CRL> crls = null;
-        try(FileInputStream crlin = new FileInputStream(staticCrl)) {
+        try (FileInputStream crlin = new FileInputStream(staticCrl)) {
             crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
         }
 
         Assert.assertEquals(crls.size(), 1);
 
-        //trust chain incl intermediate certificates (root + intermediates)
+        // trust chain incl intermediate certificates (root + intermediates)
         Collection<? extends Certificate> rootCas;
         final File trustedCas = FileHelper.getAbsoluteFilePathFromClassPath("ssl/chain-ca.pem").toFile();
-        try(FileInputStream trin = new FileInputStream(trustedCas)) {
-            rootCas =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
+        try (FileInputStream trin = new FileInputStream(trustedCas)) {
+            rootCas = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
         Assert.assertEquals(rootCas.size(), 2);
 
-        //certificate chain to validate (client cert + intermediates but without root)
+        // certificate chain to validate (client cert + intermediates but without root)
         Collection<? extends Certificate> certsToValidate;
         final File certs = FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem").toFile();
-        try(FileInputStream trin = new FileInputStream(certs)) {
-            certsToValidate =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
+        try (FileInputStream trin = new FileInputStream(certs)) {
+            certsToValidate = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
         Assert.assertEquals(certsToValidate.size(), 3);
@@ -125,20 +125,20 @@ public class CertificateValidatorTest {
     @Test
     public void testNoValidationPossible() throws Exception {
 
-        //trust chain incl intermediate certificates (root + intermediates)
+        // trust chain incl intermediate certificates (root + intermediates)
         Collection<? extends Certificate> rootCas;
         final File trustedCas = FileHelper.getAbsoluteFilePathFromClassPath("ssl/chain-ca.pem").toFile();
-        try(FileInputStream trin = new FileInputStream(trustedCas)) {
-            rootCas =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
+        try (FileInputStream trin = new FileInputStream(trustedCas)) {
+            rootCas = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
         Assert.assertEquals(rootCas.size(), 2);
 
-        //certificate chain to validate (client cert + intermediates but without root)
+        // certificate chain to validate (client cert + intermediates but without root)
         Collection<? extends Certificate> certsToValidate;
         final File certs = FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crt.pem").toFile();
-        try(FileInputStream trin = new FileInputStream(certs)) {
-            certsToValidate =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
+        try (FileInputStream trin = new FileInputStream(certs)) {
+            certsToValidate = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
         Assert.assertEquals(certsToValidate.size(), 2);
@@ -157,21 +157,21 @@ public class CertificateValidatorTest {
     @Test
     public void testCRLDP() throws Exception {
 
-        //trust chain incl intermediate certificates (root + intermediates)
+        // trust chain incl intermediate certificates (root + intermediates)
         Collection<? extends Certificate> rootCas;
         final File trustedCas = FileHelper.getAbsoluteFilePathFromClassPath("ssl/root-ca.pem").toFile();
-        try(FileInputStream trin = new FileInputStream(trustedCas)) {
-            rootCas =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
+        try (FileInputStream trin = new FileInputStream(trustedCas)) {
+            rootCas = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
         Assert.assertEquals(rootCas.size(), 1);
 
-        //certificate chain to validate (client cert + intermediates but without root)
+        // certificate chain to validate (client cert + intermediates but without root)
         Collection<? extends Certificate> certsToValidate;
         final File certs = FileHelper.getAbsoluteFilePathFromClassPath("ssl/crl/revoked.crt.pem").toFile();
-        //final File certs = getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem");
-        try(FileInputStream trin = new FileInputStream(certs)) {
-            certsToValidate =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
+        // final File certs = getAbsoluteFilePathFromClassPath("ssl/node-0.crt.pem");
+        try (FileInputStream trin = new FileInputStream(certs)) {
+            certsToValidate = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
         }
 
         Assert.assertEquals(certsToValidate.size(), 2);

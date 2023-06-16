@@ -26,11 +26,12 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
+
     protected String getEndpointPrefix() {
         return PLUGINS_PREFIX;
     }
 
-    public RoleBasedAccessTest(){
+    public RoleBasedAccessTest() {
         ENDPOINT = getEndpointPrefix() + "/api";
     }
 
@@ -100,7 +101,6 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         Assert.assertEquals("", settings.getAsList("opendistro_security_role_starfleet_library.backend_roles").get(0), "starfleet*");
         Assert.assertEquals("", settings.getAsList("opendistro_security_zdummy_all.users").get(0), "bug108");
 
-
         // Deprecated get configuration API, acessible for sarek
         // response = rh.executeGetRequest("_opendistro/_security/api/configuration/internalusers", encodeBasicHeader("sarek", "sarek"));
         // settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
@@ -119,9 +119,9 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         // Assert.assertEquals("", settings.getAsList("CRUD.permissions").get(0), "READ_UT");
 
         // configuration API, not accessible for worf
-//        response = rh.executeGetRequest("_opendistro/_security/api/configuration/actiongroups", encodeBasicHeader("worf", "worf"));
-//        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
-//        Assert.assertTrue(response.getBody().contains("does not have any access to endpoint CONFIGURATION"));
+        // response = rh.executeGetRequest("_opendistro/_security/api/configuration/actiongroups", encodeBasicHeader("worf", "worf"));
+        // Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        // Assert.assertTrue(response.getBody().contains("does not have any access to endpoint CONFIGURATION"));
 
         // cache API, not accessible for worf since it's disabled globally
         response = rh.executeDeleteRequest("_opendistro/_security/api/cache", encodeBasicHeader("worf", "worf"));
@@ -173,10 +173,18 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         // Worf, has access to roles API, get captains role
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Assert.assertEquals(new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted("opendistro_security_role_starfleet_captains.cluster_permissions").get(0).asString(), "cluster:monitor*");
+        Assert.assertEquals(
+            new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted(
+                "opendistro_security_role_starfleet_captains.cluster_permissions"
+            ).get(0).asString(),
+            "cluster:monitor*"
+        );
 
         // Worf, has access to roles API, able to delete
-        response = rh.executeDeleteRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
+        response = rh.executeDeleteRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            encodeBasicHeader("worf", "worf")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("'opendistro_security_role_starfleet_captains' deleted"));
 
@@ -196,20 +204,31 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         // --- PUT ---
 
         // admin, no access
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                        FileHelper.loadFile("restapi/roles_captains_tenants.json"), encodeBasicHeader("admin", "admin"));
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_captains_tenants.json"),
+            encodeBasicHeader("admin", "admin")
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // worf, restore role starfleet captains
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                        FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("worf", "worf"));
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_captains_different_content.json"),
+            encodeBasicHeader("worf", "worf")
+        );
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
 
         // starfleet role present again
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        Assert.assertEquals(new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted("opendistro_security_role_starfleet_captains.index_permissions").get(0).get("allowed_actions").get(0).asString(), "blafasel");
+        Assert.assertEquals(
+            new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted(
+                "opendistro_security_role_starfleet_captains.index_permissions"
+            ).get(0).get("allowed_actions").get(0).asString(),
+            "blafasel"
+        );
 
         // Try the same, but now with admin certificate
         rh.sendAdminCertificate = true;
@@ -245,8 +264,11 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
         // PUT roles
-        response = rh.executePutRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
-                        FileHelper.loadFile("restapi/roles_captains_different_content.json"), encodeBasicHeader("test", "test"));
+        response = rh.executePutRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            FileHelper.loadFile("restapi/roles_captains_different_content.json"),
+            encodeBasicHeader("test", "test")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // GET captions role
@@ -254,14 +276,16 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         // Delete captions role
-        response = rh.executeDeleteRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("test", "test"));
+        response = rh.executeDeleteRequest(
+            ENDPOINT + "/roles/opendistro_security_role_starfleet_captains",
+            encodeBasicHeader("test", "test")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertTrue(response.getBody().contains("'opendistro_security_role_starfleet_captains' deleted"));
 
         // GET captions role
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("test", "test"));
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
-
 
     }
 }

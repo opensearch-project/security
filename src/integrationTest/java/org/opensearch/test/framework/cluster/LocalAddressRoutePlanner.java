@@ -23,26 +23,26 @@ import org.apache.hc.core5.http.protocol.HttpContext;
 */
 class LocalAddressRoutePlanner extends DefaultRoutePlanner {
 
-	/**
-	* IP address of one of the local network interfaces.
-	*/
-	private final InetAddress localAddress;
+    /**
+    * IP address of one of the local network interfaces.
+    */
+    private final InetAddress localAddress;
 
-	/**
-	* Creates {@link LocalAddressRoutePlanner}
-	* @param localAddress IP address of one of the local network interfaces. Client socket used by Apache HTTP client will be bind to
-	*                        address from this parameter. The parameter must not be <code>null</code>.
-	*/
-	public LocalAddressRoutePlanner(InetAddress localAddress) {
-		super(DefaultSchemePortResolver.INSTANCE);
-		this.localAddress = Objects.requireNonNull(localAddress);
-	}
+    /**
+    * Creates {@link LocalAddressRoutePlanner}
+    * @param localAddress IP address of one of the local network interfaces. Client socket used by Apache HTTP client will be bind to
+    *                        address from this parameter. The parameter must not be <code>null</code>.
+    */
+    public LocalAddressRoutePlanner(InetAddress localAddress) {
+        super(DefaultSchemePortResolver.INSTANCE);
+        this.localAddress = Objects.requireNonNull(localAddress);
+    }
 
-	/**
-	* Determines IP address used by the client socket of Apache HTTP client
-	*/
-	@Override
-	protected InetAddress determineLocalAddress(HttpHost firstHop, HttpContext context)  {
-		return localAddress;
-	}
+    /**
+    * Determines IP address used by the client socket of Apache HTTP client
+    */
+    @Override
+    protected InetAddress determineLocalAddress(HttpHost firstHop, HttpContext context) {
+        return localAddress;
+    }
 }

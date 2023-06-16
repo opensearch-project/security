@@ -109,26 +109,32 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
     static {
 
-        System.out.println("OS: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " "
-                + System.getProperty("os.version"));
         System.out.println(
-                "Java Version: " + System.getProperty("java.version") + " " + System.getProperty("java.vendor"));
-        System.out.println("JVM Impl.: " + System.getProperty("java.vm.version") + " "
-                + System.getProperty("java.vm.vendor") + " " + System.getProperty("java.vm.name"));
+            "OS: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " " + System.getProperty("os.version")
+        );
+        System.out.println("Java Version: " + System.getProperty("java.version") + " " + System.getProperty("java.vendor"));
+        System.out.println(
+            "JVM Impl.: "
+                + System.getProperty("java.vm.version")
+                + " "
+                + System.getProperty("java.vm.vendor")
+                + " "
+                + System.getProperty("java.vm.name")
+        );
         System.out.println("Open SSL available: " + OpenSsl.isAvailable());
         System.out.println("Open SSL version: " + OpenSsl.versionString());
         withRemoteCluster = Boolean.parseBoolean(System.getenv("TESTARG_unittests_with_remote_cluster"));
         System.out.println("With remote cluster: " + withRemoteCluster);
-        //System.setProperty("security.display_lic_none","true");
+        // System.setProperty("security.display_lic_none","true");
     }
 
     protected final Logger log = LogManager.getLogger(this.getClass());
-    public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name",  "mock").build());
+    public static final ThreadPool MOCK_POOL = new ThreadPool(Settings.builder().put("node.name", "mock").build());
 
-    //TODO Test Matrix
-    protected boolean allowOpenSSL = false; //disabled, we test this already in SSL Plugin
-    //enable//disable enterprise modules
-    //1node and 3 node
+    // TODO Test Matrix
+    protected boolean allowOpenSSL = false; // disabled, we test this already in SSL Plugin
+    // enable//disable enterprise modules
+    // 1node and 3 node
 
     @Rule
     public TestName name = new TestName();
@@ -136,63 +142,68 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
     @Rule
     public final TemporaryFolder repositoryPath = new TemporaryFolder();
 
-	@Rule
-	public final TestWatcher testWatcher = new SecurityTestWatcher();
+    @Rule
+    public final TestWatcher testWatcher = new SecurityTestWatcher();
 
     public static Header encodeBasicHeader(final String username, final String password) {
-        return new BasicHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(
-                (username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8)));
+        return new BasicHeader(
+            "Authorization",
+            "Basic "
+                + Base64.getEncoder().encodeToString((username + ":" + Objects.requireNonNull(password)).getBytes(StandardCharsets.UTF_8))
+        );
     }
 
     protected RestHighLevelClient getRestClient(ClusterInfo info, String keyStoreName, String trustStoreName) {
         return getRestClient(info, keyStoreName, trustStoreName, null);
     }
 
-    protected RestHighLevelClient getRestClient(ClusterInfo info, String keyStoreName, String trustStoreName, HttpVersionPolicy httpVersionPolicy) {
-        final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+    protected RestHighLevelClient getRestClient(
+        ClusterInfo info,
+        String keyStoreName,
+        String trustStoreName,
+        HttpVersionPolicy httpVersionPolicy
+    ) {
+        final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 
         try {
             SSLContextBuilder sslContextBuilder = SSLContexts.custom();
             File keyStoreFile = FileHelper.getAbsoluteFilePathFromClassPath(prefix + keyStoreName).toFile();
-            KeyStore keyStore = KeyStore.getInstance(keyStoreName.endsWith(".jks")?"JKS":"PKCS12");
+            KeyStore keyStore = KeyStore.getInstance(keyStoreName.endsWith(".jks") ? "JKS" : "PKCS12");
             keyStore.load(new FileInputStream(keyStoreFile), null);
             sslContextBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
 
-            KeyStore trustStore = KeyStore.getInstance(trustStoreName.endsWith(".jks")?"JKS":"PKCS12");
+            KeyStore trustStore = KeyStore.getInstance(trustStoreName.endsWith(".jks") ? "JKS" : "PKCS12");
             File trustStoreFile = FileHelper.getAbsoluteFilePathFromClassPath(prefix + trustStoreName).toFile();
-            trustStore.load(new FileInputStream(trustStoreFile),
-                    "changeit".toCharArray());
+            trustStore.load(new FileInputStream(trustStoreFile), "changeit".toCharArray());
 
             sslContextBuilder.loadTrustMaterial(trustStore, null);
             SSLContext sslContext = sslContextBuilder.build();
 
             HttpHost httpHost = new HttpHost("https", info.httpHost, info.httpPort);
 
-            RestClientBuilder restClientBuilder = RestClient.builder(httpHost)
-                    .setHttpClientConfigCallback(
-                            builder -> {
-                                TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
-                                        .setSslContext(sslContext)
-                                        .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3"})
-                                        .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                                        // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
-                                        .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
-                                            @Override
-                                            public TlsDetails create(final SSLEngine sslEngine) {
-                                                return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
-                                            }
-                                        })
-                                        .build();
+            RestClientBuilder restClientBuilder = RestClient.builder(httpHost).setHttpClientConfigCallback(builder -> {
+                TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                    .setSslContext(sslContext)
+                    .setTlsVersions(new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "SSLv3" })
+                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                    // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
+                    .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
+                        @Override
+                        public TlsDetails create(final SSLEngine sslEngine) {
+                            return new TlsDetails(sslEngine.getSession(), sslEngine.getApplicationProtocol());
+                        }
+                    })
+                    .build();
 
-                                final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
-                                        .setTlsStrategy(tlsStrategy)
-                                        .build();
-                                builder.setConnectionManager(cm);
-                                if (httpVersionPolicy != null) {
-                                    builder.setVersionPolicy(httpVersionPolicy);
-                                }
-                                return builder;
-                            });
+                final AsyncClientConnectionManager cm = PoolingAsyncClientConnectionManagerBuilder.create()
+                    .setTlsStrategy(tlsStrategy)
+                    .build();
+                builder.setConnectionManager(cm);
+                if (httpVersionPolicy != null) {
+                    builder.setVersionPolicy(httpVersionPolicy);
+                }
+                return builder;
+            });
             return new RestHighLevelClient(restClientBuilder);
         } catch (Exception e) {
             log.error("Cannot create client", e);
@@ -210,7 +221,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
                 retainedException = Optional.empty();
                 return;
             } catch (OpenSearchSecurityException ex) {
-                if(ex.getMessage().contains("OpenSearch Security not initialized")) {
+                if (ex.getMessage().contains("OpenSearch Security not initialized")) {
                     retainedException = Optional.of(ex);
                     try {
                         Thread.sleep(500);
@@ -227,7 +238,11 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         }
     }
 
-    public static Settings.Builder nodeRolesSettings(final Settings.Builder settingsBuilder, final boolean isClusterManager, final boolean isDataNode) {
+    public static Settings.Builder nodeRolesSettings(
+        final Settings.Builder settingsBuilder,
+        final boolean isClusterManager,
+        final boolean isDataNode
+    ) {
         final ImmutableList.Builder<String> nodeRolesBuilder = ImmutableList.<String>builder();
         if (isDataNode) {
             nodeRolesBuilder.add(DiscoveryNodeRole.DATA_ROLE.roleName());
@@ -245,29 +260,29 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             .addAll(settingsBuilder.build().getAsList(NODE_ROLE_KEY, ImmutableList.<String>of()))
             .addAll(otherSettings.getAsList(NODE_ROLE_KEY, ImmutableList.<String>of()));
 
-        return settingsBuilder.put(otherSettings)
-            .putList(NODE_ROLE_KEY, originalRoles.build().asList());
+        return settingsBuilder.put(otherSettings).putList(NODE_ROLE_KEY, originalRoles.build().asList());
     }
 
-    protected void initialize(ClusterHelper clusterHelper, ClusterInfo clusterInfo, DynamicSecurityConfig securityConfig) throws IOException {
+    protected void initialize(ClusterHelper clusterHelper, ClusterInfo clusterInfo, DynamicSecurityConfig securityConfig)
+        throws IOException {
         try (Client tc = clusterHelper.nodeClient()) {
-            Assert.assertEquals(clusterInfo.numNodes,
-                    tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
+            Assert.assertEquals(clusterInfo.numNodes, tc.admin().cluster().nodesInfo(new NodesInfoRequest()).actionGet().getNodes().size());
 
             try {
                 tc.admin().indices().create(new CreateIndexRequest(".opendistro_security")).actionGet();
             } catch (Exception e) {
-                //ignore
+                // ignore
             }
 
             List<IndexRequest> indexRequests = securityConfig.getDynamicConfig(getResourceFolder());
-            for(IndexRequest ir: indexRequests) {
+            for (IndexRequest ir : indexRequests) {
                 tc.index(ir).actionGet();
             }
 
-            ConfigUpdateResponse cur = tc
-                    .execute(ConfigUpdateAction.INSTANCE, new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])))
-                    .actionGet();
+            ConfigUpdateResponse cur = tc.execute(
+                ConfigUpdateAction.INSTANCE,
+                new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0]))
+            ).actionGet();
             Assert.assertFalse(cur.failures().toString(), cur.hasFailures());
             Assert.assertEquals(clusterInfo.numNodes, cur.getNodes().size());
 
@@ -278,22 +293,27 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
 
     protected Settings.Builder minimumSecuritySettingsBuilder(int node, boolean sslOnly, Settings other) {
 
-        final String prefix = getResourceFolder()==null?"":getResourceFolder()+"/";
+        final String prefix = getResourceFolder() == null ? "" : getResourceFolder() + "/";
 
         Settings.Builder builder = Settings.builder()
-                .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL);
+            .put(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL)
+            .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENABLE_OPENSSL_IF_AVAILABLE, allowOpenSSL);
 
         // If custom transport settings are not defined use defaults
         if (!hasCustomTransportSettings(other)) {
             builder.put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_ALIAS, "node-0")
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
-                    FileHelper.getAbsoluteFilePathFromClassPath(prefix+"node-0-keystore.jks"))
-                .put(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, FileHelper.getAbsoluteFilePathFromClassPath(prefix+"truststore.jks"))
+                .put(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_FILEPATH,
+                    FileHelper.getAbsoluteFilePathFromClassPath(prefix + "node-0-keystore.jks")
+                )
+                .put(
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
+                    FileHelper.getAbsoluteFilePathFromClassPath(prefix + "truststore.jks")
+                )
                 .put("plugins.security.ssl.transport.enforce_hostname_verification", false);
         }
 
-        if(!sslOnly) {
+        if (!sslOnly) {
             builder.putList("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,l=tEst, C=De");
             builder.put(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, false);
         }
@@ -340,8 +360,8 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
             assert i > 0; // i is 1-indexed
 
             // Set to default if input does not have value at (i-1) index
-            boolean sslOnlyFlag = i > sslOnly.size() ? false : sslOnly.get(i-1);
-            Settings settings = i > others.size() ? Settings.EMPTY : others.get(i-1);
+            boolean sslOnlyFlag = i > sslOnly.size() ? false : sslOnly.get(i - 1);
+            Settings settings = i > others.size() ? Settings.EMPTY : others.get(i - 1);
 
             return minimumSecuritySettingsBuilder(i, sslOnlyFlag, settings).build();
         };
@@ -363,7 +383,6 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
         return null;
     }
 
-
     /**
      * Check if transport certs are is mentioned in the custom settings
      * @param customSettings custom settings from the test class
@@ -371,7 +390,7 @@ public abstract class AbstractSecurityUnitTest extends RandomizedTest {
      */
     protected boolean hasCustomTransportSettings(Settings customSettings) {
         // If Transport key extended usage is enabled this is true
-        return Boolean.parseBoolean(customSettings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED))  ||
-                customSettings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH) != null;
+        return Boolean.parseBoolean(customSettings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_EXTENDED_KEY_USAGE_ENABLED))
+            || customSettings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH) != null;
     }
 }

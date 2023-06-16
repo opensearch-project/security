@@ -49,16 +49,26 @@ public class SnapshotRestoreEvaluator {
     private final boolean restoreSecurityIndexEnabled;
 
     public SnapshotRestoreEvaluator(final Settings settings, AuditLog auditLog) {
-        this.enableSnapshotRestorePrivilege = settings.getAsBoolean(ConfigConstants.SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
-                ConfigConstants.SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE);
+        this.enableSnapshotRestorePrivilege = settings.getAsBoolean(
+            ConfigConstants.SECURITY_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE,
+            ConfigConstants.SECURITY_DEFAULT_ENABLE_SNAPSHOT_RESTORE_PRIVILEGE
+        );
         this.restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
 
-        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(
+            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+        );
         this.auditLog = auditLog;
     }
 
-    public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final Task task, final String action, final ClusterInfoHolder clusterInfoHolder,
-            final PrivilegesEvaluatorResponse presponse) {
+    public PrivilegesEvaluatorResponse evaluate(
+        final ActionRequest request,
+        final Task task,
+        final String action,
+        final ClusterInfoHolder clusterInfoHolder,
+        final PrivilegesEvaluatorResponse presponse
+    ) {
 
         if (!(request instanceof RestoreSnapshotRequest)) {
             return presponse;
@@ -77,7 +87,6 @@ public class SnapshotRestoreEvaluator {
             presponse.allowed = true;
             return presponse;
         }
-
 
         if (clusterInfoHolder.isLocalNodeElectedClusterManager() == Boolean.FALSE) {
             presponse.allowed = true;
