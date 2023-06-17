@@ -41,6 +41,13 @@ import org.opensearch.security.support.ConfigConstants;
 
 public abstract class AbstractConfigurationValidator {
 
+    public static final AbstractConfigurationValidator NO_OP_VALIDATOR = new AbstractConfigurationValidator(null, null, null) {
+        @Override
+        public boolean validate() {
+            return true;
+        }
+    };
+
     JsonFactory factory = new JsonFactory();
 
     /* public for testing */
@@ -78,8 +85,6 @@ public abstract class AbstractConfigurationValidator {
 
     protected boolean payloadAllowed = true;
 
-    protected final Method method;
-
     protected final BytesReference content;
 
     protected final Settings opensearchSettings;
@@ -97,7 +102,6 @@ public abstract class AbstractConfigurationValidator {
         Object... param
     ) {
         this.content = ref;
-        this.method = request.method();
         this.opensearchSettings = opensearchSettings;
         this.request = request;
         this.param = param;
@@ -113,7 +117,7 @@ public abstract class AbstractConfigurationValidator {
      */
     public boolean validate() {
         // no payload for DELETE and GET requests
-        if (method.equals(Method.DELETE) || method.equals(Method.GET)) {
+        if (request.method() == Method.DELETE || request.method() == Method.GET) {
             return true;
         }
 

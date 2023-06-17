@@ -31,7 +31,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.NoOpValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -77,7 +76,6 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
     @Override
     protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
         throws IOException {
-
         // Just do nothing here. Eligible authenticators will intercept calls and
         // provide own responses.
         successResponse(channel, "");
@@ -85,7 +83,7 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
 
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... param) {
-        return new NoOpValidator(request, ref, this.settings, param);
+        return AbstractConfigurationValidator.NO_OP_VALIDATOR;
     }
 
     @Override

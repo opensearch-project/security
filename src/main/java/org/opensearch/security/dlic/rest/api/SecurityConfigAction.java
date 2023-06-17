@@ -122,12 +122,6 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.POST);
-    }
-
-    @Override
     protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
         throws IOException {
         notImplemented(channel, Method.DELETE);

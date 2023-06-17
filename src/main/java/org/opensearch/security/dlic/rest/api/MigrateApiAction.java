@@ -46,7 +46,6 @@ import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.NoOpValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
@@ -296,7 +295,7 @@ public class MigrateApiAction extends AbstractApiAction {
 
     @Override
     protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... param) {
-        return new NoOpValidator(request, ref, this.settings, param);
+        return AbstractConfigurationValidator.NO_OP_VALIDATOR;
     }
 
     @Override
