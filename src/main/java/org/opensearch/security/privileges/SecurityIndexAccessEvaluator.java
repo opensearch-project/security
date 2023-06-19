@@ -39,7 +39,6 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.RealtimeRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.util.FeatureFlags;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
@@ -75,7 +74,10 @@ public class SecurityIndexAccessEvaluator {
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
         );
 
-        List<String> systemIndecesFromConfig =  settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT);
+        List<String> systemIndecesFromConfig = settings.getAsList(
+            ConfigConstants.SECURITY_SYSTEM_INDICES_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT
+        );
 
         this.configuredSystemIndices = new ArrayList<>(systemIndecesFromConfig);
         this.configuredSystemIndices.add(ConfigConstants.SYSTEM_INDEX_PERMISSION);
@@ -105,17 +107,22 @@ public class SecurityIndexAccessEvaluator {
     }
 
     public PrivilegesEvaluatorResponse evaluate(
-            final ActionRequest request,
-            final Task task,
-            final String action,
-            final Resolved requestedResolved,
-            final PrivilegesEvaluatorResponse presponse,
-            ConfigModelV7.SecurityRoles securityRoles) {
+        final ActionRequest request,
+        final Task task,
+        final String action,
+        final Resolved requestedResolved,
+        final PrivilegesEvaluatorResponse presponse,
+        ConfigModelV7.SecurityRoles securityRoles
+    ) {
 
-            final boolean isDebugEnabled = log.isDebugEnabled();
+        final boolean isDebugEnabled = log.isDebugEnabled();
 
-            if( matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)){
-            log.warn("An account without the {} permission  is trying to access a System Index. Related indexes: {}", ConfigConstants.SYSTEM_INDEX_PERMISSION, getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", ")) );
+        if (matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)) {
+            log.warn(
+                "An account without the {} permission  is trying to access a System Index. Related indexes: {}",
+                ConfigConstants.SYSTEM_INDEX_PERMISSION,
+                getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "))
+            );
             presponse.allowed = false;
             return presponse.markComplete();
         }
@@ -187,14 +194,15 @@ public class SecurityIndexAccessEvaluator {
         return presponse;
     }
 
-    private  boolean checkSystemIndexPermissionsForUser(ConfigModelV7.SecurityRoles securityRoles) {
-        Set<WildcardMatcher> userPermMatchers = securityRoles.getRoles().stream()
-                .flatMap(role -> role.getIpatterns().stream())
-                .map(ConfigModelV7.IndexPattern::getNonWildCardPerms)
-                .collect(Collectors.toSet());
+    private boolean checkSystemIndexPermissionsForUser(ConfigModelV7.SecurityRoles securityRoles) {
+        Set<WildcardMatcher> userPermMatchers = securityRoles.getRoles()
+            .stream()
+            .flatMap(role -> role.getIpatterns().stream())
+            .map(ConfigModelV7.IndexPattern::getNonWildCardPerms)
+            .collect(Collectors.toSet());
 
-        for(WildcardMatcher userPermMatcher : userPermMatchers.stream().collect(Collectors.toSet()) ){
-            if(userPermMatcher.matchAny(ConfigConstants.SYSTEM_INDEX_PERMISSION)){
+        for (WildcardMatcher userPermMatcher : userPermMatchers.stream().collect(Collectors.toSet())) {
+            if (userPermMatcher.matchAny(ConfigConstants.SYSTEM_INDEX_PERMISSION)) {
                 return true;
             }
         }
