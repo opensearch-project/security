@@ -34,7 +34,7 @@ The runtime of the Security Plugin uses extension points to insert itself into t
 
 ### Security Configuration
 
-The security configuration is stored in an system index that is replicated to all nodes. When a change has been made the Security plugin is reloaded to cleanly initialize its components with the new configuration.
+The security configuration is stored in an system index that is replicated to all nodes. When a change has been made to the configuration, the Security Plugin is reloaded to cleanly initialize its components with the new settings.
 
 #### Configuration Files
 
@@ -52,7 +52,7 @@ The Security Plugin supports multiple authentication backends including an inter
 
 Authorization is governed by roles declared in the security configuration. Roles control resource access by referencing the transport action name and/or index names in combination with OpenSearch action names.  
 
-Users are connected to roles through roles mapping including getting backend roles from the authentication provider and mapping them to the roles configured in the Security Plugin.
+Users are assigned roles via the role mappings. These mappings include backend role assignments from authentication providers as well as internal roles defined in the Security Plugin.
 
 ```mermaid
 sequenceDiagram
