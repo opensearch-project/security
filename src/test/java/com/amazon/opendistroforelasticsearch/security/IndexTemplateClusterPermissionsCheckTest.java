@@ -9,16 +9,16 @@
  * GitHub history for details.
  */
 
-package org.opensearch.security;
+package com.amazon.opendistroforelasticsearch.security;
 
 import org.apache.http.HttpStatus;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.security.test.SingleClusterTest;
-import org.opensearch.security.test.helper.rest.RestHelper;
-import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import com.amazon.opendistroforelasticsearch.security.test.SingleClusterTest;
+import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper;
+import com.amazon.opendistroforelasticsearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest{
         private RestHelper rh;
@@ -36,10 +36,10 @@ public class IndexTemplateClusterPermissionsCheckTest extends SingleClusterTest{
         }
         @Test
         public void testPutIndexTemplateByNonPrivilegedUser() throws Exception {
-            String expectedFailureResponse = getFailureResponseReason("ds3");
+            String expectedFailureResponse = getFailureResponseReason("user_with_no_roles");
 
-            // should fail, as user `ds3` doesn't have correct permissions
-            HttpResponse response = rh.executePutRequest("/_index_template/sem1234", indexTemplateBody, encodeBasicHeader("ds3", "nagilum"));
+            // should fail, as user `user_with_no_roles` doesn't have correct permissions
+            HttpResponse response = rh.executePutRequest("/_index_template/sem1234", indexTemplateBody, encodeBasicHeader("user_with_no_roles", "nagilum"));
             Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
             Assert.assertEquals(expectedFailureResponse, response.findValueInJson("error.root_cause[0].reason"));
         }
