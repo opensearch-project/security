@@ -113,7 +113,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             // Extracting roles based on the compatbility mode
             String decryptedRoles = rolesClaim;
             if (rolesObject == claims.get("er")) {
-                //TODO: WHERE TO GET THE ENCRYTION KEY
                 decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
             }
             roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).collect(Collectors.toList());
@@ -123,7 +122,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private String[] extractBackendRolesFromClaims(Claims claims) {
-        //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
         Object backendRolesObject = ObjectUtils.firstNonNull(claims.get("ebr"), claims.get("dbr"));
         String[] backendRoles;
 
@@ -137,7 +135,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             // Extracting roles based on the compatibility mode
             String decryptedBackendRoles = backendRolesClaim;
             if (backendRolesObject == claims.get("ebr")) {
-                //TODO: WHERE TO GET THE ENCRYTION KEY
                 decryptedBackendRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, backendRolesClaim);
             }
             backendRoles = Arrays.stream(decryptedBackendRoles.split(",")).map(String::trim).toArray(String[]::new);

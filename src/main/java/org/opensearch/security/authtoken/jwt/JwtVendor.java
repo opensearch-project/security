@@ -42,8 +42,6 @@ public class JwtVendor {
     private final JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
 
-    //TODO: Relocate/Remove them at once we make the descisions about the `roles`
-    private ConfigModel configModel; // This never gets assigned, how does this work at all?
 
     public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
@@ -63,7 +61,6 @@ public class JwtVendor {
         } else {
             this.timeProvider = () -> System.currentTimeMillis() / 1000;
         }
-        this.configModel = null;
     }
 
     /*
@@ -131,7 +128,6 @@ public class JwtVendor {
             throw new Exception("The expiration time should be a positive integer");
         }
 
-        //TODO: IF USER ENABLES THE BWC MODE, WE ARE EXPECTING TO SET PLAIN TEXT ROLE AS `dr`
         if (roles != null) {
             String listOfRoles = String.join(",", roles);
             jwtClaims.setProperty("er", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
