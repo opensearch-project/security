@@ -287,8 +287,14 @@ public class PrivilegesEvaluator {
         }
 
         // Security index access
-        if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse,
-                (ConfigModelV7.SecurityRoles) securityRoles).isComplete()) {
+        if (securityIndexAccessEvaluator.evaluate(
+            request,
+            task,
+            action0,
+            requestedResolved,
+            presponse,
+            (ConfigModelV7.SecurityRoles) securityRoles
+        ).isComplete()) {
             return presponse;
         }
 
@@ -523,9 +529,9 @@ public class PrivilegesEvaluator {
         return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
                 && dcm.isDashboardsMultitenancyEnabled();
     }
+
     public boolean privateTenantEnabled() {
-        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && dcm.isDashboardsPrivateTenantEnabled();
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class && dcm.isDashboardsPrivateTenantEnabled();
     }
 
     public String dashboardsDefaultTenant() {
@@ -550,7 +556,7 @@ public class PrivilegesEvaluator {
     }
 
     private Set<String> evaluateAdditionalIndexPermissions(final ActionRequest request, final String originalAction) {
-        //--- check inner bulk requests
+        // --- check inner bulk requests
         final Set<String> additionalPermissionsRequired = new HashSet<>();
 
         if(!isClusterPerm(originalAction)) {
@@ -617,17 +623,17 @@ public class PrivilegesEvaluator {
     }
 
     public static boolean isClusterPerm(String action0) {
-        return  (    action0.startsWith("cluster:")
-                || action0.startsWith("indices:admin/template/")
-                || action0.startsWith("indices:admin/index_template/")
-                || action0.startsWith(SearchScrollAction.NAME)
-                || (action0.equals(BulkAction.NAME))
-                || (action0.equals(MultiGetAction.NAME))
-                || (action0.equals(MultiSearchAction.NAME))
-                || (action0.equals(MultiTermVectorsAction.NAME))
-                || (action0.equals(ReindexAction.NAME))
+        return (action0.startsWith("cluster:")
+            || action0.startsWith("indices:admin/template/")
+            || action0.startsWith("indices:admin/index_template/")
+            || action0.startsWith(SearchScrollAction.NAME)
+            || (action0.equals(BulkAction.NAME))
+            || (action0.equals(MultiGetAction.NAME))
+            || (action0.equals(MultiSearchAction.NAME))
+            || (action0.equals(MultiTermVectorsAction.NAME))
+            || (action0.equals(ReindexAction.NAME))
 
-        ) ;
+        );
     }
 
     @SuppressWarnings("unchecked")

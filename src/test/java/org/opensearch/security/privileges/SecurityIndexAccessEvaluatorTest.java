@@ -65,10 +65,10 @@ public class SecurityIndexAccessEvaluatorTest {
     @Before
     public void before() {
         evaluator = new SecurityIndexAccessEvaluator(
-                Settings.EMPTY.builder()
-                    .put("plugins.security.system_indices.indices", ".testSystemIndex")
-                    .put("plugins.security.system_indices.enabled", true)
-                    .build(),
+            Settings.EMPTY.builder()
+                .put("plugins.security.system_indices.indices", ".testSystemIndex")
+                .put("plugins.security.system_indices.enabled", true)
+                .build(),
             auditLog,
             irr
         );
@@ -81,12 +81,20 @@ public class SecurityIndexAccessEvaluatorTest {
     public void after() {
         verifyNoMoreInteractions(auditLog, irr, request, task, presponse, log);
     }
+
     @Test
     public void actionIsNotProtected_noSystemIndexInvolved() {
         final Resolved resolved = createResolved(".testSystemIndex");
 
         // Action
-        final PrivilegesEvaluatorResponse response = evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse, securityRoles);
+        final PrivilegesEvaluatorResponse response = evaluator.evaluate(
+            request,
+            null,
+            UNPROTECTED_ACTION,
+            resolved,
+            presponse,
+            securityRoles
+        );
 
         verifyNoInteractions(presponse);
         assertThat(response, is(presponse));
@@ -100,11 +108,10 @@ public class SecurityIndexAccessEvaluatorTest {
         final MultiGetRequest realtimeRequest = mock(MultiGetRequest.class);
         final Resolved resolved = createResolved(".testSystemIndex");
 
-
         // Action
-        evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse,  securityRoles);
-        evaluator.evaluate(searchRequest, null, UNPROTECTED_ACTION, resolved, presponse,  securityRoles);
-        evaluator.evaluate(realtimeRequest, null, UNPROTECTED_ACTION, resolved, presponse,  securityRoles);
+        evaluator.evaluate(request, null, UNPROTECTED_ACTION, resolved, presponse, securityRoles);
+        evaluator.evaluate(searchRequest, null, UNPROTECTED_ACTION, resolved, presponse, securityRoles);
+        evaluator.evaluate(realtimeRequest, null, UNPROTECTED_ACTION, resolved, presponse, securityRoles);
 
         verifyNoInteractions(presponse);
         verify(searchRequest).requestCache(Boolean.FALSE);
