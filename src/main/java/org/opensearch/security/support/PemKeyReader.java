@@ -27,13 +27,11 @@
 package org.opensearch.security.support;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -53,8 +51,6 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 import javax.crypto.EncryptedPrivateKeyInfo;
@@ -65,88 +61,43 @@ import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.util.encoders.Base64;
 
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemReader;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 
 public final class PemKeyReader {
 
-    // private static final String[] EMPTY_STRING_ARRAY = new String[0];
-    protected static final Logger log = LogManager.getLogger(PemKeyReader.class);
+    private static final Logger log = LogManager.getLogger(PemKeyReader.class);
     static final String JKS = "JKS";
     static final String PKCS12 = "PKCS12";
 
-    private static final Pattern KEY_PATTERN = Pattern.compile("-+BEGIN\\s+.*PRIVATE\\s+KEY[^-]*-+(?:\\s|\\r|\\n)+" + // Header
-        "([a-z0-9+/=\\r\\n]+)" +                       // Base64 text
-        "-+END\\s+.*PRIVATE\\s+KEY[^-]*-+",            // Footer
-        Pattern.CASE_INSENSITIVE
-    );
-
     private static byte[] readPrivateKey(File file) throws KeyException {
-        try {
-            InputStream in = new FileInputStream(file);
-
-            try {
-                return readPrivateKey(in);
-            } finally {
-                safeClose(in);
-            }
-        } catch (FileNotFoundException e) {
+        try (final InputStream in = new FileInputStream(file)) {
+            return readPrivateKey(in);
+        } catch (final IOException e) {
             throw new KeyException("could not fine key file: " + file);
         }
     }
 
-    private static byte[] readPrivateKey(InputStream in) throws KeyException {
-        String content;
-        try {
-            content = readContent(in);
-        } catch (IOException e) {
-            throw new KeyException("failed to read key input stream", e);
-        }
-
-        Matcher m = KEY_PATTERN.matcher(content);
-        if (!m.find()) {
+    private static byte[] readPrivateKey(final InputStream in) throws KeyException {
+        try (final PemReader pemReader = new PemReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            final PemObject pemObject = pemReader.readPemObject();
+            if (pemObject == null) {
+                throw new KeyException(
+                    "could not find a PKCS #8 private key in input stream"
+                        + " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)"
+                );
+            }
+            return pemObject.getContent();
+        } catch (final IOException ioe) {
             throw new KeyException(
                 "could not find a PKCS #8 private key in input stream"
-                    + " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)"
+                    + " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)",
+                ioe
             );
-        }
-
-        return Base64.decode(m.group(1));
-    }
-
-    private static String readContent(InputStream in) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            byte[] buf = new byte[8192];
-            for (;;) {
-                int ret = in.read(buf);
-                if (ret < 0) {
-                    break;
-                }
-                out.write(buf, 0, ret);
-            }
-            return out.toString(StandardCharsets.US_ASCII.name());
-        } finally {
-            safeClose(out);
-        }
-    }
-
-    private static void safeClose(InputStream in) {
-        try {
-            in.close();
-        } catch (IOException e) {
-            // ignore
-        }
-    }
-
-    private static void safeClose(OutputStream out) {
-        try {
-            out.close();
-        } catch (IOException e) {
-            // ignore
         }
     }
 
