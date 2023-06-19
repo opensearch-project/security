@@ -88,6 +88,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
         securityRoles.addAll(in.readList(StreamInput::readString));
         isInternal = in.readBoolean();
+        authDomain = in.readString();
     }
 
     /**
@@ -288,6 +289,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
         out.writeStringCollection(securityRoles == null ? Collections.emptyList() : new ArrayList<String>(securityRoles));
         out.writeBoolean(isInternal);
+        out.writeString(authDomain);
     }
 
     /**
