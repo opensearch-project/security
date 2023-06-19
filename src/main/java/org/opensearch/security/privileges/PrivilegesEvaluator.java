@@ -209,9 +209,12 @@ public class PrivilegesEvaluator {
             joiner.add(String.join(",", user.getRoles()));
             joiner.add(String.join(",", Sets.union(user.getSecurityRoles(), mappedRoles)));
             String requestedTenant = user.getRequestedTenant();
-            if (!Strings.isNullOrEmpty(requestedTenant)) {
-                joiner.add(requestedTenant);
+            if (requestedTenant == null) {
+                requestedTenant = "";
             }
+            joiner.add(requestedTenant);
+            joiner.add(Boolean.toString(user.isInternal()));
+            joiner.add(user.getAuthDomain());
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
