@@ -17,18 +17,18 @@ import org.opensearch.action.search.SearchResponse;
 
 class ContainNotEmptyScrollingIdMatcher extends TypeSafeDiagnosingMatcher<SearchResponse> {
 
-	@Override
-	protected boolean matchesSafely(SearchResponse searchResponse, Description mismatchDescription) {
-		String scrollId = searchResponse.getScrollId();
-		if(StringUtils.isEmpty(scrollId)) {
-			mismatchDescription.appendText("scrolling id is null or empty");
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(SearchResponse searchResponse, Description mismatchDescription) {
+        String scrollId = searchResponse.getScrollId();
+        if (StringUtils.isEmpty(scrollId)) {
+            mismatchDescription.appendText("scrolling id is null or empty");
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Search response should contain scrolling id.");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Search response should contain scrolling id.");
+    }
 }

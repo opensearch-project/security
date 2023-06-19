@@ -19,25 +19,29 @@ import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.rest.RestHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-
 public class DataStreamIntegrationTests extends SingleClusterTest {
 
-     final String bulkDocsBody =
-        "{ \"create\" : {} }" + System.lineSeparator() +
-        "{ \"@timestamp\" : \"2099-03-08T11:04:05.000Z\", \"user\" : { \"id\" : \"vlb44hny\", \"name\": \"Sam\"}, \"message\" : \"Login attempt failed\" }" + System.lineSeparator() +
-        "{ \"create\" : {} }" + System.lineSeparator() +
-        "{ \"@timestamp\" : \"2099-03-08T11:04:05.000Z\", \"user\" : { \"id\" : \"8a4f500d\", \"name\": \"Dam\"}, \"message\" : \"Login successful\" }" + System.lineSeparator() +
-        "{ \"create\" : {} }" + System.lineSeparator() +
-        "{ \"@timestamp\" : \"2099-03-08T11:04:05.000Z\", \"user\" : { \"id\" : \"l7gk7f82\", \"name\": \"Pam\"}, \"message\" : \"Login attempt failed\" }" + System.lineSeparator();
+    final String bulkDocsBody = "{ \"create\" : {} }"
+        + System.lineSeparator()
+        + "{ \"@timestamp\" : \"2099-03-08T11:04:05.000Z\", \"user\" : { \"id\" : \"vlb44hny\", \"name\": \"Sam\"}, \"message\" : \"Login attempt failed\" }"
+        + System.lineSeparator()
+        + "{ \"create\" : {} }"
+        + System.lineSeparator()
+        + "{ \"@timestamp\" : \"2099-03-08T11:04:05.000Z\", \"user\" : { \"id\" : \"8a4f500d\", \"name\": \"Dam\"}, \"message\" : \"Login successful\" }"
+        + System.lineSeparator()
+        + "{ \"create\" : {} }"
+        + System.lineSeparator()
+        + "{ \"@timestamp\" : \"2099-03-08T11:04:05.000Z\", \"user\" : { \"id\" : \"l7gk7f82\", \"name\": \"Pam\"}, \"message\" : \"Login attempt failed\" }"
+        + System.lineSeparator();
 
     final String searchQuery1 = "{ \"seq_no_primary_term\" : true, \"query\": { \"match\": { \"user.id\": \"8a4f500d\"}}}";
     final String searchQuery2 = "{ \"seq_no_primary_term\" : true, \"query\": { \"match\": { \"user.id\": \"l7gk7f82\"}}}";
 
     public String getIndexTemplateBody() {
-        return  "{\"index_patterns\": [ \"my-data-stream*\" ], \"data_stream\": { }, \"priority\": 200, \"template\": {\"settings\": { } } }";
+        return "{\"index_patterns\": [ \"my-data-stream*\" ], \"data_stream\": { }, \"priority\": 200, \"template\": {\"settings\": { } } }";
     }
 
-    public void createSampleDataStreams(RestHelper rh) throws Exception{
+    public void createSampleDataStreams(RestHelper rh) throws Exception {
         // Valid index-template is required to create data-streams
         rh.executePutRequest("/_index_template/my-data-stream-template", getIndexTemplateBody(), encodeBasicHeader("ds1", "nagilum"));
 
@@ -55,10 +59,18 @@ public class DataStreamIntegrationTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         HttpResponse response;
 
-        response = rh.executePutRequest("/_index_template/my-data-stream-template", getIndexTemplateBody(), encodeBasicHeader("ds0", "nagilum"));
+        response = rh.executePutRequest(
+            "/_index_template/my-data-stream-template",
+            getIndexTemplateBody(),
+            encodeBasicHeader("ds0", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
 
-        response = rh.executePutRequest("/_index_template/my-data-stream-template", getIndexTemplateBody(), encodeBasicHeader("ds1", "nagilum"));
+        response = rh.executePutRequest(
+            "/_index_template/my-data-stream-template",
+            getIndexTemplateBody(),
+            encodeBasicHeader("ds1", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
 
         response = rh.executePutRequest("/_data_stream/my-data-stream11", getIndexTemplateBody(), encodeBasicHeader("ds0", "nagilum"));

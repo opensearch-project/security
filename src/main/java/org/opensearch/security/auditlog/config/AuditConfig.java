@@ -108,10 +108,7 @@ public class AuditConfig {
     }
 
     @VisibleForTesting
-    public AuditConfig(
-            final boolean auditLogEnabled,
-            final Filter filter,
-            final ComplianceConfig compliance) {
+    public AuditConfig(final boolean auditLogEnabled, final Filter filter, final ComplianceConfig compliance) {
         this.auditLogEnabled = auditLogEnabled;
         this.filter = filter != null ? filter : Filter.DEFAULT;
         this.compliance = compliance != null ? compliance : ComplianceConfig.DEFAULT;
@@ -147,16 +144,18 @@ public class AuditConfig {
         private final Set<AuditCategory> disabledTransportCategories;
 
         @VisibleForTesting
-        Filter(final boolean isRestApiAuditEnabled,
-                       final boolean isTransportApiAuditEnabled,
-                       final boolean resolveBulkRequests,
-                       final boolean logRequestBody,
-                       final boolean resolveIndices,
-                       final boolean excludeSensitiveHeaders,
-                       final Set<String> ignoredAuditUsers,
-                       final Set<String> ignoredAuditRequests,
-                       final Set<AuditCategory> disabledRestCategories,
-                       final Set<AuditCategory> disabledTransportCategories) {
+        Filter(
+            final boolean isRestApiAuditEnabled,
+            final boolean isTransportApiAuditEnabled,
+            final boolean resolveBulkRequests,
+            final boolean logRequestBody,
+            final boolean resolveIndices,
+            final boolean excludeSensitiveHeaders,
+            final Set<String> ignoredAuditUsers,
+            final Set<String> ignoredAuditRequests,
+            final Set<AuditCategory> disabledRestCategories,
+            final Set<AuditCategory> disabledTransportCategories
+        ) {
             this.isRestApiAuditEnabled = isRestApiAuditEnabled;
             this.isTransportApiAuditEnabled = isTransportApiAuditEnabled;
             this.resolveBulkRequests = resolveBulkRequests;
@@ -179,22 +178,29 @@ public class AuditConfig {
             RESOLVE_INDICES("resolve_indices", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES),
             EXCLUDE_SENSITIVE_HEADERS("exclude_sensitive_headers", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS),
             DISABLE_REST_CATEGORIES("disabled_rest_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES),
-            DISABLE_TRANSPORT_CATEGORIES("disabled_transport_categories", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES),
+            DISABLE_TRANSPORT_CATEGORIES(
+                "disabled_transport_categories",
+                ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES
+            ),
             IGNORE_USERS("ignore_users", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS),
             IGNORE_REQUESTS("ignore_requests", ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS);
 
             private final String key;
             private final String legacyKeyWithNamespace;
+
             FilterEntries(final String entryKey, final String legacyKeyWithNamespace) {
                 this.key = entryKey;
                 this.legacyKeyWithNamespace = legacyKeyWithNamespace;
             }
+
             public String getKey() {
                 return this.key;
             }
+
             public String getKeyWithNamespace() {
-                return SECURITY_AUDIT_CONFIG_DEFAULT + "."+ this.key;
+                return SECURITY_AUDIT_CONFIG_DEFAULT + "." + this.key;
             }
+
             public String getLegacyKeyWithNamespace() {
                 return this.legacyKeyWithNamespace;
             }
@@ -204,7 +210,14 @@ public class AuditConfig {
         @VisibleForTesting
         public static Filter from(Map<String, Object> properties) throws JsonProcessingException {
             if (!FIELDS.containsAll(properties.keySet())) {
-                throw new UnrecognizedPropertyException(null, "Unrecognized field(s) present in the input data for audit filter config", null, Filter.class, null, null);
+                throw new UnrecognizedPropertyException(
+                    null,
+                    "Unrecognized field(s) present in the input data for audit filter config",
+                    null,
+                    Filter.class,
+                    null,
+                    null
+                );
             }
 
             final boolean isRestApiAuditEnabled = getOrDefault(properties, FilterEntries.ENABLE_REST.getKey(), true);
@@ -213,22 +226,39 @@ public class AuditConfig {
             final boolean logRequestBody = getOrDefault(properties, FilterEntries.LOG_REQUEST_BODY.getKey(), true);
             final boolean resolveIndices = getOrDefault(properties, FilterEntries.RESOLVE_INDICES.getKey(), true);
             final boolean excludeSensitiveHeaders = getOrDefault(properties, FilterEntries.EXCLUDE_SENSITIVE_HEADERS.getKey(), true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(getOrDefault(properties, FilterEntries.DISABLE_REST_CATEGORIES.getKey(), ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(getOrDefault(properties, FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(), ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS));
-            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList()));
+            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
+                getOrDefault(
+                    properties,
+                    FilterEntries.DISABLE_REST_CATEGORIES.getKey(),
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                )
+            );
+            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
+                getOrDefault(
+                    properties,
+                    FilterEntries.DISABLE_TRANSPORT_CATEGORIES.getKey(),
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                )
+            );
+            final Set<String> ignoredAuditUsers = ImmutableSet.copyOf(
+                getOrDefault(properties, FilterEntries.IGNORE_USERS.getKey(), DEFAULT_IGNORED_USERS)
+            );
+            final Set<String> ignoreAuditRequests = ImmutableSet.copyOf(
+                getOrDefault(properties, FilterEntries.IGNORE_REQUESTS.getKey(), Collections.emptyList())
+            );
 
             return new Filter(
-                    isRestApiAuditEnabled,
-                    isTransportAuditEnabled,
-                    resolveBulkRequests,
-                    logRequestBody,
-                    resolveIndices,
-                    excludeSensitiveHeaders,
-                    ignoredAuditUsers,
-                    ignoreAuditRequests,
-                    disabledRestCategories,
-                    disabledTransportCategories);
+                isRestApiAuditEnabled,
+                isTransportAuditEnabled,
+                resolveBulkRequests,
+                logRequestBody,
+                resolveIndices,
+                excludeSensitiveHeaders,
+                ignoredAuditUsers,
+                ignoreAuditRequests,
+                disabledRestCategories,
+                disabledTransportCategories
+            );
 
         }
 
@@ -244,46 +274,60 @@ public class AuditConfig {
             final boolean logRequestBody = fromSettingBoolean(settings, FilterEntries.LOG_REQUEST_BODY, true);
             final boolean resolveIndices = fromSettingBoolean(settings, FilterEntries.RESOLVE_INDICES, true);
             final boolean excludeSensitiveHeaders = fromSettingBoolean(settings, FilterEntries.EXCLUDE_SENSITIVE_HEADERS, true);
-            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(fromSettingStringSet(settings, FilterEntries.DISABLE_REST_CATEGORIES, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
-            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(fromSettingStringSet(settings, FilterEntries.DISABLE_TRANSPORT_CATEGORIES, ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT));
+            final Set<AuditCategory> disabledRestCategories = AuditCategory.parse(
+                fromSettingStringSet(
+                    settings,
+                    FilterEntries.DISABLE_REST_CATEGORIES,
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                )
+            );
+            final Set<AuditCategory> disabledTransportCategories = AuditCategory.parse(
+                fromSettingStringSet(
+                    settings,
+                    FilterEntries.DISABLE_TRANSPORT_CATEGORIES,
+                    ConfigConstants.OPENDISTRO_SECURITY_AUDIT_DISABLED_CATEGORIES_DEFAULT
+                )
+            );
             final Set<String> ignoredAuditUsers = fromSettingStringSet(settings, FilterEntries.IGNORE_USERS, DEFAULT_IGNORED_USERS);
             final Set<String> ignoreAuditRequests = fromSettingStringSet(settings, FilterEntries.IGNORE_REQUESTS, Collections.emptyList());
 
-            return new Filter(isRestApiAuditEnabled,
-                    isTransportAuditEnabled,
-                    resolveBulkRequests,
-                    logRequestBody,
-                    resolveIndices,
-                    excludeSensitiveHeaders,
-                    ignoredAuditUsers,
-                    ignoreAuditRequests,
-                    disabledRestCategories,
-                    disabledTransportCategories);
+            return new Filter(
+                isRestApiAuditEnabled,
+                isTransportAuditEnabled,
+                resolveBulkRequests,
+                logRequestBody,
+                resolveIndices,
+                excludeSensitiveHeaders,
+                ignoredAuditUsers,
+                ignoreAuditRequests,
+                disabledRestCategories,
+                disabledTransportCategories
+            );
         }
 
         static boolean fromSettingBoolean(final Settings settings, FilterEntries filterEntry, final boolean defaultValue) {
-            return settings.getAsBoolean(filterEntry.getKeyWithNamespace(), settings.getAsBoolean(filterEntry.getLegacyKeyWithNamespace(), defaultValue));
+            return settings.getAsBoolean(
+                filterEntry.getKeyWithNamespace(),
+                settings.getAsBoolean(filterEntry.getLegacyKeyWithNamespace(), defaultValue)
+            );
         }
 
         static Set<String> fromSettingStringSet(final Settings settings, FilterEntries filterEntry, final List<String> defaultValue) {
             final String defaultDetectorValue = "__DEFAULT_DETECTION__";
             final Set<String> stringSetOfKey = ConfigConstants.getSettingAsSet(
-                    settings,
-                    filterEntry.getKeyWithNamespace(),
-                    ImmutableList.of(defaultDetectorValue),
-                    true);
+                settings,
+                filterEntry.getKeyWithNamespace(),
+                ImmutableList.of(defaultDetectorValue),
+                true
+            );
 
             final boolean foundDefault = stringSetOfKey.stream().anyMatch(defaultDetectorValue::equals);
             if (!foundDefault) {
-                return stringSetOfKey; 
+                return stringSetOfKey;
             }
 
             // Fallback to the legacy keyname
-            return ConfigConstants.getSettingAsSet(
-                settings,
-                filterEntry.getLegacyKeyWithNamespace(),
-                defaultValue,
-                true);
+            return ConfigConstants.getSettingAsSet(settings, filterEntry.getLegacyKeyWithNamespace(), defaultValue, true);
         }
 
         /**
@@ -400,18 +444,28 @@ public class AuditConfig {
 
         @Override
         public String toString() {
-            return "Filter{" +
-                    "isRestApiAuditEnabled=" + isRestApiAuditEnabled +
-                    ", disabledRestCategories=" + disabledRestCategories +
-                    ", isTransportApiAuditEnabled=" + isTransportApiAuditEnabled +
-                    ", disabledTransportCategories=" + disabledTransportCategories +
-                    ", resolveBulkRequests=" + resolveBulkRequests +
-                    ", logRequestBody=" + logRequestBody +
-                    ", resolveIndices=" + resolveIndices +
-                    ", excludeSensitiveHeaders=" + excludeSensitiveHeaders +
-                    ", ignoredAuditUsers=" + ignoredAuditUsersMatcher +
-                    ", ignoreAuditRequests=" + ignoredAuditRequestsMatcher +
-                    '}';
+            return "Filter{"
+                + "isRestApiAuditEnabled="
+                + isRestApiAuditEnabled
+                + ", disabledRestCategories="
+                + disabledRestCategories
+                + ", isTransportApiAuditEnabled="
+                + isTransportApiAuditEnabled
+                + ", disabledTransportCategories="
+                + disabledTransportCategories
+                + ", resolveBulkRequests="
+                + resolveBulkRequests
+                + ", logRequestBody="
+                + logRequestBody
+                + ", resolveIndices="
+                + resolveIndices
+                + ", excludeSensitiveHeaders="
+                + excludeSensitiveHeaders
+                + ", ignoredAuditUsers="
+                + ignoredAuditUsersMatcher
+                + ", ignoreAuditRequests="
+                + ignoredAuditRequestsMatcher
+                + '}';
         }
     }
 
@@ -419,39 +473,36 @@ public class AuditConfig {
      * List of keys that are deprecated
      */
     public static final List<String> DEPRECATED_KEYS = ImmutableList.of(
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
-            ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
-            ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_REST,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_ENABLE_TRANSPORT,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_TRANSPORT_CATEGORIES,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_LOG_REQUEST_BODY,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_INDICES,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_EXCLUDE_SENSITIVE_HEADERS,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_RESOLVE_BULK_REQUESTS,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_USERS,
+        ConfigConstants.OPENDISTRO_SECURITY_AUDIT_IGNORE_REQUESTS,
+        ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED,
+        ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
+        ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY,
+        ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+        ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+        ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY,
+        ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS,
+        ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+        ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES
     );
 
     public static Set<String> getDeprecatedKeys(final Settings settings) {
-        return AuditConfig.DEPRECATED_KEYS
-                .stream()
-                .filter(settings::hasValue)
-                .collect(Collectors.toSet());
+        return AuditConfig.DEPRECATED_KEYS.stream().filter(settings::hasValue).collect(Collectors.toSet());
     }
 
     public static final Set<String> FIELD_PATHS = Sets.union(
-            Utils.generateFieldResourcePaths(AuditConfig.FIELDS, "/"),
-            Sets.union(
-                    Utils.generateFieldResourcePaths(Filter.FIELDS, "/audit/"),
-                    Utils.generateFieldResourcePaths(ComplianceConfig.FIELDS, "/compliance/")
-            )
+        Utils.generateFieldResourcePaths(AuditConfig.FIELDS, "/"),
+        Sets.union(
+            Utils.generateFieldResourcePaths(Filter.FIELDS, "/audit/"),
+            Utils.generateFieldResourcePaths(ComplianceConfig.FIELDS, "/compliance/")
+        )
     );
 }

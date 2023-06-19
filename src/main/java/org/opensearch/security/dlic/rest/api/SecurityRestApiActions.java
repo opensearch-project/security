@@ -33,38 +33,296 @@ import org.opensearch.threadpool.ThreadPool;
 
 public class SecurityRestApiActions {
 
-    public static Collection<RestHandler> getHandler(final Settings settings,
-                                                     final Path configPath,
-                                                     final RestController controller,
-                                                     final Client client,
-                                                     final AdminDNs adminDns,
-                                                     final ConfigurationRepository cr,
-                                                     final ClusterService cs,
-                                                     final PrincipalExtractor principalExtractor,
-                                                     final PrivilegesEvaluator evaluator,
-                                                     final ThreadPool threadPool,
-                                                     final AuditLog auditLog,
-                                                     final SecurityKeyStore securityKeyStore,
-                                                     final UserService userService,
-                                                     final boolean certificatesReloadEnabled) {
+    public static Collection<RestHandler> getHandler(
+        final Settings settings,
+        final Path configPath,
+        final RestController controller,
+        final Client client,
+        final AdminDNs adminDns,
+        final ConfigurationRepository cr,
+        final ClusterService cs,
+        final PrincipalExtractor principalExtractor,
+        final PrivilegesEvaluator evaluator,
+        final ThreadPool threadPool,
+        final AuditLog auditLog,
+        final SecurityKeyStore securityKeyStore,
+        final UserService userService,
+        final boolean certificatesReloadEnabled
+    ) {
         final List<RestHandler> handlers = new ArrayList<RestHandler>(16);
-        handlers.add(new InternalUsersApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, userService, auditLog));
-        handlers.add(new RolesMappingApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new RolesApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new ActionGroupsApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new FlushCacheApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new SecurityConfigAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new PermissionsInfoAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new AuthTokenProcessorAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new TenantsApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new MigrateApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new ValidateApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new AccountApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new NodesDnApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new WhitelistApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new AllowlistApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new AuditApiAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog));
-        handlers.add(new SecuritySSLCertsAction(settings, configPath, controller, client, adminDns, cr, cs, principalExtractor, evaluator, threadPool, auditLog, securityKeyStore, certificatesReloadEnabled));
+        handlers.add(
+            new InternalUsersApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                userService,
+                auditLog
+            )
+        );
+        handlers.add(
+            new RolesMappingApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new RolesApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new ActionGroupsApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new FlushCacheApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new SecurityConfigAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new PermissionsInfoAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new AuthTokenProcessorAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new TenantsApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new MigrateApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new ValidateApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new AccountApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new NodesDnApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new WhitelistApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new AllowlistApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new AuditApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new MultiTenancyConfigApiAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog
+            )
+        );
+        handlers.add(
+            new SecuritySSLCertsAction(
+                settings,
+                configPath,
+                controller,
+                client,
+                adminDns,
+                cr,
+                cs,
+                principalExtractor,
+                evaluator,
+                threadPool,
+                auditLog,
+                securityKeyStore,
+                certificatesReloadEnabled
+            )
+        );
         return Collections.unmodifiableCollection(handlers);
     }
 

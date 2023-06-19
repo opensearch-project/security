@@ -33,55 +33,63 @@ import static org.opensearch.client.RequestOptions.DEFAULT;
 
 class SnapshotSteps {
 
-	private final SnapshotClient snapshotClient;
+    private final SnapshotClient snapshotClient;
 
-	public SnapshotSteps(RestHighLevelClient restHighLevelClient) {
-		this.snapshotClient = requireNonNull(restHighLevelClient, "Rest high level client is required.").snapshot();
-	}
+    public SnapshotSteps(RestHighLevelClient restHighLevelClient) {
+        this.snapshotClient = requireNonNull(restHighLevelClient, "Rest high level client is required.").snapshot();
+    }
 
-	// CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
-	public org.opensearch.action.support.master.AcknowledgedResponse createSnapshotRepository(String repositoryName, String snapshotDirPath, String type)
-	//CS-ENFORCE-SINGLE
-		throws IOException {
-		PutRepositoryRequest createRepositoryRequest = new PutRepositoryRequest().name(repositoryName).type(type)
-			.settings(Map.of("location", snapshotDirPath));
-		return snapshotClient.createRepository(createRepositoryRequest, DEFAULT);
-	}
+    // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
+    public org.opensearch.action.support.master.AcknowledgedResponse createSnapshotRepository(
+        String repositoryName,
+        String snapshotDirPath,
+        String type
+    )
+        // CS-ENFORCE-SINGLE
+        throws IOException {
+        PutRepositoryRequest createRepositoryRequest = new PutRepositoryRequest().name(repositoryName)
+            .type(type)
+            .settings(Map.of("location", snapshotDirPath));
+        return snapshotClient.createRepository(createRepositoryRequest, DEFAULT);
+    }
 
-	public CreateSnapshotResponse createSnapshot(String repositoryName, String snapshotName, String...indices) throws IOException {
-		CreateSnapshotRequest createSnapshotRequest = new CreateSnapshotRequest(repositoryName, snapshotName)
-			.indices(indices);
-		return snapshotClient.create(createSnapshotRequest, DEFAULT);
-	}
+    public CreateSnapshotResponse createSnapshot(String repositoryName, String snapshotName, String... indices) throws IOException {
+        CreateSnapshotRequest createSnapshotRequest = new CreateSnapshotRequest(repositoryName, snapshotName).indices(indices);
+        return snapshotClient.create(createSnapshotRequest, DEFAULT);
+    }
 
-	public void waitForSnapshotCreation(String repositoryName, String snapshotName) {
-		GetSnapshotsRequest getSnapshotsRequest = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
-		Awaitility.await().alias("wait for snapshot creation").ignoreExceptions().until(() -> {
-			GetSnapshotsResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest, DEFAULT);
-			SnapshotInfo snapshotInfo = snapshotsResponse.getSnapshots().get(0);
-			return SnapshotState.SUCCESS.equals(snapshotInfo.state());
-		});
-	}
+    public void waitForSnapshotCreation(String repositoryName, String snapshotName) {
+        GetSnapshotsRequest getSnapshotsRequest = new GetSnapshotsRequest(repositoryName, new String[] { snapshotName });
+        Awaitility.await().alias("wait for snapshot creation").ignoreExceptions().until(() -> {
+            GetSnapshotsResponse snapshotsResponse = snapshotClient.get(getSnapshotsRequest, DEFAULT);
+            SnapshotInfo snapshotInfo = snapshotsResponse.getSnapshots().get(0);
+            return SnapshotState.SUCCESS.equals(snapshotInfo.state());
+        });
+    }
 
-	//CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
-	public org.opensearch.action.support.master.AcknowledgedResponse deleteSnapshotRepository(String repositoryName) throws IOException {
-	//CS-ENFORCE-SINGLE
-		DeleteRepositoryRequest request = new DeleteRepositoryRequest(repositoryName);
-		return snapshotClient.deleteRepository(request, DEFAULT);
-	}
+    // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
+    public org.opensearch.action.support.master.AcknowledgedResponse deleteSnapshotRepository(String repositoryName) throws IOException {
+        // CS-ENFORCE-SINGLE
+        DeleteRepositoryRequest request = new DeleteRepositoryRequest(repositoryName);
+        return snapshotClient.deleteRepository(request, DEFAULT);
+    }
 
-	//CS-SUPPRESS-SINGLE: RegexpSingleline: It is not possible to use phrase "cluster manager" instead of master here
-	public org.opensearch.action.support.master.AcknowledgedResponse deleteSnapshot(String repositoryName, String snapshotName) throws IOException {
-	//CS-ENFORCE-SINGLE
-		return snapshotClient.delete(new DeleteSnapshotRequest(repositoryName, snapshotName), DEFAULT);
-	}
+    // CS-SUPPRESS-SINGLE: RegexpSingleline It is not possible to use phrase "cluster manager" instead of master here
+    public org.opensearch.action.support.master.AcknowledgedResponse deleteSnapshot(String repositoryName, String snapshotName)
+        throws IOException {
+        // CS-ENFORCE-SINGLE
+        return snapshotClient.delete(new DeleteSnapshotRequest(repositoryName, snapshotName), DEFAULT);
+    }
 
-	public RestoreSnapshotResponse restoreSnapshot(
-		String repositoryName, String snapshotName, String renamePattern,
-		String renameReplacement) throws IOException {
-		RestoreSnapshotRequest restoreSnapshotRequest = new RestoreSnapshotRequest(repositoryName, snapshotName)
-			.renamePattern(renamePattern)
-			.renameReplacement(renameReplacement);
-		return snapshotClient.restore(restoreSnapshotRequest, DEFAULT);
-	}
+    public RestoreSnapshotResponse restoreSnapshot(
+        String repositoryName,
+        String snapshotName,
+        String renamePattern,
+        String renameReplacement
+    ) throws IOException {
+        RestoreSnapshotRequest restoreSnapshotRequest = new RestoreSnapshotRequest(repositoryName, snapshotName).renamePattern(
+            renamePattern
+        ).renameReplacement(renameReplacement);
+        return snapshotClient.restore(restoreSnapshotRequest, DEFAULT);
+    }
 }

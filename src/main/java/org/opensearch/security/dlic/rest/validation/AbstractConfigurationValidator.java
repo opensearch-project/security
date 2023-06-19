@@ -39,7 +39,6 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.support.ConfigConstants;
 
-
 public abstract class AbstractConfigurationValidator {
 
     JsonFactory factory = new JsonFactory();
@@ -91,7 +90,12 @@ public abstract class AbstractConfigurationValidator {
 
     private JsonNode contentAsNode;
 
-    public AbstractConfigurationValidator(final RestRequest request, final BytesReference ref, final Settings opensearchSettings, Object... param) {
+    public AbstractConfigurationValidator(
+        final RestRequest request,
+        final BytesReference ref,
+        final Settings opensearchSettings,
+        Object... param
+    ) {
         this.content = ref;
         this.method = request.method();
         this.opensearchSettings = opensearchSettings;
@@ -113,19 +117,19 @@ public abstract class AbstractConfigurationValidator {
             return true;
         }
 
-        if(this.payloadMandatory && content.length() == 0) {
+        if (this.payloadMandatory && content.length() == 0) {
             this.errorType = ErrorType.PAYLOAD_MANDATORY;
             return false;
         }
 
-        if(!this.payloadMandatory && content.length() == 0) {
+        if (!this.payloadMandatory && content.length() == 0) {
             return true;
         }
 
-        if(this.payloadMandatory && content.length() > 0) {
+        if (this.payloadMandatory && content.length() > 0) {
 
             try {
-                if(DefaultObjectMapper.readTree(content.utf8ToString()).size() == 0) {
+                if (DefaultObjectMapper.readTree(content.utf8ToString()).size() == 0) {
                     this.errorType = ErrorType.PAYLOAD_MANDATORY;
                     return false;
                 }
@@ -184,7 +188,7 @@ public abstract class AbstractConfigurationValidator {
             return false;
         }
 
-        //null element in the values of all the possible keys with DataType as ARRAY
+        // null element in the values of all the possible keys with DataType as ARRAY
         for (Entry<String, DataType> allowedKey : allowedKeys.entrySet()) {
             JsonNode value = contentAsNode.get(allowedKey.getKey());
             if (value != null) {
@@ -249,8 +253,21 @@ public abstract class AbstractConfigurationValidator {
                     break;
                 case INVALID_PASSWORD:
                     builder.field("status", "error");
-                    builder.field("reason", opensearchSettings.get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
-                            "Password does not match minimum criteria"));
+                    builder.field(
+                        "reason",
+                        opensearchSettings.get(
+                            ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
+                            "Password does not match minimum criteria"
+                        )
+                    );
+                    break;
+                case WEAK_PASSWORD:
+                case SIMILAR_PASSWORD:
+                    builder.field("status", "error");
+                    builder.field(
+                        "reason",
+                        opensearchSettings.get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, errorType.message)
+                    );
                     break;
                 case WRONG_DATATYPE:
                     builder.field("status", "error");
@@ -285,13 +302,23 @@ public abstract class AbstractConfigurationValidator {
     }
 
     public static enum DataType {
-        STRING, ARRAY, OBJECT, BOOLEAN;
+        STRING,
+        ARRAY,
+        OBJECT,
+        BOOLEAN;
     }
 
     public static enum ErrorType {
-        NONE("ok"), INVALID_CONFIGURATION("Invalid configuration"), INVALID_PASSWORD("Invalid password"), WRONG_DATATYPE("Wrong datatype"),
-        BODY_NOT_PARSEABLE("Could not parse content of request."), PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
-        PAYLOAD_MANDATORY("Request body required for this action."), SECURITY_NOT_INITIALIZED("Security index not initialized"),
+        NONE("ok"),
+        INVALID_CONFIGURATION("Invalid configuration"),
+        INVALID_PASSWORD("Invalid password"),
+        WEAK_PASSWORD("Weak password"),
+        SIMILAR_PASSWORD("Password is similar to user name"),
+        WRONG_DATATYPE("Wrong datatype"),
+        BODY_NOT_PARSEABLE("Could not parse content of request."),
+        PAYLOAD_NOT_ALLOWED("Request body not allowed for this action."),
+        PAYLOAD_MANDATORY("Request body required for this action."),
+        SECURITY_NOT_INITIALIZED("Security index not initialized"),
         NULL_ARRAY_ELEMENT("`null` is not allowed as json array element");
 
         private String message;
@@ -310,8 +337,8 @@ public abstract class AbstractConfigurationValidator {
     }
 
     private boolean hasNullArrayElement(JsonNode node) {
-        for (JsonNode element: node) {
-            if(element.isNull()) {
+        for (JsonNode element : node) {
+            if (element.isNull()) {
                 if (node.isArray()) {
                     return true;
                 }

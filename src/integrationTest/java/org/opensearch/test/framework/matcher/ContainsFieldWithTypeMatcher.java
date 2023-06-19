@@ -21,31 +21,35 @@ import static java.util.Objects.requireNonNull;
 
 class ContainsFieldWithTypeMatcher extends TypeSafeDiagnosingMatcher<FieldCapabilitiesResponse> {
 
-	private final String expectedFieldName;
-	private final String expectedFieldType;
+    private final String expectedFieldName;
+    private final String expectedFieldType;
 
-	ContainsFieldWithTypeMatcher(String expectedFieldName, String expectedFieldType) {
-		this.expectedFieldName = requireNonNull(expectedFieldName, "Field name is required");;
-		this.expectedFieldType = requireNonNull(expectedFieldType, "Field type is required");;
-	}
+    ContainsFieldWithTypeMatcher(String expectedFieldName, String expectedFieldType) {
+        this.expectedFieldName = requireNonNull(expectedFieldName, "Field name is required");
+        ;
+        this.expectedFieldType = requireNonNull(expectedFieldType, "Field type is required");
+        ;
+    }
 
-	@Override
-	protected boolean matchesSafely(FieldCapabilitiesResponse response, Description mismatchDescription) {
-		Map<String, Map<String, FieldCapabilities>> fieldCapabilitiesMap = response.get();
-		if (!fieldCapabilitiesMap.containsKey(expectedFieldName)) {
-			mismatchDescription.appendText("Response does not contain field with name ").appendText(expectedFieldName);
-			return false;
-		}
-		if (!fieldCapabilitiesMap.get(expectedFieldName).containsKey(expectedFieldType)) {
-			mismatchDescription.appendText("Field type does not match ").appendText(expectedFieldType);
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(FieldCapabilitiesResponse response, Description mismatchDescription) {
+        Map<String, Map<String, FieldCapabilities>> fieldCapabilitiesMap = response.get();
+        if (!fieldCapabilitiesMap.containsKey(expectedFieldName)) {
+            mismatchDescription.appendText("Response does not contain field with name ").appendText(expectedFieldName);
+            return false;
+        }
+        if (!fieldCapabilitiesMap.get(expectedFieldName).containsKey(expectedFieldType)) {
+            mismatchDescription.appendText("Field type does not match ").appendText(expectedFieldType);
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Response contains field with name ").appendValue(expectedFieldName)
-				.appendText(" and type ").appendValue(expectedFieldType);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Response contains field with name ")
+            .appendValue(expectedFieldName)
+            .appendText(" and type ")
+            .appendValue(expectedFieldType);
+    }
 }

@@ -61,7 +61,7 @@ import com.amazon.dlic.auth.ldap.LdapUser;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.common.Strings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.user.User;
 
 public class Base64Helper {
@@ -88,15 +88,13 @@ public class Base64Helper {
         Enum.class
     );
 
-    private static final Set<String> SAFE_CLASS_NAMES = Collections.singleton(
-        "org.ldaptive.LdapAttribute$LdapAttributeValues"
-    );
+    private static final Set<String> SAFE_CLASS_NAMES = Collections.singleton("org.ldaptive.LdapAttribute$LdapAttributeValues");
 
     private static boolean isSafeClass(Class<?> cls) {
-        return cls.isArray() ||
-            SAFE_CLASSES.contains(cls) ||
-            SAFE_CLASS_NAMES.contains(cls.getName()) ||
-            SAFE_ASSIGNABLE_FROM_CLASSES.stream().anyMatch(c -> c.isAssignableFrom(cls));
+        return cls.isArray()
+            || SAFE_CLASSES.contains(cls)
+            || SAFE_CLASS_NAMES.contains(cls.getName())
+            || SAFE_ASSIGNABLE_FROM_CLASSES.stream().anyMatch(c -> c.isAssignableFrom(cls));
     }
 
     private final static class SafeObjectOutputStream extends ObjectOutputStream {
@@ -110,7 +108,7 @@ public class Base64Helper {
                 try {
                     sm.checkPermission(new SpecialPermission());
 
-                    AccessController.doPrivileged((PrivilegedAction<Void>)() -> {
+                    AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
                         AccessController.checkPermission(SUBSTITUTION_PERMISSION);
                         return null;
                     });
@@ -141,9 +139,7 @@ public class Base64Helper {
                 sm.checkPermission(new SpecialPermission());
             }
 
-            AccessController.doPrivileged(
-                (PrivilegedAction<Boolean>) () -> enableReplaceObject(true)
-            );
+            AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> enableReplaceObject(true));
         }
 
         @Override

@@ -70,7 +70,7 @@ runs:
     # Run any configuration scripts
     - name: Run Setup Script for Linux
       if: ${{ runner.os == 'Linux' && inputs.setup-script-name != '' }}
-      run: | 
+      run: |
         echo "running linux setup"
         chmod +x ./${{ inputs.setup-script-name }}.sh
         ./${{ inputs.setup-script-name }}.sh

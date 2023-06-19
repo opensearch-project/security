@@ -15,5 +15,5 @@ import org.apache.cxf.rs.security.jose.jwk.JsonWebKeys;
 
 @FunctionalInterface
 public interface KeySetProvider {
-	JsonWebKeys get() throws AuthenticatorUnavailableException;
+    JsonWebKeys get() throws AuthenticatorUnavailableException;
 }

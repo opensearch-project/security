@@ -18,28 +18,28 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 public class AuthorizationBackend implements ToXContentObject {
-	private final String type;
-	private Supplier<Map<String, Object>> config;
+    private final String type;
+    private Supplier<Map<String, Object>> config;
 
-	public AuthorizationBackend(String type) {
-		this.type = type;
-	}
+    public AuthorizationBackend(String type) {
+        this.type = type;
+    }
 
-	public AuthorizationBackend config(Map<String, Object> ldapConfig) {
-		return config(() -> ldapConfig);
-	}
+    public AuthorizationBackend config(Map<String, Object> ldapConfig) {
+        return config(() -> ldapConfig);
+    }
 
-	public AuthorizationBackend config(Supplier<Map<String, Object>> ldapConfigSupplier) {
-		this.config = Objects.requireNonNull(ldapConfigSupplier, "Configuration supplier is required");
-		return this;
-	}
+    public AuthorizationBackend config(Supplier<Map<String, Object>> ldapConfigSupplier) {
+        this.config = Objects.requireNonNull(ldapConfigSupplier, "Configuration supplier is required");
+        return this;
+    }
 
-	@Override
-	public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-		xContentBuilder.startObject();
-		xContentBuilder.field("type", type);
-		xContentBuilder.field("config", config.get());
-		xContentBuilder.endObject();
-		return xContentBuilder;
-	}
+    @Override
+    public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
+        xContentBuilder.startObject();
+        xContentBuilder.field("type", type);
+        xContentBuilder.field("config", config.get());
+        xContentBuilder.endObject();
+        return xContentBuilder;
+    }
 }

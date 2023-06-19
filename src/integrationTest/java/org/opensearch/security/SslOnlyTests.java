@@ -33,37 +33,37 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SslOnlyTests {
 
+    @ClassRule
+    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+        .anonymousAuth(false)
+        .loadConfigurationIntoIndex(false)
+        .nodeSettings(Map.of(ConfigConstants.SECURITY_SSL_ONLY, true))
+        .sslOnly(true)
+        .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .build();
 
-	@ClassRule
-	public static LocalCluster cluster = new LocalCluster.Builder()
-		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
-		.loadConfigurationIntoIndex(false)
-		.nodeSettings(Map.of(ConfigConstants.SECURITY_SSL_ONLY, true))
-		.sslOnly(true)
-		.authc(AUTHC_HTTPBASIC_INTERNAL).build();
+    @Test
+    public void shouldNotLoadSecurityPluginResources() {
+        try (TestRestClient client = cluster.getRestClient()) {
 
-	@Test
-	public void shouldNotLoadSecurityPluginResources() {
-		try(TestRestClient client = cluster.getRestClient()) {
+            HttpResponse response = client.getAuthInfo();
 
-			HttpResponse response = client.getAuthInfo();
+            // in SSL only mode the security plugin does not register a handler for resource /_plugins/_security/whoami. Therefore error
+            // response is returned.
+            response.assertStatusCode(400);
+        }
+    }
 
-			// in SSL only mode the security plugin does not register a handler for resource /_plugins/_security/whoami. Therefore error
-			// response is returned.
-			response.assertStatusCode(400);
-		}
-	}
+    @Test
+    public void shouldGetIndicesWithoutAuthentication() {
+        try (TestRestClient client = cluster.getRestClient()) {
 
-	@Test
-	public void shouldGetIndicesWithoutAuthentication() {
-		try(TestRestClient client = cluster.getRestClient()) {
+            // request does not contains credential
+            HttpResponse response = client.get("/_cat/indices");
 
-			// request does not contains credential
-			HttpResponse response = client.get("/_cat/indices");
-
-			// successful response is returned because the security plugin in SSL only mode
-			// does not perform authentication and authorization
-			response.assertStatusCode(200);
-		}
-	}
+            // successful response is returned because the security plugin in SSL only mode
+            // does not perform authentication and authorization
+            response.assertStatusCode(200);
+        }
+    }
 }

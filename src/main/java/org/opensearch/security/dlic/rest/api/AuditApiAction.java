@@ -124,11 +124,13 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  * [{"op": "replace", "path": "/config/compliance/internal_config", "value": "true"}]
  */
 public class AuditApiAction extends PatchableResourceApiAction {
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(
             new Route(RestRequest.Method.GET, "/audit/"),
             new Route(RestRequest.Method.PUT, "/audit/{name}"),
             new Route(RestRequest.Method.PATCH, "/audit/")
-    ));
+        )
+    );
 
     private static final String RESOURCE_NAME = "config";
     @VisibleForTesting
@@ -139,24 +141,28 @@ public class AuditApiAction extends PatchableResourceApiAction {
     private final PrivilegesEvaluator privilegesEvaluator;
     private final ThreadContext threadContext;
 
-    public AuditApiAction(final Settings settings,
-                          final Path configPath,
-                          final RestController controller,
-                          final Client client,
-                          final AdminDNs adminDNs,
-                          final ConfigurationRepository cl,
-                          final ClusterService cs,
-                          final PrincipalExtractor principalExtractor,
-                          final PrivilegesEvaluator privilegesEvaluator,
-                          final ThreadPool threadPool,
-                          final AuditLog auditLog) {
+    public AuditApiAction(
+        final Settings settings,
+        final Path configPath,
+        final RestController controller,
+        final Client client,
+        final AdminDNs adminDNs,
+        final ConfigurationRepository cl,
+        final ClusterService cs,
+        final PrincipalExtractor principalExtractor,
+        final PrivilegesEvaluator privilegesEvaluator,
+        final ThreadPool threadPool,
+        final AuditLog auditLog
+    ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
         try {
-            this.readonlyFields = DefaultObjectMapper.YAML_MAPPER
-                    .readValue(this.getClass().getResourceAsStream(STATIC_RESOURCE), new TypeReference<Map<String, List<String>>>() {})
-                    .get(READONLY_FIELD);
+            this.readonlyFields = DefaultObjectMapper.YAML_MAPPER.readValue(
+                this.getClass().getResourceAsStream(STATIC_RESOURCE),
+                new TypeReference<Map<String, List<String>>>() {
+                }
+            ).get(READONLY_FIELD);
             if (!AuditConfig.FIELD_PATHS.containsAll(this.readonlyFields)) {
                 throw new StaticResourceException("Invalid read-only field paths provided in static resource file " + STATIC_RESOURCE);
             }
@@ -166,9 +172,11 @@ public class AuditApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-                                             final Object content,
-                                             final String resourceName) {
+    protected boolean hasPermissionsToCreate(
+        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+        final Object content,
+        final String resourceName
+    ) {
         return true;
     }
 
@@ -189,7 +197,8 @@ public class AuditApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
+    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
+        throws IOException {
         if (!RESOURCE_NAME.equals(request.param("name"))) {
             badRequestResponse(channel, "name must be config");
             return;
@@ -245,9 +254,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
     @Override
     protected boolean isReadonlyFieldUpdated(final JsonNode existingResource, final JsonNode targetResource) {
         if (!isSuperAdmin()) {
-            return readonlyFields
-                    .stream()
-                    .anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)));
+            return readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)));
         }
         return false;
     }

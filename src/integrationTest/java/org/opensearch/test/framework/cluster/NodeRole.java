@@ -10,5 +10,7 @@
 package org.opensearch.test.framework.cluster;
 
 enum NodeRole {
-	DATA, CLUSTER_MANAGER, REMOTE_CLUSTER_CLIENT
+    DATA,
+    CLUSTER_MANAGER,
+    REMOTE_CLUSTER_CLIENT
 }

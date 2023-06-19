@@ -40,18 +40,18 @@ public class ClusterInfoHolder implements ClusterStateListener {
     private volatile DiscoveryNodes nodes = null;
     private volatile Boolean isLocalNodeElectedClusterManager = null;
     private volatile boolean initialized;
-    
+
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if(nodes == null || event.nodesChanged()) {
+        if (nodes == null || event.nodesChanged()) {
             nodes = event.state().nodes();
             if (log.isDebugEnabled()) {
                 log.debug("Cluster Info Holder now initialized for 'nodes'");
             }
             initialized = true;
         }
-        
-        isLocalNodeElectedClusterManager = event.localNodeClusterManager()?Boolean.TRUE:Boolean.FALSE;
+
+        isLocalNodeElectedClusterManager = event.localNodeClusterManager() ? Boolean.TRUE : Boolean.FALSE;
     }
 
     public Boolean isLocalNodeElectedClusterManager() {
@@ -63,13 +63,13 @@ public class ClusterInfoHolder implements ClusterStateListener {
     }
 
     public Boolean hasNode(DiscoveryNode node) {
-        if(nodes == null) {
-            if(log.isDebugEnabled()) {
+        if (nodes == null) {
+            if (log.isDebugEnabled()) {
                 log.debug("Cluster Info Holder not initialized yet for 'nodes'");
             }
             return null;
         }
-        
-        return nodes.nodeExists(node)?Boolean.TRUE:Boolean.FALSE;
+
+        return nodes.nodeExists(node) ? Boolean.TRUE : Boolean.FALSE;
     }
 }

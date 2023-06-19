@@ -11,7 +11,6 @@
 
 package com.amazon.dlic.auth.ldap.srv;
 
-
 public class EmbeddedLDAPServer {
 
     LdapServer s = new LdapServer();

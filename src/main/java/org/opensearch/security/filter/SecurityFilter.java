@@ -65,10 +65,10 @@ import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.ActionFilterChain;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.logging.LoggerMessageFormat;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
+import org.opensearch.core.common.logging.LoggerMessageFormat;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.index.reindex.UpdateByQueryRequest;
 import org.opensearch.rest.RestStatus;
@@ -113,9 +113,18 @@ public class SecurityFilter implements ActionFilter {
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
 
-    public SecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
-                          DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, final XFFResolver xffResolver) {
+    public SecurityFilter(
+        final Settings settings,
+        final PrivilegesEvaluator evalp,
+        final AdminDNs adminDns,
+        DlsFlsRequestValve dlsFlsValve,
+        AuditLog auditLog,
+        ThreadPool threadPool,
+        ClusterService cs,
+        final CompatConfig compatConfig,
+        final IndexResolverReplacer indexResolverReplacer,
+        final XFFResolver xffResolver
+    ) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -125,7 +134,9 @@ public class SecurityFilter implements ActionFilter {
         this.compatConfig = compatConfig;
         this.indexResolverReplacer = indexResolverReplacer;
         this.xffResolver = xffResolver;
-        this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
+        this.immutableIndicesMatcher = WildcardMatcher.from(
+            settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList())
+        );
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
@@ -142,9 +153,14 @@ public class SecurityFilter implements ActionFilter {
     }
 
     @Override
-    public <Request extends ActionRequest, Response extends ActionResponse> void apply(Task task, final String action, Request request,
-            ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
-        try (StoredContext ctx = threadContext.newStoredContext(true)){
+    public <Request extends ActionRequest, Response extends ActionResponse> void apply(
+        Task task,
+        final String action,
+        Request request,
+        ActionListener<Response> listener,
+        ActionFilterChain<Request, Response> chain
+    ) {
+        try (StoredContext ctx = threadContext.newStoredContext(true)) {
             org.apache.logging.log4j.ThreadContext.clearAll();
             apply0(task, action, request, listener, chain);
         }
@@ -154,11 +170,16 @@ public class SecurityFilter implements ActionFilter {
         return aliases.stream().map(a -> a.name()).collect(ImmutableSet.toImmutableSet());
     }
 
-    private <Request extends ActionRequest, Response extends ActionResponse> void apply0(Task task, final String action, Request request,
-            ActionListener<Response> listener, ActionFilterChain<Request, Response> chain) {
+    private <Request extends ActionRequest, Response extends ActionResponse> void apply0(
+        Task task,
+        final String action,
+        Request request,
+        ActionListener<Response> listener,
+        ActionFilterChain<Request, Response> chain
+    ) {
         try {
 
-            if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
+            if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN) == null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN, Origin.LOCAL.toString());
             }
 
@@ -169,7 +190,7 @@ public class SecurityFilter implements ActionFilter {
             final Set<String> injectedRoles = rolesInjector.injectUserAndRoles(request, action, task, threadContext);
             boolean enforcePrivilegesEvaluation = false;
             User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if(user == null && (user = userInjector.getInjectedUser()) != null) {
+            if (user == null && (user = userInjector.getInjectedUser()) != null) {
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
                 // since there is no support for TransportClient auth/auth in 2.0 anymore, usually we
                 // can skip any checks on transport in case of trusted requests.
@@ -180,51 +201,88 @@ public class SecurityFilter implements ActionFilter {
             final boolean userIsAdmin = isUserAdmin(user, adminDns);
             final boolean interClusterRequest = HeaderHelper.isInterClusterRequest(threadContext);
             final boolean trustedClusterRequest = HeaderHelper.isTrustedClusterRequest(threadContext);
-            final boolean confRequest = "true".equals(HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER));
-            final boolean passThroughRequest = action.startsWith("indices:admin/seq_no")
-                    || action.equals(WhoAmIAction.NAME);
+            final boolean confRequest = "true".equals(
+                HeaderHelper.getSafeFromHeader(threadContext, ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER)
+            );
+            final boolean passThroughRequest = action.startsWith("indices:admin/seq_no") || action.equals(WhoAmIAction.NAME);
 
-            final boolean internalRequest =
-                    (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
-                    && action.startsWith("internal:")
-                    && !action.startsWith("internal:transport/proxy");
+            final boolean internalRequest = (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+                && action.startsWith("internal:")
+                && !action.startsWith("internal:transport/proxy");
 
             if (user != null) {
                 org.apache.logging.log4j.ThreadContext.put("user", user.getName());
             }
-                        
+
             if (isActionTraceEnabled()) {
 
                 String count = "";
-                if(request instanceof BulkRequest) {
-                    count = ""+((BulkRequest) request).requests().size();
+                if (request instanceof BulkRequest) {
+                    count = "" + ((BulkRequest) request).requests().size();
                 }
 
-                if(request instanceof MultiGetRequest) {
-                    count = ""+((MultiGetRequest) request).getItems().size();
+                if (request instanceof MultiGetRequest) {
+                    count = "" + ((MultiGetRequest) request).getItems().size();
                 }
 
-                if(request instanceof MultiSearchRequest) {
-                    count = ""+((MultiSearchRequest) request).requests().size();
+                if (request instanceof MultiSearchRequest) {
+                    count = "" + ((MultiSearchRequest) request).requests().size();
                 }
 
-                traceAction("Node "+cs.localNode().getName()+" -> "+action+" ("+count+"): userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress());
+                traceAction(
+                    "Node "
+                        + cs.localNode().getName()
+                        + " -> "
+                        + action
+                        + " ("
+                        + count
+                        + "): userIsAdmin="
+                        + userIsAdmin
+                        + "/conRequest="
+                        + confRequest
+                        + "/internalRequest="
+                        + internalRequest
+                        + "origin="
+                        + threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)
+                        + "/directRequest="
+                        + HeaderHelper.isDirectRequest(threadContext)
+                        + "/remoteAddress="
+                        + request.remoteAddress()
+                );
 
-
-                threadContext.putHeader("_opendistro_security_trace"+System.currentTimeMillis()+"#"+UUID.randomUUID().toString(), Thread.currentThread().getName()+" FILTER -> "+"Node "+cs.localNode().getName()+" -> "+action+" userIsAdmin="+userIsAdmin+"/conRequest="+confRequest+"/internalRequest="+internalRequest
-                        +"origin="+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+"/directRequest="+HeaderHelper.isDirectRequest(threadContext)+"/remoteAddress="+request.remoteAddress()+" "+threadContext.getHeaders().entrySet().stream().filter(p->!p.getKey().startsWith("_opendistro_security_trace")).collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue())));
-
+                threadContext.putHeader(
+                    "_opendistro_security_trace" + System.currentTimeMillis() + "#" + UUID.randomUUID().toString(),
+                    Thread.currentThread().getName()
+                        + " FILTER -> "
+                        + "Node "
+                        + cs.localNode().getName()
+                        + " -> "
+                        + action
+                        + " userIsAdmin="
+                        + userIsAdmin
+                        + "/conRequest="
+                        + confRequest
+                        + "/internalRequest="
+                        + internalRequest
+                        + "origin="
+                        + threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)
+                        + "/directRequest="
+                        + HeaderHelper.isDirectRequest(threadContext)
+                        + "/remoteAddress="
+                        + request.remoteAddress()
+                        + " "
+                        + threadContext.getHeaders()
+                            .entrySet()
+                            .stream()
+                            .filter(p -> !p.getKey().startsWith("_opendistro_security_trace"))
+                            .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()))
+                );
 
             }
 
+            if (userIsAdmin || confRequest || internalRequest || passThroughRequest) {
 
-            if(userIsAdmin
-                    || confRequest
-                    || internalRequest
-                    || passThroughRequest){
-
-                if(userIsAdmin && !confRequest && !internalRequest && !passThroughRequest) {
+                if (userIsAdmin && !confRequest && !internalRequest && !passThroughRequest) {
                     auditLog.logGrantedPrivileges(action, request, task);
                     auditLog.logIndexEvent(action, request, task);
                 }
@@ -232,67 +290,83 @@ public class SecurityFilter implements ActionFilter {
                 chain.proceed(task, action, request, listener);
                 return;
             }
-            
-            
-            if(immutableIndicesMatcher != WildcardMatcher.NONE) {
-            
+
+            if (immutableIndicesMatcher != WildcardMatcher.NONE) {
+
                 boolean isImmutable = false;
-                
-                if(request instanceof BulkShardRequest) {
-                    for(BulkItemRequest bsr: ((BulkShardRequest) request).items()) {
+
+                if (request instanceof BulkShardRequest) {
+                    for (BulkItemRequest bsr : ((BulkShardRequest) request).items()) {
                         isImmutable = checkImmutableIndices(bsr.request(), listener);
-                        if(isImmutable) {
+                        if (isImmutable) {
                             break;
                         }
                     }
                 } else {
                     isImmutable = checkImmutableIndices(request, listener);
                 }
-    
-                if(isImmutable) {
+
+                if (isImmutable) {
                     return;
                 }
 
             }
 
-            if(Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
-                    && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
-                    && (injectedRoles == null)
-                    && !enforcePrivilegesEvaluation
-                    ) {
+            if (Origin.LOCAL.toString().equals(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN))
+                && (interClusterRequest || HeaderHelper.isDirectRequest(threadContext))
+                && (injectedRoles == null)
+                && !enforcePrivilegesEvaluation) {
 
                 chain.proceed(task, action, request, listener);
                 return;
             }
 
-            if(user == null) {
+            if (user == null) {
 
-                if(action.startsWith("cluster:monitor/state")) {
+                if (action.startsWith("cluster:monitor/state")) {
                     chain.proceed(task, action, request, listener);
                     return;
                 }
 
-                boolean skipSecurityIfDualMode = threadContext.getTransient(ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY) == Boolean.TRUE;
-                if((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null) && !compatConfig.transportInterClusterAuthEnabled()) {
+                boolean skipSecurityIfDualMode = threadContext.getTransient(
+                    ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY
+                ) == Boolean.TRUE;
+                if ((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null)
+                    && !compatConfig.transportInterClusterAuthEnabled()) {
                     chain.proceed(task, action, request, listener);
                     return;
-                } else if((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null || skipSecurityIfDualMode) && compatConfig.transportInterClusterPassiveAuthEnabled()) {
-                    log.info("Transport auth in passive mode and no user found. Injecting default user");
-                    user = User.DEFAULT_TRANSPORT_USER;
-                    threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
-                } else {
-                    log.error("No user found for "+ action+" from "+request.remoteAddress()+" "+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)+" via "+threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE)+" "+threadContext.getHeaders());
-                    listener.onFailure(new OpenSearchSecurityException("No user found for "+action, RestStatus.INTERNAL_SERVER_ERROR));
-                    return;
-                }
+                } else if ((interClusterRequest || trustedClusterRequest || request.remoteAddress() == null || skipSecurityIfDualMode)
+                    && compatConfig.transportInterClusterPassiveAuthEnabled()) {
+                        log.info("Transport auth in passive mode and no user found. Injecting default user");
+                        user = User.DEFAULT_TRANSPORT_USER;
+                        threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
+                    } else {
+                        log.error(
+                            "No user found for "
+                                + action
+                                + " from "
+                                + request.remoteAddress()
+                                + " "
+                                + threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN)
+                                + " via "
+                                + threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE)
+                                + " "
+                                + threadContext.getHeaders()
+                        );
+                        listener.onFailure(
+                            new OpenSearchSecurityException("No user found for " + action, RestStatus.INTERNAL_SERVER_ERROR)
+                        );
+                        return;
+                    }
             }
 
             final PrivilegesEvaluator eval = evalp;
 
             if (!eval.isInitialized()) {
                 log.error("OpenSearch Security not initialized for {}", action);
-                listener.onFailure(new OpenSearchSecurityException("OpenSearch Security not initialized for "
-                + action, RestStatus.SERVICE_UNAVAILABLE));
+                listener.onFailure(
+                    new OpenSearchSecurityException("OpenSearch Security not initialized for " + action, RestStatus.SERVICE_UNAVAILABLE)
+                );
                 return;
             }
 
@@ -301,7 +375,7 @@ public class SecurityFilter implements ActionFilter {
             }
 
             final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, injectedRoles);
-            
+
             if (log.isDebugEnabled()) {
                 log.debug(pres.toString());
             }
@@ -317,18 +391,30 @@ public class SecurityFilter implements ActionFilter {
                     chain.proceed(task, action, request, listener);
                 } else {
                     CreateIndexRequest createIndexRequest = createIndexRequestBuilder.request();
-                    log.info("Request {} requires new tenant index {} with aliases {}",
-                        request.getClass().getSimpleName(), createIndexRequest.index(), alias2Name(createIndexRequest.aliases()));
+                    log.info(
+                        "Request {} requires new tenant index {} with aliases {}",
+                        request.getClass().getSimpleName(),
+                        createIndexRequest.index(),
+                        alias2Name(createIndexRequest.aliases())
+                    );
                     createIndexRequestBuilder.execute(new ActionListener<CreateIndexResponse>() {
                         @Override
                         public void onResponse(CreateIndexResponse createIndexResponse) {
                             if (createIndexResponse.isAcknowledged()) {
-                                log.debug("Request to create index {} with aliases {} acknowledged, proceeding with {}",
-                                    createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
+                                log.debug(
+                                    "Request to create index {} with aliases {} acknowledged, proceeding with {}",
+                                    createIndexRequest.index(),
+                                    alias2Name(createIndexRequest.aliases()),
+                                    request.getClass().getSimpleName()
+                                );
                                 chain.proceed(task, action, request, listener);
                             } else {
-                                String message = LoggerMessageFormat.format("Request to create index {} with aliases {} was not acknowledged, failing {}",
-                                    createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName());
+                                String message = LoggerMessageFormat.format(
+                                    "Request to create index {} with aliases {} was not acknowledged, failing {}",
+                                    createIndexRequest.index(),
+                                    alias2Name(createIndexRequest.aliases()),
+                                    request.getClass().getSimpleName()
+                                );
                                 log.error(message);
                                 listener.onFailure(new OpenSearchException(message));
                             }
@@ -338,12 +424,22 @@ public class SecurityFilter implements ActionFilter {
                         public void onFailure(Exception e) {
                             Throwable cause = ExceptionsHelper.unwrapCause(e);
                             if (cause instanceof ResourceAlreadyExistsException) {
-                                log.warn("Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
-                                    createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
+                                log.warn(
+                                    "Request to create index {} with aliases {} failed as the resource already exists, proceeding with {}",
+                                    createIndexRequest.index(),
+                                    alias2Name(createIndexRequest.aliases()),
+                                    request.getClass().getSimpleName(),
+                                    e
+                                );
                                 chain.proceed(task, action, request, listener);
                             } else {
-                                log.error("Request to create index {} with aliases {} failed, failing {}",
-                                    createIndexRequest.index(), alias2Name(createIndexRequest.aliases()), request.getClass().getSimpleName(), e);
+                                log.error(
+                                    "Request to create index {} with aliases {} failed, failing {}",
+                                    createIndexRequest.index(),
+                                    alias2Name(createIndexRequest.aliases()),
+                                    request.getClass().getSimpleName(),
+                                    e
+                                );
                                 listener.onFailure(e);
                             }
                         }
@@ -352,12 +448,16 @@ public class SecurityFilter implements ActionFilter {
             } else {
                 auditLog.logMissingPrivileges(action, request, task);
                 String err;
-                if(!pres.getMissingSecurityRoles().isEmpty()) {
+                if (!pres.getMissingSecurityRoles().isEmpty()) {
                     err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
                 } else {
-                    err = (injectedRoles != null) ?
-                            String.format("no permissions for %s and associated roles %s", pres.getMissingPrivileges(), pres.getResolvedSecurityRoles()) :
-                            String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
+                    err = (injectedRoles != null)
+                        ? String.format(
+                            "no permissions for %s and associated roles %s",
+                            pres.getMissingPrivileges(),
+                            pres.getResolvedSecurityRoles()
+                        )
+                        : String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
                 listener.onFailure(new OpenSearchSecurityException(err, RestStatus.FORBIDDEN));
@@ -370,7 +470,7 @@ public class SecurityFilter implements ActionFilter {
             }
             listener.onFailure(e);
         } catch (Throwable e) {
-            log.error("Unexpected exception "+e, e);
+            log.error("Unexpected exception " + e, e);
             listener.onFailure(new OpenSearchSecurityException("Unexpected exception " + action, RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
@@ -384,40 +484,40 @@ public class SecurityFilter implements ActionFilter {
     }
 
     private void attachSourceFieldContext(ActionRequest request) {
-        
-        if(request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
-            if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
+
+        if (request instanceof SearchRequest && SourceFieldsContext.isNeeded((SearchRequest) request)) {
+            if (threadContext.getHeader("_opendistro_security_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((SearchRequest) request));
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         } else if (request instanceof GetRequest && SourceFieldsContext.isNeeded((GetRequest) request)) {
-            if(threadContext.getHeader("_opendistro_security_source_field_context") == null) {
+            if (threadContext.getHeader("_opendistro_security_source_field_context") == null) {
                 final String serializedSourceFieldContext = Base64Helper.serializeObject(new SourceFieldsContext((GetRequest) request));
                 threadContext.putHeader("_opendistro_security_source_field_context", serializedSourceFieldContext);
             }
         }
     }
-    
+
     @SuppressWarnings("rawtypes")
     private boolean checkImmutableIndices(Object request, ActionListener listener) {
         final boolean isModifyIndexRequest = request instanceof DeleteRequest
-                || request instanceof UpdateRequest
-                || request instanceof UpdateByQueryRequest
-                || request instanceof DeleteByQueryRequest
-                || request instanceof DeleteIndexRequest
-                || request instanceof RestoreSnapshotRequest
-                || request instanceof CloseIndexRequest
-                || request instanceof IndicesAliasesRequest;
+            || request instanceof UpdateRequest
+            || request instanceof UpdateByQueryRequest
+            || request instanceof DeleteByQueryRequest
+            || request instanceof DeleteIndexRequest
+            || request instanceof RestoreSnapshotRequest
+            || request instanceof CloseIndexRequest
+            || request instanceof IndicesAliasesRequest;
 
         if (isModifyIndexRequest && isRequestIndexImmutable(request)) {
             listener.onFailure(new OpenSearchSecurityException("Index is immutable", RestStatus.FORBIDDEN));
             return true;
         }
-        
+
         if ((request instanceof IndexRequest) && isRequestIndexImmutable(request)) {
             ((IndexRequest) request).opType(OpType.CREATE);
         }
-        
+
         return false;
     }
 

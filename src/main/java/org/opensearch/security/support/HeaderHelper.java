@@ -27,7 +27,6 @@
 package org.opensearch.security.support;
 
 import java.io.Serializable;
-import java.util.Map;
 
 import com.google.common.base.Strings;
 
@@ -40,27 +39,25 @@ public class HeaderHelper {
     }
 
     public static boolean isDirectRequest(final ThreadContext context) {
-        
-        return  "direct".equals(context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE))
-                  || context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE) == null;
+
+        return "direct".equals(context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE))
+            || context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_CHANNEL_TYPE) == null;
     }
-    
-    
+
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Java Cryptography Extension is unrelated to OpenSearch extensions
+    public static boolean isExtensionRequest(final ThreadContext context) {
+        return context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST) == Boolean.TRUE;
+    }
+    // CS-ENFORCE-SINGLE
+
     public static String getSafeFromHeader(final ThreadContext context, final String headerName) {
 
         if (context == null || headerName == null || headerName.isEmpty()) {
             return null;
         }
 
-        String headerValue = null;
-        	
-        Map<String, String> headers = context.getHeaders();
-        if (!headers.containsKey(headerName) || (headerValue = headers.get(headerName)) == null) {
-            return null;
-        }
-
         if (isInterClusterRequest(context) || isTrustedClusterRequest(context) || isDirectRequest(context)) {
-            return headerValue;
+            return context.getHeader(headerName);
         }
 
         return null;
@@ -76,7 +73,7 @@ public class HeaderHelper {
 
         return null;
     }
-    
+
     public static boolean isTrustedClusterRequest(final ThreadContext context) {
         return context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_TRUSTED_CLUSTER_REQUEST) == Boolean.TRUE;
     }

@@ -41,88 +41,93 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-
 public class SecurityWhoAmIAction extends BaseRestHandler {
 
-	private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
-			new Route(GET, "/whoami"),
-			new Route(POST, "/whoami")),
-			"/_plugins/_security");
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(new Route(GET, "/whoami"), new Route(POST, "/whoami")),
+        "/_plugins/_security"
+    );
 
-	private final Logger log = LogManager.getLogger(this.getClass());
-	private final AdminDNs adminDns;
-	private final Settings settings;
-	private final Path configPath;
-	private final PrincipalExtractor principalExtractor;
-	private final List<String> nodesDn ;
+    private final Logger log = LogManager.getLogger(this.getClass());
+    private final AdminDNs adminDns;
+    private final Settings settings;
+    private final Path configPath;
+    private final PrincipalExtractor principalExtractor;
+    private final List<String> nodesDn;
 
-	public SecurityWhoAmIAction(final Settings settings, final RestController controller,
-			final ThreadPool threadPool, final AdminDNs adminDns, Path configPath, PrincipalExtractor principalExtractor) {
-		super();
-		this.adminDns = adminDns;
-		this.settings = settings;
-		this.configPath = configPath;
-		this.principalExtractor = principalExtractor;
+    public SecurityWhoAmIAction(
+        final Settings settings,
+        final RestController controller,
+        final ThreadPool threadPool,
+        final AdminDNs adminDns,
+        Path configPath,
+        PrincipalExtractor principalExtractor
+    ) {
+        super();
+        this.adminDns = adminDns;
+        this.settings = settings;
+        this.configPath = configPath;
+        this.principalExtractor = principalExtractor;
 
-		nodesDn = settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList());
-	}
+        nodesDn = settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList());
+    }
 
-	@Override
-	public List<Route> routes() {
-		return routes;
-	}
+    @Override
+    public List<Route> routes() {
+        return routes;
+    }
 
-	@Override
-	protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
-		return new RestChannelConsumer() {
+    @Override
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        return new RestChannelConsumer() {
 
-			@Override
-			public void accept(RestChannel channel) throws Exception {
-				XContentBuilder builder = channel.newBuilder();
-				BytesRestResponse response = null;
+            @Override
+            public void accept(RestChannel channel) throws Exception {
+                XContentBuilder builder = channel.newBuilder();
+                BytesRestResponse response = null;
 
-				try {
+                try {
 
-					SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor);
+                    SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor);
 
-					if(sslInfo  == null) {
-						response = new BytesRestResponse(RestStatus.FORBIDDEN, "No security data");
-					} else {
+                    if (sslInfo == null) {
+                        response = new BytesRestResponse(RestStatus.FORBIDDEN, "No security data");
+                    } else {
 
-						final String dn = sslInfo.getPrincipal();
-						final boolean isAdmin = adminDns.isAdminDN(dn);
-						final boolean isNodeCertificateRequest = dn != null && WildcardMatcher.from(nodesDn, true).matchAny(dn);
+                        final String dn = sslInfo.getPrincipal();
+                        final boolean isAdmin = adminDns.isAdminDN(dn);
+                        final boolean isNodeCertificateRequest = dn != null && WildcardMatcher.from(nodesDn, true).matchAny(dn);
 
-						builder.startObject();
-						builder.field("dn", dn);
-						builder.field("is_admin", isAdmin);
-						builder.field("is_node_certificate_request", isNodeCertificateRequest);
-						builder.endObject();
+                        builder.startObject();
+                        builder.field("dn", dn);
+                        builder.field("is_admin", isAdmin);
+                        builder.field("is_node_certificate_request", isNodeCertificateRequest);
+                        builder.endObject();
 
-						response = new BytesRestResponse(RestStatus.OK, builder);
+                        response = new BytesRestResponse(RestStatus.OK, builder);
 
-					}
-				} catch (final Exception e1) {
-					log.error(e1.toString(), e1);
-					builder = channel.newBuilder();
-					builder.startObject();
-					builder.field("error", e1.toString());
-					builder.endObject();
-					response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
-				} finally {
-					if (builder != null) {
-						builder.close();
-					}
-				}
+                    }
+                } catch (final Exception e1) {
+                    log.error(e1.toString(), e1);
+                    builder = channel.newBuilder();
+                    builder.startObject();
+                    builder.field("error", e1.toString());
+                    builder.endObject();
+                    response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
+                } finally {
+                    if (builder != null) {
+                        builder.close();
+                    }
+                }
 
-				channel.sendResponse(response);
-			}
-		};
-	}
+                channel.sendResponse(response);
+            }
+        };
+    }
 
-	@Override
-	public String getName() {
-		return "Security Plugin Who am i";
-	}
+    @Override
+    public String getName() {
+        return "Security Plugin Who am i";
+    }
 
 }
