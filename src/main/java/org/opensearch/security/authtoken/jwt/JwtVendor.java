@@ -30,7 +30,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.security.securityconf.ConfigModel;
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
