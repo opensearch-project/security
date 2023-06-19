@@ -106,7 +106,7 @@ public class PrivilegesEvaluator {
     private static final WildcardMatcher ACTION_MATCHER = WildcardMatcher.from("indices:data/read/*search*");
 
     private static final Pattern DNFOF_PATTERNS = Pattern.compile(
-            "indices:(data/read/.*|(admin/(mappings/fields/get.*|shards/search_shards|resolve/index)))"
+        "indices:(data/read/.*|(admin/(mappings/fields/get.*|shards/search_shards|resolve/index)))"
     );
 
     private static final IndicesOptions ALLOW_EMPTY = IndicesOptions.fromOptions(true, true, false, false);
@@ -136,10 +136,19 @@ public class PrivilegesEvaluator {
     private DynamicConfigModel dcm;
     private final NamedXContentRegistry namedXContentRegistry;
 
-    public PrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
-            final ConfigurationRepository configurationRepository, final IndexNameExpressionResolver resolver,
-            AuditLog auditLog, final Settings settings, final PrivilegesInterceptor privilegesInterceptor, final ClusterInfoHolder clusterInfoHolder,
-            final IndexResolverReplacer irr, boolean dlsFlsEnabled, NamedXContentRegistry namedXContentRegistry) {
+    public PrivilegesEvaluator(
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        final ConfigurationRepository configurationRepository,
+        final IndexNameExpressionResolver resolver,
+        AuditLog auditLog,
+        final Settings settings,
+        final PrivilegesInterceptor privilegesInterceptor,
+        final ClusterInfoHolder clusterInfoHolder,
+        final IndexResolverReplacer irr,
+        boolean dlsFlsEnabled,
+        NamedXContentRegistry namedXContentRegistry
+    ) {
 
         super();
         this.clusterService = clusterService;
@@ -149,9 +158,10 @@ public class PrivilegesEvaluator {
         this.threadContext = threadPool.getThreadContext();
         this.privilegesInterceptor = privilegesInterceptor;
 
-
-        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
-                ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES);
+        this.checkSnapshotRestoreWritePrivileges = settings.getAsBoolean(
+            ConfigConstants.SECURITY_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES,
+            ConfigConstants.SECURITY_DEFAULT_CHECK_SNAPSHOT_RESTORE_WRITE_PRIVILEGES
+        );
 
         this.clusterInfoHolder = clusterInfoHolder;
         this.irr = irr;
@@ -179,9 +189,7 @@ public class PrivilegesEvaluator {
         return configModel.getSecurityRoles().filter(roles);
     }
 
-    public boolean hasRestAdminPermissions(final User user,
-            final TransportAddress remoteAddress,
-            final String permissions) {
+    public boolean hasRestAdminPermissions(final User user, final TransportAddress remoteAddress, final String permissions) {
         final Set<String> userRoles = mapRoles(user, remoteAddress);
         return hasRestAdminPermissions(userRoles, permissions);
     }
@@ -192,7 +200,7 @@ public class PrivilegesEvaluator {
     }
 
     public boolean isInitialized() {
-        return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
+        return configModel != null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
     private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
@@ -209,14 +217,19 @@ public class PrivilegesEvaluator {
         }
     }
 
-    public PrivilegesEvaluatorResponse evaluate(final User user, String action0, final ActionRequest request,
-            Task task, final Set<String> injectedRoles) {
+    public PrivilegesEvaluatorResponse evaluate(
+        final User user,
+        String action0,
+        final ActionRequest request,
+        Task task,
+        final Set<String> injectedRoles
+    ) {
 
         if (!isInitialized()) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
         }
 
-        if(action0.startsWith("internal:indices/admin/upgrade")) {
+        if (action0.startsWith("internal:indices/admin/upgrade")) {
             action0 = "indices:admin/upgrade";
         }
 
@@ -232,10 +245,12 @@ public class PrivilegesEvaluator {
 
         final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         Set<String> mappedRoles = (injectedRoles == null) ? mapRoles(user, caller) : injectedRoles;
-        final String injectedRolesValidationString = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION);
-        if(injectedRolesValidationString != null) {
+        final String injectedRolesValidationString = threadContext.getTransient(
+            ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION
+        );
+        if (injectedRolesValidationString != null) {
             HashSet<String> injectedRolesValidationSet = new HashSet<>(Arrays.asList(injectedRolesValidationString.split(",")));
-            if(!mappedRoles.containsAll(injectedRolesValidationSet)) {
+            if (!mappedRoles.containsAll(injectedRolesValidationSet)) {
                 presponse.allowed = false;
                 presponse.missingSecurityRoles.addAll(injectedRolesValidationSet);
                 log.info("Roles {} are not mapped to the user {}", injectedRolesValidationSet, user);
@@ -258,15 +273,23 @@ public class PrivilegesEvaluator {
         }
 
         if (request instanceof BulkRequest && (Strings.isNullOrEmpty(user.getRequestedTenant()))) {
-            // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action indices:data/write/bulk[s]).
-            // This shortcut is only possible if the default tenant is selected, as we might need to rewrite the request for non-default tenants.
-            // No further access check for the default tenant is necessary, as access will be also checked on the TransportShardBulkAction level.
+            // Shortcut for bulk actions. The details are checked on the lower level of the BulkShardRequests (Action
+            // indices:data/write/bulk[s]).
+            // This shortcut is only possible if the default tenant is selected, as we might need to rewrite the request for non-default
+            // tenants.
+            // No further access check for the default tenant is necessary, as access will be also checked on the TransportShardBulkAction
+            // level.
 
             if (!securityRoles.impliesClusterPermissionPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
-                log.info("No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}", user, action0,
-                        securityRoles.getRoleNames(), presponse.missingPrivileges);
+                log.info(
+                    "No cluster-level perm match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
+                    user,
+                    action0,
+                    securityRoles.getRoleNames(),
+                    presponse.missingPrivileges
+                );
             } else {
                 presponse.allowed = true;
             }
@@ -275,7 +298,6 @@ public class PrivilegesEvaluator {
 
         final Resolved requestedResolved = irr.resolveRequest(request);
         presponse.resolved = requestedResolved;
-
 
         if (isDebugEnabled) {
             log.debug("RequestedResolved : {}", requestedResolved);
@@ -304,8 +326,7 @@ public class PrivilegesEvaluator {
         }
 
         // check access for point in time requests
-        if(pitPrivilegesEvaluator.evaluate(request, clusterService, user, securityRoles,
-                action0, resolver, presponse, irr).isComplete()) {
+        if (pitPrivilegesEvaluator.evaluate(request, clusterService, user, securityRoles, action0, resolver, presponse, irr).isComplete()) {
             return presponse;
         }
 
@@ -316,27 +337,44 @@ public class PrivilegesEvaluator {
             log.trace("dnfof enabled? {}", dnfofEnabled);
         }
 
-        presponse.evaluatedDlsFlsConfig = getSecurityRoles(mappedRoles).getDlsFls(user, dfmEmptyOverwritesAll, resolver, clusterService, namedXContentRegistry);
-
+        presponse.evaluatedDlsFlsConfig = getSecurityRoles(mappedRoles).getDlsFls(
+            user,
+            dfmEmptyOverwritesAll,
+            resolver,
+            clusterService,
+            namedXContentRegistry
+        );
 
         if (isClusterPerm(action0)) {
-            if(!securityRoles.impliesClusterPermissionPermission(action0)) {
+            if (!securityRoles.impliesClusterPermissionPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
-                log.info("No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",  user, requestedResolved, action0,
-                        securityRoles.getRoleNames(), presponse.missingPrivileges);
+                log.info(
+                    "No cluster-level perm match for {} {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
+                    user,
+                    requestedResolved,
+                    action0,
+                    securityRoles.getRoleNames(),
+                    presponse.missingPrivileges
+                );
                 return presponse;
             } else {
 
-                if(request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
+                if (request instanceof RestoreSnapshotRequest && checkSnapshotRestoreWritePrivileges) {
                     if (isDebugEnabled) {
                         log.debug("Normally allowed but we need to apply some extra checks for a restore request.");
                     }
                 } else {
-                    if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+                    if (privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, requestedResolved,
-                                mapTenants(user, mappedRoles));
+                        final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
+                            request,
+                            action0,
+                            user,
+                            dcm,
+                            requestedResolved,
+                            mapTenants(user, mappedRoles)
+                        );
 
                         if (isDebugEnabled) {
                             log.debug("Result from privileges interceptor for cluster perm: {}", replaceResult);
@@ -353,26 +391,28 @@ public class PrivilegesEvaluator {
                         }
                     }
 
-                    if (dnfofEnabled
-                            && (action0.startsWith("indices:data/read/"))
-                            && !requestedResolved.getAllIndices().isEmpty()
-                    ) {
+                    if (dnfofEnabled && (action0.startsWith("indices:data/read/")) && !requestedResolved.getAllIndices().isEmpty()) {
 
-                        if(requestedResolved.getAllIndices().isEmpty()) {
+                        if (requestedResolved.getAllIndices().isEmpty()) {
                             presponse.missingPrivileges.clear();
                             presponse.allowed = true;
                             return presponse;
                         }
 
+                        Set<String> reduced = securityRoles.reduce(
+                            requestedResolved,
+                            user,
+                            new String[] { action0 },
+                            resolver,
+                            clusterService
+                        );
 
-                        Set<String> reduced = securityRoles.reduce(requestedResolved, user, new String[]{action0}, resolver, clusterService);
-
-                        if(reduced.isEmpty()) {
+                        if (reduced.isEmpty()) {
                             presponse.allowed = false;
                             return presponse;
                         }
 
-                        if(irr.replace(request, true, reduced.toArray(new String[0]))) {
+                        if (irr.replace(request, true, reduced.toArray(new String[0]))) {
                             presponse.missingPrivileges.clear();
                             presponse.allowed = true;
                             return presponse;
@@ -394,7 +434,8 @@ public class PrivilegesEvaluator {
         }
 
         // term aggregations
-        if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse) .isComplete()) {
+        if (termsAggregationEvaluator.evaluate(requestedResolved, request, clusterService, user, securityRoles, resolver, presponse)
+            .isComplete()) {
             return presponse;
         }
 
@@ -413,11 +454,18 @@ public class PrivilegesEvaluator {
             log.debug("Security roles: {}", securityRoles.getRoleNames());
         }
 
-        //TODO exclude Security index
+        // TODO exclude Security index
 
-        if(privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
+        if (privilegesInterceptor.getClass() != PrivilegesInterceptor.class) {
 
-            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(request, action0, user, dcm, requestedResolved, mapTenants(user, mappedRoles));
+            final PrivilegesInterceptor.ReplaceResult replaceResult = privilegesInterceptor.replaceDashboardsIndex(
+                request,
+                action0,
+                user,
+                dcm,
+                requestedResolved,
+                mapTenants(user, mappedRoles)
+            );
 
             if (isDebugEnabled) {
                 log.debug("Result from privileges interceptor: {}", replaceResult);
@@ -436,7 +484,7 @@ public class PrivilegesEvaluator {
 
         if (dnfofEnabled && DNFOF_PATTERNS.matcher(action0).matches()) {
 
-            if(requestedResolved.getAllIndices().isEmpty()) {
+            if (requestedResolved.getAllIndices().isEmpty()) {
                 presponse.missingPrivileges.clear();
                 presponse.allowed = true;
                 return presponse;
@@ -444,18 +492,18 @@ public class PrivilegesEvaluator {
 
             Set<String> reduced = securityRoles.reduce(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
-            if(reduced.isEmpty()) {
-                if(dcm.isDnfofForEmptyResultsEnabled() && request instanceof IndicesRequest.Replaceable) {
+            if (reduced.isEmpty()) {
+                if (dcm.isDnfofForEmptyResultsEnabled() && request instanceof IndicesRequest.Replaceable) {
 
                     ((IndicesRequest.Replaceable) request).indices(new String[0]);
                     presponse.missingPrivileges.clear();
                     presponse.allowed = true;
 
-                    if(request instanceof SearchRequest) {
+                    if (request instanceof SearchRequest) {
                         ((SearchRequest) request).indicesOptions(ALLOW_EMPTY);
-                    } else if(request instanceof ClusterSearchShardsRequest) {
+                    } else if (request instanceof ClusterSearchShardsRequest) {
                         ((ClusterSearchShardsRequest) request).indicesOptions(ALLOW_EMPTY);
-                    } else if(request instanceof GetFieldMappingsRequest) {
+                    } else if (request instanceof GetFieldMappingsRequest) {
                         ((GetFieldMappingsRequest) request).indicesOptions(ALLOW_EMPTY);
                     }
 
@@ -465,16 +513,14 @@ public class PrivilegesEvaluator {
                 return presponse;
             }
 
-
-            if(irr.replace(request, true, reduced.toArray(new String[0]))) {
+            if (irr.replace(request, true, reduced.toArray(new String[0]))) {
                 presponse.missingPrivileges.clear();
                 presponse.allowed = true;
                 return presponse;
             }
         }
 
-
-        //not bulk, mget, etc request here
+        // not bulk, mget, etc request here
         boolean permGiven = false;
 
         if (isDebugEnabled) {
@@ -483,19 +529,25 @@ public class PrivilegesEvaluator {
 
         if (dcm.isMultiRolespanEnabled()) {
             permGiven = securityRoles.impliesTypePermGlobal(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
-        }  else {
+        } else {
             permGiven = securityRoles.get(requestedResolved, user, allIndexPermsRequiredA, resolver, clusterService);
 
         }
 
         if (!permGiven) {
-            log.info("No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]", "index" , user, requestedResolved, action0,
-                    securityRoles.getRoleNames());
+            log.info(
+                "No {}-level perm match for {} {} [Action [{}]] [RolesChecked {}]",
+                "index",
+                user,
+                requestedResolved,
+                action0,
+                securityRoles.getRoleNames()
+            );
             log.info("No permissions for {}", presponse.missingPrivileges);
         } else {
 
-            if(checkFilteredAliases(requestedResolved, action0, isDebugEnabled)) {
-                presponse.allowed=false;
+            if (checkFilteredAliases(requestedResolved, action0, isDebugEnabled)) {
+                presponse.allowed = false;
                 return presponse;
             }
 
@@ -513,12 +565,9 @@ public class PrivilegesEvaluator {
         return this.configModel.mapSecurityRoles(user, caller);
     }
 
-
     public Map<String, Boolean> mapTenants(final User user, Set<String> roles) {
         return this.configModel.mapTenants(user, roles);
     }
-
-
 
     public Set<String> getAllConfiguredTenantNames() {
 
@@ -526,8 +575,15 @@ public class PrivilegesEvaluator {
     }
 
     public boolean multitenancyEnabled() {
-        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && dcm.isDashboardsMultitenancyEnabled();
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class && dcm.isDashboardsMultitenancyEnabled();
+    }
+
+    public boolean privateTenantEnabled() {
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class && dcm.isDashboardsPrivateTenantEnabled();
+    }
+
+    public String dashboardsDefaultTenant() {
+        return dcm.getDashboardsDefaultTenant();
     }
 
     public boolean privateTenantEnabled() {
@@ -539,8 +595,7 @@ public class PrivilegesEvaluator {
     }
 
     public boolean notFailOnForbiddenEnabled() {
-        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class
-                && dcm.isDnfofEnabled();
+        return privilegesInterceptor.getClass() != PrivilegesInterceptor.class && dcm.isDnfofEnabled();
     }
 
     public String dashboardsIndex() {
@@ -559,7 +614,7 @@ public class PrivilegesEvaluator {
         // --- check inner bulk requests
         final Set<String> additionalPermissionsRequired = new HashSet<>();
 
-        if(!isClusterPerm(originalAction)) {
+        if (!isClusterPerm(originalAction)) {
             additionalPermissionsRequired.add(originalAction);
         }
 
@@ -571,18 +626,18 @@ public class PrivilegesEvaluator {
             BulkShardRequest bsr = (BulkShardRequest) request;
             for (BulkItemRequest bir : bsr.items()) {
                 switch (bir.request().opType()) {
-                case CREATE:
-                    additionalPermissionsRequired.add(IndexAction.NAME);
-                    break;
-                case INDEX:
-                    additionalPermissionsRequired.add(IndexAction.NAME);
-                    break;
-                case DELETE:
-                    additionalPermissionsRequired.add(DeleteAction.NAME);
-                    break;
-                case UPDATE:
-                    additionalPermissionsRequired.add(UpdateAction.NAME);
-                    break;
+                    case CREATE:
+                        additionalPermissionsRequired.add(IndexAction.NAME);
+                        break;
+                    case INDEX:
+                        additionalPermissionsRequired.add(IndexAction.NAME);
+                        break;
+                    case DELETE:
+                        additionalPermissionsRequired.add(DeleteAction.NAME);
+                        break;
+                    case UPDATE:
+                        additionalPermissionsRequired.add(UpdateAction.NAME);
+                        break;
                 }
             }
         }
@@ -591,11 +646,11 @@ public class PrivilegesEvaluator {
             IndicesAliasesRequest bsr = (IndicesAliasesRequest) request;
             for (AliasActions bir : bsr.getAliasActions()) {
                 switch (bir.actionType()) {
-                case REMOVE_INDEX:
-                    additionalPermissionsRequired.add(DeleteIndexAction.NAME);
-                    break;
-                default:
-                    break;
+                    case REMOVE_INDEX:
+                        additionalPermissionsRequired.add(DeleteIndexAction.NAME);
+                        break;
+                    default:
+                        break;
                 }
             }
         }
@@ -674,20 +729,20 @@ public class PrivilegesEvaluator {
 
             indexMetaDataCollection = indexMetaDataSet;
         }
-        //check filtered aliases
+        // check filtered aliases
         for (IndexMetadata indexMetaData : indexMetaDataCollection) {
 
             final List<AliasMetadata> filteredAliases = new ArrayList<AliasMetadata>();
 
             final Map<String, AliasMetadata> aliases = indexMetaData.getAliases();
 
-            if(aliases != null && aliases.size() > 0) {
+            if (aliases != null && aliases.size() > 0) {
                 if (isDebugEnabled) {
                     log.debug("Aliases for {}: {}", indexMetaData.getIndex().getName(), aliases);
                 }
 
                 final Iterator<String> it = aliases.keySet().iterator();
-                while(it.hasNext()) {
+                while (it.hasNext()) {
                     final String alias = it.next();
                     final AliasMetadata aliasMetadata = aliases.get(alias);
 
@@ -704,17 +759,20 @@ public class PrivilegesEvaluator {
                 }
             }
 
-            if(filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
-                //TODO add queries as dls queries (works only if dls module is installed)
-                log.error("More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}",
-                        filteredAliases.size(), indexMetaData.getIndex().getName(), toString(filteredAliases));
+            if (filteredAliases.size() > 1 && ACTION_MATCHER.test(action)) {
+                // TODO add queries as dls queries (works only if dls module is installed)
+                log.error(
+                    "More than one ({}) filtered alias found for same index ({}). This is currently not supported. Aliases: {}",
+                    filteredAliases.size(),
+                    indexMetaData.getIndex().getName(),
+                    toString(filteredAliases)
+                );
                 return true;
             }
-        } //end-for
+        } // end-for
 
         return false;
     }
-
 
     private boolean checkDocAllowListHeader(User user, String action, ActionRequest request) {
         String docAllowListHeader = threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DOC_ALLOWLIST_HEADER);
@@ -748,14 +806,14 @@ public class PrivilegesEvaluator {
     }
 
     private List<String> toString(List<AliasMetadata> aliases) {
-        if(aliases == null || aliases.size() == 0) {
+        if (aliases == null || aliases.size() == 0) {
             return Collections.emptyList();
         }
 
         final List<String> ret = new ArrayList<>(aliases.size());
 
-        for(final AliasMetadata amd: aliases) {
-            if(amd != null) {
+        for (final AliasMetadata amd : aliases) {
+            if (amd != null) {
                 ret.add(amd.alias());
             }
         }

@@ -60,23 +60,30 @@ public class SecurityIndexAccessEvaluator {
     private final List<String> configuredSystemIndices;
 
     public SecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
-        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(
+            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+        );
         this.auditLog = auditLog;
         this.irr = irr;
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
+        this.systemIndexMatcher = WildcardMatcher.from(
+            settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
+        );
+        this.systemIndexEnabled = settings.getAsBoolean(
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
+        );
 
         List<String> systemIndecesFromConfig =  settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT);
 
         this.configuredSystemIndices = new ArrayList<>(systemIndecesFromConfig);
         this.configuredSystemIndices.add(ConfigConstants.SYSTEM_INDEX_PERMISSION);
 
-
-        this.systemIndexMatcher = WildcardMatcher.from(configuredSystemIndices);
-
-        this.systemIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
-                ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT);
-
-        final boolean restoreSecurityIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED, false);
+        final boolean restoreSecurityIndexEnabled = settings.getAsBoolean(
+            ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED,
+            false
+        );
 
         final List<String> securityIndexDeniedActionPatternsList = new ArrayList<String>();
         securityIndexDeniedActionPatternsList.add("indices:data/write*");
@@ -93,7 +100,8 @@ public class SecurityIndexAccessEvaluator {
         securityIndexDeniedActionPatternsListNoSnapshot.add("cluster:admin/snapshot/restore*");
 
         securityDeniedActionMatcher = WildcardMatcher.from(
-                restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot);
+            restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot
+        );
     }
 
     public PrivilegesEvaluatorResponse evaluate(
@@ -101,7 +109,7 @@ public class SecurityIndexAccessEvaluator {
             final Task task,
             final String action,
             final Resolved requestedResolved,
-        final PrivilegesEvaluatorResponse presponse,
+            final PrivilegesEvaluatorResponse presponse,
             ConfigModelV7.SecurityRoles securityRoles) {
 
             final boolean isDebugEnabled = log.isDebugEnabled();
@@ -117,8 +125,13 @@ public class SecurityIndexAccessEvaluator {
                 if (filterSecurityIndex) {
                     irr.replace(request, false, "*", "-" + securityIndex);
                     if (isDebugEnabled) {
-                        log.debug("Filtered '{}' from {}, resulting list with *,-{} is {}", securityIndex, requestedResolved, securityIndex,
-                                irr.resolveRequest(request));
+                        log.debug(
+                            "Filtered '{}'from {}, resulting list with *,-{} is {}",
+                            securityIndex,
+                            requestedResolved,
+                            securityIndex,
+                            irr.resolveRequest(request)
+                        );
                     }
                     return presponse;
                 }
@@ -153,7 +166,9 @@ public class SecurityIndexAccessEvaluator {
             }
         }
 
-        if (requestedResolved.isLocalAll() || requestedResolved.getAllIndices().contains(securityIndex) || matchAnySystemIndices(requestedResolved)) {
+        if (requestedResolved.isLocalAll()
+            || requestedResolved.getAllIndices().contains(securityIndex)
+            || matchAnySystemIndices(requestedResolved)) {
 
             if (request instanceof SearchRequest) {
                 ((SearchRequest) request).requestCache(Boolean.FALSE);
@@ -186,12 +201,15 @@ public class SecurityIndexAccessEvaluator {
         return false;
     }
 
-    private boolean matchAnySystemIndices(final Resolved requestedResolved){
+    private boolean matchAnySystemIndices(final Resolved requestedResolved) {
         return !getProtectedIndexes(requestedResolved).isEmpty();
     }
 
     private List<String> getProtectedIndexes(final Resolved requestedResolved) {
-        final List<String> protectedIndexes = requestedResolved.getAllIndices().stream().filter(securityIndex::equals).collect(Collectors.toList());
+        final List<String> protectedIndexes = requestedResolved.getAllIndices()
+            .stream()
+            .filter(securityIndex::equals)
+            .collect(Collectors.toList());
         if (systemIndexEnabled) {
             protectedIndexes.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
         }

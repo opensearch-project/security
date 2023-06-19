@@ -54,15 +54,15 @@ public class SystemIndicesTests extends SingleClusterTest {
     private static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
     private static final String allAccessUser = "admin_all_access";
     private static final Header allAccessUserHeader = encodeBasicHeader(allAccessUser, allAccessUser);
+    private static final String generalErrorMessage = String.format(
+        "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]",
+        allAccessUser
+    );
 
     private static final String extensionUser = "extensions_user";
     private static final Header extensionUserHeader = encodeBasicHeader(extensionUser, allAccessUser);
     private static final String extensionUserC = "extensions_user_c";
     private static final Header extensionUserCHeader = encodeBasicHeader(extensionUserC, allAccessUser);
-    private static final String generalErrorMessage = String.format(
-        "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]",
-        allAccessUser
-    );
 
     private void setupSystemIndicesDisabledWithSsl() throws Exception {
 
@@ -586,14 +586,14 @@ public class SystemIndicesTests extends SingleClusterTest {
         setupSystemIndicesEnabledWithSsl();
         RestHelper sslRestHelper = sslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"settings\" : {\n" +
-                "        \"index\" : {\n" +
-                "            \"number_of_shards\" : 3, \n" +
-                "            \"number_of_replicas\" : 2 \n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n"
+            + "    \"settings\" : {\n"
+            + "        \"index\" : {\n"
+            + "            \"number_of_shards\" : 3, \n"
+            + "            \"number_of_replicas\" : 2 \n"
+            + "        }\n"
+            + "    }\n"
+            + "}";
 
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseIndex = sslRestHelper.executePutRequest(index, indexSettings, allAccessUserHeader);
@@ -639,6 +639,26 @@ public class SystemIndicesTests extends SingleClusterTest {
         RestHelper sslRestHelper = sslRestHelper();
         // as admin
         for (String index : listOfIndexesToTest) {
+            assertEquals(
+                HttpStatus.SC_OK,
+                sslRestHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1", allAccessUserHeader).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_OK,
+                sslRestHelper.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                    allAccessUserHeader
+                ).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_FORBIDDEN,
+                sslRestHelper.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "",
+                    allAccessUserHeader
+                ).getStatusCode()
+            );
             assertEquals(
                 HttpStatus.SC_OK,
                 sslRestHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1", allAccessUserHeader).getStatusCode()
