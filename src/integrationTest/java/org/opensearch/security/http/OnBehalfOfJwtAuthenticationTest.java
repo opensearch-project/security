@@ -54,7 +54,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 	public static final List<String> roles = List.of("admin", "HR");
 	public static final List<String> backendRoles = List.of("IT");
 
-	private static final String signingKey = Base64.getEncoder().encodeToString("jwt signing key for an on behalf of token authentication backend for testing of extensions".getBytes(StandardCharsets.UTF_8));
+	private static final String signingKey = Base64.getEncoder().encodeToString("jwt signing key for an on behalf of token authentication backend for testing of OBO authentication".getBytes(StandardCharsets.UTF_8));
 	private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
 
 	private static final OnBehalfOfJwtAuthorizationHeaderFactory tokenFactory = new OnBehalfOfJwtAuthorizationHeaderFactory(
