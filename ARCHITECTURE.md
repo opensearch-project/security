@@ -42,7 +42,7 @@ When starting up with no security index detected in the cluster, the Security Pl
 
 ### Admin Tools
 
-For OpenSearch nodes to join a cluster, they need to have the same security configuration. Complete security configurations will include SSL settings and certificate files. The admin tools allow users to manage these settings and other features. 
+For OpenSearch nodes to join a cluster, they need to have the same security configuration. Complete security configurations will include SSL settings and certificate files. The admin tools allow users to manage these settings and other features.
 
 ## Flows
 
@@ -50,7 +50,7 @@ For OpenSearch nodes to join a cluster, they need to have the same security conf
 
 The Security Plugin supports multiple authentication backends including an internal identity provider which works with HTTP basic authentication as well as support [external providers](https://opensearch.org/docs/latest/security/authentication-backends/authc-index/) such as OpenId Connect (OIDC) and SAML.
 
-Authorization is governed by roles declared in the security configuration. Roles control resource access by referencing the transport action name and/or index names in combination with OpenSearch action names.  
+Authorization is governed by roles declared in the security configuration. Roles control resource access by referencing the transport action name and/or index names in combination with OpenSearch action names.
 
 Users are assigned roles via the role mappings. These mappings include backend role assignments from authentication providers as well as internal roles defined in the Security Plugin.
 
