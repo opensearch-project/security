@@ -40,7 +40,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         BASE_ENDPOINT = getEndpointPrefix() + "/api/";
         ENDPOINT = getEndpointPrefix() + "/api/account";
     }
-    
+
     @Test
     public void testGetAccount() throws Exception {
         // arrange
@@ -74,12 +74,8 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertNotNull(body.getAsList("custom_attribute_names").size());
         assertNotNull(body.getAsSettings("tenants"));
         assertNotNull(body.getAsList("roles"));
-        
+
         response = rh.executePostRequest(getEndpointPrefix() + "/api/user/onbehalfof", "{\"reason\":\"Test generation\"}", encodeBasicHeader(testUser, testPass));
-        System.out.println("This is the response body: " + response.getBody());
-        final String token = response.findValueInJson("onBehalfOfToken");
-        final Header header = new org.apache.hc.core5.http.message.BasicHeader("Authorization", "Bearer " + token);
-        response = rh.executeGetRequest("/", header);
         System.out.println("This is the response body: " + response.getBody());
     }
 
@@ -198,15 +194,15 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         final String testPassword = "test-password";
         final String newPassword = "new-password";
         final String createInternalUserPayload = "{\n"
-            + "  \"password\": \""
-            + testPassword
-            + "\",\n"
-            + "  \"backend_roles\": [\"test-backend-role-1\"],\n"
-            + "  \"opendistro_security_roles\": [\"opendistro_security_all_access\"],\n"
-            + "  \"attributes\": {\n"
-            + "    \"attribute1\": \"value1\"\n"
-            + "  }\n"
-            + "}";
+                + "  \"password\": \""
+                + testPassword
+                + "\",\n"
+                + "  \"backend_roles\": [\"test-backend-role-1\"],\n"
+                + "  \"opendistro_security_roles\": [\"opendistro_security_all_access\"],\n"
+                + "  \"attributes\": {\n"
+                + "    \"attribute1\": \"value1\"\n"
+                + "  }\n"
+                + "}";
         final String changePasswordPayload = "{\"password\":\"" + newPassword + "\", \"current_password\":\"" + testPassword + "\"}";
         final String internalUserEndpoint = BASE_ENDPOINT + "internalusers/" + testUsername;
 
@@ -225,9 +221,9 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         response = rh.executeGetRequest(internalUserEndpoint);
         assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Settings responseBody = Settings.builder()
-            .loadFromSource(response.getBody(), XContentType.JSON)
-            .build()
-            .getAsSettings(testUsername);
+                .loadFromSource(response.getBody(), XContentType.JSON)
+                .build()
+                .getAsSettings(testUsername);
         assertTrue(responseBody.getAsList("backend_roles").contains("test-backend-role-1"));
         assertTrue(responseBody.getAsList("opendistro_security_roles").contains("opendistro_security_all_access"));
         assertEquals(responseBody.getAsSettings("attributes").get("attribute1"), "value1");

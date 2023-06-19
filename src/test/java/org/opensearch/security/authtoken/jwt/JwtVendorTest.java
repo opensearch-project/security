@@ -52,15 +52,17 @@ public class JwtVendorTest {
         String subject = "admin";
         String audience = "audience_0";
         List<String> roles = List.of("IT", "HR");
+        List<String> backendRoles = List.of("Sales");
         String expectedRoles = "IT,HR";
+        String expectedBackendRoles = "Sales";
         Integer expirySeconds = 300;
         LongSupplier currentTime = () -> (int) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         Long expectedExp = currentTime.getAsLong() + (expirySeconds * 1000);
 
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime), null, null);
-        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles);
 
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
         JwtToken jwt = jwtConsumer.getJwtToken();
@@ -73,6 +75,7 @@ public class JwtVendorTest {
         Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
         Assert.assertNotEquals(expectedRoles, jwt.getClaim("er"));
         Assert.assertEquals(expectedRoles, EncryptionDecryptionUtil.decrypt(claimsEncryptionKey, jwt.getClaim("er").toString()));
+        Assert.assertEquals(expectedBackendRoles, EncryptionDecryptionUtil.decrypt(claimsEncryptionKey, jwt.getClaim("ebr").toString()));
     }
 
     @Test(expected = Exception.class)
@@ -85,9 +88,9 @@ public class JwtVendorTest {
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
 
         Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty(), null, null);
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
-        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of());
     }
 
     @Test(expected = Exception.class)
@@ -99,9 +102,9 @@ public class JwtVendorTest {
         Integer expirySeconds = 300;
 
         Settings settings =  Settings.builder().put("signing_key", "abc123").build();
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty(),null, null);
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
-        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+        jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of());
     }
 
     @Test(expected = Exception.class)
@@ -115,9 +118,9 @@ public class JwtVendorTest {
 
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
 
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty(),null, null);
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
-        jwtVendor.createJwt(issuer, subject, audience, expirySecond, roles);
+        jwtVendor.createJwt(issuer, subject, audience, expirySecond, roles, List.of());
     }
 
     //For Manual Testing
@@ -138,15 +141,14 @@ public class JwtVendorTest {
 
         Settings settings =  Settings.builder().put("signing_key", signingKey).put("encryption_key", encryptionKey).build();
 
-        JwtVendor jwtVendor = new JwtVendor(settings, currentTime,null, null);
-        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+        JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
+        String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of());
 
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
         JwtToken jwt = jwtConsumer.getJwtToken();
 
         System.out.println("Encoded OBO JWT is: " + encodedJwt);
 
-        System.out.println("Decrypted role claim is: " + EncryptionDecryptionUtil.decrypt(encryptionKey, "T/XlNJfL852emYUv9/y06w=="));
         assertTrue(true);
     }
 }

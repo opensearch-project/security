@@ -17,9 +17,11 @@ import org.opensearch.common.inject.Provider;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.security.auth.BackendRegistry;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.impl.CType;
@@ -35,6 +37,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
@@ -76,34 +79,39 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
 
     private JwtVendor vendor;
     private final ThreadPool threadPool;
+
+    private ConfigModel configModel;
+
     private DynamicConfigModel dcm;
 
-//    @Subscribe
-//    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
-//        this.dcm = dcm;
-//        this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
-//        //TODO: NULL CHECK\
-//    }
+    @Subscribe
+    public void onConfigModelChanged(ConfigModel configModel) {
+        this.configModel = configModel;
+    }
 
-    public CreateOnBehalfOfToken(final Settings settings, final ThreadPool threadPool, final JwtVendor vendor) {
+    @Subscribe
+    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+        this.dcm = dcm;
+        this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
+    }
 
-        this.vendor = vendor;
+    public CreateOnBehalfOfToken(final Settings settings, final ThreadPool threadPool) {
         this.threadPool = threadPool;
     }
 
-	@Override
-	public String getName() {
-		return getClass().getSimpleName();
-	}
+    @Override
+    public String getName() {
+        return getClass().getSimpleName();
+    }
 
-	@Override
-	public List<Route> routes() {
-		return addRoutesPrefix(
-            ImmutableList.of(
-                    new Route(Method.POST, "/user/onbehalfof")
-            )
+    @Override
+    public List<Route> routes() {
+        return addRoutesPrefix(
+                ImmutableList.of(
+                        new Route(Method.POST, "/user/onbehalfof")
+                )
         );
-	}
+    }
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
@@ -126,40 +134,45 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
                     final String reason = (String)requestBody.getOrDefault("reason", null);
 
                     final Integer tokenDuration = Optional.ofNullable(requestBody.get("duration"))
-                        .map(value -> (String)value)
-                        .map(Integer::parseInt)
-                        .map(value -> Math.min(value, 72 * 3600)) // Max duration is 72 hours
-                        .orElse(24 * 3600); // Fallback to default;
+                            .map(value -> (String)value)
+                            .map(Integer::parseInt)
+                            .map(value -> Math.min(value, 72 * 3600)) // Max duration is 72 hours
+                            .orElse(24 * 3600); // Fallback to default;
 
                     final String source = "self-issued";
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        
+                    final TransportAddress caller = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+                    Set<String> mappedRoles = mapRoles(user, caller);
+
                     builder.startObject();
                     builder.field("user", user.getName());
-                    System.out.println("Ljl19970123");
-                    System.out.println(user.getRoles().stream().collect(Collectors.toList()));
                     final String token = vendor.createJwt(/* TODO: Update the issuer to represent the cluster */"OpenSearch",
-                        user.getName(),
-                        source,
-                        tokenDuration,
-                        user.getSecurityRoles().stream().collect(Collectors.toList()));
+                            user.getName(),
+                            source,
+                            tokenDuration,
+                            mappedRoles.stream().collect(Collectors.toList()),
+                            user.getRoles().stream().collect(Collectors.toList()));
                     builder.field("onBehalfOfToken", token);
                     builder.field("duration", tokenDuration);
                     builder.endObject();
-        
+
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception exception) {
                     System.out.println(exception.toString());
                     builder.startObject()
                             .field("error", exception.toString())
                             .endObject();
-        
+
                     response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
                 }
                 builder.close();
                 channel.sendResponse(response);
             }
         };
+    }
+
+    public Set<String> mapRoles(final User user, final TransportAddress caller) {
+        return this.configModel.mapSecurityRoles(user, caller);
     }
 
 }

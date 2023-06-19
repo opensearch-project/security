@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,6 +49,7 @@ public final class AuthCredentials {
     private final String username;
     private byte[] password;
     private Object nativeCredentials;
+    private final Set<String> securityRoles = new HashSet<String>();
     private final Set<String> backendRoles = new HashSet<String>();
     private boolean complete;
     private final byte[] internalPasswordHash;
@@ -91,6 +93,22 @@ public final class AuthCredentials {
      * @throws IllegalArgumentException if username is null or empty
      */
     public AuthCredentials(final String username, String... backendRoles) {
+        this(username, null, null, backendRoles);
+    }
+
+    /**
+     * Create new credentials with a username, a initial optional set of roles and empty password/native credentials
+     * @param username The username, must not be null or empty
+     * @param securityRoles The internal roles the user has been mapped to
+     * @param backendRoles set of roles this user is a member of
+     * @throws IllegalArgumentException if username is null or empty
+     */
+    public AuthCredentials(final String username, List<String> securityRoles, String... backendRoles) {
+        this(username, null, null, backendRoles);
+        this.securityRoles.addAll(securityRoles);
+    }
+
+    private AuthCredentials(final String username, byte[] password, Object nativeCredentials, List<String> securityRoles, String... backendRoles) {
         this(username, null, null, backendRoles);
     }
 
@@ -198,6 +216,14 @@ public final class AuthCredentials {
      */
     public Set<String> getBackendRoles() {
         return new HashSet<String>(backendRoles);
+    }
+
+    /**
+     *
+     * @return Defensive copy of the security roles this user is member of.
+     */
+    public Set<String> getSecurityRoles() {
+        return new HashSet<String>(securityRoles);
     }
 
     public boolean isComplete() {

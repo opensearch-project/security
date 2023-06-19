@@ -27,18 +27,20 @@ class OnBehalfOfJwtAuthorizationHeaderFactory {
 	private final String subject;
 	private final String audience;
 	private final List<String> roles;
+	private final List<String> backendRoles;
 	private final String encryption_key;
 	private final String signing_key;
 	private final String headerName;
 	private final Integer expirySeconds;
 
 
-	public OnBehalfOfJwtAuthorizationHeaderFactory(String signing_key, String issuer, String subject, String audience, List roles ,Integer expirySeconds, String headerName, String encryption_key) {
+	public OnBehalfOfJwtAuthorizationHeaderFactory(String signing_key, String issuer, String subject, String audience, List<String> roles, List<String> backendRoles, Integer expirySeconds, String headerName, String encryption_key) {
 		this.signing_key = requireNonNull(signing_key, "Signing key is required");
 		this.issuer = requireNonNull(issuer, "Issuer is required");
 		this.subject = requireNonNull(subject, "Subject is required");
 		this.audience = requireNonNull(audience, "Audience is required.");
 		this.roles = requireNonNull(roles, "Roles claim is required");
+		this.backendRoles = requireNonNull(backendRoles, "Backend roles claim is required");
 		this.expirySeconds = requireNonNull(expirySeconds, "Expiry is required");
 		this.headerName = requireNonNull(headerName, "Header name is required");
 		this.encryption_key = encryption_key;
@@ -47,11 +49,10 @@ class OnBehalfOfJwtAuthorizationHeaderFactory {
 	Header generateValidToken() throws Exception {
 		Optional<LongSupplier> currentTime = Optional.of(() -> System.currentTimeMillis() / 1000);
 		Settings settings = Settings.builder().put("signing_key", signing_key).put("encryption_key", encryption_key).build();
-//		JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
-//		String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+		JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
+		String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles);
 
-//		return toHeader(encodedJwt);
-		return null;
+		return toHeader(encodedJwt);
 	}
 
 	private BasicHeader toHeader(String token) {

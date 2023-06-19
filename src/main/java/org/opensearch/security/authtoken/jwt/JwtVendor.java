@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.function.LongSupplier;
 
 import com.google.common.base.Strings;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.cxf.jaxrs.json.basic.JsonMapObjectReaderWriter;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jwk.KeyType;
@@ -36,8 +35,6 @@ import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
-import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
@@ -52,13 +49,11 @@ public class JwtVendor {
     private final JsonWebKey signingKey;
     private final JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
-    private final ThreadPool threadPool;
-    private final PrivilegesEvaluator privilegesEvaluator;
 
     //TODO: Relocate/Remove them at once we make the descisions about the `roles`
     private ConfigModel configModel; // This never gets assigned, how does this work at all?
 
-    public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider, ThreadPool threadPool, PrivilegesEvaluator privilegesEvaluator) {
+    public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
         try {
             this.signingKey = createJwkFromSettings(settings);
@@ -77,16 +72,14 @@ public class JwtVendor {
             this.timeProvider = () -> System.currentTimeMillis() / 1000;
         }
         this.configModel = null;
-        this.threadPool = threadPool;
-        this.privilegesEvaluator = privilegesEvaluator;
     }
 
     /*
-    * The default configuration of this web key should be:
-    *   KeyType: OCTET
-    *   PublicKeyUse: SIGN
-    *   Encryption Algorithm: HS512
-    * */
+     * The default configuration of this web key should be:
+     *   KeyType: OCTET
+     *   PublicKeyUse: SIGN
+     *   Encryption Algorithm: HS512
+     * */
     static JsonWebKey createJwkFromSettings(Settings settings) throws Exception {
         String signingKey = settings.get("signing_key");
 
@@ -118,7 +111,7 @@ public class JwtVendor {
         }
     }
 
-    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles) throws Exception {
+    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles, List<String> backendRoles) throws Exception {
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
@@ -129,6 +122,8 @@ public class JwtVendor {
         jwtClaims.setIssuer(issuer);
 
         jwtClaims.setIssuedAt(timeMillis);
+
+        jwtClaims.setSubject(subject);
 
         jwtClaims.setAudience(audience);
 
@@ -145,20 +140,17 @@ public class JwtVendor {
         }
 
         //TODO: IF USER ENABLES THE BWC MODE, WE ARE EXPECTING TO SET PLAIN TEXT ROLE AS `dr`
+        if (roles != null) {
+            String listOfRoles = String.join(",", roles);
+            jwtClaims.setProperty("er", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
+        } else {
+            throw new Exception("Roles cannot be null");
+        }
 
-        final Pair<User, TransportAddress> userAndRemoteAddress =
-                Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
-        final User user = userAndRemoteAddress.getLeft();
-        final TransportAddress remoteAddress = userAndRemoteAddress.getRight();
-
-        jwtClaims.setSubject(user.getName());
-
-        // map the users Security roles
-        Set<String> userRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
-        // Ensure security role is populated
-        String listOfRoles = String.join(",", userRoles);
-        jwtClaims.setProperty("er", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
-
+        if (backendRoles != null) {
+            String listOfBackendRoles = String.join(",", backendRoles);
+            jwtClaims.setProperty("ebr", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfBackendRoles));
+        }
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 

@@ -36,6 +36,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 	public static final Integer expirySeconds = 100000;
 	public static final String headerName = "Authorization";
 	public static final List<String> roles = List.of("admin", "HR");
+	public static final List<String> backendRoles = List.of("IT");
 
 	private static final String signingKey = Base64.getEncoder().encodeToString("jwt signing key for an on behalf of token authentication backend for testing of extensions".getBytes(StandardCharsets.UTF_8));
 	private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
@@ -46,6 +47,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 			subject,
 			audience,
 			roles,
+			backendRoles,
 			expirySeconds,
 			headerName,
 			encryptionKey
@@ -61,7 +63,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
 	@Test
 	public void shouldAuthenticateWithJwtToken_positive() {
-		// TODO: This integration test should use an endpoint to get an OnBehalfOf token, not generate it 
+		// TODO: This integration test should use an endpoint to get an OnBehalfOf token, not generate it
 		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken())){
 
 			TestRestClient.HttpResponse response = client.getAuthInfo();
