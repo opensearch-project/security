@@ -202,7 +202,7 @@ public class PrivilegesEvaluator {
         return configModel != null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
-    private void setUserInfoInThreadContext(User user, Set<String> mappedRoles) {
+    static void setUserInfoInThreadContext(ThreadContext threadContext, User user, Set<String> mappedRoles) {
         if (threadContext.getTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT) == null) {
             StringJoiner joiner = new StringJoiner("|");
             joiner.add(user.getName());
@@ -263,7 +263,7 @@ public class PrivilegesEvaluator {
         presponse.resolvedSecurityRoles.addAll(mappedRoles);
         final SecurityRoles securityRoles = getSecurityRoles(mappedRoles);
 
-        setUserInfoInThreadContext(user, mappedRoles);
+        setUserInfoInThreadContext(threadContext, user, mappedRoles);
         // Add the security roles for this user so that they can be used for DLS parameter substitution.
         user.addSecurityRoles(mappedRoles);
 
