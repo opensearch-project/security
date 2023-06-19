@@ -1069,10 +1069,6 @@ xyz_sr_reserved:
         - "*"
   tenant_permissions: []
 
-hidden_test:
-  cluster_permissions:
-    - SGS_CLUSTER_COMPOSITE_OPS
-
 index_template_perm:
   reserved: true
   hidden: false
