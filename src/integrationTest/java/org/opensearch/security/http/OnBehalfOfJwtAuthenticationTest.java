@@ -37,7 +37,6 @@ public class OnBehalfOfJwtAuthenticationTest {
 	public static final String audience = "audience_0";
 	public static final Integer expirySeconds = 100000;
 	public static final String headerName = "Authorization";
-	public static final String headerNameContentType = "Content-Type";
 	public static final List<String> roles = List.of("admin", "HR");
 	public static final List<String> backendRoles = List.of("IT");
 
@@ -56,13 +55,9 @@ public class OnBehalfOfJwtAuthenticationTest {
 			encryptionKey
 	);
 
-	//private final static Path configurationFolder = OBOConfigurationFiles.createConfigurationDirectory();
 	public static final String ADMIN_USER_NAME = "admin";
 	public static final String DEFAULT_PASSWORD = "secret";
 	public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
-
-	public static final String NEW_USER = "new-user";
-	public static final String LIMITED_USER = "limited-user";
 
 	@ClassRule
 	public static final LocalCluster cluster = new LocalCluster.Builder()

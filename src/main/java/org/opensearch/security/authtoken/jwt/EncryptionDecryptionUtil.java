@@ -44,7 +44,7 @@ public class EncryptionDecryptionUtil {
             throw new RuntimeException("Error creating cipher from secret in mode " + mode.name());
         }
     }
-    
+
     private static byte[] createCipherText(final Cipher cipher, final byte[] data) {
         try {
             return cipher.doFinal(data);

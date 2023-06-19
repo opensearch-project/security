@@ -11,8 +11,6 @@
 
 package org.opensearch.security.authtoken.jwt;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
@@ -25,8 +23,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JwtVendorTest {
 
@@ -87,7 +83,7 @@ public class JwtVendorTest {
         Integer expirySeconds = -300;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
 
-        Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of());
@@ -101,7 +97,7 @@ public class JwtVendorTest {
         List<String> roles = List.of("admin");
         Integer expirySeconds = 300;
 
-        Settings settings =  Settings.builder().put("signing_key", "abc123").build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").build();
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
 
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, List.of());

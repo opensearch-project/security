@@ -18,27 +18,27 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 public class OnBehalfOfConfig implements ToXContentObject {
-	private String signing_key;
-	private String encryption_key;
+    private String signing_key;
+    private String encryption_key;
 
-	public OnBehalfOfConfig signing_key(String signing_key) {
-		this.signing_key = signing_key;
-		return this;
-	}
+    public OnBehalfOfConfig signing_key(String signing_key) {
+        this.signing_key = signing_key;
+        return this;
+    }
 
-	public OnBehalfOfConfig encryption_key(String encryption_key) {
-		this.encryption_key = encryption_key;
-		return this;
-	}
+    public OnBehalfOfConfig encryption_key(String encryption_key) {
+        this.encryption_key = encryption_key;
+        return this;
+    }
 
-	@Override
-	public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
-		xContentBuilder.startObject();
-		xContentBuilder.field("signing_key", signing_key);
-		if (StringUtils.isNoneBlank(encryption_key)){
-			xContentBuilder.field("encryption_key", encryption_key);
-		}
-		xContentBuilder.endObject();
-		return xContentBuilder;
-	}
+    @Override
+    public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
+        xContentBuilder.startObject();
+        xContentBuilder.field("signing_key", signing_key);
+        if (StringUtils.isNoneBlank(encryption_key)) {
+            xContentBuilder.field("encryption_key", encryption_key);
+        }
+        xContentBuilder.endObject();
+        return xContentBuilder;
+    }
 }
