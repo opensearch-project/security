@@ -45,6 +45,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -127,6 +128,7 @@ import org.opensearch.security.auditlog.NullAuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig.Filter.FilterEntries;
 import org.opensearch.security.auditlog.impl.AuditLogImpl;
 import org.opensearch.security.auth.BackendRegistry;
+import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListener;
 import org.opensearch.security.compliance.ComplianceIndexingOperationListenerImpl;
 import org.opensearch.security.configuration.AdminDNs;
@@ -206,6 +208,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SecurityRestFilter securityRestHandler;
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
+    private volatile JwtVendor vendor;
     private volatile UserService userService;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
@@ -478,7 +481,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
                 handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                handlers.add(new CreateOnBehalfOfToken(settings, threadPool));
+                handlers.add(new CreateOnBehalfOfToken(settings, threadPool, vendor));
                 handlers.addAll(
                         SecurityRestApiActions.getHandler(
                                 settings,
@@ -827,6 +830,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         final boolean dlsFlsEnabled = !SSLConfig.isSslOnlyMode();
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
                 settings, privilegesInterceptor, cih, irr, dlsFlsEnabled, namedXContentRegistry.get());
+
+        Settings testSettings =  Settings.builder()
+                .put("signing_key", "VGhpcyBpcyB0aGUgand0IHNpZ25pbmcga2V5IGZvciBhbiBvbiBiZWhhbGYgb2YgdG9rZW4gYXV0aGVudGljYXRpb24gYmFja2VuZCBmb3IgdGVzdGluZyBvZiBleHRlbnNpb25z")
+                .put("encryption_key", "ZW5jcnlwdGlvbktleQ==").build();
+
+        vendor = new JwtVendor(testSettings, Optional.empty(), threadPool, evaluator);
+
 
         sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
 

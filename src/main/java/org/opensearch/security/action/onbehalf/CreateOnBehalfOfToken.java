@@ -78,19 +78,16 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
     private final ThreadPool threadPool;
     private DynamicConfigModel dcm;
 
-    @Subscribe
-    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
-        this.dcm = dcm;
-        this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
-        //TODO: NULL CHECK\
-    }
+//    @Subscribe
+//    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+//        this.dcm = dcm;
+//        this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
+//        //TODO: NULL CHECK\
+//    }
 
-    public CreateOnBehalfOfToken(final Settings settings, final ThreadPool threadPool) {
-        Settings testSettings =  Settings.builder()
-        .put("signing_key", "VGhpcyBpcyB0aGUgand0IHNpZ25pbmcga2V5IGZvciBhbiBvbiBiZWhhbGYgb2YgdG9rZW4gYXV0aGVudGljYXRpb24gYmFja2VuZCBmb3IgdGVzdGluZyBvZiBleHRlbnNpb25z")
-        .put("encryption_key", "ZW5jcnlwdGlvbktleQ==").build();
+    public CreateOnBehalfOfToken(final Settings settings, final ThreadPool threadPool, final JwtVendor vendor) {
 
-        this.vendor = new JwtVendor(testSettings, Optional.empty());
+        this.vendor = vendor;
         this.threadPool = threadPool;
     }
 
@@ -139,6 +136,8 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
         
                     builder.startObject();
                     builder.field("user", user.getName());
+                    System.out.println("Ljl19970123");
+                    System.out.println(user.getRoles().stream().collect(Collectors.toList()));
                     final String token = vendor.createJwt(/* TODO: Update the issuer to represent the cluster */"OpenSearch",
                         user.getName(),
                         source,

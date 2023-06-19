@@ -101,6 +101,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     @SuppressWarnings("removal")
     public AuthCredentials extractCredentials(RestRequest request, ThreadContext context) throws OpenSearchSecurityException {
         final SecurityManager sm = System.getSecurityManager();
+        log.info("Trying to extractCredentials");
 
         if (sm != null) {
             sm.checkPermission(new SpecialPermission());
@@ -117,6 +118,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private AuthCredentials extractCredentials0(final RestRequest request) {
+        log.info("Trying to extractCredentials 0");
+
         if (jwtParser == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;

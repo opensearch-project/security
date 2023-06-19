@@ -47,10 +47,11 @@ class OnBehalfOfJwtAuthorizationHeaderFactory {
 	Header generateValidToken() throws Exception {
 		Optional<LongSupplier> currentTime = Optional.of(() -> System.currentTimeMillis() / 1000);
 		Settings settings = Settings.builder().put("signing_key", signing_key).put("encryption_key", encryption_key).build();
-		JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
-		String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
+//		JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
+//		String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
 
-		return toHeader(encodedJwt);
+//		return toHeader(encodedJwt);
+		return null;
 	}
 
 	private BasicHeader toHeader(String token) {

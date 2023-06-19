@@ -77,6 +77,10 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         
         response = rh.executePostRequest(getEndpointPrefix() + "/api/user/onbehalfof", "{\"reason\":\"Test generation\"}", encodeBasicHeader(testUser, testPass));
         System.out.println("This is the response body: " + response.getBody());
+        final String token = response.findValueInJson("onBehalfOfToken");
+        final Header header = new org.apache.hc.core5.http.message.BasicHeader("Authorization", "Bearer " + token);
+        response = rh.executeGetRequest("/", header);
+        System.out.println("This is the response body: " + response.getBody());
     }
 
     @Test

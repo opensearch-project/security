@@ -59,7 +59,7 @@ public class JwtVendorTest {
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
         Long expectedExp = currentTime.getAsLong() + (expirySeconds * 1000);
 
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime), null, null);
         String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
 
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
@@ -85,7 +85,7 @@ public class JwtVendorTest {
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
 
         Settings settings =  Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty(), null, null);
 
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
     }
@@ -99,7 +99,7 @@ public class JwtVendorTest {
         Integer expirySeconds = 300;
 
         Settings settings =  Settings.builder().put("signing_key", "abc123").build();
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty(),null, null);
 
         jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
     }
@@ -115,7 +115,7 @@ public class JwtVendorTest {
 
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
 
-        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty());
+        JwtVendor jwtVendor = new JwtVendor(settings, Optional.empty(),null, null);
 
         jwtVendor.createJwt(issuer, subject, audience, expirySecond, roles);
     }
@@ -138,7 +138,7 @@ public class JwtVendorTest {
 
         Settings settings =  Settings.builder().put("signing_key", signingKey).put("encryption_key", encryptionKey).build();
 
-        JwtVendor jwtVendor = new JwtVendor(settings, currentTime);
+        JwtVendor jwtVendor = new JwtVendor(settings, currentTime,null, null);
         String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles);
 
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
@@ -146,6 +146,7 @@ public class JwtVendorTest {
 
         System.out.println("Encoded OBO JWT is: " + encodedJwt);
 
+        System.out.println("Decrypted role claim is: " + EncryptionDecryptionUtil.decrypt(encryptionKey, "T/XlNJfL852emYUv9/y06w=="));
         assertTrue(true);
     }
 }
