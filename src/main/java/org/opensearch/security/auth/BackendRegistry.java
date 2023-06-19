@@ -380,6 +380,7 @@ public class BackendRegistry {
                 final String tenant = Utils.coalesce(request.header("securitytenant"), request.header("security_tenant"));
                 User anonymousUser = new User(User.ANONYMOUS.getName(), new HashSet<String>(User.ANONYMOUS.getRoles()), null);
                 anonymousUser.setRequestedTenant(tenant);
+                anonymousUser.setAuthDomain("anonymous");
 
                 threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, anonymousUser);
                 auditLog.logSucceededLogin(anonymousUser.getName(), false, null, request);

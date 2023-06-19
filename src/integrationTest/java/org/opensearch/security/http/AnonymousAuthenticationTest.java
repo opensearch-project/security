@@ -28,6 +28,8 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
 @RunWith(RandomizedRunner.class)
@@ -94,6 +96,12 @@ public class AnonymousAuthenticationTest {
             List<String> roles = response.getTextArrayFromJsonBody(ROLES_POINTER);
             assertThat(roles, hasSize(1));
             assertThat(roles, contains(ANONYMOUS_USER_CUSTOM_ROLE.getName()));
+
+            AuthInfo authInfo = response.getBodyAs(AuthInfo.class);
+
+            assertThat(authInfo, is(notNullValue()));
+            assertThat(false, equalTo(authInfo.isInternal()));
+            assertThat("anonymous", equalTo(authInfo.getAuthDomain()));
         }
     }
 
