@@ -1025,6 +1025,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         securityRestHandler = new SecurityRestFilter(
             backendRegistry,
+            restLayerEvaluator,
             auditLog,
             threadPool,
             principalExtractor,
