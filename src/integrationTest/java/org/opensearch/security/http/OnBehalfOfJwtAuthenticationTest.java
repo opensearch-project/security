@@ -72,6 +72,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 	public static final String ADMIN_USER_NAME = "admin";
 	public static final String DEFAULT_PASSWORD = "secret";
 	public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
+	public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/user/onbehalfof";
 
 	@ClassRule
 	public static final LocalCluster cluster = new LocalCluster.Builder()
@@ -87,7 +88,6 @@ public class OnBehalfOfJwtAuthenticationTest {
 
 	@Test
 	public void shouldAuthenticateWithOBOToken() {
-		// TODO: This integration test should use an endpoint to get an OnBehalfOf token, not generate it
 		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken())){
 
 			TestRestClient.HttpResponse response = client.getAuthInfo();
@@ -102,13 +102,13 @@ public class OnBehalfOfJwtAuthenticationTest {
 
 	@Test
 	public void shouldAuthenticateWithOBOTokenEndPoint() {
-		//Header contentTypeHeader = new BasicHeader(headerNameContentType, "json");
 		Header adminOboAuthHeader;
+
 		try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
 
 			client.assertCorrectCredentials(ADMIN_USER_NAME);
 
-			TestRestClient.HttpResponse response = client.postJson("_plugins/_security/api/user/onbehalfof", OBO_TOKEN_REASON);
+			TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
 			response.assertStatusCode(200);
 
 			Map<String, Object> oboEndPointResponse = response.getBodyAs(Map.class);
@@ -119,6 +119,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 					hasKey("duration")));
 
 			String encodedOboTokenStr = oboEndPointResponse.get("onBehalfOfToken").toString();
+			System.out.println("This is the OBO Token of admin user: " + encodedOboTokenStr);
 
 			adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + encodedOboTokenStr);
 		}
