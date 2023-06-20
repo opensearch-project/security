@@ -15,15 +15,14 @@ import org.opensearch.action.search.MultiSearchResponse;
 
 public class MultiSearchResponseMatchers {
 
-	private MultiSearchResponseMatchers() {
-	}
+    private MultiSearchResponseMatchers() {}
 
-	public static Matcher<MultiSearchResponse> isSuccessfulMultiSearchResponse() {
-		return new SuccessfulMultiSearchResponseMatcher();
-	}
+    public static Matcher<MultiSearchResponse> isSuccessfulMultiSearchResponse() {
+        return new SuccessfulMultiSearchResponseMatcher();
+    }
 
-	public static Matcher<MultiSearchResponse> numberOfSearchItemResponsesIsEqualTo(int expectedNumberOfResponses) {
-		return new NumberOfSearchItemResponsesIsEqualToMatcher(expectedNumberOfResponses);
-	}
+    public static Matcher<MultiSearchResponse> numberOfSearchItemResponsesIsEqualTo(int expectedNumberOfResponses) {
+        return new NumberOfSearchItemResponsesIsEqualToMatcher(expectedNumberOfResponses);
+    }
 
 }

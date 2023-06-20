@@ -41,14 +41,11 @@ public class RestApiAdminPrivilegesEvaluator {
 
     private final static String REST_API_PERMISSION_PREFIX = "restapi:admin";
 
-    private final static String REST_ENDPOINT_PERMISSION_PATTERN =
-            REST_API_PERMISSION_PREFIX + "/%s";
+    private final static String REST_ENDPOINT_PERMISSION_PATTERN = REST_API_PERMISSION_PREFIX + "/%s";
 
-    private final static String REST_ENDPOINT_ACTION_PERMISSION_PATTERN =
-            REST_API_PERMISSION_PREFIX + "/%s/%s";
+    private final static String REST_ENDPOINT_ACTION_PERMISSION_PATTERN = REST_API_PERMISSION_PREFIX + "/%s/%s";
 
-    private final static WildcardMatcher REST_API_PERMISSION_PREFIX_MATCHER =
-            WildcardMatcher.from(REST_API_PERMISSION_PREFIX + "/*");
+    private final static WildcardMatcher REST_API_PERMISSION_PREFIX_MATCHER = WildcardMatcher.from(REST_API_PERMISSION_PREFIX + "/*");
 
     @FunctionalInterface
     public interface PermissionBuilder {
@@ -61,25 +58,25 @@ public class RestApiAdminPrivilegesEvaluator {
 
     }
 
-    public final static Map<Endpoint, PermissionBuilder> ENDPOINTS_WITH_PERMISSIONS =
-            ImmutableMap.<Endpoint, PermissionBuilder>builder()
-                    .put(Endpoint.ACTIONGROUPS, action -> buildEndpointPermission(Endpoint.ACTIONGROUPS))
-                    .put(Endpoint.ALLOWLIST, action -> buildEndpointPermission(Endpoint.ALLOWLIST))
-                    .put(Endpoint.INTERNALUSERS, action -> buildEndpointPermission(Endpoint.INTERNALUSERS))
-                    .put(Endpoint.NODESDN, action -> buildEndpointPermission(Endpoint.NODESDN))
-                    .put(Endpoint.ROLES, action -> buildEndpointPermission(Endpoint.ROLES))
-                    .put(Endpoint.ROLESMAPPING, action -> buildEndpointPermission(Endpoint.ROLESMAPPING))
-                    .put(Endpoint.TENANTS, action -> buildEndpointPermission(Endpoint.TENANTS))
-                    .put(Endpoint.SSL, action -> {
-                        switch (action) {
-                            case CERTS_INFO_ACTION:
-                                return buildEndpointActionPermission(Endpoint.SSL, "certs/info");
-                            case RELOAD_CERTS_ACTION:
-                                return buildEndpointActionPermission(Endpoint.SSL, "certs/reload");
-                            default:
-                                return null;
-                        }
-                    }).build();
+    public final static Map<Endpoint, PermissionBuilder> ENDPOINTS_WITH_PERMISSIONS = ImmutableMap.<Endpoint, PermissionBuilder>builder()
+        .put(Endpoint.ACTIONGROUPS, action -> buildEndpointPermission(Endpoint.ACTIONGROUPS))
+        .put(Endpoint.ALLOWLIST, action -> buildEndpointPermission(Endpoint.ALLOWLIST))
+        .put(Endpoint.INTERNALUSERS, action -> buildEndpointPermission(Endpoint.INTERNALUSERS))
+        .put(Endpoint.NODESDN, action -> buildEndpointPermission(Endpoint.NODESDN))
+        .put(Endpoint.ROLES, action -> buildEndpointPermission(Endpoint.ROLES))
+        .put(Endpoint.ROLESMAPPING, action -> buildEndpointPermission(Endpoint.ROLESMAPPING))
+        .put(Endpoint.TENANTS, action -> buildEndpointPermission(Endpoint.TENANTS))
+        .put(Endpoint.SSL, action -> {
+            switch (action) {
+                case CERTS_INFO_ACTION:
+                    return buildEndpointActionPermission(Endpoint.SSL, "certs/info");
+                case RELOAD_CERTS_ACTION:
+                    return buildEndpointActionPermission(Endpoint.SSL, "certs/reload");
+                default:
+                    return null;
+            }
+        })
+        .build();
 
     private final ThreadContext threadContext;
 
@@ -90,10 +87,11 @@ public class RestApiAdminPrivilegesEvaluator {
     private final boolean restapiAdminEnabled;
 
     public RestApiAdminPrivilegesEvaluator(
-            final ThreadContext threadContext,
-            final PrivilegesEvaluator privilegesEvaluator,
-            final AdminDNs adminDNs,
-            final boolean restapiAdminEnabled) {
+        final ThreadContext threadContext,
+        final PrivilegesEvaluator privilegesEvaluator,
+        final AdminDNs adminDNs,
+        final boolean restapiAdminEnabled
+    ) {
         this.threadContext = threadContext;
         this.privilegesEvaluator = privilegesEvaluator;
         this.adminDNs = adminDNs;
@@ -108,8 +106,10 @@ public class RestApiAdminPrivilegesEvaluator {
         if (adminDNs.isAdmin(userAndRemoteAddress.getLeft())) {
             if (logger.isDebugEnabled()) {
                 logger.debug(
-                        "Security admin permissions required for endpoint {} but {} is not an admin",
-                        endpoint, userAndRemoteAddress.getLeft().getName());
+                    "Security admin permissions required for endpoint {} but {} is not an admin",
+                    endpoint,
+                    userAndRemoteAddress.getLeft().getName()
+                );
             }
             return true;
         }
@@ -119,23 +119,23 @@ public class RestApiAdminPrivilegesEvaluator {
         }
         final String permission = ENDPOINTS_WITH_PERMISSIONS.get(endpoint).build(action);
         final boolean hasAccess = privilegesEvaluator.hasRestAdminPermissions(
-                userAndRemoteAddress.getLeft(),
-                userAndRemoteAddress.getRight(),
-                permission
+            userAndRemoteAddress.getLeft(),
+            userAndRemoteAddress.getRight(),
+            permission
         );
         if (logger.isDebugEnabled()) {
             logger.debug(
-                    "User {} with permission {} {} access to endpoint {}",
-                    userAndRemoteAddress.getLeft().getName(),
-                    permission,
-                    hasAccess ? "has" : "has no",
-                    endpoint
+                "User {} with permission {} {} access to endpoint {}",
+                userAndRemoteAddress.getLeft().getName(),
+                permission,
+                hasAccess ? "has" : "has no",
+                endpoint
             );
             logger.debug(
-                    "{} set to {}. {} use access decision",
-                    SECURITY_RESTAPI_ADMIN_ENABLED,
-                    restapiAdminEnabled,
-                    restapiAdminEnabled ? "Will" : "Will not"
+                "{} set to {}. {} use access decision",
+                SECURITY_RESTAPI_ADMIN_ENABLED,
+                restapiAdminEnabled,
+                restapiAdminEnabled ? "Will" : "Will not"
             );
         }
         return hasAccess && restapiAdminEnabled;
@@ -146,15 +146,9 @@ public class RestApiAdminPrivilegesEvaluator {
             return false;
         }
         if (configObject instanceof RoleV7) {
-            return ((RoleV7) configObject)
-                    .getCluster_permissions()
-                    .stream()
-                    .anyMatch(REST_API_PERMISSION_PREFIX_MATCHER);
+            return ((RoleV7) configObject).getCluster_permissions().stream().anyMatch(REST_API_PERMISSION_PREFIX_MATCHER);
         } else if (configObject instanceof ActionGroupsV7) {
-            return ((ActionGroupsV7) configObject)
-                    .getAllowed_actions()
-                    .stream()
-                    .anyMatch(REST_API_PERMISSION_PREFIX_MATCHER);
+            return ((ActionGroupsV7) configObject).getAllowed_actions().stream().anyMatch(REST_API_PERMISSION_PREFIX_MATCHER);
         } else {
             return false;
         }
@@ -165,17 +159,11 @@ public class RestApiAdminPrivilegesEvaluator {
     }
 
     private static String buildEndpointActionPermission(final Endpoint endpoint, final String action) {
-        return String.format(
-                REST_ENDPOINT_ACTION_PERMISSION_PATTERN,
-                endpoint.name().toLowerCase(Locale.ROOT),
-                action);
+        return String.format(REST_ENDPOINT_ACTION_PERMISSION_PATTERN, endpoint.name().toLowerCase(Locale.ROOT), action);
     }
 
     private static String buildEndpointPermission(final Endpoint endpoint) {
-        return String.format(
-                REST_ENDPOINT_PERMISSION_PATTERN,
-                endpoint.name().toLowerCase(Locale.ROOT)
-        );
+        return String.format(REST_ENDPOINT_PERMISSION_PATTERN, endpoint.name().toLowerCase(Locale.ROOT));
     }
 
 }

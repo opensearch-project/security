@@ -81,27 +81,32 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     public DynamicConfigModelV7(ConfigV7 config, Settings opensearchSettings, Path configPath, InternalAuthenticationBackend iab) {
         super();
         this.config = config;
-        this.opensearchSettings =  opensearchSettings;
+        this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
         this.iab = iab;
         buildAAA();
     }
+
     @Override
     public SortedSet<AuthDomain> getRestAuthDomains() {
         return Collections.unmodifiableSortedSet(restAuthDomains);
     }
+
     @Override
     public Set<AuthorizationBackend> getRestAuthorizers() {
         return Collections.unmodifiableSet(restAuthorizers);
     }
+
     @Override
     public boolean isAnonymousAuthenticationEnabled() {
         return config.dynamic.http.anonymous_auth_enabled;
     }
+
     @Override
     public boolean isXffEnabled() {
         return config.dynamic.http.xff.enabled;
     }
+
     @Override
     public String getInternalProxies() {
         return config.dynamic.http.xff.internalProxies;
@@ -116,44 +121,57 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     public boolean isRestAuthDisabled() {
         return config.dynamic.disable_rest_auth;
     }
+
     @Override
     public boolean isInterTransportAuthDisabled() {
         return config.dynamic.disable_intertransport_auth;
     }
+
     @Override
     public boolean isRespectRequestIndicesEnabled() {
         return config.dynamic.respect_request_indices_options;
     }
+
     @Override
     public String getDashboardsServerUsername() {
         return config.dynamic.kibana.server_username;
     }
+
     @Override
     public String getDashboardsOpenSearchRole() {
         return config.dynamic.kibana.opendistro_role;
     }
+
     @Override
     public String getDashboardsIndexname() {
         return config.dynamic.kibana.index;
     }
+
     @Override
     public boolean isDashboardsMultitenancyEnabled() {
         return config.dynamic.kibana.multitenancy_enabled;
     }
+
     @Override
     public boolean isDashboardsPrivateTenantEnabled() {
         return config.dynamic.kibana.private_tenant_enabled;
     }
+
     @Override
-    public String getDashboardsDefaultTenant() { return config.dynamic.kibana.default_tenant; }
+    public String getDashboardsDefaultTenant() {
+        return config.dynamic.kibana.default_tenant;
+    }
+
     @Override
     public boolean isDnfofEnabled() {
         return config.dynamic.do_not_fail_on_forbidden;
     }
+
     @Override
     public boolean isMultiRolespanEnabled() {
         return config.dynamic.multi_rolespan_enabled;
     }
+
     @Override
     public String getFilteredAliasMode() {
         return config.dynamic.filtered_alias_mode;
@@ -189,7 +207,6 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         return Multimaps.unmodifiableMultimap(authBackendClientBlockRegistries);
     }
 
-
     private void buildAAA() {
 
         final SortedSet<AuthDomain> restAuthDomains0 = new TreeSet<>();
@@ -208,26 +225,33 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
             final boolean httpEnabled = ad.getValue().http_enabled;
             final boolean transportEnabled = ad.getValue().transport_enabled;
 
-
             if (httpEnabled || transportEnabled) {
                 try {
 
                     final String authzBackendClazz = ad.getValue().authorization_backend.type;
                     final AuthorizationBackend authorizationBackend;
 
-                    if(authzBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
-                            || authzBackendClazz.equals("internal")
-                            || authzBackendClazz.equals("intern")) {
+                    if (authzBackendClazz.equals(InternalAuthenticationBackend.class.getName()) // NOSONAR
+                        || authzBackendClazz.equals("internal")
+                        || authzBackendClazz.equals("intern")) {
                         authorizationBackend = iab;
                         ReflectionHelper.addLoadedModule(InternalAuthenticationBackend.class);
                     } else {
                         authorizationBackend = newInstance(
-                                authzBackendClazz,"z",
-                                Settings.builder()
+                            authzBackendClazz,
+                            "z",
+                            Settings.builder()
                                 .put(opensearchSettings)
-                                //.putProperties(ads.getAsStringMap(DotPath.of("authorization_backend.config")), DynamicConfiguration.checkKeyFunction()).build(), configPath);
-                                .put(Settings.builder().loadFromSource(ad.getValue().authorization_backend.configAsJson(), XContentType.JSON).build()).build()
-                                , configPath);
+                                // .putProperties(ads.getAsStringMap(DotPath.of("authorization_backend.config")),
+                                // DynamicConfiguration.checkKeyFunction()).build(), configPath);
+                                .put(
+                                    Settings.builder()
+                                        .loadFromSource(ad.getValue().authorization_backend.configAsJson(), XContentType.JSON)
+                                        .build()
+                                )
+                                .build(),
+                            configPath
+                        );
                     }
 
                     if (httpEnabled) {
@@ -242,7 +266,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                         destroyableComponents0.add((Destroyable) authorizationBackend);
                     }
                 } catch (final Exception e) {
-                    log.error("Unable to initialize AuthorizationBackend {} due to {}", ad, e.toString(),e);
+                    log.error("Unable to initialize AuthorizationBackend {} due to {}", ad, e.toString(), e);
                 }
             }
         }
@@ -257,31 +281,56 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
                 try {
                     AuthenticationBackend authenticationBackend;
                     final String authBackendClazz = ad.getValue().authentication_backend.type;
-                    if(authBackendClazz.equals(InternalAuthenticationBackend.class.getName()) //NOSONAR
-                            || authBackendClazz.equals("internal")
-                            || authBackendClazz.equals("intern")) {
+                    if (authBackendClazz.equals(InternalAuthenticationBackend.class.getName()) // NOSONAR
+                        || authBackendClazz.equals("internal")
+                        || authBackendClazz.equals("intern")) {
                         authenticationBackend = iab;
                         ReflectionHelper.addLoadedModule(InternalAuthenticationBackend.class);
                     } else {
                         authenticationBackend = newInstance(
-                                authBackendClazz,"c",
-                                Settings.builder()
+                            authBackendClazz,
+                            "c",
+                            Settings.builder()
                                 .put(opensearchSettings)
-                                //.putProperties(ads.getAsStringMap(DotPath.of("authentication_backend.config")), DynamicConfiguration.checkKeyFunction()).build()
-                                .put(Settings.builder().loadFromSource(ad.getValue().authentication_backend.configAsJson(), XContentType.JSON).build()).build()
-                                , configPath);
+                                // .putProperties(ads.getAsStringMap(DotPath.of("authentication_backend.config")),
+                                // DynamicConfiguration.checkKeyFunction()).build()
+                                .put(
+                                    Settings.builder()
+                                        .loadFromSource(ad.getValue().authentication_backend.configAsJson(), XContentType.JSON)
+                                        .build()
+                                )
+                                .build(),
+                            configPath
+                        );
                     }
 
-                    String httpAuthenticatorType = ad.getValue().http_authenticator.type; //no default
-                    HTTPAuthenticator httpAuthenticator = httpAuthenticatorType==null?null:  (HTTPAuthenticator) newInstance(httpAuthenticatorType,"h",
-                            Settings.builder().put(opensearchSettings)
-                            //.putProperties(ads.getAsStringMap(DotPath.of("http_authenticator.config")), DynamicConfiguration.checkKeyFunction()).build(),
-                            .put(Settings.builder().loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON).build()).build()
+                    String httpAuthenticatorType = ad.getValue().http_authenticator.type; // no default
+                    HTTPAuthenticator httpAuthenticator = httpAuthenticatorType == null
+                        ? null
+                        : (HTTPAuthenticator) newInstance(
+                            httpAuthenticatorType,
+                            "h",
+                            Settings.builder()
+                                .put(opensearchSettings)
+                                // .putProperties(ads.getAsStringMap(DotPath.of("http_authenticator.config")),
+                                // DynamicConfiguration.checkKeyFunction()).build(),
+                                .put(
+                                    Settings.builder()
+                                        .loadFromSource(ad.getValue().http_authenticator.configAsJson(), XContentType.JSON)
+                                        .build()
+                                )
+                                .build()
 
-                            , configPath);
+                            ,
+                            configPath
+                        );
 
-                    final AuthDomain _ad = new AuthDomain(authenticationBackend, httpAuthenticator,
-                            ad.getValue().http_authenticator.challenge, ad.getValue().order);
+                    final AuthDomain _ad = new AuthDomain(
+                        authenticationBackend,
+                        httpAuthenticator,
+                        ad.getValue().http_authenticator.challenge,
+                        ad.getValue().order
+                    );
 
                     if (httpEnabled && _ad.getHttpAuthenticator() != null) {
                         restAuthDomains0.add(_ad);
@@ -315,14 +364,19 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
         destroyableComponents = Collections.unmodifiableList(destroyableComponents0);
 
-        if(originalDestroyableComponents != null) {
+        if (originalDestroyableComponents != null) {
             destroyDestroyables(originalDestroyableComponents);
         }
 
         originalDestroyableComponents = null;
 
-        createAuthFailureListeners(ipAuthFailureListeners0,
-                authBackendFailureListeners0, ipClientBlockRegistries0, authBackendClientBlockRegistries0, destroyableComponents0);
+        createAuthFailureListeners(
+            ipAuthFailureListeners0,
+            authBackendFailureListeners0,
+            ipClientBlockRegistries0,
+            authBackendClientBlockRegistries0,
+            destroyableComponents0
+        );
 
         ipAuthFailureListeners = Collections.unmodifiableList(ipAuthFailureListeners0);
         ipClientBlockRegistries = Collections.unmodifiableList(ipClientBlockRegistries0);
@@ -345,8 +399,8 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
         String clazz = clazzOrShortcut;
 
-        if(authImplMap.containsKey(clazz+"_"+type)) {
-            clazz = authImplMap.get(clazz+"_"+type);
+        if (authImplMap.containsKey(clazz + "_" + type)) {
+            clazz = authImplMap.get(clazz + "_" + type);
         }
 
         return ReflectionHelper.instantiateAAA(clazz, settings, configPath);
@@ -361,15 +415,20 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         }
     }
 
-    private void createAuthFailureListeners(List<AuthFailureListener> ipAuthFailureListeners,
-            Multimap<String, AuthFailureListener> authBackendFailureListeners, List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries,
-            Multimap<String, ClientBlockRegistry<String>> authBackendUserClientBlockRegistries, List<Destroyable> destroyableComponents0) {
+    private void createAuthFailureListeners(
+        List<AuthFailureListener> ipAuthFailureListeners,
+        Multimap<String, AuthFailureListener> authBackendFailureListeners,
+        List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries,
+        Multimap<String, ClientBlockRegistry<String>> authBackendUserClientBlockRegistries,
+        List<Destroyable> destroyableComponents0
+    ) {
 
         for (Entry<String, ConfigV7.AuthFailureListener> entry : config.dynamic.auth_failure_listeners.getListeners().entrySet()) {
 
             Settings entrySettings = Settings.builder()
-            .put(opensearchSettings)
-            .put(Settings.builder().loadFromSource(entry.getValue().asJson(), XContentType.JSON).build()).build();
+                .put(opensearchSettings)
+                .put(Settings.builder().loadFromSource(entry.getValue().asJson(), XContentType.JSON).build())
+                .build();
 
             String type = entry.getValue().type;
             String authenticationBackend = entry.getValue().authentication_backend;
@@ -386,8 +445,13 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
                         ipClientBlockRegistries.add(clientBlockRegistry);
                     } else {
-                        log.error("Illegal ClientIdType for AuthFailureListener" + entry.getKey() + ": "
-                                + ((ClientBlockRegistry<?>) authFailureListener).getClientIdType() + "; must be InetAddress.");
+                        log.error(
+                            "Illegal ClientIdType for AuthFailureListener"
+                                + entry.getKey()
+                                + ": "
+                                + ((ClientBlockRegistry<?>) authFailureListener).getClientIdType()
+                                + "; must be InetAddress."
+                        );
                     }
                 }
 
@@ -404,8 +468,13 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
                         authBackendUserClientBlockRegistries.put(authenticationBackend, clientBlockRegistry);
                     } else {
-                        log.error("Illegal ClientIdType for AuthFailureListener" + entry.getKey() + ": "
-                                + ((ClientBlockRegistry<?>) authFailureListener).getClientIdType() + "; must be InetAddress.");
+                        log.error(
+                            "Illegal ClientIdType for AuthFailureListener"
+                                + entry.getKey()
+                                + ": "
+                                + ((ClientBlockRegistry<?>) authFailureListener).getClientIdType()
+                                + "; must be InetAddress."
+                        );
                     }
                 }
             }

@@ -19,21 +19,21 @@ import org.opensearch.core.xcontent.XContentBuilder;
 
 public class AuthFailureListeners implements ToXContentObject {
 
-	private Map<String, RateLimiting> limits = new LinkedHashMap<>();
+    private Map<String, RateLimiting> limits = new LinkedHashMap<>();
 
-	public AuthFailureListeners addRateLimit(RateLimiting rateLimiting) {
-		Objects.requireNonNull(rateLimiting, "Rate limiting is required");
-		limits.put(rateLimiting.getName(), rateLimiting);
-		return this;
-	}
+    public AuthFailureListeners addRateLimit(RateLimiting rateLimiting) {
+        Objects.requireNonNull(rateLimiting, "Rate limiting is required");
+        limits.put(rateLimiting.getName(), rateLimiting);
+        return this;
+    }
 
-	@Override
-	public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-		xContentBuilder.startObject();
-		for(Map.Entry<String, RateLimiting> entry : limits.entrySet()) {
-			xContentBuilder.field(entry.getKey(), entry.getValue());
-		}
-		xContentBuilder.endObject();
-		return xContentBuilder;
-	}
+    @Override
+    public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
+        xContentBuilder.startObject();
+        for (Map.Entry<String, RateLimiting> entry : limits.entrySet()) {
+            xContentBuilder.field(entry.getKey(), entry.getValue());
+        }
+        xContentBuilder.endObject();
+        return xContentBuilder;
+    }
 }

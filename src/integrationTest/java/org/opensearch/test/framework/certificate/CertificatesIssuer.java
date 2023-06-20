@@ -83,144 +83,159 @@ import static java.util.Objects.requireNonNull;
 */
 class CertificatesIssuer {
 
-	private static final Logger log = LogManager.getLogger(CertificatesIssuer.class);
+    private static final Logger log = LogManager.getLogger(CertificatesIssuer.class);
 
-	private static final AtomicLong ID_COUNTER = new AtomicLong(System.currentTimeMillis());
+    private static final AtomicLong ID_COUNTER = new AtomicLong(System.currentTimeMillis());
 
-	private final Provider securityProvider;
-	private final AlgorithmKit algorithmKit;
-	private final JcaX509ExtensionUtils extUtils;
+    private final Provider securityProvider;
+    private final AlgorithmKit algorithmKit;
+    private final JcaX509ExtensionUtils extUtils;
 
-	CertificatesIssuer(Provider securityProvider, AlgorithmKit algorithmKit) {
-		this.securityProvider = securityProvider;
-		this.algorithmKit = algorithmKit;
-		this.extUtils = getExtUtils();
-	}
+    CertificatesIssuer(Provider securityProvider, AlgorithmKit algorithmKit) {
+        this.securityProvider = securityProvider;
+        this.algorithmKit = algorithmKit;
+        this.extUtils = getExtUtils();
+    }
 
-	/**
-	* The method creates a certificate with provided metadata and public key obtained from {@link #algorithmKit}. The result of invocation
-	* contains required data to use a certificate by its owner.
-	*
-	* @param certificateMetadata metadata which should be embedded into created certificate
-	* @return {@link CertificateData} which contain certificate and private key associated with the certificate.
-	*/
-	public CertificateData issueSelfSignedCertificate(CertificateMetadata certificateMetadata) {
-		try {
-			KeyPair publicAndPrivateKey = algorithmKit.generateKeyPair();
-			X500Name issuerName = stringToX500Name(requireNonNull(certificateMetadata.getSubject(), "Certificate metadata are required."));
-			X509CertificateHolder x509CertificateHolder = buildCertificateHolder(
-					certificateMetadata,
-					issuerName,
-					publicAndPrivateKey.getPublic(),
-					publicAndPrivateKey);
-			return new CertificateData(x509CertificateHolder, publicAndPrivateKey);
-		} catch (OperatorCreationException | CertIOException e) {
-			log.error("Error while generating certificate", e);
-			throw new RuntimeException("Error while generating self signed certificate", e);
-		}
-	}
+    /**
+    * The method creates a certificate with provided metadata and public key obtained from {@link #algorithmKit}. The result of invocation
+    * contains required data to use a certificate by its owner.
+    *
+    * @param certificateMetadata metadata which should be embedded into created certificate
+    * @return {@link CertificateData} which contain certificate and private key associated with the certificate.
+    */
+    public CertificateData issueSelfSignedCertificate(CertificateMetadata certificateMetadata) {
+        try {
+            KeyPair publicAndPrivateKey = algorithmKit.generateKeyPair();
+            X500Name issuerName = stringToX500Name(requireNonNull(certificateMetadata.getSubject(), "Certificate metadata are required."));
+            X509CertificateHolder x509CertificateHolder = buildCertificateHolder(
+                certificateMetadata,
+                issuerName,
+                publicAndPrivateKey.getPublic(),
+                publicAndPrivateKey
+            );
+            return new CertificateData(x509CertificateHolder, publicAndPrivateKey);
+        } catch (OperatorCreationException | CertIOException e) {
+            log.error("Error while generating certificate", e);
+            throw new RuntimeException("Error while generating self signed certificate", e);
+        }
+    }
 
-	/**
-	* The method is similar to {@link #issueSignedCertificate(CertificateMetadata, CertificateData)} but additionally it signs created
-	* certificate using data from <code>parentCertificateData</code>.
-	*
-	* @param metadata metadata which should be embedded into created certificate
-	* @param parentCertificateData data required to signe a newly issued certificate (private key among others things).
-	* @return {@link CertificateData} which contain certificate and private key associated with the certificate.
-	*/
-	public CertificateData issueSignedCertificate(CertificateMetadata metadata, CertificateData parentCertificateData) {
-		try {
-			KeyPair publicAndPrivateKey = algorithmKit.generateKeyPair();
-			KeyPair parentKeyPair = requireNonNull(parentCertificateData, "Issuer certificate data are required")
-					.getKeyPair();
-			X500Name issuerName = parentCertificateData.getCertificateSubject();
-			var x509CertificateHolder = buildCertificateHolder(requireNonNull(metadata, "Certificate metadata are required"),
-					issuerName,
-					publicAndPrivateKey.getPublic(),
-					parentKeyPair);
-			return new CertificateData(x509CertificateHolder, publicAndPrivateKey);
-		} catch (OperatorCreationException | CertIOException e) {
-			log.error("Error while generating signed certificate", e);
-			throw new RuntimeException("Error while generating signed certificate", e);
-		}
-	}
+    /**
+    * The method is similar to {@link #issueSignedCertificate(CertificateMetadata, CertificateData)} but additionally it signs created
+    * certificate using data from <code>parentCertificateData</code>.
+    *
+    * @param metadata metadata which should be embedded into created certificate
+    * @param parentCertificateData data required to signe a newly issued certificate (private key among others things).
+    * @return {@link CertificateData} which contain certificate and private key associated with the certificate.
+    */
+    public CertificateData issueSignedCertificate(CertificateMetadata metadata, CertificateData parentCertificateData) {
+        try {
+            KeyPair publicAndPrivateKey = algorithmKit.generateKeyPair();
+            KeyPair parentKeyPair = requireNonNull(parentCertificateData, "Issuer certificate data are required").getKeyPair();
+            X500Name issuerName = parentCertificateData.getCertificateSubject();
+            var x509CertificateHolder = buildCertificateHolder(
+                requireNonNull(metadata, "Certificate metadata are required"),
+                issuerName,
+                publicAndPrivateKey.getPublic(),
+                parentKeyPair
+            );
+            return new CertificateData(x509CertificateHolder, publicAndPrivateKey);
+        } catch (OperatorCreationException | CertIOException e) {
+            log.error("Error while generating signed certificate", e);
+            throw new RuntimeException("Error while generating signed certificate", e);
+        }
+    }
 
-	private X509CertificateHolder buildCertificateHolder(CertificateMetadata certificateMetadata,
-														X500Name issuerName,
-														PublicKey certificatePublicKey,
-														KeyPair parentKeyPair) throws CertIOException, OperatorCreationException {
-		X509v3CertificateBuilder builder = builderWithBasicExtensions(certificateMetadata, issuerName, certificatePublicKey, parentKeyPair.getPublic());
-		addSubjectAlternativeNameExtension(builder, certificateMetadata);
-		addExtendedKeyUsageExtension(builder, certificateMetadata);
-		return builder.build(createContentSigner(parentKeyPair.getPrivate()));
-	}
+    private X509CertificateHolder buildCertificateHolder(
+        CertificateMetadata certificateMetadata,
+        X500Name issuerName,
+        PublicKey certificatePublicKey,
+        KeyPair parentKeyPair
+    ) throws CertIOException, OperatorCreationException {
+        X509v3CertificateBuilder builder = builderWithBasicExtensions(
+            certificateMetadata,
+            issuerName,
+            certificatePublicKey,
+            parentKeyPair.getPublic()
+        );
+        addSubjectAlternativeNameExtension(builder, certificateMetadata);
+        addExtendedKeyUsageExtension(builder, certificateMetadata);
+        return builder.build(createContentSigner(parentKeyPair.getPrivate()));
+    }
 
-	private ContentSigner createContentSigner(PrivateKey privateKey) throws OperatorCreationException {
-		return new JcaContentSignerBuilder(algorithmKit.getSignatureAlgorithmName())
-				.setProvider(securityProvider)
-				.build(privateKey);
-	}
+    private ContentSigner createContentSigner(PrivateKey privateKey) throws OperatorCreationException {
+        return new JcaContentSignerBuilder(algorithmKit.getSignatureAlgorithmName()).setProvider(securityProvider).build(privateKey);
+    }
 
-	private void addExtendedKeyUsageExtension(X509v3CertificateBuilder builder, CertificateMetadata certificateMetadata) throws CertIOException {
-		if(certificateMetadata.hasExtendedKeyUsage()) {
-			builder.addExtension(Extension.extendedKeyUsage, true, certificateMetadata.getExtendedKeyUsage());
-		}
-	}
+    private void addExtendedKeyUsageExtension(X509v3CertificateBuilder builder, CertificateMetadata certificateMetadata)
+        throws CertIOException {
+        if (certificateMetadata.hasExtendedKeyUsage()) {
+            builder.addExtension(Extension.extendedKeyUsage, true, certificateMetadata.getExtendedKeyUsage());
+        }
+    }
 
-	private X509v3CertificateBuilder builderWithBasicExtensions(CertificateMetadata certificateMetadata,
-																X500Name issuerName,
-																PublicKey certificatePublicKey,
-																PublicKey parentPublicKey) throws CertIOException {
-		X500Name subjectName = stringToX500Name(certificateMetadata.getSubject());
-		Date validityStartDate = new Date(System.currentTimeMillis() - (24 * 3600 * 1000));
-		Date validityEndDate = getEndDate(validityStartDate, certificateMetadata.getValidityDays());
+    private X509v3CertificateBuilder builderWithBasicExtensions(
+        CertificateMetadata certificateMetadata,
+        X500Name issuerName,
+        PublicKey certificatePublicKey,
+        PublicKey parentPublicKey
+    ) throws CertIOException {
+        X500Name subjectName = stringToX500Name(certificateMetadata.getSubject());
+        Date validityStartDate = new Date(System.currentTimeMillis() - (24 * 3600 * 1000));
+        Date validityEndDate = getEndDate(validityStartDate, certificateMetadata.getValidityDays());
 
-		BigInteger certificateSerialNumber = generateNextCertificateSerialNumber();
-		return new X509v3CertificateBuilder(issuerName, certificateSerialNumber, validityStartDate,
-				validityEndDate, subjectName, SubjectPublicKeyInfo.getInstance(certificatePublicKey.getEncoded()))
-				.addExtension(Extension.basicConstraints, true, new BasicConstraints(certificateMetadata.isBasicConstrainIsCa()))
-				.addExtension(Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(parentPublicKey))
-				.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(certificatePublicKey))
-				.addExtension(Extension.keyUsage, true, certificateMetadata.asKeyUsage());
-	}
+        BigInteger certificateSerialNumber = generateNextCertificateSerialNumber();
+        return new X509v3CertificateBuilder(
+            issuerName,
+            certificateSerialNumber,
+            validityStartDate,
+            validityEndDate,
+            subjectName,
+            SubjectPublicKeyInfo.getInstance(certificatePublicKey.getEncoded())
+        ).addExtension(Extension.basicConstraints, true, new BasicConstraints(certificateMetadata.isBasicConstrainIsCa()))
+            .addExtension(Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(parentPublicKey))
+            .addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(certificatePublicKey))
+            .addExtension(Extension.keyUsage, true, certificateMetadata.asKeyUsage());
+    }
 
-	private void addSubjectAlternativeNameExtension(X509v3CertificateBuilder builder, CertificateMetadata metadata) throws CertIOException {
-		if(metadata.hasSubjectAlternativeNameExtension()){
-			DERSequence subjectAlternativeNames = metadata.createSubjectAlternativeNames();
-			builder.addExtension(Extension.subjectAlternativeName, false, subjectAlternativeNames);
-		}
-	}
+    private void addSubjectAlternativeNameExtension(X509v3CertificateBuilder builder, CertificateMetadata metadata) throws CertIOException {
+        if (metadata.hasSubjectAlternativeNameExtension()) {
+            DERSequence subjectAlternativeNames = metadata.createSubjectAlternativeNames();
+            builder.addExtension(Extension.subjectAlternativeName, false, subjectAlternativeNames);
+        }
+    }
 
-	private Date getEndDate(Date startDate, int validityDays) {
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(startDate);
-		calendar.add(Calendar.DATE, validityDays);
-		return calendar.getTime();
-	}
+    private Date getEndDate(Date startDate, int validityDays) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(startDate);
+        calendar.add(Calendar.DATE, validityDays);
+        return calendar.getTime();
+    }
 
-	private static JcaX509ExtensionUtils getExtUtils() {
-		try {
-			return new JcaX509ExtensionUtils();
-		} catch (NoSuchAlgorithmException e) {
-			log.error("Getting certificate extension utils failed", e);
-			throw new RuntimeException("Getting certificate extension utils failed", e);
-		}
-	}
+    private static JcaX509ExtensionUtils getExtUtils() {
+        try {
+            return new JcaX509ExtensionUtils();
+        } catch (NoSuchAlgorithmException e) {
+            log.error("Getting certificate extension utils failed", e);
+            throw new RuntimeException("Getting certificate extension utils failed", e);
+        }
+    }
 
-	private X500Name stringToX500Name(String distinguishedName) {
-		if (Strings.isNullOrEmpty(distinguishedName)) {
-			throw new RuntimeException("No DN (distinguished name) must not be null or empty");
-		}
-		try {
-			return new X500Name(RFC4519Style.INSTANCE, distinguishedName);
-		} catch (IllegalArgumentException e) {
-			String message = String.format("Invalid DN (distinguished name) specified for %s certificate.", distinguishedName);
-			throw new RuntimeException(message, e);
-		}
-	}
+    private X500Name stringToX500Name(String distinguishedName) {
+        if (Strings.isNullOrEmpty(distinguishedName)) {
+            throw new RuntimeException("No DN (distinguished name) must not be null or empty");
+        }
+        try {
+            return new X500Name(RFC4519Style.INSTANCE, distinguishedName);
+        } catch (IllegalArgumentException e) {
+            String message = String.format("Invalid DN (distinguished name) specified for %s certificate.", distinguishedName);
+            throw new RuntimeException(message, e);
+        }
+    }
 
-	private BigInteger generateNextCertificateSerialNumber() {
-		return BigInteger.valueOf(ID_COUNTER.incrementAndGet());
-	}
+    private BigInteger generateNextCertificateSerialNumber() {
+        return BigInteger.valueOf(ID_COUNTER.incrementAndGet());
+    }
 }
 // CS-ENFORCE-SINGLE

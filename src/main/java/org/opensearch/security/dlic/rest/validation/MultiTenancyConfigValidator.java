@@ -20,7 +20,6 @@ public class MultiTenancyConfigValidator extends AbstractConfigurationValidator 
     public static final String PRIVATE_TENANT_ENABLED_JSON_PROPERTY = "private_tenant_enabled";
     public static final String MULTITENANCY_ENABLED_JSON_PROPERTY = "multitenancy_enabled";
 
-
     public MultiTenancyConfigValidator(RestRequest request, BytesReference ref, Settings opensearchSettings, Object... param) {
         super(request, ref, opensearchSettings, param);
         this.payloadMandatory = true;
