@@ -32,7 +32,6 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-
 public class RestLayerPrivilegesEvaluator {
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ClusterService clusterService;
@@ -43,9 +42,13 @@ public class RestLayerPrivilegesEvaluator {
     private DynamicConfigModel dcm;
     private final AtomicReference<NamedXContentRegistry> namedXContentRegistry;
 
-    public RestLayerPrivilegesEvaluator(final ClusterService clusterService, final ThreadPool threadPool,
-                                        AuditLog auditLog, final ClusterInfoHolder clusterInfoHolder,
-                                        AtomicReference<NamedXContentRegistry> namedXContentRegistry) {
+    public RestLayerPrivilegesEvaluator(
+        final ClusterService clusterService,
+        final ThreadPool threadPool,
+        AuditLog auditLog,
+        final ClusterInfoHolder clusterInfoHolder,
+        AtomicReference<NamedXContentRegistry> namedXContentRegistry
+    ) {
 
         super();
         this.clusterService = clusterService;
@@ -72,7 +75,7 @@ public class RestLayerPrivilegesEvaluator {
     }
 
     public boolean isInitialized() {
-        return configModel !=null && configModel.getSecurityRoles() != null && dcm != null;
+        return configModel != null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
     public PrivilegesEvaluatorResponse evaluate(final User user, Set<String> action0) {
@@ -98,12 +101,16 @@ public class RestLayerPrivilegesEvaluator {
         }
 
         for (String action : action0) {
-            if (!securityRoles.impliesClusterPermissionPermission(action)
-                    && !securityRoles.impliesLegacyPermission(action)) {
+            if (!securityRoles.impliesClusterPermissionPermission(action) && !securityRoles.impliesLegacyPermission(action)) {
                 presponse.missingPrivileges.add(action);
                 presponse.allowed = false;
-                log.info("No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}", user, action,
-                        securityRoles.getRoleNames(), presponse.missingPrivileges);
+                log.info(
+                    "No permission match for {} [Action [{}]] [RolesChecked {}]. No permissions for {}",
+                    user,
+                    action,
+                    securityRoles.getRoleNames(),
+                    presponse.missingPrivileges
+                );
             } else {
                 if (isDebugEnabled) {
                     log.debug("Allowed because we have ext permissions for {}", action0);

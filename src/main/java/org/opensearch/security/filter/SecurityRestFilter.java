@@ -133,7 +133,9 @@ public class SecurityRestFilter {
             org.apache.logging.log4j.ThreadContext.clearAll();
             if (!checkAndAuthenticateRequest(request, channel)) {
                 User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
+                if (userIsSuperAdmin(user, adminDNs)
+                    || (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
+                        && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
                     if (authorizeRequest(original, request, channel, user)) {
                         original.handleRequest(request, channel, client);
                     }
@@ -153,9 +155,9 @@ public class SecurityRestFilter {
 
         List<RestHandler.Route> restRoutes = original.routes();
         Optional<RestHandler.Route> handler = restRoutes.stream()
-                .filter(rh -> rh.getMethod().equals(request.method()))
-                .filter(rh -> restPathMatches(request.path(), rh.getPath()))
-                .findFirst();
+            .filter(rh -> rh.getMethod().equals(request.method()))
+            .filter(rh -> restPathMatches(request.path(), rh.getPath()))
+            .findFirst();
         if (handler.isPresent() && handler.get() instanceof NamedRoute) {
             PrivilegesEvaluatorResponse pres = new PrivilegesEvaluatorResponse();
             NamedRoute route = ((NamedRoute) handler.get());
@@ -181,7 +183,7 @@ public class SecurityRestFilter {
             } else {
                 // auditLog.logMissingPrivileges(action, request, task);
                 String err;
-                if(!pres.getMissingSecurityRoles().isEmpty()) {
+                if (!pres.getMissingSecurityRoles().isEmpty()) {
                     err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
                 } else {
                     err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
