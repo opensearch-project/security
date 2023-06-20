@@ -20,6 +20,7 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -29,7 +30,6 @@ import java.util.stream.Collectors;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.hc.core5.http.HttpHeaders;
@@ -72,7 +72,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                     .replace("-----BEGIN PUBLIC KEY-----\n", "")
                     .replace("-----END PUBLIC KEY-----", "");
 
-            final byte[] decoded = Decoders.BASE64.decode(minmalKeyFormat);
+            final byte[] decoded = Base64.getDecoder().decode(minmalKeyFormat);
             Key key = null;
 
             try {
