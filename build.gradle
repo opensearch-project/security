@@ -24,7 +24,7 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
-        kafka_version  = '3.4.0'
+        kafka_version  = '3.5.0'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
