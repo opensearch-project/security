@@ -132,12 +132,19 @@ def splitTestConfig = [
         ]
     ],
     sslTest: [
-        description: "Runs all SSL tests.",
+        description: "Runs most of the SSL tests.",
         filters: [
             includeTestsMatching: [
                 "org.opensearch.security.ssl.*"
+            ],
+            excludeTestsMatching: [
+                "org.opensearch.security.ssl.OpenSSL*"
             ]
         ]
+    ],
+    opensslCiTest: [
+        description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
+        include: '**/OpenSSL*.class'
     ],
     securityIntegrationTest: [
         description: "Runs integration tests from all classes.",
@@ -259,6 +266,7 @@ task citest(type: Test) {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
+        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
         splitTestConfig.each { entry ->
             entry.value.each{ test ->
                 if (test.key == "includeTestsMatching") {
