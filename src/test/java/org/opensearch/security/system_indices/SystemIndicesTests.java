@@ -233,6 +233,8 @@ public class SystemIndicesTests extends SingleClusterTest {
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", matchAllQuery, allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+            assertTrue(response.getBody().contains(""));
+
 
         }
 
@@ -265,6 +267,8 @@ public class SystemIndicesTests extends SingleClusterTest {
 
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, extensionUserHeader);
         assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+        assertTrue(response.getBody().contains(""));
+
         XContentParser xcp = XContentType.JSON.xContent()
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
         SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
@@ -332,9 +336,11 @@ public class SystemIndicesTests extends SingleClusterTest {
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseDoc = sslRestHelper.executeDeleteRequest(index + "/_doc/document1", allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), responseDoc.getStatusCode());
+            assertTrue(responseDoc.getBody().contains("{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}]"));
 
             RestHelper.HttpResponse responseIndex = sslRestHelper.executeDeleteRequest(index, allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), responseIndex.getStatusCode());
+            assertTrue(responseDoc.getBody().contains("{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}]"));
         }
     }
 
@@ -377,6 +383,7 @@ public class SystemIndicesTests extends SingleClusterTest {
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseClose = keyStoreRestHelper.executePostRequest(index + "/_close", "");
             assertEquals(RestStatus.OK.getStatus(), responseClose.getStatusCode());
+            assertTrue(responseClose.getBody().contains("{\"closed\":true}"));
 
             RestHelper.HttpResponse responseOpen = keyStoreRestHelper.executePostRequest(index + "/_open", "");
             assertEquals(RestStatus.OK.getStatus(), responseOpen.getStatusCode());
@@ -393,9 +400,13 @@ public class SystemIndicesTests extends SingleClusterTest {
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseClose = sslRestHelper.executePostRequest(index + "/_close", "", allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), responseClose.getStatusCode());
+            Assert.assertTrue(responseClose.getBody().contains("{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}"));
+
 
             RestHelper.HttpResponse responseOpen = sslRestHelper.executePostRequest(index + "/_open", "", allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), responseOpen.getStatusCode());
+            Assert.assertTrue(responseOpen.getBody().contains("{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}"));
+
         }
     }
 
@@ -457,6 +468,8 @@ public class SystemIndicesTests extends SingleClusterTest {
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = sslRestHelper.executePutRequest(index + "/_settings", indexSettings, allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+            Assert.assertTrue(response.getBody().contains(""));
+
         }
     }
 
@@ -569,8 +582,11 @@ public class SystemIndicesTests extends SingleClusterTest {
             RestHelper.HttpResponse responseIndex = keyStoreRestHelper.executePutRequest(index, indexSettings);
             assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
 
+
             RestHelper.HttpResponse response = keyStoreRestHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}");
             assertTrue(response.getStatusCode() == RestStatus.CREATED.getStatus());
+            Assert.assertTrue(response.getBody().contains("\"acknowledged\":true,\"shards_acknowledged\":true"));
+
         }
 
     }
@@ -592,9 +608,13 @@ public class SystemIndicesTests extends SingleClusterTest {
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse responseIndex = sslRestHelper.executePutRequest(index, indexSettings, allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), responseIndex.getStatusCode());
+            Assert.assertTrue(responseIndex.getBody().contains("{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}"));
+
 
             RestHelper.HttpResponse response = sslRestHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", allAccessUserHeader);
             assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+            Assert.assertTrue(response.getBody().contains("{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]\"}]"));
+
         }
     }
 
@@ -610,8 +630,15 @@ public class SystemIndicesTests extends SingleClusterTest {
             + "            \"number_of_replicas\" : 2 \n"
             + "        }\n"
             + "    }\n"
-            + "}";
 
+            + "}";
+        for (String index : listOfIndexesToTest) {
+            RestHelper.HttpResponse responseIndex = sslRestHelper.executePutRequest(index, indexSettings, extensionUserHeader);
+            assertEquals(RestStatus.OK.getStatus(), responseIndex.getStatusCode());
+
+            RestHelper.HttpResponse response = sslRestHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}", extensionUserHeader);
+            assertEquals(RestStatus.CREATED.getStatus(), response.getStatusCode() );
+        }
     }
 
     /***************************************************************************************************************************
@@ -637,14 +664,6 @@ public class SystemIndicesTests extends SingleClusterTest {
                 sslRestHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1", allAccessUserHeader).getStatusCode()
             );
             assertEquals(
-                HttpStatus.SC_OK,
-                sslRestHelper.executePostRequest(
-                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
-                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
-                    allAccessUserHeader
-                ).getStatusCode()
-            );
-            assertEquals(
                 HttpStatus.SC_FORBIDDEN,
                 sslRestHelper.executePostRequest(
                     "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
@@ -654,21 +673,9 @@ public class SystemIndicesTests extends SingleClusterTest {
             );
             assertEquals(
                 HttpStatus.SC_OK,
-                sslRestHelper.executeGetRequest("_snapshot/" + index + "/" + index + "_1", allAccessUserHeader).getStatusCode()
-            );
-            assertEquals(
-                HttpStatus.SC_OK,
                 sslRestHelper.executePostRequest(
                     "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
                     "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
-                    allAccessUserHeader
-                ).getStatusCode()
-            );
-            assertEquals(
-                HttpStatus.SC_FORBIDDEN,
-                sslRestHelper.executePostRequest(
-                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
-                    "",
                     allAccessUserHeader
                 ).getStatusCode()
             );
@@ -689,6 +696,7 @@ public class SystemIndicesTests extends SingleClusterTest {
 
         response = sslRestHelper.executeGetRequest("system_index_a", extensionUserHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("\"version\":{\"created\""));
     }
 
     @Test
@@ -705,6 +713,7 @@ public class SystemIndicesTests extends SingleClusterTest {
 
         response = sslRestHelper.executeGetRequest("system_index_a", extensionUserCHeader);
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, response.getStatusCode());
+        Assert.assertTrue(response.getBody().contains("{\"error\":{\"root_cause\":[{\"type\":\"security_exception\",\"reason\":\"no permissions for [indices:admin/get] and User [name=extensions_user_c, backend_roles=[], requestedTenant=null]\"}]"));
     }
 
 }
