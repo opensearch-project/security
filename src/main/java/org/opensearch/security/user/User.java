@@ -369,13 +369,12 @@ public class User implements Serializable, Writeable, ToXContent, CustomAttribut
         if (attributes != null) {
             customAttNames = attributes.keySet().stream().collect(Collectors.toList());
         }
-        builder
-                .startObject()
-                .field(NAME_FIELD, name)
-                .field(BACKEND_ROLES_FIELD, roles)
-                .field(ROLES_FIELD, securityRoles)
-                .field(CUSTOM_ATTRIBUTE_NAMES_FIELD, customAttNames)
-                .field(REQUESTED_TENANT_FIELD, requestedTenant);
+        builder.startObject()
+            .field(NAME_FIELD, name)
+            .field(BACKEND_ROLES_FIELD, roles)
+            .field(ROLES_FIELD, securityRoles)
+            .field(CUSTOM_ATTRIBUTE_NAMES_FIELD, customAttNames)
+            .field(REQUESTED_TENANT_FIELD, requestedTenant);
         return builder.endObject();
     }
 }

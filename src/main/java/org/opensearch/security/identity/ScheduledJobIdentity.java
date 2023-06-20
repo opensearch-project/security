@@ -10,6 +10,7 @@
  */
 
 package org.opensearch.security.identity;
+
 import java.io.IOException;
 import java.time.Instant;
 
@@ -41,13 +42,7 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
     private final Instant lastUpdateTime;
     private final User user;
 
-    public ScheduledJobIdentity(
-            String jobId,
-            String jobIndex,
-            Instant createdTime,
-            Instant lastUpdateTime,
-            User user
-    ) {
+    public ScheduledJobIdentity(String jobId, String jobIndex, Instant createdTime, Instant lastUpdateTime, User user) {
         this.jobId = jobId;
         this.jobIndex = jobIndex;
         this.createdTime = createdTime;
@@ -86,12 +81,11 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        XContentBuilder xContentBuilder = builder
-                .startObject()
-                .field(JOB_ID_FIELD, jobId)
-                .field(JOB_INDEX_FIELD, jobIndex)
-                .field(CREATED_TIME_FIELD, createdTime.toEpochMilli())
-                .field(LAST_UPDATE_TIME_FIELD, lastUpdateTime.toEpochMilli());
+        XContentBuilder xContentBuilder = builder.startObject()
+            .field(JOB_ID_FIELD, jobId)
+            .field(JOB_INDEX_FIELD, jobIndex)
+            .field(CREATED_TIME_FIELD, createdTime.toEpochMilli())
+            .field(LAST_UPDATE_TIME_FIELD, lastUpdateTime.toEpochMilli());
         if (user != null) {
             xContentBuilder.field(USER_FIELD, user);
         }
@@ -145,26 +139,18 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
                     break;
             }
         }
-        return new ScheduledJobIdentity(
-                jobId,
-                jobIndex,
-                createdTime,
-                lastUpdateTime,
-                user
-        );
+        return new ScheduledJobIdentity(jobId, jobIndex, createdTime, lastUpdateTime, user);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         ScheduledJobIdentity that = (ScheduledJobIdentity) o;
         return Objects.equal(getJobId(), that.getJobId())
-                && Objects.equal(getJobIndex(), that.getJobIndex())
-                && Objects.equal(getCreatedTime(), that.getCreatedTime())
-                && Objects.equal(getLastUpdateTime(), that.getLastUpdateTime());
+            && Objects.equal(getJobIndex(), that.getJobIndex())
+            && Objects.equal(getCreatedTime(), that.getCreatedTime())
+            && Objects.equal(getLastUpdateTime(), that.getLastUpdateTime());
     }
 
     @Override
@@ -175,9 +161,11 @@ public class ScheduledJobIdentity implements Writeable, ToXContentObject {
     public String getJobId() {
         return jobId;
     }
+
     public String getJobIndex() {
         return jobIndex;
     }
+
     public Instant getCreatedTime() {
         return createdTime;
     }

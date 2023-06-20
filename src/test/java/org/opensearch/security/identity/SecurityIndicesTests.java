@@ -30,9 +30,11 @@ public class SecurityIndicesTests {
 
     @Test
     public void testScheduledJobIdentityIndexNotExists() throws Exception {
-        doReturn(SecurityIndicesTestUtils.createClusterState(
+        doReturn(
+            SecurityIndicesTestUtils.createClusterState(
                 new SecurityIndicesTestUtils.IndexShorthand("my-index", IndexAbstraction.Type.CONCRETE_INDEX)
-        )).when(clusterService).state();
+            )
+        ).when(clusterService).state();
         SecurityIndices indices = new SecurityIndices(client, clusterService);
 
         boolean exists = indices.doesScheduledJobIdentityIndexExists();
@@ -41,9 +43,11 @@ public class SecurityIndicesTests {
 
     @Test
     public void testScheduledJobIdentityIndexExists() throws Exception {
-        doReturn(SecurityIndicesTestUtils.createClusterState(
+        doReturn(
+            SecurityIndicesTestUtils.createClusterState(
                 new SecurityIndicesTestUtils.IndexShorthand(SCHEDULED_JOB_IDENTITY_INDEX, IndexAbstraction.Type.CONCRETE_INDEX)
-        )).when(clusterService).state();
+            )
+        ).when(clusterService).state();
         SecurityIndices indices = new SecurityIndices(client, clusterService);
 
         boolean exists = indices.doesScheduledJobIdentityIndexExists();
@@ -56,12 +60,10 @@ public class SecurityIndicesTests {
         SecurityIndices indices = new SecurityIndices(nodeClient, clusterService);
         ActionListener actionListener = new ActionListener<CreateIndexResponse>() {
             @Override
-            public void onResponse(CreateIndexResponse createIndexResponse) {
-            }
+            public void onResponse(CreateIndexResponse createIndexResponse) {}
 
             @Override
-            public void onFailure(Exception e) {
-            }
+            public void onFailure(Exception e) {}
         };
         indices.initScheduledJobIdentityIndex(actionListener);
 

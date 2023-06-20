@@ -19,17 +19,17 @@ import org.opensearch.identity.Subject;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
-import org.opensearch.threadpool.ThreadPool;
 
 public class SecuritySubject implements Subject {
 
     private ThreadContext threadContext;
 
-    public SecuritySubject() { }
+    public SecuritySubject() {}
 
     public void setThreadContext(ThreadContext threadContext) {
         this.threadContext = threadContext;
     }
+
     @Override
     public Principal getPrincipal() {
         if (threadContext == null) {

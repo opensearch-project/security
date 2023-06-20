@@ -56,6 +56,7 @@ public class SecurityIndicesTestUtils {
     public static class IndexShorthand {
         public final String name;
         public final IndexAbstraction.Type type;
+
         public IndexShorthand(final String name, final IndexAbstraction.Type type) {
             this.name = name;
             this.type = type;

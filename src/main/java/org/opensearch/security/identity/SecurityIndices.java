@@ -64,7 +64,10 @@ public class SecurityIndices {
         this.indexStates = new EnumMap<SecurityIndex, IndexState>(SecurityIndex.class);
     }
 
-    private ActionListener<CreateIndexResponse> markMappingUpToDate(SecurityIndex index, ActionListener<CreateIndexResponse> followingListener) {
+    private ActionListener<CreateIndexResponse> markMappingUpToDate(
+        SecurityIndex index,
+        ActionListener<CreateIndexResponse> followingListener
+    ) {
         return ActionListener.wrap(createdResponse -> {
             if (createdResponse.isAcknowledged()) {
                 IndexState indexState = indexStates.computeIfAbsent(index, IndexState::new);
@@ -79,9 +82,8 @@ public class SecurityIndices {
 
     private static Integer parseSchemaVersion(String mapping) {
         try {
-            XContentParser xcp = XContentType.JSON
-                    .xContent()
-                    .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, mapping);
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, mapping);
 
             while (!xcp.isClosed()) {
                 XContentParser.Token token = xcp.currentToken();
@@ -129,11 +131,12 @@ public class SecurityIndices {
      */
     public void initScheduledJobIdentityIndex(ActionListener<CreateIndexResponse> actionListener) {
         try {
-            CreateIndexRequest request = new CreateIndexRequest(SCHEDULED_JOB_IDENTITY_INDEX)
-                    .mapping(getScheduledJobIdentityMappings(), XContentType.JSON);
+            CreateIndexRequest request = new CreateIndexRequest(SCHEDULED_JOB_IDENTITY_INDEX).mapping(
+                getScheduledJobIdentityMappings(),
+                XContentType.JSON
+            );
             request.settings(
-                Settings
-                    .builder()
+                Settings.builder()
                     // Schedule job identity index is small. 1 primary shard is enough
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     // Job scheduler puts both primary and replica shards in the
