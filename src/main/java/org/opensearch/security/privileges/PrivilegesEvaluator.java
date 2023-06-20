@@ -338,7 +338,10 @@ public class PrivilegesEvaluator {
         );
 
         if (isClusterPerm(action0)) {
-            if (!securityRoles.impliesClusterPermissionPermission(action0)) {
+            // We add a check here for `impliesLegacyPermission` to ensure that no new action names miss evaluation here
+            // e.g. ad:get/detector/info will be evaluated as `cluster:admin/opensearch/ad/get/detector/info` against user's granted
+            // permissions
+            if (!securityRoles.impliesClusterPermissionPermission(action0) && !securityRoles.impliesLegacyPermission(action0)) {
                 presponse.missingPrivileges.add(action0);
                 presponse.allowed = false;
                 log.info(
