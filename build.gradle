@@ -298,6 +298,7 @@ task citest(type: Test) {
         ]
     }
     dependsOn copyExtraTestResources
+    finalizedBy jacocoTestReport
 }
 
 splitTestConfig.each{ testName, testCfg ->
@@ -337,6 +338,7 @@ splitTestConfig.each{ testName, testCfg ->
             ]
         }
         dependsOn copyExtraTestResources
+        finalizedBy jacocoTestReport
     }
 }
 
@@ -347,6 +349,7 @@ jacoco {
 }
 
 jacocoTestReport {
+    getExecutionData().setFrom(fileTree(buildDir).include("/jacoco/*.exec"))
     reports {
         xml.required = true
     }
