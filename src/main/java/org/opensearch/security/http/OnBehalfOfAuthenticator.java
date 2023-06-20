@@ -95,6 +95,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return Jwts.parser().setSigningKey(signingKey);
         } catch (Throwable e) {
             log.error("Error while creating JWT authenticator", e);
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
