@@ -94,6 +94,8 @@ public class HTTPSamlAuthenticatorTest {
             + "XXIa8gT/MdNT0+W3NHKcbE31pDhOI92COZWlhOyp1cLhyo1ytayjxPTl/2RM/Vtj\n" + "T9IKkp7810LOKhrCDQ==\n"
             + "-----END ENCRYPTED PRIVATE KEY-----";
 
+    private final static String PRIVATE_KEY_PATTERN = "-----BEGIN PRIVATE KEY-----\n%s\n-----END PRIVATE KEY-----";
+
     private static X509Certificate spSigningCertificate;
     private static PrivateKey spSigningPrivateKey;
 
@@ -159,8 +161,8 @@ public class HTTPSamlAuthenticatorTest {
 
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
-                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("sp.signature_private_key",
+                        String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded())))
                 .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
@@ -198,8 +200,8 @@ public class HTTPSamlAuthenticatorTest {
 
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
-                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("sp.signature_private_key",
+                        String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded())))
                 .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
@@ -240,8 +242,8 @@ public class HTTPSamlAuthenticatorTest {
 
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
-                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("sp.signature_private_key",
+                        String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded())))
                 .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
@@ -282,8 +284,8 @@ public class HTTPSamlAuthenticatorTest {
 
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
-                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("sp.signature_private_key",
+                        String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded())))
                 .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
@@ -324,8 +326,8 @@ public class HTTPSamlAuthenticatorTest {
 
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
-                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
-                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("sp.signature_private_key",
+                        String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded())))
                 .put("exchange_key", "abc").put("roles_key", "roles").put("path.home", ".").build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
@@ -663,8 +665,8 @@ public class HTTPSamlAuthenticatorTest {
         Settings settings = Settings.builder().put(IDP_METADATA_URL, mockSamlIdpServer.getMetadataUri())
                 .put("kibana_url", "http://wherever").put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
                 .put("exchange_key", "abc").put("roles_key", "roles")
-                .put("sp.signature_private_key", "-BEGIN PRIVATE KEY-\n"
-                        + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-")
+                .put("sp.signature_private_key",
+                        String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded())))
                 .put("path.home", ".").build();
 
         HTTPSamlAuthenticator samlAuthenticator = new HTTPSamlAuthenticator(settings, null);
