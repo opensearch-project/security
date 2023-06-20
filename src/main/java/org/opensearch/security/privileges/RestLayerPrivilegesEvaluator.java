@@ -113,7 +113,7 @@ public class RestLayerPrivilegesEvaluator {
                 );
             } else {
                 if (isDebugEnabled) {
-                    log.debug("Allowed because we have ext permissions for {}", action0);
+                    log.debug("Allowed because we have permissions for {}", action0);
                 }
                 presponse.allowed = true;
 
