@@ -416,6 +416,7 @@ dependencies {
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
     runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
+    runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
     implementation 'org.apache.commons:commons-lang3:3.4'
