@@ -134,7 +134,7 @@ public class SecurityRestFilter {
             if (!checkAndAuthenticateRequest(request, channel)) {
                 User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                 if (userIsSuperAdmin(user, adminDNs) || (whitelistingSettings.checkRequestIsAllowed(request, channel, client) && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
-                    if (!authorizeRequest(original, request, channel, user)) {
+                    if (authorizeRequest(original, request, channel, user)) {
                         original.handleRequest(request, channel, client);
                     }
                 }
@@ -158,15 +158,16 @@ public class SecurityRestFilter {
                 .findFirst();
         if (handler.isPresent() && handler.get() instanceof NamedRoute) {
             PrivilegesEvaluatorResponse pres = new PrivilegesEvaluatorResponse();
+            NamedRoute route = ((NamedRoute) handler.get());
             // if actionNames are present evaluate those first
-            Set<String> actionNames = ((NamedRoute) handler.get()).actionNames();
+            Set<String> actionNames = route.actionNames();
             if (actionNames != null && !actionNames.isEmpty()) {
                 pres = evaluator.evaluate(user, actionNames);
             }
 
-            // now if pres.allowed is still false check for the NamedRoute name as a permission\
+            // now if pres.allowed is still false check for the NamedRoute name as a permission
             if (!pres.isAllowed()) {
-                String action = ((NamedRoute) handler.get()).name();
+                String action = route.name();
                 pres = evaluator.evaluate(user, Set.of(action));
             }
 
@@ -191,7 +192,10 @@ public class SecurityRestFilter {
                 return false;
             }
         }
-        return false;
+
+        // if handler is not an instance of NamedRoute then we pass through to eval at Transport Layer.
+        // TODO Change this to false once all plugins have migrated to use NamedRoutes
+        return true;
     }
 
     private boolean checkAndAuthenticateRequest(RestRequest request, RestChannel channel) throws Exception {
