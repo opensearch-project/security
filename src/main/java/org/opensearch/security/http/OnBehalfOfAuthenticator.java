@@ -68,11 +68,13 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
 
         try {
-            final String minmalKeyFormat = signingKey
+            final String minimalKeyFormat = signingKey
                     .replace("-----BEGIN PUBLIC KEY-----\n", "")
                     .replace("-----END PUBLIC KEY-----", "");
 
-            final byte[] decoded = Base64.getDecoder().decode(minmalKeyFormat);
+            System.out.println("THIS IS THE minimalKeyFormat of signingKey: " + minimalKeyFormat);
+
+            final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
             Key key = null;
 
             try {
