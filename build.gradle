@@ -108,39 +108,57 @@ tasks.whenTaskAdded {task ->
 
 def splitTestConfig = [
     dlicDlsflsTest: [
-        includeTestsMatching: [
-            "org.opensearch.security.dlic.dlsfls.*"
+        description: "Runs Document- and Field-Level Security tests.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.dlic.dlsfls.*"
+            ]
         ]
     ],
     dlicRestApiTest: [
-        includeTestsMatching: [
-            "org.opensearch.security.dlic.rest.*"
+        description: "Runs REST Management API tests.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.dlic.rest.*"
+            ]
         ]
     ],
     crossClusterTest: [
-        includeTestsMatching: [
-            "org.opensearch.security.ccstest.*"
+        description: "Runs cross-cluster tests.",
+        filters: [
+            includeTestsMatching: [
+                    "org.opensearch.security.ccstest.*"
+            ]
         ]
     ],
     sslTest: [
-        includeTestsMatching: [
-            "org.opensearch.security.ssl.*"
+        description: "Runs all SSL tests.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.ssl.*"
+            ]
         ]
     ],
     securityIntegrationTest: [
-        includeTestsMatching: [
-            "org.opensearch.security.*Integ*"
-        ],
-        excludeTestsMatching: [
-            "org.opensearch.security.sanity.tests.*"
+        description: "Runs integration tests from all classes.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.*Integ*"
+            ],
+            excludeTestsMatching: [
+                "org.opensearch.security.sanity.tests.*"
+            ]
         ]
     ],
     indicesTest: [
-        includeTestsMatching: [
-            "org.opensearch.security.*indices*"
-        ],
-        excludeTestsMatching: [
-            "org.opensearch.security.sanity.tests.*"
+        description: "Runs indices tests from all classes.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.*indices*"
+            ],
+            excludeTestsMatching: [
+                "org.opensearch.security.sanity.tests.*"
+            ]
         ]
     ]
 ] as ConfigObject
@@ -236,7 +254,8 @@ task copyExtraTestResources(dependsOn: testClasses) {
 }
 
 task citest(type: Test) {
-//    onlyIf { !project.gradle.taskGraph.hasTask(':test') }
+    group = "Github Actions tests"
+    description = "Runs the test suite on classes not covered by rest of the task in this group."
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
@@ -281,11 +300,13 @@ task citest(type: Test) {
     dependsOn copyExtraTestResources
 }
 
-splitTestConfig.each{ testName, filterCfg ->
+splitTestConfig.each{ testName, testCfg ->
     task "${testName}"(type: Test) {
-        include '**/*.class'
+        group = testCfg.group ?: "Github Actions tests"
+        description = testCfg.description
+        include testCfg.include ?: '**/*.class'
         filter {
-            filterCfg.each{ filter, values ->
+            testCfg.filters.each{ filter, values ->
                 values.each{ value ->
                     "${filter}" "${value}"
                 }
