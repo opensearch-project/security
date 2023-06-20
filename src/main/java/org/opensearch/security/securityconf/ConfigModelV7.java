@@ -868,6 +868,9 @@ public class ConfigModelV7 extends ConfigModel {
             return WildcardMatcher.from(perms);
         }
 
+        public WildcardMatcher getNonWildCardPerms() {
+            return WildcardMatcher.from(perms.stream().filter(perm -> !perm.equals("*")));
+        }
     }
 
     /*public static class TypePerm {
