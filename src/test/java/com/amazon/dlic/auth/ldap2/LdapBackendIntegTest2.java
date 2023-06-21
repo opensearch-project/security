@@ -74,20 +74,25 @@ public class LdapBackendIntegTest2 extends SingleClusterTest {
         String securityConfigAsYamlString = FileHelper.loadFile("ldap/config_ldap2.yml");
         securityConfigAsYamlString = securityConfigAsYamlString.replace("${ldapsPort}", String.valueOf(ldapsPort));
         final Settings settings = Settings.builder()
-                .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS+".cn=Captain Spock,ou=people,o=TEST", "*")
-                .build();
+            .putList(ConfigConstants.SECURITY_AUTHCZ_REST_IMPERSONATION_USERS + ".cn=Captain Spock,ou=people,o=TEST", "*")
+            .build();
         setup(Settings.EMPTY, new DynamicSecurityConfig().setConfigAsYamlString(securityConfigAsYamlString), settings);
         final RestHelper rh = nonSslRestHelper();
         HttpResponse res;
-        Assert.assertEquals(HttpStatus.SC_OK, (res=rh.executeGetRequest("_opendistro/_security/authinfo", new BasicHeader("opendistro_security_impersonate_as", "jacksonm")
-                ,encodeBasicHeader("spock", "spocksecret"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest(
+                "_opendistro/_security/authinfo",
+                new BasicHeader("opendistro_security_impersonate_as", "jacksonm"),
+                encodeBasicHeader("spock", "spocksecret")
+            )).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("ldap.dn"));
         Assert.assertTrue(res.getBody().contains("attr.ldap.entryDN"));
         Assert.assertTrue(res.getBody().contains("attr.ldap.subschemaSubentry"));
 
     }
-
 
     @AfterClass
     public static void tearDownLdap() throws Exception {

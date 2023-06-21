@@ -34,23 +34,22 @@ import org.opensearch.security.auditlog.sink.WebhookAuditLogTest;
 @RunWith(Suite.class)
 
 @Suite.SuiteClasses({
-	ComplianceAuditlogTest.class,
-	RestApiComplianceAuditlogTest.class,
-	AuditlogTest.class,
-	DelegateTest.class,
-	DisabledCategoriesTest.class,
-	IgnoreAuditUsersTest.class,
-	TracingTests.class,
-	BasicAuditlogTest.class,
-	SSLAuditlogTest.class,
-	FallbackTest.class,
-	RouterTest.class,
-	RoutingConfigurationTest.class,
-	SinkProviderTest.class,
-	SinkProviderTLSTest.class,
-	WebhookAuditLogTest.class,
-	KafkaSinkTest.class
-})
+    ComplianceAuditlogTest.class,
+    RestApiComplianceAuditlogTest.class,
+    AuditlogTest.class,
+    DelegateTest.class,
+    DisabledCategoriesTest.class,
+    IgnoreAuditUsersTest.class,
+    TracingTests.class,
+    BasicAuditlogTest.class,
+    SSLAuditlogTest.class,
+    FallbackTest.class,
+    RouterTest.class,
+    RoutingConfigurationTest.class,
+    SinkProviderTest.class,
+    SinkProviderTLSTest.class,
+    WebhookAuditLogTest.class,
+    KafkaSinkTest.class })
 public class AuditLogTestSuite {
 
 }

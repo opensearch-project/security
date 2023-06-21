@@ -43,6 +43,7 @@ public interface GuardedSearchOperationWrapper {
     static class InnerSearchOperationListener implements SearchOperationListener {
 
         private GuardedSearchOperationWrapper that;
+
         InnerSearchOperationListener(GuardedSearchOperationWrapper that) {
             this.that = that;
         }

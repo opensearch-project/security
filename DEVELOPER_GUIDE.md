@@ -152,7 +152,7 @@ Checkstyle enforced several rules within this codebase.  Sometimes exceptions wi
 
 *Execute Checkstyle*
 ```
-./gradlew checkstyleMain checkstyleTest 
+./gradlew checkstyleMain checkstyleTest
 ```
 
 *Example violation*

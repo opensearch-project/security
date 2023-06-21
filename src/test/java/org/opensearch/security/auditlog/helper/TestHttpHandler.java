@@ -25,26 +25,26 @@ import org.apache.http.protocol.HttpRequestHandler;
 import org.apache.http.util.EntityUtils;
 
 public class TestHttpHandler implements HttpRequestHandler {
-	public String method;
-	public String uri;
-	public String body;
+    public String method;
+    public String uri;
+    public String body;
 
-	@Override
-	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
-		RequestLine requestLine = request.getRequestLine();
-		this.method = requestLine.getMethod();
-		this.uri = requestLine.getUri();
+    @Override
+    public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
+        RequestLine requestLine = request.getRequestLine();
+        this.method = requestLine.getMethod();
+        this.uri = requestLine.getUri();
 
-		HttpEntity entity = null;
-		if (request instanceof HttpEntityEnclosingRequest) {
-			entity = ((HttpEntityEnclosingRequest) request).getEntity();
-			body = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-		}
-	}
+        HttpEntity entity = null;
+        if (request instanceof HttpEntityEnclosingRequest) {
+            entity = ((HttpEntityEnclosingRequest) request).getEntity();
+            body = EntityUtils.toString(entity, StandardCharsets.UTF_8);
+        }
+    }
 
-	public void reset() {
-		this.body = null;
-		this.uri = null;
-		this.method = null;
-	}
+    public void reset() {
+        this.body = null;
+        this.uri = null;
+        this.method = null;
+    }
 }

@@ -198,58 +198,64 @@ class MockSamlIdpServer implements Closeable {
 
         this.loadSigningKeys("saml/kirk-keystore.jks", "kirk");
 
-        ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap().setListenerPort(port)
-                .registerHandler(CTX_METADATA, new HttpRequestHandler() {
+        ServerBootstrap serverBootstrap = ServerBootstrap.bootstrap()
+            .setListenerPort(port)
+            .registerHandler(CTX_METADATA, new HttpRequestHandler() {
 
-                    @Override
-                    public void handle(HttpRequest request, HttpResponse response, HttpContext context)
-                            throws HttpException, IOException {
+                @Override
+                public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
 
-                        handleMetadataRequest(request, response, context);
+                    handleMetadataRequest(request, response, context);
 
-                    }
-                }).registerHandler(CTX_SAML_SSO, new HttpRequestHandler() {
+                }
+            })
+            .registerHandler(CTX_SAML_SSO, new HttpRequestHandler() {
 
-                    @Override
-                    public void handle(HttpRequest request, HttpResponse response, HttpContext context)
-                            throws HttpException, IOException {
+                @Override
+                public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
 
-                        handleSsoRequest(request, response, context);
+                    handleSsoRequest(request, response, context);
 
-                    }
-                }).registerHandler(CTX_SAML_SLO, new HttpRequestHandler() {
+                }
+            })
+            .registerHandler(CTX_SAML_SLO, new HttpRequestHandler() {
 
-                    @Override
-                    public void handle(HttpRequest request, HttpResponse response, HttpContext context)
-                            throws HttpException, IOException {
+                @Override
+                public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
 
-                        handleSloRequest(request, response, context);
+                    handleSloRequest(request, response, context);
 
-                    }
-                });
+                }
+            });
 
         if (ssl) {
-            serverBootstrap = serverBootstrap.setSslContext(createSSLContext())
-                    .setSslSetupHandler(new SSLServerSetupHandler() {
+            serverBootstrap = serverBootstrap.setSslContext(createSSLContext()).setSslSetupHandler(new SSLServerSetupHandler() {
 
-                        @Override
-                        public void initialize(SSLServerSocket socket) throws SSLException {
-                            socket.setNeedClientAuth(true);
-                        }
-                    }).setConnectionFactory(new HttpConnectionFactory<DefaultBHttpServerConnection>() {
+                @Override
+                public void initialize(SSLServerSocket socket) throws SSLException {
+                    socket.setNeedClientAuth(true);
+                }
+            }).setConnectionFactory(new HttpConnectionFactory<DefaultBHttpServerConnection>() {
 
-                        private ConnectionConfig cconfig = ConnectionConfig.DEFAULT;
+                private ConnectionConfig cconfig = ConnectionConfig.DEFAULT;
 
-                        @Override
-                        public DefaultBHttpServerConnection createConnection(final Socket socket) throws IOException {
-                            final SSLTestHttpServerConnection conn = new SSLTestHttpServerConnection(
-                                    this.cconfig.getBufferSize(), this.cconfig.getFragmentSizeHint(),
-                                    ConnSupport.createDecoder(this.cconfig), ConnSupport.createEncoder(this.cconfig),
-                                    this.cconfig.getMessageConstraints(), null, null, null, null);
-                            conn.bind(socket);
-                            return conn;
-                        }
-                    });
+                @Override
+                public DefaultBHttpServerConnection createConnection(final Socket socket) throws IOException {
+                    final SSLTestHttpServerConnection conn = new SSLTestHttpServerConnection(
+                        this.cconfig.getBufferSize(),
+                        this.cconfig.getFragmentSizeHint(),
+                        ConnSupport.createDecoder(this.cconfig),
+                        ConnSupport.createEncoder(this.cconfig),
+                        this.cconfig.getMessageConstraints(),
+                        null,
+                        null,
+                        null,
+                        null
+                    );
+                    conn.bind(socket);
+                    return conn;
+                }
+            });
         }
 
         this.httpServer = serverBootstrap.create();
@@ -306,16 +312,15 @@ class MockSamlIdpServer implements Closeable {
         return port;
     }
 
-    protected void handleMetadataRequest(HttpRequest request, HttpResponse response, HttpContext context)
-            throws HttpException, IOException {
+    protected void handleMetadataRequest(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
+        IOException {
         response.setStatusCode(200);
         response.setHeader("Cache-Control", "public, max-age=31536000");
         response.setHeader("Content-Type", "application/xml");
         response.setEntity(new StringEntity(createMetadata()));
     }
 
-    protected void handleSsoRequest(HttpRequest request, HttpResponse response, HttpContext context)
-            throws HttpException, IOException {
+    protected void handleSsoRequest(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
 
         if ("GET".equalsIgnoreCase(request.getRequestLine().getMethod())) {
             handleSsoGetRequestBase(request);
@@ -325,8 +330,7 @@ class MockSamlIdpServer implements Closeable {
 
     }
 
-    protected void handleSloRequest(HttpRequest request, HttpResponse response, HttpContext context)
-            throws HttpException, IOException {
+    protected void handleSloRequest(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
 
         if ("GET".equalsIgnoreCase(request.getRequestLine().getMethod())) {
             handleSloGetRequestBase(request);
@@ -392,10 +396,10 @@ class MockSamlIdpServer implements Closeable {
 
             LogoutRequest logoutRequest = (LogoutRequest) messageContext.getMessage();
 
-            SAML2HTTPRedirectDeflateSignatureSecurityHandler signatureSecurityHandler = new SAML2HTTPRedirectDeflateSignatureSecurityHandler();
+            SAML2HTTPRedirectDeflateSignatureSecurityHandler signatureSecurityHandler =
+                new SAML2HTTPRedirectDeflateSignatureSecurityHandler();
             SignatureValidationParameters validationParams = new SignatureValidationParameters();
-            SecurityParametersContext securityParametersContext = messageContext
-                    .getSubcontext(SecurityParametersContext.class, true);
+            SecurityParametersContext securityParametersContext = messageContext.getSubcontext(SecurityParametersContext.class, true);
 
             SAMLPeerEntityContext peerEntityContext = messageContext.getSubcontext(SAMLPeerEntityContext.class, true);
             peerEntityContext.setEntityId(idpEntityId);
@@ -414,8 +418,7 @@ class MockSamlIdpServer implements Closeable {
                 throw new RuntimeException("Unexpected NameID in LogoutRequest: " + logoutRequest);
             }
 
-        } catch (URISyntaxException | ComponentInitializationException | MessageDecodingException
-                | MessageHandlerException e) {
+        } catch (URISyntaxException | ComponentInitializationException | MessageDecodingException | MessageHandlerException e) {
             throw new RuntimeException(e);
         }
     }
@@ -453,12 +456,24 @@ class MockSamlIdpServer implements Closeable {
 
             if (authnRequest != null) {
                 subject.getSubjectConfirmations()
-                        .add(createSubjectConfirmation("urn:oasis:names:tc:SAML:2.0:cm:bearer",
-                                new DateTime().plusMinutes(1), authnRequest.getID(),
-                                authnRequest.getAssertionConsumerServiceURL()));
+                    .add(
+                        createSubjectConfirmation(
+                            "urn:oasis:names:tc:SAML:2.0:cm:bearer",
+                            new DateTime().plusMinutes(1),
+                            authnRequest.getID(),
+                            authnRequest.getAssertionConsumerServiceURL()
+                        )
+                    );
             } else {
-                subject.getSubjectConfirmations().add(createSubjectConfirmation("urn:oasis:names:tc:SAML:2.0:cm:bearer",
-                        new DateTime().plusMinutes(1), null, defaultAssertionConsumerService));
+                subject.getSubjectConfirmations()
+                    .add(
+                        createSubjectConfirmation(
+                            "urn:oasis:names:tc:SAML:2.0:cm:bearer",
+                            new DateTime().plusMinutes(1),
+                            null,
+                            defaultAssertionConsumerService
+                        )
+                    );
             }
 
             Conditions conditions = createSamlElement(Conditions.class);
@@ -481,7 +496,7 @@ class MockSamlIdpServer implements Closeable {
                     attribute.getAttributeValues().add(createXSAny(AttributeValue.DEFAULT_ELEMENT_NAME, role));
                 }
             }
-            
+
             if (signResponses) {
                 Signature signature = createSamlElement(Signature.class);
                 assertion.setSignature(signature);
@@ -495,14 +510,13 @@ class MockSamlIdpServer implements Closeable {
                 Signer.signObject(signature);
             }
 
-            if (this.encryptAssertion){
+            if (this.encryptAssertion) {
                 Encrypter encrypter = getEncrypter();
                 EncryptedAssertion encryptedAssertion = encrypter.encrypt(assertion);
                 response.getEncryptedAssertions().add(encryptedAssertion);
             } else {
                 response.getAssertions().add(assertion);
             }
-
 
             String marshalledXml = marshallSamlXml(response);
 
@@ -515,10 +529,11 @@ class MockSamlIdpServer implements Closeable {
 
     private Encrypter getEncrypter() {
         KeyEncryptionParameters kek = new KeyEncryptionParameters();
-        // Algorithm from https://santuario.apache.org/Java/api/constant-values.html#org.apache.xml.security.utils.EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSA15
+        // Algorithm from
+        // https://santuario.apache.org/Java/api/constant-values.html#org.apache.xml.security.utils.EncryptionConstants.ALGO_ID_KEYTRANSPORT_RSA15
         kek.setAlgorithm("http://www.w3.org/2001/04/xmlenc#rsa-1_5");
         kek.setEncryptionCredential(new BasicX509Credential(spSignatureCertificate));
-        Encrypter encrypter = new Encrypter( new DataEncryptionParameters(),kek);
+        Encrypter encrypter = new Encrypter(new DataEncryptionParameters(), kek);
         encrypter.setKeyPlacement(Encrypter.KeyPlacement.INLINE);
         return encrypter;
     }
@@ -571,8 +586,7 @@ class MockSamlIdpServer implements Closeable {
         return nameID;
     }
 
-    private SubjectConfirmation createSubjectConfirmation(String method, DateTime notOnOrAfter, String inResponseTo,
-            String recipient) {
+    private SubjectConfirmation createSubjectConfirmation(String method, DateTime notOnOrAfter, String inResponseTo, String recipient) {
         SubjectConfirmation result = createSamlElement(SubjectConfirmation.class);
         result.setMethod(method);
 
@@ -618,8 +632,7 @@ class MockSamlIdpServer implements Closeable {
             redirectSingleLogoutService.setBinding("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect");
             redirectSingleLogoutService.setLocation(getSamlSloUri());
 
-            idpSsoDescriptor.getNameIDFormats()
-                    .add(createNameIDFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"));
+            idpSsoDescriptor.getNameIDFormats().add(createNameIDFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"));
 
             SingleSignOnService redirectSingleSignOnService = createSamlElement(SingleSignOnService.class);
             idpSsoDescriptor.getSingleSignOnServices().add(redirectSingleSignOnService);
@@ -636,8 +649,7 @@ class MockSamlIdpServer implements Closeable {
 
             signingKeyDescriptor.setUse(UsageType.SIGNING);
 
-            signingKeyDescriptor
-                    .setKeyInfo(keyInfoGenerator.generate(new BasicX509Credential(this.signingCertificate)));
+            signingKeyDescriptor.setKeyInfo(keyInfoGenerator.generate(new BasicX509Credential(this.signingCertificate)));
 
             return marshallSamlXml(idpEntityDescriptor);
         } catch (org.opensaml.security.SecurityException e) {
@@ -657,16 +669,14 @@ class MockSamlIdpServer implements Closeable {
 
             transformer.transform(source, new StreamResult(stringWriter));
             return stringWriter.toString();
-        } catch (ParserConfigurationException | MarshallingException | TransformerFactoryConfigurationError
-                | TransformerException e) {
+        } catch (ParserConfigurationException | MarshallingException | TransformerFactoryConfigurationError | TransformerException e) {
             throw new RuntimeException(e);
         }
     }
 
     private SignatureTrustEngine buildSignatureTrustEngine(X509Certificate certificate) {
         CredentialResolver credentialResolver = new StaticCredentialResolver(new BasicX509Credential(certificate));
-        KeyInfoCredentialResolver keyInfoCredentialResolver = new StaticKeyInfoCredentialResolver(
-                new BasicX509Credential(certificate));
+        KeyInfoCredentialResolver keyInfoCredentialResolver = new StaticKeyInfoCredentialResolver(new BasicX509Credential(certificate));
 
         return new ExplicitKeySignatureTrustEngine(credentialResolver, keyInfoCredentialResolver);
     }
@@ -683,11 +693,12 @@ class MockSamlIdpServer implements Closeable {
 
             this.signingCertificate = (X509Certificate) keyStore.getCertificate(alias);
 
-            this.signingCredential = new BasicX509Credential(this.signingCertificate,
-                    (PrivateKey) keyStore.getKey(alias, "changeit".toCharArray()));
+            this.signingCredential = new BasicX509Credential(
+                this.signingCertificate,
+                (PrivateKey) keyStore.getKey(alias, "changeit".toCharArray())
+            );
 
-        } catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException
-                | UnrecoverableKeyException e) {
+        } catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException | UnrecoverableKeyException e) {
             throw new RuntimeException(e);
         }
     }
@@ -700,15 +711,13 @@ class MockSamlIdpServer implements Closeable {
         try {
             final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             final KeyStore trustStore = KeyStore.getInstance("JKS");
-            InputStream trustStream = new FileInputStream(
-                    FileHelper.getAbsoluteFilePathFromClassPath("jwt/truststore.jks").toFile());
+            InputStream trustStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("jwt/truststore.jks").toFile());
             trustStore.load(trustStream, "changeit".toCharArray());
             tmf.init(trustStore);
 
             final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             final KeyStore keyStore = KeyStore.getInstance("JKS");
-            InputStream keyStream = new FileInputStream(
-                    FileHelper.getAbsoluteFilePathFromClassPath("jwt/node-0-keystore.jks").toFile());
+            InputStream keyStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("jwt/node-0-keystore.jks").toFile());
 
             keyStore.load(keyStream, "changeit".toCharArray());
             kmf.init(keyStore, "changeit".toCharArray());
@@ -726,14 +735,28 @@ class MockSamlIdpServer implements Closeable {
     }
 
     static class SSLTestHttpServerConnection extends DefaultBHttpServerConnection {
-        public SSLTestHttpServerConnection(final int buffersize, final int fragmentSizeHint,
-                final CharsetDecoder chardecoder, final CharsetEncoder charencoder,
-                final MessageConstraints constraints, final ContentLengthStrategy incomingContentStrategy,
-                final ContentLengthStrategy outgoingContentStrategy,
-                final HttpMessageParserFactory<HttpRequest> requestParserFactory,
-                final HttpMessageWriterFactory<HttpResponse> responseWriterFactory) {
-            super(buffersize, fragmentSizeHint, chardecoder, charencoder, constraints, incomingContentStrategy,
-                    outgoingContentStrategy, requestParserFactory, responseWriterFactory);
+        public SSLTestHttpServerConnection(
+            final int buffersize,
+            final int fragmentSizeHint,
+            final CharsetDecoder chardecoder,
+            final CharsetEncoder charencoder,
+            final MessageConstraints constraints,
+            final ContentLengthStrategy incomingContentStrategy,
+            final ContentLengthStrategy outgoingContentStrategy,
+            final HttpMessageParserFactory<HttpRequest> requestParserFactory,
+            final HttpMessageWriterFactory<HttpResponse> responseWriterFactory
+        ) {
+            super(
+                buffersize,
+                fragmentSizeHint,
+                chardecoder,
+                charencoder,
+                constraints,
+                incomingContentStrategy,
+                outgoingContentStrategy,
+                requestParserFactory,
+                responseWriterFactory
+            );
         }
 
         public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
@@ -750,8 +773,9 @@ class MockSamlIdpServer implements Closeable {
             this.delegate = delegate;
             String uri = delegate.getRequestLine().getUri();
             this.uriBuilder = new URIBuilder(uri);
-            this.queryParams = uriBuilder.getQueryParams().stream()
-                    .collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
+            this.queryParams = uriBuilder.getQueryParams()
+                .stream()
+                .collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
         }
 
         @Override
@@ -981,7 +1005,8 @@ class MockSamlIdpServer implements Closeable {
         @Override
         public Enumeration getHeaderNames() {
             return Collections.enumeration(
-                    Arrays.asList(delegate.getAllHeaders()).stream().map(Header::getName).collect(Collectors.toSet()));
+                Arrays.asList(delegate.getAllHeaders()).stream().map(Header::getName).collect(Collectors.toSet())
+            );
         }
 
         @SuppressWarnings("rawtypes")
@@ -990,8 +1015,7 @@ class MockSamlIdpServer implements Closeable {
             Header[] headers = delegate.getHeaders(name);
 
             if (headers != null) {
-                return Collections
-                        .enumeration(Arrays.asList(headers).stream().map(Header::getName).collect(Collectors.toSet()));
+                return Collections.enumeration(Arrays.asList(headers).stream().map(Header::getName).collect(Collectors.toSet()));
             } else {
                 return null;
             }

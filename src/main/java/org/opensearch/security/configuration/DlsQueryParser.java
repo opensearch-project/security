@@ -41,24 +41,28 @@ import org.opensearch.index.query.QueryShardContext;
 import org.opensearch.index.query.TermsQueryBuilder;
 import org.opensearch.security.queries.QueryBuilderTraverser;
 
-
 public final class DlsQueryParser {
 
     private static final Logger log = LogManager.getLogger(DlsQueryParser.class);
     private static final Query NON_NESTED_QUERY;
 
     static {
-        //Match all documents but not the nested ones
-        //Nested document types start with __
-        //https://discuss.elastic.co/t/whats-nested-documents-layout-inside-the-lucene/59944/9
+        // Match all documents but not the nested ones
+        // Nested document types start with __
+        // https://discuss.elastic.co/t/whats-nested-documents-layout-inside-the-lucene/59944/9
         NON_NESTED_QUERY = new BooleanQuery.Builder().add(new MatchAllDocsQuery(), Occur.FILTER)
-                .add(new PrefixQuery(new Term("_type", "__")), Occur.MUST_NOT).build();
+            .add(new PrefixQuery(new Term("_type", "__")), Occur.MUST_NOT)
+            .build();
     }
 
-    private static Cache<String, QueryBuilder> parsedQueryCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(4, TimeUnit.HOURS)
-            .build();
-    private static Cache<String, Boolean> queryContainsTlqCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(4, TimeUnit.HOURS)
-            .build();
+    private static Cache<String, QueryBuilder> parsedQueryCache = CacheBuilder.newBuilder()
+        .maximumSize(10000)
+        .expireAfterWrite(4, TimeUnit.HOURS)
+        .build();
+    private static Cache<String, Boolean> queryContainsTlqCache = CacheBuilder.newBuilder()
+        .maximumSize(10000)
+        .expireAfterWrite(4, TimeUnit.HOURS)
+        .build();
 
     private final NamedXContentRegistry namedXContentRegistry;
 
@@ -70,8 +74,11 @@ public final class DlsQueryParser {
         return parse(unparsedDlsQueries, queryShardContext, null);
     }
 
-    public BooleanQuery.Builder parse(Set<String> unparsedDlsQueries, QueryShardContext queryShardContext,
-            Function<Query, Query> queryMapFunction) {
+    public BooleanQuery.Builder parse(
+        Set<String> unparsedDlsQueries,
+        QueryShardContext queryShardContext,
+        Function<Query, Query> queryMapFunction
+    ) {
 
         if (unparsedDlsQueries == null || unparsedDlsQueries.isEmpty()) {
             return null;
@@ -99,9 +106,12 @@ public final class DlsQueryParser {
 
         return dlsQueryBuilder;
     }
-    
-    private static void handleNested(final QueryShardContext queryShardContext, final BooleanQuery.Builder dlsQueryBuilder,
-            final Query parentQuery) {
+
+    private static void handleNested(
+        final QueryShardContext queryShardContext,
+        final BooleanQuery.Builder dlsQueryBuilder,
+        final Query parentQuery
+    ) {
         final BitSetProducer parentDocumentsFilter = queryShardContext.bitsetFilter(NON_NESTED_QUERY);
         dlsQueryBuilder.add(new ToChildBlockJoinQuery(parentQuery, parentDocumentsFilter), Occur.SHOULD);
     }
@@ -112,8 +122,11 @@ public final class DlsQueryParser {
 
                 @Override
                 public QueryBuilder call() throws Exception {
-                    final XContentParser parser = JsonXContent.jsonXContent.createParser(namedXContentRegistry,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION, unparsedDlsQuery);
+                    final XContentParser parser = JsonXContent.jsonXContent.createParser(
+                        namedXContentRegistry,
+                        DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                        unparsedDlsQuery
+                    );
                     return AbstractQueryBuilder.parseInnerQueryBuilder(parser);
                 }
 
@@ -131,7 +144,7 @@ public final class DlsQueryParser {
                 if (log.isDebugEnabled()) {
                     log.debug("containsTermLookupQuery() returns true due to " + query + "\nqueries: " + unparsedQueries);
                 }
-                
+
                 return true;
             }
         }
@@ -139,22 +152,23 @@ public final class DlsQueryParser {
         if (log.isDebugEnabled()) {
             log.debug("containsTermLookupQuery() returns false\nqueries: " + unparsedQueries);
         }
-        
+
         return false;
     }
 
-    boolean containsTermLookupQuery(String query)  {
+    boolean containsTermLookupQuery(String query) {
         try {
             return queryContainsTlqCache.get(query, () -> {
                 QueryBuilder queryBuilder = parse(query);
 
-                return QueryBuilderTraverser.exists(queryBuilder,
-                        (q) -> (q instanceof TermsQueryBuilder) && ((TermsQueryBuilder) q).termsLookup() != null);
+                return QueryBuilderTraverser.exists(
+                    queryBuilder,
+                    (q) -> (q instanceof TermsQueryBuilder) && ((TermsQueryBuilder) q).termsLookup() != null
+                );
             });
         } catch (ExecutionException e) {
             throw new RuntimeException("Error handling parsing " + query, e.getCause());
         }
     }
 
-  
 }

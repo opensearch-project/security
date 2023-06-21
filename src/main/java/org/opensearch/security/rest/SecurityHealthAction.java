@@ -47,10 +47,11 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityHealthAction extends BaseRestHandler {
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
-            new Route(GET, "/health"),
-            new Route(POST, "/health")
-    ), "/_opendistro/_security", "/_plugins/_security");
+    private static final List<Route> routes = addRoutesPrefix(
+        ImmutableList.of(new Route(GET, "/health"), new Route(POST, "/health")),
+        "/_opendistro/_security",
+        "/_plugins/_security"
+    );
 
     private final BackendRegistry registry;
 
@@ -67,8 +68,8 @@ public class SecurityHealthAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         return new RestChannelConsumer() {
-            
-            final String mode = request.param("mode","strict");
+
+            final String mode = request.param("mode", "strict");
 
             @Override
             public void accept(RestChannel channel) throws Exception {
@@ -76,8 +77,7 @@ public class SecurityHealthAction extends BaseRestHandler {
                 RestStatus restStatus = RestStatus.OK;
                 BytesRestResponse response = null;
                 try {
-                    
-                    
+
                     String status = "UP";
                     String message = null;
 
@@ -98,12 +98,10 @@ public class SecurityHealthAction extends BaseRestHandler {
                 } finally {
                     builder.close();
                 }
-                
-                
+
                 channel.sendResponse(response);
             }
-            
-            
+
         };
     }
 

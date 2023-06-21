@@ -28,7 +28,7 @@
 package org.opensearch.security.securityconf;
 
 public interface Initializable {
-    
+
     boolean isInitialized();
 
 }

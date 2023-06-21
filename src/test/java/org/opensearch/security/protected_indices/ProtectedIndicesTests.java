@@ -66,7 +66,10 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     // This user is mapped to all_access, but is not mapped to any protectedIndexRoles
     private static final String indexAccessNoRoleUser = "indexAccessNoRoleUser";
     private static final Header indexAccessNoRoleUserHeader = encodeBasicHeader(indexAccessNoRoleUser, indexAccessNoRoleUser);
-    private static final String generalErrorMessage = String.format("no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]", indexAccessNoRoleUser);
+    private static final String generalErrorMessage = String.format(
+        "no permissions for [] and User [name=%s, backend_roles=[], requestedTenant=null]",
+        indexAccessNoRoleUser
+    );
     // This user is mapped to all_access and protected_index_role1
     private static final String protectedIndexUser = "protectedIndexUser";
     private static final Header protectedIndexUserHeader = encodeBasicHeader(protectedIndexUser, protectedIndexUser);
@@ -81,35 +84,37 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     public void setupSettingsEnabled() throws Exception {
         // Setup settings
         Settings protectedIndexSettings = Settings.builder()
-                .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
-                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
-                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
-                .build();
-        setup(Settings.EMPTY,
-                new DynamicSecurityConfig()
-                        .setConfig("config_protected_indices.yml")
-                        .setSecurityRoles("roles_protected_indices.yml")
-                        .setSecurityInternalUsers("internal_users_protected_indices.yml")
-                        .setSecurityRolesMapping("roles_mapping_protected_indices.yml"),
-                protectedIndexSettings,
-                true);
+            .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
+            .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
+            .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+            .build();
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_protected_indices.yml")
+                .setSecurityRoles("roles_protected_indices.yml")
+                .setSecurityInternalUsers("internal_users_protected_indices.yml")
+                .setSecurityRolesMapping("roles_mapping_protected_indices.yml"),
+            protectedIndexSettings,
+            true
+        );
     }
 
     public void setupSettingsIndexPatterns() throws Exception {
         // Setup settings
         Settings protectedIndexSettings = Settings.builder()
-                .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
-                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexPatternsToTest)
-                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
-                .build();
-        setup(Settings.EMPTY,
-                new DynamicSecurityConfig()
-                        .setConfig("config_protected_indices.yml")
-                        .setSecurityRoles("roles_protected_indices.yml")
-                        .setSecurityInternalUsers("internal_users_protected_indices.yml")
-                        .setSecurityRolesMapping("roles_mapping_protected_indices.yml"),
-                protectedIndexSettings,
-                true);
+            .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
+            .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexPatternsToTest)
+            .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+            .build();
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_protected_indices.yml")
+                .setSecurityRoles("roles_protected_indices.yml")
+                .setSecurityInternalUsers("internal_users_protected_indices.yml")
+                .setSecurityRolesMapping("roles_mapping_protected_indices.yml"),
+            protectedIndexSettings,
+            true
+        );
     }
 
     /**
@@ -122,35 +127,38 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     public void setupSettingsDisabled() throws Exception {
         // Setup settings
         Settings protectedIndexSettings = Settings.builder()
-                .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, false)
-                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
-                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
-                .build();
-        setup(Settings.EMPTY,
-                new DynamicSecurityConfig()
-                        .setConfig("config_protected_indices.yml")
-                        .setSecurityRoles("roles_protected_indices.yml")
-                        .setSecurityInternalUsers("internal_users_protected_indices.yml")
-                        .setSecurityRolesMapping("roles_mapping_protected_indices.yml"),
-                protectedIndexSettings,
-                true);
+            .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, false)
+            .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
+            .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+            .build();
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_protected_indices.yml")
+                .setSecurityRoles("roles_protected_indices.yml")
+                .setSecurityInternalUsers("internal_users_protected_indices.yml")
+                .setSecurityRolesMapping("roles_mapping_protected_indices.yml"),
+            protectedIndexSettings,
+            true
+        );
     }
 
     public void setupSettingsEnabledSnapshot() throws Exception {
         final Settings settings = Settings.builder()
-                .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-                .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
-                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
-                .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
-                .build();
+            .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
+            .put(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, true)
+            .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY, listOfIndexesToTest)
+            .putList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY, protectedIndexRoles)
+            .build();
 
-        setup(Settings.EMPTY, new DynamicSecurityConfig()
-                .setConfig("config_protected_indices.yml")
+        setup(
+            Settings.EMPTY,
+            new DynamicSecurityConfig().setConfig("config_protected_indices.yml")
                 .setSecurityRoles("roles_protected_indices.yml")
                 .setSecurityInternalUsers("internal_users_protected_indices.yml")
                 .setSecurityRolesMapping("roles_mapping_protected_indices.yml"),
-                settings,
-                true);
+            settings,
+            true
+        );
     }
 
     /**
@@ -162,7 +170,11 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 tc.admin().indices().create(new CreateIndexRequest(index)).actionGet();
-                tc.index(new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).id("document1").source("{ \"foo\": \"bar\" }", XContentType.JSON)).actionGet();
+                tc.index(
+                    new IndexRequest(index).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                        .id("document1")
+                        .source("{ \"foo\": \"bar\" }", XContentType.JSON)
+                ).actionGet();
             }
         }
     }
@@ -170,8 +182,19 @@ public class ProtectedIndicesTests extends SingleClusterTest {
     public void createSnapshots() {
         try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
-                tc.admin().cluster().putRepository(new PutRepositoryRequest(index).type("fs").settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/" + index))).actionGet();
-                tc.admin().cluster().createSnapshot(new CreateSnapshotRequest(index, index + "_1").indices(index).includeGlobalState(true).waitForCompletion(true)).actionGet();
+                tc.admin()
+                    .cluster()
+                    .putRepository(
+                        new PutRepositoryRequest(index).type("fs")
+                            .settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/" + index))
+                    )
+                    .actionGet();
+                tc.admin()
+                    .cluster()
+                    .createSnapshot(
+                        new CreateSnapshotRequest(index, index + "_1").indices(index).includeGlobalState(true).waitForCompletion(true)
+                    )
+                    .actionGet();
             }
         }
     }
@@ -192,7 +215,8 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Test direct index query.
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_search", matchAllQuery, indexAccessNoRoleUserHeader);
-            XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
             SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
             // confirm good response.
             assertTrue(searchResponse.status() == RestStatus.OK);
@@ -207,7 +231,8 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Test index pattern
         for (String indexPattern : listOfIndexPatternsToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(indexPattern + "/_search", matchAllQuery, indexAccessNoRoleUserHeader);
-            XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
             SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
             // confirm good response.
             assertTrue(searchResponse.status() == RestStatus.OK);
@@ -231,7 +256,8 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Test direct index query.
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_search", matchAllQuery, protectedIndexUserHeader);
-            XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
             SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
             // confirm good response.
             assertTrue(searchResponse.status() == RestStatus.OK);
@@ -246,7 +272,8 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Test index pattern
         for (String indexPattern : listOfIndexPatternsToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(indexPattern + "/_search", matchAllQuery, protectedIndexUserHeader);
-            XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
             SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
             // confirm good response.
             assertTrue(searchResponse.status() == RestStatus.OK);
@@ -268,10 +295,9 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 IndicesAliasesRequest request = new IndicesAliasesRequest();
-                IndicesAliasesRequest.AliasActions aliasAction =
-                        new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                                .index(index)
-                                .alias("alias" + i);
+                IndicesAliasesRequest.AliasActions aliasAction = new IndicesAliasesRequest.AliasActions(
+                    IndicesAliasesRequest.AliasActions.Type.ADD
+                ).index(index).alias("alias" + i);
                 request.addAliasAction(aliasAction);
                 tc.admin().indices().aliases(request).actionGet();
                 i++;
@@ -282,8 +308,13 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         for (int aliasNumber = 0; aliasNumber < i; aliasNumber++) {
-            RestHelper.HttpResponse response = rh.executePostRequest("alias" + aliasNumber + "/_search", matchAllQuery, indexAccessNoRoleUserHeader);
-            XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+            RestHelper.HttpResponse response = rh.executePostRequest(
+                "alias" + aliasNumber + "/_search",
+                matchAllQuery,
+                indexAccessNoRoleUserHeader
+            );
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
             SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
             // confirm good response.
             assertTrue(searchResponse.status() == RestStatus.OK);
@@ -303,14 +334,14 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"settings\" : {\n" +
-                "        \"index\" : {\n" +
-                "            \"number_of_shards\" : 3, \n" +
-                "            \"number_of_replicas\" : 2 \n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n"
+            + "    \"settings\" : {\n"
+            + "        \"index\" : {\n"
+            + "            \"number_of_shards\" : 3, \n"
+            + "            \"number_of_replicas\" : 2 \n"
+            + "        }\n"
+            + "    }\n"
+            + "}";
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePutRequest(index, indexSettings, indexAccessNoRoleUserHeader);
             assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
@@ -446,10 +477,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         setupSettingsEnabled();
         createTestIndicesAndDocs();
 
-        String newMappings = "{\"properties\": {" +
-                "\"user_name\": {" +
-                "\"type\": \"text\"" +
-                "}}}";
+        String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
@@ -467,10 +495,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         setupSettingsDisabled();
         createTestIndicesAndDocs();
 
-        String newMappings = "{\"properties\": {" +
-                "\"user_name\": {" +
-                "\"type\": \"text\"" +
-                "}}}";
+        String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
@@ -510,7 +535,11 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         String aliasTemplate = "{\"actions\" : [{ \"add\" : { \"index\" : \"%s\", \"alias\" : \"foobar\" } }]}";
         for (String index : listOfIndexesToTest) {
 
-            RestHelper.HttpResponse response = rh.executePostRequest("_aliases", String.format(aliasTemplate, index), indexAccessNoRoleUserHeader);
+            RestHelper.HttpResponse response = rh.executePostRequest(
+                "_aliases",
+                String.format(aliasTemplate, index),
+                indexAccessNoRoleUserHeader
+            );
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
             assertTrue(response.getBody().contains(generalErrorMessage));
         }
@@ -519,7 +548,11 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         aliasTemplate = "{\"actions\" : [{ \"remove\" : { \"index\" : \"%s\", \"alias\" : \"foobar\" } }]}";
         for (String index : listOfIndexesToTest) {
 
-            RestHelper.HttpResponse response = rh.executePostRequest("_aliases", String.format(aliasTemplate, index), indexAccessNoRoleUserHeader);
+            RestHelper.HttpResponse response = rh.executePostRequest(
+                "_aliases",
+                String.format(aliasTemplate, index),
+                indexAccessNoRoleUserHeader
+            );
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
             assertTrue(response.getBody().contains(generalErrorMessage));
         }
@@ -528,7 +561,11 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         aliasTemplate = "{\"actions\" : [{ \"remove_index\" : { \"index\" : \"%s\"} }]}";
         for (String index : listOfIndexesToTest) {
 
-            RestHelper.HttpResponse response = rh.executePostRequest("_aliases", String.format(aliasTemplate, index), indexAccessNoRoleUserHeader);
+            RestHelper.HttpResponse response = rh.executePostRequest(
+                "_aliases",
+                String.format(aliasTemplate, index),
+                indexAccessNoRoleUserHeader
+            );
             assertTrue(response.getStatusCode() == RestStatus.FORBIDDEN.getStatus());
             assertTrue(response.getBody().contains(generalErrorMessage));
         }
@@ -543,14 +580,14 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"settings\" : {\n" +
-                "        \"index\" : {\n" +
-                "            \"number_of_shards\" : 30, \n" +
-                "            \"number_of_replicas\" : 20 \n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n"
+            + "    \"settings\" : {\n"
+            + "        \"index\" : {\n"
+            + "            \"number_of_shards\" : 30, \n"
+            + "            \"number_of_replicas\" : 20 \n"
+            + "        }\n"
+            + "    }\n"
+            + "}";
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePutRequest(index + "/_settings", indexSettings, indexAccessNoRoleUserHeader);
 
@@ -575,7 +612,8 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Test direct index query.
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(index + "/_search", matchAllQuery, protectedIndexUserHeader);
-            XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
             SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
             // confirm good response.
             assertTrue(searchResponse.status() == RestStatus.OK);
@@ -590,7 +628,8 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Test index pattern
         for (String indexPattern : listOfIndexPatternsToTest) {
             RestHelper.HttpResponse response = rh.executePostRequest(indexPattern + "/_search", matchAllQuery, protectedIndexUserHeader);
-            XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
             SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
             // confirm good response.
             assertTrue(searchResponse.status() == RestStatus.OK);
@@ -612,10 +651,9 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         try (Client tc = getClient()) {
             for (String index : listOfIndexesToTest) {
                 IndicesAliasesRequest request = new IndicesAliasesRequest();
-                IndicesAliasesRequest.AliasActions aliasAction =
-                        new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD)
-                                .index(index)
-                                .alias("alias" + i);
+                IndicesAliasesRequest.AliasActions aliasAction = new IndicesAliasesRequest.AliasActions(
+                    IndicesAliasesRequest.AliasActions.Type.ADD
+                ).index(index).alias("alias" + i);
                 request.addAliasAction(aliasAction);
                 tc.admin().indices().aliases(request).actionGet();
                 i++;
@@ -626,9 +664,14 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
 
         for (int aliasNumber = 0; aliasNumber < i; aliasNumber++) {
-            RestHelper.HttpResponse response = rh.executePostRequest("alias" + aliasNumber + "/_search", matchAllQuery, protectedIndexUserHeader);
+            RestHelper.HttpResponse response = rh.executePostRequest(
+                "alias" + aliasNumber + "/_search",
+                matchAllQuery,
+                protectedIndexUserHeader
+            );
 
-            XContentParser xcp = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
+            XContentParser xcp = XContentType.JSON.xContent()
+                .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
             SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
             // confirm good response.
             assertTrue(searchResponse.status() == RestStatus.OK);
@@ -648,14 +691,14 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"settings\" : {\n" +
-                "        \"index\" : {\n" +
-                "            \"number_of_shards\" : 3, \n" +
-                "            \"number_of_replicas\" : 2 \n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n"
+            + "    \"settings\" : {\n"
+            + "        \"index\" : {\n"
+            + "            \"number_of_shards\" : 3, \n"
+            + "            \"number_of_replicas\" : 2 \n"
+            + "        }\n"
+            + "    }\n"
+            + "}";
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePutRequest(index, indexSettings, protectedIndexUserHeader);
             assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
@@ -716,10 +759,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         setupSettingsEnabled();
         createTestIndicesAndDocs();
 
-        String newMappings = "{\"properties\": {" +
-                "\"user_name\": {" +
-                "\"type\": \"text\"" +
-                "}}}";
+        String newMappings = "{\"properties\": {" + "\"user_name\": {" + "\"type\": \"text\"" + "}}}";
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
@@ -775,7 +815,11 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         String aliasTemplate = "{\"actions\" : [{ \"add\" : { \"index\" : \"%s\", \"alias\" : \"foobar\" } }]}";
         for (String index : listOfIndexesToTest) {
 
-            RestHelper.HttpResponse response = rh.executePostRequest("_aliases", String.format(aliasTemplate, index), protectedIndexUserHeader);
+            RestHelper.HttpResponse response = rh.executePostRequest(
+                "_aliases",
+                String.format(aliasTemplate, index),
+                protectedIndexUserHeader
+            );
             assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
         }
 
@@ -783,7 +827,11 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         aliasTemplate = "{\"actions\" : [{ \"remove\" : { \"index\" : \"%s\", \"alias\" : \"foobar\" } }]}";
         for (String index : listOfIndexesToTest) {
 
-            RestHelper.HttpResponse response = rh.executePostRequest("_aliases", String.format(aliasTemplate, index), protectedIndexUserHeader);
+            RestHelper.HttpResponse response = rh.executePostRequest(
+                "_aliases",
+                String.format(aliasTemplate, index),
+                protectedIndexUserHeader
+            );
             assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
         }
 
@@ -791,7 +839,11 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         aliasTemplate = "{\"actions\" : [{ \"remove_index\" : { \"index\" : \"%s\"} }]}";
         for (String index : listOfIndexesToTest) {
 
-            RestHelper.HttpResponse response = rh.executePostRequest("_aliases", String.format(aliasTemplate, index), protectedIndexUserHeader);
+            RestHelper.HttpResponse response = rh.executePostRequest(
+                "_aliases",
+                String.format(aliasTemplate, index),
+                protectedIndexUserHeader
+            );
             assertTrue(response.getStatusCode() == RestStatus.OK.getStatus());
         }
     }
@@ -805,11 +857,7 @@ public class ProtectedIndicesTests extends SingleClusterTest {
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
-        String indexSettings = "{\n" +
-                "    \"index\" : {\n" +
-                "        \"refresh_interval\" : null\n" +
-                "    }\n" +
-                "}";
+        String indexSettings = "{\n" + "    \"index\" : {\n" + "        \"refresh_interval\" : null\n" + "    }\n" + "}";
 
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = rh.executePutRequest(index + "/_settings", indexSettings, protectedIndexUserHeader);
@@ -833,21 +881,48 @@ public class ProtectedIndicesTests extends SingleClusterTest {
             }
         }
 
-        String putSnapshot = "{"+
-                "\"indices\": \"%s\"," +
-                "\"ignore_unavailable\": false," +
-                "\"include_global_state\": false" +
-                "}";
+        String putSnapshot = "{" + "\"indices\": \"%s\"," + "\"ignore_unavailable\": false," + "\"include_global_state\": false" + "}";
 
         // Create rest client
         RestHelper rh = nonSslRestHelper();
 
         for (String index : listOfIndexesToTest) {
-            assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_snapshot/" + index + "/" + index + "_1", protectedIndexUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true","{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }", protectedIndexUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true", "", protectedIndexUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_OK, rh.executePostRequest("_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true","{ \"indices\": \"" + index + "\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"" + index + "_1\" }", protectedIndexUserHeader).getStatusCode());
-            assertEquals(HttpStatus.SC_OK, rh.executePutRequest("_snapshot/" + index + "/" + index + "_2?wait_for_completion=true", String.format(putSnapshot, index), protectedIndexUserHeader).getStatusCode());
+            assertEquals(
+                HttpStatus.SC_OK,
+                rh.executeGetRequest("_snapshot/" + index + "/" + index + "_1", protectedIndexUserHeader).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_OK,
+                rh.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "{ \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"restored_index_with_global_state_$1\" }",
+                    protectedIndexUserHeader
+                ).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_OK,
+                rh.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "",
+                    protectedIndexUserHeader
+                ).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_OK,
+                rh.executePostRequest(
+                    "_snapshot/" + index + "/" + index + "_1/_restore?wait_for_completion=true",
+                    "{ \"indices\": \"" + index + "\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \"" + index + "_1\" }",
+                    protectedIndexUserHeader
+                ).getStatusCode()
+            );
+            assertEquals(
+                HttpStatus.SC_OK,
+                rh.executePutRequest(
+                    "_snapshot/" + index + "/" + index + "_2?wait_for_completion=true",
+                    String.format(putSnapshot, index),
+                    protectedIndexUserHeader
+                ).getStatusCode()
+            );
         }
     }
 }

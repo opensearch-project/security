@@ -41,7 +41,7 @@ public class HTTPJwtAuthenticatorTest {
 
     final static byte[] secretKeyBytes = new byte[1024];
     final static SecretKey secretKey;
-    
+
     static {
         new SecureRandom().nextBytes(secretKeyBytes);
         secretKey = Keys.hmacShaKeyFor(secretKeyBytes);
@@ -50,29 +50,29 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testNoKey() throws Exception {
 
-        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder(),
-        		Jwts.builder().setSubject("Leonard McCoy"));
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(Settings.builder(), Jwts.builder().setSubject("Leonard McCoy"));
 
         Assert.assertNull(credentials);
     }
 
     @Test
     public void testEmptyKey() throws Exception {
-    	
-        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", ""),
-        		Jwts.builder().setSubject("Leonard McCoy"));
 
-        Assert.assertNull(credentials); 
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder().put("signing_key", ""),
+            Jwts.builder().setSubject("Leonard McCoy")
+        );
+
+        Assert.assertNull(credentials);
     }
 
     @Test
     public void testBadKey() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(new byte[]{1,3,3,4,3,6,7,8,3,10})),
-        		Jwts.builder().setSubject("Leonard McCoy"));
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 })),
+            Jwts.builder().setSubject("Leonard McCoy")
+        );
 
         Assert.assertNull(credentials);
     }
@@ -99,7 +99,7 @@ public class HTTPJwtAuthenticatorTest {
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", "Bearer "+jwsToken);
+        headers.put("Authorization", "Bearer " + jwsToken);
 
         AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
         Assert.assertNull(credentials);
@@ -110,11 +110,15 @@ public class HTTPJwtAuthenticatorTest {
 
         Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
 
-        String jwsToken = Jwts.builder().setSubject("Leonard McCoy").setAudience("myaud").signWith(secretKey, SignatureAlgorithm.HS512).compact();
+        String jwsToken = Jwts.builder()
+            .setSubject("Leonard McCoy")
+            .setAudience("myaud")
+            .signWith(secretKey, SignatureAlgorithm.HS512)
+            .compact();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", "Bearer "+jwsToken);
+        headers.put("Authorization", "Bearer " + jwsToken);
 
         AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
 
@@ -140,7 +144,6 @@ public class HTTPJwtAuthenticatorTest {
         Assert.assertNull(credentials);
     }
 
-
     @Test
     public void testBasicAuthHeader() throws Exception {
         Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).build();
@@ -157,8 +160,9 @@ public class HTTPJwtAuthenticatorTest {
     public void testRoles() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
-        		Jwts.builder().setSubject("Leonard McCoy").claim("roles", "role1,role2"));
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
+            Jwts.builder().setSubject("Leonard McCoy").claim("roles", "role1,role2")
+        );
 
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
@@ -169,8 +173,9 @@ public class HTTPJwtAuthenticatorTest {
     public void testNullClaim() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
-        		Jwts.builder().setSubject("Leonard McCoy").claim("roles", null));
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
+            Jwts.builder().setSubject("Leonard McCoy").claim("roles", null)
+        );
 
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
@@ -181,21 +186,23 @@ public class HTTPJwtAuthenticatorTest {
     public void testNonStringClaim() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
-        		Jwts.builder().setSubject("Leonard McCoy").claim("roles", 123L));
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
+            Jwts.builder().setSubject("Leonard McCoy").claim("roles", 123L)
+        );
 
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
         Assert.assertEquals(1, credentials.getBackendRoles().size());
-        Assert.assertTrue( credentials.getBackendRoles().contains("123"));
+        Assert.assertTrue(credentials.getBackendRoles().contains("123"));
     }
 
     @Test
     public void testRolesMissing() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
-        		Jwts.builder().setSubject("Leonard McCoy"));  
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
+            Jwts.builder().setSubject("Leonard McCoy")
+        );
 
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
@@ -206,8 +213,9 @@ public class HTTPJwtAuthenticatorTest {
     public void testWrongSubjectKey() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("subject_key", "missing"),
-        		Jwts.builder().claim("roles", "role1,role2").claim("asub", "Dr. Who"));   
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("subject_key", "missing"),
+            Jwts.builder().claim("roles", "role1,role2").claim("asub", "Dr. Who")
+        );
 
         Assert.assertNull(credentials);
     }
@@ -216,8 +224,9 @@ public class HTTPJwtAuthenticatorTest {
     public void testAlternativeSubject() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("subject_key", "asub"),
-        		Jwts.builder().setSubject("Leonard McCoy").claim("roles", "role1,role2").claim("asub", "Dr. Who"));                  
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("subject_key", "asub"),
+            Jwts.builder().setSubject("Leonard McCoy").claim("roles", "role1,role2").claim("asub", "Dr. Who")
+        );
 
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Dr. Who", credentials.getUsername());
@@ -228,8 +237,9 @@ public class HTTPJwtAuthenticatorTest {
     public void testNonStringAlternativeSubject() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("subject_key", "asub"),
-        		Jwts.builder().setSubject("Leonard McCoy").claim("roles", "role1,role2").claim("asub", false));                  
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("subject_key", "asub"),
+            Jwts.builder().setSubject("Leonard McCoy").claim("roles", "role1,role2").claim("asub", false)
+        );
 
         Assert.assertNotNull(credentials);
         Assert.assertEquals("false", credentials.getUsername());
@@ -239,7 +249,10 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testUrlParam() throws Exception {
 
-        Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("jwt_url_parameter", "abc").build();
+        Settings settings = Settings.builder()
+            .put("signing_key", BaseEncoding.base64().encode(secretKeyBytes))
+            .put("jwt_url_parameter", "abc")
+            .build();
 
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").signWith(secretKey, SignatureAlgorithm.HS512).compact();
 
@@ -259,8 +272,9 @@ public class HTTPJwtAuthenticatorTest {
     public void testExp() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)),
-        		Jwts.builder().setSubject("Expired").setExpiration(new Date(100)));         
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)),
+            Jwts.builder().setSubject("Expired").setExpiration(new Date(100))
+        );
 
         Assert.assertNull(credentials);
     }
@@ -269,9 +283,10 @@ public class HTTPJwtAuthenticatorTest {
     public void testNbf() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)),
-        		Jwts.builder().setSubject("Expired").setNotBefore(new Date(System.currentTimeMillis()+(1000*36000))));        
-        
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)),
+            Jwts.builder().setSubject("Expired").setNotBefore(new Date(System.currentTimeMillis() + (1000 * 36000)))
+        );
+
         Assert.assertNull(credentials);
     }
 
@@ -285,11 +300,16 @@ public class HTTPJwtAuthenticatorTest {
         PublicKey pub = pair.getPublic();
 
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").signWith(priv, SignatureAlgorithm.RS256).compact();
-        Settings settings = Settings.builder().put("signing_key", "-----BEGIN PUBLIC KEY-----\n"+BaseEncoding.base64().encode(pub.getEncoded())+"-----END PUBLIC KEY-----").build();
+        Settings settings = Settings.builder()
+            .put(
+                "signing_key",
+                "-----BEGIN PUBLIC KEY-----\n" + BaseEncoding.base64().encode(pub.getEncoded()) + "-----END PUBLIC KEY-----"
+            )
+            .build();
 
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Authorization", "Bearer "+jwsToken);
+        headers.put("Authorization", "Bearer " + jwsToken);
 
         AuthCredentials creds = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
 
@@ -306,10 +326,10 @@ public class HTTPJwtAuthenticatorTest {
         KeyPair pair = keyGen.generateKeyPair();
         PrivateKey priv = pair.getPrivate();
         PublicKey pub = pair.getPublic();
-        
+
         Settings settings = Settings.builder().put("signing_key", BaseEncoding.base64().encode(pub.getEncoded())).build();
         String jwsToken = Jwts.builder().setSubject("Leonard McCoy").signWith(priv, SignatureAlgorithm.ES512).compact();
-        
+
         HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", jwsToken);
@@ -324,16 +344,13 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRolesArray() throws Exception {
 
-        JwtBuilder builder = Jwts.builder()
-                .setPayload("{"+
-                    "\"sub\": \"John Doe\","+
-                    "\"roles\": [\"a\",\"b\",\"3rd\"]"+
-                  "}");
+        JwtBuilder builder = Jwts.builder().setPayload("{" + "\"sub\": \"John Doe\"," + "\"roles\": [\"a\",\"b\",\"3rd\"]" + "}");
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
-        		builder);
-        
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("roles_key", "roles"),
+            builder
+        );
+
         Assert.assertNotNull(credentials);
         Assert.assertEquals("John Doe", credentials.getUsername());
         Assert.assertEquals(3, credentials.getBackendRoles().size());
@@ -346,9 +363,10 @@ public class HTTPJwtAuthenticatorTest {
     public void testRequiredAudienceWithCorrectAudience() {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("required_audience", "test_audience"),
-        		Jwts.builder().setSubject("Leonard McCoy").setAudience("test_audience"));
-        
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("required_audience", "test_audience"),
+            Jwts.builder().setSubject("Leonard McCoy").setAudience("test_audience")
+        );
+
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
     }
@@ -356,19 +374,21 @@ public class HTTPJwtAuthenticatorTest {
     @Test
     public void testRequiredAudienceWithIncorrectAudience() {
 
-    	final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-    			Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("required_audience", "test_audience"),
-    			Jwts.builder().setSubject("Leonard McCoy").setAudience("wrong_audience"));
-    	
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("required_audience", "test_audience"),
+            Jwts.builder().setSubject("Leonard McCoy").setAudience("wrong_audience")
+        );
+
         Assert.assertNull(credentials);
     }
 
     @Test
     public void testRequiredIssuerWithCorrectAudience() {
-    	    			
+
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-        		Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("required_issuer", "test_issuer"),
-        		Jwts.builder().setSubject("Leonard McCoy").setIssuer("test_issuer"));
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("required_issuer", "test_issuer"),
+            Jwts.builder().setSubject("Leonard McCoy").setIssuer("test_issuer")
+        );
 
         Assert.assertNotNull(credentials);
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
@@ -376,18 +396,17 @@ public class HTTPJwtAuthenticatorTest {
 
     @Test
     public void testRequiredIssuerWithIncorrectAudience() {
-    	    	
-    	final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-    			Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("required_issuer", "test_issuer"),
-    			Jwts.builder().setSubject("Leonard McCoy").setIssuer("wrong_issuer"));
-    	
+
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+            Settings.builder().put("signing_key", BaseEncoding.base64().encode(secretKeyBytes)).put("required_issuer", "test_issuer"),
+            Jwts.builder().setSubject("Leonard McCoy").setIssuer("wrong_issuer")
+        );
+
         Assert.assertNull(credentials);
     }
 
     /** extracts a default user credential from a request header */
-    private AuthCredentials extractCredentialsFromJwtHeader(
-            final Settings.Builder settingsBuilder,
-            final JwtBuilder jwtBuilder) {
+    private AuthCredentials extractCredentialsFromJwtHeader(final Settings.Builder settingsBuilder, final JwtBuilder jwtBuilder) {
         final Settings settings = settingsBuilder.build();
         final String jwsToken = jwtBuilder.signWith(secretKey, SignatureAlgorithm.HS512).compact();
         final HTTPJwtAuthenticator jwtAuth = new HTTPJwtAuthenticator(settings, null);

@@ -68,19 +68,23 @@ public class Saml2SettingsProvider {
         try {
             HashMap<String, Object> configProperties = new HashMap<>();
 
-            EntityDescriptor entityDescriptor = this.metadataResolver
-                    .resolveSingle(new CriteriaSet(new EntityIdCriterion(this.idpEntityId)));
+            EntityDescriptor entityDescriptor = this.metadataResolver.resolveSingle(
+                new CriteriaSet(new EntityIdCriterion(this.idpEntityId))
+            );
 
             if (entityDescriptor == null) {
                 throw new SamlConfigException("Could not find entity descriptor for " + this.idpEntityId);
             }
 
-            IDPSSODescriptor idpSsoDescriptor = entityDescriptor
-                    .getIDPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol");
+            IDPSSODescriptor idpSsoDescriptor = entityDescriptor.getIDPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol");
 
             if (idpSsoDescriptor == null) {
-                throw new SamlConfigException("Could not find IDPSSODescriptor supporting SAML 2.0 in "
-                        + this.idpEntityId + "; role descriptors: " + entityDescriptor.getRoleDescriptors());
+                throw new SamlConfigException(
+                    "Could not find IDPSSODescriptor supporting SAML 2.0 in "
+                        + this.idpEntityId
+                        + "; role descriptors: "
+                        + entityDescriptor.getRoleDescriptors()
+                );
             }
 
             initIdpEndpoints(idpSsoDescriptor, configProperties);
@@ -121,8 +125,7 @@ public class Saml2SettingsProvider {
     private boolean isUpdateRequired() {
         RefreshableMetadataResolver refreshableMetadataResolver = (RefreshableMetadataResolver) this.metadataResolver;
 
-        if (this.cachedSaml2Settings == null || this.metadataUpdateTime == null
-                || refreshableMetadataResolver.getLastUpdate() == null) {
+        if (this.cachedSaml2Settings == null || this.metadataUpdateTime == null || refreshableMetadataResolver.getLastUpdate() == null) {
             return true;
         }
 
@@ -140,35 +143,39 @@ public class Saml2SettingsProvider {
     }
 
     private void initSpEndpoints(HashMap<String, Object> configProperties) {
-        configProperties.put(SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_URL_PROPERTY_KEY,
-                this.buildAssertionConsumerEndpoint(this.opensearchSettings.get("kibana_url")));
-        configProperties.put(SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_BINDING_PROPERTY_KEY,
-                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST");
+        configProperties.put(
+            SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_URL_PROPERTY_KEY,
+            this.buildAssertionConsumerEndpoint(this.opensearchSettings.get("kibana_url"))
+        );
+        configProperties.put(
+            SettingsBuilder.SP_ASSERTION_CONSUMER_SERVICE_BINDING_PROPERTY_KEY,
+            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+        );
         configProperties.put(SettingsBuilder.SP_ENTITYID_PROPERTY_KEY, this.opensearchSettings.get("sp.entity_id"));
     }
 
-    private void initIdpEndpoints(IDPSSODescriptor idpSsoDescriptor, HashMap<String, Object> configProperties)
-            throws SamlConfigException {
-        SingleSignOnService singleSignOnService = this.findSingleSignOnService(idpSsoDescriptor,
-                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect");
+    private void initIdpEndpoints(IDPSSODescriptor idpSsoDescriptor, HashMap<String, Object> configProperties) throws SamlConfigException {
+        SingleSignOnService singleSignOnService = this.findSingleSignOnService(
+            idpSsoDescriptor,
+            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        );
 
-        configProperties.put(SettingsBuilder.IDP_SINGLE_SIGN_ON_SERVICE_URL_PROPERTY_KEY,
-                singleSignOnService.getLocation());
-        configProperties.put(SettingsBuilder.IDP_SINGLE_SIGN_ON_SERVICE_BINDING_PROPERTY_KEY,
-                singleSignOnService.getBinding());
+        configProperties.put(SettingsBuilder.IDP_SINGLE_SIGN_ON_SERVICE_URL_PROPERTY_KEY, singleSignOnService.getLocation());
+        configProperties.put(SettingsBuilder.IDP_SINGLE_SIGN_ON_SERVICE_BINDING_PROPERTY_KEY, singleSignOnService.getBinding());
         configProperties.put(SettingsBuilder.IDP_ENTITYID_PROPERTY_KEY, this.opensearchSettings.get("idp.entity_id"));
 
-        SingleLogoutService singleLogoutService = this.findSingleLogoutService(idpSsoDescriptor,
-                "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect");
+        SingleLogoutService singleLogoutService = this.findSingleLogoutService(
+            idpSsoDescriptor,
+            "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        );
 
         if (singleLogoutService != null) {
-            configProperties.put(SettingsBuilder.IDP_SINGLE_LOGOUT_SERVICE_URL_PROPERTY_KEY,
-                    singleLogoutService.getLocation());
-            configProperties.put(SettingsBuilder.IDP_SINGLE_LOGOUT_SERVICE_BINDING_PROPERTY_KEY,
-                    singleLogoutService.getBinding());
+            configProperties.put(SettingsBuilder.IDP_SINGLE_LOGOUT_SERVICE_URL_PROPERTY_KEY, singleLogoutService.getLocation());
+            configProperties.put(SettingsBuilder.IDP_SINGLE_LOGOUT_SERVICE_BINDING_PROPERTY_KEY, singleLogoutService.getBinding());
         } else {
             log.warn(
-                    "The IdP does not provide a Single Logout Service. In order to ensure that users have to re-enter their password after logging out, OpenSearch Security will issue all SAML authentication requests with a mandatory password input (ForceAuthn=true)");
+                "The IdP does not provide a Single Logout Service. In order to ensure that users have to re-enter their password after logging out, OpenSearch Security will issue all SAML authentication requests with a mandatory password input (ForceAuthn=true)"
+            );
         }
     }
 
@@ -176,32 +183,32 @@ public class Saml2SettingsProvider {
         int i = 0;
 
         for (KeyDescriptor keyDescriptor : idpSsoDescriptor.getKeyDescriptors()) {
-            if (UsageType.SIGNING.equals(keyDescriptor.getUse())
-                    || UsageType.UNSPECIFIED.equals(keyDescriptor.getUse())) {
+            if (UsageType.SIGNING.equals(keyDescriptor.getUse()) || UsageType.UNSPECIFIED.equals(keyDescriptor.getUse())) {
                 for (X509Data x509data : keyDescriptor.getKeyInfo().getX509Datas()) {
                     for (X509Certificate x509Certificate : x509data.getX509Certificates()) {
-                        configProperties.put(SettingsBuilder.IDP_X509CERTMULTI_PROPERTY_KEY + "." + (i++),
-                                x509Certificate.getValue());
+                        configProperties.put(SettingsBuilder.IDP_X509CERTMULTI_PROPERTY_KEY + "." + (i++), x509Certificate.getValue());
                     }
                 }
             }
         }
     }
 
-    private SingleSignOnService findSingleSignOnService(IDPSSODescriptor idpSsoDescriptor, String binding)
-            throws SamlConfigException {
+    private SingleSignOnService findSingleSignOnService(IDPSSODescriptor idpSsoDescriptor, String binding) throws SamlConfigException {
         for (SingleSignOnService singleSignOnService : idpSsoDescriptor.getSingleSignOnServices()) {
             if (binding.equals(singleSignOnService.getBinding())) {
                 return singleSignOnService;
             }
         }
 
-        throw new SamlConfigException("Could not find SingleSignOnService endpoint for binding " + binding
-                + "; available services: " + idpSsoDescriptor.getSingleSignOnServices());
+        throw new SamlConfigException(
+            "Could not find SingleSignOnService endpoint for binding "
+                + binding
+                + "; available services: "
+                + idpSsoDescriptor.getSingleSignOnServices()
+        );
     }
 
-    private SingleLogoutService findSingleLogoutService(IDPSSODescriptor idpSsoDescriptor, String binding)
-            throws SamlConfigException {
+    private SingleLogoutService findSingleLogoutService(IDPSSODescriptor idpSsoDescriptor, String binding) throws SamlConfigException {
         for (SingleLogoutService singleLogoutService : idpSsoDescriptor.getSingleLogoutServices()) {
             if (binding.equals(singleLogoutService.getBinding())) {
                 return singleLogoutService;

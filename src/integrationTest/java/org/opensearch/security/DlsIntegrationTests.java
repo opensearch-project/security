@@ -87,170 +87,193 @@ public class DlsIntegrationTests {
     /**
      * User who is allowed to read all indices.
      */
-    static final TestSecurityConfig.User READ_ALL_USER = new TestSecurityConfig.User("read_all_user")
-            .roles(
-                    new TestSecurityConfig.Role("read_all_user")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .on("*")
-            );
+    static final TestSecurityConfig.User READ_ALL_USER = new TestSecurityConfig.User("read_all_user").roles(
+        new TestSecurityConfig.Role("read_all_user").clusterPermissions("cluster_composite_ops_ro").indexPermissions("read").on("*")
+    );
 
     /**
      * User who is allowed to see all fields on indices {@link #FIRST_INDEX_NAME} and {@link #SECOND_INDEX_NAME}.
      */
-    static final TestSecurityConfig.User READ_FIRST_AND_SECOND_USER = new TestSecurityConfig.User("read_first_and_second_user")
-            .roles(
-                    new TestSecurityConfig.Role("first_index_reader")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .on(FIRST_INDEX_NAME),
-                    new TestSecurityConfig.Role("second_index_reader")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .on(SECOND_INDEX_NAME)
-            );
+    static final TestSecurityConfig.User READ_FIRST_AND_SECOND_USER = new TestSecurityConfig.User("read_first_and_second_user").roles(
+        new TestSecurityConfig.Role("first_index_reader").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .on(FIRST_INDEX_NAME),
+        new TestSecurityConfig.Role("second_index_reader").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .on(SECOND_INDEX_NAME)
+    );
 
     /**
      * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_STRING}.
      */
-    static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING = new TestSecurityConfig.User("read_where_field_artist_matches_artist_string")
-            .roles(
-                    new TestSecurityConfig.Role("read_where_field_artist_matches_artist_string")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_STRING))
-                            .on("*")
-            );
+    static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING = new TestSecurityConfig.User(
+        "read_where_field_artist_matches_artist_string"
+    ).roles(
+        new TestSecurityConfig.Role("read_where_field_artist_matches_artist_string").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_STRING))
+            .on("*")
+    );
 
     /**
      * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_TWINS} OR {@link Song#FIELD_STARS} is greater than five.
      */
-    static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE = new TestSecurityConfig.User("read_where_field_artist_matches_artist_twins_or_field_stars_greater_than_five")
-            .roles(
-                    new TestSecurityConfig.Role("read_where_field_artist_matches_artist_twins")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_TWINS))
-                            .on("*"),
-                    new TestSecurityConfig.Role("read_where_field_stars_greater_than_five")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .dls(String.format("{\"range\":{\"%s\":{\"gt\":%d}}}", FIELD_STARS, 5))
-                            .on("*")
-            );
-
+    static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE =
+        new TestSecurityConfig.User("read_where_field_artist_matches_artist_twins_or_field_stars_greater_than_five").roles(
+            new TestSecurityConfig.Role("read_where_field_artist_matches_artist_twins").clusterPermissions("cluster_composite_ops_ro")
+                .indexPermissions("read")
+                .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_TWINS))
+                .on("*"),
+            new TestSecurityConfig.Role("read_where_field_stars_greater_than_five").clusterPermissions("cluster_composite_ops_ro")
+                .indexPermissions("read")
+                .dls(String.format("{\"range\":{\"%s\":{\"gt\":%d}}}", FIELD_STARS, 5))
+                .on("*")
+        );
 
     /**
      * User who is allowed to see documents on indices where value of {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_TWINS} or {@link Song#FIELD_ARTIST} field matches {@link Song#ARTIST_FIRST}:
      */
-    static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST = new TestSecurityConfig.User("read_where_field_artist_matches_artist_twins_or_artist_first")
-            .roles(
-                    new TestSecurityConfig.Role("read_where_field_artist_matches_artist_twins")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_TWINS))
-                            .on(FIRST_INDEX_NAME),
-                    new TestSecurityConfig.Role("read_where_field_artist_matches_artist_first")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_FIRST))
-                            .on(SECOND_INDEX_NAME)
-            );
+    static final TestSecurityConfig.User READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST = new TestSecurityConfig.User(
+        "read_where_field_artist_matches_artist_twins_or_artist_first"
+    ).roles(
+        new TestSecurityConfig.Role("read_where_field_artist_matches_artist_twins").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_TWINS))
+            .on(FIRST_INDEX_NAME),
+        new TestSecurityConfig.Role("read_where_field_artist_matches_artist_first").clusterPermissions("cluster_composite_ops_ro")
+            .indexPermissions("read")
+            .dls(String.format("{\"match\":{\"%s\":\"%s\"}}", FIELD_ARTIST, ARTIST_FIRST))
+            .on(SECOND_INDEX_NAME)
+    );
 
     /**
      * User who is allowed to see documents on all indices where value of the {@link Song#FIELD_STARS} is less than three.
      */
     static final TestSecurityConfig.User READ_WHERE_STARS_LESS_THAN_THREE = new TestSecurityConfig.User("read_where_stars_less_than_three")
-            .roles(
-                    new TestSecurityConfig.Role("read_where_stars_less_than_three")
-                            .clusterPermissions("cluster_composite_ops_ro")
-                            .indexPermissions("read")
-                            .dls(String.format("{\"range\":{\"%s\":{\"lt\":%d}}}", FIELD_STARS, 3))
-                            .on("*")
-            );
+        .roles(
+            new TestSecurityConfig.Role("read_where_stars_less_than_three").clusterPermissions("cluster_composite_ops_ro")
+                .indexPermissions("read")
+                .dls(String.format("{\"range\":{\"%s\":{\"lt\":%d}}}", FIELD_STARS, 3))
+                .on("*")
+        );
 
     @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder()
-            .clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
-            .nodeSettings(Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName()  +"__" + ALL_ACCESS.getName())))
-            .authc(AUTHC_HTTPBASIC_INTERNAL)
-            .users(
-                    ADMIN_USER, READ_ALL_USER, READ_FIRST_AND_SECOND_USER, READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING,
-                    READ_WHERE_STARS_LESS_THAN_THREE, READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
-                    READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
-            )
-            .build();
+    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+        .anonymousAuth(false)
+        .nodeSettings(
+            Map.of("plugins.security.restapi.roles_enabled", List.of("user_" + ADMIN_USER.getName() + "__" + ALL_ACCESS.getName()))
+        )
+        .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .users(
+            ADMIN_USER,
+            READ_ALL_USER,
+            READ_FIRST_AND_SECOND_USER,
+            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_STRING,
+            READ_WHERE_STARS_LESS_THAN_THREE,
+            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE,
+            READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
+        )
+        .build();
 
     /**
      * Function that returns id assigned to song with title equal to given title or throws {@link RuntimeException}
      * when no song matches.
      */
     static final BiFunction<Map<String, Song>, String, String> FIND_ID_OF_SONG_WITH_TITLE = (map, title) -> map.entrySet()
-            .stream().filter(entry -> title.equals(entry.getValue().getTitle()))
-            .findAny()
-            .map(Map.Entry::getKey)
-            .orElseThrow(() -> new RuntimeException("Cannot find id of song with title: " + title));
+        .stream()
+        .filter(entry -> title.equals(entry.getValue().getTitle()))
+        .findAny()
+        .map(Map.Entry::getKey)
+        .orElseThrow(() -> new RuntimeException("Cannot find id of song with title: " + title));
 
     /**
      * Function that returns id assigned to song with artist equal to given artist or throws {@link RuntimeException}
      * when no song matches.
      */
     static final BiFunction<Map<String, Song>, String, String> FIND_ID_OF_SONG_WITH_ARTIST = (map, artist) -> map.entrySet()
-            .stream().filter(entry -> artist.equals(entry.getValue().getArtist()))
-            .findAny()
-            .map(Map.Entry::getKey)
-            .orElseThrow(() -> new RuntimeException("Cannot find id of song with artist: " + artist));
+        .stream()
+        .filter(entry -> artist.equals(entry.getValue().getArtist()))
+        .findAny()
+        .map(Map.Entry::getKey)
+        .orElseThrow(() -> new RuntimeException("Cannot find id of song with artist: " + artist));
 
-    static final TreeMap<String, Song> FIRST_INDEX_SONGS_BY_ID = new TreeMap<>() {{ // SONG = (String artist, String title, String lyrics, Integer stars, String genre)
-        put(FIRST_INDEX_ID_SONG_1, SONGS[0]); // (ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1,  GENRE_ROCK)
-        put(FIRST_INDEX_ID_SONG_2, SONGS[1]); // (ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2,  2,  GENRE_BLUES),
-        put(FIRST_INDEX_ID_SONG_3, SONGS[2]); // (ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3,  3, GENRE_JAZZ),
-        put(FIRST_INDEX_ID_SONG_4, SONGS[3]); // (ARTIST_NO, TITLE_POISON, LYRICS_4,  4,  GENRE_ROCK),
-        put(FIRST_INDEX_ID_SONG_5, SONGS[4]); // (ARTIST_YES, TITLE_AFFIRMATIVE,LYRICS_5,  5,  GENRE_BLUES),
-        put(FIRST_INDEX_ID_SONG_6, SONGS[5]); // (ARTIST_UNKNOWN, TITLE_CONFIDENTIAL, LYRICS_6,  6,  GENRE_JAZZ)
-    }};
+    static final TreeMap<String, Song> FIRST_INDEX_SONGS_BY_ID = new TreeMap<>() {
+        { // SONG = (String artist, String title, String lyrics, Integer stars, String genre)
+            put(FIRST_INDEX_ID_SONG_1, SONGS[0]); // (ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1, GENRE_ROCK)
+            put(FIRST_INDEX_ID_SONG_2, SONGS[1]); // (ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2, 2, GENRE_BLUES),
+            put(FIRST_INDEX_ID_SONG_3, SONGS[2]); // (ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3, 3, GENRE_JAZZ),
+            put(FIRST_INDEX_ID_SONG_4, SONGS[3]); // (ARTIST_NO, TITLE_POISON, LYRICS_4, 4, GENRE_ROCK),
+            put(FIRST_INDEX_ID_SONG_5, SONGS[4]); // (ARTIST_YES, TITLE_AFFIRMATIVE,LYRICS_5, 5, GENRE_BLUES),
+            put(FIRST_INDEX_ID_SONG_6, SONGS[5]); // (ARTIST_UNKNOWN, TITLE_CONFIDENTIAL, LYRICS_6, 6, GENRE_JAZZ)
+        }
+    };
 
-    static final TreeMap<String, Song> SECOND_INDEX_SONGS_BY_ID = new TreeMap<>() {{
-        put(SECOND_INDEX_ID_SONG_1, SONGS[3]); // (ARTIST_NO, TITLE_POISON, LYRICS_4,  4,  GENRE_ROCK),
-        put(SECOND_INDEX_ID_SONG_2, SONGS[2]); // (ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3,  3, GENRE_JAZZ),
-        put(SECOND_INDEX_ID_SONG_3, SONGS[1]); // (ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2,  2,  GENRE_BLUES),
-        put(SECOND_INDEX_ID_SONG_4, SONGS[0]); // (ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1,  GENRE_ROCK)
-    }};
+    static final TreeMap<String, Song> SECOND_INDEX_SONGS_BY_ID = new TreeMap<>() {
+        {
+            put(SECOND_INDEX_ID_SONG_1, SONGS[3]); // (ARTIST_NO, TITLE_POISON, LYRICS_4, 4, GENRE_ROCK),
+            put(SECOND_INDEX_ID_SONG_2, SONGS[2]); // (ARTIST_TWINS, TITLE_NEXT_SONG, LYRICS_3, 3, GENRE_JAZZ),
+            put(SECOND_INDEX_ID_SONG_3, SONGS[1]); // (ARTIST_STRING, TITLE_SONG_1_PLUS_1, LYRICS_2, 2, GENRE_BLUES),
+            put(SECOND_INDEX_ID_SONG_4, SONGS[0]); // (ARTIST_FIRST, TITLE_MAGNUM_OPUS ,LYRICS_1, 1, GENRE_ROCK)
+        }
+    };
 
     @BeforeClass
     public static void createTestData() {
-        try(Client client = cluster.getInternalNodeClient()){
+        try (Client client = cluster.getInternalNodeClient()) {
             FIRST_INDEX_SONGS_BY_ID.forEach((id, song) -> {
                 client.prepareIndex(FIRST_INDEX_NAME).setId(id).setRefreshPolicy(IMMEDIATE).setSource(song.asMap()).get();
             });
 
-            client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new IndicesAliasesRequest.AliasActions(ADD)
-                    .indices(FIRST_INDEX_NAME)
-                    .alias(FIRST_INDEX_ALIAS)
-            )).actionGet();
-            client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new IndicesAliasesRequest.AliasActions(ADD)
-                    .index(FIRST_INDEX_NAME)
-                    .alias(FIRST_INDEX_ALIAS_FILTERED_BY_NEXT_SONG_TITLE)
-                    .filter(QueryBuilders.queryStringQuery(QUERY_TITLE_NEXT_SONG))
-            )).actionGet();
-            client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new IndicesAliasesRequest.AliasActions(ADD)
-                    .index(FIRST_INDEX_NAME)
-                    .alias(FIRST_INDEX_ALIAS_FILTERED_BY_TWINS_ARTIST)
-                    .filter(QueryBuilders.queryStringQuery(String.format("%s:%s", FIELD_ARTIST, ARTIST_TWINS)))
-            )).actionGet();
-            client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new IndicesAliasesRequest.AliasActions(ADD)
-                    .index(FIRST_INDEX_NAME)
-                    .alias(FIRST_INDEX_ALIAS_FILTERED_BY_FIRST_ARTIST)
-                    .filter(QueryBuilders.queryStringQuery(String.format("%s:%s", FIELD_ARTIST, ARTIST_FIRST)))
-            )).actionGet();
+            client.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        new IndicesAliasesRequest.AliasActions(ADD).indices(FIRST_INDEX_NAME).alias(FIRST_INDEX_ALIAS)
+                    )
+                )
+                .actionGet();
+            client.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        new IndicesAliasesRequest.AliasActions(ADD).index(FIRST_INDEX_NAME)
+                            .alias(FIRST_INDEX_ALIAS_FILTERED_BY_NEXT_SONG_TITLE)
+                            .filter(QueryBuilders.queryStringQuery(QUERY_TITLE_NEXT_SONG))
+                    )
+                )
+                .actionGet();
+            client.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        new IndicesAliasesRequest.AliasActions(ADD).index(FIRST_INDEX_NAME)
+                            .alias(FIRST_INDEX_ALIAS_FILTERED_BY_TWINS_ARTIST)
+                            .filter(QueryBuilders.queryStringQuery(String.format("%s:%s", FIELD_ARTIST, ARTIST_TWINS)))
+                    )
+                )
+                .actionGet();
+            client.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        new IndicesAliasesRequest.AliasActions(ADD).index(FIRST_INDEX_NAME)
+                            .alias(FIRST_INDEX_ALIAS_FILTERED_BY_FIRST_ARTIST)
+                            .filter(QueryBuilders.queryStringQuery(String.format("%s:%s", FIELD_ARTIST, ARTIST_FIRST)))
+                    )
+                )
+                .actionGet();
 
             SECOND_INDEX_SONGS_BY_ID.forEach((id, song) -> {
                 client.prepareIndex(SECOND_INDEX_NAME).setId(id).setRefreshPolicy(IMMEDIATE).setSource(song.asMap()).get();
             });
-            client.admin().indices().aliases(new IndicesAliasesRequest().addAliasAction(new IndicesAliasesRequest.AliasActions(ADD)
-                    .indices(SECOND_INDEX_NAME)
-                    .alias(SECOND_INDEX_ALIAS)
-            )).actionGet();
+            client.admin()
+                .indices()
+                .aliases(
+                    new IndicesAliasesRequest().addAliasAction(
+                        new IndicesAliasesRequest.AliasActions(ADD).indices(SECOND_INDEX_NAME).alias(SECOND_INDEX_ALIAS)
+                    )
+                )
+                .actionGet();
         }
     }
 
@@ -321,7 +344,11 @@ public class DlsIntegrationTests {
 
     public void testShouldSearchI1_S3I1_S6I2_S2() throws IOException {
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE)) {
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE
+            )
+        ) {
             SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
@@ -341,7 +368,11 @@ public class DlsIntegrationTests {
 
     public void testShouldSearchI1_S1I1_S3I2_S2I2_S4() throws IOException {
 
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST)) {
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
+            )
+        ) {
             SearchRequest searchRequest = new SearchRequest(FIRST_INDEX_NAME);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
 
@@ -381,11 +412,10 @@ public class DlsIntegrationTests {
         }
     }
 
-
     @Test
     public void testSearchForAllDocumentsWithIndexPattern() throws IOException {
 
-        //DLS
+        // DLS
         try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_ALL_USER)) {
             SearchRequest searchRequest = new SearchRequest("*".concat(FIRST_INDEX_NAME));
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest, DEFAULT);
@@ -436,8 +466,12 @@ public class DlsIntegrationTests {
     @Test
     public void testAggregateAndComputeStarRatings() throws IOException {
 
-        //DLS
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST)) {
+        // DLS
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_MATCHES_ARTIST_FIRST
+            )
+        ) {
             String aggregationName = "averageStars";
             Song song = FIRST_INDEX_SONGS_BY_ID.get(FIND_ID_OF_SONG_WITH_ARTIST.apply(FIRST_INDEX_SONGS_BY_ID, ARTIST_TWINS));
 
@@ -448,9 +482,13 @@ public class DlsIntegrationTests {
             assertThat(searchResponse, containAggregationWithNameAndType(aggregationName, "avg"));
             Aggregation actualAggregation = searchResponse.getAggregations().get(aggregationName);
             assertThat(actualAggregation, instanceOf(ParsedAvg.class));
-            assertThat(((ParsedAvg) actualAggregation).getValue(), is(song.getStars()*1.0));
+            assertThat(((ParsedAvg) actualAggregation).getValue(), is(song.getStars() * 1.0));
         }
-        try (RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE)) {
+        try (
+            RestHighLevelClient restHighLevelClient = cluster.getRestHighLevelClient(
+                READ_WHERE_FIELD_ARTIST_MATCHES_ARTIST_TWINS_OR_FIELD_STARS_GREATER_THAN_FIVE
+            )
+        ) {
             String aggregationName = "averageStars";
             SearchRequest searchRequest = averageAggregationRequest(FIRST_INDEX_NAME, aggregationName, FIELD_STARS);
 

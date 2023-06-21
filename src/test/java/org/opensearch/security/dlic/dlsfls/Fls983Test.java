@@ -22,13 +22,11 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-public class Fls983Test extends AbstractDlsFlsTest{
-
+public class Fls983Test extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest(".kibana").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{}", XContentType.JSON)).actionGet();
+        tc.index(new IndexRequest(".kibana").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{}", XContentType.JSON)).actionGet();
     }
 
     @Test
@@ -38,11 +36,13 @@ public class Fls983Test extends AbstractDlsFlsTest{
 
         HttpResponse res;
 
-        String doc =  "{\"doc\" : {"+
-            "\"x\" : \"y\""+
-        "}}";
+        String doc = "{\"doc\" : {" + "\"x\" : \"y\"" + "}}";
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executePostRequest("/.kibana/_update/0?pretty", doc, encodeBasicHeader("human_resources_trainee", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executePostRequest("/.kibana/_update/0?pretty", doc, encodeBasicHeader("human_resources_trainee", "password")))
+                .getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("updated"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));

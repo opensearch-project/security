@@ -46,8 +46,8 @@ public class PasswordValidator {
      *  are similar
      * "user_inputs" - is a default dictionary zxcvbn creates for checking similarity
      */
-    private final static Predicate<Match> USERNAME_SIMILARITY_CHECK = m ->
-            m.pattern == com.nulabinc.zxcvbn.Pattern.Dictionary && "user_inputs".equals(m.dictionaryName);
+    private final static Predicate<Match> USERNAME_SIMILARITY_CHECK = m -> m.pattern == com.nulabinc.zxcvbn.Pattern.Dictionary
+        && "user_inputs".equals(m.dictionaryName);
 
     private final Logger logger = LogManager.getLogger(this.getClass());
 
@@ -59,9 +59,7 @@ public class PasswordValidator {
 
     private final Zxcvbn zxcvbn;
 
-    private PasswordValidator(final int minPasswordLength,
-                              final Pattern passwordRegexpPattern,
-                              final ScoreStrength scoreStrength) {
+    private PasswordValidator(final int minPasswordLength, final Pattern passwordRegexpPattern, final ScoreStrength scoreStrength) {
         this.minPasswordLength = minPasswordLength;
         this.passwordRegexpPattern = passwordRegexpPattern;
         this.scoreStrength = scoreStrength;
@@ -71,49 +69,47 @@ public class PasswordValidator {
     public static PasswordValidator of(final Settings settings) {
         final String passwordRegex = settings.get(SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, null);
         final ScoreStrength scoreStrength = ScoreStrength.fromConfiguration(
-                    settings.get(SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, ScoreStrength.STRONG.name())
-            );
+            settings.get(SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH, ScoreStrength.STRONG.name())
+        );
         final int minPasswordLength = settings.getAsInt(SECURITY_RESTAPI_PASSWORD_MIN_LENGTH, -1);
         return new PasswordValidator(
-                minPasswordLength,
-                !Strings.isNullOrEmpty(passwordRegex) ? Pattern.compile(String.format("^%s$", passwordRegex)) : null,
-                scoreStrength);
+            minPasswordLength,
+            !Strings.isNullOrEmpty(passwordRegex) ? Pattern.compile(String.format("^%s$", passwordRegex)) : null,
+            scoreStrength
+        );
     }
 
     ErrorType validate(final String username, final String password) {
         if (minPasswordLength > 0 && password.length() < minPasswordLength) {
             logger.debug(
-                    "Password is too short, the minimum required length is {}, but current length is {}",
-                    minPasswordLength,
-                    password.length()
+                "Password is too short, the minimum required length is {}, but current length is {}",
+                minPasswordLength,
+                password.length()
             );
             return ErrorType.INVALID_PASSWORD;
         }
         if (password.length() > MAX_LENGTH) {
             logger.debug(
-                    "Password is too long, the maximum required length is {}, but current length is {}",
-                    MAX_LENGTH,
-                    password.length()
+                "Password is too long, the maximum required length is {}, but current length is {}",
+                MAX_LENGTH,
+                password.length()
             );
             return ErrorType.INVALID_PASSWORD;
         }
-        if (Objects.nonNull(passwordRegexpPattern)
-                && !passwordRegexpPattern.matcher(password).matches()) {
+        if (Objects.nonNull(passwordRegexpPattern) && !passwordRegexpPattern.matcher(password).matches()) {
             logger.debug("Regex does not match password");
             return ErrorType.INVALID_PASSWORD;
         }
         final Strength strength = zxcvbn.measure(password, ImmutableList.of(username));
         if (strength.getScore() < scoreStrength.score()) {
             logger.debug(
-                    "Password is weak the required score is {}, but current is {}",
-                    scoreStrength,
-                    ScoreStrength.fromScore(strength.getScore())
+                "Password is weak the required score is {}, but current is {}",
+                scoreStrength,
+                ScoreStrength.fromScore(strength.getScore())
             );
             return ErrorType.WEAK_PASSWORD;
         }
-        final boolean similar = strength.getSequence()
-                .stream()
-                .anyMatch(USERNAME_SIMILARITY_CHECK);
+        final boolean similar = strength.getSequence().stream().anyMatch(USERNAME_SIMILARITY_CHECK);
         if (similar) {
             logger.debug("Password is too similar to the user name {}", username);
             return ErrorType.SIMILAR_PASSWORD;
@@ -137,12 +133,10 @@ public class PasswordValidator {
 
         static final List<ScoreStrength> CONFIGURATION_VALUES = ImmutableList.of(FAIR, STRONG, VERY_STRONG);
 
-        static final String EXPECTED_CONFIGURATION_VALUES =
-                new StringJoiner(",")
-                        .add(FAIR.name().toLowerCase(Locale.ROOT))
-                        .add(STRONG.name().toLowerCase(Locale.ROOT))
-                        .add(VERY_STRONG.name().toLowerCase(Locale.ROOT))
-                        .toString();
+        static final String EXPECTED_CONFIGURATION_VALUES = new StringJoiner(",").add(FAIR.name().toLowerCase(Locale.ROOT))
+            .add(STRONG.name().toLowerCase(Locale.ROOT))
+            .add(VERY_STRONG.name().toLowerCase(Locale.ROOT))
+            .toString();
 
         private ScoreStrength(final int score, final String description) {
             this.score = score;
@@ -151,24 +145,22 @@ public class PasswordValidator {
 
         public static ScoreStrength fromScore(final int score) {
             for (final ScoreStrength strength : values()) {
-                if (strength.score == score)
-                    return strength;
+                if (strength.score == score) return strength;
             }
             throw new IllegalArgumentException("Unknown score " + score);
         }
 
         public static ScoreStrength fromConfiguration(final String value) {
             for (final ScoreStrength strength : CONFIGURATION_VALUES) {
-                if (strength.name().equalsIgnoreCase(value))
-                    return strength;
+                if (strength.name().equalsIgnoreCase(value)) return strength;
             }
             throw new IllegalArgumentException(
-                    String.format(
-                            "Setting [%s] cannot be used with the configured: %s. Expected one of [%s]",
-                            SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH,
-                            value,
-                            EXPECTED_CONFIGURATION_VALUES
-                    )
+                String.format(
+                    "Setting [%s] cannot be used with the configured: %s. Expected one of [%s]",
+                    SECURITY_RESTAPI_PASSWORD_SCORE_BASED_VALIDATION_STRENGTH,
+                    value,
+                    EXPECTED_CONFIGURATION_VALUES
+                )
             );
         }
 

@@ -19,13 +19,11 @@ import org.opensearch.security.auth.AuthorizationBackend;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.user.User;
 
-
 public class DummyAuthorizer implements AuthorizationBackend {
 
     private static volatile long count;
 
-    public DummyAuthorizer(final Settings settings, final Path configPath) {
-    }
+    public DummyAuthorizer(final Settings settings, final Path configPath) {}
 
     @Override
     public String getType() {
@@ -44,7 +42,7 @@ public class DummyAuthorizer implements AuthorizationBackend {
     }
 
     public static void reset() {
-        count=0;
+        count = 0;
     }
 
 }

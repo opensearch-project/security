@@ -30,7 +30,7 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
 * Full data in transit encryption
 * Node-to-node encryption
 * Certificate revocation lists
-* Hot Certificate renewal 
+* Hot Certificate renewal
 
 ### Authentication
 * Internal user database
@@ -53,7 +53,7 @@ OpenSearch Security is a plugin for OpenSearch that offers encryption, authentic
 * REST management API
 
 ### Audit/Compliance logging
-* Audit logging 
+* Audit logging
 * Compliance logging for GDPR, HIPAA, PCI, SOX and ISO compliance
 
 ### OpenSearch Dashboards multi-tenancy
@@ -133,7 +133,7 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## License
 
-This code is licensed under the Apache 2.0 License. 
+This code is licensed under the Apache 2.0 License.
 
 ## Copyright
 

@@ -13,5 +13,7 @@ package org.opensearch.security.ccstest;
 
 public class CrossClusterMinimalRoundtripSearchTests extends CrossClusterSearchTests {
     @Override
-    protected boolean ccsMinimizeRoundtrips() { return true; }
+    protected boolean ccsMinimizeRoundtrips() {
+        return true;
+    }
 }

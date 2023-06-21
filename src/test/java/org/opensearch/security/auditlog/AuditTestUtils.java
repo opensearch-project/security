@@ -62,7 +62,8 @@ public class AuditTestUtils {
         final Client clientProvider,
         final ThreadPool threadPool,
         final IndexNameExpressionResolver resolver,
-        final ClusterService clusterService) {
+        final ClusterService clusterService
+    ) {
         AuditLogImpl auditLog = new AuditLogImpl(settings, configPath, clientProvider, threadPool, resolver, clusterService);
         AuditConfig auditConfig = AuditConfig.from(settings);
         auditLog.setConfig(auditConfig);

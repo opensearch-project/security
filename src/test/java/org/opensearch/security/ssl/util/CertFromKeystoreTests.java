@@ -25,7 +25,8 @@ import org.opensearch.security.test.helper.file.FileHelper;
 public class CertFromKeystoreTests {
 
     @Test
-    public void testLoadSameCertForClientServerUsage() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testLoadSameCertForClientServerUsage() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException,
+        KeyStoreException, IOException {
         KeystoreProps props = new KeystoreProps(
             FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks").toString(),
             "JKS",
@@ -43,7 +44,8 @@ public class CertFromKeystoreTests {
     }
 
     @Test
-    public void testLoadSameCertWithoutAlias() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testLoadSameCertWithoutAlias() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException,
+        KeyStoreException, IOException {
         KeystoreProps props = new KeystoreProps(
             FileHelper.getAbsoluteFilePathFromClassPath("ssl/node-0-keystore.jks").toString(),
             "JKS",
@@ -58,7 +60,8 @@ public class CertFromKeystoreTests {
     }
 
     @Test
-    public void testLoadDifferentCertsForClientServerUsage() throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public void testLoadDifferentCertsForClientServerUsage() throws UnrecoverableKeyException, CertificateException,
+        NoSuchAlgorithmException, KeyStoreException, IOException {
         KeystoreProps props = new KeystoreProps(
             FileHelper.getAbsoluteFilePathFromClassPath("ssl/extended_key_usage/node-0-keystore.jks").toString(),
             "JKS",

@@ -27,5 +27,5 @@
 package org.opensearch.security.auth;
 
 public interface Destroyable {
-	void destroy();
+    void destroy();
 }

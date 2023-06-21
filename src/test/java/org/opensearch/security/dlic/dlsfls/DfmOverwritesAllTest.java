@@ -37,17 +37,41 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
 
-        tc.index(new IndexRequest("index1-1").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"field1\": 1, \"field2\": \"value-2-1\", \"field3\": \"value-3-1\", \"field4\": \"value-4-1\" }", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("index1-1").id("0")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"field1\": 1, \"field2\": \"value-2-1\", \"field3\": \"value-3-1\", \"field4\": \"value-4-1\" }",
+                    XContentType.JSON
+                )
+        ).actionGet();
 
-        tc.index(new IndexRequest("index1-2").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"field1\": 2, \"field2\": \"value-2-2\", \"field3\": \"value-3-2\", \"field4\": \"value-4-2\" }", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("index1-2").id("0")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"field1\": 2, \"field2\": \"value-2-2\", \"field3\": \"value-3-2\", \"field4\": \"value-4-2\" }",
+                    XContentType.JSON
+                )
+        ).actionGet();
 
-        tc.index(new IndexRequest("index1-3").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"field1\": 3, \"field2\": \"value-2-3\", \"field3\": \"value-3-3\", \"field4\": \"value-4-3\" }", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("index1-3").id("0")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"field1\": 3, \"field2\": \"value-2-3\", \"field3\": \"value-3-3\", \"field4\": \"value-4-3\" }",
+                    XContentType.JSON
+                )
+        ).actionGet();
 
-        tc.index(new IndexRequest("index1-4").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"field1\": 4, \"field2\": \"value-2-4\", \"field3\": \"value-3-4\", \"field4\": \"value-4-4\" }", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("index1-4").id("0")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"field1\": 4, \"field2\": \"value-2-4\", \"field3\": \"value-3-4\", \"field4\": \"value-4-4\" }",
+                    XContentType.JSON
+                )
+        ).actionGet();
 
     }
 
@@ -59,15 +83,17 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
     public void testDFMUnrestrictedUser() throws Exception {
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, true).build();
 
-        setup(settings, new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
+        setup(
+            settings,
+            new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
                 .setSecurityInternalUsers("internal_users_dfm_empty_overwrites_all.yml")
                 .setSecurityRoles("roles_dfm_empty_overwrites_all.yml")
-                .setSecurityRolesMapping("rolesmapping_dfm_empty_overwrites_all.yml"));
+                .setSecurityRolesMapping("rolesmapping_dfm_empty_overwrites_all.yml")
+        );
 
         HttpResponse response;
 
-        response = rh.executeGetRequest("/index1-*/_search?pretty",
-                encodeBasicHeader("admin", "password"));
+        response = rh.executeGetRequest("/index1-*/_search?pretty", encodeBasicHeader("admin", "password"));
         Assert.assertEquals(200, response.getStatusCode());
 
         // the only document in index1-1 is filtered by DLS query, so normally no hit in index-1-1
@@ -99,21 +125,23 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
     public void testDFMRestrictedUser() throws Exception {
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, true).build();
 
-        setup(settings, new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
+        setup(
+            settings,
+            new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
                 .setSecurityInternalUsers("internal_users_dfm_empty_overwrites_all.yml")
                 .setSecurityRoles("roles_dfm_empty_overwrites_all.yml")
-                .setSecurityRolesMapping("rolesmapping_dfm_empty_overwrites_all.yml"));
+                .setSecurityRolesMapping("rolesmapping_dfm_empty_overwrites_all.yml")
+        );
 
         HttpResponse response;
 
-        response = rh.executeGetRequest("/index1-*/_search?pretty",
-                encodeBasicHeader("dfm_restricted_role", "password"));
+        response = rh.executeGetRequest("/index1-*/_search?pretty", encodeBasicHeader("dfm_restricted_role", "password"));
         Assert.assertEquals(200, response.getStatusCode());
 
-        // the only document in index1-1 is filtered by DLS query, so  no hit in index-1-1
+        // the only document in index1-1 is filtered by DLS query, so no hit in index-1-1
         Assert.assertFalse(response.getBody().contains("index1-1"));
 
-        // field3 and field4 -  filtered out by FLS
+        // field3 and field4 - filtered out by FLS
         Assert.assertFalse(response.getBody().contains("value-3-1"));
         Assert.assertFalse(response.getBody().contains("value-4-1"));
         Assert.assertFalse(response.getBody().contains("value-3-2"));
@@ -146,15 +174,20 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
 
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, true).build();
 
-        setup(settings, new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
+        setup(
+            settings,
+            new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
                 .setSecurityInternalUsers("internal_users_dfm_empty_overwrites_all.yml")
                 .setSecurityRoles("roles_dfm_empty_overwrites_all.yml")
-                .setSecurityRolesMapping("rolesmapping_dfm_empty_overwrites_all.yml"));
+                .setSecurityRolesMapping("rolesmapping_dfm_empty_overwrites_all.yml")
+        );
 
         HttpResponse response;
 
-        response = rh.executeGetRequest("/index1-*/_search?pretty",
-                encodeBasicHeader("dfm_restricted_and_unrestricted_all_indices_role", "password"));
+        response = rh.executeGetRequest(
+            "/index1-*/_search?pretty",
+            encodeBasicHeader("dfm_restricted_and_unrestricted_all_indices_role", "password")
+        );
         Assert.assertEquals(200, response.getStatusCode());
 
         // the only document in index1-1 is filtered by DLS query, so normally no hit in index-1-1
@@ -187,18 +220,25 @@ public class DfmOverwritesAllTest extends AbstractDlsFlsTest {
     @Test
     public void testDFMRestrictedAndUnrestrictedOneIndex() throws Exception {
         final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, true).build();
-        setup(settings, new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
+        setup(
+            settings,
+            new DynamicSecurityConfig().setConfig("securityconfig_dfm_empty_overwrites_all.yml")
                 .setSecurityInternalUsers("internal_users_dfm_empty_overwrites_all.yml")
                 .setSecurityRoles("roles_dfm_empty_overwrites_all.yml")
-                .setSecurityRolesMapping("rolesmapping_dfm_empty_overwrites_all.yml"));
+                .setSecurityRolesMapping("rolesmapping_dfm_empty_overwrites_all.yml")
+        );
 
         HttpResponse response;
 
-        response = rh.executeGetRequest("/_plugins/_security/authinfo?pretty",
-                encodeBasicHeader("dfm_restricted_and_unrestricted_one_index_role", "password"));
+        response = rh.executeGetRequest(
+            "/_plugins/_security/authinfo?pretty",
+            encodeBasicHeader("dfm_restricted_and_unrestricted_one_index_role", "password")
+        );
 
-        response = rh.executeGetRequest("/index1-*/_search?pretty",
-                encodeBasicHeader("dfm_restricted_and_unrestricted_one_index_role", "password"));
+        response = rh.executeGetRequest(
+            "/index1-*/_search?pretty",
+            encodeBasicHeader("dfm_restricted_and_unrestricted_one_index_role", "password")
+        );
         Assert.assertEquals(200, response.getStatusCode());
 
         // we have a role that places no restrictions on index-1-1, lifting the DLS from the restricted role

@@ -52,19 +52,19 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
     public HTTPProxyAuthenticator(Settings settings, final Path configPath) {
         super();
         this.settings = settings;
-        this.rolesSeparator =  Pattern.compile(settings.get("roles_separator", ","));
+        this.rolesSeparator = Pattern.compile(settings.get("roles_separator", ","));
     }
 
     @Override
     public AuthCredentials extractCredentials(final RestRequest request, ThreadContext context) {
-    	
-        if(context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) !=  Boolean.TRUE) {
+
+        if (context.getTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE) != Boolean.TRUE) {
             throw new OpenSearchSecurityException("xff not done");
         }
-        
+
         final String userHeader = settings.get("user_header");
         final String rolesHeader = settings.get("roles_header");
-        
+
         if (log.isDebugEnabled()) {
             log.debug("Headers {}", request.getHeaders());
             log.debug("UserHeader {}, value {}", userHeader, userHeader == null ? null : request.header(userHeader));
@@ -76,11 +76,10 @@ public class HTTPProxyAuthenticator implements HTTPAuthenticator {
             String[] backendRoles = null;
 
             if (!Strings.isNullOrEmpty(rolesHeader) && !Strings.isNullOrEmpty((String) request.header(rolesHeader))) {
-                backendRoles = rolesSeparator
-                        .splitAsStream((String) request.header(rolesHeader))
-                        .map(String::trim)
-                        .filter(Predicates.not(String::isEmpty))
-                        .toArray(String[]::new);
+                backendRoles = rolesSeparator.splitAsStream((String) request.header(rolesHeader))
+                    .map(String::trim)
+                    .filter(Predicates.not(String::isEmpty))
+                    .toArray(String[]::new);
             }
             return new AuthCredentials((String) request.header(userHeader), backendRoles).markComplete();
         } else {

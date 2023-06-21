@@ -19,10 +19,10 @@ import org.apache.http.HttpResponse;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 
-public class ErroneousHttpHandler implements HttpRequestHandler{
+public class ErroneousHttpHandler implements HttpRequestHandler {
 
-	@Override
-	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
-		response.setStatusCode(404);
-	}
+    @Override
+    public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException, IOException {
+        response.setStatusCode(404);
+    }
 }
