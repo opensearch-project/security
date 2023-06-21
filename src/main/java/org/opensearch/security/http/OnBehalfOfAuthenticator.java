@@ -72,8 +72,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
                     .replace("-----BEGIN PUBLIC KEY-----\n", "")
                     .replace("-----END PUBLIC KEY-----", "");
 
-            System.out.println("THIS IS THE minimalKeyFormat of signingKey: " + minimalKeyFormat);
-
             final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
             Key key = null;
 
@@ -97,7 +95,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return Jwts.parser().setSigningKey(signingKey);
         } catch (Throwable e) {
             log.error("Error while creating JWT authenticator", e);
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
