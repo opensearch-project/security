@@ -269,26 +269,24 @@ bundlePlugin {
     }
 }
 
-configurations {
-    all {
-        resolutionStrategy {
-            force 'commons-codec:commons-codec:1.14'
-            force 'org.slf4j:slf4j-api:1.7.30'
-            force 'org.scala-lang:scala-library:2.13.9'
-            force 'commons-io:commons-io:2.11.0'
-            force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
-            force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
-            force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
-            force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-            force "io.netty:netty-buffer:${versions.netty}"
-            force "io.netty:netty-common:${versions.netty}"
-            force "io.netty:netty-handler:${versions.netty}"
-            force "io.netty:netty-transport:${versions.netty}"
-            force "io.netty:netty-transport-native-unix-common:${versions.netty}"
-            force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
-            force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.1"
-        }
+configurations.all {
+    resolutionStrategy {
+        force 'commons-codec:commons-codec:1.14'
+        force 'org.slf4j:slf4j-api:1.7.30'
+        force 'org.scala-lang:scala-library:2.13.9'
+        force 'commons-io:commons-io:2.11.0'
+        force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
+        force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+        force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
+        force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+        force "io.netty:netty-buffer:${versions.netty}"
+        force "io.netty:netty-common:${versions.netty}"
+        force "io.netty:netty-handler:${versions.netty}"
+        force "io.netty:netty-transport:${versions.netty}"
+        force "io.netty:netty-transport-native-unix-common:${versions.netty}"
+        force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
+        force "com.github.luben:zstd-jni:${versions.zstd}"
+        force "org.xerial.snappy:snappy-java:1.1.10.1"
     }
 }
 
