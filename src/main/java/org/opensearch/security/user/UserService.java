@@ -60,33 +60,33 @@ public class UserService {
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
     final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
 
-    final static String SERVICE_ACCOUNT_PASSWORD_MESSAGE = "A password cannot be provided for a service account. Failed to register service account: ";
+    final static String SERVICE_ACCOUNT_PASSWORD_MESSAGE =
+        "A password cannot be provided for a service account. Failed to register service account: ";
 
-    final static String SERVICE_ACCOUNT_HASH_MESSAGE = "A password hash cannot be provided for service account. Failed to register service account: ";
+    final static String SERVICE_ACCOUNT_HASH_MESSAGE =
+        "A password hash cannot be provided for service account. Failed to register service account: ";
 
     final static String NO_ACCOUNT_NAME_MESSAGE = "No account name was specified in the request.";
 
     final static String FAILED_ACCOUNT_RETRIEVAL_MESSAGE = "The account specified could not be accessed at this time.";
     final static String AUTH_TOKEN_GENERATION_MESSAGE = "An auth token could not be generated for the specified account.";
+
     private static CType getUserConfigName() {
         return CType.INTERNALUSERS;
     }
 
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
-            ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
+        ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
     @Inject
-    public UserService(
-            ClusterService clusterService,
-            ConfigurationRepository configurationRepository,
-            Settings settings,
-            Client client
-    ) {
+    public UserService(ClusterService clusterService, ConfigurationRepository configurationRepository, Settings settings, Client client) {
         this.clusterService = clusterService;
         this.configurationRepository = configurationRepository;
-        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-                ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(
+            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+        );
         this.client = client;
     }
 
@@ -96,7 +96,10 @@ public class UserService {
      * @return configuration loaded with given CType data
      */
     protected static final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
-        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent).get(config).deepClone();
+        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
+            Collections.singleton(config),
+            logComplianceEvent
+        ).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 
@@ -122,18 +125,20 @@ public class UserService {
 
         SecurityJsonNode attributeNode = securityJsonNode.get("attributes");
 
-            if (!attributeNode.get("service").isNull() && attributeNode.get("service").asString().equalsIgnoreCase("true"))
-        { // If this is a service account
+        if (!attributeNode.get("service").isNull() && attributeNode.get("service").asString().equalsIgnoreCase("true")) { // If this is a
+                                                                                                                          // service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
             contentAsNode.put("hash", hash(password.toCharArray()));
             contentAsNode.put("service", "true");
-        } else{
+        } else {
             contentAsNode.put("service", "false");
         }
 
         securityJsonNode = new SecurityJsonNode(contentAsNode);
-        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream().filter(accountName::contains).collect(Collectors.toList());
+        final List<String> foundRestrictedContents = RESTRICTED_FROM_USERNAME.stream()
+            .filter(accountName::contains)
+            .collect(Collectors.toList());
         if (!foundRestrictedContents.isEmpty()) {
             final String restrictedContents = foundRestrictedContents.stream().map(s -> "'" + s + "'").collect(Collectors.joining(","));
             throw new UserServiceException(RESTRICTED_CHARACTER_USE_MESSAGE + restrictedContents);
@@ -167,7 +172,9 @@ public class UserService {
             // sanity check, this should usually not happen
             final String hash = ((Hashed) internalUsersConfiguration.getCEntry(accountName)).getHash();
             if (hash == null || hash.length() == 0) {
-                throw new UserServiceException("Existing user " + accountName + " has no password, and no new password or hash was specified.");
+                throw new UserServiceException(
+                    "Existing user " + accountName + " has no password, and no new password or hash was specified."
+                );
             }
             contentAsNode.put("hash", hash);
         }
@@ -175,7 +182,10 @@ public class UserService {
         internalUsersConfiguration.remove(accountName);
         contentAsNode.remove("name");
 
-        internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+        internalUsersConfiguration.putCObject(
+            accountName,
+            DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
+        );
         return internalUsersConfiguration;
     }
 
@@ -230,7 +240,6 @@ public class UserService {
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
-
             Optional.ofNullable(securityJsonNode.get("enabled"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
@@ -245,9 +254,11 @@ public class UserService {
             // Update the internal user associated with the auth token
             internalUsersConfiguration.remove(accountName);
             contentAsNode.remove("name");
-            internalUsersConfiguration.putCObject(accountName, DefaultObjectMapper.readTree(contentAsNode,  internalUsersConfiguration.getImplementingClass()));
+            internalUsersConfiguration.putCObject(
+                accountName,
+                DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
+            );
             saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
-
 
             authToken = Base64.getUrlEncoder().encodeToString((accountName + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
             return authToken;
@@ -259,18 +270,25 @@ public class UserService {
         }
     }
 
-    public static void saveAndUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration) {
+    public static void saveAndUpdateConfigs(
+        final String indexName,
+        final Client client,
+        final CType cType,
+        final SecurityDynamicConfiguration<?> configuration
+    ) {
         final IndexRequest ir = new IndexRequest(indexName);
         final String id = cType.toLCString();
 
         configuration.removeStatic();
 
         try {
-            client.index(ir.id(id)
+            client.index(
+                ir.id(id)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .setIfSeqNo(configuration.getSeqNo())
                     .setIfPrimaryTerm(configuration.getPrimaryTerm())
-                    .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)));
+                    .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false))
+            );
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }

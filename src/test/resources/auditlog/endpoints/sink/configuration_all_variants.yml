@@ -17,10 +17,10 @@ plugins.security:
         type: external_opensearch
         something:
           key: value
-      endpoint6:        
+      endpoint6:
         something:
           key: value
-      endpoint7:        
+      endpoint7:
         config:
           key: value
       endpoint8:

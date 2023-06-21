@@ -22,18 +22,21 @@ import org.opensearch.security.test.helper.rest.RestHelper;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public class DashboardsInfoActionTest extends AbstractRestApiUnitTest {
-    private final String ENDPOINT; 
+    private final String ENDPOINT;
+
     protected String getEndpoint() {
         return PLUGINS_PREFIX + "/dashboardsinfo";
     }
 
-    public DashboardsInfoActionTest(){
+    public DashboardsInfoActionTest() {
         ENDPOINT = getEndpoint();
     }
 
     @Test
     public void testDashboardsInfo() throws Exception {
-        Settings settings = Settings.builder().put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true).build();
+        Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, true)
+            .build();
         setup(settings);
 
         rh.keystore = "restapi/kirk-keystore.jks";

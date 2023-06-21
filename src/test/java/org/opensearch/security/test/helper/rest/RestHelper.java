@@ -80,379 +80,411 @@ import org.opensearch.security.test.helper.file.FileHelper;
 
 public class RestHelper {
 
-	protected final Logger log = LogManager.getLogger(RestHelper.class);
-	
-	public boolean enableHTTPClientSSL = true;
-	public boolean enableHTTPClientSSLv3Only = false;
-	public boolean sendAdminCertificate = false;
-	public boolean trustHTTPServerCertificate = true;
-	public boolean sendHTTPClientCredentials = false;
-	public String keystore = "node-0-keystore.jks";
-	public final String prefix;
-	//public String truststore = "truststore.jks";
-	private ClusterInfo clusterInfo;
-	
-	public RestHelper(ClusterInfo clusterInfo, String prefix) {
-		this.clusterInfo = clusterInfo;
-		this.prefix = prefix;
-	}
-	
-	public RestHelper(ClusterInfo clusterInfo, boolean enableHTTPClientSSL, boolean trustHTTPServerCertificate, String prefix) {
-		this.clusterInfo = clusterInfo;
-		this.enableHTTPClientSSL = enableHTTPClientSSL;
-		this.trustHTTPServerCertificate = trustHTTPServerCertificate;
-		this.prefix = prefix;
-	}
-	public String executeSimpleRequest(final String request) throws Exception {
+    protected final Logger log = LogManager.getLogger(RestHelper.class);
 
-		CloseableHttpClient httpClient = null;
-		CloseableHttpResponse response = null;
-		try {
-			httpClient = getHTTPClient();
-			response = httpClient.execute(new HttpGet(getHttpServerUri() + "/" + request));
+    public boolean enableHTTPClientSSL = true;
+    public boolean enableHTTPClientSSLv3Only = false;
+    public boolean sendAdminCertificate = false;
+    public boolean trustHTTPServerCertificate = true;
+    public boolean sendHTTPClientCredentials = false;
+    public String keystore = "node-0-keystore.jks";
+    public final String prefix;
+    // public String truststore = "truststore.jks";
+    private ClusterInfo clusterInfo;
 
-			if (response.getStatusLine().getStatusCode() >= 300) {
-				throw new Exception("Statuscode " + response.getStatusLine().getStatusCode());
-			}
+    public RestHelper(ClusterInfo clusterInfo, String prefix) {
+        this.clusterInfo = clusterInfo;
+        this.prefix = prefix;
+    }
 
-			return IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-		} finally {
+    public RestHelper(ClusterInfo clusterInfo, boolean enableHTTPClientSSL, boolean trustHTTPServerCertificate, String prefix) {
+        this.clusterInfo = clusterInfo;
+        this.enableHTTPClientSSL = enableHTTPClientSSL;
+        this.trustHTTPServerCertificate = trustHTTPServerCertificate;
+        this.prefix = prefix;
+    }
 
-			if (response != null) {
-				response.close();
-			}
+    public String executeSimpleRequest(final String request) throws Exception {
 
-			if (httpClient != null) {
-				httpClient.close();
-			}
-		}
-	}
+        CloseableHttpClient httpClient = null;
+        CloseableHttpResponse response = null;
+        try {
+            httpClient = getHTTPClient();
+            response = httpClient.execute(new HttpGet(getHttpServerUri() + "/" + request));
 
-	public HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
-		final ExecutorService executorService = Executors.newFixedThreadPool(numOfRequests);
-		Future<HttpResponse>[] futures = new Future[numOfRequests];
-		for (int i = 0; i < numOfRequests; i++) {
-			futures[i] = executorService.submit(() -> executePutRequest(request, body, new Header[0]));
-		}
-		executorService.shutdown();
-		return Arrays.stream(futures)
-				.map(HttpResponse::from)
-				.toArray(s -> new HttpResponse[s]);
-	}
+            if (response.getStatusLine().getStatusCode() >= 300) {
+                throw new Exception("Statuscode " + response.getStatusLine().getStatusCode());
+            }
 
-	public HttpResponse executeGetRequest(final String request, Header... header) {
-	    return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
-	}
+            return IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+        } finally {
 
-	public HttpResponse executeGetRequest(final String request, String body, Header... header) {
-		HttpUriRequest uriRequest = RequestBuilder.get(getHttpServerUri() + "/" + request)
-				.setEntity(createStringEntity(body))
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-				.build();
-		return executeRequest(uriRequest, header);
-	}
-	
-	public HttpResponse executeHeadRequest(final String request, Header... header) {
+            if (response != null) {
+                response.close();
+            }
+
+            if (httpClient != null) {
+                httpClient.close();
+            }
+        }
+    }
+
+    public HttpResponse[] executeMultipleAsyncPutRequest(final int numOfRequests, final String request, String body) throws Exception {
+        final ExecutorService executorService = Executors.newFixedThreadPool(numOfRequests);
+        Future<HttpResponse>[] futures = new Future[numOfRequests];
+        for (int i = 0; i < numOfRequests; i++) {
+            futures[i] = executorService.submit(() -> executePutRequest(request, body, new Header[0]));
+        }
+        executorService.shutdown();
+        return Arrays.stream(futures).map(HttpResponse::from).toArray(s -> new HttpResponse[s]);
+    }
+
+    public HttpResponse executeGetRequest(final String request, Header... header) {
+        return executeRequest(new HttpGet(getHttpServerUri() + "/" + request), header);
+    }
+
+    public HttpResponse executeGetRequest(final String request, String body, Header... header) {
+        HttpUriRequest uriRequest = RequestBuilder.get(getHttpServerUri() + "/" + request)
+            .setEntity(createStringEntity(body))
+            .setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+            .build();
+        return executeRequest(uriRequest, header);
+    }
+
+    public HttpResponse executeHeadRequest(final String request, Header... header) {
         return executeRequest(new HttpHead(getHttpServerUri() + "/" + request), header);
     }
-	
-	public HttpResponse executeOptionsRequest(final String request) {
+
+    public HttpResponse executeOptionsRequest(final String request) {
         return executeRequest(new HttpOptions(getHttpServerUri() + "/" + request));
     }
 
-	public HttpResponse executePutRequest(final String request, String body, Header... header) {
-		HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
-		if (body != null && !body.isEmpty()) {
-			uriRequest.setEntity(createStringEntity(body));
-		}
-		return executeRequest(uriRequest, header);
-	}
+    public HttpResponse executePutRequest(final String request, String body, Header... header) {
+        HttpPut uriRequest = new HttpPut(getHttpServerUri() + "/" + request);
+        if (body != null && !body.isEmpty()) {
+            uriRequest.setEntity(createStringEntity(body));
+        }
+        return executeRequest(uriRequest, header);
+    }
 
-	public HttpResponse executeDeleteRequest(final String request, Header... header) {
-		return executeRequest(new HttpDelete(getHttpServerUri() + "/" + request), header);
-	}
+    public HttpResponse executeDeleteRequest(final String request, Header... header) {
+        return executeRequest(new HttpDelete(getHttpServerUri() + "/" + request), header);
+    }
 
-	public HttpResponse executeDeleteRequest(final String request, String body, Header... header) {
-		HttpUriRequest uriRequest = RequestBuilder.delete(getHttpServerUri() + "/" + request)
-				.setEntity(createStringEntity(body))
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-				.build();
-		return executeRequest(uriRequest, header);
-	}
+    public HttpResponse executeDeleteRequest(final String request, String body, Header... header) {
+        HttpUriRequest uriRequest = RequestBuilder.delete(getHttpServerUri() + "/" + request)
+            .setEntity(createStringEntity(body))
+            .setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+            .build();
+        return executeRequest(uriRequest, header);
+    }
 
+    public HttpResponse executePostRequest(final String request, String body, Header... header) {
+        HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + request);
+        if (body != null && !body.isEmpty()) {
+            uriRequest.setEntity(createStringEntity(body));
+        }
 
-	public HttpResponse executePostRequest(final String request, String body, Header... header) {
-		HttpPost uriRequest = new HttpPost(getHttpServerUri() + "/" + request);
-		if (body != null && !body.isEmpty()) {
-			uriRequest.setEntity(createStringEntity(body));
-		}
+        return executeRequest(uriRequest, header);
+    }
 
-		return executeRequest(uriRequest, header);
-	}
-	
     public HttpResponse executePatchRequest(final String request, String body, Header... header) {
         HttpPatch uriRequest = new HttpPatch(getHttpServerUri() + "/" + request);
         if (body != null && !body.isEmpty()) {
             uriRequest.setEntity(createStringEntity(body));
         }
         return executeRequest(uriRequest, header);
-    }	
-	
-	public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) {
+    }
 
-		CloseableHttpClient httpClient = null;
-		try {
+    public HttpResponse executeRequest(HttpUriRequest uriRequest, Header... header) {
 
-			httpClient = getHTTPClient();
+        CloseableHttpClient httpClient = null;
+        try {
 
-			if (header != null && header.length > 0) {
-				for (int i = 0; i < header.length; i++) {
-					Header h = header[i];
-					uriRequest.addHeader(h);
-				}
-			}
+            httpClient = getHTTPClient();
 
-			if (!uriRequest.containsHeader("Content-Type")) {
-			    uriRequest.addHeader("Content-Type","application/json");
-			}
-			HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
-			log.debug(res.getBody());
-			return res;
-		} catch (final Exception e) {
-			throw new RuntimeException(e);
-		} finally {
+            if (header != null && header.length > 0) {
+                for (int i = 0; i < header.length; i++) {
+                    Header h = header[i];
+                    uriRequest.addHeader(h);
+                }
+            }
 
-			if (httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (final Exception e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}
-	}
+            if (!uriRequest.containsHeader("Content-Type")) {
+                uriRequest.addHeader("Content-Type", "application/json");
+            }
+            HttpResponse res = new HttpResponse(httpClient.execute(uriRequest));
+            log.debug(res.getBody());
+            return res;
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        } finally {
 
-	private StringEntity createStringEntity(String body) {
-		try {
-			return new StringEntity(body);
-		} catch (final UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	protected final String getHttpServerUri() {
-		final String address = "http" + (enableHTTPClientSSL ? "s" : "") + "://" + clusterInfo.httpHost + ":" + clusterInfo.httpPort;
-		log.debug("Connect to {}", address);
-		return address;
-	}
-	
-	protected final CloseableHttpClient getHTTPClient() throws Exception {
+            if (httpClient != null) {
+                try {
+                    httpClient.close();
+                } catch (final Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
 
-		final HttpClientBuilder hcb = HttpClients.custom();
+    private StringEntity createStringEntity(String body) {
+        try {
+            return new StringEntity(body);
+        } catch (final UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-		if (sendHTTPClientCredentials) {
-			CredentialsProvider provider = new BasicCredentialsProvider();
-			UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
-			provider.setCredentials(AuthScope.ANY, credentials);
-			hcb.setDefaultCredentialsProvider(provider);
-		}
+    protected final String getHttpServerUri() {
+        final String address = "http" + (enableHTTPClientSSL ? "s" : "") + "://" + clusterInfo.httpHost + ":" + clusterInfo.httpPort;
+        log.debug("Connect to {}", address);
+        return address;
+    }
 
-		if (enableHTTPClientSSL) {
+    protected final CloseableHttpClient getHTTPClient() throws Exception {
 
-			log.debug("Configure HTTP client with SSL");
-			
-			if(prefix != null && !keystore.contains("/")) {
-			    keystore = prefix+"/"+keystore;
-			}
-			
+        final HttpClientBuilder hcb = HttpClients.custom();
+
+        if (sendHTTPClientCredentials) {
+            CredentialsProvider provider = new BasicCredentialsProvider();
+            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("sarek", "sarek");
+            provider.setCredentials(AuthScope.ANY, credentials);
+            hcb.setDefaultCredentialsProvider(provider);
+        }
+
+        if (enableHTTPClientSSL) {
+
+            log.debug("Configure HTTP client with SSL");
+
+            if (prefix != null && !keystore.contains("/")) {
+                keystore = prefix + "/" + keystore;
+            }
+
             final String keyStorePath = FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile().getParent();
-                        
-			final KeyStore myTrustStore = KeyStore.getInstance("JKS");
-			myTrustStore.load(new FileInputStream(keyStorePath+"/truststore.jks"),
-					"changeit".toCharArray());
 
-			final KeyStore keyStore = KeyStore.getInstance("JKS");
-			keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
+            final KeyStore myTrustStore = KeyStore.getInstance("JKS");
+            myTrustStore.load(new FileInputStream(keyStorePath + "/truststore.jks"), "changeit".toCharArray());
 
-			final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
+            final KeyStore keyStore = KeyStore.getInstance("JKS");
+            keyStore.load(new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath(keystore).toFile()), "changeit".toCharArray());
 
-			if (trustHTTPServerCertificate) {
-				sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
-			}
+            final SSLContextBuilder sslContextbBuilder = SSLContexts.custom();
 
-			if (sendAdminCertificate) {
-				sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
-			}
+            if (trustHTTPServerCertificate) {
+                sslContextbBuilder.loadTrustMaterial(myTrustStore, null);
+            }
 
-			final SSLContext sslContext = sslContextbBuilder.build();
+            if (sendAdminCertificate) {
+                sslContextbBuilder.loadKeyMaterial(keyStore, "changeit".toCharArray());
+            }
 
-			String[] protocols = null;
+            final SSLContext sslContext = sslContextbBuilder.build();
 
-			if (enableHTTPClientSSLv3Only) {
-				protocols = new String[] { "SSLv3" };
-			} else {
-				protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-			}
+            String[] protocols = null;
 
-			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-			        sslContext, 
-			        protocols, 
-			        null,
-					NoopHostnameVerifier.INSTANCE);
+            if (enableHTTPClientSSLv3Only) {
+                protocols = new String[] { "SSLv3" };
+            } else {
+                protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
+            }
 
-			hcb.setSSLSocketFactory(sslsf);
-		}
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+                sslContext,
+                protocols,
+                null,
+                NoopHostnameVerifier.INSTANCE
+            );
 
-		hcb.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60 * 1000).build());
+            hcb.setSSLSocketFactory(sslsf);
+        }
 
-		return hcb.build();
-	}
+        hcb.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60 * 1000).build());
 
-	
-	public static class HttpResponse {
-		private final CloseableHttpResponse inner;
-		private final String body;
-		private final Header[] header;
-		private final int statusCode;
-		private final String statusReason;
+        return hcb.build();
+    }
 
-		public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
-			super();
-			this.inner = inner;
-			final HttpEntity entity = inner.getEntity();
-			if(entity == null) { //head request does not have a entity
-			    this.body = "";
-			} else {
-			    this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
-			}
-			this.header = inner.getAllHeaders();
-			this.statusCode = inner.getStatusLine().getStatusCode();
-			this.statusReason = inner.getStatusLine().getReasonPhrase();
-			inner.close();
-		}
+    public static class HttpResponse {
+        private final CloseableHttpResponse inner;
+        private final String body;
+        private final Header[] header;
+        private final int statusCode;
+        private final String statusReason;
 
-		public String getContentType() {
-			Header h = getInner().getFirstHeader("content-type");
-			if(h!= null) {
-				return h.getValue();
-			}
-			return null;
-		}
+        public HttpResponse(CloseableHttpResponse inner) throws IllegalStateException, IOException {
+            super();
+            this.inner = inner;
+            final HttpEntity entity = inner.getEntity();
+            if (entity == null) { // head request does not have a entity
+                this.body = "";
+            } else {
+                this.body = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
+            }
+            this.header = inner.getAllHeaders();
+            this.statusCode = inner.getStatusLine().getStatusCode();
+            this.statusReason = inner.getStatusLine().getReasonPhrase();
+            inner.close();
+        }
 
-		public boolean isJsonContentType() {
-			String ct = getContentType();
-			if(ct == null) {
-				return false;
-			}
-			return ct.contains("application/json");
-		}
+        public String getContentType() {
+            Header h = getInner().getFirstHeader("content-type");
+            if (h != null) {
+                return h.getValue();
+            }
+            return null;
+        }
 
-		public CloseableHttpResponse getInner() {
-			return inner;
-		}
+        public boolean isJsonContentType() {
+            String ct = getContentType();
+            if (ct == null) {
+                return false;
+            }
+            return ct.contains("application/json");
+        }
 
-		public String getBody() {
-			return body;
-		}
+        public CloseableHttpResponse getInner() {
+            return inner;
+        }
 
-		public Header[] getHeader() {
-			return header;
-		}
+        public String getBody() {
+            return body;
+        }
 
-		public int getStatusCode() {
-			return statusCode;
-		}
+        public Header[] getHeader() {
+            return header;
+        }
 
-		public String getStatusReason() {
-			return statusReason;
-		}
+        public int getStatusCode() {
+            return statusCode;
+        }
 
-		public List<Header> getHeaders() {
-			return header==null?Collections.emptyList():Arrays.asList(header);
-		}
+        public String getStatusReason() {
+            return statusReason;
+        }
+
+        public List<Header> getHeaders() {
+            return header == null ? Collections.emptyList() : Arrays.asList(header);
+        }
 
         @Override
         public String toString() {
-            return "HttpResponse [inner=" + inner + ", body=" + body + ", header=" + Arrays.toString(header) + ", statusCode=" + statusCode
-                    + ", statusReason=" + statusReason + "]";
+            return "HttpResponse [inner="
+                + inner
+                + ", body="
+                + body
+                + ", header="
+                + Arrays.toString(header)
+                + ", statusCode="
+                + statusCode
+                + ", statusReason="
+                + statusReason
+                + "]";
         }
 
-		private static void findArrayAccessor(String input) {
-			final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
-			final Matcher m = r.matcher(input);
-			if(m.find()) {
-				System.out.println("'" + input + "'\t Name was: " + m.group(1) + ",\t index position: " + m.group(2));
-			} else {
-				System.out.println("'" + input + "'\t No Match");
-			}
-		}
+        private static void findArrayAccessor(String input) {
+            final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
+            final Matcher m = r.matcher(input);
+            if (m.find()) {
+                System.out.println("'" + input + "'\t Name was: " + m.group(1) + ",\t index position: " + m.group(2));
+            } else {
+                System.out.println("'" + input + "'\t No Match");
+            }
+        }
 
-		/**
-		 * Given a json path with dots delimiated returns the object at the leaf 
-		 */
-		public String findValueInJson(final String jsonDotPath) {
-			// Make sure its json / then parse it
-			if (!isJsonContentType()) {
-				throw new RuntimeException("Response was expected to be JSON, body was: \n" + body);
-			}
-			JsonNode currentNode = null;
-			try {
-				currentNode = DefaultObjectMapper.readTree(body);
-			} catch (final Exception e) {
-				throw new RuntimeException(e);
-			}
+        /**
+         * Given a json path with dots delimiated returns the object at the leaf
+         */
+        public String findValueInJson(final String jsonDotPath) {
+            // Make sure its json / then parse it
+            if (!isJsonContentType()) {
+                throw new RuntimeException("Response was expected to be JSON, body was: \n" + body);
+            }
+            JsonNode currentNode = null;
+            try {
+                currentNode = DefaultObjectMapper.readTree(body);
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
 
-			// Break the path into parts, and scan into the json object
-			try (final Scanner jsonPathScanner = new Scanner(jsonDotPath).useDelimiter("\\.")) {
-				if (!jsonPathScanner.hasNext()) {
-					throw new RuntimeException("Invalid json dot path '" + jsonDotPath + "', rewrite with '.' characters between path elements.");
-				}
-				do {
-					String pathEntry = jsonPathScanner.next();
-					// if pathEntry is an array lookup
-					int arrayEntryIdx = -1;
+            // Break the path into parts, and scan into the json object
+            try (final Scanner jsonPathScanner = new Scanner(jsonDotPath).useDelimiter("\\.")) {
+                if (!jsonPathScanner.hasNext()) {
+                    throw new RuntimeException(
+                        "Invalid json dot path '" + jsonDotPath + "', rewrite with '.' characters between path elements."
+                    );
+                }
+                do {
+                    String pathEntry = jsonPathScanner.next();
+                    // if pathEntry is an array lookup
+                    int arrayEntryIdx = -1;
 
-					// Looks for an array-lookup pattern in the path
-					// e.g. root_cause[1] -> will match
-					// e.g. root_cause[2aasd] -> won't match
-					final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
-					final Matcher m = r.matcher(pathEntry);
-					if(m.find()) {
-						pathEntry = m.group(1);
-						arrayEntryIdx = Integer.parseInt(m.group(2));
-					}
+                    // Looks for an array-lookup pattern in the path
+                    // e.g. root_cause[1] -> will match
+                    // e.g. root_cause[2aasd] -> won't match
+                    final Pattern r = Pattern.compile("(.+?)\\[(\\d+)\\]");
+                    final Matcher m = r.matcher(pathEntry);
+                    if (m.find()) {
+                        pathEntry = m.group(1);
+                        arrayEntryIdx = Integer.parseInt(m.group(2));
+                    }
 
-					if (!currentNode.has(pathEntry)) {
-						throw new RuntimeException("Unable to resolve '" + jsonDotPath + "', on path entry '" + pathEntry + "' from available fields " + currentNode.toPrettyString());
-					}
-					currentNode = currentNode.get(pathEntry);
+                    if (!currentNode.has(pathEntry)) {
+                        throw new RuntimeException(
+                            "Unable to resolve '"
+                                + jsonDotPath
+                                + "', on path entry '"
+                                + pathEntry
+                                + "' from available fields "
+                                + currentNode.toPrettyString()
+                        );
+                    }
+                    currentNode = currentNode.get(pathEntry);
 
-					// if it's an Array lookup we get the requested index item
-					if (arrayEntryIdx > -1) {
-						if(!currentNode.isArray()) {
-							throw new RuntimeException("Unable to resolve '" + jsonDotPath + "', the '" + pathEntry + "' field is not an array " + currentNode.toPrettyString());
-						} else if (!currentNode.has(arrayEntryIdx)) {
-							throw new RuntimeException("Unable to resolve '" + jsonDotPath + "', index '" + arrayEntryIdx + "' is out of bounds for array '" + pathEntry + "' \n" + currentNode.toPrettyString());
-						}
-						currentNode = currentNode.get(arrayEntryIdx);
-					}
-				} while (jsonPathScanner.hasNext());
+                    // if it's an Array lookup we get the requested index item
+                    if (arrayEntryIdx > -1) {
+                        if (!currentNode.isArray()) {
+                            throw new RuntimeException(
+                                "Unable to resolve '"
+                                    + jsonDotPath
+                                    + "', the '"
+                                    + pathEntry
+                                    + "' field is not an array "
+                                    + currentNode.toPrettyString()
+                            );
+                        } else if (!currentNode.has(arrayEntryIdx)) {
+                            throw new RuntimeException(
+                                "Unable to resolve '"
+                                    + jsonDotPath
+                                    + "', index '"
+                                    + arrayEntryIdx
+                                    + "' is out of bounds for array '"
+                                    + pathEntry
+                                    + "' \n"
+                                    + currentNode.toPrettyString()
+                            );
+                        }
+                        currentNode = currentNode.get(arrayEntryIdx);
+                    }
+                } while (jsonPathScanner.hasNext());
 
-				if (!currentNode.isValueNode()) {
-					throw new RuntimeException("Unexpected value note, index directly to the object to reference, object\n" + currentNode.toPrettyString());
-				}
-				return currentNode.asText();
-			}
-		}
+                if (!currentNode.isValueNode()) {
+                    throw new RuntimeException(
+                        "Unexpected value note, index directly to the object to reference, object\n" + currentNode.toPrettyString()
+                    );
+                }
+                return currentNode.asText();
+            }
+        }
 
-		private static HttpResponse from(Future<HttpResponse> future) {
-			try {
-				return future.get();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
+        private static HttpResponse from(Future<HttpResponse> future) {
+            try {
+                return future.get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
-	
 }

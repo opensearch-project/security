@@ -35,11 +35,10 @@ public abstract class OpensearchDynamicSetting<T> {
     }
 
     public void registerClusterSettingsChangeListener(final ClusterSettings clusterSettings) {
-        clusterSettings.addSettingsUpdateConsumer(dynamicSetting,
-                dynamicSettingNewValue -> {
-                    logger.info(getClusterChangeMessage(dynamicSettingNewValue));
-                    setDynamicSettingValue(dynamicSettingNewValue);
-                });
+        clusterSettings.addSettingsUpdateConsumer(dynamicSetting, dynamicSettingNewValue -> {
+            logger.info(getClusterChangeMessage(dynamicSettingNewValue));
+            setDynamicSettingValue(dynamicSettingNewValue);
+        });
     }
 
     protected String getClusterChangeMessage(final T dynamicSettingNewValue) {

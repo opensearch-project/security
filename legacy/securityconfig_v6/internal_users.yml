@@ -19,13 +19,13 @@ logstash:
   roles:
     - logstash
 
-#password is: kibanaserver  
+#password is: kibanaserver
 kibanaserver:
   readonly: true
   hash: $2a$12$4AcgAt3xwOWadA5s5blL6ev39OXDNhmOesEoo33eZtrq2N0YrU3H.
 
 #password is: kibanaro
-kibanaro:  
+kibanaro:
   hash: $2a$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACvcwlPBStB1F.MI7f0U9Z4DGC
   roles:
     - kibanauser

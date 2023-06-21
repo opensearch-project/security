@@ -42,7 +42,7 @@ public class TestAuditlogImpl extends AuditLogSink {
             // Ignore any messages that are sent before TestAuditlogImpl is waiting.
             return true;
         }
-        sb.append(msg.toPrettyString()+System.lineSeparator());
+        sb.append(msg.toPrettyString() + System.lineSeparator());
         messagesRef.get().add(msg);
         countDownRef.get().countDown();
         return true;
@@ -64,8 +64,8 @@ public class TestAuditlogImpl extends AuditLogSink {
         messagesRef.set(messages);
 
         TestAuditlogImpl.sb = new StringBuffer();
-        TestAuditlogImpl.messages = messages; 
-        
+        TestAuditlogImpl.messages = messages;
+
         try {
             action.run();
             final int maxSecondsToWaitForMessages = 1;
@@ -74,7 +74,9 @@ public class TestAuditlogImpl extends AuditLogSink {
                 throw new MessagesNotFoundException(expectedCount, messages);
             }
             if (messages.size() != expectedCount) {
-                throw new RuntimeException("Unexpected number of messages, was expecting " + expectedCount + ", received " + messages.size());
+                throw new RuntimeException(
+                    "Unexpected number of messages, was expecting " + expectedCount + ", received " + messages.size()
+                );
             }
         } catch (final InterruptedException e) {
             throw new RuntimeException("Unexpected exception", e);
@@ -98,6 +100,7 @@ public class TestAuditlogImpl extends AuditLogSink {
         private final int expectedCount;
         private final int missingCount;
         private final List<AuditMessage> foundMessages;
+
         public MessagesNotFoundException(final int expectedCount, List<AuditMessage> foundMessages) {
             super(MessagesNotFoundException.createDetailMessage(expectedCount, foundMessages));
             this.expectedCount = expectedCount;
@@ -118,14 +121,11 @@ public class TestAuditlogImpl extends AuditLogSink {
         }
 
         private static String createDetailMessage(final int expectedCount, final List<AuditMessage> foundMessages) {
-            return new StringBuilder()
-                    .append("Did not receive all " + expectedCount + " audit messages after a short wait. ")
-                    .append("Missing " + (expectedCount - foundMessages.size()) + " messages.")
-                    .append("Messages found during this time: \n\n")
-                    .append(foundMessages.stream()
-                            .map(AuditMessage::toString)
-                            .collect(Collectors.joining("\n")))
-                    .toString();
+            return new StringBuilder().append("Did not receive all " + expectedCount + " audit messages after a short wait. ")
+                .append("Missing " + (expectedCount - foundMessages.size()) + " messages.")
+                .append("Messages found during this time: \n\n")
+                .append(foundMessages.stream().map(AuditMessage::toString).collect(Collectors.joining("\n")))
+                .toString();
         }
     }
 }

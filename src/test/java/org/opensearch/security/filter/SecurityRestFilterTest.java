@@ -48,25 +48,29 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
 
         setup();
 
-        //ADD SOME WHITELISTED APIs
+        // ADD SOME WHITELISTED APIs
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", adminCredsHeader);
+        response = rh.executePutRequest(
+            "_opendistro/_security/api/whitelist",
+            "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
+            adminCredsHeader
+        );
 
         log.warn("the response is:" + rh.executeGetRequest("_opendistro/_security/api/whitelist", adminCredsHeader));
 
-        //NON ADMIN TRIES ACCESSING A WHITELISTED API - OK
+        // NON ADMIN TRIES ACCESSING A WHITELISTED API - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/nodes", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //ADMIN TRIES ACCESSING A WHITELISTED API - OK
+        // ADMIN TRIES ACCESSING A WHITELISTED API - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/nodes", adminCredsHeader);
         log.warn("the second response is:{}", response);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //SUPERADMIN TRIES ACCESSING A WHITELISTED API - OK
+        // SUPERADMIN TRIES ACCESSING A WHITELISTED API - OK
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cat/nodes", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -82,25 +86,29 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
 
         setup();
 
-        //ADD SOME ALLOWLISTED APIs
+        // ADD SOME ALLOWLISTED APIs
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_plugins/_security/api/allowlist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", adminCredsHeader);
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
+            adminCredsHeader
+        );
 
         log.warn("the response is:" + rh.executeGetRequest("_plugins/_security/api/allowlist", adminCredsHeader));
 
-        //NON ADMIN TRIES ACCESSING A ALLOWLISTED API - OK
+        // NON ADMIN TRIES ACCESSING A ALLOWLISTED API - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/nodes", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //ADMIN TRIES ACCESSING A ALLOWLISTED API - OK
+        // ADMIN TRIES ACCESSING A ALLOWLISTED API - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/nodes", adminCredsHeader);
         log.warn("the second response is:{}", response);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //SUPERADMIN TRIES ACCESSING A ALLOWLISTED API - OK
+        // SUPERADMIN TRIES ACCESSING A ALLOWLISTED API - OK
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cat/nodes", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -115,22 +123,26 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
     public void checkNonWhitelistedApisAccessibleOnlyBySuperAdmin() throws Exception {
         setup();
 
-        //ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/indices
+        // ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/indices
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_opendistro/_security/api/whitelist",
+            "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
+            nonAdminCredsHeader
+        );
 
-        //NON ADMIN TRIES ACCESSING A NON-WHITELISTED API - FORBIDDEN
+        // NON ADMIN TRIES ACCESSING A NON-WHITELISTED API - FORBIDDEN
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/plugins", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //ADMIN TRIES ACCESSING A NON-WHITELISTED API - FORBIDDEN
+        // ADMIN TRIES ACCESSING A NON-WHITELISTED API - FORBIDDEN
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/plugins", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //SUPERADMIN TRIES ACCESSING A NON-WHITELISTED API - OK
+        // SUPERADMIN TRIES ACCESSING A NON-WHITELISTED API - OK
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cat/plugins", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -145,22 +157,26 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
     public void checkNonAllowlistedApisAccessibleOnlyBySuperAdmin() throws Exception {
         setup();
 
-        //ADD SOME ALLOWLISTED APIs - /_cat/nodes and /_cat/indices
+        // ADD SOME ALLOWLISTED APIs - /_cat/nodes and /_cat/indices
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_plugins/_security/api/allowlist", "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
+            nonAdminCredsHeader
+        );
 
-        //NON ADMIN TRIES ACCESSING A NON-ALLOWLISTED API - FORBIDDEN
+        // NON ADMIN TRIES ACCESSING A NON-ALLOWLISTED API - FORBIDDEN
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/plugins", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //ADMIN TRIES ACCESSING A NON-ALLOWLISTED API - FORBIDDEN
+        // ADMIN TRIES ACCESSING A NON-ALLOWLISTED API - FORBIDDEN
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/plugins", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //SUPERADMIN TRIES ACCESSING A NON-ALLOWLISTED API - OK
+        // SUPERADMIN TRIES ACCESSING A NON-ALLOWLISTED API - OK
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cat/plugins", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
@@ -173,26 +189,30 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
     public void checkAllApisWhenWhitelistingNotEnabled() throws Exception {
         setup();
 
-        //DISABLE WHITELISTING BUT ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/plugins
+        // DISABLE WHITELISTING BUT ADD SOME WHITELISTED APIs - /_cat/nodes and /_cat/plugins
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": false, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_opendistro/_security/api/whitelist",
+            "{\"enabled\": false, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
+            nonAdminCredsHeader
+        );
 
-        //NON-ADMIN TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because whitelisting is off)
+        // NON-ADMIN TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because whitelisting is off)
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/plugins", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         response = rh.executeGetRequest("_cat/nodes", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //ADMIN USER TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because whitelisting is off)
+        // ADMIN USER TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because whitelisting is off)
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/plugins", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         response = rh.executeGetRequest("_cat/nodes", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //SUPERADMIN TRIES ACCESSING 2 APIS - OK (would work even if whitelisting was on)
+        // SUPERADMIN TRIES ACCESSING 2 APIS - OK (would work even if whitelisting was on)
 
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cat/plugins", adminCredsHeader);
@@ -208,26 +228,30 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
     public void checkAllApisWhenAllowlistingNotEnabled() throws Exception {
         setup();
 
-        //DISABLE ALLOWLISTED BUT ADD SOME ALLOWLISTED APIs - /_cat/nodes and /_cat/plugins
+        // DISABLE ALLOWLISTED BUT ADD SOME ALLOWLISTED APIs - /_cat/nodes and /_cat/plugins
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_plugins/_security/api/allowlist", "{\"enabled\": false, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": false, \"requests\": {\"/_cat/nodes\": [\"GET\"],\"/_cat/indices\": [\"GET\"] }}",
+            nonAdminCredsHeader
+        );
 
-        //NON-ADMIN TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because allowlisting is off)
+        // NON-ADMIN TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because allowlisting is off)
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/plugins", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         response = rh.executeGetRequest("_cat/nodes", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //ADMIN USER TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because allowlisting is off)
+        // ADMIN USER TRIES ACCESSING 2 APIs: One in the list and one outside - OK for both (Because allowlisting is off)
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cat/plugins", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         response = rh.executeGetRequest("_cat/nodes", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //SUPERADMIN TRIES ACCESSING 2 APIS - OK (would work even if allowlisting was on)
+        // SUPERADMIN TRIES ACCESSING 2 APIS - OK (would work even if allowlisting was on)
 
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cat/plugins", adminCredsHeader);
@@ -245,34 +269,50 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
      *
      */
     @Test
-    public void checkSpecificRequestMethodWhitelisting() throws Exception{
+    public void checkSpecificRequestMethodWhitelisting() throws Exception {
         setup();
 
-        //WHITELIST GET /_cluster/settings
+        // WHITELIST GET /_cluster/settings
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_opendistro/_security/api/whitelist",
+            "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
 
-        //NON-ADMIN TRIES ACCESSING GET - OK, PUT - FORBIDDEN
+        // NON-ADMIN TRIES ACCESSING GET - OK, PUT - FORBIDDEN
 
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            nonAdminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //ADMIN USER TRIES ACCESSING GET - OK, PUT - FORBIDDEN
+        // ADMIN USER TRIES ACCESSING GET - OK, PUT - FORBIDDEN
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cluster/settings", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //SUPERADMIN TRIES ACCESSING GET - OK, PUT - OK
+        // SUPERADMIN TRIES ACCESSING GET - OK, PUT - OK
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cluster/settings", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
     }
 
@@ -285,37 +325,52 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
      *
      */
     @Test
-    public void checkSpecificRequestMethodAllowlisting() throws Exception{
+    public void checkSpecificRequestMethodAllowlisting() throws Exception {
         setup();
 
-        //WHITELIST GET /_cluster/settings
+        // WHITELIST GET /_cluster/settings
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_plugins/_security/api/allowlist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
 
-        //NON-ADMIN TRIES ACCESSING GET - OK, PUT - FORBIDDEN
+        // NON-ADMIN TRIES ACCESSING GET - OK, PUT - FORBIDDEN
 
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            nonAdminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //ADMIN USER TRIES ACCESSING GET - OK, PUT - FORBIDDEN
+        // ADMIN USER TRIES ACCESSING GET - OK, PUT - FORBIDDEN
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cluster/settings", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //SUPERADMIN TRIES ACCESSING GET - OK, PUT - OK
+        // SUPERADMIN TRIES ACCESSING GET - OK, PUT - OK
         rh.sendAdminCertificate = true;
         response = rh.executeGetRequest("_cluster/settings", adminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
     }
-
 
     /**
      * Tests that a whitelisted API with an extra '/' does not cause an issue
@@ -327,29 +382,41 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
      * @throws Exception
      */
     @Test
-    public void testWhitelistedApiWithExtraSlash() throws Exception{
+    public void testWhitelistedApiWithExtraSlash() throws Exception {
         setup();
 
-        //WHITELIST GET /_cluster/settings/ -  extra / in the request
+        // WHITELIST GET /_cluster/settings/ - extra / in the request
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings/\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_opendistro/_security/api/whitelist",
+            "{\"enabled\": true, \"requests\": {\"/_cluster/settings/\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
 
-        //NON ADMIN ACCESS GET /_cluster/settings/ - OK
+        // NON ADMIN ACCESS GET /_cluster/settings/ - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cluster/settings/", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //NON ADMIN ACCESS GET /_cluster/settings - OK
+        // NON ADMIN ACCESS GET /_cluster/settings - OK
         response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
-        response = rh.executePutRequest("_cluster/settings/","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        // NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
+        response = rh.executePutRequest(
+            "_cluster/settings/",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        // NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
     }
@@ -364,29 +431,41 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
      * @throws Exception
      */
     @Test
-    public void testAllowlistedApiWithExtraSlash() throws Exception{
+    public void testAllowlistedApiWithExtraSlash() throws Exception {
         setup();
 
-        //WHITELIST GET /_cluster/settings/ -  extra / in the request
+        // WHITELIST GET /_cluster/settings/ - extra / in the request
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_plugins/_security/api/allowlist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings/\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_cluster/settings/\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
 
-        //NON ADMIN ACCESS GET /_cluster/settings/ - OK
+        // NON ADMIN ACCESS GET /_cluster/settings/ - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cluster/settings/", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //NON ADMIN ACCESS GET /_cluster/settings - OK
+        // NON ADMIN ACCESS GET /_cluster/settings - OK
         response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
-        response = rh.executePutRequest("_cluster/settings/","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        // NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
+        response = rh.executePutRequest(
+            "_cluster/settings/",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        // NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
     }
@@ -401,29 +480,41 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
      * @throws Exception
      */
     @Test
-    public void testWhitelistedApiWithoutExtraSlash() throws Exception{
+    public void testWhitelistedApiWithoutExtraSlash() throws Exception {
         setup();
 
-        //WHITELIST GET /_cluster/settings (no extra / in request)
+        // WHITELIST GET /_cluster/settings (no extra / in request)
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_opendistro/_security/api/whitelist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_opendistro/_security/api/whitelist",
+            "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
 
-        //NON ADMIN ACCESS GET /_cluster/settings/ - OK
+        // NON ADMIN ACCESS GET /_cluster/settings/ - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cluster/settings/", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //NON ADMIN ACCESS GET /_cluster/settings - OK
+        // NON ADMIN ACCESS GET /_cluster/settings - OK
         response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
-        response = rh.executePutRequest("_cluster/settings/","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        // NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
+        response = rh.executePutRequest(
+            "_cluster/settings/",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        // NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
     }
 
@@ -437,29 +528,41 @@ public class SecurityRestFilterTest extends AbstractRestApiUnitTest {
      * @throws Exception
      */
     @Test
-    public void testAllowlistedApiWithoutExtraSlash() throws Exception{
+    public void testAllowlistedApiWithoutExtraSlash() throws Exception {
         setup();
 
-        //WHITELIST GET /_cluster/settings (no extra / in request)
+        // WHITELIST GET /_cluster/settings (no extra / in request)
         rh.keystore = "restapi/kirk-keystore.jks";
         rh.sendAdminCertificate = true;
-        response = rh.executePutRequest("_plugins/_security/api/allowlist", "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}", nonAdminCredsHeader);
+        response = rh.executePutRequest(
+            "_plugins/_security/api/allowlist",
+            "{\"enabled\": true, \"requests\": {\"/_cluster/settings\": [\"GET\"]}}",
+            nonAdminCredsHeader
+        );
 
-        //NON ADMIN ACCESS GET /_cluster/settings/ - OK
+        // NON ADMIN ACCESS GET /_cluster/settings/ - OK
         rh.sendAdminCertificate = false;
         response = rh.executeGetRequest("_cluster/settings/", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //NON ADMIN ACCESS GET /_cluster/settings - OK
+        // NON ADMIN ACCESS GET /_cluster/settings - OK
         response = rh.executeGetRequest("_cluster/settings", nonAdminCredsHeader);
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_OK));
 
-        //NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
-        response = rh.executePutRequest("_cluster/settings/","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        // NON ADMIN ACCESS PUT /_cluster/settings/ - FORBIDDEN
+        response = rh.executePutRequest(
+            "_cluster/settings/",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
 
-        //NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
-        response = rh.executePutRequest("_cluster/settings","{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}", adminCredsHeader);
+        // NON ADMIN ACCESS PUT /_cluster/settings - FORBIDDEN
+        response = rh.executePutRequest(
+            "_cluster/settings",
+            "{\"persistent\": { }, \"transient\": {\"indices.recovery.max_bytes_per_sec\": \"15mb\" }}",
+            adminCredsHeader
+        );
         assertThat(response.getBody(), response.getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
     }
 }

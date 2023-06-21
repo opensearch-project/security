@@ -3,7 +3,7 @@
 #    - '<permission>'
 #  indices:
 #    '<indexname or alias>':
-#      '<type>':  
+#      '<type>':
 #        - '<permission>'
 #      _dls_: '<dls query>'
 #      _fls_:
@@ -15,9 +15,9 @@
 # and a type. If a request is executed against all indices (or all types) then the asterix ('*') is needed.
 # Every role a user has will be examined if it allows the action against an index (or type). At least one role must match
 # for the request to be successful. If no role match then the request will be denied. Currently a match must happen within
-# one single role - that means that permissions can not span multiple roles. 
+# one single role - that means that permissions can not span multiple roles.
 
-# For <permission>, <indexname or alias> and <type> simple wildcards and regular expressions are possible. 
+# For <permission>, <indexname or alias> and <type> simple wildcards and regular expressions are possible.
 # A asterix (*) will match any character sequence (or an empty sequence)
 # A question mark (?) will match any single character (but NOT empty character)
 # Example: '*my*index' will match 'my_first_index' as well as 'myindex' but not 'myindex1'
@@ -27,7 +27,7 @@
 # '/<java regex>/'
 # Example: '/\S*/' will match any non whitespace characters
 
-# Important: 
+# Important:
 # Index, alias or type names can not contain dots (.) in the <indexname or alias> or <type> expression.
 # Reason is that we currently parse the config file into a opensearch settings object which cannot cope with dots in keys.
 # Workaround: Just configure something like '?kibana' instead of '.kibana' or 'my?index' instead of 'my.index'
@@ -54,7 +54,7 @@ opendistro_security_readall:
       '*':
         - READ
 
-# Read all and monitor, but no write permissions 
+# Read all and monitor, but no write permissions
 opendistro_security_readall_and_monitor:
   cluster:
     - CLUSTER_MONITOR

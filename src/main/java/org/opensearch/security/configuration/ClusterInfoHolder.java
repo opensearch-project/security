@@ -49,35 +49,35 @@ public class ClusterInfoHolder implements ClusterStateListener {
     private volatile DiscoveryNodes nodes = null;
     private volatile Boolean isLocalNodeElectedClusterManager = null;
     private volatile boolean initialized;
-    
+
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         final boolean isTraceEnabled = log.isTraceEnabled();
-        if(has6xNodes == null || event.nodesChanged()) {
+        if (has6xNodes == null || event.nodesChanged()) {
             has6xNodes = Boolean.valueOf(clusterHas6xNodes(event.state()));
             if (isTraceEnabled) {
                 log.trace("has6xNodes: {}", has6xNodes);
             }
         }
-        
+
         final List<String> indicesCreated = event.indicesCreated();
         final List<Index> indicesDeleted = event.indicesDeleted();
-        if(has6xIndices == null || !indicesCreated.isEmpty() || !indicesDeleted.isEmpty()) {
+        if (has6xIndices == null || !indicesCreated.isEmpty() || !indicesDeleted.isEmpty()) {
             has6xIndices = Boolean.valueOf(clusterHas6xIndices(event.state()));
             if (isTraceEnabled) {
                 log.trace("has6xIndices: {}", has6xIndices);
             }
         }
-        
-        if(nodes == null || event.nodesChanged()) {
+
+        if (nodes == null || event.nodesChanged()) {
             nodes = event.state().nodes();
             if (log.isDebugEnabled()) {
                 log.debug("Cluster Info Holder now initialized for 'nodes'");
             }
             initialized = true;
         }
-        
-        isLocalNodeElectedClusterManager = event.localNodeClusterManager()?Boolean.TRUE:Boolean.FALSE;
+
+        isLocalNodeElectedClusterManager = event.localNodeClusterManager() ? Boolean.TRUE : Boolean.FALSE;
     }
 
     public Boolean getHas6xNodes() {
@@ -97,20 +97,20 @@ public class ClusterInfoHolder implements ClusterStateListener {
     }
 
     public Boolean hasNode(DiscoveryNode node) {
-        if(nodes == null) {
-            if(log.isDebugEnabled()) {
+        if (nodes == null) {
+            if (log.isDebugEnabled()) {
                 log.debug("Cluster Info Holder not initialized yet for 'nodes'");
             }
             return null;
         }
-        
-        return nodes.nodeExists(node)?Boolean.TRUE:Boolean.FALSE;
+
+        return nodes.nodeExists(node) ? Boolean.TRUE : Boolean.FALSE;
     }
 
     private static boolean clusterHas6xNodes(ClusterState state) {
         return state.nodes().getMinNodeVersion().before(LegacyESVersion.V_7_0_0);
     }
-    
+
     private static boolean clusterHas6xIndices(ClusterState state) {
         final Iterator<IndexMetadata> indices = state.metadata().indices().valuesIt();
         while (indices.hasNext()) {

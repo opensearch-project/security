@@ -37,86 +37,75 @@ public class PitIntegrationTests extends SingleClusterTest {
         RestHelper rh = nonSslRestHelper();
         try (Client tc = getClient()) {
             // create alias
-            tc.admin().indices().create(new CreateIndexRequest("pit_1")
-                            .alias(new Alias("alias")))
-                    .actionGet();
+            tc.admin().indices().create(new CreateIndexRequest("pit_1").alias(new Alias("alias"))).actionGet();
             // create index
-            tc.index(new IndexRequest("pit_2").id("2").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).
-                    source("{\"content\":2}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("pit_2").id("2")
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":2}", XContentType.JSON)
+            ).actionGet();
 
         }
 
         RestHelper.HttpResponse resc;
 
         // Create point in time in index should be successful since the user has permission for index
-        resc = rh.executePostRequest("/alias/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executePostRequest("/alias/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        String pitId1 =  resc.findValueInJson("pit_id");
+        String pitId1 = resc.findValueInJson("pit_id");
 
         // Create point in time in index for which the user does not have permission
-        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Create point in time in index for which the user has permission for
-        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("pit-2", "nagilum"));
+        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("pit-2", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
-        String pitId2 =  resc.findValueInJson("pit_id");
-        resc = rh.executePostRequest("/pit*/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("all-pit", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-
-        // PIT segments should work since there is atleast one PIT for which user has access for
-        resc = rh.executeGetRequest("/_cat/pit_segments",
-                "{\"pit_id\":\"" + pitId1 +"\"}",
-                encodeBasicHeader("pit-1", "nagilum"));
+        String pitId2 = resc.findValueInJson("pit_id");
+        resc = rh.executePostRequest("/pit*/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("all-pit", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         // PIT segments should work since there is atleast one PIT for which user has access for
-        resc = rh.executeGetRequest("/_cat/pit_segments",
-                "{\"pit_id\":\"" + pitId1 +"\"}",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeGetRequest("/_cat/pit_segments", "{\"pit_id\":\"" + pitId1 + "\"}", encodeBasicHeader("pit-1", "nagilum"));
+        Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
+
+        // PIT segments should work since there is atleast one PIT for which user has access for
+        resc = rh.executeGetRequest("/_cat/pit_segments", "{\"pit_id\":\"" + pitId1 + "\"}", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         // Should throw error since user does not have access for pitId2
-        resc = rh.executeGetRequest("/_cat/pit_segments",
-                "{\"pit_id\":\"" + pitId2 +"\"}",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeGetRequest("/_cat/pit_segments", "{\"pit_id\":\"" + pitId2 + "\"}", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Should throw error since user does not have access for pitId2
-        resc = rh.executeGetRequest("/_cat/pit_segments",
-                "{\"pit_id\":[\"" + pitId1 +"\",\"" + pitId2 + "\"]}",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeGetRequest(
+            "/_cat/pit_segments",
+            "{\"pit_id\":[\"" + pitId1 + "\",\"" + pitId2 + "\"]}",
+            encodeBasicHeader("pit-1", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Delete explicit PITs should work for PIT for which user has access for
-        resc = rh.executeDeleteRequest("/_search/point_in_time",
-                "{\"pit_id\":\"" + pitId1 +"\"}",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeDeleteRequest("/_search/point_in_time", "{\"pit_id\":\"" + pitId1 + "\"}", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertEquals(pitId1, resc.findValueInJson("pits[0].pit_id"));
         Assert.assertEquals("true", resc.findValueInJson("pits[0].successful"));
 
         // Should throw error since user does not have access for pitId2
-        resc = rh.executeDeleteRequest("/_search/point_in_time",
-                "{\"pit_id\":\"" + pitId2 +"\"}",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeDeleteRequest("/_search/point_in_time", "{\"pit_id\":\"" + pitId2 + "\"}", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Should throw error since user does not have access for pitId2
-        resc = rh.executeDeleteRequest("/_search/point_in_time",
-                "{\"pit_id\":[\"" + pitId1 +"\",\"" + pitId2 + "\"]}",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeDeleteRequest(
+            "/_search/point_in_time",
+            "{\"pit_id\":[\"" + pitId1 + "\",\"" + pitId2 + "\"]}",
+            encodeBasicHeader("pit-1", "nagilum")
+        );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Delete explicit PITs should work for PIT for which user has access for
-        resc = rh.executeDeleteRequest("/_search/point_in_time",
-                "{\"pit_id\":\"" + pitId2 +"\"}",
-                encodeBasicHeader("pit-2", "nagilum"));
+        resc = rh.executeDeleteRequest("/_search/point_in_time", "{\"pit_id\":\"" + pitId2 + "\"}", encodeBasicHeader("pit-2", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         Assert.assertEquals(pitId2, resc.findValueInJson("pits[0].pit_id"));
         Assert.assertEquals("true", resc.findValueInJson("pits[0].successful"));
@@ -130,40 +119,41 @@ public class PitIntegrationTests extends SingleClusterTest {
 
         // Create two indices
         try (Client tc = getClient()) {
-            tc.index(new IndexRequest("pit_1").id("1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).
-                    source("{\"content\":1}", XContentType.JSON)).actionGet();
-            tc.index(new IndexRequest("pit_2").id("2").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).
-                    source("{\"content\":2}", XContentType.JSON)).actionGet();
+            tc.index(
+                new IndexRequest("pit_1").id("1")
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":1}", XContentType.JSON)
+            ).actionGet();
+            tc.index(
+                new IndexRequest("pit_2").id("2")
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                    .source("{\"content\":2}", XContentType.JSON)
+            ).actionGet();
         }
 
         RestHelper.HttpResponse resc;
 
         // Create point in time in index should be successful since the user has permission for index
-        resc = rh.executePostRequest("/pit_1/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executePostRequest("/pit_1/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         String pitId1 = resc.findValueInJson("pit_id");
 
         // Create point in time in index for which the user does not have permission
-        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Create point in time in index for which the user has permission for
-        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("pit-2", "nagilum"));
+        resc = rh.executePostRequest("/pit_2/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("pit-2", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         String pitId2 = resc.findValueInJson("pit_id");
 
         // Throw security error if user does not have all index permission
-        resc = rh.executeGetRequest("/_search/point_in_time/_all",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeGetRequest("/_search/point_in_time/_all", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // List all PITs should work for user with all index access
-        resc = rh.executeGetRequest("/_search/point_in_time/_all",
-                encodeBasicHeader("all-pit", "nagilum"));
+        resc = rh.executeGetRequest("/_search/point_in_time/_all", encodeBasicHeader("all-pit", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         List<String> pitList = new ArrayList<>();
         pitList.add(pitId1);
@@ -172,24 +162,19 @@ public class PitIntegrationTests extends SingleClusterTest {
         pitList.contains(resc.findValueInJson("pits[1].pit_id"));
 
         // Throw security error if user does not have all index permission
-        resc = rh.executeGetRequest("/_cat/pit_segments/_all",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeGetRequest("/_cat/pit_segments/_all", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // PIT segments should work for user with all index access
-        resc = rh.executeGetRequest("/_cat/pit_segments/_all",
-                encodeBasicHeader("all-pit", "nagilum"));
+        resc = rh.executeGetRequest("/_cat/pit_segments/_all", encodeBasicHeader("all-pit", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
-
         // Throw security error if user does not have all index permission
-        resc = rh.executeDeleteRequest("/_search/point_in_time/_all",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeDeleteRequest("/_search/point_in_time/_all", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Delete all PITs should work for user with all index access
-        resc = rh.executeDeleteRequest("/_search/point_in_time/_all",
-                encodeBasicHeader("all-pit", "nagilum"));
+        resc = rh.executeDeleteRequest("/_search/point_in_time/_all", encodeBasicHeader("all-pit", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
         pitList.contains(resc.findValueInJson("pits[0].pit_id"));
         pitList.contains(resc.findValueInJson("pits[1].pit_id"));
@@ -202,8 +187,8 @@ public class PitIntegrationTests extends SingleClusterTest {
     public void testDataStreamWithPits() throws Exception {
         setup();
         RestHelper rh = nonSslRestHelper();
-        String indexTemplate = "{\"index_patterns\": [ \"my-data-stream*\" ], \"data_stream\": { }, \"priority\": 200, " +
-                "\"template\": {\"settings\": { } } }";
+        String indexTemplate = "{\"index_patterns\": [ \"my-data-stream*\" ], \"data_stream\": { }, \"priority\": 200, "
+            + "\"template\": {\"settings\": { } } }";
 
         rh.executePutRequest("/_index_template/my-data-stream-template", indexTemplate, encodeBasicHeader("ds1", "nagilum"));
 
@@ -212,32 +197,25 @@ public class PitIntegrationTests extends SingleClusterTest {
 
         RestHelper.HttpResponse resc;
         // create pit should work since user has permission on data stream
-        resc = rh.executePostRequest("/my-data-stream11/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executePostRequest("/my-data-stream11/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        String pitId1 =  resc.findValueInJson("pit_id");
+        String pitId1 = resc.findValueInJson("pit_id");
 
         // PIT segments works since the user has access for backing indices
-        resc = rh.executeGetRequest("/_cat/pit_segments",
-                "{\"pit_id\":\"" + pitId1 +"\"}",
-                encodeBasicHeader("pit-1", "nagilum"));
+        resc = rh.executeGetRequest("/_cat/pit_segments", "{\"pit_id\":\"" + pitId1 + "\"}", encodeBasicHeader("pit-1", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
 
         // create pit should work since user has permission on data stream
-        resc = rh.executePostRequest("/my-data-stream21/_search/point_in_time?keep_alive=100m", "",
-                encodeBasicHeader("pit-2", "nagilum"));
+        resc = rh.executePostRequest("/my-data-stream21/_search/point_in_time?keep_alive=100m", "", encodeBasicHeader("pit-2", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
-        String pitId2 =  resc.findValueInJson("pit_id");
+        String pitId2 = resc.findValueInJson("pit_id");
 
         // since pit-3 doesn't have permission to backing data stream indices, throw security error
-        resc = rh.executeGetRequest("/_cat/pit_segments",
-                "{\"pit_id\":\"" + pitId2 +"\"}",
-                encodeBasicHeader("pit-3", "nagilum"));
+        resc = rh.executeGetRequest("/_cat/pit_segments", "{\"pit_id\":\"" + pitId2 + "\"}", encodeBasicHeader("pit-3", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, resc.getStatusCode());
 
         // Delete all PITs should work for user with all index access
-        resc = rh.executeDeleteRequest("/_search/point_in_time/_all",
-                encodeBasicHeader("all-pit", "nagilum"));
+        resc = rh.executeDeleteRequest("/_search/point_in_time/_all", encodeBasicHeader("all-pit", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_OK, resc.getStatusCode());
     }
 }

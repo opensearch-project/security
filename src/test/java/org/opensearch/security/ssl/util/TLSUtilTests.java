@@ -49,7 +49,7 @@ public class TLSUtilTests {
         for (int byteToSend = 20; byteToSend <= 24; byteToSend++) {
             ByteBuf buffer = ALLOCATOR.buffer(5);
             buffer.writeByte(byteToSend);
-            //setting invalid TLS version 100
+            // setting invalid TLS version 100
             buffer.writeByte(100);
             buffer.writeByte(TLS_MINOR_VERSION);
             buffer.writeByte(100);
@@ -66,7 +66,7 @@ public class TLSUtilTests {
             buffer.writeByte(byteToSend);
             buffer.writeByte(TLS_MAJOR_VERSION);
             buffer.writeByte(TLS_MINOR_VERSION);
-            //setting content length as 0
+            // setting content length as 0
             buffer.writeShort(0);
             Assert.assertFalse(TLSUtil.isTLS(buffer));
         }

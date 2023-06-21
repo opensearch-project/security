@@ -65,9 +65,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
     @Before
     public void setup() {
         context.putTransient(ConfigConstants.OPENDISTRO_SECURITY_XFF_DONE, Boolean.TRUE);
-        settings = Settings.builder()
-                .put("user_header","user")
-                .build();
+        settings = Settings.builder().put("user_header", "user").build();
         authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
     }
 
@@ -79,7 +77,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
     @Test(expected = OpenSearchSecurityException.class)
     public void testThrowsExceptionWhenMissingXFFDone() {
         authenticator = new HTTPExtendedProxyAuthenticator(Settings.EMPTY, null);
-        authenticator.extractCredentials(new TestRestRequest(),  new ThreadContext(Settings.EMPTY));
+        authenticator.extractCredentials(new TestRestRequest(), new ThreadContext(Settings.EMPTY));
     }
 
     @Test
@@ -90,11 +88,12 @@ public class HTTPExtendedProxyAuthenticatorTest {
 
     @Test
     public void testReturnsNullWhenUserHeaderIsMissing() {
-        
+
         assertNull(authenticator.extractCredentials(new TestRestRequest(), context));
     }
+
     @Test
-    
+
     public void testReturnsCredentials() {
         headers.put("user", new ArrayList<>());
         headers.put("proxy_uid", new ArrayList<>());
@@ -103,9 +102,9 @@ public class HTTPExtendedProxyAuthenticatorTest {
         headers.get("proxy_uid").add("123");
         headers.get("proxy_uid").add("456");
         headers.get("proxy_other").add("someothervalue");
-        
-        settings = Settings.builder().put(settings).put("attr_header_prefix","proxy_").build();
-        authenticator = new HTTPExtendedProxyAuthenticator(settings,null);
+
+        settings = Settings.builder().put(settings).put("attr_header_prefix", "proxy_").build();
+        authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
         AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers), context);
         assertNotNull(creds);
         assertEquals("aValidUser", creds.getUsername());
@@ -113,19 +112,16 @@ public class HTTPExtendedProxyAuthenticatorTest {
         assertEquals("someothervalue", creds.getAttributes().get("attr.proxy.other"));
         assertTrue(creds.isComplete());
     }
-    
+
     @Test
     public void testTrimOnRoles() {
-    	headers.put("user", new ArrayList<>());
+        headers.put("user", new ArrayList<>());
         headers.put("roles", new ArrayList<>());
         headers.get("user").add("aValidUser");
         headers.get("roles").add("role1, role2,\t");
-        
-        settings = Settings.builder().put(settings)
-             .put("roles_header","roles")
-             .put("roles_separator", ",")
-             .build();
-        authenticator = new HTTPExtendedProxyAuthenticator(settings,null);
+
+        settings = Settings.builder().put(settings).put("roles_header", "roles").put("roles_separator", ",").build();
+        authenticator = new HTTPExtendedProxyAuthenticator(settings, null);
         AuthCredentials creds = authenticator.extractCredentials(new TestRestRequest(headers), context);
         assertNotNull(creds);
         assertEquals("aValidUser", creds.getUsername());
@@ -134,16 +130,22 @@ public class HTTPExtendedProxyAuthenticatorTest {
     }
 
     static class TestRestRequest extends RestRequest {
-        
+
         public TestRestRequest() {
-            super(NamedXContentRegistry.EMPTY, new HashMap<>(), "", new HashMap<>(),new HttpRequestImpl(),new HttpChannelImpl());
+            super(NamedXContentRegistry.EMPTY, new HashMap<>(), "", new HashMap<>(), new HttpRequestImpl(), new HttpChannelImpl());
         }
+
         public TestRestRequest(Map<String, List<String>> headers) {
-            super(NamedXContentRegistry.EMPTY, new HashMap<>(), "", headers,  new HttpRequestImpl(),new HttpChannelImpl());
+            super(NamedXContentRegistry.EMPTY, new HashMap<>(), "", headers, new HttpRequestImpl(), new HttpChannelImpl());
         }
-        public TestRestRequest(NamedXContentRegistry xContentRegistry, Map<String, String> params, String path,
-                Map<String, List<String>> headers) {
-            super(xContentRegistry, params, path, headers, new HttpRequestImpl(),new HttpChannelImpl());
+
+        public TestRestRequest(
+            NamedXContentRegistry xContentRegistry,
+            Map<String, String> params,
+            String path,
+            Map<String, List<String>> headers
+        ) {
+            super(xContentRegistry, params, path, headers, new HttpRequestImpl(), new HttpChannelImpl());
         }
 
         @Override
@@ -162,7 +164,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
         }
 
     }
-    
+
     static class HttpRequestImpl implements HttpRequest {
 
         @Override
@@ -228,19 +230,19 @@ public class HTTPExtendedProxyAuthenticatorTest {
             return null;
         }
     }
-    
+
     static class HttpChannelImpl implements HttpChannel {
 
         @Override
         public void close() {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
         public void addCloseListener(ActionListener<Void> listener) {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
@@ -252,7 +254,7 @@ public class HTTPExtendedProxyAuthenticatorTest {
         @Override
         public void sendResponse(HttpResponse response, ActionListener<Void> listener) {
             // TODO Auto-generated method stub
-            
+
         }
 
         @Override
@@ -266,6 +268,6 @@ public class HTTPExtendedProxyAuthenticatorTest {
             // TODO Auto-generated method stub
             return null;
         }
-        
+
     }
 }

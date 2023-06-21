@@ -76,22 +76,20 @@ public class KeySetRetrieverTest {
     @Test
     public void clientCertTest() throws Exception {
 
-        try (MockIpdServer sslMockIdpServer = new MockIpdServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(),
-                true) {
+        try (MockIpdServer sslMockIdpServer = new MockIpdServer(TestJwk.Jwks.ALL, SocketUtils.findAvailableTcpPort(), true) {
             @Override
-            protected void handleDiscoverRequest(HttpRequest request, HttpResponse response, HttpContext context)
-                    throws HttpException, IOException {
+            protected void handleDiscoverRequest(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
+                IOException {
 
-                MockIpdServer.SSLTestHttpServerConnection connection = (MockIpdServer.SSLTestHttpServerConnection) ((HttpCoreContext) context)
-                        .getConnection();
+                MockIpdServer.SSLTestHttpServerConnection connection =
+                    (MockIpdServer.SSLTestHttpServerConnection) ((HttpCoreContext) context).getConnection();
 
                 X509Certificate peerCert = (X509Certificate) connection.getPeerCertificates()[0];
 
                 try {
                     String sha256Fingerprint = Hashing.sha256().hashBytes(peerCert.getEncoded()).toString();
 
-                    Assert.assertEquals("04b2b8baea7a0a893f0223d95b72081e9a1e154a0f9b1b4e75998085972b1b68",
-                            sha256Fingerprint);
+                    Assert.assertEquals("04b2b8baea7a0a893f0223d95b72081e9a1e154a0f9b1b4e75998085972b1b68", sha256Fingerprint);
 
                 } catch (CertificateEncodingException e) {
                     throw new RuntimeException(e);
@@ -103,13 +101,11 @@ public class KeySetRetrieverTest {
             SSLContextBuilder sslContextBuilder = SSLContexts.custom();
 
             KeyStore trustStore = KeyStore.getInstance("JKS");
-            InputStream trustStream = new FileInputStream(
-                    FileHelper.getAbsoluteFilePathFromClassPath("jwt/truststore.jks").toFile());
+            InputStream trustStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("jwt/truststore.jks").toFile());
             trustStore.load(trustStream, "changeit".toCharArray());
 
             KeyStore keyStore = KeyStore.getInstance("JKS");
-            InputStream keyStream = new FileInputStream(
-                    FileHelper.getAbsoluteFilePathFromClassPath("jwt/spock-keystore.jks").toFile());
+            InputStream keyStream = new FileInputStream(FileHelper.getAbsoluteFilePathFromClassPath("jwt/spock-keystore.jks").toFile());
 
             keyStore.load(keyStream, "changeit".toCharArray());
 
@@ -124,8 +120,19 @@ public class KeySetRetrieverTest {
             });
 
             SettingsBasedSSLConfigurator.SSLConfig sslConfig = new SettingsBasedSSLConfigurator.SSLConfig(
-                    sslContextBuilder.build(), new String[] { "TLSv1.2", "TLSv1.1" }, null, null, false, false, false,
-                    trustStore, null, keyStore, null, null);
+                sslContextBuilder.build(),
+                new String[] { "TLSv1.2", "TLSv1.1" },
+                null,
+                null,
+                false,
+                false,
+                false,
+                trustStore,
+                null,
+                keyStore,
+                null,
+                null
+            );
 
             KeySetRetriever keySetRetriever = new KeySetRetriever(sslMockIdpServer.getDiscoverUri(), sslConfig, false);
 

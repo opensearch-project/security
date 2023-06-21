@@ -124,7 +124,7 @@ jobs:
         ## EXISTING_OS_VERSION outputs the major version, example as 2
         EXISTING_OS_VERSION=$(./gradlew properties | grep opensearch.version | cut -d':' -f2- | awk '{$1=$1};1' | cut -d '-' -f1 | cut -d '.' -f1)
         ## INCREMENT_OS_VERSION in an increment of 1, example if EXISTING_OS_VERSION is 2, INCREMENT_OS_VERSION is 3
-        INCREMENT_OS_VERSION=$((++EXISTING_OS_VERSION)) 
+        INCREMENT_OS_VERSION=$((++EXISTING_OS_VERSION))
         ./gradlew clean updateVersion -DnewVersion=$INCREMENT_OS_VERSION.0.0-SNAPSHOT
         test `./gradlew properties | grep opensearch.version | cut -d':' -f2- | awk '{$1=$1};1'` = $INCREMENT_OS_VERSION.0.0-SNAPSHOT
 

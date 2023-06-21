@@ -43,36 +43,37 @@ import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTT
 public class SecurityRestTestCase extends OpenSearchRestTestCase {
 
     private static final String CERT_FILE_DIRECTORY = "sanity-tests/";
+
     private boolean isHttps() {
         return System.getProperty("https").equals("true");
     }
+
     private boolean securityEnabled() {
         return System.getProperty("security.enabled").equals("true");
     }
 
     @Override
-    protected Settings restAdminSettings(){
+    protected Settings restAdminSettings() {
 
-        return Settings
-                .builder()
-                .put("http.port", 9200)
-                .put(OPENSEARCH_SECURITY_SSL_HTTP_ENABLED, isHttps())
-                .put(OPENSEARCH_SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "opensearch-node.pem")
-                .put("plugins.security.ssl.http.pemkey_filepath", CERT_FILE_DIRECTORY + "opensearch-node-key.pem")
-                .put("plugins.security.ssl.transport.pemtrustedcas_filepath", CERT_FILE_DIRECTORY + "root-ca.pem")
-                .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, CERT_FILE_DIRECTORY + "test-kirk.jks")
-                .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD, "changeit")
-                .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, "changeit")
-                .build();
+        return Settings.builder()
+            .put("http.port", 9200)
+            .put(OPENSEARCH_SECURITY_SSL_HTTP_ENABLED, isHttps())
+            .put(OPENSEARCH_SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "opensearch-node.pem")
+            .put("plugins.security.ssl.http.pemkey_filepath", CERT_FILE_DIRECTORY + "opensearch-node-key.pem")
+            .put("plugins.security.ssl.transport.pemtrustedcas_filepath", CERT_FILE_DIRECTORY + "root-ca.pem")
+            .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, CERT_FILE_DIRECTORY + "test-kirk.jks")
+            .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD, "changeit")
+            .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, "changeit")
+            .build();
     }
 
     @Override
     protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
 
-        if(securityEnabled()){
+        if (securityEnabled()) {
             String keystore = settings.get(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH);
 
-            if(keystore != null){
+            if (keystore != null) {
                 // create adminDN (super-admin) client
                 File file = new File(getClass().getClassLoader().getResource(CERT_FILE_DIRECTORY).getFile());
                 Path configPath = PathUtils.get(file.toURI()).getParent().toAbsolutePath();
@@ -83,8 +84,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
             String userName = System.getProperty("user");
             String password = System.getProperty("password");
             return new SecureRestClientBuilder(hosts, isHttps(), userName, password).setSocketTimeout(60000).build();
-        }
-        else {
+        } else {
             RestClientBuilder builder = RestClient.builder(hosts);
             configureClient(builder, settings);
             builder.setStrictDeprecationMode(true);

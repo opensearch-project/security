@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.http.jwt.keybyoidc;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 
 public interface KeyProvider {
-	public JsonWebKey getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException;
-	public JsonWebKey getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException;
+    public JsonWebKey getKey(String kid) throws AuthenticatorUnavailableException, BadCredentialsException;
+
+    public JsonWebKey getKeyAfterRefresh(String kid) throws AuthenticatorUnavailableException, BadCredentialsException;
 }

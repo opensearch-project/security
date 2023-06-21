@@ -25,8 +25,7 @@ public class DummyHTTPAuthenticator implements HTTPAuthenticator {
 
     private static volatile long count;
 
-    public DummyHTTPAuthenticator(final Settings settings, final Path configPath) {
-    }
+    public DummyHTTPAuthenticator(final Settings settings, final Path configPath) {}
 
     @Override
     public String getType() {
@@ -49,6 +48,6 @@ public class DummyHTTPAuthenticator implements HTTPAuthenticator {
     }
 
     public static void reset() {
-        count=0;
+        count = 0;
     }
 }

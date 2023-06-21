@@ -81,17 +81,18 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
     public LDAPAuthorizationBackend2(final Settings settings, final Path configPath) throws SSLConfigException {
         this.settings = settings;
         this.skipUsersMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_SKIP_USERS));
-        this.nestedRoleMatcher = settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false) ?
-                WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER)) : null;
+        this.nestedRoleMatcher = settings.getAsBoolean(ConfigConstants.LDAP_AUTHZ_RESOLVE_NESTED_ROLES, false)
+            ? WildcardMatcher.from(settings.getAsList(ConfigConstants.LDAP_AUTHZ_NESTEDROLEFILTER))
+            : null;
         this.roleBaseSettings = getRoleSearchSettings(settings);
 
-        LDAPConnectionFactoryFactory ldapConnectionFactoryFactory = new LDAPConnectionFactoryFactory(settings,
-                configPath);
+        LDAPConnectionFactoryFactory ldapConnectionFactoryFactory = new LDAPConnectionFactoryFactory(settings, configPath);
 
         this.connectionPool = ldapConnectionFactoryFactory.createConnectionPool();
         this.connectionFactory = ldapConnectionFactoryFactory.createConnectionFactory(this.connectionPool);
         this.userSearcher = new LDAPUserSearcher(settings);
-        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value())).toArray(new String[0]);
+        this.returnAttributes = settings.getAsList(ConfigConstants.LDAP_RETURN_ATTRIBUTES, Arrays.asList(ReturnAttributes.ALL.value()))
+            .toArray(new String[0]);
         this.shouldFollowReferrals = settings.getAsBoolean(ConfigConstants.FOLLOW_REFERRALS, ConfigConstants.FOLLOW_REFERRALS_DEFAULT);
     }
 
@@ -112,10 +113,8 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
         Settings.Builder settingsBuilder = Settings.builder();
 
-        settingsBuilder.put(ConfigConstants.LDAP_AUTHCZ_BASE,
-                settings.get(ConfigConstants.LDAP_AUTHZ_ROLEBASE, DEFAULT_ROLEBASE));
-        settingsBuilder.put(ConfigConstants.LDAP_AUTHCZ_SEARCH,
-                settings.get(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, DEFAULT_ROLESEARCH));
+        settingsBuilder.put(ConfigConstants.LDAP_AUTHCZ_BASE, settings.get(ConfigConstants.LDAP_AUTHZ_ROLEBASE, DEFAULT_ROLEBASE));
+        settingsBuilder.put(ConfigConstants.LDAP_AUTHCZ_SEARCH, settings.get(ConfigConstants.LDAP_AUTHZ_ROLESEARCH, DEFAULT_ROLESEARCH));
 
         result.put("convertedOldStyleSettings", settingsBuilder.build());
 
@@ -124,8 +123,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     @SuppressWarnings("removal")
     @Override
-    public void fillRoles(final User user, final AuthCredentials optionalAuthCreds)
-            throws OpenSearchSecurityException {
+    public void fillRoles(final User user, final AuthCredentials optionalAuthCreds) throws OpenSearchSecurityException {
 
         final SecurityManager sm = System.getSecurityManager();
 
@@ -152,8 +150,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         }
     }
 
-    private void fillRoles0(final User user, final AuthCredentials optionalAuthCreds)
-            throws OpenSearchSecurityException {
+    private void fillRoles0(final User user, final AuthCredentials optionalAuthCreds) throws OpenSearchSecurityException {
 
         if (user == null) {
             return;
@@ -170,7 +167,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             authenticatedUser = entry.getDn();
             originalUserName = ((LdapUser) user).getOriginalUsername();
         } else {
-            authenticatedUser =user.getName();
+            authenticatedUser = user.getName();
             originalUserName = user.getName();
         }
 
@@ -309,17 +306,24 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                     f.setFilter(roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_SEARCH, DEFAULT_ROLESEARCH));
                     f.setParameter(ZERO_PLACEHOLDER, escapedDn);
                     f.setParameter(ONE_PLACEHOLDER, originalUserName);
-                    f.setParameter(TWO_PLACEHOLDER,
-                            userRoleAttributeValue == null ? TWO_PLACEHOLDER : userRoleAttributeValue);
+                    f.setParameter(TWO_PLACEHOLDER, userRoleAttributeValue == null ? TWO_PLACEHOLDER : userRoleAttributeValue);
 
-                    List<LdapEntry> rolesResult = LdapHelper.search(connection,
-                            roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
-                            f,
-                            SearchScope.SUBTREE,
-                            this.returnAttributes, this.shouldFollowReferrals);
+                    List<LdapEntry> rolesResult = LdapHelper.search(
+                        connection,
+                        roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
+                        f,
+                        SearchScope.SUBTREE,
+                        this.returnAttributes,
+                        this.shouldFollowReferrals
+                    );
 
                     if (isTraceEnabled) {
-                        log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchSettingsEntry.getKey(), rolesResult);
+                        log.trace(
+                            "Results for LDAP group search for {} in base {}:\n{}",
+                            escapedDn,
+                            roleSearchSettingsEntry.getKey(),
+                            rolesResult
+                        );
                     }
 
                     if (rolesResult != null && !rolesResult.isEmpty()) {
@@ -347,17 +351,21 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 final Set<LdapName> nestedReturn = new HashSet<>(ldapRoles);
 
                 for (final LdapName roleLdapName : ldapRoles) {
-                    Set<Map.Entry<String, Settings>> nameRoleSearchBaseKeys = resultRoleSearchBaseKeys
-                            .get(roleLdapName);
+                    Set<Map.Entry<String, Settings>> nameRoleSearchBaseKeys = resultRoleSearchBaseKeys.get(roleLdapName);
 
                     if (nameRoleSearchBaseKeys == null) {
-                        log.error("Could not find roleSearchBaseKeys for {}; existing: {}",
-                                roleLdapName, resultRoleSearchBaseKeys);
+                        log.error("Could not find roleSearchBaseKeys for {}; existing: {}", roleLdapName, resultRoleSearchBaseKeys);
                         continue;
                     }
 
-                    final Set<LdapName> nestedRoles = resolveNestedRoles(roleLdapName, connection, userRoleNames, 0,
-                            rolesearchEnabled, nameRoleSearchBaseKeys);
+                    final Set<LdapName> nestedRoles = resolveNestedRoles(
+                        roleLdapName,
+                        connection,
+                        userRoleNames,
+                        0,
+                        rolesearchEnabled,
+                        nameRoleSearchBaseKeys
+                    );
 
                     if (isTraceEnabled) {
                         log.trace("{} nested roles for {}", nestedRoles.size(), roleLdapName);
@@ -412,10 +420,14 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
     }
 
-    protected Set<LdapName> resolveNestedRoles(final LdapName roleDn, final Connection ldapConnection,
-                                               String userRoleName, int depth, final boolean rolesearchEnabled,
-                                               Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet)
-            throws OpenSearchSecurityException, LdapException {
+    protected Set<LdapName> resolveNestedRoles(
+        final LdapName roleDn,
+        final Connection ldapConnection,
+        String userRoleName,
+        int depth,
+        final boolean rolesearchEnabled,
+        Set<Map.Entry<String, Settings>> roleSearchBaseSettingsSet
+    ) throws OpenSearchSecurityException, LdapException {
 
         final boolean isTraceEnabled = log.isTraceEnabled();
         if (nestedRoleMatcher.test(roleDn.toString())) {
@@ -461,8 +473,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
         if (rolesearchEnabled) {
             String escapedDn = roleDn.toString();
 
-            for (Map.Entry<String, Settings> roleSearchBaseSettingsEntry : Utils
-                    .getOrderedBaseSettings(roleSearchBaseSettingsSet)) {
+            for (Map.Entry<String, Settings> roleSearchBaseSettingsEntry : Utils.getOrderedBaseSettings(roleSearchBaseSettingsSet)) {
                 Settings roleSearchSettings = roleSearchBaseSettingsEntry.getValue();
 
                 SearchFilter f = new SearchFilter();
@@ -470,14 +481,22 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 f.setParameter(ZERO_PLACEHOLDER, escapedDn);
                 f.setParameter(ONE_PLACEHOLDER, escapedDn);
 
-                List<LdapEntry> foundEntries = LdapHelper.search(ldapConnection,
-                        roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
-                        f,
-                        SearchScope.SUBTREE,
-                        this.returnAttributes, this.shouldFollowReferrals);
+                List<LdapEntry> foundEntries = LdapHelper.search(
+                    ldapConnection,
+                    roleSearchSettings.get(ConfigConstants.LDAP_AUTHCZ_BASE, DEFAULT_ROLEBASE),
+                    f,
+                    SearchScope.SUBTREE,
+                    this.returnAttributes,
+                    this.shouldFollowReferrals
+                );
 
                 if (isTraceEnabled) {
-                    log.trace("Results for LDAP group search for {} in base {}:\n{}", escapedDn, roleSearchBaseSettingsEntry.getKey(), foundEntries);
+                    log.trace(
+                        "Results for LDAP group search for {} in base {}:\n{}",
+                        escapedDn,
+                        roleSearchBaseSettingsEntry.getKey(),
+                        foundEntries
+                    );
                 }
 
                 if (foundEntries != null) {
@@ -496,8 +515,7 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
 
         int maxDepth = ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH_DEFAULT;
         try {
-            maxDepth = settings.getAsInt(ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH,
-                    ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH_DEFAULT);
+            maxDepth = settings.getAsInt(ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH, ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH_DEFAULT);
         } catch (Exception e) {
             log.error(ConfigConstants.LDAP_AUTHZ_MAX_NESTED_DEPTH + " is not parseable: ", e);
         }
@@ -507,13 +525,18 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
                 Set<Map.Entry<String, Settings>> nameRoleSearchBaseKeys = resultRoleSearchBaseKeys.get(nm);
 
                 if (nameRoleSearchBaseKeys == null) {
-                    log.error(
-                            "Could not find roleSearchBaseKeys for {}; existing: {}", nm, resultRoleSearchBaseKeys);
+                    log.error("Could not find roleSearchBaseKeys for {}; existing: {}", nm, resultRoleSearchBaseKeys);
                     continue;
                 }
 
-                final Set<LdapName> in = resolveNestedRoles(nm, ldapConnection, userRoleName, depth, rolesearchEnabled,
-                        nameRoleSearchBaseKeys);
+                final Set<LdapName> in = resolveNestedRoles(
+                    nm,
+                    ldapConnection,
+                    userRoleName,
+                    depth,
+                    rolesearchEnabled,
+                    nameRoleSearchBaseKeys
+                );
                 result.addAll(in);
             }
         }
@@ -547,21 +570,26 @@ public class LDAPAuthorizationBackend2 implements AuthorizationBackend, Destroya
             return null;
         }
 
-        if("dn".equalsIgnoreCase(role)) {
+        if ("dn".equalsIgnoreCase(role)) {
             return ldapName.toString();
         }
 
         try {
-            final LdapEntry roleEntry = LdapHelper.lookup(ldapConnection, ldapName.toString(), this.returnAttributes, this.shouldFollowReferrals);
+            final LdapEntry roleEntry = LdapHelper.lookup(
+                ldapConnection,
+                ldapName.toString(),
+                this.returnAttributes,
+                this.shouldFollowReferrals
+            );
 
-            if(roleEntry != null) {
+            if (roleEntry != null) {
                 final LdapAttribute roleAttribute = roleEntry.getAttribute(role);
-                if(roleAttribute != null) {
+                if (roleAttribute != null) {
                     return Utils.getSingleStringValue(roleAttribute);
                 }
             }
         } catch (LdapException e) {
-            log.error("Unable to handle role {} because of ",ldapName, e);
+            log.error("Unable to handle role {} because of ", ldapName, e);
         }
 
         return null;

@@ -55,25 +55,22 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class DashboardsInfoAction extends BaseRestHandler {
 
     private static final List<Route> routes = ImmutableList.<Route>builder()
-        .addAll(addRoutesPrefix(
-            ImmutableList.of(
-                new Route(GET, "/dashboardsinfo"),
-                new Route(POST, "/dashboardsinfo")
-            ),
-            "/_plugins/_security"))
-        .addAll(addRoutesPrefix(
-            ImmutableList.of(
-                new Route(GET, "/kibanainfo"),
-                new Route(POST, "/kibanainfo")
-            ),
-            "/_opendistro/_security"))
+        .addAll(
+            addRoutesPrefix(ImmutableList.of(new Route(GET, "/dashboardsinfo"), new Route(POST, "/dashboardsinfo")), "/_plugins/_security")
+        )
+        .addAll(addRoutesPrefix(ImmutableList.of(new Route(GET, "/kibanainfo"), new Route(POST, "/kibanainfo")), "/_opendistro/_security"))
         .build();
 
     private final Logger log = LogManager.getLogger(this.getClass());
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
-    public DashboardsInfoAction(final Settings settings, final RestController controller, final PrivilegesEvaluator evaluator, final ThreadPool threadPool) {
+    public DashboardsInfoAction(
+        final Settings settings,
+        final RestController controller,
+        final PrivilegesEvaluator evaluator,
+        final ThreadPool threadPool
+    ) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.evaluator = evaluator;
@@ -90,15 +87,15 @@ public class DashboardsInfoAction extends BaseRestHandler {
 
             @Override
             public void accept(RestChannel channel) throws Exception {
-                XContentBuilder builder = channel.newBuilder(); //NOSONAR
+                XContentBuilder builder = channel.newBuilder(); // NOSONAR
                 BytesRestResponse response = null;
-                
+
                 try {
-                    
-                    final User user = (User)threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+
+                    final User user = (User) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
                     builder.startObject();
-                    builder.field("user_name", user==null?null:user.getName());
+                    builder.field("user_name", user == null ? null : user.getName());
                     builder.field("not_fail_on_forbidden_enabled", evaluator.notFailOnForbiddenEnabled());
                     builder.field("opensearch_dashboards_mt_enabled", evaluator.multitenancyEnabled());
                     builder.field("opensearch_dashboards_index", evaluator.dashboardsIndex());
@@ -111,13 +108,13 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception e1) {
                     log.error(e1.toString());
-                    builder = channel.newBuilder(); //NOSONAR
+                    builder = channel.newBuilder(); // NOSONAR
                     builder.startObject();
                     builder.field("error", e1.toString());
                     builder.endObject();
                     response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
                 } finally {
-                    if(builder != null) {
+                    if (builder != null) {
                         builder.close();
                     }
                 }
@@ -131,6 +128,5 @@ public class DashboardsInfoAction extends BaseRestHandler {
     public String getName() {
         return "Kibana Info Action";
     }
-    
-    
+
 }

@@ -16,8 +16,8 @@ import org.opensearch.security.dlic.rest.api.SecurityHealthActionTest;
 import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
 
 public class LegacySecurityHealthActionTests extends SecurityHealthActionTest {
-	@Override
-	protected String getEndpointPrefix() {
-		return LEGACY_OPENDISTRO_PREFIX;
-	}
+    @Override
+    protected String getEndpointPrefix() {
+        return LEGACY_OPENDISTRO_PREFIX;
+    }
 }

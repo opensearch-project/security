@@ -44,7 +44,7 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
         HttpResponse res = rh.executeGetRequest("_opendistro/_security/sslinfo");
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
 
-        res = rh.executePutRequest("/xyz/_doc/1","{\"a\":5}");
+        res = rh.executePutRequest("/xyz/_doc/1", "{\"a\":5}");
         Assert.assertEquals(HttpStatus.SC_CREATED, res.getStatusCode());
 
         res = rh.executeGetRequest("/_mappings");
@@ -58,21 +58,29 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("\"plugins.security_config.ssl_dual_mode_enabled\":\"true\""));
 
-            String disableDualModeClusterSetting = "{ \"persistent\": { \"" + ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED + "\": false } }";
+            String disableDualModeClusterSetting = "{ \"persistent\": { \""
+                + ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED
+                + "\": false } }";
             res = rh.executePutRequest("_cluster/settings", disableDualModeClusterSetting);
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"false\"}}},\"transient\":{}}", res.getBody());
-
+            Assert.assertEquals(
+                "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"false\"}}},\"transient\":{}}",
+                res.getBody()
+            );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
             Assert.assertTrue(res.getBody().contains("\"plugins.security_config.ssl_dual_mode_enabled\":\"false\""));
 
-            String enableDualModeClusterSetting = "{ \"persistent\": { \"" + ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED + "\": true } }";
+            String enableDualModeClusterSetting = "{ \"persistent\": { \""
+                + ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED
+                + "\": true } }";
             res = rh.executePutRequest("_cluster/settings", enableDualModeClusterSetting);
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"true\"}}},\"transient\":{}}", res.getBody());
-
+            Assert.assertEquals(
+                "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"true\"}}},\"transient\":{}}",
+                res.getBody()
+            );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -80,8 +88,10 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
 
             res = rh.executePutRequest("_cluster/settings", disableDualModeClusterSetting);
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-            Assert.assertEquals("{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"false\"}}},\"transient\":{}}", res.getBody());
-
+            Assert.assertEquals(
+                "{\"acknowledged\":true,\"persistent\":{\"plugins\":{\"security_config\":{\"ssl_dual_mode_enabled\":\"false\"}}},\"transient\":{}}",
+                res.getBody()
+            );
 
             res = rh.executeGetRequest("_cluster/settings?flat_settings&include_defaults");
             Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
@@ -118,23 +128,19 @@ public class EncryptionInTransitMigrationTests extends SingleClusterTest {
     @Test
     public void testDualModeSettingFallback() throws Exception {
         final Settings legacySettings = Settings.builder()
-                .put(ConfigConstants.LEGACY_OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true)
-                .build();
+            .put(ConfigConstants.LEGACY_OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true)
+            .build();
         Assert.assertEquals(SecuritySettings.SSL_DUAL_MODE_SETTING.get(legacySettings), true);
 
         final Settings legacySettings2 = Settings.builder()
-                .put(ConfigConstants.LEGACY_OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false)
-                .build();
+            .put(ConfigConstants.LEGACY_OPENDISTRO_SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false)
+            .build();
         Assert.assertEquals(SecuritySettings.SSL_DUAL_MODE_SETTING.get(legacySettings2), false);
 
-        final Settings settings = Settings.builder()
-                .put(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true)
-                .build();
+        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, true).build();
         Assert.assertEquals(SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings), true);
 
-        final Settings settings2 = Settings.builder()
-                .put(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false)
-                .build();
+        final Settings settings2 = Settings.builder().put(ConfigConstants.SECURITY_CONFIG_SSL_DUAL_MODE_ENABLED, false).build();
         Assert.assertEquals(SecuritySettings.SSL_DUAL_MODE_SETTING.get(settings2), false);
     }
 }

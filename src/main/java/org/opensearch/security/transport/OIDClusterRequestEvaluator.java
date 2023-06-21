@@ -46,8 +46,12 @@ public final class OIDClusterRequestEvaluator implements InterClusterRequestEval
     }
 
     @Override
-    public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts,
-            final String principal) {
+    public boolean isInterClusterRequest(
+        TransportRequest request,
+        X509Certificate[] localCerts,
+        X509Certificate[] peerCerts,
+        final String principal
+    ) {
         if (localCerts != null && localCerts.length > 0 && peerCerts != null && peerCerts.length > 0) {
             final byte[] localValue = localCerts[0].getExtensionValue(certOid);
             final byte[] peerValue = peerCerts[0].getExtensionValue(certOid);
