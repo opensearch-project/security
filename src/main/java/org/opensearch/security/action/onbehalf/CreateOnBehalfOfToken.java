@@ -57,6 +57,7 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         this.dcm = dcm;
+        System.out.println("Hello this is the obo setting: " + dcm.getDynamicOnBehalfOfSettings());
         this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
     }
 
