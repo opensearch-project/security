@@ -16,21 +16,21 @@ import org.opensearch.client.indices.CloseIndexResponse;
 
 class SuccessfulCloseIndexResponseMatcher extends TypeSafeDiagnosingMatcher<CloseIndexResponse> {
 
-	@Override
-	protected boolean matchesSafely(CloseIndexResponse response, Description mismatchDescription) {
-		if (!response.isShardsAcknowledged()) {
-			mismatchDescription.appendText("shardsAcknowledged is equal to ").appendValue(response.isShardsAcknowledged());
-			return false;
-		}
-		if (!response.isAcknowledged()) {
-			mismatchDescription.appendText("acknowledged is equal to ").appendValue(response.isShardsAcknowledged());
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(CloseIndexResponse response, Description mismatchDescription) {
+        if (!response.isShardsAcknowledged()) {
+            mismatchDescription.appendText("shardsAcknowledged is equal to ").appendValue(response.isShardsAcknowledged());
+            return false;
+        }
+        if (!response.isAcknowledged()) {
+            mismatchDescription.appendText("acknowledged is equal to ").appendValue(response.isShardsAcknowledged());
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Successful close index response");
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Successful close index response");
+    }
 }

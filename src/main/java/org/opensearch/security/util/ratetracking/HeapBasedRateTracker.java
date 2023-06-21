@@ -43,15 +43,19 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
 
         this.timeWindowMs = timeWindowMs;
         this.maxTimeOffsets = allowedTries > 2 ? allowedTries - 2 : 0;
-        this.cache = CacheBuilder.newBuilder().expireAfterAccess(this.timeWindowMs, TimeUnit.MILLISECONDS).maximumSize(maxEntries).concurrencyLevel(4)
-                .removalListener(new RemovalListener<ClientIdType, ClientRecord>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<ClientIdType, ClientRecord> notification) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Removing {}", notification.getKey());
-                        }
+        this.cache = CacheBuilder.newBuilder()
+            .expireAfterAccess(this.timeWindowMs, TimeUnit.MILLISECONDS)
+            .maximumSize(maxEntries)
+            .concurrencyLevel(4)
+            .removalListener(new RemovalListener<ClientIdType, ClientRecord>() {
+                @Override
+                public void onRemoval(RemovalNotification<ClientIdType, ClientRecord> notification) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Removing {}", notification.getKey());
                     }
-                }).build();
+                }
+            })
+            .build();
     }
 
     @Override
@@ -122,8 +126,10 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
         }
 
         private boolean isFull() {
-            return this.startTime != 0 && ((timeOffsetStart == timeOffsetEnd + 1)
-                    || (timeOffsetStart == 0 && timeOffsetEnd == this.timeOffsets.length - 1) || this.timeOffsets.length == 0);
+            return this.startTime != 0
+                && ((timeOffsetStart == timeOffsetEnd + 1)
+                    || (timeOffsetStart == 0 && timeOffsetEnd == this.timeOffsets.length - 1)
+                    || this.timeOffsets.length == 0);
         }
 
         private void shiftFull(long timestamp) {
@@ -247,8 +253,15 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
 
         @Override
         public String toString() {
-            return "ClientRecord [startTime=" + startTime + ", timeOffsets=" + Arrays.toString(timeOffsets) + ", timeOffsetStart=" + timeOffsetStart
-                    + ", timeOffsetEnd=" + timeOffsetEnd + "]";
+            return "ClientRecord [startTime="
+                + startTime
+                + ", timeOffsets="
+                + Arrays.toString(timeOffsets)
+                + ", timeOffsetStart="
+                + timeOffsetStart
+                + ", timeOffsetEnd="
+                + timeOffsetEnd
+                + "]";
         }
 
     }

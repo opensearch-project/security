@@ -67,8 +67,8 @@ public class ReflectionHelper {
 
         } catch (final Throwable e) {
             log.warn("Unable to enable '{}' due to {}", clazz, e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             throw new OpenSearchException(e);
         }
@@ -77,13 +77,14 @@ public class ReflectionHelper {
     public static InterClusterRequestEvaluator instantiateInterClusterRequestEvaluator(final String clazz, final Settings settings) {
         try {
             final Class<?> clazz0 = Class.forName(clazz);
-            final InterClusterRequestEvaluator ret = (InterClusterRequestEvaluator) clazz0.getConstructor(Settings.class).newInstance(settings);
+            final InterClusterRequestEvaluator ret = (InterClusterRequestEvaluator) clazz0.getConstructor(Settings.class)
+                .newInstance(settings);
             addLoadedModule(clazz0);
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to load inter cluster request evaluator '{}' due to {}", clazz, e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return new DefaultInterClusterRequestEvaluator(settings);
         }
@@ -97,8 +98,8 @@ public class ReflectionHelper {
             return ret;
         } catch (final Throwable e) {
             log.warn("Unable to load pricipal extractor '{}' due to {}", clazz, e.toString());
-            if(log.isDebugEnabled()) {
-                log.debug("Stacktrace: ",e);
+            if (log.isDebugEnabled()) {
+                log.debug("Stacktrace: ", e);
             }
             return new DefaultPrincipalExtractor();
         }

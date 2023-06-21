@@ -57,12 +57,15 @@ public class CompatConfig {
         log.debug("dynamicSecurityConfig updated?: {}", (dcm != null));
     }
 
-    //true is default
+    // true is default
     public boolean restAuthEnabled() {
-        final boolean restInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY, false);
+        final boolean restInitiallyDisabled = staticSettings.getAsBoolean(
+            ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_REST_AUTH_INITIALLY,
+            false
+        );
         final boolean isTraceEnabled = log.isTraceEnabled();
-        if(restInitiallyDisabled) {
-            if(dcm == null) {
+        if (restInitiallyDisabled) {
+            if (dcm == null) {
                 if (isTraceEnabled) {
                     log.trace("dynamicSecurityConfig is null, initially static restDisabled");
                 }
@@ -80,12 +83,15 @@ public class CompatConfig {
 
     }
 
-    //true is default
+    // true is default
     public boolean transportInterClusterAuthEnabled() {
-        final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY, false);
+        final boolean interClusterAuthInitiallyDisabled = staticSettings.getAsBoolean(
+            ConfigConstants.SECURITY_UNSUPPORTED_DISABLE_INTERTRANSPORT_AUTH_INITIALLY,
+            false
+        );
         final boolean isTraceEnabled = log.isTraceEnabled();
-        if(interClusterAuthInitiallyDisabled) {
-            if(dcm == null) {
+        if (interClusterAuthInitiallyDisabled) {
+            if (dcm == null) {
                 if (isTraceEnabled) {
                     log.trace("dynamicSecurityConfig is null, initially static interClusterAuthDisabled");
                 }
@@ -107,7 +113,7 @@ public class CompatConfig {
      */
     public boolean transportInterClusterPassiveAuthEnabled() {
         final boolean interClusterAuthInitiallyPassive = transportPassiveAuthSetting.getDynamicSettingValue();
-        if(log.isTraceEnabled()) {
+        if (log.isTraceEnabled()) {
             log.trace("{} {}", SECURITY_UNSUPPORTED_PASSIVE_INTERTRANSPORT_AUTH_INITIALLY, interClusterAuthInitiallyPassive);
         }
         return interClusterAuthInitiallyPassive;

@@ -36,134 +36,134 @@ import static java.util.Objects.requireNonNull;
 */
 public class TestRestClientConfiguration {
 
-	/**
-	* Username
-	*/
-	private String username;
-	/**
-	* Password
-	*/
-	private String password;
-	/**
-	* HTTP headers which should be attached to each HTTP request which is sent by {@link TestRestClient}
-	*/
-	private final List<Header> headers = new ArrayList<>();
-	/**
-	* IP address of client socket of {@link TestRestClient}
-	*/
-	private InetAddress sourceInetAddress;
+    /**
+    * Username
+    */
+    private String username;
+    /**
+    * Password
+    */
+    private String password;
+    /**
+    * HTTP headers which should be attached to each HTTP request which is sent by {@link TestRestClient}
+    */
+    private final List<Header> headers = new ArrayList<>();
+    /**
+    * IP address of client socket of {@link TestRestClient}
+    */
+    private InetAddress sourceInetAddress;
 
-	/**
-	* Set username
-	* @param username username
-	* @return builder
-	*/
-	public TestRestClientConfiguration username(String username) {
-		this.username = username;
-		return this;
-	}
+    /**
+    * Set username
+    * @param username username
+    * @return builder
+    */
+    public TestRestClientConfiguration username(String username) {
+        this.username = username;
+        return this;
+    }
 
-	/**
-	* Set user's password
-	* @param password password
-	* @return builder
-	*/
-	public TestRestClientConfiguration password(String password) {
-		this.password = password;
-		return this;
-	}
+    /**
+    * Set user's password
+    * @param password password
+    * @return builder
+    */
+    public TestRestClientConfiguration password(String password) {
+        this.password = password;
+        return this;
+    }
 
-	/**
-	* The method sets username and password read form <code>userCredentialsHolder</code>
-	* @param userCredentialsHolder source of credentials
-	* @return builder
-	*/
-	public TestRestClientConfiguration credentials(UserCredentialsHolder userCredentialsHolder) {
-		Objects.requireNonNull(userCredentialsHolder, "User credential holder is required.");
-		this.username = userCredentialsHolder.getName();
-		this.password = userCredentialsHolder.getPassword();
-		return this;
-	}
+    /**
+    * The method sets username and password read form <code>userCredentialsHolder</code>
+    * @param userCredentialsHolder source of credentials
+    * @return builder
+    */
+    public TestRestClientConfiguration credentials(UserCredentialsHolder userCredentialsHolder) {
+        Objects.requireNonNull(userCredentialsHolder, "User credential holder is required.");
+        this.username = userCredentialsHolder.getName();
+        this.password = userCredentialsHolder.getPassword();
+        return this;
+    }
 
-	/**
-	* Add HTTP headers which are attached to each HTTP request
-	* @param headers headers
-	* @return builder
-	*/
-	public TestRestClientConfiguration headers(Header...headers) {
-		this.headers.addAll(Arrays.asList(Objects.requireNonNull(headers, "Headers are required")));
-		return this;
-	}
-	/**
-	* Add HTTP headers which are attached to each HTTP request
-	* @param headers list of headers
-	* @return builder
-	*/
-	public TestRestClientConfiguration headers(List<Header> headers) {
-		this.headers.addAll(Objects.requireNonNull(headers, "Cannot add null headers"));
-		return this;
-	}
+    /**
+    * Add HTTP headers which are attached to each HTTP request
+    * @param headers headers
+    * @return builder
+    */
+    public TestRestClientConfiguration headers(Header... headers) {
+        this.headers.addAll(Arrays.asList(Objects.requireNonNull(headers, "Headers are required")));
+        return this;
+    }
 
-	/**
-	* Add HTTP header to each request
-	* @param name header name
-	* @param value header value
-	* @return builder
-	*/
-	public TestRestClientConfiguration header(String name, Object value) {
-		return headers(new BasicHeader(name, value));
-	}
+    /**
+    * Add HTTP headers which are attached to each HTTP request
+    * @param headers list of headers
+    * @return builder
+    */
+    public TestRestClientConfiguration headers(List<Header> headers) {
+        this.headers.addAll(Objects.requireNonNull(headers, "Cannot add null headers"));
+        return this;
+    }
 
-	/**
-	* Set IP address of client socket used by {@link TestRestClient}
-	* @param sourceInetAddress IP address
-	* @return builder
-	*/
-	public TestRestClientConfiguration sourceInetAddress(InetAddress sourceInetAddress) {
-		this.sourceInetAddress = sourceInetAddress;
-		return this;
-	}
+    /**
+    * Add HTTP header to each request
+    * @param name header name
+    * @param value header value
+    * @return builder
+    */
+    public TestRestClientConfiguration header(String name, Object value) {
+        return headers(new BasicHeader(name, value));
+    }
 
-	public TestRestClientConfiguration sourceInetAddress(String sourceInetAddress) {
-		try {
-			this.sourceInetAddress = InetAddress.getByName(sourceInetAddress);
-			return this;
-		} catch (UnknownHostException e) {
-			throw new RuntimeException("Cannot get IP address for string " + sourceInetAddress, e);
-		}
-	}
+    /**
+    * Set IP address of client socket used by {@link TestRestClient}
+    * @param sourceInetAddress IP address
+    * @return builder
+    */
+    public TestRestClientConfiguration sourceInetAddress(InetAddress sourceInetAddress) {
+        this.sourceInetAddress = sourceInetAddress;
+        return this;
+    }
 
-	public static TestRestClientConfiguration userWithSourceIp(UserCredentialsHolder credentials, String sourceIpAddress) {
-		return new TestRestClientConfiguration().credentials(credentials).sourceInetAddress(sourceIpAddress);
-	}
+    public TestRestClientConfiguration sourceInetAddress(String sourceInetAddress) {
+        try {
+            this.sourceInetAddress = InetAddress.getByName(sourceInetAddress);
+            return this;
+        } catch (UnknownHostException e) {
+            throw new RuntimeException("Cannot get IP address for string " + sourceInetAddress, e);
+        }
+    }
 
-	/**
-	* Return complete header list. Basic authentication header is created using fields {@link #username} and {@link #password}
-	* @return header list
-	*/
-	List<Header> getHeaders() {
-		return Stream.concat(createBasicAuthHeader().stream(), headers.stream()).collect(Collectors.toList());
-	}
+    public static TestRestClientConfiguration userWithSourceIp(UserCredentialsHolder credentials, String sourceIpAddress) {
+        return new TestRestClientConfiguration().credentials(credentials).sourceInetAddress(sourceIpAddress);
+    }
 
-	private Optional<Header> createBasicAuthHeader() {
-		if(containsCredentials()) {
-			return Optional.of(getBasicAuthHeader(username, password));
-		}
-		return Optional.empty();
-	}
+    /**
+    * Return complete header list. Basic authentication header is created using fields {@link #username} and {@link #password}
+    * @return header list
+    */
+    List<Header> getHeaders() {
+        return Stream.concat(createBasicAuthHeader().stream(), headers.stream()).collect(Collectors.toList());
+    }
 
-	private boolean containsCredentials() {
-		return StringUtils.isNoneBlank(username) && StringUtils.isNoneBlank(password);
-	}
+    private Optional<Header> createBasicAuthHeader() {
+        if (containsCredentials()) {
+            return Optional.of(getBasicAuthHeader(username, password));
+        }
+        return Optional.empty();
+    }
 
-	InetAddress getSourceInetAddress() {
-		return sourceInetAddress;
-	}
+    private boolean containsCredentials() {
+        return StringUtils.isNoneBlank(username) && StringUtils.isNoneBlank(password);
+    }
 
-	public static Header getBasicAuthHeader(String user, String password) {
-		String value ="Basic " + Base64.getEncoder()
-			.encodeToString((user + ":" + requireNonNull(password))
-			.getBytes(StandardCharsets.UTF_8));
-		return new BasicHeader("Authorization", value);
-	}
+    InetAddress getSourceInetAddress() {
+        return sourceInetAddress;
+    }
+
+    public static Header getBasicAuthHeader(String user, String password) {
+        String value = "Basic "
+            + Base64.getEncoder().encodeToString((user + ":" + requireNonNull(password)).getBytes(StandardCharsets.UTF_8));
+        return new BasicHeader("Authorization", value);
+    }
 }

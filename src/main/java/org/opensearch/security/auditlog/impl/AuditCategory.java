@@ -33,13 +33,8 @@ public enum AuditCategory {
     COMPLIANCE_INTERNAL_CONFIG_WRITE;
 
     public static Set<AuditCategory> parse(final Collection<String> categories) {
-        if (categories.isEmpty())
-            return Collections.emptySet();
+        if (categories.isEmpty()) return Collections.emptySet();
 
-        return categories
-                .stream()
-                .map(String::toUpperCase)
-                .map(AuditCategory::valueOf)
-                .collect(ImmutableSet.toImmutableSet());
+        return categories.stream().map(String::toUpperCase).map(AuditCategory::valueOf).collect(ImmutableSet.toImmutableSet());
     }
 }

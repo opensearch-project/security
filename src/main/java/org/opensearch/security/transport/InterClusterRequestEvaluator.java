@@ -56,6 +56,10 @@ public interface InterClusterRequestEvaluator {
      *
      * @return True when determined to be intercluster, false otherwise
      */
-    boolean isInterClusterRequest(final TransportRequest request, final X509Certificate[] localCerts, final X509Certificate[] peerCerts,
-            final String principal);
+    boolean isInterClusterRequest(
+        final TransportRequest request,
+        final X509Certificate[] localCerts,
+        final X509Certificate[] peerCerts,
+        final String principal
+    );
 }

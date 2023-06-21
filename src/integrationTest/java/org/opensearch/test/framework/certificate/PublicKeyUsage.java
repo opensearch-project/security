@@ -28,47 +28,48 @@ import org.bouncycastle.asn1.x509.KeyUsage;
 */
 // CS-ENFORCE-SINGLE
 enum PublicKeyUsage {
-	DIGITAL_SIGNATURE(KeyUsage.digitalSignature),
-	KEY_CERT_SIGN(KeyUsage.keyCertSign),
-	CRL_SIGN(KeyUsage.cRLSign),
-	NON_REPUDIATION(KeyUsage.nonRepudiation),
-	KEY_ENCIPHERMENT(KeyUsage.keyEncipherment),
+    DIGITAL_SIGNATURE(KeyUsage.digitalSignature),
+    KEY_CERT_SIGN(KeyUsage.keyCertSign),
+    CRL_SIGN(KeyUsage.cRLSign),
+    NON_REPUDIATION(KeyUsage.nonRepudiation),
+    KEY_ENCIPHERMENT(KeyUsage.keyEncipherment),
 
-	SERVER_AUTH(KeyPurposeId.id_kp_serverAuth),
+    SERVER_AUTH(KeyPurposeId.id_kp_serverAuth),
 
-	CLIENT_AUTH(KeyPurposeId.id_kp_clientAuth);
+    CLIENT_AUTH(KeyPurposeId.id_kp_clientAuth);
 
-	private final int keyUsage;
-	private final KeyPurposeId id;
+    private final int keyUsage;
+    private final KeyPurposeId id;
 
-	PublicKeyUsage(int keyUsage) {
-		this.keyUsage = keyUsage;
-		this.id = null;
-	}
+    PublicKeyUsage(int keyUsage) {
+        this.keyUsage = keyUsage;
+        this.id = null;
+    }
 
-	PublicKeyUsage(KeyPurposeId id) {
-		this.id = Objects.requireNonNull(id, "Key purpose id is required.");
-		this.keyUsage = 0;
-	}
+    PublicKeyUsage(KeyPurposeId id) {
+        this.id = Objects.requireNonNull(id, "Key purpose id is required.");
+        this.keyUsage = 0;
+    }
 
-	boolean isExtendedUsage() {
-		return this.id != null;
-	}
+    boolean isExtendedUsage() {
+        return this.id != null;
+    }
 
-	boolean isNotExtendedUsage() {
-		return this.id == null;
-	}
+    boolean isNotExtendedUsage() {
+        return this.id == null;
+    }
 
-	int asInt(){
-		if(isExtendedUsage()) {
-			throw new RuntimeException("Integer value is not available for extended key usage");
-		}
-		return keyUsage;
-	}
-	KeyPurposeId getKeyPurposeId() {
-		if(isExtendedUsage() == false){
-			throw new RuntimeException("Key purpose id is not available.");
-		}
-		return id;
-	}
+    int asInt() {
+        if (isExtendedUsage()) {
+            throw new RuntimeException("Integer value is not available for extended key usage");
+        }
+        return keyUsage;
+    }
+
+    KeyPurposeId getKeyPurposeId() {
+        if (isExtendedUsage() == false) {
+            throw new RuntimeException("Key purpose id is not available.");
+        }
+        return id;
+    }
 }
