@@ -101,8 +101,7 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
                 BytesRestResponse response;
                 try {
                     if (vendor == null) {
-                        response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "OBO Setting is not being configured");
-                        channel.sendResponse(response);
+                        channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "on_behalf_of configuration is not being configured"));
                         return;
                     }
 
