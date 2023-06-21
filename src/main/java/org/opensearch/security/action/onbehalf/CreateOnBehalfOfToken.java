@@ -58,7 +58,11 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         this.dcm = dcm;
         System.out.println("Hello this is the obo setting: " + dcm.getDynamicOnBehalfOfSettings());
-        this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
+        if (dcm.getDynamicOnBehalfOfSettings().get("signing_key") != null && dcm.getDynamicOnBehalfOfSettings().get("encryption_key") != null) {
+            this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
+        } else {
+            this.vendor = null;
+        }
     }
 
     public CreateOnBehalfOfToken(final Settings settings, final ThreadPool threadPool) {
@@ -96,6 +100,12 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
                 final XContentBuilder builder = channel.newBuilder();
                 BytesRestResponse response;
                 try {
+                    if (vendor == null) {
+                        response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, "OBO Setting is not being configured");
+                        channel.sendResponse(response);
+                        return;
+                    }
+
                     final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
                     final String reason = (String)requestBody.getOrDefault("reason", null);
 
