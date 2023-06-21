@@ -53,3 +53,6 @@ config:
     multi_rolespan_enabled: false
     hosts_resolver_mode: "ip-only"
     transport_userrname_attribute: null
+    on_behalf_of:
+      signing_key: "VGhpcyBpcyB0aGUgand0IHNpZ25pbmcga2V5IGZvciBhbiBvbiBiZWhhbGYgb2YgdG9rZW4gYXV0aGVudGljYXRpb24gYmFja2VuZCBmb3IgdGVzdGluZyBvZiBleHRlbnNpb25z"
+      encryption_key: "ZW5jcnlwdGlvbktleQ=="
