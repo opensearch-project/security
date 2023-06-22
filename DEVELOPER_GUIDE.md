@@ -78,6 +78,11 @@ mv config/* $OPENSEARCH_HOME/config/opensearch-security/
 rm -rf config/
 ```
 
+### Installing demo extension users and roles
+
+If you are working with an extension and want to set up demo users for the Hello-World extension, copy-paste items from 'config/extension-demo/' to the same named files under the 'config/' folder.
+
+
 To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
 
 ```bash

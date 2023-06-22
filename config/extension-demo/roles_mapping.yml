@@ -1,0 +1,14 @@
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+## Demo test roles
+legacy_hw_greet_with_name:
+  reserved: true
+  users:
+    - "new-user"
+
+extension_hw_greet:
+  reserved: true
+  users:
+    - "new-user"
