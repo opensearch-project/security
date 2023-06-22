@@ -533,6 +533,9 @@ public class BackendRegistry {
             //loop over all http/rest auth domains
             for (final AuthDomain authDomain: restAuthDomains) {
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
+                if (authDomain.getBackend() instanceof NoOpAuthenticationBackend  ) {
+                    continue;
+                }
                 final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend,
                         restAuthorizers);
 
