@@ -44,12 +44,12 @@ public class FlsFlatTests extends AbstractDlsFlsTest {
         final BiFunction<XContentBuilder, String, XContentBuilder> addFlatField = (builder, fieldName) -> {
             try {
                 return builder.startObject(fieldName)
-                        .startObject("properties")
-                        .startObject("field")
-                        .field("type", "flat_object")
-                        .endObject()
-                        .endObject()
-                        .endObject();
+                    .startObject("properties")
+                    .startObject("field")
+                    .field("type", "flat_object")
+                    .endObject()
+                    .endObject()
+                    .endObject();
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
@@ -81,30 +81,30 @@ public class FlsFlatTests extends AbstractDlsFlsTest {
         // Filtering is only done on local number
         createIndexWithMapping.accept("yellow-page");
         tc.index(
-                new IndexRequest("yellow-pages").id("1")
-                        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                        .source(
-                                "{\"phone-all\": {\"areaCode\": 1001, \"localNumber\": 1091 },\"phone-some\":{\"areaCode\": 1002, \"localNumber\": 1092 },\"phone-one\":{\"areaCode\": 1003, \"localNumber\": 1093 }}",
-                                XContentType.JSON
-                        )
+            new IndexRequest("yellow-pages").id("1")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"phone-all\": {\"areaCode\": 1001, \"localNumber\": 1091 },\"phone-some\":{\"areaCode\": 1002, \"localNumber\": 1092 },\"phone-one\":{\"areaCode\": 1003, \"localNumber\": 1093 }}",
+                    XContentType.JSON
+                )
         ).actionGet();
         createIndexWithMapping.accept("green-page");
         tc.index(
-                new IndexRequest("green-pages").id("2")
-                        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                        .source(
-                                "{\"phone-all\": {\"areaCode\": 2001, \"localNumber\": 2091 },\"phone-some\":{\"areaCode\": 2002, \"localNumber\": 2092 },\"phone-one\":{\"areaCode\": 2003, \"localNumber\": 2093 }}",
-                                XContentType.JSON
-                        )
+            new IndexRequest("green-pages").id("2")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"phone-all\": {\"areaCode\": 2001, \"localNumber\": 2091 },\"phone-some\":{\"areaCode\": 2002, \"localNumber\": 2092 },\"phone-one\":{\"areaCode\": 2003, \"localNumber\": 2093 }}",
+                    XContentType.JSON
+                )
         ).actionGet();
         createIndexWithMapping.accept("blue-book");
         tc.index(
-                new IndexRequest("blue-book").id("3")
-                        .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                        .source(
-                                "{\"phone-all\": {\"areaCode\": 3001, \"localNumber\": 3091 },\"phone-some\":{\"areaCode\": 3002, \"localNumber\": 3092 },\"phone-one\":{\"areaCode\": 3003, \"localNumber\": 3093 }}",
-                                XContentType.JSON
-                        )
+            new IndexRequest("blue-book").id("3")
+                .setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source(
+                    "{\"phone-all\": {\"areaCode\": 3001, \"localNumber\": 3091 },\"phone-some\":{\"areaCode\": 3002, \"localNumber\": 3092 },\"phone-one\":{\"areaCode\": 3003, \"localNumber\": 3093 }}",
+                    XContentType.JSON
+                )
         ).actionGet();
 
         // Seperate index used to test aliasing
@@ -153,8 +153,8 @@ public class FlsFlatTests extends AbstractDlsFlsTest {
         setup(new DynamicSecurityConfig().setSecurityRoles(ROLES_FILE).setSecurityRolesMapping(ROLES_MAPPINGS_FILE));
 
         final HttpResponse phoneOneFilteredResponse = rh.executeGetRequest(
-                "/yellow-pages/_search?filter_path=hits.hits&pretty",
-                asPhoneOneUser
+            "/yellow-pages/_search?filter_path=hits.hits&pretty",
+            asPhoneOneUser
         );
         assertThat(phoneOneFilteredResponse.getStatusCode(), equalTo(HttpStatus.SC_OK));
         assertThat(phoneOneFilteredResponse.getBody(), containsString("1003"));
