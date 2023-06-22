@@ -60,6 +60,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
+import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.ssl.util.Utils;
@@ -533,7 +534,7 @@ public class BackendRegistry {
             //loop over all http/rest auth domains
             for (final AuthDomain authDomain: restAuthDomains) {
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
-                if (authDomain.getBackend() instanceof NoOpAuthenticationBackend  ) {
+                if (authDomain.getHttpAuthenticator() instanceof OnBehalfOfAuthenticator) {
                     continue;
                 }
                 final User impersonatedUser = checkExistsAndAuthz(restImpersonationCache, new User(impersonatedUserHeader), authenticationBackend,
