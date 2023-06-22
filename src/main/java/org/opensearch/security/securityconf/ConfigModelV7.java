@@ -503,6 +503,7 @@ public class ConfigModelV7 extends ConfigModel {
          * action call initiated via REST API handler. Hence we use the same to allow/block request forwarding to ext.
          * This ensures backwards-compatibility
          *
+         * This assumes the convention that every new route register will be of type `plugin:routeName` and will then c
          *
          * NOTE: THIS CHECK WILL BE REMOVED ONCE ALL ACTIONS HAVE BEEN MIGRATED TO THE NEW CONVENTION
          *
@@ -531,7 +532,13 @@ public class ConfigModelV7 extends ConfigModel {
 
             log.info("Checking legacy permissions for {}", action);
 
-            action = action.split(":")[1]; // e.g. `hw:greet` would check for action `greet` for ext `hw`
+            // This assumes that the route name will be one of these two formats: `shortName:action` OR `action`
+            String[] parts = action.split(":");
+            if (parts.length > 1) {
+                action = parts[1];  // e.g. `hw:greet` would check for action `greet` for plugin/ext `hw`
+            } else {
+                action = parts[0]; // e.g. `greet` would check for action `greet`
+            }
 
             /* Regex: `/(?:cluster:admin\/\b(open(distro|search))\b\/[a-zA-Z]+\/|\*)action\/?(?:\*|[\/a-zA-Z0-9]*)/gm`
              *  matches:
@@ -549,6 +556,8 @@ public class ConfigModelV7 extends ConfigModel {
              *  action*
              *  action/
              *  indices:admin/action/
+             *
+             * This regex is plugin name/shortName agnostic, to provide flexibility in providing shortnames for plugin devs when registering routes.
              *
              *  For more details on regex, please visit regex101.com and paste the regex
              */
