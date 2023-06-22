@@ -177,7 +177,6 @@ public class SecurityRestFilter {
                 log.debug(pres.toString());
             }
             if (pres.isAllowed()) {
-                // TODO make sure this is audit logged
                 log.debug("Request has been granted");
                 // auditLog.logGrantedPrivileges(action, request, task);
             } else {
@@ -189,14 +188,12 @@ public class SecurityRestFilter {
                     err = String.format("no permissions for %s and %s", pres.getMissingPrivileges(), user);
                 }
                 log.debug(err);
-                // TODO Figure out why ext hangs intermittently after single unauthorized request
                 channel.sendResponse(new BytesRestResponse(RestStatus.UNAUTHORIZED, err));
                 return false;
             }
         }
 
         // if handler is not an instance of NamedRoute then we pass through to eval at Transport Layer.
-        // TODO Change this to false once all plugins have migrated to use NamedRoutes
         return true;
     }
 
