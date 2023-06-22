@@ -58,4 +58,10 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
         response = rh.executeGetRequest("r*/_search", NegatedRegexUserHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
+
+    @Test
+    public void testClusterPerm() {
+        String clusterPerm = "indices:data/read/msearch/template";
+        Assert.assertEquals(true, PrivilegesEvaluator.isClusterPerm(clusterPerm));
+    }
 }
