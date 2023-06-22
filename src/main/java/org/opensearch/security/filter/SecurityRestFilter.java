@@ -158,7 +158,8 @@ public class SecurityRestFilter {
             .filter(rh -> rh.getMethod().equals(request.method()))
             .filter(rh -> restPathMatches(request.path(), rh.getPath()))
             .findFirst();
-        if (handler.isPresent() && handler.get() instanceof NamedRoute) {
+        final boolean routeSupportsRestAuthorization = handler.isPresent() && handler.get() instanceof NamedRoute;
+        if (routeSupportsRestAuthorization) {
             PrivilegesEvaluatorResponse pres = new PrivilegesEvaluatorResponse();
             NamedRoute route = ((NamedRoute) handler.get());
             // if actionNames are present evaluate those first

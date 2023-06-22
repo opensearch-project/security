@@ -56,4 +56,3 @@ public class RestPathMatchesTest {
         assertFalse((Boolean) restPathMatches.invoke(securityRestFilter, requestPath, handlerPath));
     }
 }
-
