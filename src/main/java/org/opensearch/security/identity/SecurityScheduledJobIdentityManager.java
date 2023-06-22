@@ -36,6 +36,7 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.identity.SecurityIndices.SCHEDULED_JOB_IDENTITY_INDEX;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
 
 public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentityManager {
     protected Logger logger = LogManager.getLogger(getClass());
@@ -57,12 +58,16 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     }
 
     @Override
-    public void saveUserDetails(String jobId, String indexName, ScheduledJobOperator operator) {
+    public void saveUserDetails(String jobId, String indexName, Optional<ScheduledJobOperator> operator) {
+        if (operator.isEmpty()) {
+            User currentUser = threadPool.getThreadContext().getDurableTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT);
+            System.out.println("Current User: " + currentUser);
+        }
         if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
             securityIndices.initScheduledJobIdentityIndex(ActionListener.wrap(response -> {
                 if (response.isAcknowledged()) {
                     logger.info("Created {} with mappings.", SCHEDULED_JOB_IDENTITY_INDEX);
-                    createScheduledJobIdentityEntry(jobId, indexName, operator);
+                    createScheduledJobIdentityEntry(jobId, indexName, operator.get());
                 } else {
                     logger.warn("Created {} with mappings call not acknowledged.", SCHEDULED_JOB_IDENTITY_INDEX);
                     throw new OpenSearchSecurityException(
@@ -71,7 +76,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
                 }
             }, exception -> new OpenSearchSecurityException("Created " + SCHEDULED_JOB_IDENTITY_INDEX + " with mappings call failed.")));
         } else {
-            createScheduledJobIdentityEntry(jobId, indexName, operator);
+            createScheduledJobIdentityEntry(jobId, indexName, operator.get());
         }
     }
 
