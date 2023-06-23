@@ -46,29 +46,8 @@ public class OnBehalfOfJwtAuthenticationTest {
 
 	static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
-	public static final String issuer = "cluster_0";
-	public static final String subject = "testUser";
-	public static final String audience = "audience_0";
-	public static final Integer expirySeconds = 100000;
-	public static final String headerName = "Authorization";
-	public static final List<String> roles = List.of("admin", "HR");
-	public static final List<String> backendRoles = List.of("IT");
-
 	private static final String signingKey = Base64.getEncoder().encodeToString("jwt signing key for an on behalf of token authentication backend for testing of OBO authentication".getBytes(StandardCharsets.UTF_8));
 	private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
-
-	private static final OnBehalfOfJwtAuthorizationHeaderFactory tokenFactory = new OnBehalfOfJwtAuthorizationHeaderFactory(
-			signingKey,
-			issuer,
-			subject,
-			audience,
-			roles,
-			backendRoles,
-			expirySeconds,
-			headerName,
-			encryptionKey
-	);
-
 	public static final String ADMIN_USER_NAME = "admin";
 	public static final String DEFAULT_PASSWORD = "secret";
 	public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
@@ -85,20 +64,6 @@ public class OnBehalfOfJwtAuthenticationTest {
 			.authc(AUTHC_HTTPBASIC_INTERNAL)
 			.onBehalfOf(new OnBehalfOfConfig().signing_key(signingKey).encryption_key(encryptionKey))
 			.build();
-
-	@Test
-	public void shouldAuthenticateWithOBOToken() {
-		try(TestRestClient client = cluster.getRestClient(tokenFactory.generateValidToken())){
-
-			TestRestClient.HttpResponse response = client.getAuthInfo();
-
-			response.assertStatusCode(200);
-			String username = response.getTextFromJsonBody(POINTER_USERNAME);
-			assertThat("testUser", equalTo(username));
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
 
 	@Test
 	public void shouldAuthenticateWithOBOTokenEndPoint() {
@@ -119,7 +84,6 @@ public class OnBehalfOfJwtAuthenticationTest {
 					hasKey("duration")));
 
 			String encodedOboTokenStr = oboEndPointResponse.get("onBehalfOfToken").toString();
-			System.out.println("This is the OBO Token of admin user: " + encodedOboTokenStr);
 
 			adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + encodedOboTokenStr);
 		}
@@ -131,6 +95,40 @@ public class OnBehalfOfJwtAuthenticationTest {
 
 			String username = response.getTextFromJsonBody(POINTER_USERNAME);
 			assertThat(username, equalTo(ADMIN_USER_NAME));
+		}
+	}
+
+	@Test
+	public void shouldNotAuthenticateWithATemperedOBOToken() {
+		Header adminOboAuthHeader;
+
+		try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
+
+			client.assertCorrectCredentials(ADMIN_USER_NAME);
+
+			TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
+			response.assertStatusCode(200);
+
+			Map<String, Object> oboEndPointResponse = response.getBodyAs(Map.class);
+			assertThat(oboEndPointResponse, allOf(
+					aMapWithSize(3),
+					hasKey("user"),
+					hasKey("onBehalfOfToken"),
+					hasKey("duration")));
+
+			String encodedOboTokenStr = oboEndPointResponse.get("onBehalfOfToken").toString();
+			StringBuilder stringBuilder = new StringBuilder(encodedOboTokenStr);
+			stringBuilder.deleteCharAt(encodedOboTokenStr.length() - 1);
+			String temperedOboTokenStr = stringBuilder.toString();
+
+			adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + temperedOboTokenStr);
+		}
+
+		try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
+
+			TestRestClient.HttpResponse response = client.getAuthInfo();
+			response.assertStatusCode(401);
+			response.getBody().contains("Unauthorized");
 		}
 	}
 }
