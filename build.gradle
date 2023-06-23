@@ -173,7 +173,9 @@ def splitTestConfig = [
 List<String> taskNames = splitTestConfig.keySet() as List
 
 task listTasksAsJSON {
-    System.out.println(new JsonBuilder(taskNames))
+    doLast {
+        System.out.println(new JsonBuilder(taskNames))
+    }
 }
 
 test {
