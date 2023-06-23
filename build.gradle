@@ -174,7 +174,7 @@ List<String> taskNames = splitTestConfig.keySet() as List
 
 task listTasksAsJSON {
     doLast {
-        System.out.println(new JsonBuilder(taskNames))
+        System.out.println(new JsonBuilder(["citest"] + taskNames))
     }
 }
 
