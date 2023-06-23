@@ -260,6 +260,35 @@ task copyExtraTestResources(dependsOn: testClasses) {
     }
 }
 
+def setCommonTestConfig(Test task) {
+    task.maxParallelForks = 8
+    task.jvmArgs += "-Xmx3072m"
+    if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
+        task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+    }
+    task.retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 5
+    }
+    task.jacoco {
+        excludes = [
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
+        ]
+    }
+    task.dependsOn copyExtraTestResources
+    task.finalizedBy jacocoTestReport
+}
+
 task citest(type: Test) {
     group = "Github Actions tests"
     description = "Runs the test suite on classes not covered by rest of the task in this group."
@@ -281,32 +310,7 @@ task citest(type: Test) {
             }
         }
     }
-    maxParallelForks = 8
-    jvmArgs += "-Xmx3072m"
-    if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
-        jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
-    }
-    retry {
-        failOnPassedAfterRetry = false
-        maxRetries = 5
-    }
-    jacoco {
-        excludes = [
-                "com.sun.jndi.dns.*",
-                "com.sun.security.sasl.gsskerb.*",
-                "java.sql.*",
-                "javax.script.*",
-                "org.jcp.xml.dsig.internal.dom.*",
-                "sun.nio.cs.ext.*",
-                "sun.security.ec.*",
-                "sun.security.jgss.*",
-                "sun.security.pkcs11.*",
-                "sun.security.smartcardio.*",
-                "sun.util.resources.provider.*"
-        ]
-    }
-    dependsOn copyExtraTestResources
-    finalizedBy jacocoTestReport
+    setCommonTestConfig(it)
 }
 
 splitTestConfig.each{ testName, testCfg ->
@@ -321,32 +325,7 @@ splitTestConfig.each{ testName, testCfg ->
                 }
             }
         }
-        maxParallelForks = 8
-        jvmArgs += "-Xmx3072m"
-        if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
-            jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
-        }
-        retry {
-            failOnPassedAfterRetry = false
-            maxRetries = 5
-        }
-        jacoco {
-            excludes = [
-                "com.sun.jndi.dns.*",
-                "com.sun.security.sasl.gsskerb.*",
-                "java.sql.*",
-                "javax.script.*",
-                "org.jcp.xml.dsig.internal.dom.*",
-                "sun.nio.cs.ext.*",
-                "sun.security.ec.*",
-                "sun.security.jgss.*",
-                "sun.security.pkcs11.*",
-                "sun.security.smartcardio.*",
-                "sun.util.resources.provider.*"
-            ]
-        }
-        dependsOn copyExtraTestResources
-        finalizedBy jacocoTestReport
+        setCommonTestConfig(it)
     }
 }
 
