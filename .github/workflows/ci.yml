@@ -24,7 +24,7 @@ jobs:
     - name: Generate list of tasks
       id: set-matrix
       run: |
-        echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
+        echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | head -n 1)" >> $GITHUB_OUTPUT
 
   build:
     name: build
