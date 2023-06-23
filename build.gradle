@@ -178,12 +178,6 @@ task listTasksAsJSON {
     }
 }
 
-task listTasksAsParam {
-    doLast {
-        System.out.println('-x ' + (taskNames).join(' -x '))
-    }
-}
-
 test {
     include '**/*.class'
     filter {
