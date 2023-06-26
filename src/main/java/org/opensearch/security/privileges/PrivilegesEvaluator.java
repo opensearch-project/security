@@ -89,7 +89,6 @@ import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.securityconf.ConfigModelV7;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
@@ -309,14 +308,7 @@ public class PrivilegesEvaluator {
         }
 
         // Security index access
-        if (securityIndexAccessEvaluator.evaluate(
-            request,
-            task,
-            action0,
-            requestedResolved,
-            presponse,
-            (ConfigModelV7.SecurityRoles) securityRoles
-        ).isComplete()) {
+        if (securityIndexAccessEvaluator.evaluate(request, task, action0, requestedResolved, presponse, securityRoles).isComplete()) {
             return presponse;
         }
 

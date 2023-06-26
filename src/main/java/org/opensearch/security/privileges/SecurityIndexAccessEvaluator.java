@@ -27,7 +27,6 @@
 package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,7 +41,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
-import org.opensearch.security.securityconf.ConfigModelV7;
+import org.opensearch.security.securityconf.IndexPattern;
+import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.tasks.Task;
@@ -56,7 +56,6 @@ public class SecurityIndexAccessEvaluator {
     private final WildcardMatcher securityDeniedActionMatcher;
     private final IndexResolverReplacer irr;
     private final boolean filterSecurityIndex;
-    private final List<String> configuredSystemIndices;
     // for system-indices configuration
     private final WildcardMatcher systemIndexMatcher;
     private final boolean systemIndexEnabled;
@@ -76,14 +75,6 @@ public class SecurityIndexAccessEvaluator {
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
         );
-        List<String> systemIndecesFromConfig = settings.getAsList(
-            ConfigConstants.SECURITY_SYSTEM_INDICES_KEY,
-            ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT
-        );
-
-        this.configuredSystemIndices = new ArrayList<>(systemIndecesFromConfig);
-        this.configuredSystemIndices.add(ConfigConstants.SYSTEM_INDEX_PERMISSION);
-
         final boolean restoreSecurityIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_UNSUPPORTED_RESTORE_SECURITYINDEX_ENABLED,
             false
@@ -114,17 +105,21 @@ public class SecurityIndexAccessEvaluator {
         final String action,
         final Resolved requestedResolved,
         final PrivilegesEvaluatorResponse presponse,
-        ConfigModelV7.SecurityRoles securityRoles
+        final SecurityRoles securityRoles
     ) {
 
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)) {
-            log.warn(
-                "An account without the {} permission  is trying to access a System Index. Related indexes: {}",
-                ConfigConstants.SYSTEM_INDEX_PERMISSION,
-                getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "))
-            );
+            auditLog.logSecurityIndexAttempt(request, action, task);
+            if (log.isInfoEnabled()) {
+                log.info(
+                    "No {} permission for user roles {} to System Indices {}",
+                    action,
+                    securityRoles,
+                    getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "))
+                );
+            }
             presponse.allowed = false;
             return presponse.markComplete();
         }
@@ -145,33 +140,9 @@ public class SecurityIndexAccessEvaluator {
                     return presponse;
                 }
                 auditLog.logSecurityIndexAttempt(request, action, task);
-                log.warn("{} for '_all' indices is not allowed for a regular user", action);
+                log.info("{} for '_all' indices is not allowed for a regular user", action);
                 presponse.allowed = false;
                 return presponse.markComplete();
-            }
-            if (matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)) {
-                if (filterSecurityIndex) {
-                    Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
-                    allWithoutSecurity.remove(securityIndex);
-                    if (allWithoutSecurity.isEmpty()) {
-                        if (isDebugEnabled) {
-                            log.debug("Filtered '{}' but resulting list is empty", securityIndex);
-                        }
-                        presponse.allowed = false;
-                        return presponse.markComplete();
-                    }
-                    irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
-                    if (isDebugEnabled) {
-                        log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
-                    }
-                    return presponse;
-                } else {
-                    auditLog.logSecurityIndexAttempt(request, action, task);
-                    final String foundSystemIndexes = getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "));
-                    log.warn("{} for '{}' index is not allowed for a regular user", action, foundSystemIndexes);
-                    presponse.allowed = false;
-                    return presponse.markComplete();
-                }
             }
         }
 
@@ -196,15 +167,17 @@ public class SecurityIndexAccessEvaluator {
         return presponse;
     }
 
-    private boolean checkSystemIndexPermissionsForUser(ConfigModelV7.SecurityRoles securityRoles) {
-        Set<WildcardMatcher> userPermMatchers = securityRoles.getRoles()
+    private boolean checkSystemIndexPermissionsForUser(SecurityRoles securityRoles) {
+        // The generic wildcard "*" permission shouldn't give access to SystemIndices, so excluding it from the user roles's permissions
+        // before the check
+        Set<WildcardMatcher> userPermissions = securityRoles.getRoles()
             .stream()
             .flatMap(role -> role.getIpatterns().stream())
-            .map(ConfigModelV7.IndexPattern::getNonWildCardPerms)
+            .map(IndexPattern::getNonWildCardPerms)
             .collect(Collectors.toSet());
 
-        for (WildcardMatcher userPermMatcher : userPermMatchers.stream().collect(Collectors.toSet())) {
-            if (userPermMatcher.matchAny(ConfigConstants.SYSTEM_INDEX_PERMISSION)) {
+        for (WildcardMatcher userPermission : userPermissions.stream().collect(Collectors.toSet())) {
+            if (userPermission.matchAny(ConfigConstants.SYSTEM_INDEX_PERMISSION)) {
                 return true;
             }
         }

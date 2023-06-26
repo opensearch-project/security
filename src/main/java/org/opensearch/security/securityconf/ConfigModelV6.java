@@ -247,19 +247,19 @@ public class ConfigModelV6 extends ConfigModel {
                         final List<String> fls = permittedAliasesIndex.getValue().get_fls_();
                         final List<String> maskedFields = permittedAliasesIndex.getValue().get_masked_fields_();
 
-                        IndexPattern _indexPattern = new IndexPattern(permittedAliasesIndex.getKey());
-                        _indexPattern.setDlsQuery(dls);
-                        _indexPattern.addFlsFields(fls);
-                        _indexPattern.addMaskedFields(maskedFields);
+                        IndexPatternV6 _indexPatternV6 = new IndexPatternV6(permittedAliasesIndex.getKey());
+                        _indexPatternV6.setDlsQuery(dls);
+                        _indexPatternV6.addFlsFields(fls);
+                        _indexPatternV6.addMaskedFields(maskedFields);
 
                         for (Entry<String, List<String>> type : permittedAliasesIndex.getValue().getTypes().entrySet()) {
                             TypePerm typePerm = new TypePerm(type.getKey());
                             final List<String> perms = type.getValue();
                             typePerm.addPerms(agr.resolvedActions(perms));
-                            _indexPattern.addTypePerms(typePerm);
+                            _indexPatternV6.addTypePerms(typePerm);
                         }
 
-                        _securityRole.addIndexPattern(_indexPattern);
+                        _securityRole.addIndexPattern(_indexPatternV6);
 
                     }
 
@@ -340,7 +340,8 @@ public class ConfigModelV6 extends ConfigModel {
             return "roles=" + roles;
         }
 
-        public Set<SecurityRole> getRoles() {
+        @Override
+        public Set<org.opensearch.security.securityconf.SecurityRole> getRoles() {
             return Collections.unmodifiableSet(roles);
         }
 
@@ -507,17 +508,17 @@ public class ConfigModelV6 extends ConfigModel {
             IndexNameExpressionResolver resolver,
             ClusterService cs
         ) {
-            Set<IndexPattern> ipatterns = new HashSet<ConfigModelV6.IndexPattern>();
+            Set<IndexPattern> ipatterns = new HashSet<>();
             roles.stream().forEach(p -> ipatterns.addAll(p.getIpatterns()));
             return ConfigModelV6.impliesTypePerm(ipatterns, resolved, user, actions, resolver, cs);
         }
     }
 
-    public static class SecurityRole {
+    public static class SecurityRole implements org.opensearch.security.securityconf.SecurityRole {
 
         private final String name;
         private final Set<Tenant> tenants = new HashSet<>();
-        private final Set<IndexPattern> ipatterns = new HashSet<>();
+        private final Set<IndexPatternV6> ipatterns = new HashSet<>();
         private final Set<String> clusterPerms = new HashSet<>();
 
         private SecurityRole(String name) {
@@ -525,13 +526,13 @@ public class ConfigModelV6 extends ConfigModel {
             this.name = Objects.requireNonNull(name);
         }
 
-        private boolean impliesClusterPermission(String action) {
+        public boolean impliesClusterPermission(String action) {
             return WildcardMatcher.from(clusterPerms).test(action);
         }
 
         // get indices which are permitted for the given types and actions
         // dnfof + opensearchDashboards special only
-        private Set<String> getAllResolvedPermittedIndices(
+        public Set<String> getAllResolvedPermittedIndices(
             Resolved resolved,
             User user,
             String[] actions,
@@ -540,7 +541,7 @@ public class ConfigModelV6 extends ConfigModel {
         ) {
 
             final Set<String> retVal = new HashSet<>();
-            for (IndexPattern p : ipatterns) {
+            for (IndexPatternV6 p : ipatterns) {
                 // what if we cannot resolve one (for create purposes)
                 boolean patternMatch = false;
                 final Set<TypePerm> tperms = p.getTypePerms();
@@ -579,7 +580,7 @@ public class ConfigModelV6 extends ConfigModel {
             return this;
         }
 
-        private SecurityRole addIndexPattern(IndexPattern indexPattern) {
+        private SecurityRole addIndexPattern(IndexPatternV6 indexPattern) {
             if (indexPattern != null) {
                 this.ipatterns.add(indexPattern);
             }
@@ -646,7 +647,8 @@ public class ConfigModelV6 extends ConfigModel {
             return Collections.unmodifiableSet(tenants);
         }
 
-        public Set<IndexPattern> getIpatterns() {
+        @Override
+        public Set<org.opensearch.security.securityconf.IndexPattern> getIpatterns() {
             return Collections.unmodifiableSet(ipatterns);
         }
 
@@ -661,40 +663,42 @@ public class ConfigModelV6 extends ConfigModel {
     }
 
     // sg roles
-    public static class IndexPattern {
+    public static class IndexPatternV6 implements IndexPattern {
         private final String indexPattern;
         private String dlsQuery;
         private final Set<String> fls = new HashSet<>();
         private final Set<String> maskedFields = new HashSet<>();
         private final Set<TypePerm> typePerms = new HashSet<>();
 
-        public IndexPattern(String indexPattern) {
+        public IndexPatternV6(String indexPattern) {
             super();
             this.indexPattern = Objects.requireNonNull(indexPattern);
         }
 
-        public IndexPattern addFlsFields(List<String> flsFields) {
+        @Override
+        public IndexPatternV6 addFlsFields(List<String> flsFields) {
             if (flsFields != null) {
                 this.fls.addAll(flsFields);
             }
             return this;
         }
 
-        public IndexPattern addMaskedFields(List<String> maskedFields) {
+        @Override
+        public IndexPatternV6 addMaskedFields(List<String> maskedFields) {
             if (maskedFields != null) {
                 this.maskedFields.addAll(maskedFields);
             }
             return this;
         }
 
-        public IndexPattern addTypePerms(TypePerm typePerm) {
+        public IndexPatternV6 addTypePerms(TypePerm typePerm) {
             if (typePerm != null) {
                 this.typePerms.add(typePerm);
             }
             return this;
         }
 
-        public IndexPattern setDlsQuery(String dlsQuery) {
+        public IndexPatternV6 setDlsQuery(String dlsQuery) {
             if (dlsQuery != null) {
                 this.dlsQuery = dlsQuery;
             }
@@ -718,7 +722,7 @@ public class ConfigModelV6 extends ConfigModel {
             if (this == obj) return true;
             if (obj == null) return false;
             if (getClass() != obj.getClass()) return false;
-            IndexPattern other = (IndexPattern) obj;
+            IndexPatternV6 other = (IndexPatternV6) obj;
             if (dlsQuery == null) {
                 if (other.dlsQuery != null) return false;
             } else if (!dlsQuery.equals(other.dlsQuery)) return false;
@@ -757,7 +761,12 @@ public class ConfigModelV6 extends ConfigModel {
             return replaceProperties(indexPattern, user);
         }
 
-        private Set<String> getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
+        @Override
+        public Set<String> attemptResolveIndexNames(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
+            return getResolvedIndexPattern(user, resolver, cs);
+        }
+
+        public Set<String> getResolvedIndexPattern(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
             String unresolved = getUnresolvedIndexPattern(user);
             WildcardMatcher matcher = WildcardMatcher.from(unresolved);
             String[] resolved = null;
@@ -791,6 +800,11 @@ public class ConfigModelV6 extends ConfigModel {
             return replaceProperties(dlsQuery, user);
         }
 
+        @Override
+        public Set<String> concreteIndexNames(User user, IndexNameExpressionResolver resolver, ClusterService cs) {
+            return getResolvedIndexPattern(user, resolver, cs);
+        }
+
         public Set<String> getFls() {
             return Collections.unmodifiableSet(fls);
         }
@@ -799,69 +813,39 @@ public class ConfigModelV6 extends ConfigModel {
             return Collections.unmodifiableSet(maskedFields);
         }
 
+        @Override
+        public boolean hasDlsQuery() {
+            return false;
+        }
+
+        @Override
+        public boolean hasFlsFields() {
+            return false;
+        }
+
+        @Override
+        public boolean hasMaskedFields() {
+            return false;
+        }
+
         public Set<TypePerm> getTypePerms() {
             return Collections.unmodifiableSet(typePerms);
         }
 
-    }
-
-    public static class TypePerm {
-        private final WildcardMatcher typeMatcher;
-        private final Set<String> perms = new HashSet<>();
-
-        private TypePerm(String typePattern) {
-            this.typeMatcher = WildcardMatcher.ANY;
-        }
-
-        private TypePerm addPerms(Collection<String> perms) {
-            if (perms != null) {
-                this.perms.addAll(perms);
-            }
-            return this;
-        }
-
         @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((perms == null) ? 0 : perms.hashCode());
-            result = prime * result + ((typeMatcher == null) ? 0 : typeMatcher.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null) return false;
-            if (getClass() != obj.getClass()) return false;
-            TypePerm other = (TypePerm) obj;
-            if (perms == null) {
-                if (other.perms != null) return false;
-            } else if (!perms.equals(other.perms)) return false;
-            if (typeMatcher == null) {
-                if (other.typeMatcher != null) return false;
-            } else if (!typeMatcher.equals(other.typeMatcher)) return false;
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return System.lineSeparator()
-                + "             typePattern="
-                + typeMatcher
-                + System.lineSeparator()
-                + "             perms="
-                + perms;
-        }
-
-        public WildcardMatcher getTypeMatcher() {
-            return typeMatcher;
-        }
-
         public WildcardMatcher getPerms() {
-            return WildcardMatcher.from(perms);
+            return null;
         }
 
+        @Override
+        public Set<String> getStringPerm() {
+            return null;
+        }
+
+        @Override
+        public WildcardMatcher getNonWildCardPerms() {
+            return null;
+        }
     }
 
     public static class Tenant {

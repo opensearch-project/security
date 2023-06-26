@@ -31,7 +31,7 @@ import org.opensearch.cluster.metadata.IndexAbstraction.Type;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.security.securityconf.ConfigModelV7.IndexPattern;
+import org.opensearch.security.securityconf.ConfigModelV7.IndexPatternV7;
 import org.opensearch.security.user.User;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 @RunWith(MockitoJUnitRunner.class)
-public class IndexPatternTests {
+public class IndexPatternV7Tests {
 
     @Mock
     private User user;
@@ -58,11 +58,11 @@ public class IndexPatternTests {
     @Mock
     private ClusterService clusterService;
 
-    private IndexPattern ip;
+    private IndexPatternV7 ip;
 
     @Before
     public void before() {
-        ip = spy(new IndexPattern("defaultPattern"));
+        ip = spy(new IndexPatternV7("defaultPattern"));
     }
 
     @After
@@ -72,7 +72,7 @@ public class IndexPatternTests {
 
     @Test
     public void testCtor() {
-        assertThrows(NullPointerException.class, () -> new IndexPattern(null));
+        assertThrows(NullPointerException.class, () -> new IndexPatternV7(null));
     }
 
     /** Ensure that concreteIndexNames sends correct parameters are sent to getResolvedIndexPattern */

@@ -602,7 +602,7 @@ public class SystemIndicesTests extends SingleClusterTest {
 
             RestHelper.HttpResponse response = keyStoreRestHelper.executePostRequest(index + "/_doc", "{\"foo\": \"bar\"}");
             assertTrue(response.getStatusCode() == RestStatus.CREATED.getStatus());
-            Assert.assertTrue(response.getBody().contains("\"acknowledged\":true,\"shards_acknowledged\":true"));
+            Assert.assertTrue(response.getBody().contains("\"result\":\"created\""));
 
         }
 

@@ -85,4 +85,6 @@ public interface SecurityRoles {
 
     SecurityRoles filter(Set<String> roles);
 
+    Set<SecurityRole> getRoles();
+
 }
