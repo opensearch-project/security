@@ -122,7 +122,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private String[] extractBackendRolesFromClaims(Claims claims) {
-        Object backendRolesObject = ObjectUtils.firstNonNull(claims.get("ebr"), claims.get("dbr"));
+        //Object backendRolesObject = ObjectUtils.firstNonNull(claims.get("ebr"), claims.get("dbr"));
+        if (!claims.containsKey("dbr")) {
+            return null;
+        }
+
+        Object backendRolesObject = claims.get("dbr");
         String[] backendRoles;
 
         if (backendRolesObject == null) {
@@ -134,9 +139,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
             // Extracting roles based on the compatibility mode
             String decryptedBackendRoles = backendRolesClaim;
-            if (backendRolesObject == claims.get("ebr")) {
-                decryptedBackendRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, backendRolesClaim);
-            }
             backendRoles = Arrays.stream(decryptedBackendRoles.split(",")).map(String::trim).toArray(String[]::new);
         }
 

@@ -134,10 +134,7 @@ public class JwtVendor {
             throw new Exception("Roles cannot be null");
         }
 
-        if (backendRoles != null) {
-            String listOfBackendRoles = String.join(",", backendRoles);
-            jwtClaims.setProperty("ebr", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfBackendRoles));
-        }
+        /* TODO: If the backendRoles is not null and the BWC Mode is on, put them into the "dbr" claim */
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 

@@ -50,7 +50,6 @@ public class JwtVendorTest {
         List<String> roles = List.of("IT", "HR");
         List<String> backendRoles = List.of("Sales");
         String expectedRoles = "IT,HR";
-        String expectedBackendRoles = "Sales";
         Integer expirySeconds = 300;
         LongSupplier currentTime = () -> (int) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
@@ -71,7 +70,6 @@ public class JwtVendorTest {
         Assert.assertEquals(expectedExp, jwt.getClaim("exp"));
         Assert.assertNotEquals(expectedRoles, jwt.getClaim("er"));
         Assert.assertEquals(expectedRoles, EncryptionDecryptionUtil.decrypt(claimsEncryptionKey, jwt.getClaim("er").toString()));
-        Assert.assertEquals(expectedBackendRoles, EncryptionDecryptionUtil.decrypt(claimsEncryptionKey, jwt.getClaim("ebr").toString()));
     }
 
     @Test(expected = Exception.class)
