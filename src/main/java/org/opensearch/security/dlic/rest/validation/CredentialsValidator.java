@@ -29,10 +29,7 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
 
     private final PasswordValidator passwordValidator;
 
-    public CredentialsValidator(final RestRequest request,
-                                final BytesReference ref,
-                                final Settings opensearchSettings,
-                                Object... param) {
+    public CredentialsValidator(final RestRequest request, final BytesReference ref, final Settings opensearchSettings, Object... param) {
         super(request, ref, opensearchSettings, param);
         this.payloadMandatory = true;
         this.passwordValidator = PasswordValidator.of(opensearchSettings);
@@ -50,8 +47,8 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
             return false;
         }
         if ((request.method() == RestRequest.Method.PUT || request.method() == RestRequest.Method.PATCH)
-                && this.content != null
-                && this.content.length() > 1) {
+            && this.content != null
+            && this.content.length() > 1) {
             try {
                 final Map<String, Object> contentAsMap = XContentHelper.convertToMap(this.content, false, XContentType.JSON).v2();
                 final String password = (String) contentAsMap.get("password");
@@ -75,7 +72,7 @@ public class CredentialsValidator extends AbstractConfigurationValidator {
                     }
                 }
             } catch (NotXContentException e) {
-                //this.content is not valid json/yaml
+                // this.content is not valid json/yaml
                 log.error("Invalid xContent: " + e, e);
                 return false;
             }

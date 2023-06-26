@@ -17,21 +17,21 @@ import static org.hamcrest.Matchers.containsString;
 
 public class OpenSearchExceptionMatchers {
 
-	private OpenSearchExceptionMatchers() {}
+    private OpenSearchExceptionMatchers() {}
 
-	public static Matcher<Throwable> statusException(RestStatus expectedRestStatus) {
-		return new OpenSearchStatusExceptionMatcher(expectedRestStatus);
-	}
+    public static Matcher<Throwable> statusException(RestStatus expectedRestStatus) {
+        return new OpenSearchStatusExceptionMatcher(expectedRestStatus);
+    }
 
-	public static Matcher<Throwable> errorMessage(Matcher<String> errorMessageMatcher) {
-		return new ExceptionErrorMessageMatcher(errorMessageMatcher);
-	}
+    public static Matcher<Throwable> errorMessage(Matcher<String> errorMessageMatcher) {
+        return new ExceptionErrorMessageMatcher(errorMessageMatcher);
+    }
 
-	public static Matcher<Throwable> errorMessageContain(String errorMessage) {
-		return errorMessage(containsString(errorMessage));
-	}
+    public static Matcher<Throwable> errorMessageContain(String errorMessage) {
+        return errorMessage(containsString(errorMessage));
+    }
 
-	public static Matcher<Throwable> hasCause(Class<? extends Throwable> clazz) {
-		return new ExceptionHasCauseMatcher(clazz);
-	}
+    public static Matcher<Throwable> hasCause(Class<? extends Throwable> clazz) {
+        return new ExceptionHasCauseMatcher(clazz);
+    }
 }

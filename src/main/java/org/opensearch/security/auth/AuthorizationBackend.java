@@ -49,7 +49,7 @@ import org.opensearch.security.user.User;
 public interface AuthorizationBackend {
 
     /**
-     * The type (name) of the authorizer. Only for logging.  
+     * The type (name) of the authorizer. Only for logging.
      * @return the type
      */
     String getType();
@@ -61,7 +61,7 @@ public interface AuthorizationBackend {
      * </P>
      * @param user The authenticated user to populate with backend roles, never null
      * @param credentials Credentials to authenticate to the authorization backend, maybe null.
-     * <em>This parameter is for future usage, currently always empty credentials are passed!</em> 
+     * <em>This parameter is for future usage, currently always empty credentials are passed!</em>
      * @throws OpenSearchSecurityException in case when the authorization backend cannot be reached
      * or the {@code credentials} are insufficient to authenticate to the authorization backend.
      */

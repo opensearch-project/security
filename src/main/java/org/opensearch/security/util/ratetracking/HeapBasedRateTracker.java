@@ -1,10 +1,10 @@
 /*
  * Copyright 2015-2019 floragunn GmbH
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  */
 
 package org.opensearch.security.util.ratetracking;
@@ -43,15 +43,19 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
 
         this.timeWindowMs = timeWindowMs;
         this.maxTimeOffsets = allowedTries > 2 ? allowedTries - 2 : 0;
-        this.cache = CacheBuilder.newBuilder().expireAfterAccess(this.timeWindowMs, TimeUnit.MILLISECONDS).maximumSize(maxEntries).concurrencyLevel(4)
-                .removalListener(new RemovalListener<ClientIdType, ClientRecord>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<ClientIdType, ClientRecord> notification) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Removing {}", notification.getKey());
-                        }
+        this.cache = CacheBuilder.newBuilder()
+            .expireAfterAccess(this.timeWindowMs, TimeUnit.MILLISECONDS)
+            .maximumSize(maxEntries)
+            .concurrencyLevel(4)
+            .removalListener(new RemovalListener<ClientIdType, ClientRecord>() {
+                @Override
+                public void onRemoval(RemovalNotification<ClientIdType, ClientRecord> notification) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Removing {}", notification.getKey());
                     }
-                }).build();
+                }
+            })
+            .build();
     }
 
     @Override
@@ -122,8 +126,10 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
         }
 
         private boolean isFull() {
-            return this.startTime != 0 && ((timeOffsetStart == timeOffsetEnd + 1)
-                    || (timeOffsetStart == 0 && timeOffsetEnd == this.timeOffsets.length - 1) || this.timeOffsets.length == 0);
+            return this.startTime != 0
+                && ((timeOffsetStart == timeOffsetEnd + 1)
+                    || (timeOffsetStart == 0 && timeOffsetEnd == this.timeOffsets.length - 1)
+                    || this.timeOffsets.length == 0);
         }
 
         private void shiftFull(long timestamp) {
@@ -131,7 +137,7 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
                 this.startTime = timestamp;
                 return;
             }
-            
+
             int shiftOffset = this.timeOffsets[this.timeOffsetStart];
             this.startTime += shiftOffset;
 
@@ -247,8 +253,15 @@ public class HeapBasedRateTracker<ClientIdType> implements RateTracker<ClientIdT
 
         @Override
         public String toString() {
-            return "ClientRecord [startTime=" + startTime + ", timeOffsets=" + Arrays.toString(timeOffsets) + ", timeOffsetStart=" + timeOffsetStart
-                    + ", timeOffsetEnd=" + timeOffsetEnd + "]";
+            return "ClientRecord [startTime="
+                + startTime
+                + ", timeOffsets="
+                + Arrays.toString(timeOffsets)
+                + ", timeOffsetStart="
+                + timeOffsetStart
+                + ", timeOffsetEnd="
+                + timeOffsetEnd
+                + "]";
         }
 
     }

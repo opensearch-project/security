@@ -24,45 +24,52 @@ import static java.util.Objects.requireNonNull;
 
 class IndexSettingsContainValuesMatcher extends TypeSafeDiagnosingMatcher<LocalCluster> {
 
-	private final String expectedIndexName;
-	private final Settings expectedSettings;
+    private final String expectedIndexName;
+    private final Settings expectedSettings;
 
-	IndexSettingsContainValuesMatcher(String expectedIndexName, Settings expectedSettings) {
-		this.expectedIndexName = requireNonNull(expectedIndexName);
-		if (isNull(expectedSettings) || expectedSettings.isEmpty()) {
-			throw new IllegalArgumentException("expectedSettings cannot be null or empty");
-		}
-		this.expectedSettings = expectedSettings;
-	}
+    IndexSettingsContainValuesMatcher(String expectedIndexName, Settings expectedSettings) {
+        this.expectedIndexName = requireNonNull(expectedIndexName);
+        if (isNull(expectedSettings) || expectedSettings.isEmpty()) {
+            throw new IllegalArgumentException("expectedSettings cannot be null or empty");
+        }
+        this.expectedSettings = expectedSettings;
+    }
 
-	@Override
-	protected boolean matchesSafely(LocalCluster cluster, Description mismatchDescription) {
-		try(Client client = cluster.getInternalNodeClient()) {
-			GetSettingsResponse response = client.admin().indices().getSettings(new GetSettingsRequest().indices(expectedIndexName)).actionGet();
+    @Override
+    protected boolean matchesSafely(LocalCluster cluster, Description mismatchDescription) {
+        try (Client client = cluster.getInternalNodeClient()) {
+            GetSettingsResponse response = client.admin()
+                .indices()
+                .getSettings(new GetSettingsRequest().indices(expectedIndexName))
+                .actionGet();
 
-			Settings actualSettings = response.getIndexToSettings().get(expectedIndexName);
+            Settings actualSettings = response.getIndexToSettings().get(expectedIndexName);
 
-			for (String setting : expectedSettings.keySet()) {
-				if (isNull(actualSettings.get(setting))) {
-					mismatchDescription.appendValue("Value of ").appendValue(setting).appendText(" property is missing");
-					return false;
-				}
-				if (!expectedSettings.get(setting).equals(actualSettings.get(setting))) {
-					mismatchDescription.appendText("Actual value of `").appendValue(setting)
-							.appendText("` property: ").appendValue(actualSettings.get(setting));
-					return false;
-				}
-			}
-			return true;
-		} catch (IndexNotFoundException e) {
-			mismatchDescription.appendText("Index: ").appendValue(expectedIndexName).appendText(" does not exist");
-			return false;
-		}
-	}
+            for (String setting : expectedSettings.keySet()) {
+                if (isNull(actualSettings.get(setting))) {
+                    mismatchDescription.appendValue("Value of ").appendValue(setting).appendText(" property is missing");
+                    return false;
+                }
+                if (!expectedSettings.get(setting).equals(actualSettings.get(setting))) {
+                    mismatchDescription.appendText("Actual value of `")
+                        .appendValue(setting)
+                        .appendText("` property: ")
+                        .appendValue(actualSettings.get(setting));
+                    return false;
+                }
+            }
+            return true;
+        } catch (IndexNotFoundException e) {
+            mismatchDescription.appendText("Index: ").appendValue(expectedIndexName).appendText(" does not exist");
+            return false;
+        }
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Settings of index ").appendValue(expectedIndexName)
-				.appendText(" should contain values: ").appendValue(expectedSettings);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Settings of index ")
+            .appendValue(expectedIndexName)
+            .appendText(" should contain values: ")
+            .appendValue(expectedSettings);
+    }
 }

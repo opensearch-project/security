@@ -47,7 +47,7 @@ import org.opensearch.security.support.HeaderHelper;
 import org.opensearch.security.support.WildcardMatcher;
 import org.opensearch.security.user.User;
 
-public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException>  {
+public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryReader, DirectoryReader, IOException> {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     protected final ThreadContext threadContext;
@@ -63,18 +63,32 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
     private final Boolean systemIndexEnabled;
     private final WildcardMatcher systemIndexMatcher;
 
-    //constructor is called per index, so avoid costly operations here
-    public SecurityIndexSearcherWrapper(final IndexService indexService, final Settings settings, final AdminDNs adminDNs, final PrivilegesEvaluator evaluator) {
+    // constructor is called per index, so avoid costly operations here
+    public SecurityIndexSearcherWrapper(
+        final IndexService indexService,
+        final Settings settings,
+        final AdminDNs adminDNs,
+        final PrivilegesEvaluator evaluator
+    ) {
         index = indexService.index();
         threadContext = indexService.getThreadPool().getThreadContext();
-        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
+        this.securityIndex = settings.get(
+            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
+            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
+        );
         this.evaluator = evaluator;
         this.adminDns = adminDNs;
         this.protectedIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_KEY));
         this.allowedRolesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_PROTECTED_INDICES_ROLES_KEY));
-        this.protectedIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY, ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT);
+        this.protectedIndexEnabled = settings.getAsBoolean(
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_KEY,
+            ConfigConstants.SECURITY_PROTECTED_INDICES_ENABLED_DEFAULT
+        );
 
-        this.systemIndexEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT);
+        this.systemIndexEnabled = settings.getAsBoolean(
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
+        );
         this.systemIndexMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY));
     }
 
@@ -134,7 +148,7 @@ public class SecurityIndexSearcherWrapper implements CheckedFunction<DirectoryRe
 
     protected final boolean isAdminDnOrPluginRequest() {
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        if(user == null) {
+        if (user == null) {
             // allow request without user from plugin.
             return true;
         } else if (adminDns.isAdmin(user)) {

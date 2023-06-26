@@ -52,173 +52,175 @@ import org.opensearch.test.framework.cluster.SocketUtils;
 * Based on class com.amazon.dlic.auth.ldap.srv.LdapServer from older tests
 */
 final class LdapServer {
-	private static final Logger log = LogManager.getLogger(LdapServer.class);
+    private static final Logger log = LogManager.getLogger(LdapServer.class);
 
-	private static final int LOCK_TIMEOUT = 60;
-	private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
+    private static final int LOCK_TIMEOUT = 60;
+    private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
-	private static final String LOCK_TIMEOUT_MSG = "Unable to obtain lock due to timeout after " + LOCK_TIMEOUT + " " + TIME_UNIT.toString();
-	private static final String SERVER_NOT_STARTED = "The LDAP server is not started.";
-	private static final String SERVER_ALREADY_STARTED = "The LDAP server is already started.";
+    private static final String LOCK_TIMEOUT_MSG = "Unable to obtain lock due to timeout after "
+        + LOCK_TIMEOUT
+        + " "
+        + TIME_UNIT.toString();
+    private static final String SERVER_NOT_STARTED = "The LDAP server is not started.";
+    private static final String SERVER_ALREADY_STARTED = "The LDAP server is already started.";
 
-	private final CertificateData trustAnchor;
+    private final CertificateData trustAnchor;
 
-	private final CertificateData ldapCertificate;
+    private final CertificateData ldapCertificate;
 
-	private InMemoryDirectoryServer server;
-	private final AtomicBoolean isStarted = new AtomicBoolean(Boolean.FALSE);
-	private final ReentrantLock serverStateLock = new ReentrantLock();
+    private InMemoryDirectoryServer server;
+    private final AtomicBoolean isStarted = new AtomicBoolean(Boolean.FALSE);
+    private final ReentrantLock serverStateLock = new ReentrantLock();
 
-	private int ldapNonTlsPort = -1;
-	private int ldapTlsPort = -1;
+    private int ldapNonTlsPort = -1;
+    private int ldapTlsPort = -1;
 
+    public LdapServer(CertificateData trustAnchor, CertificateData ldapCertificate) {
+        this.trustAnchor = trustAnchor;
+        this.ldapCertificate = ldapCertificate;
+    }
 
-	public LdapServer(CertificateData trustAnchor, CertificateData ldapCertificate) {
-		this.trustAnchor = trustAnchor;
-		this.ldapCertificate = ldapCertificate;
-	}
+    public boolean isStarted() {
+        return this.isStarted.get();
+    }
 
-	public boolean isStarted() {
-		return this.isStarted.get();
-	}
+    public int getLdapNonTlsPort() {
+        return ldapNonTlsPort;
+    }
 
-	public int getLdapNonTlsPort() {
-		return ldapNonTlsPort;
-	}
+    public int getLdapsTlsPort() {
+        return ldapTlsPort;
+    }
 
-	public int getLdapsTlsPort() {
-		return ldapTlsPort;
-	}
+    public void start(LdifData ldifData) throws Exception {
+        Objects.requireNonNull(ldifData, "Ldif data is required");
+        boolean hasLock = false;
+        try {
+            hasLock = serverStateLock.tryLock(LdapServer.LOCK_TIMEOUT, LdapServer.TIME_UNIT);
+            if (hasLock) {
+                doStart(ldifData);
+                this.isStarted.set(Boolean.TRUE);
+            } else {
+                throw new IllegalStateException(LdapServer.LOCK_TIMEOUT_MSG);
+            }
+        } catch (InterruptedException ioe) {
+            // lock interrupted
+            log.error("LDAP server start lock interrupted", ioe);
+            throw ioe;
+        } finally {
+            if (hasLock) {
+                serverStateLock.unlock();
+            }
+        }
+    }
 
-	public void start(LdifData ldifData) throws Exception {
-		Objects.requireNonNull(ldifData, "Ldif data is required");
-		boolean hasLock = false;
-		try {
-			hasLock = serverStateLock.tryLock(LdapServer.LOCK_TIMEOUT, LdapServer.TIME_UNIT);
-			if (hasLock) {
-				doStart(ldifData);
-				this.isStarted.set(Boolean.TRUE);
-			} else {
-				throw new IllegalStateException(LdapServer.LOCK_TIMEOUT_MSG);
-			}
-		} catch (InterruptedException ioe) {
-			//lock interrupted
-			log.error("LDAP server start lock interrupted", ioe);
-			throw ioe;
-		} finally {
-			if (hasLock) {
-				serverStateLock.unlock();
-			}
-		}
-	}
+    private void doStart(LdifData ldifData) throws Exception {
+        if (isStarted.get()) {
+            throw new IllegalStateException(LdapServer.SERVER_ALREADY_STARTED);
+        }
+        configureAndStartServer(ldifData);
+    }
 
-	private void doStart(LdifData ldifData) throws Exception {
-		if (isStarted.get()) {
-			throw new IllegalStateException(LdapServer.SERVER_ALREADY_STARTED);
-		}
-		configureAndStartServer(ldifData);
-	}
+    private Collection<InMemoryListenerConfig> getInMemoryListenerConfigs() throws Exception {
+        KeyStore keyStore = createEmptyKeyStore();
+        addLdapCertificatesToKeystore(keyStore);
+        final SSLUtil sslUtil = new SSLUtil(createKeyManager(keyStore), createTrustManagers(keyStore));
 
-	private Collection<InMemoryListenerConfig> getInMemoryListenerConfigs() throws Exception {
-		KeyStore keyStore = createEmptyKeyStore();
-		addLdapCertificatesToKeystore(keyStore);
-		final SSLUtil sslUtil = new SSLUtil(createKeyManager(keyStore), createTrustManagers(keyStore));
+        ldapNonTlsPort = SocketUtils.findAvailableTcpPort();
+        ldapTlsPort = SocketUtils.findAvailableTcpPort();
 
-		ldapNonTlsPort = SocketUtils.findAvailableTcpPort();
-		ldapTlsPort = SocketUtils.findAvailableTcpPort();
+        Collection<InMemoryListenerConfig> listenerConfigs = new ArrayList<>();
+        listenerConfigs.add(InMemoryListenerConfig.createLDAPConfig("ldap", null, ldapNonTlsPort, sslUtil.createSSLSocketFactory()));
+        listenerConfigs.add(InMemoryListenerConfig.createLDAPSConfig("ldaps", ldapTlsPort, sslUtil.createSSLServerSocketFactory()));
+        return listenerConfigs;
+    }
 
-		Collection<InMemoryListenerConfig> listenerConfigs = new ArrayList<>();
-		listenerConfigs.add(InMemoryListenerConfig.createLDAPConfig("ldap", null, ldapNonTlsPort, sslUtil.createSSLSocketFactory()));
-		listenerConfigs.add(InMemoryListenerConfig.createLDAPSConfig("ldaps", ldapTlsPort, sslUtil.createSSLServerSocketFactory()));
-		return listenerConfigs;
-	}
+    private static KeyManager[] createKeyManager(KeyStore keyStore) throws NoSuchAlgorithmException, KeyStoreException,
+        UnrecoverableKeyException {
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, null);
+        return keyManagerFactory.getKeyManagers();
+    }
 
-	private static KeyManager[] createKeyManager(KeyStore keyStore)
-		throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
-		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-		keyManagerFactory.init(keyStore, null);
-		return keyManagerFactory.getKeyManagers();
-	}
+    private static TrustManager[] createTrustManagers(KeyStore keyStore) throws NoSuchAlgorithmException, KeyStoreException {
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(keyStore);
+        return trustManagerFactory.getTrustManagers();
+    }
 
-	private static TrustManager[] createTrustManagers(KeyStore keyStore) throws NoSuchAlgorithmException, KeyStoreException {
-		TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-		trustManagerFactory.init(keyStore);
-		return trustManagerFactory.getTrustManagers();
-	}
+    private void addLdapCertificatesToKeystore(KeyStore keyStore) throws KeyStoreException {
+        keyStore.setCertificateEntry("trustAnchor", trustAnchor.certificate());
+        keyStore.setKeyEntry("ldap-key", ldapCertificate.getKey(), null, new Certificate[] { ldapCertificate.certificate() });
+    }
 
-	private void addLdapCertificatesToKeystore(KeyStore keyStore) throws KeyStoreException {
-		keyStore.setCertificateEntry("trustAnchor", trustAnchor.certificate());
-		keyStore.setKeyEntry("ldap-key", ldapCertificate.getKey(), null, new Certificate[]{ ldapCertificate.certificate()});
-	}
+    private static KeyStore createEmptyKeyStore() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null);
+        return keyStore;
+    }
 
-	private static KeyStore createEmptyKeyStore() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-		keyStore.load(null);
-		return keyStore;
-	}
+    private synchronized void configureAndStartServer(LdifData ldifData) throws Exception {
+        Collection<InMemoryListenerConfig> listenerConfigs = getInMemoryListenerConfigs();
 
-	private synchronized void configureAndStartServer(LdifData ldifData) throws Exception {
-		Collection<InMemoryListenerConfig> listenerConfigs = getInMemoryListenerConfigs();
+        Schema schema = Schema.getDefaultStandardSchema();
 
-		Schema schema = Schema.getDefaultStandardSchema();
+        final String rootObjectDN = ldifData.getRootDistinguishedName();
+        InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig(new DN(rootObjectDN));
 
-		final String rootObjectDN = ldifData.getRootDistinguishedName();
-		InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig(new DN(rootObjectDN));
+        config.setSchema(schema);  // schema can be set on the rootDN too, per javadoc.
+        config.setListenerConfigs(listenerConfigs);
+        config.setEnforceAttributeSyntaxCompliance(false);
+        config.setEnforceSingleStructuralObjectClass(false);
 
-		config.setSchema(schema);  //schema can be set on the rootDN too, per javadoc.
-		config.setListenerConfigs(listenerConfigs);
-		config.setEnforceAttributeSyntaxCompliance(false);
-		config.setEnforceSingleStructuralObjectClass(false);
+        server = new InMemoryDirectoryServer(config);
 
-		server = new InMemoryDirectoryServer(config);
+        try {
+            /* Clear entries from server. */
+            server.clear();
+            server.startListening();
+            loadLdifData(ldifData);
+        } catch (LDAPException ldape) {
+            if (ldape.getMessage().contains("java.net.BindException")) {
+                throw new BindException(ldape.getMessage());
+            }
+            throw ldape;
+        }
 
-		try {
-			/* Clear entries from server. */
-			server.clear();
-			server.startListening();
-			loadLdifData(ldifData);
-		} catch (LDAPException ldape) {
-			if (ldape.getMessage().contains("java.net.BindException")) {
-				throw new BindException(ldape.getMessage());
-			}
-			throw ldape;
-		}
+    }
 
-	}
+    public void stop() throws InterruptedException {
+        boolean hasLock = false;
+        try {
+            hasLock = serverStateLock.tryLock(LdapServer.LOCK_TIMEOUT, LdapServer.TIME_UNIT);
+            if (hasLock) {
+                if (!isStarted.get()) {
+                    throw new IllegalStateException(LdapServer.SERVER_NOT_STARTED);
+                }
+                log.info("Shutting down in-Memory Ldap Server.");
+                server.shutDown(true);
+            } else {
+                throw new IllegalStateException(LdapServer.LOCK_TIMEOUT_MSG);
+            }
+        } catch (InterruptedException ioe) {
+            // lock interrupted
+            log.error("Canot stop LDAP server due to interruption", ioe);
+            throw ioe;
+        } finally {
+            if (hasLock) {
+                serverStateLock.unlock();
+            }
+        }
+    }
 
-	public void stop() throws InterruptedException {
-		boolean hasLock = false;
-		try {
-			hasLock = serverStateLock.tryLock(LdapServer.LOCK_TIMEOUT, LdapServer.TIME_UNIT);
-			if (hasLock) {
-				if (!isStarted.get()) {
-					throw new IllegalStateException(LdapServer.SERVER_NOT_STARTED);
-				}
-				log.info("Shutting down in-Memory Ldap Server.");
-				server.shutDown(true);
-			} else {
-				throw new IllegalStateException(LdapServer.LOCK_TIMEOUT_MSG);
-			}
-		} catch (InterruptedException ioe) {
-			//lock interrupted
-			log.error("Canot stop LDAP server due to interruption", ioe);
-			throw ioe;
-		} finally {
-			if (hasLock) {
-				serverStateLock.unlock();
-			}
-		}
-	}
-
-	private void loadLdifData(LdifData ldifData) throws Exception {
-		try (LDIFReader r = new LDIFReader(new BufferedReader(new StringReader(ldifData.getContent())))){
-			Entry entry;
-			while ((entry = r.readEntry()) != null) {
-				server.add(entry);
-			}
-		} catch(Exception e) {
-			log.error("Cannot load data into LDAP server", e);
-			throw e;
-		}
-	}
+    private void loadLdifData(LdifData ldifData) throws Exception {
+        try (LDIFReader r = new LDIFReader(new BufferedReader(new StringReader(ldifData.getContent())))) {
+            Entry entry;
+            while ((entry = r.readEntry()) != null) {
+                server.add(entry);
+            }
+        } catch (Exception e) {
+            log.error("Cannot load data into LDAP server", e);
+            throw e;
+        }
+    }
 }

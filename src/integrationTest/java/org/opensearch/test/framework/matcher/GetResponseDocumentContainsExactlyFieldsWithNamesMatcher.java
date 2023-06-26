@@ -21,29 +21,31 @@ import static java.util.Objects.isNull;
 
 class GetResponseDocumentContainsExactlyFieldsWithNamesMatcher extends TypeSafeDiagnosingMatcher<GetResponse> {
 
-	private final Set<String> expectedFieldsNames;
+    private final Set<String> expectedFieldsNames;
 
-	GetResponseDocumentContainsExactlyFieldsWithNamesMatcher(String... expectedFieldsNames) {
-		if (isNull(expectedFieldsNames) || expectedFieldsNames.length == 0) {
-			throw new IllegalArgumentException("expectedFieldsNames cannot be null or empty");
-		}
-		this.expectedFieldsNames = Set.of(expectedFieldsNames);
-	}
+    GetResponseDocumentContainsExactlyFieldsWithNamesMatcher(String... expectedFieldsNames) {
+        if (isNull(expectedFieldsNames) || expectedFieldsNames.length == 0) {
+            throw new IllegalArgumentException("expectedFieldsNames cannot be null or empty");
+        }
+        this.expectedFieldsNames = Set.of(expectedFieldsNames);
+    }
 
-	@Override
-	protected boolean matchesSafely(GetResponse response, Description mismatchDescription) {
-		Map<String, Object> sourceMap = response.getSourceAsMap();
-		Set<String> actualFieldsNames = sourceMap.keySet();
-		if (!expectedFieldsNames.equals(actualFieldsNames)) {
-			mismatchDescription.appendValue("Document with id ").appendValue(response.getId())
-					.appendText(" contains fields with names: ").appendValue(actualFieldsNames);
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(GetResponse response, Description mismatchDescription) {
+        Map<String, Object> sourceMap = response.getSourceAsMap();
+        Set<String> actualFieldsNames = sourceMap.keySet();
+        if (!expectedFieldsNames.equals(actualFieldsNames)) {
+            mismatchDescription.appendValue("Document with id ")
+                .appendValue(response.getId())
+                .appendText(" contains fields with names: ")
+                .appendValue(actualFieldsNames);
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Document contain exactly fields with names: ").appendValue(expectedFieldsNames);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Document contain exactly fields with names: ").appendValue(expectedFieldsNames);
+    }
 }

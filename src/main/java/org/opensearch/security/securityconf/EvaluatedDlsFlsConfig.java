@@ -21,14 +21,21 @@ import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.support.WildcardMatcher;
 
 public class EvaluatedDlsFlsConfig {
-    public static EvaluatedDlsFlsConfig EMPTY = new EvaluatedDlsFlsConfig(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+    public static EvaluatedDlsFlsConfig EMPTY = new EvaluatedDlsFlsConfig(
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        Collections.emptyMap()
+    );
 
     private final Map<String, Set<String>> dlsQueriesByIndex;
     private final Map<String, Set<String>> flsByIndex;
     private final Map<String, Set<String>> fieldMaskingByIndex;
 
-    public EvaluatedDlsFlsConfig(Map<String, Set<String>> dlsQueriesByIndex, Map<String, Set<String>> flsByIndex,
-            Map<String, Set<String>> fieldMaskingByIndex) {
+    public EvaluatedDlsFlsConfig(
+        Map<String, Set<String>> dlsQueriesByIndex,
+        Map<String, Set<String>> flsByIndex,
+        Map<String, Set<String>> fieldMaskingByIndex
+    ) {
         this.dlsQueriesByIndex = Collections.unmodifiableMap(dlsQueriesByIndex);
         this.flsByIndex = Collections.unmodifiableMap(flsByIndex);
         this.fieldMaskingByIndex = Collections.unmodifiableMap(fieldMaskingByIndex);
@@ -87,9 +94,12 @@ public class EvaluatedDlsFlsConfig {
             return this;
         } else {
             Set<String> allIndices = indices.getAllIndices();
-            
-            return new EvaluatedDlsFlsConfig(filter(dlsQueriesByIndex, allIndices), filter(flsByIndex, allIndices),
-                    filter(fieldMaskingByIndex, allIndices));
+
+            return new EvaluatedDlsFlsConfig(
+                filter(dlsQueriesByIndex, allIndices),
+                filter(flsByIndex, allIndices),
+                filter(fieldMaskingByIndex, allIndices)
+            );
         }
     }
 
@@ -108,7 +118,7 @@ public class EvaluatedDlsFlsConfig {
 
         HashMap<String, Set<String>> result = new HashMap<>(map.size());
 
-        for (Map.Entry<String, Set<String>> entry : map.entrySet()) {        	        	
+        for (Map.Entry<String, Set<String>> entry : map.entrySet()) {
             if (WildcardMatcher.from(entry.getKey(), false).matchAny(allIndices)) {
                 result.put(entry.getKey(), entry.getValue());
             }
@@ -119,8 +129,13 @@ public class EvaluatedDlsFlsConfig {
 
     @Override
     public String toString() {
-        return "EvaluatedDlsFlsConfig [dlsQueriesByIndex=" + dlsQueriesByIndex + ", flsByIndex=" + flsByIndex + ", fieldMaskingByIndex="
-                + fieldMaskingByIndex + "]";
+        return "EvaluatedDlsFlsConfig [dlsQueriesByIndex="
+            + dlsQueriesByIndex
+            + ", flsByIndex="
+            + flsByIndex
+            + ", fieldMaskingByIndex="
+            + fieldMaskingByIndex
+            + "]";
     }
 
 }

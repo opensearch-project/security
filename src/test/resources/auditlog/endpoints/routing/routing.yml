@@ -19,4 +19,4 @@ plugins.security:
           - endpoint3
       COMPLIANCE_DOC_WRITE:
         endpoints:
-          - default     
+          - default

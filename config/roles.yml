@@ -205,6 +205,8 @@ index_management_full_access:
     - "cluster:admin/opendistro/ism/*"
     - "cluster:admin/opendistro/rollup/*"
     - "cluster:admin/opendistro/transform/*"
+    - "cluster:admin/opensearch/controlcenter/lron/*"
+    - "cluster:admin/opensearch/notifications/channels/get"
     - "cluster:admin/opensearch/notifications/feature/publish"
   index_permissions:
     - index_patterns:
@@ -256,6 +258,7 @@ ml_read_access:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/ml/stats/nodes'
+    - 'cluster:admin/opensearch/ml/model_groups/search'
     - 'cluster:admin/opensearch/ml/models/get'
     - 'cluster:admin/opensearch/ml/models/search'
     - 'cluster:admin/opensearch/ml/tasks/get'

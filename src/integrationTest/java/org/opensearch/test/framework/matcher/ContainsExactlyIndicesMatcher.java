@@ -20,27 +20,27 @@ import static java.util.Objects.isNull;
 
 class ContainsExactlyIndicesMatcher extends TypeSafeDiagnosingMatcher<FieldCapabilitiesResponse> {
 
-	private final Set<String> expectedIndices;
+    private final Set<String> expectedIndices;
 
-	ContainsExactlyIndicesMatcher(String... expectedIndices) {
-		if (isNull(expectedIndices) || expectedIndices.length == 0) {
-			throw new IllegalArgumentException("expectedIndices cannot be null or empty");
-		}
-		this.expectedIndices = Set.of(expectedIndices);
-	}
+    ContainsExactlyIndicesMatcher(String... expectedIndices) {
+        if (isNull(expectedIndices) || expectedIndices.length == 0) {
+            throw new IllegalArgumentException("expectedIndices cannot be null or empty");
+        }
+        this.expectedIndices = Set.of(expectedIndices);
+    }
 
-	@Override
-	protected boolean matchesSafely(FieldCapabilitiesResponse response, Description mismatchDescription) {
-		Set<String> actualIndices = Set.of(response.getIndices());
-		if (!expectedIndices.equals(actualIndices)) {
-			mismatchDescription.appendText("Actual indices: ").appendValue(actualIndices);
-			return false;
-		}
-		return true;
-	}
+    @Override
+    protected boolean matchesSafely(FieldCapabilitiesResponse response, Description mismatchDescription) {
+        Set<String> actualIndices = Set.of(response.getIndices());
+        if (!expectedIndices.equals(actualIndices)) {
+            mismatchDescription.appendText("Actual indices: ").appendValue(actualIndices);
+            return false;
+        }
+        return true;
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Response contains indices: ").appendValue(expectedIndices);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Response contains indices: ").appendValue(expectedIndices);
+    }
 }

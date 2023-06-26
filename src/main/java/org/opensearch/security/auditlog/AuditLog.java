@@ -43,30 +43,38 @@ import org.opensearch.transport.TransportRequest;
 
 public interface AuditLog extends Closeable {
 
-    //login
+    // login
     void logFailedLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
+
     void logSucceededLogin(String effectiveUser, boolean securityadmin, String initiatingUser, RestRequest request);
 
-    //privs
+    // privs
     void logMissingPrivileges(String privilege, String effectiveUser, RestRequest request);
+
     void logGrantedPrivileges(String effectiveUser, RestRequest request);
+
     void logMissingPrivileges(String privilege, TransportRequest request, Task task);
+
     void logGrantedPrivileges(String privilege, TransportRequest request, Task task);
 
     // index event requests
     void logIndexEvent(String privilege, TransportRequest request, Task task);
 
-    //spoof
+    // spoof
     void logBadHeaders(TransportRequest request, String action, Task task);
+
     void logBadHeaders(RestRequest request);
 
     void logSecurityIndexAttempt(TransportRequest request, String action, Task task);
 
     void logSSLException(TransportRequest request, Throwable t, String action, Task task);
+
     void logSSLException(RestRequest request, Throwable t);
 
     void logDocumentRead(String index, String id, ShardId shardId, Map<String, String> fieldNameValues);
+
     void logDocumentWritten(ShardId shardId, GetResult originalIndex, Index currentIndex, IndexResult result);
+
     void logDocumentDeleted(ShardId shardId, Delete delete, DeleteResult result);
 
     // compliance config
@@ -74,12 +82,16 @@ public interface AuditLog extends Closeable {
 
     // set config
     void setConfig(AuditConfig auditConfig);
-    
+
     public enum Origin {
-        REST, TRANSPORT, LOCAL
+        REST,
+        TRANSPORT,
+        LOCAL
     }
 
     public enum Operation {
-        CREATE, UPDATE, DELETE
+        CREATE,
+        UPDATE,
+        DELETE
     }
 }

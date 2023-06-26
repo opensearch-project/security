@@ -21,13 +21,9 @@ import org.apache.logging.log4j.core.LogEvent;
 
 class NodeAndClusterIdConverter {
 
+    public NodeAndClusterIdConverter() {}
 
-	public NodeAndClusterIdConverter() {
-	}
+    public static void setNodeIdAndClusterId(String nodeId, String clusterUUID) {}
 
-	public static void setNodeIdAndClusterId(String nodeId, String clusterUUID) {
-	}
-
-	public void format(LogEvent event, StringBuilder toAppendTo) {
-	}
+    public void format(LogEvent event, StringBuilder toAppendTo) {}
 }

@@ -26,8 +26,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
-public class DateMathTest extends AbstractDlsFlsTest{
-
+public class DateMathTest extends AbstractDlsFlsTest {
 
     protected void populateData(Client tc) {
 
@@ -35,17 +34,25 @@ public class DateMathTest extends AbstractDlsFlsTest{
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         String date = sdf.format(new Date());
-        tc.index(new IndexRequest("logstash-"+date).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"message\":\"mymsg1a\", \"ipaddr\": \"10.0.0.0\",\"msgid\": \"12\"}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("logstash-" + date).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"message\":\"mymsg1a\", \"ipaddr\": \"10.0.0.0\",\"msgid\": \"12\"}", XContentType.JSON)
+        ).actionGet();
 
-        tc.index(new IndexRequest("logstash-"+date).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"message\":\"mymsg1b\", \"ipaddr\": \"10.0.0.1\",\"msgid\": \"14\"}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("logstash-" + date).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"message\":\"mymsg1b\", \"ipaddr\": \"10.0.0.1\",\"msgid\": \"14\"}", XContentType.JSON)
+        ).actionGet();
 
-        tc.index(new IndexRequest("logstash-1-"+date).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"message\":\"mymsg1c\", \"ipaddr\": \"10.0.0.2\",\"msgid\": \"12\"}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("logstash-1-" + date).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"message\":\"mymsg1c\", \"ipaddr\": \"10.0.0.2\",\"msgid\": \"12\"}", XContentType.JSON)
+        ).actionGet();
 
-        tc.index(new IndexRequest("logstash-1-"+date).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
-                .source("{\"message\":\"mymsg1d\", \"ipaddr\": \"10.0.0.3\",\"msgid\": \"14\"}", XContentType.JSON)).actionGet();
+        tc.index(
+            new IndexRequest("logstash-1-" + date).setRefreshPolicy(RefreshPolicy.IMMEDIATE)
+                .source("{\"message\":\"mymsg1d\", \"ipaddr\": \"10.0.0.3\",\"msgid\": \"14\"}", XContentType.JSON)
+        ).actionGet();
     }
 
     @Test
@@ -55,7 +62,10 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -64,7 +74,13 @@ public class DateMathTest extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("mymsg"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty", encodeBasicHeader("opendistro_security_logstash", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest(
+                "%3Clogstash-%7Bnow%2Fd%7D%3E/_search?pretty",
+                encodeBasicHeader("opendistro_security_logstash", "password")
+            )).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -81,13 +97,23 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty", encodeBasicHeader("admin", "admin")))
+                .getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("ipaddr"));
         Assert.assertTrue(res.getBody().contains("message"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty", encodeBasicHeader("opendistro_security_logstash", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest(
+                "%3Clogstash-%7Bnow%2Fd%7D%3E/_field_caps?fields=*&pretty",
+                encodeBasicHeader("opendistro_security_logstash", "password")
+            )).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertFalse(res.getBody().contains("ipaddr"));
         Assert.assertFalse(res.getBody().contains("message"));
@@ -101,7 +127,10 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-*/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("logstash-*/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -110,7 +139,11 @@ public class DateMathTest extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("mymsg"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-*/_search?pretty", encodeBasicHeader("opendistro_security_logstash", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("logstash-*/_search?pretty", encodeBasicHeader("opendistro_security_logstash", "password")))
+                .getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -127,7 +160,10 @@ public class DateMathTest extends AbstractDlsFlsTest{
 
         HttpResponse res;
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-1-*,logstash-20*/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("logstash-1-*,logstash-20*/_search?pretty", encodeBasicHeader("admin", "admin"))).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 4,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
@@ -136,7 +172,10 @@ public class DateMathTest extends AbstractDlsFlsTest{
         Assert.assertTrue(res.getBody().contains("mymsg"));
         Assert.assertTrue(res.getBody().contains("msgid"));
 
-        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("logstash-1-*,logstash-20*/_search?pretty", encodeBasicHeader("regex", "password"))).getStatusCode());
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("logstash-1-*,logstash-20*/_search?pretty", encodeBasicHeader("regex", "password"))).getStatusCode()
+        );
         System.out.println(res.getBody());
         Assert.assertTrue(res.getBody().contains("\"value\" : 2,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));

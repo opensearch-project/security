@@ -33,17 +33,20 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.Plugin;
 
 public class PluginAwareNode extends Node {
-	
-	private final boolean clusterManagerEligible;
 
-	@SafeVarargs
-	public PluginAwareNode(boolean clusterManagerEligible, final Settings preparedSettings, final Class<? extends Plugin>... plugins) {
-		super(InternalSettingsPreparer.prepareEnvironment(preparedSettings, Collections.emptyMap(), null, () -> System.getenv("HOSTNAME")), Arrays.asList(plugins), true);
-		this.clusterManagerEligible = clusterManagerEligible;
-	}
-	
+    private final boolean clusterManagerEligible;
 
-	public boolean isClusterManagerEligible() {
-		return clusterManagerEligible;
-	}
+    @SafeVarargs
+    public PluginAwareNode(boolean clusterManagerEligible, final Settings preparedSettings, final Class<? extends Plugin>... plugins) {
+        super(
+            InternalSettingsPreparer.prepareEnvironment(preparedSettings, Collections.emptyMap(), null, () -> System.getenv("HOSTNAME")),
+            Arrays.asList(plugins),
+            true
+        );
+        this.clusterManagerEligible = clusterManagerEligible;
+    }
+
+    public boolean isClusterManagerEligible() {
+        return clusterManagerEligible;
+    }
 }

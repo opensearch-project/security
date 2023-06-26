@@ -25,39 +25,43 @@ import static java.util.Objects.requireNonNull;
 
 class IndexMappingIsEqualToMatcher extends TypeSafeDiagnosingMatcher<LocalCluster> {
 
-	private final String expectedIndexName;
-	private final Map<String, ?> expectedMapping;
+    private final String expectedIndexName;
+    private final Map<String, ?> expectedMapping;
 
-	IndexMappingIsEqualToMatcher(String expectedIndexName, Map<String, ?> expectedMapping) {
-		this.expectedIndexName = requireNonNull(expectedIndexName);
-		if (isNull(expectedMapping) || expectedMapping.isEmpty()) {
-			throw new IllegalArgumentException("expectedMapping cannot be null or empty");
-		}
-		this.expectedMapping = expectedMapping;
-	}
+    IndexMappingIsEqualToMatcher(String expectedIndexName, Map<String, ?> expectedMapping) {
+        this.expectedIndexName = requireNonNull(expectedIndexName);
+        if (isNull(expectedMapping) || expectedMapping.isEmpty()) {
+            throw new IllegalArgumentException("expectedMapping cannot be null or empty");
+        }
+        this.expectedMapping = expectedMapping;
+    }
 
-	@Override
-	protected boolean matchesSafely(LocalCluster cluster, Description mismatchDescription) {
-		try(Client client = cluster.getInternalNodeClient()) {
-			GetMappingsResponse response = client.admin().indices()
-					.getMappings(new GetMappingsRequest().indices(expectedIndexName)).actionGet();
+    @Override
+    protected boolean matchesSafely(LocalCluster cluster, Description mismatchDescription) {
+        try (Client client = cluster.getInternalNodeClient()) {
+            GetMappingsResponse response = client.admin()
+                .indices()
+                .getMappings(new GetMappingsRequest().indices(expectedIndexName))
+                .actionGet();
 
-			Map<String, Object> actualIndexMapping = response.getMappings().get(expectedIndexName).sourceAsMap();
+            Map<String, Object> actualIndexMapping = response.getMappings().get(expectedIndexName).sourceAsMap();
 
-			if (!expectedMapping.equals(actualIndexMapping)) {
-				mismatchDescription.appendText("Actual mapping ").appendValue(actualIndexMapping).appendText(" does not match expected");
-				return false;
-			}
-			return true;
-		} catch (IndexNotFoundException e) {
-			mismatchDescription.appendText("Index: ").appendValue(expectedIndexName).appendText(" does not exist");
-			return false;
-		}
-	}
+            if (!expectedMapping.equals(actualIndexMapping)) {
+                mismatchDescription.appendText("Actual mapping ").appendValue(actualIndexMapping).appendText(" does not match expected");
+                return false;
+            }
+            return true;
+        } catch (IndexNotFoundException e) {
+            mismatchDescription.appendText("Index: ").appendValue(expectedIndexName).appendText(" does not exist");
+            return false;
+        }
+    }
 
-	@Override
-	public void describeTo(Description description) {
-		description.appendText("Index ").appendValue(expectedIndexName)
-				.appendText(". Mapping should be equal to: ").appendValue(expectedMapping);
-	}
+    @Override
+    public void describeTo(Description description) {
+        description.appendText("Index ")
+            .appendValue(expectedIndexName)
+            .appendText(". Mapping should be equal to: ")
+            .appendValue(expectedMapping);
+    }
 }

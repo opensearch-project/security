@@ -49,10 +49,12 @@ final class LdapServer {
     private static final int LOCK_TIMEOUT = 60;
     private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
-    private static final String LOCK_TIMEOUT_MSG = "Unable to obtain lock due to timeout after " + LOCK_TIMEOUT + " " + TIME_UNIT.toString();
+    private static final String LOCK_TIMEOUT_MSG = "Unable to obtain lock due to timeout after "
+        + LOCK_TIMEOUT
+        + " "
+        + TIME_UNIT.toString();
     private static final String SERVER_NOT_STARTED = "The LDAP server is not started.";
     private static final String SERVER_ALREADY_STARTED = "The LDAP server is already started.";
-
 
     private InMemoryDirectoryServer server;
     private final AtomicBoolean isStarted = new AtomicBoolean(Boolean.FALSE);
@@ -61,9 +63,7 @@ final class LdapServer {
     private int ldapPort = -1;
     private int ldapsPort = -1;
 
-
-    public LdapServer() {
-    }
+    public LdapServer() {}
 
     public boolean isStarted() {
         return this.isStarted.get();
@@ -77,7 +77,7 @@ final class LdapServer {
         return ldapsPort;
     }
 
-    public int  start(String... ldifFiles) throws Exception {
+    public int start(String... ldifFiles) throws Exception {
         boolean hasLock = false;
         try {
             hasLock = serverStateLock.tryLock(LdapServer.LOCK_TIMEOUT, LdapServer.TIME_UNIT);
@@ -89,7 +89,7 @@ final class LdapServer {
                 throw new IllegalStateException(LdapServer.LOCK_TIMEOUT_MSG);
             }
         } catch (InterruptedException ioe) {
-            //lock interrupted
+            // lock interrupted
             LOG.error(ioe.getMessage(), ioe);
         } finally {
             if (hasLock) {
@@ -112,8 +112,10 @@ final class LdapServer {
 
         String serverKeyStorePath = FileHelper.getAbsoluteFilePathFromClassPath("ldap/node-0-keystore.jks").toFile().getAbsolutePath();
         final SSLUtil serverSSLUtil = new SSLUtil(
-                new KeyStoreKeyManager(serverKeyStorePath, "changeit".toCharArray()), new TrustStoreTrustManager(serverKeyStorePath));
-        //final SSLUtil clientSSLUtil = new SSLUtil(new TrustStoreTrustManager(serverKeyStorePath));
+            new KeyStoreKeyManager(serverKeyStorePath, "changeit".toCharArray()),
+            new TrustStoreTrustManager(serverKeyStorePath)
+        );
+        // final SSLUtil clientSSLUtil = new SSLUtil(new TrustStoreTrustManager(serverKeyStorePath));
 
         ldapPort = SocketUtils.findAvailableTcpPort();
         ldapsPort = SocketUtils.findAvailableTcpPort();
@@ -127,10 +129,9 @@ final class LdapServer {
     private final String loadFile(final String file) throws IOException {
         String ldif;
 
-        try (final Reader reader = new InputStreamReader(this.getClass().getResourceAsStream("/ldap/" + file),StandardCharsets.UTF_8)) {
+        try (final Reader reader = new InputStreamReader(this.getClass().getResourceAsStream("/ldap/" + file), StandardCharsets.UTF_8)) {
             ldif = CharStreams.toString(reader);
         }
-
 
         ldif = ldif.replace("${hostname}", "localhost");
         ldif = ldif.replace("${port}", String.valueOf(ldapPort));
@@ -146,14 +147,14 @@ final class LdapServer {
         final String rootObjectDN = "o=TEST";
         InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig(new DN(rootObjectDN));
 
-        config.setSchema(schema);  //schema can be set on the rootDN too, per javadoc.
+        config.setSchema(schema);  // schema can be set on the rootDN too, per javadoc.
         config.setListenerConfigs(listenerConfigs);
         config.setEnforceAttributeSyntaxCompliance(false);
         config.setEnforceSingleStructuralObjectClass(false);
 
-        //config.setLDAPDebugLogHandler(DEBUG_HANDLER);
-        //config.setAccessLogHandler(DEBUG_HANDLER);
-        //config.addAdditionalBindCredentials(configuration.getBindDn(), configuration.getPassword());
+        // config.setLDAPDebugLogHandler(DEBUG_HANDLER);
+        // config.setAccessLogHandler(DEBUG_HANDLER);
+        // config.addAdditionalBindCredentials(configuration.getBindDn(), configuration.getPassword());
 
         server = new InMemoryDirectoryServer(config);
 
@@ -185,7 +186,7 @@ final class LdapServer {
                 throw new IllegalStateException(LdapServer.LOCK_TIMEOUT_MSG);
             }
         } catch (InterruptedException ioe) {
-            //lock interrupted
+            // lock interrupted
             LOG.debug(ExceptionUtils.getStackTrace(ioe));
         } finally {
             if (hasLock) {
@@ -198,13 +199,13 @@ final class LdapServer {
         int ldifLoadCount = 0;
         for (String ldif : ldifFiles) {
             ldifLoadCount++;
-            try (LDIFReader r = new LDIFReader(new BufferedReader(new StringReader(loadFile(ldif))))){
+            try (LDIFReader r = new LDIFReader(new BufferedReader(new StringReader(loadFile(ldif))))) {
                 Entry entry = null;
                 while ((entry = r.readEntry()) != null) {
                     server.add(entry);
                     ldifLoadCount++;
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 LOG.error(e.toString(), e);
                 throw e;
             }

@@ -1,5 +1,5 @@
 {
-  
+
        "dynamic":{
           "filtered_alias_mode":"warn",
           "disable_rest_auth": false,
@@ -29,13 +29,13 @@
                    "challenge":true,
                    "type":"kerberos",
                    "config":{
- 
+
                    }
                 },
                 "authentication_backend":{
                    "type":"noop",
                    "config":{
- 
+
                    }
                 },
                 "description":"Migrated from v6"
@@ -48,13 +48,13 @@
                    "challenge":true,
                    "type":"clientcert",
                    "config":{
- 
+
                    }
                 },
                 "authentication_backend":{
                    "type":"noop",
                    "config":{
- 
+
                    }
                 },
                 "description":"Migrated from v6"
@@ -74,7 +74,7 @@
                 "authentication_backend":{
                    "type":"noop",
                    "config":{
- 
+
                    }
                 },
                 "description":"Migrated from v6"
@@ -87,13 +87,13 @@
                    "challenge":true,
                    "type":"basic",
                    "config":{
- 
+
                    }
                 },
                 "authentication_backend":{
                    "type":"intern",
                    "config":{
- 
+
                    }
                 },
                 "description":"Migrated from v6"
@@ -106,7 +106,7 @@
                 "authorization_backend":{
                    "type":"xxx",
                    "config":{
- 
+
                    }
                 },
                 "description":"Migrated from v6"
@@ -127,12 +127,12 @@
              }
           },
           "auth_failure_listeners":{
- 
+
           },
           "do_not_fail_on_forbidden":false,
           "multi_rolespan_enabled":false,
           "hosts_resolver_mode":"ip-only",
           "do_not_fail_on_forbidden_empty":false
        }
-    
+
  }
