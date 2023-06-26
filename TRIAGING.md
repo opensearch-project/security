@@ -26,8 +26,7 @@ Meetings are lightly structured as follows:
 2. Review of new issues: The meetings always start with reviewing all untriaged [issues](https://github.com/search?q=label%3Auntriaged+is%3Aopen++repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=issues&ref=advsearch&s=created&o=desc) for the security and security-dashboards repositories.
 3. Untriaged items: Review any [issues](https://github.com/search?q=-label%3Atriaged+is%3Aopen++is%3Aissue+repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=issues) that might have had the 'untriaged' label removed but require additional triage discussion.
 4. Pull request discussion: Then, we review the status of outstanding [pull requests](https://github.com/search?q=+is%3Aopen++repo%3Aopensearch-project%2Fsecurity+repo%3Aopensearch-project%2Fsecurity-dashboards-plugin&type=pullrequests&ref=advsearch) from the security and security-dashboards repositories.
-5. Security labeled issues: Some repositories make use of a "Security" label on issues which have security ramifications; we review all issues in the project labeled with the ["Security" tag](https://github.com/search?q=org%3Aopensearch-project+label%3ASecurity+is%3Aopen&type=issues).
-6. Open discussion: Finally, we open the floor in case anyone wants to highlight an issue.
+5. Open discussion: Finally, we open the floor in case anyone wants to highlight an issue.
 
 There is no specific ordering within each category.
 
