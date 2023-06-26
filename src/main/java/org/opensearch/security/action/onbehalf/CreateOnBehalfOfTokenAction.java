@@ -110,8 +110,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                     final Integer tokenDuration = Optional.ofNullable(requestBody.get("duration"))
                             .map(value -> (String)value)
                             .map(Integer::parseInt)
-                            .map(value -> Math.min(value, 72 * 3600)) // Max duration is 72 hours
-                            .orElse(24 * 3600); // Fallback to default;
+                            .map(value -> Math.min(value, 10 * 60)) // Max duration is 10 minutes
+                            .orElse(5 * 60); // Fallback to default of 5 minutes;
 
                     final String source = "self-issued";
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
@@ -120,7 +120,10 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
                     builder.startObject();
                     builder.field("user", user.getName());
-                    final String token = vendor.createJwt(/* TODO: Update the issuer to represent the cluster */"OpenSearch",
+
+                    /* TODO: Update the issuer to represent the cluster */
+                    final String token = vendor.createJwt(
+                            "OpenSearch",
                             user.getName(),
                             source,
                             tokenDuration,
