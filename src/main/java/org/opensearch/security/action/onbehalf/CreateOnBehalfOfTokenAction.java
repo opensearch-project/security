@@ -40,7 +40,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class CreateOnBehalfOfToken extends BaseRestHandler {
+public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private JwtVendor vendor;
     private final ThreadPool threadPool;
@@ -64,7 +64,7 @@ public class CreateOnBehalfOfToken extends BaseRestHandler {
         }
     }
 
-    public CreateOnBehalfOfToken(final Settings settings, final ThreadPool threadPool) {
+    public CreateOnBehalfOfTokenAction(final Settings settings, final ThreadPool threadPool) {
         this.threadPool = threadPool;
     }
 

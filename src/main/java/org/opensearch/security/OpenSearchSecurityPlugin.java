@@ -117,7 +117,7 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
-import org.opensearch.security.action.onbehalf.CreateOnBehalfOfToken;
+import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -478,7 +478,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
                 handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                CreateOnBehalfOfToken cobot = new CreateOnBehalfOfToken(settings, threadPool);
+                CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool);
                 dcf.registerDCFListener(cobot);
                 handlers.add(cobot);
                 handlers.addAll(
