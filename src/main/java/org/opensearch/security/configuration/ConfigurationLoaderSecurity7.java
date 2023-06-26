@@ -222,6 +222,7 @@ public class ConfigurationLoaderSecurity7 {
 
         mget.refresh(true);
         mget.realtime(true);
+        mget.preference("_primary");
 
         client.multiGet(mget, new ActionListener<MultiGetResponse>() {
             @Override
