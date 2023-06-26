@@ -181,9 +181,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             jwtToken = null;
         }
 
-        final int index;
-        if(jwtToken != null && (index = jwtToken.toLowerCase().indexOf(BEARER_PREFIX)) > -1) { //detect Bearer
-            jwtToken = jwtToken.substring(index+BEARER_PREFIX.length());
+        if(jwtToken != null && Pattern.compile(BEARER_PREFIX).matcher(jwtToken.toLowerCase()).find()) {
+                jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
         } else {
             if(log.isDebugEnabled()) {
                 log.debug("No Bearer scheme found in header");
