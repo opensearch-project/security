@@ -26,6 +26,49 @@ jobs:
       run: |
         echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
+  test:
+    name: citest
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [11, 17]
+        platform: ["ubuntu-latest", "windows-latest"]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v2
+
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: |
+          citest -Dbuild.snapshot=false
+          -x test
+
+    - name: Coverage
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./build/reports/jacoco/test/jacocoTestReport.xml
+
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
+        path: |
+          ./build/reports/
+
+    - name: check archive for debugging
+      if: always()
+      run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
+
   build:
     name: build
     needs: generate-test-list
