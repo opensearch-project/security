@@ -173,6 +173,9 @@ def splitTestConfig = [
 List<String> taskNames = splitTestConfig.keySet() as List
 
 task listTasksAsJSON {
+    // We are using `doLast` to explicitly specify when we
+    // want this action to be started. Without it the output
+    // is not shown at all or can be mixed with other outputs.
     doLast {
         System.out.println(new JsonBuilder(taskNames))
     }
