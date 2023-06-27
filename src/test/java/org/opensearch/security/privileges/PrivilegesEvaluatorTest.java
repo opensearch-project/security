@@ -58,5 +58,4 @@ public class PrivilegesEvaluatorTest extends SingleClusterTest {
         response = rh.executeGetRequest("r*/_search", NegatedRegexUserHeader);
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
     }
-
 }
