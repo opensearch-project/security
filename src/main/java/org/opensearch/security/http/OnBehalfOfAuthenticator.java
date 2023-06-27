@@ -104,8 +104,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         List<String> roles;
 
         if (rolesObject == null) {
-            log.warn(
-                    "Failed to get roles from JWT claims. Check if this key is correct and available in the JWT payload.");
+            log.warn("This is a malformed On-behalf-of Token");
             roles = List.of();
         } else {
             final String rolesClaim = rolesObject.toString();
@@ -131,8 +130,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         String[] backendRoles;
 
         if (backendRolesObject == null) {
-            log.warn(
-                    "Failed to get backend roles from JWT claims. Check if this key is correct and available in the JWT payload.");
+            log.warn("This is a malformed On-behalf-of Token");
             backendRoles = new String[0];
         } else {
             final String backendRolesClaim = backendRolesObject.toString();
