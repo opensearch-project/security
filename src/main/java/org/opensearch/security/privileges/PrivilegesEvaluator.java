@@ -727,7 +727,7 @@ public class PrivilegesEvaluator {
                 }
 
                 final Iterator<String> it = aliases.keySet().iterator();
-                while(it.hasNext()) {
+                while (it.hasNext()) {
                     final String alias = it.next();
                     final AliasMetadata aliasMetadata = aliases.get(alias);
 
