@@ -26,13 +26,13 @@ jobs:
       run: |
         echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
-  test:
-    name: citest
+  tests:
+    name: tests
     strategy:
       fail-fast: false
       matrix:
+        platform: ["windows-latest", "ubuntu-latest"]
         jdk: [11, 17]
-        platform: ["ubuntu-latest", "windows-latest"]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -69,14 +69,14 @@ jobs:
       if: always()
       run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
-  build:
-    name: build
+  test:
+    name: test
     needs: generate-test-list
     strategy:
       fail-fast: false
       matrix:
+        platform: ["windows-latest", "ubuntu-latest"]
         jdk: [11, 17]
-        platform: ["ubuntu-latest", "windows-latest"]
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
     runs-on: ${{ matrix.platform }}
 
