@@ -179,9 +179,9 @@ public class SecurityRestFilter {
             }
             if (pres.isAllowed()) {
                 log.debug("Request has been granted");
-                // auditLog.logGrantedPrivileges(action, request, task);
+                auditLog.logGrantedPrivileges(user.getName(), request);
             } else {
-                // auditLog.logMissingPrivileges(action, request, task);
+                auditLog.logMissingPrivileges(route.name(), user.getName(), request);
                 String err;
                 if (!pres.getMissingSecurityRoles().isEmpty()) {
                     err = String.format("No mapping for %s on roles %s", user, pres.getMissingSecurityRoles());
