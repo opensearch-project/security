@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
-      testsNamesExclude: ${{ steps.set-matrix.outputs.testsNamesExclude }}
     steps:
     - name: Set up JDK for build and test
       uses: actions/setup-java@v2
@@ -26,58 +25,15 @@ jobs:
       run: |
         echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
 
-  tests:
-    name: tests
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ["windows-latest", "ubuntu-latest"]
-        jdk: [11, 17]
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-    - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
-      with:
-        distribution: temurin
-        java-version: ${{ matrix.jdk }}
-
-    - name: Checkout security
-      uses: actions/checkout@v2
-
-    - name: Build and Test
-      uses: gradle/gradle-build-action@v2
-      with:
-        arguments: |
-          citest -Dbuild.snapshot=false
-          -x test
-
-    - name: Coverage
-      uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./build/reports/jacoco/test/jacocoTestReport.xml
-
-    - uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports
-        path: |
-          ./build/reports/
-
-    - name: check archive for debugging
-      if: always()
-      run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
-
   test:
     name: test
     needs: generate-test-list
     strategy:
       fail-fast: false
       matrix:
-        platform: ["windows-latest", "ubuntu-latest"]
-        jdk: [11, 17]
         gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
+        platform: [windows-latest, ubuntu-latest]
+        jdk: [11, 17]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -120,7 +76,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [17]
-        platform: ["ubuntu-latest", "windows-latest"]
+        platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -149,7 +105,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [11, 17]
-        platform: ["ubuntu-latest", "windows-latest"]
+        platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:

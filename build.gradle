@@ -107,6 +107,25 @@ tasks.whenTaskAdded {task ->
 }
 
 def splitTestConfig = [
+    ciSecurityIntegrationTest: [
+        description: "Runs integration tests from all classes.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.*Integ*"
+            ],
+            excludeTestsMatching: [
+                "org.opensearch.security.sanity.tests.*"
+            ]
+        ]
+    ],
+    crossClusterTest: [
+        description: "Runs cross-cluster tests.",
+        filters: [
+            includeTestsMatching: [
+                    "org.opensearch.security.ccstest.*"
+            ]
+        ]
+    ],
     dlicDlsflsTest: [
         description: "Runs Document- and Field-Level Security tests.",
         filters: [
@@ -123,13 +142,20 @@ def splitTestConfig = [
             ]
         ]
     ],
-    crossClusterTest: [
-        description: "Runs cross-cluster tests.",
+    indicesTest: [
+        description: "Runs indices tests from all classes.",
         filters: [
             includeTestsMatching: [
-                    "org.opensearch.security.ccstest.*"
+                "org.opensearch.security.*indices*"
+            ],
+            excludeTestsMatching: [
+                "org.opensearch.security.sanity.tests.*"
             ]
         ]
+    ],
+    opensslCITest: [
+        description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
+        include: '**/OpenSSL*.class'
     ],
     sslTest: [
         description: "Runs most of the SSL tests.",
@@ -139,32 +165,6 @@ def splitTestConfig = [
             ],
             excludeTestsMatching: [
                 "org.opensearch.security.ssl.OpenSSL*"
-            ]
-        ]
-    ],
-    opensslCiTest: [
-        description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
-        include: '**/OpenSSL*.class'
-    ],
-    securityIntegrationTest: [
-        description: "Runs integration tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*Integ*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
-        ]
-    ],
-    indicesTest: [
-        description: "Runs indices tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*indices*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
             ]
         ]
     ]
@@ -177,7 +177,7 @@ task listTasksAsJSON {
     // want this action to be started. Without it the output
     // is not shown at all or can be mixed with other outputs.
     doLast {
-        System.out.println(new JsonBuilder(taskNames))
+        System.out.println(new JsonBuilder(["citest"] + taskNames))
     }
 }
 
@@ -269,7 +269,7 @@ task citest(type: Test) {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
         excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
         splitTestConfig.each { entry ->
-            entry.value.each{ test ->
+            entry.value.filters.each{ test ->
                 if (test.key == "includeTestsMatching") {
                     test.value.each{
                         excludeTestsMatching "${it}"
