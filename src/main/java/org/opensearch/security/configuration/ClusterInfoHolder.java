@@ -112,7 +112,7 @@ public class ClusterInfoHolder implements ClusterStateListener {
     }
 
     private static boolean clusterHas6xIndices(ClusterState state) {
-        final Iterator<IndexMetadata> indices = state.metadata().indices().valuesIt();
+        final Iterator<IndexMetadata> indices = state.metadata().indices().values().iterator();
         while (indices.hasNext()) {
             final IndexMetadata indexMetadata = indices.next();
             if (indexMetadata.getCreationVersion().before(LegacyESVersion.V_7_0_0)) {
