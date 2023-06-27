@@ -1,4 +1,4 @@
-## 2023-05-29 Version 1.3.11.0
+## 2023-06-29 Version 1.3.11.0
 
 Compatible with OpenSearch 1.3.11
 
