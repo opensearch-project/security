@@ -305,7 +305,7 @@ public class UserService {
             final Map accountAttributes = internalUserEntry.getAttributes();
             final String accountName = entry.getKey();
             if (accountAttributes.getOrDefault("service", "false").equals("false")) {
-                    nonServiceAccounts.add(accountName);
+                nonServiceAccounts.add(accountName);
             }
         }
         configuration.remove(nonServiceAccounts);
@@ -326,5 +326,3 @@ public class UserService {
     }
 
 }
-
-

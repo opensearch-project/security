@@ -152,16 +152,15 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         final int SERVICE_ACCOUNTS_IN_SETTINGS = 1;
         final int INTERNAL_ACCOUNTS_IN_SETTINGS = 19;
 
-
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/internalaccounts");
 
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
-        JsonNode list =  DefaultObjectMapper.readTree(response.getBody());
+        JsonNode list = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/serviceaccounts");
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
-        list =  DefaultObjectMapper.readTree(response.getBody());
+        list = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, list.size());
 
         response = rh.executeGetRequest(ENDPOINT + "/internalusers/serviceaccounts?wrongparameter=jhondoe");

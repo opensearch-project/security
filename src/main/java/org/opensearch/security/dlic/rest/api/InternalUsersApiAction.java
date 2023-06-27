@@ -55,7 +55,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
-
     public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
     public static final String PLUGINS_PREFIX = "_plugins/_security";
     public static final String SERVICE_ACCOUNTS_ENDPOINT = "/internalusers/serviceaccounts";
@@ -121,8 +120,9 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     protected Endpoint getEndpoint() {
         return Endpoint.INTERNALUSERS;
     }
+
     @Override
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
+    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
         final String resourcename = request.param("name");
 
         SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
@@ -153,7 +153,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         successResponse(channel, configuration);
 
     }
-
 
     @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)

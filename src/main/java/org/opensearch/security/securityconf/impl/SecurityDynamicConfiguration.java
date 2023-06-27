@@ -293,12 +293,12 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     public void remove(String key) {
-       centries.remove(key);
+        centries.remove(key);
     }
 
     @JsonIgnore
     public void remove(List<String> keySet) {
-       keySet.stream().forEach(this::remove);
+        keySet.stream().forEach(this::remove);
 
         centries.remove(key);
     }
