@@ -57,8 +57,6 @@ import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidat
 import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator.ErrorType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
-import org.opensearch.security.securityconf.Hideable;
-import org.opensearch.security.securityconf.StaticDefinable;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
@@ -588,21 +586,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected final boolean isReserved(SecurityDynamicConfiguration<?> configuration, String resourceName) {
-        if (isStatic(configuration, resourceName)) { // static is also always reserved
-            return true;
-        }
-
-        final Object o = configuration.getCEntry(resourceName);
-        return o != null && o instanceof Hideable && ((Hideable) o).isReserved();
+        return configuration.isStatic(resourceName) || configuration.isReserved(resourceName);
     }
 
     protected final boolean isHidden(SecurityDynamicConfiguration<?> configuration, String resourceName) {
         return configuration.isHidden(resourceName) && !isSuperAdmin();
-    }
-
-    protected final boolean isStatic(SecurityDynamicConfiguration<?> configuration, String resourceName) {
-        final Object o = configuration.getCEntry(resourceName);
-        return o != null && o instanceof StaticDefinable && ((StaticDefinable) o).isStatic();
     }
 
     /**
@@ -636,7 +624,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
      * @return True if resource readonly
      */
     protected boolean isReadOnly(final SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        return isSuperAdmin() ? false : isReserved(existingConfiguration, name);
+        return !isSuperAdmin() && isReserved(existingConfiguration, name);
     }
 
     /**

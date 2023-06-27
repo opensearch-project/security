@@ -7,15 +7,15 @@ opendistro_security_unittest_1:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "*"
+    - "*"
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "*"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "*"
   tenant_permissions: []
 opendistro_security_role_starfleet_library:
   reserved: true
@@ -66,15 +66,15 @@ opendistro_security_internal:
   hidden: true
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_ALL"
+    - "OPENDISTRO_SECURITY_CLUSTER_ALL"
   index_permissions:
-  - index_patterns:
-    - "abc*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "ALL"
+    - index_patterns:
+        - "abc*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
   tenant_permissions: []
 opendistro_security_role_klingons1:
   reserved: false
@@ -82,13 +82,13 @@ opendistro_security_role_klingons1:
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions: []
   index_permissions:
-  - index_patterns:
-    - "klingonempire"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "READ_UT"
+    - index_patterns:
+        - "klingonempire"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "READ_UT"
   tenant_permissions: []
 opendistro_security_role_klingons2:
   reserved: false
@@ -96,50 +96,50 @@ opendistro_security_role_klingons2:
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions: []
   index_permissions:
-  - index_patterns:
-    - "klingonempire"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "READ_UT"
+    - index_patterns:
+        - "klingonempire"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "READ_UT"
   tenant_permissions: []
 opendistro_security_kibana4:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:monitor/nodes/info"
-  - "cluster:monitor/health"
+    - "cluster:monitor/health"
+    - "cluster:monitor/nodes/info"
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "indices:data/read/search-"
-    - "indices:data/read/msearch"
-    - "indices:admin/get"
-    - "indices:admin/validate/query"
-    - "indices:admin/mappings/fields/get"
-  - index_patterns:
-    - "?kibana"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "indices:data/write/index"
-    - "indices:data/write/delete"
-    - "indices:data/write/update"
-    - "indices:admin/mapping/put"
-    - "indices:data/read/get"
-    - "indices:admin/refresh"
-    - "indices:admin/validate/query"
-    - "indices:data/read/search"
-    - "indices:admin/mappings/fields/get"
-    - "indices:admin/exists"
-    - "indices:data/read/mget"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "indices:admin/get"
+        - "indices:admin/mappings/fields/get"
+        - "indices:admin/validate/query"
+        - "indices:data/read/msearch"
+        - "indices:data/read/search-"
+    - index_patterns:
+        - "?kibana"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "indices:data/write/index"
+        - "indices:data/write/delete"
+        - "indices:data/write/update"
+        - "indices:admin/mapping/put"
+        - "indices:data/read/get"
+        - "indices:admin/refresh"
+        - "indices:admin/validate/query"
+        - "indices:data/read/search"
+        - "indices:admin/mappings/fields/get"
+        - "indices:admin/exists"
+        - "indices:data/read/mget"
   tenant_permissions: []
 opendistro_security_theindex_admin:
   reserved: false
@@ -147,35 +147,35 @@ opendistro_security_theindex_admin:
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions: []
   index_permissions:
-  - index_patterns:
-    - "theindex"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "ALL"
+    - index_patterns:
+        - "theindex"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
   tenant_permissions: []
 opendistro_security_power_user:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
+    - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "ALL"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
   tenant_permissions: []
 opendistro_security_transport_client:
   reserved: true
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:monitor/nodes/liveness"
+    - "cluster:monitor/nodes/liveness"
   index_permissions: []
   tenant_permissions: []
 opendistro_security_remote_marvel_agent:
@@ -183,61 +183,61 @@ opendistro_security_remote_marvel_agent:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "indices:admin/template/put"
-  - "indices:admin/template/get"
+    - "indices:admin/template/get"
+    - "indices:admin/template/put"
   index_permissions:
-  - index_patterns:
-    - "?marvel-opensearch-*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "ALL"
+    - index_patterns:
+        - "?marvel-opensearch-*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
   tenant_permissions: []
 opendistro_security_zdummy_all:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:*"
+    - "cluster:*"
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "ALL"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
   tenant_permissions: []
 opendistro_security_admin:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "OPENDISTRO_SECURITY_CLUSTER_ALL"
+    - "OPENDISTRO_SECURITY_CLUSTER_ALL"
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "ALL"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
   tenant_permissions: []
 opendistro_security_all_access:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:*"
+    - "cluster:*"
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "ALL"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "ALL"
   tenant_permissions: []
 opendistro_security_marvel_user:
   reserved: false
@@ -245,64 +245,64 @@ opendistro_security_marvel_user:
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions: []
   index_permissions:
-  - index_patterns:
-    - "?marvel-opensearch-*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "READ_UT"
-  - index_patterns:
-    - "?kibana"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "indices:data/read/get"
-    - "indices:admin/validate/query"
-    - "indices:data/read/search"
-    - "indices:admin/mappings/fields/get"
-    - "indices:admin/exists"
-    - "indices:data/read/mget"
+    - index_patterns:
+        - "?marvel-opensearch-*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "READ_UT"
+    - index_patterns:
+        - "?kibana"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "indices:data/read/get"
+        - "indices:admin/validate/query"
+        - "indices:data/read/search"
+        - "indices:admin/mappings/fields/get"
+        - "indices:admin/exists"
+        - "indices:data/read/mget"
   tenant_permissions: []
 opendistro_security_logstash:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "indices:admin/template/get"
-  - "indices:admin/template/put"
+    - "indices:admin/template/get"
+    - "indices:admin/template/put"
   index_permissions:
-  - index_patterns:
-    - "logstash-*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "indices:data/write/delete"
-    - "indices:data/write/update"
-    - "indices:data/read/scroll"
-    - "indices:data/write/bulk"
-    - "indices:data/read/search"
-    - "OPENDISTRO_SECURITY_CREATE_INDEX"
+    - index_patterns:
+        - "logstash-*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "OPENDISTRO_SECURITY_CREATE_INDEX"
+        - "indices:data/read/scroll"
+        - "indices:data/read/search"
+        - "indices:data/write/bulk"
+        - "indices:data/write/delete"
+        - "indices:data/write/update"
   tenant_permissions: []
 opendistro_security_flsdls:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "*"
+    - "*"
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: "{\"term\" : {\"_type\" : \"legends\"}}"
-    fls:
-    - "fieldx"
-    - "field2.b"
-    - "field3.m.*"
-    masked_fields: null
-    allowed_actions:
-    - "*"
+    - index_patterns:
+        - "*"
+      dls: "{\"term\" : {\"_type\" : \"legends\"}}"
+      fls:
+        - "fieldx"
+        - "field2.b"
+        - "field3.m.*"
+      masked_fields: null
+      allowed_actions:
+        - "*"
   tenant_permissions: []
 opendistro_security_user:
   reserved: false
@@ -310,88 +310,88 @@ opendistro_security_user:
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions: []
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "READ_UT"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "READ_UT"
   tenant_permissions: []
 opendistro_security_kibana4_server:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:monitor/nodes/info"
-  - "cluster:monitor/health"
+    - "cluster:monitor/health"
+    - "cluster:monitor/nodes/info"
   index_permissions:
-  - index_patterns:
-    - "?kibana"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "indices:data/write/index"
-    - "indices:data/write/delete"
-    - "indices:data/write/update"
-    - "indices:admin/mapping/put"
-    - "indices:data/read/get"
-    - "indices:admin/refresh"
-    - "indices:admin/validate/query"
-    - "indices:data/read/search"
-    - "indices:admin/mappings/fields/get"
-    - "indices:admin/create"
-    - "indices:admin/exists"
-    - "indices:data/read/mget"
+    - index_patterns:
+        - "?kibana"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "indices:admin/create"
+        - "indices:admin/exists"
+        - "indices:admin/mapping/put"
+        - "indices:admin/mappings/fields/get"
+        - "indices:admin/refresh"
+        - "indices:admin/validate/query"
+        - "indices:data/read/get"
+        - "indices:data/read/mget"
+        - "indices:data/read/search"
+        - "indices:data/write/delete"
+        - "indices:data/write/index"
+        - "indices:data/write/update"
   tenant_permissions: []
 opendistro_security_role_starfleet:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:monitor*"
-  - "indices:data/read/scroll"
-  - "*bulk*"
-  index_permissions:
-  - index_patterns:
-    - "sf"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "READ_UT"
     - "*bulk*"
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "READ_UT"
+    - "cluster:monitor*"
+    - "indices:data/read/scroll"
+  index_permissions:
+    - index_patterns:
+        - "sf"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "*bulk*"
+        - "READ_UT"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "READ_UT"
   tenant_permissions: []
 opendistro_security_role_starfleet_captains:
   reserved: false
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:monitor*"
-  - "*bulk*"
+    - "*bulk*"
+    - "cluster:monitor*"
   index_permissions:
-  - index_patterns:
-    - "sf"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "CRUD_UT"
-  - index_patterns:
-    - "public"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "CRUD_UT"
+    - index_patterns:
+        - "sf"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "CRUD_UT"
+    - index_patterns:
+        - "public"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "CRUD_UT"
   tenant_permissions: []
 rest_api_admin_full_access:
   reserved: true

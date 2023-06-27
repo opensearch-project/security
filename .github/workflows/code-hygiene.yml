@@ -57,3 +57,26 @@ jobs:
       - uses: gradle/gradle-build-action@v2
         with:
           arguments: spotbugsMain
+
+  check-permissions-order:
+    runs-on: ubuntu-latest
+    name: Check permissions orders
+    steps:
+    - uses: actions/checkout@v2
+    - run: npm install yaml
+
+    - name: Check permissions order
+      run: |
+        exclude_pattern="(^|/)roles_invalidxcontent.yml($|/)
+                          (^|/)invalid_config/config.yml($|/)"
+        # Set pattern to exclude certain files
+        set -e
+        exit_code=0
+        for file in $(find . -name '*.yml' | grep -Ev "$exclude_pattern"); do
+          if ! node check-permissions-order.js "$file" --slient; then
+            exit_code=1
+            echo "Error: $file requires changes. Run the following command to fix:"
+            echo "node check-permissions-order.js $file --fix"
+          fi
+        done
+        exit $exit_code
