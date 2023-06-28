@@ -95,10 +95,6 @@ jobs:
       with:
         arguments: |
           integrationTest -Dbuild.snapshot=false
-          -x spotlessCheck
-          -x checkstyleMain
-          -x checkstyleTest
-          -x spotbugsMain
 
   backward-compatibility:
     strategy:
