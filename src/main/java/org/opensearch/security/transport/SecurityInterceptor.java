@@ -150,7 +150,6 @@ public class SecurityInterceptor {
         final DiscoveryNode localNode = OpenSearchSecurityPlugin.getLocalNode();
         boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
 
-
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
@@ -272,7 +271,7 @@ public class SecurityInterceptor {
         TransportAddress transportAddress = null;
         if (remoteAdr != null && remoteAdr instanceof TransportAddress) {
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
-            if(remoteAddressHeader == null) {
+            if (remoteAddressHeader == null) {
                 transportAddress = (TransportAddress) remoteAdr;
             }
         }
@@ -284,16 +283,20 @@ public class SecurityInterceptor {
             }
 
             if (origUser != null) {
-                // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be stah.
+                // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be
+                // stah.
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, origUser);
-            } else if(StringUtils.isNotEmpty(injectedRolesString)) {
+            } else if (StringUtils.isNotEmpty(injectedRolesString)) {
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesString);
-            } else if(StringUtils.isNotEmpty(injectedUserString)) {
+            } else if (StringUtils.isNotEmpty(injectedUserString)) {
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserString);
             }
         } else {
-            if(transportAddress != null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER, Base64Helper.serializeObject(transportAddress.address()));
+            if (transportAddress != null) {
+                getThreadContext().putHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER,
+                    Base64Helper.serializeObject(transportAddress.address())
+                );
             }
 
             final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);

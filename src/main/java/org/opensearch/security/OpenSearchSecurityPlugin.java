@@ -1879,8 +1879,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         return field;
     }
 
-    public static DiscoveryNode getLocalNode(){
+    public static DiscoveryNode getLocalNode() {
         return localNode;
+    }
+
+    public static void setLocalNode(DiscoveryNode node) {
+        localNode = node;
     }
 
     public static class GuiceHolder implements LifecycleComponent {
