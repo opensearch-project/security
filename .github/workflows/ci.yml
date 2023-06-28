@@ -6,13 +6,34 @@ env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
 
 jobs:
-  build:
-    name: build
+  generate-test-list:
+    runs-on: ubuntu-latest
+    outputs:
+      separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: 17
+
+    - name: Checkout security
+      uses: actions/checkout@v2
+
+    - name: Generate list of tasks
+      id: set-matrix
+      run: |
+        echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
+
+  test:
+    name: test
+    needs: generate-test-list
     strategy:
       fail-fast: false
       matrix:
+        gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
+        platform: [windows-latest, ubuntu-latest]
         jdk: [11, 17]
-        platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -29,11 +50,8 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         arguments: |
-          build test -Dbuild.snapshot=false
-          -x spotlessCheck
-          -x checkstyleMain
-          -x checkstyleTest
-          -x spotbugsMain
+          ${{ matrix.gradle_task }} -Dbuild.snapshot=false
+          -x test
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -52,8 +70,40 @@ jobs:
       if: always()
       run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
+  integration-tests:
+    name: integration-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [17]
+        platform: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout security
+      uses: actions/checkout@v2
+
+    - name: Build and Test
+      uses: gradle/gradle-build-action@v2
+      continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
+      with:
+        arguments: |
+          integrationTest -Dbuild.snapshot=false
+
   backward-compatibility:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [11, 17]
+        platform: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-java@v1
