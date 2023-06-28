@@ -8,6 +8,7 @@
 
 package org.opensearch.security.transport;
 
+// CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -49,6 +50,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+// CS-ENFORCE-SINGLE
 
 public class SecurityInterceptorTests {
 
@@ -120,6 +122,7 @@ public class SecurityInterceptorTests {
             emptySet()
         );
 
+        // CS-SUPPRESS-SINGLE: RegexpSingleline Extensions manager used for creating a mock
         OpenSearchSecurityPlugin.GuiceHolder guiceHolder = new OpenSearchSecurityPlugin.GuiceHolder(
             mock(RepositoriesService.class),
             transportService,
@@ -127,6 +130,7 @@ public class SecurityInterceptorTests {
             mock(PitService.class),
             mock(ExtensionsManager.class)
         );
+        // CS-ENFORCE-SINGLE
 
         User user = new User("John Doe");
         threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
