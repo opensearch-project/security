@@ -135,7 +135,6 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception exception) {
-                    System.out.println(exception.toString());
                     builder.startObject()
                             .field("error", exception.toString())
                             .endObject();
