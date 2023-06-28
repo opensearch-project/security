@@ -118,10 +118,10 @@ public class JwtVendor {
         jwtClaims.setNotBefore(timeMillis);
 
         if (expirySeconds == null) {
-            long expiryTime = timeProvider.getAsLong() + (300 * 1000);
+            long expiryTime = timeProvider.getAsLong() + 300;
             jwtClaims.setExpiryTime(expiryTime);
         } else if (expirySeconds > 0) {
-            long expiryTime = timeProvider.getAsLong() + (expirySeconds * 1000);
+            long expiryTime = timeProvider.getAsLong() + expirySeconds;
             jwtClaims.setExpiryTime(expiryTime);
         } else {
             throw new Exception("The expiration time should be a positive integer");

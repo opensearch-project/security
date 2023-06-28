@@ -54,7 +54,7 @@ public class JwtVendorTest {
         LongSupplier currentTime = () -> (int) 100;
         String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
         Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", claimsEncryptionKey).build();
-        Long expectedExp = currentTime.getAsLong() + (expirySeconds * 1000);
+        Long expectedExp = currentTime.getAsLong() + expirySeconds;
 
         JwtVendor jwtVendor = new JwtVendor(settings, Optional.of(currentTime));
         String encodedJwt = jwtVendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles);

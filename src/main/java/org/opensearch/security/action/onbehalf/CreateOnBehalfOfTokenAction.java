@@ -135,7 +135,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                             mappedRoles.stream().collect(Collectors.toList()),
                             user.getRoles().stream().collect(Collectors.toList()));
                     builder.field("onBehalfOfToken", token);
-                    builder.field("duration", tokenDuration);
+                    builder.field("duration", tokenDuration + " seconds");
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
