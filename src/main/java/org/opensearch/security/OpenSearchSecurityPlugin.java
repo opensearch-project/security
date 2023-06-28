@@ -478,7 +478,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
                 handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
                 handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool);
+                CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool, Objects.requireNonNull(cs));
                 dcf.registerDCFListener(cobot);
                 handlers.add(cobot);
                 handlers.addAll(

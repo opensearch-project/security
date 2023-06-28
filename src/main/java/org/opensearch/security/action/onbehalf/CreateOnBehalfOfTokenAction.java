@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -31,6 +32,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigModel;
@@ -44,6 +46,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     private JwtVendor vendor;
     private final ThreadPool threadPool;
+    private final ClusterService clusterService;
 
     private ConfigModel configModel;
 
@@ -64,8 +67,9 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
         }
     }
 
-    public CreateOnBehalfOfTokenAction(final Settings settings, final ThreadPool threadPool) {
+    public CreateOnBehalfOfTokenAction(final Settings settings, final ThreadPool threadPool, final ClusterService clusterService) {
         this.threadPool = threadPool;
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -104,6 +108,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         return;
                     }
 
+                    final String clusterIdentifier = clusterService.getClusterName().value();
+
                     final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
                     final String reason = (String)requestBody.getOrDefault("reason", null);
 
@@ -121,9 +127,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                     builder.startObject();
                     builder.field("user", user.getName());
 
-                    /* TODO: Update the issuer to represent the cluster */
                     final String token = vendor.createJwt(
-                            "OpenSearch",
+                            clusterIdentifier,
                             user.getName(),
                             source,
                             tokenDuration,
