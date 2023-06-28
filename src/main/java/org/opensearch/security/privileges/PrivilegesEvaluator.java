@@ -668,7 +668,7 @@ public class PrivilegesEvaluator {
             || action0.startsWith(SearchScrollAction.NAME)
             || (action0.equals(BulkAction.NAME))
             || (action0.equals(MultiGetAction.NAME))
-            || (action0.equals(MultiSearchAction.NAME))
+            || (action0.startsWith(MultiSearchAction.NAME))
             || (action0.equals(MultiTermVectorsAction.NAME))
             || (action0.equals(ReindexAction.NAME))
 
