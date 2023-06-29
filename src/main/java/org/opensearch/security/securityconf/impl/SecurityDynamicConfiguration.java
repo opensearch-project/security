@@ -40,9 +40,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.ExceptionsHelper;
-import org.opensearch.common.bytes.BytesReference;
-import org.opensearch.common.xcontent.XContentHelper;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.DefaultObjectMapper;
@@ -216,11 +213,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return centries.containsKey(key);
     }
 
-    @JsonIgnore
-    public BytesReference toBytesReference() throws IOException {
-        return XContentHelper.toXContent(this, XContentType.JSON, false);
-    }
-
     @Override
     public String toString() {
         return "SecurityDynamicConfiguration [seqNo="
@@ -322,7 +314,19 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     public boolean isHidden(String resourceName) {
         final Object o = centries.get(resourceName);
-        return o != null && o instanceof Hideable && ((Hideable) o).isHidden();
+        return o instanceof Hideable && ((Hideable) o).isHidden();
+    }
+
+    @JsonIgnore
+    public boolean isStatic(final String resourceName) {
+        final Object o = centries.get(resourceName);
+        return o instanceof StaticDefinable && ((StaticDefinable) o).isStatic();
+    }
+
+    @JsonIgnore
+    public boolean isReserved(final String resourceName) {
+        final Object o = centries.get(resourceName);
+        return o instanceof Hideable && ((Hideable) o).isReserved();
     }
 
 }

@@ -51,10 +51,10 @@ shakespeare:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-    - "cluster:monitor/nodes/info"
     - "cluster:monitor/health"
-    - "indices:admin/template/get"
+    - "cluster:monitor/nodes/info"
     - "indices:admin/exists"
+    - "indices:admin/template/get"
   index_permissions:
     - index_patterns:
         - "shakespeare"
@@ -63,11 +63,11 @@ shakespeare:
       masked_fields: null
       allowed_actions:
         - "OPENDISTRO_SECURITY_READ"
-        - "indices:data/write/bulk*"
-        - "indices:admin/validate/query*"
         - "indices:admin/exists"
         - "indices:admin/get*"
         - "indices:admin/mappings/fields/get*"
+        - "indices:admin/validate/query*"
+        - "indices:data/write/bulk*"
   tenant_permissions: []
 aliasmngt:
   reserved: false
@@ -81,10 +81,10 @@ aliasmngt:
       fls: null
       masked_fields: null
       allowed_actions:
-        - "indices:admin/aliases*"
-        - "indices:data/write/*"
-        - "indices:data/read/*"
         - "OPENDISTRO_SECURITY_CREATE_INDEX"
+        - "indices:admin/aliases*"
+        - "indices:data/read/*"
+        - "indices:data/write/*"
   tenant_permissions: []
 transport_client:
   reserved: false
@@ -171,8 +171,8 @@ restore:
       fls: null
       masked_fields: null
       allowed_actions:
-        - "indices:data/write/index"
         - "indices:admin/create"
+        - "indices:data/write/index"
     - index_patterns:
         - "vulcangov_restore_2a"
       dls: null
@@ -245,8 +245,8 @@ kibana4:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-    - "cluster:monitor/nodes/info"
     - "cluster:monitor/health"
+    - "cluster:monitor/nodes/info"
   index_permissions:
     - index_patterns:
         - "*"
@@ -254,11 +254,11 @@ kibana4:
       fls: null
       masked_fields: null
       allowed_actions:
-        - "indices:data/read/search-"
-        - "indices:data/read/msearch"
         - "indices:admin/get"
-        - "indices:admin/validate/query"
         - "indices:admin/mappings/fields/get"
+        - "indices:admin/validate/query"
+        - "indices:data/read/msearch"
+        - "indices:data/read/search-"
     - index_patterns:
         - "?kibana"
       dls: null
@@ -427,8 +427,8 @@ kibana4_server:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-    - "cluster:monitor/nodes/info"
     - "cluster:monitor/health"
+    - "cluster:monitor/nodes/info"
   index_permissions:
     - index_patterns:
         - "?kibana"
@@ -436,18 +436,18 @@ kibana4_server:
       fls: null
       masked_fields: null
       allowed_actions:
-        - "indices:data/write/index"
-        - "indices:data/write/delete"
-        - "indices:data/write/update"
-        - "indices:admin/mapping/put"
-        - "indices:data/read/get"
-        - "indices:admin/refresh"
-        - "indices:admin/validate/query"
-        - "indices:data/read/search"
-        - "indices:admin/mappings/fields/get"
         - "indices:admin/create"
         - "indices:admin/exists"
+        - "indices:admin/mapping/put"
+        - "indices:admin/mappings/fields/get"
+        - "indices:admin/refresh"
+        - "indices:admin/validate/query"
+        - "indices:data/read/get"
         - "indices:data/read/mget"
+        - "indices:data/read/search"
+        - "indices:data/write/delete"
+        - "indices:data/write/index"
+        - "indices:data/write/update"
   tenant_permissions: []
 557:
   reserved: false
@@ -514,8 +514,8 @@ aliastest:
       fls: null
       masked_fields: null
       allowed_actions:
-        - "indices:data/write/*"
         - "indices:data/read/*"
+        - "indices:data/write/*"
     - index_patterns:
         - "calias-1"
       dls: null
@@ -747,8 +747,8 @@ snapres:
       fls: null
       masked_fields: null
       allowed_actions:
-        - "indices:data/write/index"
         - "indices:admin/create"
+        - "indices:data/write/index"
   tenant_permissions: []
 role_klingons2:
   reserved: false
@@ -807,8 +807,8 @@ remote_marvel_agent:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-    - "indices:admin/template/put"
     - "indices:admin/template/get"
+    - "indices:admin/template/put"
   index_permissions:
     - index_patterns:
         - "?marvel-es-*"
@@ -823,8 +823,8 @@ opendistro_security_kibana_server:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-    - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
     - "OPENDISTRO_SECURITY_CLUSTER_COMPOSITE_OPS"
+    - "OPENDISTRO_SECURITY_CLUSTER_MONITOR"
     - "indices:admin/template*"
     - "indices:data/read/scroll*"
   index_permissions:
@@ -943,9 +943,9 @@ opendistro_security_logstash:
       fls: null
       masked_fields: null
       allowed_actions:
-        - "indices:data/write/*"
-        - "indices:data/read/*"
         - "OPENDISTRO_SECURITY_CREATE_INDEX"
+        - "indices:data/read/*"
+        - "indices:data/write/*"
   tenant_permissions: []
 user:
   reserved: false
@@ -1003,8 +1003,8 @@ role_foo_index:
     - index_patterns:
         - foo-index
       allowed_actions:
-        - indices:data/read/*
         - indices:admin/*
+        - indices:data/read/*
         - indices:monitor/*
 role_foo_all:
   cluster_permissions:
@@ -1013,8 +1013,8 @@ role_foo_all:
     - index_patterns:
         - 'foo-*'
       allowed_actions:
-        - indices:data/read/*
         - indices:admin/*
+        - indices:data/read/*
         - indices:monitor/*
 
 xyz_sr:
