@@ -35,13 +35,9 @@ public final class SecuritySSLTransportInterceptor implements TransportIntercept
     protected final SslExceptionHandler errorHandler;
     protected final SSLConfig SSLConfig;
 
-    public SecuritySSLTransportInterceptor(
-        final Settings settings,
-        final ThreadPool threadPool,
-        PrincipalExtractor principalExtractor,
-        final SSLConfig SSLConfig,
-        final SslExceptionHandler errorHandler
-    ) {
+    public SecuritySSLTransportInterceptor(final Settings settings, final  ThreadPool threadPool,
+            PrincipalExtractor principalExtractor, final SSLConfig SSLConfig,
+                                                     final SslExceptionHandler errorHandler) {
         this.threadPool = threadPool;
         this.principalExtractor = principalExtractor;
         this.errorHandler = errorHandler;
@@ -49,13 +45,10 @@ public final class SecuritySSLTransportInterceptor implements TransportIntercept
     }
 
     @Override
-    public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(
-        String action,
-        String executor,
-        boolean forceExecution,
-        TransportRequestHandler<T> actualHandler
-    ) {
+    public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action, String executor, boolean forceExecution,
+            TransportRequestHandler<T> actualHandler) {
         return new SecuritySSLRequestHandler<T>(action, actualHandler, threadPool, principalExtractor, SSLConfig, errorHandler);
     }
+
 
 }

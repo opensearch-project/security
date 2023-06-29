@@ -61,15 +61,8 @@ public class AuthDomain implements Comparable<AuthDomain> {
 
     @Override
     public String toString() {
-        return "AuthDomain [backend="
-            + backend
-            + ", httpAuthenticator="
-            + httpAuthenticator
-            + ", order="
-            + order
-            + ", challenge="
-            + challenge
-            + "]";
+        return "AuthDomain [backend=" + backend + ", httpAuthenticator=" + httpAuthenticator + ", order=" + order + ", challenge="
+                + challenge + "]";
     }
 
     @Override

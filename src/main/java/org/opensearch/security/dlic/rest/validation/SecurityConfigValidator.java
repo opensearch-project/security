@@ -17,10 +17,10 @@ import org.opensearch.rest.RestRequest;
 
 public class SecurityConfigValidator extends AbstractConfigurationValidator {
 
-    public SecurityConfigValidator(final RestRequest request, BytesReference ref, final Settings opensearchSettings, Object... param) {
-        super(request, ref, opensearchSettings, param);
-        this.payloadMandatory = true;
-        allowedKeys.put("dynamic", DataType.OBJECT);
-    }
+	public SecurityConfigValidator(final RestRequest request, BytesReference ref, final Settings opensearchSettings, Object... param) {
+		super(request, ref, opensearchSettings, param);
+		this.payloadMandatory = true;
+	    allowedKeys.put("dynamic", DataType.OBJECT);
+	}
 
 }

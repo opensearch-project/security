@@ -60,17 +60,18 @@ public class DefaultPrincipalExtractor implements PrincipalExtractor {
             }
         });
 
-        // remove whitespaces
+        //remove whitespaces
         try {
             final LdapName ln = new LdapName(dnString);
             final List<Rdn> rdns = new ArrayList<>(ln.getRdns());
             Collections.reverse(rdns);
-            dnString = String.join(",", rdns.stream().map(r -> r.toString()).collect(Collectors.toList()));
+            dnString = String.join(",", rdns.stream().map(r->r.toString()).collect(Collectors.toList()));
         } catch (InvalidNameException e) {
-            log.error("Unable to parse: {}", dnString, e);
+            log.error("Unable to parse: {}",dnString, e);
         }
 
-        if (log.isTraceEnabled()) {
+
+        if(log.isTraceEnabled()) {
             log.trace("principal: {}", dnString);
         }
 

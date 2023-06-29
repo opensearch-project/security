@@ -41,38 +41,30 @@ import org.opensearch.security.securityconf.impl.v6.InternalUserV6;
 
 public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
 
-    private String hash;
-    private boolean reserved;
-    private boolean hidden;
-    private boolean service;
-    private boolean enabled;
-    @JsonProperty(value = "static")
-    private boolean _static;
-    private List<String> backend_roles = Collections.emptyList();
-    private Map<String, String> attributes = Collections.emptyMap();
-    private String description;
-    private List<String> opendistro_security_roles = Collections.emptyList();
+        private String hash;
+        private boolean reserved;
+        private boolean hidden;
+        private boolean service;
+        private boolean enabled;
+        @JsonProperty(value = "static")
+        private boolean _static;
+        private List<String> backend_roles = Collections.emptyList();
+        private Map<String, String> attributes = Collections.emptyMap();
+        private String description;
+        private List<String> opendistro_security_roles = Collections.emptyList();
 
-    private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes) {
-        super();
-        this.hash = hash;
-        this.reserved = reserved;
-        this.hidden = hidden;
-        this.backend_roles = backend_roles;
-        this.attributes = attributes;
-        this.enabled = true;
-        this.service = false;
-    }
+        private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes) {
+            super();
+            this.hash = hash;
+            this.reserved = reserved;
+            this.hidden = hidden;
+            this.backend_roles = backend_roles;
+            this.attributes = attributes;
+            this.enabled = true;
+            this.service = false;
+        }
 
-    private InternalUserV7(
-        String hash,
-        boolean reserved,
-        boolean hidden,
-        List<String> backend_roles,
-        Map<String, String> attributes,
-        Boolean enabled,
-        Boolean service
-    ) {
+    private InternalUserV7(String hash, boolean reserved, boolean hidden, List<String> backend_roles, Map<String, String> attributes, Boolean enabled, Boolean service) {
         super();
         this.hash = hash;
         this.reserved = reserved;
@@ -83,129 +75,111 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         this.service = service;
     }
 
-    public InternalUserV7() {
-        super();
-        // default constructor
-    }
+        public InternalUserV7() {
+            super();
+            //default constructor
+        }
 
-    public InternalUserV7(InternalUserV6 u6) {
-        hash = u6.getHash();
-        reserved = u6.isReserved();
-        hidden = u6.isHidden();
-        backend_roles = u6.getRoles();
-        attributes = u6.getAttributes();
-        description = "Migrated from v6";
-    }
+        public InternalUserV7(InternalUserV6 u6) {
+            hash = u6.getHash();
+            reserved = u6.isReserved();
+            hidden = u6.isHidden();
+            backend_roles = u6.getRoles();
+            attributes = u6.getAttributes();
+            description = "Migrated from v6";
+        }
 
-    public String getHash() {
-        return hash;
-    }
+        public String getHash() {
+            return hash;
+        }
+        public void setHash(String hash) {
+            this.hash = hash;
+        }
 
-    public void setHash(String hash) {
-        this.hash = hash;
-    }
 
-    public boolean isHidden() {
-        return hidden;
-    }
+        public boolean isHidden() {
+            return hidden;
+        }
+        public void setHidden(boolean hidden) {
+            this.hidden = hidden;
+        }
 
-    public void setHidden(boolean hidden) {
-        this.hidden = hidden;
-    }
 
-    public List<String> getBackend_roles() {
-        return backend_roles;
-    }
+        public List<String> getBackend_roles() {
+            return backend_roles;
+        }
 
-    public void setBackend_roles(List<String> backend_roles) {
-        this.backend_roles = backend_roles;
-    }
+        public void setBackend_roles(List<String> backend_roles) {
+            this.backend_roles = backend_roles;
+        }
 
-    public List<String> getOpendistro_security_roles() {
-        return opendistro_security_roles;
-    }
+        public List<String> getOpendistro_security_roles() {
+            return opendistro_security_roles;
+        }
 
-    public void setOpendistro_security_roles(List<String> opendistro_security_roles) {
-        this.opendistro_security_roles = opendistro_security_roles;
-    }
+        public void setOpendistro_security_roles(List<String> opendistro_security_roles) {
+            this.opendistro_security_roles = opendistro_security_roles;
+        }
 
-    public Map<String, String> getAttributes() {
-        return attributes;
-    }
+        public Map<String, String> getAttributes() {
+            return attributes;
+        }
+        public void setAttributes(Map<String, String> attributes) {
+            this.attributes = attributes;
+        }
 
-    public void setAttributes(Map<String, String> attributes) {
-        this.attributes = attributes;
-    }
+        public boolean enabled() {
+            return this.enabled;
+        }
 
-    public boolean enabled() {
-        return this.enabled;
-    }
+        public boolean service() {
+            return this.service;
+        }
 
-    public boolean service() {
-        return this.service;
-    }
+        @Override
+        public String toString() {
+            return "InternalUserV7 [hash=" + hash + ", enabled=" + enabled + ", service=" + service + ", reserved=" + reserved + ", hidden=" + hidden + ", _static=" + _static + ", backend_roles="
+                    + backend_roles + ", attributes=" + attributes + ", description=" + description + "]";
+        }
 
-    @Override
-    public String toString() {
-        return "InternalUserV7 [hash="
-            + hash
-            + ", enabled="
-            + enabled
-            + ", service="
-            + service
-            + ", reserved="
-            + reserved
-            + ", hidden="
-            + hidden
-            + ", _static="
-            + _static
-            + ", backend_roles="
-            + backend_roles
-            + ", attributes="
-            + attributes
-            + ", description="
-            + description
-            + "]";
-    }
+        @Override
+        @JsonIgnore
+        public void clearHash() {
+            hash = "";
+        }
 
-    @Override
-    @JsonIgnore
-    public void clearHash() {
-        hash = "";
-    }
+        public String getDescription() {
+            return description;
+        }
 
-    public String getDescription() {
-        return description;
-    }
+        public void setDescription(String description) {
+            this.description = description;
+        }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+        public void setService(boolean service) {
+            this.service = service;
+        }
 
-    public void setService(boolean service) {
-        this.service = service;
-    }
+        public boolean isReserved() {
+            return reserved;
+        }
 
-    public boolean isReserved() {
-        return reserved;
-    }
+        public void setReserved(boolean reserved) {
+            this.reserved = reserved;
+        }
 
-    public void setReserved(boolean reserved) {
-        this.reserved = reserved;
-    }
+        @JsonProperty(value = "static")
+        public boolean isStatic() {
+            return _static;
+        }
+        @JsonProperty(value = "static")
+        public void setStatic(boolean _static) {
+            this._static = _static;
+        }
 
-    @JsonProperty(value = "static")
-    public boolean isStatic() {
-        return _static;
-    }
 
-    @JsonProperty(value = "static")
-    public void setStatic(boolean _static) {
-        this._static = _static;
     }
-
-}

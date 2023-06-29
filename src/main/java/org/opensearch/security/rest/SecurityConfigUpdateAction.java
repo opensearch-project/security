@@ -40,7 +40,9 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigUpdateAction extends BaseRestHandler {
 
-    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(new Route(PUT, "/configupdate")), "/_plugins/_security");
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+            new Route(PUT, "/configupdate")),
+            "/_plugins/_security");
 
     private final ThreadContext threadContext;
     private final AdminDNs adminDns;
@@ -48,14 +50,8 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
     private final Path configPath;
     private final PrincipalExtractor principalExtractor;
 
-    public SecurityConfigUpdateAction(
-        final Settings settings,
-        final RestController controller,
-        final ThreadPool threadPool,
-        final AdminDNs adminDns,
-        Path configPath,
-        PrincipalExtractor principalExtractor
-    ) {
+    public SecurityConfigUpdateAction(final Settings settings, final RestController controller, final ThreadPool threadPool, final AdminDNs adminDns,
+            Path configPath, PrincipalExtractor principalExtractor) {
         super();
         this.threadContext = threadPool.getThreadContext();
         this.adminDns = adminDns;
@@ -64,13 +60,11 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
         this.principalExtractor = principalExtractor;
     }
 
-    @Override
-    public List<Route> routes() {
+    @Override public List<Route> routes() {
         return routes;
     }
 
-    @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+    @Override protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         String[] configTypes = request.paramAsStringArrayOrEmptyIfAll("config_types");
 
         SSLRequestHelper.SSLInfo sslInfo = SSLRequestHelper.getSSLInfo(settings, configPath, request, principalExtractor);
@@ -81,7 +75,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
 
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
 
-        // only allowed for admins
+        //only allowed for admins
         if (user == null || !adminDns.isAdmin(user)) {
             return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, ""));
         } else {
@@ -92,8 +86,7 @@ public class SecurityConfigUpdateAction extends BaseRestHandler {
         }
     }
 
-    @Override
-    public String getName() {
+    @Override public String getName() {
         return "Security config update";
     }
 

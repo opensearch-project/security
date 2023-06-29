@@ -30,6 +30,7 @@ import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.securityconf.SecurityRoles;
 import org.opensearch.security.user.User;
 
+
 /**
  * This class evaluates privileges for point in time (Delete and List all) operations.
  * For aliases - users must have either alias permission or backing index permissions
@@ -37,18 +38,13 @@ import org.opensearch.security.user.User;
  */
 public class PitPrivilegesEvaluator {
 
-    public PrivilegesEvaluatorResponse evaluate(
-        final ActionRequest request,
-        final ClusterService clusterService,
-        final User user,
-        final SecurityRoles securityRoles,
-        final String action,
-        final IndexNameExpressionResolver resolver,
-        final PrivilegesEvaluatorResponse presponse,
-        final IndexResolverReplacer irr
-    ) {
+    public PrivilegesEvaluatorResponse evaluate(final ActionRequest request, final ClusterService clusterService,
+                                                final User user, final SecurityRoles securityRoles, final String action,
+                                                final IndexNameExpressionResolver resolver,
+                                                final PrivilegesEvaluatorResponse presponse,
+                                                final IndexResolverReplacer irr) {
 
-        if (!(request instanceof DeletePitRequest || request instanceof PitSegmentsRequest)) {
+        if(!(request instanceof DeletePitRequest || request instanceof PitSegmentsRequest)) {
             return presponse;
         }
         List<String> pitIds = new ArrayList<>();
@@ -56,7 +52,7 @@ public class PitPrivilegesEvaluator {
         if (request instanceof DeletePitRequest) {
             DeletePitRequest deletePitRequest = (DeletePitRequest) request;
             pitIds = deletePitRequest.getPitIds();
-        } else if (request instanceof PitSegmentsRequest) {
+        } else if(request instanceof PitSegmentsRequest) {
             PitSegmentsRequest pitSegmentsRequest = (PitSegmentsRequest) request;
             pitIds = pitSegmentsRequest.getPitIds();
         }
@@ -64,32 +60,29 @@ public class PitPrivilegesEvaluator {
         if (pitIds.size() == 1 && "_all".equals(pitIds.get(0))) {
             return presponse;
         } else {
-            return handlePitsAccess(pitIds, clusterService, user, securityRoles, action, resolver, presponse, irr);
+            return handlePitsAccess(pitIds, clusterService, user, securityRoles,
+                    action, resolver, presponse, irr);
         }
     }
 
     /**
      * Handle access for delete operation / pit segments operation where PIT IDs are explicitly passed
      */
-    private PrivilegesEvaluatorResponse handlePitsAccess(
-        List<String> pitIds,
-        ClusterService clusterService,
-        User user,
-        SecurityRoles securityRoles,
-        final String action,
-        IndexNameExpressionResolver resolver,
-        PrivilegesEvaluatorResponse presponse,
-        final IndexResolverReplacer irr
-    ) {
-        Map<String, String[]> pitToIndicesMap = OpenSearchSecurityPlugin.GuiceHolder.getPitService().getIndicesForPits(pitIds);
+    private PrivilegesEvaluatorResponse handlePitsAccess(List<String> pitIds, ClusterService clusterService,
+                                                         User user, SecurityRoles securityRoles, final String action,
+                                                         IndexNameExpressionResolver resolver, PrivilegesEvaluatorResponse presponse,
+                                                         final IndexResolverReplacer irr) {
+        Map<String, String[]> pitToIndicesMap = OpenSearchSecurityPlugin.
+                GuiceHolder.getPitService().getIndicesForPits(pitIds);
         Set<String> pitIndices = new HashSet<>();
         // add indices across all PITs to a set and evaluate if user has access to all indices
-        for (String[] indices : pitToIndicesMap.values()) {
+        for(String[] indices: pitToIndicesMap.values()) {
             pitIndices.addAll(Arrays.asList(indices));
         }
-        Set<String> allPermittedIndices = getPermittedIndices(pitIndices, clusterService, user, securityRoles, action, resolver, irr);
+        Set<String> allPermittedIndices = getPermittedIndices(pitIndices, clusterService, user,
+                securityRoles, action, resolver, irr);
         // Only if user has access to all PIT's indices, allow operation, otherwise continue evaluation in PrivilegesEvaluator.
-        if (allPermittedIndices.containsAll(pitIndices)) {
+        if(allPermittedIndices.containsAll(pitIndices)) {
             presponse.allowed = true;
             presponse.markComplete();
         }
@@ -99,18 +92,14 @@ public class PitPrivilegesEvaluator {
     /**
      * This method returns list of permitted indices for the PIT indices passed
      */
-    private Set<String> getPermittedIndices(
-        Set<String> pitIndices,
-        ClusterService clusterService,
-        User user,
-        SecurityRoles securityRoles,
-        final String action,
-        IndexNameExpressionResolver resolver,
-        final IndexResolverReplacer irr
-    ) {
+    private Set<String> getPermittedIndices(Set<String> pitIndices, ClusterService clusterService,
+                                            User user, SecurityRoles securityRoles, final String action,
+                                            IndexNameExpressionResolver resolver, final IndexResolverReplacer irr) {
         String[] indicesArr = new String[pitIndices.size()];
-        CreatePitRequest req = new CreatePitRequest(new TimeValue(1, TimeUnit.DAYS), true, pitIndices.toArray(indicesArr));
+        CreatePitRequest req = new CreatePitRequest(new TimeValue(1, TimeUnit.DAYS), true,
+                pitIndices.toArray(indicesArr));
         final IndexResolverReplacer.Resolved pitResolved = irr.resolveRequest(req);
-        return securityRoles.reduce(pitResolved, user, new String[] { action }, resolver, clusterService);
+        return securityRoles.reduce(pitResolved,
+                user, new String[]{action}, resolver, clusterService);
     }
 }

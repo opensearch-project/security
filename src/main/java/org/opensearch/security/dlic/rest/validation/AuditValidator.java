@@ -25,26 +25,29 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 public class AuditValidator extends AbstractConfigurationValidator {
 
     private static final Set<AuditCategory> DISABLED_REST_CATEGORIES = ImmutableSet.of(
-        AuditCategory.BAD_HEADERS,
-        AuditCategory.SSL_EXCEPTION,
-        AuditCategory.AUTHENTICATED,
-        AuditCategory.FAILED_LOGIN,
-        AuditCategory.GRANTED_PRIVILEGES,
-        AuditCategory.MISSING_PRIVILEGES
+            AuditCategory.BAD_HEADERS,
+            AuditCategory.SSL_EXCEPTION,
+            AuditCategory.AUTHENTICATED,
+            AuditCategory.FAILED_LOGIN,
+            AuditCategory.GRANTED_PRIVILEGES,
+            AuditCategory.MISSING_PRIVILEGES
     );
 
     private static final Set<AuditCategory> DISABLED_TRANSPORT_CATEGORIES = ImmutableSet.of(
-        AuditCategory.BAD_HEADERS,
-        AuditCategory.SSL_EXCEPTION,
-        AuditCategory.AUTHENTICATED,
-        AuditCategory.FAILED_LOGIN,
-        AuditCategory.GRANTED_PRIVILEGES,
-        AuditCategory.MISSING_PRIVILEGES,
-        AuditCategory.INDEX_EVENT,
-        AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT
+            AuditCategory.BAD_HEADERS,
+            AuditCategory.SSL_EXCEPTION,
+            AuditCategory.AUTHENTICATED,
+            AuditCategory.FAILED_LOGIN,
+            AuditCategory.GRANTED_PRIVILEGES,
+            AuditCategory.MISSING_PRIVILEGES,
+            AuditCategory.INDEX_EVENT,
+            AuditCategory.OPENDISTRO_SECURITY_INDEX_ATTEMPT
     );
 
-    public AuditValidator(final RestRequest request, final BytesReference ref, final Settings opensearchSettings, final Object... param) {
+    public AuditValidator(final RestRequest request,
+                          final BytesReference ref,
+                          final Settings opensearchSettings,
+                          final Object... param) {
         super(request, ref, opensearchSettings, param);
         this.payloadMandatory = true;
         this.allowedKeys.put("enabled", DataType.BOOLEAN);
@@ -59,8 +62,8 @@ public class AuditValidator extends AbstractConfigurationValidator {
         }
 
         if ((request.method() == RestRequest.Method.PUT || request.method() == RestRequest.Method.PATCH)
-            && this.content != null
-            && this.content.length() > 0) {
+                && this.content != null
+                && this.content.length() > 0) {
             try {
                 // try parsing to target type
                 final AuditConfig auditConfig = DefaultObjectMapper.readTree(getContentAsNode(), AuditConfig.class);

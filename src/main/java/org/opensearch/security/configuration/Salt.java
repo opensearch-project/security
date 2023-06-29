@@ -45,19 +45,13 @@ public class Salt {
     private Salt(final String saltAsString) {
         this.salt16 = new byte[SALT_SIZE];
         if (saltAsString.equals(ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT)) {
-            log.warn(
-                "If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes",
-                saltAsString
-            );
+            log.warn("If you plan to use field masking pls configure compliance salt {} to be a random string of 16 chars length identical on all nodes", saltAsString);
         }
         try {
             ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(saltAsString);
             byteBuffer.get(salt16);
             if (byteBuffer.remaining() > 0) {
-                log.warn(
-                    "Provided compliance salt {} is greater than 16 bytes. Only the first 16 bytes are used for salting",
-                    saltAsString
-                );
+                log.warn("Provided compliance salt {} is greater than 16 bytes. Only the first 16 bytes are used for salting", saltAsString);
             }
         } catch (BufferUnderflowException e) {
             throw new OpenSearchException("Provided compliance salt " + saltAsString + " must at least contain 16 bytes", e);
@@ -79,10 +73,7 @@ public class Salt {
      * @return configuration
      */
     public static Salt from(final Settings settings) {
-        final String saltAsString = settings.get(
-            ConfigConstants.SECURITY_COMPLIANCE_SALT,
-            ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT
-        );
+        final String saltAsString = settings.get(ConfigConstants.SECURITY_COMPLIANCE_SALT, ConfigConstants.SECURITY_COMPLIANCE_SALT_DEFAULT);
         return new Salt(saltAsString);
     }
 }

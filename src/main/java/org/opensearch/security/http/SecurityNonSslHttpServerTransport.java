@@ -41,16 +41,10 @@ import org.opensearch.transport.SharedGroupFactory;
 
 public class SecurityNonSslHttpServerTransport extends Netty4HttpServerTransport {
 
-    public SecurityNonSslHttpServerTransport(
-        final Settings settings,
-        final NetworkService networkService,
-        final BigArrays bigArrays,
-        final ThreadPool threadPool,
-        final NamedXContentRegistry namedXContentRegistry,
-        final Dispatcher dispatcher,
-        ClusterSettings clusterSettings,
-        SharedGroupFactory sharedGroupFactory
-    ) {
+
+    public SecurityNonSslHttpServerTransport(final Settings settings, final NetworkService networkService, final BigArrays bigArrays,
+                                             final ThreadPool threadPool, final NamedXContentRegistry namedXContentRegistry, final Dispatcher dispatcher,
+                                             ClusterSettings clusterSettings, SharedGroupFactory sharedGroupFactory) {
         super(settings, networkService, bigArrays, threadPool, namedXContentRegistry, dispatcher, clusterSettings, sharedGroupFactory);
     }
 

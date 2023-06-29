@@ -65,6 +65,8 @@ public class RoleV6 implements Hideable {
         private List<String> _fls_;
         private List<String> _masked_fields_;
 
+
+
         public String get_dls_() {
             return _dls_;
         }
@@ -81,6 +83,8 @@ public class RoleV6 implements Hideable {
         public String toString() {
             return "Index [types=" + types + ", _dls_=" + _dls_ + ", _fls_=" + _fls_ + ", _masked_fields_=" + _masked_fields_ + "]";
         }
+
+
 
     }
 
@@ -126,17 +130,7 @@ public class RoleV6 implements Hideable {
 
     @Override
     public String toString() {
-        return "Role [readonly="
-            + readonly
-            + ", hidden="
-            + hidden
-            + ", cluster="
-            + cluster
-            + ", tenants="
-            + tenants
-            + ", indices="
-            + indices
-            + "]";
+        return "Role [readonly=" + readonly + ", hidden=" + hidden + ", cluster=" + cluster + ", tenants=" + tenants + ", indices=" + indices + "]";
     }
 
     @JsonIgnore

@@ -27,7 +27,7 @@ public final class NoopSink extends AuditLogSink {
 
     @Override
     public boolean doStore(final AuditMessage msg) {
-        // do nothing
+        //do nothing
         return true;
     }
 

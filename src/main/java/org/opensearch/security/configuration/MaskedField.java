@@ -40,11 +40,11 @@ public class MaskedField {
         } else if (tokenCount == 2) {
             name = tokens.get(0);
             algo = tokens.get(1);
-        } else if (tokenCount >= 3 && tokenCount % 2 == 1) {
+        } else if (tokenCount >= 3 && tokenCount%2==1) {
             name = tokens.get(0);
-            regexReplacements = new ArrayList<>((tokenCount - 1) / 2);
-            for (int i = 1; i < tokenCount - 1; i = i + 2) {
-                regexReplacements.add(new RegexReplacement(tokens.get(i), tokens.get(i + 1)));
+            regexReplacements = new ArrayList<>((tokenCount-1)/2);
+            for(int i=1; i<tokenCount-1; i=i+2) {
+                regexReplacements.add(new RegexReplacement(tokens.get(i), tokens.get(i+1)));
             }
         } else {
             throw new IllegalArgumentException("Expected 1 or 2 or >=3 (but then odd count) tokens, got " + tokenCount);
@@ -52,7 +52,7 @@ public class MaskedField {
     }
 
     public final void isValid() throws Exception {
-        mask(new byte[] { 1, 2, 3, 4, 5 });
+        mask(new byte[] {1,2,3,4,5});
     }
 
     public byte[] mask(byte[] value) {
@@ -72,7 +72,7 @@ public class MaskedField {
     }
 
     public BytesRef mask(BytesRef value) {
-        if (value == null) {
+        if(value == null) {
             return null;
         }
 
@@ -87,6 +87,8 @@ public class MaskedField {
         return name;
     }
 
+
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -99,35 +101,37 @@ public class MaskedField {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
         MaskedField other = (MaskedField) obj;
         if (algo == null) {
-            if (other.algo != null) return false;
-        } else if (!algo.equals(other.algo)) return false;
+            if (other.algo != null)
+                return false;
+        } else if (!algo.equals(other.algo))
+            return false;
         if (name == null) {
-            if (other.name != null) return false;
-        } else if (!name.equals(other.name)) return false;
+            if (other.name != null)
+                return false;
+        } else if (!name.equals(other.name))
+            return false;
         if (regexReplacements == null) {
-            if (other.regexReplacements != null) return false;
-        } else if (!regexReplacements.equals(other.regexReplacements)) return false;
+            if (other.regexReplacements != null)
+                return false;
+        } else if (!regexReplacements.equals(other.regexReplacements))
+            return false;
         return true;
     }
 
+
+
     @Override
     public String toString() {
-        return "MaskedField [name="
-            + name
-            + ", algo="
-            + algo
-            + ", regexReplacements="
-            + regexReplacements
-            + ", defaultSalt="
-            + Arrays.toString(defaultSalt)
-            + ", isDefault()="
-            + isDefault()
-            + "]";
+        return "MaskedField [name=" + name + ", algo=" + algo + ", regexReplacements=" + regexReplacements
+                + ", defaultSalt=" + Arrays.toString(defaultSalt) + ", isDefault()=" + isDefault() + "]";
     }
 
     private boolean isDefault() {
@@ -144,7 +148,7 @@ public class MaskedField {
             }
         } else if (regexReplacements != null) {
             String cur = new String(in, StandardCharsets.UTF_8);
-            for (RegexReplacement rr : regexReplacements) {
+            for(RegexReplacement rr: regexReplacements) {
                 cur = cur.replaceAll(rr.getRegex(), rr.getReplacement());
             }
             return cur.getBytes(StandardCharsets.UTF_8);
@@ -186,7 +190,7 @@ public class MaskedField {
 
         public RegexReplacement(String regex, String replacement) {
             super();
-            this.regex = regex.substring(1).substring(0, regex.length() - 2);
+            this.regex = regex.substring(1).substring(0, regex.length()-2);
             this.replacement = replacement;
         }
 
@@ -209,16 +213,23 @@ public class MaskedField {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null) return false;
-            if (getClass() != obj.getClass()) return false;
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
             RegexReplacement other = (RegexReplacement) obj;
             if (regex == null) {
-                if (other.regex != null) return false;
-            } else if (!regex.equals(other.regex)) return false;
+                if (other.regex != null)
+                    return false;
+            } else if (!regex.equals(other.regex))
+                return false;
             if (replacement == null) {
-                if (other.replacement != null) return false;
-            } else if (!replacement.equals(other.replacement)) return false;
+                if (other.replacement != null)
+                    return false;
+            } else if (!replacement.equals(other.replacement))
+                return false;
             return true;
         }
 

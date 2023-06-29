@@ -71,16 +71,16 @@ public class HTTPClientCertAuthenticator implements HTTPAuthenticator {
                 String username = principal.trim();
                 String[] backendRoles = null;
 
-                if (usernameAttribute != null && usernameAttribute.length() > 0) {
+                if(usernameAttribute != null && usernameAttribute.length() > 0) {
                     final List<String> usernames = getDnAttribute(rfc2253dn, usernameAttribute);
-                    if (usernames.isEmpty() == false) {
+                    if(usernames.isEmpty() == false) {
                         username = usernames.get(0);
                     }
                 }
 
-                if (rolesAttribute != null && rolesAttribute.length() > 0) {
+                if(rolesAttribute != null && rolesAttribute.length() > 0) {
                     final List<String> roles = getDnAttribute(rfc2253dn, rolesAttribute);
-                    if (roles.isEmpty() == false) {
+                    if(roles.isEmpty() == false) {
                         backendRoles = roles.toArray(new String[0]);
                     }
                 }

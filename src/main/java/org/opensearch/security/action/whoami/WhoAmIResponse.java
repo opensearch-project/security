@@ -50,6 +50,7 @@ public class WhoAmIResponse extends ActionResponse implements ToXContent {
         this.isNodeCertificateRequest = isNodeCertificateRequest;
     }
 
+
     public WhoAmIResponse() {
         super();
         this.dn = null;
@@ -105,6 +106,6 @@ public class WhoAmIResponse extends ActionResponse implements ToXContent {
 
     @Override
     public String toString() {
-        return Strings.toString(XContentType.JSON, this, true, true);
+        return Strings.toString(XContentType.JSON,this, true, true);
     }
 }

@@ -44,123 +44,109 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ActionGroupsApiAction extends PatchableResourceApiAction {
 
-    private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(
-            // legacy mapping for backwards compatibility
-            // TODO: remove in next version
-            new Route(Method.GET, "/actiongroup/{name}"),
-            new Route(Method.GET, "/actiongroup/"),
-            new Route(Method.DELETE, "/actiongroup/{name}"),
-            new Route(Method.PUT, "/actiongroup/{name}"),
+	private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
+			// legacy mapping for backwards compatibility
+			// TODO: remove in next version
+			new Route(Method.GET, "/actiongroup/{name}"),
+			new Route(Method.GET, "/actiongroup/"),
+			new Route(Method.DELETE, "/actiongroup/{name}"),
+			new Route(Method.PUT, "/actiongroup/{name}"),
 
-            // corrected mapping, introduced in OpenSearch Security
-            new Route(Method.GET, "/actiongroups/{name}"),
-            new Route(Method.GET, "/actiongroups/"),
-            new Route(Method.DELETE, "/actiongroups/{name}"),
-            new Route(Method.PUT, "/actiongroups/{name}"),
-            new Route(Method.PATCH, "/actiongroups/"),
-            new Route(Method.PATCH, "/actiongroups/{name}")
+			// corrected mapping, introduced in OpenSearch Security
+			new Route(Method.GET, "/actiongroups/{name}"),
+			new Route(Method.GET, "/actiongroups/"),
+			new Route(Method.DELETE, "/actiongroups/{name}"),
+			new Route(Method.PUT, "/actiongroups/{name}"),
+			new Route(Method.PATCH, "/actiongroups/"),
+			new Route(Method.PATCH, "/actiongroups/{name}")
 
-        )
-    );
+	));
 
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.ACTIONGROUPS;
-    }
+	@Override
+	protected Endpoint getEndpoint() {
+		return Endpoint.ACTIONGROUPS;
+	}
 
-    @Inject
-    public ActionGroupsApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
-    ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
-    }
+	@Inject
+	public ActionGroupsApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
+                                 final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
+                                 final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
+		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+	}
 
-    @Override
-    public List<Route> routes() {
-        return routes;
-    }
+	@Override
+	public List<Route> routes() {
+		return routes;
+	}
 
-    @Override
-    protected AbstractConfigurationValidator getValidator(final RestRequest request, BytesReference ref, Object... param) {
-        return new ActionGroupValidator(request, isSuperAdmin(), ref, this.settings, param);
-    }
+	@Override
+	protected AbstractConfigurationValidator getValidator(final RestRequest request, BytesReference ref, Object... param) {
+		return new ActionGroupValidator(request, isSuperAdmin(), ref, this.settings, param);
+	}
 
-    @Override
-    protected CType getConfigName() {
-        return CType.ACTIONGROUPS;
-    }
+	@Override
+	protected CType getConfigName() {
+		return CType.ACTIONGROUPS;
+	}
 
-    @Override
+	@Override
     protected String getResourceName() {
         return "actiongroup";
-    }
+	}
 
-    @Override
-    protected void consumeParameters(final RestRequest request) {
-        request.param("name");
-    }
+	@Override
+	protected void consumeParameters(final RestRequest request) {
+		request.param("name");
+	}
 
-    @Override
-    protected void handlePut(RestChannel channel, RestRequest request, Client client, JsonNode content) throws IOException {
-        final String name = request.param("name");
+	@Override
+	protected void handlePut(RestChannel channel, RestRequest request, Client client, JsonNode content) throws IOException {
+		final String name = request.param("name");
 
-        if (name == null || name.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
-            return;
-        }
+		if (name == null || name.length() == 0) {
+			badRequestResponse(channel, "No " + getResourceName() + " specified.");
+			return;
+		}
 
-        // Prevent the case where action group and role share a same name.
-        SecurityDynamicConfiguration<?> existingRolesConfig = load(CType.ROLES, false);
-        Set<String> existingRoles = existingRolesConfig.getCEntries().keySet();
-        if (existingRoles.contains(name)) {
-            badRequestResponse(channel, name + " is an existing role. A action group cannot be named with an existing role name.");
-            return;
-        }
+		// Prevent the case where action group and role share a same name.
+		SecurityDynamicConfiguration<?> existingRolesConfig = load(CType.ROLES, false);
+		Set<String> existingRoles = existingRolesConfig.getCEntries().keySet();
+		if (existingRoles.contains(name)) {
+			badRequestResponse(channel, name + " is an existing role. A action group cannot be named with an existing role name.");
+			return;
+		}
 
-        // Prevent the case where action group references to itself in the allowed_actions.
-        final SecurityDynamicConfiguration<?> existingActionGroupsConfig = load(getConfigName(), false);
-        final Object actionGroup = DefaultObjectMapper.readTree(content, existingActionGroupsConfig.getImplementingClass());
-        existingActionGroupsConfig.putCObject(name, actionGroup);
-        if (hasActionGroupSelfReference(existingActionGroupsConfig, name)) {
-            badRequestResponse(channel, name + " cannot be an allowed_action of itself");
-            return;
-        }
-        // prevent creation of groups for REST admin api
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(actionGroup)) {
-            forbidden(channel, "Not allowed");
-            return;
-        }
-        super.handlePut(channel, request, client, content);
-    }
+		// Prevent the case where action group references to itself in the allowed_actions.
+		final SecurityDynamicConfiguration<?> existingActionGroupsConfig = load(getConfigName(), false);
+		final Object actionGroup = DefaultObjectMapper.readTree(content, existingActionGroupsConfig.getImplementingClass());
+		existingActionGroupsConfig.putCObject(name, actionGroup);
+		if (hasActionGroupSelfReference(existingActionGroupsConfig, name)) {
+			badRequestResponse(channel, name + " cannot be an allowed_action of itself");
+			return;
+		}
+		// prevent creation of groups for REST admin api
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(actionGroup)) {
+			forbidden(channel, "Not allowed");
+			return;
+		}
+		super.handlePut(channel, request, client, content);
+	}
 
-    @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfiguration,
-        final Object content,
-        final String resourceName
-    ) throws IOException {
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(content)) {
-            return false;
-        }
-        return true;
-    }
+	@Override
+	protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfiguration,
+											 final Object content,
+											 final String resourceName) throws IOException {
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(content)) {
+			return false;
+		}
+		return true;
+	}
 
-    @Override
-    protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(existingConfiguration.getCEntry(name))) {
-            return true;
-        }
-        return super.isReadOnly(existingConfiguration, name);
-    }
+	@Override
+	protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
+		if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(existingConfiguration.getCEntry(name))) {
+			return true;
+		}
+		return super.isReadOnly(existingConfiguration, name);
+	}
 }

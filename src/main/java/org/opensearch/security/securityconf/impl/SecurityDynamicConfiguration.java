@@ -40,6 +40,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.ExceptionsHelper;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.security.DefaultObjectMapper;
@@ -50,13 +53,12 @@ import org.opensearch.security.securityconf.StaticDefinable;
 
 public class SecurityDynamicConfiguration<T> implements ToXContent {
 
-    private static final TypeReference<HashMap<String, Object>> typeRefMSO = new TypeReference<HashMap<String, Object>>() {
-    };
+    private static final TypeReference<HashMap<String,Object>> typeRefMSO = new TypeReference<HashMap<String,Object>>() {};
 
     @JsonIgnore
     private final Map<String, T> centries = new HashMap<>();
-    private long seqNo = -1;
-    private long primaryTerm = -1;
+    private long seqNo= -1;
+    private long primaryTerm= -1;
     private CType ctype;
     private int version = -1;
 
@@ -64,36 +66,21 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return new SecurityDynamicConfiguration<T>();
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm)
-        throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
         return fromJson(json, ctype, version, seqNo, primaryTerm, false);
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromJson(
-        String json,
-        CType ctype,
-        int version,
-        long seqNo,
-        long primaryTerm,
-        boolean acceptInvalid
-    ) throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromJson(String json, CType ctype, int version, long seqNo, long primaryTerm, boolean acceptInvalid) throws IOException {
         SecurityDynamicConfiguration<T> sdc = null;
-        if (ctype != null) {
+        if(ctype != null) {
             final Class<?> implementationClass = ctype.getImplementationClass().get(version);
-            if (implementationClass == null) {
-                throw new IllegalArgumentException("No implementation class found for " + ctype + " and config version " + version);
+            if(implementationClass == null) {
+                throw new IllegalArgumentException("No implementation class found for "+ctype+" and config version "+version);
             }
-            if (acceptInvalid && version < 2) {
-                sdc = NonValidatingObjectMapper.readValue(
-                    json,
-                    NonValidatingObjectMapper.getTypeFactory()
-                        .constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
-                );
+            if(acceptInvalid && version < 2) {
+                sdc = NonValidatingObjectMapper.readValue(json, NonValidatingObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass));
             } else {
-                sdc = DefaultObjectMapper.readValue(
-                    json,
-                    DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass)
-                );
+                sdc = DefaultObjectMapper.readValue(json, DefaultObjectMapper.getTypeFactory().constructParametricType(SecurityDynamicConfiguration.class, implementationClass));
             }
             validate(sdc, version, ctype);
 
@@ -110,32 +97,29 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     }
 
     public static void validate(SecurityDynamicConfiguration sdc, int version, CType ctype) throws IOException {
-        if (version < 2 && sdc.get_meta() != null) {
-            throw new IOException("A version of " + version + " can not have a _meta key for " + ctype);
+        if(version < 2 && sdc.get_meta() != null) {
+            throw new IOException("A version of "+version+" can not have a _meta key for "+ctype);
         }
 
-        if (version >= 2 && sdc.get_meta() == null) {
-            throw new IOException("A version of " + version + " must have a _meta key for " + ctype);
+        if(version >= 2 && sdc.get_meta() == null) {
+            throw new IOException("A version of "+version+" must have a _meta key for "+ctype);
         }
 
-        if (version < 2
-            && ctype == CType.CONFIG
-            && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("opendistro_security"))) {
-            throw new IOException("A version of " + version + " must have a single toplevel key named 'opendistro_security' for " + ctype);
+        if(version < 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("opendistro_security"))) {
+            throw new IOException("A version of "+version+" must have a single toplevel key named 'opendistro_security' for "+ctype);
         }
 
-        if (version >= 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("config"))) {
-            throw new IOException("A version of " + version + " must have a single toplevel key named 'config' for " + ctype);
+        if(version >= 2 && ctype == CType.CONFIG && (sdc.getCEntries().size() != 1 || !sdc.getCEntries().keySet().contains("config"))) {
+            throw new IOException("A version of "+version+" must have a single toplevel key named 'config' for "+ctype);
         }
 
     }
 
-    public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType ctype, int version, long seqNo, long primaryTerm)
-        throws IOException {
+    public static <T> SecurityDynamicConfiguration<T> fromNode(JsonNode json, CType ctype, int version, long seqNo, long primaryTerm) throws IOException {
         return fromJson(DefaultObjectMapper.writeValueAsString(json, false), ctype, version, seqNo, primaryTerm);
     }
 
-    // for Jackson
+    //for Jackson
     private SecurityDynamicConfiguration() {
         super();
     }
@@ -150,6 +134,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         this._meta = _meta;
     }
 
+
     @JsonAnySetter
     void setCEntries(String key, T value) {
         putCEntry(key, value);
@@ -162,8 +147,8 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     public void removeHidden() {
-        for (Entry<String, T> entry : new HashMap<String, T>(centries).entrySet()) {
-            if (entry.getValue() instanceof Hideable && ((Hideable) entry.getValue()).isHidden()) {
+        for(Entry<String, T> entry: new HashMap<String, T>(centries).entrySet()) {
+            if(entry.getValue() instanceof Hideable && ((Hideable) entry.getValue()).isHidden()) {
                 centries.remove(entry.getKey());
             }
         }
@@ -171,8 +156,8 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     public void removeStatic() {
-        for (Entry<String, T> entry : new HashMap<String, T>(centries).entrySet()) {
-            if (entry.getValue() instanceof StaticDefinable && ((StaticDefinable) entry.getValue()).isStatic()) {
+        for(Entry<String, T> entry: new HashMap<String, T>(centries).entrySet()) {
+            if(entry.getValue() instanceof StaticDefinable && ((StaticDefinable) entry.getValue()).isStatic()) {
                 centries.remove(entry.getKey());
             }
         }
@@ -180,12 +165,13 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     public void clearHashes() {
-        for (Entry<String, T> entry : centries.entrySet()) {
-            if (entry.getValue() instanceof Hashed) {
-                ((Hashed) entry.getValue()).clearHash();
+        for(Entry<String, T> entry: centries.entrySet()) {
+            if(entry.getValue() instanceof Hashed) {
+               ((Hashed) entry.getValue()).clearHash();
             }
         }
     }
+
 
     public void removeOthers(String key) {
         T tmp = this.centries.get(key);
@@ -213,21 +199,15 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return centries.containsKey(key);
     }
 
+    @JsonIgnore
+    public BytesReference toBytesReference() throws IOException {
+        return XContentHelper.toXContent(this, XContentType.JSON, false);
+    }
+
     @Override
     public String toString() {
-        return "SecurityDynamicConfiguration [seqNo="
-            + seqNo
-            + ", primaryTerm="
-            + primaryTerm
-            + ", ctype="
-            + ctype
-            + ", version="
-            + version
-            + ", centries="
-            + centries
-            + ", getImplementingClass()="
-            + getImplementingClass()
-            + "]";
+        return "SecurityDynamicConfiguration [seqNo=" + seqNo + ", primaryTerm=" + primaryTerm + ", ctype=" + ctype + ", version=" + version + ", centries="
+                + centries + ", getImplementingClass()=" + getImplementingClass() + "]";
     }
 
     @Override
@@ -270,7 +250,7 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     public Class<?> getImplementingClass() {
-        return ctype == null ? null : ctype.getImplementationClass().get(getVersion());
+        return ctype==null?null:ctype.getImplementationClass().get(getVersion());
     }
 
     @JsonIgnore
@@ -284,21 +264,21 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
 
     @JsonIgnore
     public void remove(String key) {
-        centries.remove(key);
+       centries.remove(key);
 
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public boolean add(SecurityDynamicConfiguration other) {
-        if (other.ctype == null || !other.ctype.equals(this.ctype)) {
+        if(other.ctype == null || !other.ctype.equals(this.ctype)) {
             return false;
         }
 
-        if (other.getImplementingClass() == null || !other.getImplementingClass().equals(this.getImplementingClass())) {
+        if(other.getImplementingClass() == null || !other.getImplementingClass().equals(this.getImplementingClass())) {
             return false;
         }
 
-        if (other.version != this.version) {
+        if(other.version != this.version) {
             return false;
         }
 
@@ -312,21 +292,9 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
         return !Collections.disjoint(this.centries.keySet(), other.centries.keySet());
     }
 
-    public boolean isHidden(String resourceName) {
+    public boolean isHidden(String resourceName){
         final Object o = centries.get(resourceName);
-        return o instanceof Hideable && ((Hideable) o).isHidden();
-    }
-
-    @JsonIgnore
-    public boolean isStatic(final String resourceName) {
-        final Object o = centries.get(resourceName);
-        return o instanceof StaticDefinable && ((StaticDefinable) o).isStatic();
-    }
-
-    @JsonIgnore
-    public boolean isReserved(final String resourceName) {
-        final Object o = centries.get(resourceName);
-        return o instanceof Hideable && ((Hideable) o).isReserved();
+        return o != null && o instanceof Hideable && ((Hideable) o).isHidden();
     }
 
 }

@@ -43,16 +43,17 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
 
     public ExternalSecurityKeyStore(final Settings settings) {
         this.settings = Objects.requireNonNull(settings);
-        final String externalContextId = settings.get(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
+        final String externalContextId = settings
+                .get(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
 
-        if (externalContextId == null || externalContextId.length() == 0) {
+        if(externalContextId == null || externalContextId.length() == 0) {
             throw new OpenSearchException("no external ssl context id was set");
         }
 
         externalSslContext = contextMap.get(externalContextId);
 
-        if (externalSslContext == null) {
-            throw new OpenSearchException("no external ssl context for id " + externalContextId);
+        if(externalSslContext == null) {
+            throw new OpenSearchException("no external ssl context for id "+externalContextId);
         }
     }
 
@@ -74,17 +75,13 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
             sslParams.setEndpointIdentificationAlgorithm("HTTPS");
             engine.setSSLParameters(sslParams);
             engine.setEnabledProtocols(evalSecure(engine.getEnabledProtocols(), SSLConfigConstants.getSecureSSLProtocols(settings, false)));
-            engine.setEnabledCipherSuites(
-                evalSecure(engine.getEnabledCipherSuites(), SSLConfigConstants.getSecureSSLCiphers(settings, false).toArray(new String[0]))
-            );
+            engine.setEnabledCipherSuites(evalSecure(engine.getEnabledCipherSuites(), SSLConfigConstants.getSecureSSLCiphers(settings, false).toArray(new String[0])));
             engine.setUseClientMode(true);
             return engine;
         } else {
             final SSLEngine engine = externalSslContext.createSSLEngine();
             engine.setEnabledProtocols(evalSecure(engine.getEnabledProtocols(), SSLConfigConstants.getSecureSSLProtocols(settings, false)));
-            engine.setEnabledCipherSuites(
-                evalSecure(engine.getEnabledCipherSuites(), SSLConfigConstants.getSecureSSLCiphers(settings, false).toArray(new String[0]))
-            );
+            engine.setEnabledCipherSuites(evalSecure(engine.getEnabledCipherSuites(), SSLConfigConstants.getSecureSSLCiphers(settings, false).toArray(new String[0])));
             engine.setUseClientMode(true);
             return engine;
         }
@@ -141,9 +138,10 @@ public class ExternalSecurityKeyStore implements SecurityKeyStore {
 
     public static boolean hasExternalSslContext(Settings settings) {
 
-        final String externalContextId = settings.get(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
+        final String externalContextId = settings
+                .get(SSLConfigConstants.SECURITY_SSL_CLIENT_EXTERNAL_CONTEXT_ID, null);
 
-        if (externalContextId == null || externalContextId.length() == 0) {
+        if(externalContextId == null || externalContextId.length() == 0) {
             return false;
         }
 

@@ -69,10 +69,7 @@ public class Utils {
     }
 
     public static Map<String, Object> convertJsonToxToStructuredMap(String jsonContent) {
-        try (
-            XContentParser parser = XContentType.JSON.xContent()
-                .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, jsonContent)
-        ) {
+        try (XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, jsonContent)) {
             return parser.map();
         } catch (IOException e1) {
             throw ExceptionsHelper.convertToOpenSearchException(e1);
@@ -182,8 +179,7 @@ public class Utils {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<Map<String, Object>>() {
                 @Override
                 public Map<String, Object> run() throws Exception {
-                    return internalMapper.readValue(jsonBytes, new TypeReference<Map<String, Object>>() {
-                    });
+                    return internalMapper.readValue(jsonBytes, new TypeReference<Map<String, Object>>() {});
                 }
             });
         } catch (final PrivilegedActionException e) {
@@ -219,7 +215,10 @@ public class Utils {
      * @return new set of fields resource paths
      */
     public static Set<String> generateFieldResourcePaths(final Set<String> fields, final String prefix) {
-        return fields.stream().map(field -> prefix + field).collect(ImmutableSet.toImmutableSet());
+        return fields
+                .stream()
+                .map(field -> prefix + field)
+                .collect(ImmutableSet.toImmutableSet());
     }
 
     /**
@@ -228,7 +227,7 @@ public class Utils {
      * @return new list of API routes prefixed with _opendistro... and _plugins...
      *Total number of routes is expanded as twice as the number of routes passed in
      */
-    public static List<Route> addRoutesPrefix(List<Route> routes) {
+    public static List<Route> addRoutesPrefix(List<Route> routes){
         return addRoutesPrefix(routes, "/_opendistro/_security/api", "/_plugins/_security/api");
     }
 
@@ -239,10 +238,12 @@ public class Utils {
      * @return new list of API routes prefixed with the strings listed in prefixes
      * Total number of routes will be expanded len(prefixes) as much comparing to the list passed in
      */
-    public static List<Route> addRoutesPrefix(List<Route> routes, final String... prefixes) {
+    public static List<Route> addRoutesPrefix(List<Route> routes, final String... prefixes){
         return routes.stream()
-            .flatMap(r -> Arrays.stream(prefixes).map(p -> new Route(r.getMethod(), p + r.getPath())))
-            .collect(ImmutableList.toImmutableList());
+             .flatMap(
+                r -> Arrays.stream(prefixes)
+                   .map(p -> new Route(r.getMethod(), p + r.getPath())))
+             .collect(ImmutableList.toImmutableList());
     }
 
     /**
@@ -251,7 +252,7 @@ public class Utils {
      * @return new list of API routes prefixed with _opendistro... and _plugins...
      *Total number of routes is expanded as twice as the number of routes passed in
      */
-    public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes) {
+    public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes){
         return addDeprecatedRoutesPrefix(deprecatedRoutes, "/_opendistro/_security/api", "/_plugins/_security/api");
     }
 
@@ -262,10 +263,12 @@ public class Utils {
      * @return new list of API routes prefixed with the strings listed in prefixes
      * Total number of routes will be expanded len(prefixes) as much comparing to the list passed in
      */
-    public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes, final String... prefixes) {
+    public static List<DeprecatedRoute> addDeprecatedRoutesPrefix(List<DeprecatedRoute> deprecatedRoutes, final String... prefixes){
         return deprecatedRoutes.stream()
-            .flatMap(r -> Arrays.stream(prefixes).map(p -> new DeprecatedRoute(r.getMethod(), p + r.getPath(), r.getDeprecationMessage())))
-            .collect(ImmutableList.toImmutableList());
+                .flatMap(
+                        r -> Arrays.stream(prefixes)
+                                .map(p -> new DeprecatedRoute(r.getMethod(), p + r.getPath(), r.getDeprecationMessage())))
+                .collect(ImmutableList.toImmutableList());
     }
 
     public static Pair<User, TransportAddress> userAndRemoteAddressFrom(final ThreadContext threadContext) {

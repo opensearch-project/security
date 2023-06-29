@@ -85,7 +85,7 @@ import org.opensearch.security.support.MapUtils;
 import org.opensearch.security.support.SecurityUtils;
 import org.opensearch.security.support.WildcardMatcher;
 
-class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
+class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader  {
 
     private static final String KEYWORD = ".keyword";
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
@@ -108,18 +108,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     private DlsGetEvaluator dge = null;
 
-    DlsFlsFilterLeafReader(
-        final LeafReader delegate,
-        final Set<String> includesExcludes,
-        final Query dlsQuery,
-        final IndexService indexService,
-        final ThreadContext threadContext,
-        final ClusterService clusterService,
-        final AuditLog auditlog,
-        final Set<String> maskedFields,
-        final ShardId shardId,
-        final Salt salt
-    ) {
+
+    DlsFlsFilterLeafReader(final LeafReader delegate, final Set<String> includesExcludes,
+                           final Query dlsQuery, final IndexService indexService, final ThreadContext threadContext,
+                           final ClusterService clusterService,
+                           final AuditLog auditlog, final Set<String> maskedFields, final ShardId shardId, final Salt salt) {
         super(delegate);
 
         maskFields = (maskedFields != null && maskedFields.size() > 0);
@@ -206,6 +199,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             System.arraycopy(fa, 0, tmp, 0, i);
             this.flsFieldInfos = new FieldInfos(tmp);
 
+
+
         } else {
             this.includesSet = null;
             this.excludesSet = null;
@@ -226,9 +221,9 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         private final boolean hasDeletions;
 
         public DlsGetEvaluator(final Query dlsQuery, final LeafReader in, boolean applyDlsHere) throws IOException {
-            if (dlsQuery != null && applyDlsHere) {
-                // borrowed from Apache Lucene (Copyright Apache Software Foundation (ASF))
-                // https://github.com/apache/lucene-solr/blob/branch_6_3/lucene/misc/src/java/org/apache/lucene/index/PKIndexSplitter.java
+            if(dlsQuery != null && applyDlsHere) {
+                //borrowed from Apache Lucene (Copyright Apache Software Foundation (ASF))
+                //https://github.com/apache/lucene-solr/blob/branch_6_3/lucene/misc/src/java/org/apache/lucene/index/PKIndexSplitter.java
                 final IndexSearcher searcher = new IndexSearcher(DlsFlsFilterLeafReader.this);
                 searcher.setQueryCache(null);
                 final Weight preserveWeight = searcher.createWeight(dlsQuery, ScoreMode.COMPLETE_NO_SCORES, 1f);
@@ -258,7 +253,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 hasDeletions = true;
 
             } else {
-                // no dls or handled in a different place
+                //no dls or handled in a different place
                 liveBits = in.getLiveDocs();
                 numDocs = in.numDocs();
                 readerCacheHelper = in.getReaderCacheHelper();
@@ -266,7 +261,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             }
         }
 
-        // return null means no hidden docs
+        //return null means no hidden docs
         public Bits getLiveDocs() {
             return liveBits;
         }
@@ -293,18 +288,19 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         public static MaskedFieldsMap extractMaskedFields(boolean maskFields, Set<String> maskedFields, final Salt salt) {
             if (maskFields) {
-                return new MaskedFieldsMap(
-                    maskedFields.stream()
-                        .map(mf -> new MaskedField(mf, salt))
-                        .collect(ImmutableMap.toImmutableMap(mf -> WildcardMatcher.from(mf.getName()), Function.identity()))
-                );
+                return new MaskedFieldsMap(maskedFields.stream()
+                    .map(mf -> new MaskedField(mf, salt))
+                    .collect(ImmutableMap.toImmutableMap(mf -> WildcardMatcher.from(mf.getName()), Function.identity())));
             } else {
                 return new MaskedFieldsMap(Collections.emptyMap());
             }
         }
 
         public Optional<MaskedField> getMaskedField(String fieldName) {
-            return maskedFieldsMap.entrySet().stream().filter(entry -> entry.getKey().test(fieldName)).map(Map.Entry::getValue).findFirst();
+            return maskedFieldsMap.entrySet().stream()
+                .filter(entry -> entry.getKey().test(fieldName))
+                .map(Map.Entry::getValue)
+                .findFirst();
         }
 
         public boolean anyMatch(String fieldName) {
@@ -314,6 +310,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         public WildcardMatcher getMatcher() {
             return WildcardMatcher.from(maskedFieldsMap.keySet());
         }
+
 
     }
 
@@ -329,17 +326,10 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         private final ShardId shardId;
         private final Salt salt;
 
-        public DlsFlsSubReaderWrapper(
-            final Set<String> includes,
-            final Query dlsQuery,
-            final IndexService indexService,
-            final ThreadContext threadContext,
-            final ClusterService clusterService,
-            final AuditLog auditlog,
-            final Set<String> maskedFields,
-            ShardId shardId,
-            final Salt salt
-        ) {
+        public DlsFlsSubReaderWrapper(final Set<String> includes, final Query dlsQuery,
+                                      final IndexService indexService, final ThreadContext threadContext,
+                                      final ClusterService clusterService,
+                                      final AuditLog auditlog, final Set<String> maskedFields, ShardId shardId, final Salt salt) {
             this.includes = includes;
             this.dlsQuery = dlsQuery;
             this.indexService = indexService;
@@ -353,18 +343,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public LeafReader wrap(final LeafReader reader) {
-            return new DlsFlsFilterLeafReader(
-                reader,
-                includes,
-                dlsQuery,
-                indexService,
-                threadContext,
-                clusterService,
-                auditlog,
-                maskedFields,
-                shardId,
-                salt
-            );
+            return new DlsFlsFilterLeafReader(reader, includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId, salt);
         }
 
     }
@@ -381,32 +360,11 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         private final ShardId shardId;
         private final Salt salt;
 
-        public DlsFlsDirectoryReader(
-            final DirectoryReader in,
-            final Set<String> includes,
-            final Query dlsQuery,
-            final IndexService indexService,
-            final ThreadContext threadContext,
-            final ClusterService clusterService,
-            final AuditLog auditlog,
-            final Set<String> maskedFields,
-            ShardId shardId,
-            final Salt salt
-        ) throws IOException {
-            super(
-                in,
-                new DlsFlsSubReaderWrapper(
-                    includes,
-                    dlsQuery,
-                    indexService,
-                    threadContext,
-                    clusterService,
-                    auditlog,
-                    maskedFields,
-                    shardId,
-                    salt
-                )
-            );
+        public DlsFlsDirectoryReader(final DirectoryReader in, final Set<String> includes, final Query dlsQuery,
+                                     final IndexService indexService, final ThreadContext threadContext,
+                                     final ClusterService clusterService,
+                                     final AuditLog auditlog, final Set<String> maskedFields, ShardId shardId, final Salt salt) throws IOException {
+            super(in, new DlsFlsSubReaderWrapper(includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId, salt));
             this.includes = includes;
             this.dlsQuery = dlsQuery;
             this.indexService = indexService;
@@ -420,18 +378,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         protected DirectoryReader doWrapDirectoryReader(final DirectoryReader in) throws IOException {
-            return new DlsFlsDirectoryReader(
-                in,
-                includes,
-                dlsQuery,
-                indexService,
-                threadContext,
-                clusterService,
-                auditlog,
-                maskedFields,
-                shardId,
-                salt
-            );
+            return new DlsFlsDirectoryReader(in, includes, dlsQuery, indexService, threadContext, clusterService, auditlog, maskedFields, shardId, salt);
         }
 
         @Override
@@ -520,7 +467,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     private boolean isFls(final String name) {
 
-        if (!flsEnabled) {
+        if(!flsEnabled) {
             return true;
         }
 
@@ -530,7 +477,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     @Override
     public FieldInfos getFieldInfos() {
 
-        if (!flsEnabled) {
+        if(!flsEnabled) {
             return in.getFieldInfos();
         }
 
@@ -540,14 +487,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     private class ComplianceAwareStoredFieldVisitor extends StoredFieldVisitor {
 
         private final StoredFieldVisitor delegate;
-        private FieldReadCallback fieldReadCallback = new FieldReadCallback(
-            threadContext,
-            indexService,
-            clusterService,
-            auditlog,
-            maskedFieldsMap.getMatcher(),
-            shardId
-        );
+        private FieldReadCallback fieldReadCallback =
+                new FieldReadCallback(threadContext, indexService, clusterService, auditlog, maskedFieldsMap.getMatcher(), shardId);
 
         public ComplianceAwareStoredFieldVisitor(final StoredFieldVisitor delegate) {
             super();
@@ -559,6 +500,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             fieldReadCallback.binaryFieldRead(fieldInfo, value);
             delegate.binaryField(fieldInfo, value);
         }
+
 
         @Override
         public Status needsField(final FieldInfo fieldInfo) throws IOException {
@@ -642,6 +584,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             }
         }
 
+
         @Override
         public Status needsField(final FieldInfo fieldInfo) throws IOException {
             return isFls(fieldInfo.name) ? delegate.needsField(fieldInfo) : Status.NO;
@@ -697,11 +640,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
             if (fieldInfo.name.equals("_source")) {
                 final BytesReference bytesRef = new BytesArray(value);
-                final Tuple<XContentType, Map<String, Object>> bytesRefTuple = XContentHelper.convertToMap(
-                    bytesRef,
-                    false,
-                    XContentType.JSON
-                );
+                final Tuple<XContentType, Map<String, Object>> bytesRefTuple = XContentHelper.convertToMap(bytesRef, false, XContentType.JSON);
                 Map<String, Object> filteredSource = bytesRefTuple.v2();
                 MapUtils.deepTraverseMap(filteredSource, HASH_CB);
                 final XContentBuilder xBuilder = XContentBuilder.builder(bytesRefTuple.v1().xContent()).map(filteredSource);
@@ -710,6 +649,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 delegate.binaryField(fieldInfo, value);
             }
         }
+
 
         @Override
         public Status needsField(final FieldInfo fieldInfo) throws IOException {
@@ -805,7 +745,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
             @Override
             public Iterator<String> iterator() {
-                return Iterators.<String>filter(fields.iterator(), input -> isFls(input));
+                return Iterators.<String> filter(fields.iterator(), input -> isFls(input));
             }
 
             @Override
@@ -841,7 +781,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         final MaskedFieldsMap maskedFieldsMap;
 
-        if (binaryDocValues != null && ((maskedFieldsMap = getRuntimeMaskedFieldInfo()) != null)) {
+        if (binaryDocValues != null && ((maskedFieldsMap=getRuntimeMaskedFieldInfo()) != null)) {
             final MaskedField mf = maskedFieldsMap.getMaskedField(handleKeyword(field)).orElse(null);
 
             if (mf != null) {
@@ -882,6 +822,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         return binaryDocValues;
     }
 
+
     @Override
     public SortedDocValues getSortedDocValues(final String field) throws IOException {
         return isFls(field) ? wrapSortedDocValues(field, in.getSortedDocValues(field)) : null;
@@ -891,7 +832,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         final MaskedFieldsMap maskedFieldsMap;
 
-        if (sortedDocValues != null && (maskedFieldsMap = getRuntimeMaskedFieldInfo()) != null) {
+        if (sortedDocValues != null && (maskedFieldsMap=getRuntimeMaskedFieldInfo())!=null) {
             final MaskedField mf = maskedFieldsMap.getMaskedField(handleKeyword(field)).orElse(null);
 
             if (mf != null) {
@@ -901,6 +842,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                     public int lookupTerm(BytesRef key) throws IOException {
                         return sortedDocValues.lookupTerm(key);
                     }
+
 
                     @Override
                     public TermsEnum termsEnum() throws IOException {
@@ -970,6 +912,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     private SortedSetDocValues wrapSortedSetDocValues(final String field, final SortedSetDocValues sortedSetDocValues) {
 
         final MaskedFieldsMap maskedFieldsMap;
+
 
         if (sortedSetDocValues != null && ((maskedFieldsMap = getRuntimeMaskedFieldInfo()) != null)) {
             MaskedField mf = maskedFieldsMap.getMaskedField(handleKeyword(field)).orElse(null);
@@ -1059,16 +1002,16 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     private Terms wrapTerms(final String field, Terms terms) throws IOException {
 
-        if (terms == null) {
+        if(terms == null) {
             return null;
         }
 
         MaskedFieldsMap maskedFieldInfo = getRuntimeMaskedFieldInfo();
-        if (maskedFieldInfo != null && maskedFieldInfo.anyMatch(handleKeyword(field))) {
+        if(maskedFieldInfo != null && maskedFieldInfo.anyMatch(handleKeyword(field))) {
             return null;
         }
 
-        if ("_field_names".equals(field)) {
+        if("_field_names".equals(field)) {
             return new FilteredTerms(terms);
         }
         return terms;
@@ -1081,8 +1024,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public BytesRef next() throws IOException {
-            // wind forward in the sequence of terms until we reached the end or we find a allowed term(=field name)
-            // so that calling this method never return a term which is not allowed by fls rules
+            //wind forward in the sequence of terms until we reached the end or we find a allowed term(=field name)
+            //so that calling this method never return a term which is not allowed by fls rules
             for (BytesRef nextBytesRef = in.next(); nextBytesRef != null; nextBytesRef = in.next()) {
                 if (!isFls((nextBytesRef))) {
                     continue;
@@ -1095,20 +1038,20 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public SeekStatus seekCeil(BytesRef text) throws IOException {
-            // Get the current seek status for a given term in the original sequence of terms
+            //Get the current seek status for a given term in the original sequence of terms
             final SeekStatus delegateStatus = in.seekCeil(text);
 
-            // So delegateStatus here is either FOUND or NOT_FOUND
-            // check if the current term (=field name) is allowed
-            // If so just return current seek status
+            //So delegateStatus here is either FOUND or NOT_FOUND
+            //check if the current term (=field name) is allowed
+            //If so just return current seek status
             if (delegateStatus != SeekStatus.END && isFls((in.term()))) {
                 return delegateStatus;
             } else if (delegateStatus == SeekStatus.END) {
-                // If we hit the end just return END
+                //If we hit the end just return END
                 return SeekStatus.END;
             } else {
-                // If we are not at the end and the current term (=field name) is not allowed just check if
-                // we are at the end of the (filtered) iterator
+                //If we are not at the end and the current term (=field name) is not allowed just check if
+                //we are at the end of the (filtered) iterator
                 if (this.next() != null) {
                     return SeekStatus.NOT_FOUND;
                 } else {
@@ -1116,6 +1059,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
                 }
             }
         }
+
 
         @Override
         public boolean seekExact(BytesRef term) throws IOException {
@@ -1135,15 +1079,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     private final class FilteredTerms extends FilterTerms {
 
-        // According to
-        // https://www.elastic.co/guide/en/elasticsearch/reference/6.8/mapping-field-names-field.html
-        // "The _field_names field used to index the names of every field in a document that contains any value other than null"
-        // "For fields which have either doc_values or norm enabled the exists query will still be available but will not use the
-        // _field_names field."
-        // That means if a field has no doc values (which is always the case for an analyzed string) and no norms we need to strip the non
-        // allowed fls fields
-        // from the _field_names field. They are stored as terms, so we need to create a FilterTerms implementation which skips the terms
-        // (=field names)not allowed by fls
+        //According to
+        //https://www.elastic.co/guide/en/elasticsearch/reference/6.8/mapping-field-names-field.html
+        //"The _field_names field used to index the names of every field in a document that contains any value other than null"
+        //"For fields which have either doc_values or norm enabled the exists query will still be available but will not use the _field_names field."
+        //That means if a field has no doc values (which is always the case for an analyzed string) and no norms we need to strip the non allowed fls fields
+        //from the _field_names field. They are stored as terms, so we need to create a FilterTerms implementation which skips the terms (=field names)not allowed by fls
 
         public FilteredTerms(Terms delegate) throws IOException {
             super(delegate);
@@ -1182,15 +1123,13 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     @SuppressWarnings("unchecked")
     private MaskedFieldsMap getRuntimeMaskedFieldInfo() {
-        final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
-            threadContext,
-            ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER
-        );
+        final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
+                ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
         final String maskedEval = SecurityUtils.evalMap(maskedFieldsMap, indexService.index().getName());
 
-        if (maskedEval != null) {
+        if(maskedEval != null) {
             final Set<String> mf = maskedFieldsMap.get(maskedEval);
-            if (mf != null && !mf.isEmpty()) {
+            if(mf != null && !mf.isEmpty()) {
                 return MaskedFieldsMap.extractMaskedFields(true, mf, salt);
             }
 
@@ -1200,8 +1139,8 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     }
 
     private String handleKeyword(final String field) {
-        if (field != null && field.endsWith(KEYWORD)) {
-            return field.substring(0, field.length() - KEYWORD.length());
+        if(field != null && field.endsWith(KEYWORD)) {
+            return field.substring(0, field.length()-KEYWORD.length());
         }
         return field;
     }
@@ -1219,7 +1158,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
         @Override
         public BytesRef next() throws IOException {
-            return delegate.next(); // no masking here
+            return delegate.next(); //no masking here
         }
 
         @Override
@@ -1284,6 +1223,7 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
 
     }
 
+
     private String getRuntimeActionName() {
         return (String) threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_ACTION_NAME);
     }
@@ -1293,15 +1233,16 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
     }
 
     private boolean applyDlsHere() {
-        if (isSuggest()) {
-            // we need to apply it here
+        if(isSuggest()) {
+            //we need to apply it here
             return true;
         }
 
+
         final String action = getRuntimeActionName();
         assert action != null;
-        // we need to apply here if it is not a search request
-        // (a get for example)
+        //we need to apply here if it is not a search request
+        //(a get for example)
         return !action.startsWith("indices:data/read/search");
     }
 }

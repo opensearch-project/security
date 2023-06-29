@@ -44,45 +44,16 @@ public class AuditConfigMigrater {
     private static final CommandLineParser parser = new DefaultParser();
 
     public static void main(String[] args) {
-        options.addOption(
-            Option.builder("s")
-                .argName("source")
-                .hasArg()
-                .desc(
-                    "Path to opensearch.yml file to migrate. If not specified, will try to lookup env "
-                        + OPENSEARCH_PATH_CONF_ENV
-                        + " followed by lookup in current directory."
-                )
-                .build()
-        );
-        options.addOption(
-            Option.builder("oad")
-                .argName("output-audit-dir")
-                .hasArg()
-                .desc(
-                    "Output directory to store the generated "
-                        + AUDIT_YML
-                        + " file. To be uploaded in the index, the file must be present in config/opensearch-security/ or use securityadmin tool."
-                )
-                .build()
-        );
-        options.addOption(
-            Option.builder("oed")
-                .argName("output-opensearch-dir")
-                .hasArg()
-                .desc("Output directory to store the generated " + OPENSEARCH_AUDIT_FILTERED_YML + " file.")
-                .build()
-        );
+        options.addOption(Option.builder("s").argName("source").hasArg().desc("Path to opensearch.yml file to migrate. If not specified, will try to lookup env " + OPENSEARCH_PATH_CONF_ENV + " followed by lookup in current directory.").build());
+        options.addOption(Option.builder("oad").argName("output-audit-dir").hasArg().desc("Output directory to store the generated " + AUDIT_YML + " file. To be uploaded in the index, the file must be present in config/opensearch-security/ or use securityadmin tool.").build());
+        options.addOption(Option.builder("oed").argName("output-opensearch-dir").hasArg().desc("Output directory to store the generated " + OPENSEARCH_AUDIT_FILTERED_YML + " file.").build());
 
         try {
             final CommandLine line = parser.parse(options, args);
 
             // find source path. if not specified, use environment followed by current directory path
             final String opensearchPathConfDirEnv = System.getenv(OPENSEARCH_PATH_CONF_ENV);
-            final String opensearchPath = sanitizeFilePath(
-                opensearchPathConfDirEnv != null ? opensearchPathConfDirEnv : ".",
-                OPENSEARCH_YML
-            );
+            final String opensearchPath = sanitizeFilePath(opensearchPathConfDirEnv != null ? opensearchPathConfDirEnv : ".", OPENSEARCH_YML);
             final String source = line.getOptionValue("s", opensearchPath);
 
             // audit output directory
@@ -96,10 +67,10 @@ public class AuditConfigMigrater {
 
             // create audit config
             final Map<String, Object> result = ImmutableMap.of(
-                "_meta",
-                ImmutableMap.of("type", "audit", "config_version", 2),
-                "config",
-                AuditConfig.from(settingsBuilder.build())
+                    "_meta", ImmutableMap.of(
+                            "type", "audit",
+                            "config_version", 2),
+                    "config", AuditConfig.from(settingsBuilder.build())
             );
 
             // write audit.yml.example
@@ -124,13 +95,8 @@ public class AuditConfigMigrater {
             }
 
             System.out.println("Generated " + AUDIT_YML + " is available at path " + auditOutput);
-            System.out.println(
-                "Generated "
-                    + OPENSEARCH_AUDIT_FILTERED_YML
-                    + " is available at path "
-                    + opensearchOutput
-                    + " Please remove the deprecated keys from your opensearch.yml or replace with the generated file after reviewing."
-            );
+            System.out.println("Generated " + OPENSEARCH_AUDIT_FILTERED_YML + " is available at path " + opensearchOutput +
+                    " Please remove the deprecated keys from your opensearch.yml or replace with the generated file after reviewing.");
         } catch (final Exception e) {
             e.printStackTrace();
             formatter.printHelp("audit_config_migrater.sh", options, true);

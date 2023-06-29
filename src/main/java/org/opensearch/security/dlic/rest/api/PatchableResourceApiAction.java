@@ -54,23 +54,16 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
-    public PatchableResourceApiAction(
-        Settings settings,
-        Path configPath,
-        RestController controller,
-        Client client,
-        AdminDNs adminDNs,
-        ConfigurationRepository cl,
-        ClusterService cs,
-        PrincipalExtractor principalExtractor,
-        PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
-    ) {
-        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+    public PatchableResourceApiAction(Settings settings, Path configPath, RestController controller, Client client,
+                                         AdminDNs adminDNs, ConfigurationRepository cl, ClusterService cs,
+                                         PrincipalExtractor principalExtractor, PrivilegesEvaluator evaluator, ThreadPool threadPool,
+                                         AuditLog auditLog) {
+        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
+                auditLog);
     }
 
-    private void handlePatch(RestChannel channel, final RestRequest request, final Client client) throws IOException {
+    private void handlePatch(RestChannel channel, final RestRequest request, final Client client)
+            throws IOException  {
         if (request.getXContentType() != XContentType.JSON) {
             badRequestResponse(channel, "PATCH accepts only application/json");
             return;
@@ -110,15 +103,8 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         }
     }
 
-    private void handleSinglePatch(
-        RestChannel channel,
-        RestRequest request,
-        Client client,
-        String name,
-        SecurityDynamicConfiguration<?> existingConfiguration,
-        ObjectNode existingAsObjectNode,
-        JsonNode jsonPatch
-    ) throws IOException {
+    private void handleSinglePatch(RestChannel channel, RestRequest request, Client client, String name,
+            SecurityDynamicConfiguration<?> existingConfiguration, ObjectNode existingAsObjectNode, JsonNode jsonPatch) throws IOException {
         if (!isWriteable(channel, existingConfiguration, name)) {
             return;
         }
@@ -140,15 +126,9 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
-        AbstractConfigurationValidator originalValidator = postProcessApplyPatchResult(
-            channel,
-            request,
-            existingResourceAsJsonNode,
-            patchedResourceAsJsonNode,
-            name
-        );
+        AbstractConfigurationValidator originalValidator = postProcessApplyPatchResult(channel, request, existingResourceAsJsonNode, patchedResourceAsJsonNode, name);
 
-        if (originalValidator != null) {
+        if(originalValidator != null) {
             if (!originalValidator.validate()) {
                 request.params().clear();
                 badRequestResponse(channel, originalValidator);
@@ -172,13 +152,8 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
         JsonNode updatedAsJsonNode = existingAsObjectNode.deepCopy().set(name, patchedResourceAsJsonNode);
 
-        SecurityDynamicConfiguration<?> mdc = SecurityDynamicConfiguration.fromNode(
-            updatedAsJsonNode,
-            existingConfiguration.getCType(),
-            existingConfiguration.getVersion(),
-            existingConfiguration.getSeqNo(),
-            existingConfiguration.getPrimaryTerm()
-        );
+        SecurityDynamicConfiguration<?> mdc = SecurityDynamicConfiguration.fromNode(updatedAsJsonNode, existingConfiguration.getCType()
+                                   , existingConfiguration.getVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
 
         if (existingConfiguration.getCType().equals(CType.ACTIONGROUPS)) {
             if (hasActionGroupSelfReference(mdc, name)) {
@@ -187,24 +162,18 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
         }
 
-        saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName,client, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel){
 
             @Override
             public void onResponse(IndexResponse response) {
                 successResponse(channel, "'" + name + "' updated.");
 
             }
-        });
+            });
     }
 
-    private void handleBulkPatch(
-        RestChannel channel,
-        RestRequest request,
-        Client client,
-        SecurityDynamicConfiguration<?> existingConfiguration,
-        ObjectNode existingAsObjectNode,
-        JsonNode jsonPatch
-    ) throws IOException {
+    private void handleBulkPatch(RestChannel channel, RestRequest request, Client client,
+            SecurityDynamicConfiguration<?> existingConfiguration, ObjectNode existingAsObjectNode, JsonNode jsonPatch) throws IOException {
 
         JsonNode patchedAsJsonNode;
 
@@ -224,21 +193,16 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
         }
 
+
         for (Iterator<String> fieldNamesIter = patchedAsJsonNode.fieldNames(); fieldNamesIter.hasNext();) {
             String resourceName = fieldNamesIter.next();
 
             JsonNode oldResource = existingAsObjectNode.get(resourceName);
             JsonNode patchedResource = patchedAsJsonNode.get(resourceName);
 
-            AbstractConfigurationValidator originalValidator = postProcessApplyPatchResult(
-                channel,
-                request,
-                oldResource,
-                patchedResource,
-                resourceName
-            );
+            AbstractConfigurationValidator originalValidator = postProcessApplyPatchResult(channel, request, oldResource, patchedResource, resourceName);
 
-            if (originalValidator != null) {
+            if(originalValidator != null) {
                 if (!originalValidator.validate()) {
                     request.params().clear();
                     badRequestResponse(channel, originalValidator);
@@ -268,30 +232,25 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
                 }
             }
         }
-        SecurityDynamicConfiguration<?> mdc = SecurityDynamicConfiguration.fromNode(
-            patchedAsJsonNode,
-            existingConfiguration.getCType(),
-            existingConfiguration.getVersion(),
-            existingConfiguration.getSeqNo(),
-            existingConfiguration.getPrimaryTerm()
-        );
+        SecurityDynamicConfiguration<?> mdc = SecurityDynamicConfiguration.fromNode(patchedAsJsonNode, existingConfiguration.getCType()
+                                    , existingConfiguration.getVersion(), existingConfiguration.getSeqNo(), existingConfiguration.getPrimaryTerm());
 
         if (existingConfiguration.getCType().equals(CType.ACTIONGROUPS)) {
             for (String actiongroup : mdc.getCEntries().keySet()) {
-                if (hasActionGroupSelfReference(mdc, actiongroup)) {
+                if(hasActionGroupSelfReference(mdc, actiongroup)) {
                     badRequestResponse(channel, actiongroup + " cannot be an allowed_action of itself");
                     return;
                 }
             }
         }
 
-        saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName,client, getConfigName(), mdc, new OnSucessActionListener<IndexResponse>(channel) {
 
             @Override
             public void onResponse(IndexResponse response) {
                 successResponse(channel, "Resource updated.");
             }
-        });
+            });
 
     }
 
@@ -299,19 +258,14 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         return JsonPatch.apply(jsonPatch, existingResourceAsJsonNode);
     }
 
-    protected AbstractConfigurationValidator postProcessApplyPatchResult(
-        RestChannel channel,
-        RestRequest request,
-        JsonNode existingResourceAsJsonNode,
-        JsonNode updatedResourceAsJsonNode,
-        String resourceName
-    ) {
+    protected AbstractConfigurationValidator postProcessApplyPatchResult(RestChannel channel, RestRequest request, JsonNode existingResourceAsJsonNode, JsonNode updatedResourceAsJsonNode, String resourceName) {
         // do nothing by default
         return null;
     }
 
     @Override
-    protected void handleApiRequest(RestChannel channel, final RestRequest request, final Client client) throws IOException {
+    protected void handleApiRequest(RestChannel channel, final RestRequest request, final Client client)
+            throws IOException {
 
         if (request.method() == Method.PATCH) {
             handlePatch(channel, request, client);
@@ -320,10 +274,10 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         }
     }
 
-    private AbstractConfigurationValidator getValidator(RestRequest request, JsonNode patchedResource) throws JsonProcessingException {
+    private AbstractConfigurationValidator getValidator(RestRequest request, JsonNode patchedResource)
+            throws JsonProcessingException {
         BytesReference patchedResourceAsByteReference = new BytesArray(
-            DefaultObjectMapper.objectMapper.writeValueAsString(patchedResource).getBytes(StandardCharsets.UTF_8)
-        );
+                DefaultObjectMapper.objectMapper.writeValueAsString(patchedResource).getBytes(StandardCharsets.UTF_8));
         return getValidator(request, patchedResourceAsByteReference);
     }
 

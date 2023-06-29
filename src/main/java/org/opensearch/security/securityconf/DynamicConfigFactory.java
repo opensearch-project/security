@@ -89,32 +89,29 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     }
 
     private void loadStaticConfig() throws IOException {
-        JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml")
-        );
+        JsonNode staticRolesJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_roles.yml"));
         staticRoles = SecurityDynamicConfiguration.fromNode(staticRolesJsonNode, CType.ROLES, 2, 0, 0);
 
-        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml")
-        );
+        JsonNode staticActionGroupsJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_action_groups.yml"));
         staticActionGroups = SecurityDynamicConfiguration.fromNode(staticActionGroupsJsonNode, CType.ACTIONGROUPS, 2, 0, 0);
 
-        JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER.readTree(
-            DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml")
-        );
+        JsonNode staticTenantsJsonNode = DefaultObjectMapper.YAML_MAPPER
+                .readTree(DynamicConfigFactory.class.getResourceAsStream("/static_config/static_tenants.yml"));
         staticTenants = SecurityDynamicConfiguration.fromNode(staticTenantsJsonNode, CType.TENANTS, 2, 0, 0);
     }
 
     public final static SecurityDynamicConfiguration<?> addStatics(SecurityDynamicConfiguration<?> original) {
-        if (original.getCType() == CType.ACTIONGROUPS && !staticActionGroups.getCEntries().isEmpty()) {
+        if(original.getCType() == CType.ACTIONGROUPS && !staticActionGroups.getCEntries().isEmpty()) {
             original.add(staticActionGroups.deepClone());
         }
 
-        if (original.getCType() == CType.ROLES && !staticRoles.getCEntries().isEmpty()) {
+        if(original.getCType() == CType.ROLES && !staticRoles.getCEntries().isEmpty()) {
             original.add(staticRoles.deepClone());
         }
 
-        if (original.getCType() == CType.TENANTS && !staticTenants.getCEntries().isEmpty()) {
+        if(original.getCType() == CType.TENANTS && !staticTenants.getCEntries().isEmpty()) {
             original.add(staticTenants.deepClone());
         }
 
@@ -131,24 +128,18 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
     SecurityDynamicConfiguration<?> config;
 
-    public DynamicConfigFactory(
-        ConfigurationRepository cr,
-        final Settings opensearchSettings,
-        final Path configPath,
-        Client client,
-        ThreadPool threadPool,
-        ClusterInfoHolder cih
-    ) {
+    public DynamicConfigFactory(ConfigurationRepository cr, final Settings opensearchSettings,
+            final Path configPath, Client client, ThreadPool threadPool, ClusterInfoHolder cih) {
         super();
         this.cr = cr;
         this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
 
-        if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
+        if(opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
                 loadStaticConfig();
             } catch (IOException e) {
-                throw new StaticResourceException("Unable to load static resources due to " + e, e);
+                throw new StaticResourceException("Unable to load static resources due to "+e, e);
             }
         } else {
             log.info("Static resources will not be loaded.");
@@ -171,55 +162,18 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         SecurityDynamicConfiguration<?> whitelistingSetting = cr.getConfiguration(CType.WHITELIST);
         SecurityDynamicConfiguration<?> allowlistingSetting = cr.getConfiguration(CType.ALLOWLIST);
 
+
         if (log.isDebugEnabled()) {
-            String logmsg = "current config (because of "
-                + typeToConfig.keySet()
-                + ")\n"
-                + " actionGroups: "
-                + actionGroups.getImplementingClass()
-                + " with "
-                + actionGroups.getCEntries().size()
-                + " entries\n"
-                + " config: "
-                + config.getImplementingClass()
-                + " with "
-                + config.getCEntries().size()
-                + " entries\n"
-                + " internalusers: "
-                + internalusers.getImplementingClass()
-                + " with "
-                + internalusers.getCEntries().size()
-                + " entries\n"
-                + " roles: "
-                + roles.getImplementingClass()
-                + " with "
-                + roles.getCEntries().size()
-                + " entries\n"
-                + " rolesmapping: "
-                + rolesmapping.getImplementingClass()
-                + " with "
-                + rolesmapping.getCEntries().size()
-                + " entries\n"
-                + " tenants: "
-                + tenants.getImplementingClass()
-                + " with "
-                + tenants.getCEntries().size()
-                + " entries\n"
-                + " nodesdn: "
-                + nodesDn.getImplementingClass()
-                + " with "
-                + nodesDn.getCEntries().size()
-                + " entries\n"
-                + " whitelist "
-                + whitelistingSetting.getImplementingClass()
-                + " with "
-                + whitelistingSetting.getCEntries().size()
-                + " entries\n"
-                + " allowlist "
-                + allowlistingSetting.getImplementingClass()
-                + " with "
-                + allowlistingSetting.getCEntries().size()
-                + " entries\n";
+            String logmsg = "current config (because of " + typeToConfig.keySet() + ")\n" +
+                    " actionGroups: " + actionGroups.getImplementingClass() + " with " + actionGroups.getCEntries().size() + " entries\n" +
+                    " config: " + config.getImplementingClass() + " with " + config.getCEntries().size() + " entries\n" +
+                    " internalusers: " + internalusers.getImplementingClass() + " with " + internalusers.getCEntries().size() + " entries\n" +
+                    " roles: " + roles.getImplementingClass() + " with " + roles.getCEntries().size() + " entries\n" +
+                    " rolesmapping: " + rolesmapping.getImplementingClass() + " with " + rolesmapping.getCEntries().size() + " entries\n" +
+                    " tenants: " + tenants.getImplementingClass() + " with " + tenants.getCEntries().size() + " entries\n" +
+                    " nodesdn: " + nodesDn.getImplementingClass() + " with " + nodesDn.getCEntries().size() + " entries\n" +
+                    " whitelist " + whitelistingSetting.getImplementingClass() + " with " + whitelistingSetting.getCEntries().size() + " entries\n" +
+                    " allowlist " + allowlistingSetting.getImplementingClass() + " with " + allowlistingSetting.getCEntries().size() + " entries\n";
             log.debug(logmsg);
         }
 
@@ -229,85 +183,70 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final NodesDnModel nm = new NodesDnModelImpl(nodesDn);
         final WhitelistingSettings whitelist = (WhitelistingSettings) cr.getConfiguration(CType.WHITELIST).getCEntry("config");
         final AllowlistingSettings allowlist = (AllowlistingSettings) cr.getConfiguration(CType.ALLOWLIST).getCEntry("config");
-        final AuditConfig audit = (AuditConfig) cr.getConfiguration(CType.AUDIT).getCEntry("config");
+        final AuditConfig audit = (AuditConfig)cr.getConfiguration(CType.AUDIT).getCEntry("config");
 
-        if (config.getImplementingClass() == ConfigV7.class) {
-            // statics
+        if(config.getImplementingClass() == ConfigV7.class) {
+                //statics
 
-            if (roles.containsAny(staticRoles)) {
-                throw new StaticResourceException("Cannot override static roles");
-            }
-            if (!roles.add(staticRoles) && !staticRoles.getCEntries().isEmpty()) {
-                throw new StaticResourceException("Unable to load static roles");
-            }
+                if(roles.containsAny(staticRoles)) {
+                    throw new StaticResourceException("Cannot override static roles");
+                }
+                if(!roles.add(staticRoles) && !staticRoles.getCEntries().isEmpty()) {
+                    throw new StaticResourceException("Unable to load static roles");
+                }
 
-            log.debug("Static roles loaded ({})", staticRoles.getCEntries().size());
+                log.debug("Static roles loaded ({})", staticRoles.getCEntries().size());
 
-            if (actionGroups.containsAny(staticActionGroups)) {
-                System.out.println("static: " + actionGroups.getCEntries());
-                System.out.println("Static Action Groups:" + staticActionGroups.getCEntries());
-                throw new StaticResourceException("Cannot override static action groups");
-            }
-            if (!actionGroups.add(staticActionGroups) && !staticActionGroups.getCEntries().isEmpty()) {
-                throw new StaticResourceException("Unable to load static action groups");
-            }
+                if(actionGroups.containsAny(staticActionGroups)) {
+                    System.out.println("static: " + actionGroups.getCEntries());
+                    System.out.println("Static Action Groups:" + staticActionGroups.getCEntries());
+                    throw new StaticResourceException("Cannot override static action groups");
+                }
+                if(!actionGroups.add(staticActionGroups) && !staticActionGroups.getCEntries().isEmpty()) {
+                    throw new StaticResourceException("Unable to load static action groups");
+                }
 
-            log.debug("Static action groups loaded ({})", staticActionGroups.getCEntries().size());
 
-            if (tenants.containsAny(staticTenants)) {
-                throw new StaticResourceException("Cannot override static tenants");
-            }
-            if (!tenants.add(staticTenants) && !staticTenants.getCEntries().isEmpty()) {
-                throw new StaticResourceException("Unable to load static tenants");
-            }
+                log.debug("Static action groups loaded ({})", staticActionGroups.getCEntries().size());
 
-            log.debug("Static tenants loaded ({})", staticTenants.getCEntries().size());
+                if(tenants.containsAny(staticTenants)) {
+                    throw new StaticResourceException("Cannot override static tenants");
+                }
+                if(!tenants.add(staticTenants) && !staticTenants.getCEntries().isEmpty()) {
+                    throw new StaticResourceException("Unable to load static tenants");
+                }
 
-            log.debug(
-                "Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
-                roles.getCEntries().size(),
-                actionGroups.getCEntries().size(),
-                tenants.getCEntries().size()
-            );
 
-            // rebuild v7 Models
+                log.debug("Static tenants loaded ({})", staticTenants.getCEntries().size());
+
+                log.debug("Static configuration loaded (total roles: {}/total action groups: {}/total tenants: {})",
+                    roles.getCEntries().size(), actionGroups.getCEntries().size(), tenants.getCEntries().size());
+
+
+
+            //rebuild v7 Models
             dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab);
-            ium = new InternalUsersModelV7(
-                (SecurityDynamicConfiguration<InternalUserV7>) internalusers,
+            ium = new InternalUsersModelV7((SecurityDynamicConfiguration<InternalUserV7>) internalusers,
                 (SecurityDynamicConfiguration<RoleV7>) roles,
-                (SecurityDynamicConfiguration<RoleMappingsV7>) rolesmapping
-            );
-            cm = new ConfigModelV7(
-                (SecurityDynamicConfiguration<RoleV7>) roles,
-                (SecurityDynamicConfiguration<RoleMappingsV7>) rolesmapping,
-                (SecurityDynamicConfiguration<ActionGroupsV7>) actionGroups,
-                (SecurityDynamicConfiguration<TenantV7>) tenants,
-                dcm,
-                opensearchSettings
-            );
+                (SecurityDynamicConfiguration<RoleMappingsV7>) rolesmapping);
+            cm = new ConfigModelV7((SecurityDynamicConfiguration<RoleV7>) roles,(SecurityDynamicConfiguration<RoleMappingsV7>)rolesmapping, (SecurityDynamicConfiguration<ActionGroupsV7>)actionGroups, (SecurityDynamicConfiguration<TenantV7>) tenants,dcm, opensearchSettings);
 
         } else {
 
-            // rebuild v6 Models
+            //rebuild v6 Models
             dcm = new DynamicConfigModelV6(getConfigV6(config), opensearchSettings, configPath, iab);
             ium = new InternalUsersModelV6((SecurityDynamicConfiguration<InternalUserV6>) internalusers);
-            cm = new ConfigModelV6(
-                (SecurityDynamicConfiguration<RoleV6>) roles,
-                (SecurityDynamicConfiguration<ActionGroupsV6>) actionGroups,
-                (SecurityDynamicConfiguration<RoleMappingsV6>) rolesmapping,
-                dcm,
-                opensearchSettings
-            );
+            cm = new ConfigModelV6((SecurityDynamicConfiguration<RoleV6>) roles, (SecurityDynamicConfiguration<ActionGroupsV6>)actionGroups, (SecurityDynamicConfiguration<RoleMappingsV6>)rolesmapping, dcm, opensearchSettings);
 
         }
 
-        // notify subscribers
+        //notify subscribers
         eventBus.post(cm);
         eventBus.post(dcm);
         eventBus.post(ium);
         eventBus.post(nm);
-        eventBus.post(whitelist == null ? defaultWhitelistingSettings : whitelist);
-        eventBus.post(allowlist == null ? defaultAllowlistingSettings : allowlist);
+        eventBus.post(whitelist==null? defaultWhitelistingSettings: whitelist);
+        eventBus.post(allowlist==null? defaultAllowlistingSettings: allowlist);
         if (cr.isAuditHotReloadingEnabled()) {
             eventBus.post(audit);
         }
@@ -349,11 +288,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         private final SecurityDynamicConfiguration<RoleMappingsV7> rolesMappingsV7SecurityDynamicConfiguration;
 
-        public InternalUsersModelV7(
-            SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration,
-            SecurityDynamicConfiguration<RoleV7> rolesV7SecurityDynamicConfiguration,
-            SecurityDynamicConfiguration<RoleMappingsV7> rolesMappingsV7SecurityDynamicConfiguration
-        ) {
+        public InternalUsersModelV7(SecurityDynamicConfiguration<InternalUserV7> internalUserV7SecurityDynamicConfiguration,
+                                    SecurityDynamicConfiguration<RoleV7> rolesV7SecurityDynamicConfiguration,
+                                    SecurityDynamicConfiguration<RoleMappingsV7> rolesMappingsV7SecurityDynamicConfiguration) {
             super();
             this.internalUserV7SecurityDynamicConfiguration = internalUserV7SecurityDynamicConfiguration;
             this.rolesV7SecurityDynamicConfiguration = rolesV7SecurityDynamicConfiguration;
@@ -368,25 +305,25 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         @Override
         public List<String> getBackenRoles(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
-            return tmp == null ? null : tmp.getBackend_roles();
+            return tmp==null?null:tmp.getBackend_roles();
         }
 
         @Override
         public Map<String, String> getAttributes(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
-            return tmp == null ? null : tmp.getAttributes();
+            return tmp==null?null:tmp.getAttributes();
         }
 
         @Override
         public String getDescription(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
-            return tmp == null ? null : tmp.getDescription();
+            return tmp==null?null:tmp.getDescription();
         }
 
         @Override
         public String getHash(String user) {
             InternalUserV7 tmp = internalUserV7SecurityDynamicConfiguration.getCEntry(user);
-            return tmp == null ? null : tmp.getHash();
+            return tmp==null?null:tmp.getHash();
         }
 
         public List<String> getSecurityRoles(String user) {
@@ -394,24 +331,21 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
             // Security roles should only contain roles that exist in the roles dynamic config.
             // We should filter out any roles that have hidden rolesmapping.
-            return tmp == null
-                ? ImmutableList.of()
-                : tmp.getOpendistro_security_roles()
-                    .stream()
-                    .filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role))
-                    .collect(ImmutableList.toImmutableList());
+            return tmp == null ? ImmutableList.of() :
+                tmp.getOpendistro_security_roles().stream().filter(role -> !isRolesMappingHidden(role) && rolesV7SecurityDynamicConfiguration.exists(role)).collect(ImmutableList.toImmutableList());
         }
 
         // Remove any hidden rolesmapping from the security roles
         private boolean isRolesMappingHidden(String rolename) {
             final RoleMappingsV7 roleMapping = rolesMappingsV7SecurityDynamicConfiguration.getCEntry(rolename);
-            return roleMapping != null && roleMapping.isHidden();
+            return roleMapping!=null && roleMapping.isHidden();
         }
     }
 
     private static class InternalUsersModelV6 extends InternalUsersModel {
 
         SecurityDynamicConfiguration<InternalUserV6> configuration;
+
 
         public InternalUsersModelV6(SecurityDynamicConfiguration<InternalUserV6> configuration) {
             super();
@@ -426,13 +360,13 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         @Override
         public List<String> getBackenRoles(String user) {
             InternalUserV6 tmp = configuration.getCEntry(user);
-            return tmp == null ? null : tmp.getRoles();
+            return tmp==null?null:tmp.getRoles();
         }
 
         @Override
         public Map<String, String> getAttributes(String user) {
             InternalUserV6 tmp = configuration.getCEntry(user);
-            return tmp == null ? null : tmp.getAttributes();
+            return tmp==null?null:tmp.getAttributes();
         }
 
         @Override
@@ -443,7 +377,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         @Override
         public String getHash(String user) {
             InternalUserV6 tmp = configuration.getCEntry(user);
-            return tmp == null ? null : tmp.getHash();
+            return tmp==null?null:tmp.getHash();
         }
 
         public List<String> getSecurityRoles(String user) {
@@ -457,17 +391,14 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
 
         public NodesDnModelImpl(SecurityDynamicConfiguration<?> configuration) {
             super();
-            this.configuration = null == configuration.getCType()
-                ? SecurityDynamicConfiguration.empty()
-                : (SecurityDynamicConfiguration<NodesDn>) configuration;
+            this.configuration = null == configuration.getCType() ? SecurityDynamicConfiguration.empty() :
+                (SecurityDynamicConfiguration<NodesDn>)configuration;
         }
 
         @Override
         public Map<String, WildcardMatcher> getNodesDn() {
-            return this.configuration.getCEntries()
-                .entrySet()
-                .stream()
-                .collect(ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
+            return this.configuration.getCEntries().entrySet().stream().collect(
+                    ImmutableMap.toImmutableMap(Entry::getKey, entry -> WildcardMatcher.from(entry.getValue().getNodesDn(), false)));
         }
     }
 }

@@ -54,320 +54,301 @@ import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_
 
 public class WebhookSink extends AuditLogSink {
 
-    /* HttpClient is thread safe */
-    private final CloseableHttpClient httpClient;
+	/* HttpClient is thread safe */
+	private final CloseableHttpClient httpClient;
 
-    String webhookUrl = null;
-    WebhookFormat webhookFormat = null;
-    final boolean verifySSL;
-    final KeyStore effectiveTruststore;
+	String webhookUrl = null;
+	WebhookFormat webhookFormat = null;
+	final boolean verifySSL;
+	final KeyStore effectiveTruststore;
 
-    public WebhookSink(
-        final String name,
-        final Settings settings,
-        final String settingsPrefix,
-        final Path configPath,
-        AuditLogSink fallbackSink
-    ) throws Exception {
-        super(name, settings, settingsPrefix, fallbackSink);
+    public WebhookSink(final String name, final Settings settings, final String settingsPrefix, final Path configPath, AuditLogSink fallbackSink) throws Exception {
+	    super(name, settings, settingsPrefix, fallbackSink);
 
-        Settings sinkSettings = settings.getAsSettings(settingsPrefix);
+	    Settings sinkSettings = settings.getAsSettings(settingsPrefix);
 
-        this.effectiveTruststore = getEffectiveKeyStore(configPath);
+	    this.effectiveTruststore = getEffectiveKeyStore(configPath);
 
-        final String webhookUrl = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_URL);
-        final String format = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_FORMAT);
+		final String webhookUrl = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_URL);
+		final String format = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_FORMAT);
 
-        verifySSL = sinkSettings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY, true);
-        httpClient = getHttpClient();
+		verifySSL = sinkSettings.getAsBoolean(ConfigConstants.SECURITY_AUDIT_WEBHOOK_SSL_VERIFY, true);
+		httpClient = getHttpClient();
 
-        if (httpClient == null) {
-            log.error("Could not create HttpClient, audit log not available.");
-            return;
-        }
+		if(httpClient == null) {
+			log.error("Could not create HttpClient, audit log not available.");
+			return;
+		}
 
-        if (Strings.isEmpty(webhookUrl)) {
-            log.error("plugins.security.audit.config.webhook.url not provided, webhook audit log will not work");
-            return;
-        } else {
-            try {
-                // Sanity - check URL validity
-                new URL(webhookUrl);
-                this.webhookUrl = webhookUrl;
-            } catch (MalformedURLException ex) {
-                log.error("URL {} is invalid, webhook audit log will not work.", webhookUrl, ex);
-            }
-        }
+		if (Strings.isEmpty(webhookUrl)) {
+			log.error("plugins.security.audit.config.webhook.url not provided, webhook audit log will not work");
+			return;
+		} else {
+			try {
+				// Sanity - check URL validity
+				new URL(webhookUrl);
+				this.webhookUrl = webhookUrl;
+			} catch (MalformedURLException ex) {
+				log.error("URL {} is invalid, webhook audit log will not work.", webhookUrl, ex);
+			}
+		}
 
-        if (Strings.isEmpty(format)) {
-            log.warn("plugins.security.audit.config.webhook.format not provided, falling back to 'text'");
-            webhookFormat = WebhookFormat.TEXT;
-        } else {
-            try {
-                webhookFormat = WebhookFormat.valueOf(format.toUpperCase());
-            } catch (Exception ex) {
-                log.error("Could not find WebhookFormat for type {}, falling back to 'text'", format, ex);
-                webhookFormat = WebhookFormat.TEXT;
-            }
-        }
-    }
+		if (Strings.isEmpty(format)) {
+			log.warn("plugins.security.audit.config.webhook.format not provided, falling back to 'text'");
+			webhookFormat = WebhookFormat.TEXT;
+		} else {
+			try {
+				webhookFormat = WebhookFormat.valueOf(format.toUpperCase());
+			} catch (Exception ex) {
+				log.error("Could not find WebhookFormat for type {}, falling back to 'text'", format, ex);
+				webhookFormat = WebhookFormat.TEXT;
+			}
+		}
+	}
 
-    @Override
+	@Override
     @SuppressWarnings("removal")
-    public boolean doStore(AuditMessage msg) {
-        if (Strings.isEmpty(webhookUrl)) {
-            log.debug("Webhook URL is null");
-            return false;
-        }
-        if (msg == null) {
-            log.debug("Message is null");
-            return true;
-        }
+	public boolean doStore(AuditMessage msg) {
+		if (Strings.isEmpty(webhookUrl)) {
+			log.debug("Webhook URL is null");
+			return false;
+		}
+		if (msg == null) {
+			log.debug("Message is null");
+			return true;
+		}
 
-        return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
+		return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
 
-            @Override
-            public Boolean run() {
-                boolean success = false;
-                try {
-                    switch (webhookFormat.method) {
-                        case POST:
-                            success = post(msg);
-                            break;
-                        case GET:
-                            success = get(msg);
-                            break;
-                        default:
-                            log.error(
-                                "Http Method '{}' defined in WebhookFormat '{}' not implemented yet",
-                                webhookFormat.method.name(),
-                                webhookFormat.name()
-                            );
-                    }
-                    // log something in case endpoint is not reachable or did not return 200
-                    if (!success) {
-                        log.error(msg.toString());
-                    }
-                    return success;
-                } catch (Throwable t) {
-                    log.error("Uncaught exception while trying to log message.", t);
-                    log.error(msg.toString());
-                    return false;
-                }
-            }
-        });
-    }
+			@Override
+			public Boolean run() {
+				boolean success = false;
+				try {
+					switch (webhookFormat.method) {
+					case POST:
+						success = post(msg);
+						break;
+					case GET:
+						 success =get(msg);
+						break;
+					default:
+						log.error("Http Method '{}' defined in WebhookFormat '{}' not implemented yet", webhookFormat.method.name(),
+								webhookFormat.name());
+					}
+					// log something in case endpoint is not reachable or did not return 200
+					if (!success) {
+						log.error(msg.toString());
+					}
+					return success;
+				} catch(Throwable t) {
+					log.error("Uncaught exception while trying to log message.", t);
+					log.error(msg.toString());
+					return false;
+				}
+			}
+		});
+	}
 
     @Override
     public void close() throws IOException {
-        if (httpClient != null) {
-            httpClient.close();
+        if(httpClient != null) {
+        	httpClient.close();
         }
     }
 
-    /**
-     * Transforms an {@link AuditMessage} to JSON. By default, all fields are
-     * included in the JSON string. This method can be overridden by subclasses
-     * if a specific JSON format is needed.
-     *
-     * @param msg the AuditMessage to transform
-     * @return the JSON string
-     */
-    protected String formatJson(final AuditMessage msg) {
-        return msg.toJson();
-    }
 
-    /**
-     * Transforms an {@link AuditMessage} to plain text. This method can be overridden
-     * by subclasses if a specific text format is needed.
-     *
-     * @param msg the AuditMessage to transform
-     * @return the text string
-     */
-    protected String formatText(AuditMessage msg) {
-        return msg.toText();
-    }
+	/**
+	 * Transforms an {@link AuditMessage} to JSON. By default, all fields are
+	 * included in the JSON string. This method can be overridden by subclasses
+	 * if a specific JSON format is needed.
+	 *
+	 * @param msg the AuditMessage to transform
+	 * @return the JSON string
+	 */
+	protected String formatJson(final AuditMessage msg) {
+		return msg.toJson();
+	}
 
-    /**
-     * Transforms an {@link AuditMessage} to Slack format.
-     * The default implementation returns
-     * <p><blockquote><pre>
-     * {
-     *   "text": "<AuditMessage#toText>"
-     * }
-     * </pre></blockquote>
-     * <p>
-     * Can be overridden by subclasses if a more specific format is needed.
-     *
-     * @param msg the AuditMessage to transform
-     * @return the Slack formatted JSON string
-     */
-    protected String formatSlack(AuditMessage msg) {
-        return "{\"text\": \"" + msg.toText() + "\"}";
-    }
+	/**
+	 * Transforms an {@link AuditMessage} to plain text. This method can be overridden
+	 * by subclasses if a specific text format is needed.
+	 *
+	 * @param msg the AuditMessage to transform
+	 * @return the text string
+	 */
+	protected String formatText(AuditMessage msg) {
+		return msg.toText();
+	}
 
-    /**
-     * Transforms an {@link AuditMessage} to a query parameter String.
-     * Used by {@link WebhookFormat#URL_PARAMETER_GET} and
-     * Used by {@link WebhookFormat#URL_PARAMETER_POST}. Can be overridden by
-     * subclasses if a specific format is needed.
-     *
-     * @param msg the AuditMessage to transform
-     * @return the query parameter string
-     */
-    protected String formatUrlParameters(AuditMessage msg) {
-        return msg.toUrlParameters();
-    }
+	/**
+	 * Transforms an {@link AuditMessage} to Slack format.
+	 * The default implementation returns
+	 * <p><blockquote><pre>
+	 * {
+	 *   "text": "<AuditMessage#toText>"
+	 * }
+	 * </pre></blockquote>
+	 * <p>
+	 * Can be overridden by subclasses if a more specific format is needed.
+	 *
+	 * @param msg the AuditMessage to transform
+	 * @return the Slack formatted JSON string
+	 */
+	protected String formatSlack(AuditMessage msg) {
+		return "{\"text\": \"" + msg.toText() + "\"}";
+	}
 
-    boolean get(AuditMessage msg) {
-        switch (webhookFormat) {
-            case URL_PARAMETER_GET:
-                return doGet(webhookUrl + formatUrlParameters(msg));
-            default:
-                log.error("WebhookFormat '{}' not implemented yet", webhookFormat.name());
-                return false;
-        }
-    }
+	/**
+	 * Transforms an {@link AuditMessage} to a query parameter String.
+	 * Used by {@link WebhookFormat#URL_PARAMETER_GET} and
+	 * Used by {@link WebhookFormat#URL_PARAMETER_POST}. Can be overridden by
+	 * subclasses if a specific format is needed.
+	 *
+	 * @param msg the AuditMessage to transform
+	 * @return the query parameter string
+	 */
+	protected String formatUrlParameters(AuditMessage msg) {
+		return msg.toUrlParameters();
+	}
 
-    protected boolean doGet(String url) {
-        HttpGet httpGet = new HttpGet(url);
-        CloseableHttpResponse serverResponse = null;
-        try {
-            serverResponse = httpClient.execute(httpGet);
-            int responseCode = serverResponse.getCode();
-            if (responseCode != HttpStatus.SC_OK) {
-                log.error("Cannot GET to webhook URL '{}', server returned status {}", webhookUrl, responseCode);
-                return false;
-            }
-            return true;
-        } catch (Throwable e) {
-            log.error("Cannot GET to webhook URL '{}'", webhookUrl, e);
-            return false;
-        } finally {
-            try {
-                if (serverResponse != null) {
-                    serverResponse.close();
-                }
-            } catch (IOException e) {
-                log.error("Cannot close server response", e);
-            }
-        }
-    }
+	boolean get(AuditMessage msg) {
+		switch (webhookFormat) {
+		case URL_PARAMETER_GET:
+			return doGet(webhookUrl + formatUrlParameters(msg));
+		default:
+			log.error("WebhookFormat '{}' not implemented yet", webhookFormat.name());
+			return false;
+		}
+	}
 
-    boolean post(AuditMessage msg) {
+	protected boolean doGet(String url) {
+		HttpGet httpGet = new HttpGet(url);
+		CloseableHttpResponse serverResponse = null;
+		try {
+			serverResponse = httpClient.execute(httpGet);
+			int responseCode = serverResponse.getCode();
+			if (responseCode != HttpStatus.SC_OK) {
+				log.error("Cannot GET to webhook URL '{}', server returned status {}", webhookUrl, responseCode);
+				return false;
+			}
+			return true;
+		} catch (Throwable e) {
+			log.error("Cannot GET to webhook URL '{}'", webhookUrl, e);
+			return false;
+		} finally {
+			try {
+				if (serverResponse != null) {
+					serverResponse.close();
+				}
+			} catch (IOException e) {
+				log.error("Cannot close server response", e);
+			}
+		}
+	}
 
-        String payload;
-        String url = webhookUrl;
+	boolean post(AuditMessage msg) {
 
-        switch (webhookFormat) {
-            case JSON:
-                payload = formatJson(msg);
-                break;
-            case TEXT:
-                payload = formatText(msg);
-                break;
-            case SLACK:
-                payload = "{\"text\": \"" + msg.toText() + "\"}";
-                break;
-            case URL_PARAMETER_POST:
-                payload = "";
-                url = webhookUrl + formatUrlParameters(msg);
-                break;
-            default:
-                log.error("WebhookFormat '{}' not implemented yet", webhookFormat.name());
-                return false;
-        }
+		String payload;
+		String url = webhookUrl;
 
-        return doPost(url, payload);
+		switch (webhookFormat) {
+		case JSON:
+			payload = formatJson(msg);
+			break;
+		case TEXT:
+			payload = formatText(msg);
+			break;
+		case SLACK:
+			payload = "{\"text\": \"" + msg.toText() + "\"}";
+			break;
+		case URL_PARAMETER_POST:
+			payload = "";
+			url = webhookUrl + formatUrlParameters(msg);
+			break;
+		default:
+			log.error("WebhookFormat '{}' not implemented yet", webhookFormat.name());
+			return false;
+		}
 
-    }
+		return doPost(url, payload);
 
-    protected boolean doPost(String url, String payload) {
+	}
 
-        HttpPost postRequest = new HttpPost(url);
+	protected boolean doPost(String url, String payload) {
 
-        StringEntity input = new StringEntity(payload, webhookFormat.contentType.withCharset(StandardCharsets.UTF_8));
-        postRequest.setEntity(input);
+		HttpPost postRequest = new HttpPost(url);
 
-        CloseableHttpResponse serverResponse = null;
-        try {
-            serverResponse = httpClient.execute(postRequest);
-            int responseCode = serverResponse.getCode();
-            if (responseCode != HttpStatus.SC_OK) {
-                log.error("Cannot POST to webhook URL '{}', server returned status {}", webhookUrl, responseCode);
-                return false;
-            }
-            return true;
-        } catch (Throwable e) {
-            log.error("Cannot POST to webhook URL '{}' due to '{}'", webhookUrl, e.getMessage(), e);
-            return false;
-        } finally {
-            try {
-                if (serverResponse != null) {
-                    serverResponse.close();
-                }
-            } catch (IOException e) {
-                log.error("Cannot close server response", e);
-            }
-        }
-    }
+		StringEntity input = new StringEntity(payload, webhookFormat.contentType.withCharset(StandardCharsets.UTF_8));
+		postRequest.setEntity(input);
+
+		CloseableHttpResponse serverResponse = null;
+		try {
+			serverResponse = httpClient.execute(postRequest);
+			int responseCode = serverResponse.getCode();
+			if (responseCode != HttpStatus.SC_OK) {
+				log.error("Cannot POST to webhook URL '{}', server returned status {}", webhookUrl, responseCode);
+				return false;
+			}
+			return true;
+		} catch (Throwable e) {
+			log.error("Cannot POST to webhook URL '{}' due to '{}'", webhookUrl, e.getMessage(), e);
+			return false;
+		} finally {
+			try {
+				if (serverResponse != null) {
+					serverResponse.close();
+				}
+			} catch (IOException e) {
+				log.error("Cannot close server response", e);
+			}
+		}
+	}
 
     @SuppressWarnings("removal")
-    private KeyStore getEffectiveKeyStore(final Path configPath) {
+	private KeyStore getEffectiveKeyStore(final Path configPath) {
 
-        return AccessController.doPrivileged(new PrivilegedAction<KeyStore>() {
+		return AccessController.doPrivileged(new PrivilegedAction<KeyStore>() {
 
-            @Override
-            public KeyStore run() {
-                try {
-                    Settings sinkSettings = settings.getAsSettings(settingsPrefix);
+			@Override
+			public KeyStore run() {
+				try {
+					Settings sinkSettings = settings.getAsSettings(settingsPrefix);
 
-                    final boolean pem = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, null) != null
-                        || sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, null) != null;
+					final boolean pem = sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH, null) != null
+			                || sinkSettings.get(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, null) != null;
 
-                    if (pem) {
-                        X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(
-                            PemKeyReader.resolveStream(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, sinkSettings)
-                        );
+					if(pem) {
+					    X509Certificate[] trustCertificates = PemKeyReader.loadCertificatesFromStream(PemKeyReader.resolveStream(ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_CONTENT, sinkSettings));
 
-                        if (trustCertificates == null) {
-                            String fullPath = settingsPrefix + "." + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH;
-                            trustCertificates = PemKeyReader.loadCertificatesFromFile(
-                                PemKeyReader.resolve(fullPath, settings, configPath, false)
-                            );
-                        }
+			            if(trustCertificates == null) {
+			            	String fullPath = settingsPrefix + "." + ConfigConstants.SECURITY_AUDIT_WEBHOOK_PEMTRUSTEDCAS_FILEPATH;
+			                trustCertificates = PemKeyReader.loadCertificatesFromFile(PemKeyReader.resolve(fullPath, settings, configPath, false));
+			            }
 
-                        return PemKeyReader.toTruststore("alw", trustCertificates);
+			            return PemKeyReader.toTruststore("alw", trustCertificates);
 
-                    } else {
-                        return PemKeyReader.loadKeyStore(
-                            PemKeyReader.resolve(
-                                SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH,
-                                settings,
-                                configPath,
-                                false
-                            ),
-                            SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
-                            settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
-                        );
-                    }
-                } catch (Exception ex) {
-                    log.error("Could not load key material. Make sure your certificates are located relative to the config directory", ex);
-                    return null;
-                }
-            }
-        });
-    }
 
-    CloseableHttpClient getHttpClient() {
+					} else {
+					    return PemKeyReader.loadKeyStore(PemKeyReader.resolve(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, settings, configPath, false)
+			                    , SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings)
+			                    , settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE));
+					}
+				} catch(Exception ex) {
+					log.error("Could not load key material. Make sure your certificates are located relative to the config directory", ex);
+					return null;
+				}
+			}
+		});
+	}
+
+	CloseableHttpClient getHttpClient()  {
 
         // TODO: set a timeout until we have a proper way to deal with back pressure
         int timeout = 5;
 
         RequestConfig config = RequestConfig.custom()
-            .setConnectTimeout(timeout, TimeUnit.SECONDS)
-            .setConnectionRequestTimeout(timeout, TimeUnit.SECONDS)
-            .build();
+          .setConnectTimeout(timeout, TimeUnit.SECONDS)
+          .setConnectionRequestTimeout(timeout, TimeUnit.SECONDS).build();
 
         final TrustStrategy trustAllStrategy = new TrustStrategy() {
             @Override
@@ -376,74 +357,76 @@ public class WebhookSink extends AuditLogSink {
             }
         };
 
-        try {
+	    try {
 
-            HttpClientBuilder hcb = HttpClients.custom().setDefaultRequestConfig(config);
-            if (!verifySSL) {
-                SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(trustAllStrategy).build();
-                final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-                    sslContext,
-                    null,
-                    null,
-                    NoopHostnameVerifier.INSTANCE
-                );
+			HttpClientBuilder hcb = HttpClients.custom().setDefaultRequestConfig(config);
+	        if(!verifySSL) {
+				SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(trustAllStrategy).build();
+				final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, null, null,
+						NoopHostnameVerifier.INSTANCE);
 
-                final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-                    .setSSLSocketFactory(sslsf)
-                    .setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(timeout, TimeUnit.SECONDS).build())
-                    .build();
-                hcb.setConnectionManager(cm);
-                return hcb.build();
-            }
+				final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+						.setSSLSocketFactory(sslsf)
+						.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(timeout, TimeUnit.SECONDS).build())
+						.build();
+				hcb.setConnectionManager(cm);
+	            return hcb.build();
+	        }
 
-            if (effectiveTruststore == null) {
-                return HttpClients.custom().setDefaultRequestConfig(config).build();
-            }
-            SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(effectiveTruststore, null).build();
-            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, null, null, new DefaultHostnameVerifier());
+	        if(effectiveTruststore == null) {
+	            return HttpClients.custom()
+                        .setDefaultRequestConfig(config)
+                        .build();
+	        }
+			SSLContext sslContext = SSLContextBuilder.create().loadTrustMaterial(effectiveTruststore, null).build();
+			final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, null, null,
+					new DefaultHostnameVerifier());
 
-            final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
-                .setSSLSocketFactory(sslsf)
-                .setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(timeout, TimeUnit.SECONDS).build())
-                .build();
-            hcb.setConnectionManager(cm);
+			final HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
+					.setSSLSocketFactory(sslsf)
+					.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(timeout, TimeUnit.SECONDS).build())
+					.build();
+			hcb.setConnectionManager(cm);
 
-            return hcb.build();
+			return hcb.build();
 
-        } catch (Exception ex) {
-            log.error("Could not create HTTPClient due to {}, audit log not available.", ex.getMessage(), ex);
-            return null;
-        }
-    }
 
-    public static enum WebhookFormat {
-        URL_PARAMETER_GET(HttpMethod.GET, ContentType.TEXT_PLAIN),
-        URL_PARAMETER_POST(HttpMethod.POST, ContentType.TEXT_PLAIN),
-        TEXT(HttpMethod.POST, ContentType.TEXT_PLAIN),
-        JSON(HttpMethod.POST, ContentType.APPLICATION_JSON),
-        SLACK(HttpMethod.POST, ContentType.APPLICATION_JSON);
+	    } catch(Exception ex) {
+	    	log.error("Could not create HTTPClient due to {}, audit log not available.", ex.getMessage(), ex);
+	    	return null;
+	    }
+	}
 
-        private HttpMethod method;
-        private ContentType contentType;
+	public static enum WebhookFormat {
+		URL_PARAMETER_GET(HttpMethod.GET, ContentType.TEXT_PLAIN),
+		URL_PARAMETER_POST(HttpMethod.POST, ContentType.TEXT_PLAIN),
+		TEXT(HttpMethod.POST, ContentType.TEXT_PLAIN),
+		JSON(HttpMethod.POST, ContentType.APPLICATION_JSON),
+		SLACK(HttpMethod.POST, ContentType.APPLICATION_JSON);
 
-        private WebhookFormat(HttpMethod method, ContentType contentType) {
-            this.method = method;
-            this.contentType = contentType;
-        }
+		private HttpMethod method;
+		private ContentType contentType;
 
-        HttpMethod getMethod() {
-            return method;
-        }
+		private WebhookFormat(HttpMethod method, ContentType contentType) {
+			this.method = method;
+			this.contentType = contentType;
+		}
 
-        ContentType getContentType() {
-            return contentType;
-        }
+		HttpMethod getMethod() {
+			return method;
+		}
 
-    }
+		ContentType getContentType() {
+			return contentType;
+		}
 
-    private static enum HttpMethod {
-        GET,
-        POST;
-    }
+
+	}
+
+	private static enum HttpMethod {
+		GET,
+		POST;
+	}
+
 
 }

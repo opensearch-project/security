@@ -20,12 +20,7 @@ public class DeprecatedSettings {
      */
     public static void checkForDeprecatedSetting(final Settings settings, final String legacySettingKey, final String validSettingKey) {
         if (settings.hasValue(legacySettingKey)) {
-            DEPRECATION_LOGGER.deprecate(
-                legacySettingKey,
-                "Found deprecated setting '{}', please replace with '{}'",
-                legacySettingKey,
-                validSettingKey
-            );
+            DEPRECATION_LOGGER.deprecate(legacySettingKey, "Found deprecated setting '{}', please replace with '{}'", legacySettingKey, validSettingKey);
         }
     }
 }

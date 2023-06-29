@@ -6,34 +6,13 @@ env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
 
 jobs:
-  generate-test-list:
-    runs-on: ubuntu-latest
-    outputs:
-      separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
-    steps:
-    - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: 17
-
-    - name: Checkout security
-      uses: actions/checkout@v2
-
-    - name: Generate list of tasks
-      id: set-matrix
-      run: |
-        echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
-
-  test:
-    name: test
-    needs: generate-test-list
+  build:
+    name: build
     strategy:
       fail-fast: false
       matrix:
-        gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
-        platform: [windows-latest, ubuntu-latest]
         jdk: [11, 17]
+        platform: ["ubuntu-latest", "windows-latest"]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -50,8 +29,12 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         arguments: |
-          ${{ matrix.gradle_task }} -Dbuild.snapshot=false
-          -x test
+          build test -Dbuild.snapshot=false
+          -x integrationTest
+          -x spotlessCheck
+          -x checkstyleMain
+          -x checkstyleTest
+          -x spotbugsMain
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -76,7 +59,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [17]
-        platform: [ubuntu-latest, windows-latest]
+        platform: ["ubuntu-latest", "windows-latest"]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -95,13 +78,18 @@ jobs:
       with:
         arguments: |
           integrationTest -Dbuild.snapshot=false
+          -x spotlessCheck
+          -x checkstyleMain
+          -x checkstyleTest
+          -x spotbugsMain
 
   backward-compatibility:
+
     strategy:
       fail-fast: false
       matrix:
         jdk: [11, 17]
-        platform: [ubuntu-latest, windows-latest]
+        platform: ["ubuntu-latest", "windows-latest"]
     runs-on: ${{ matrix.platform }}
 
     steps:

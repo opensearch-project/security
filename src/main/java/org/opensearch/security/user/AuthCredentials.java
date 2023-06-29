@@ -105,7 +105,7 @@ public final class AuthCredentials {
         // make defensive copy
         this.password = password == null ? null : Arrays.copyOf(password, password.length);
 
-        if (this.password != null) {
+        if(this.password != null) {
             try {
                 MessageDigest digester = MessageDigest.getInstance(DIGEST_ALGORITHM);
                 internalPasswordHash = digester.digest(this.password);
@@ -116,7 +116,7 @@ public final class AuthCredentials {
             internalPasswordHash = null;
         }
 
-        if (password != null) {
+        if(password != null) {
             Arrays.fill(password, (byte) '\0');
             password = null;
         }
@@ -124,7 +124,7 @@ public final class AuthCredentials {
         this.nativeCredentials = nativeCredentials;
         nativeCredentials = null;
 
-        if (backendRoles != null && backendRoles.length > 0) {
+        if(backendRoles != null && backendRoles.length > 0) {
             this.backendRoles.addAll(Arrays.asList(backendRoles));
         }
     }
@@ -169,30 +169,27 @@ public final class AuthCredentials {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
         AuthCredentials other = (AuthCredentials) obj;
-        if (internalPasswordHash == null
-            || other.internalPasswordHash == null
-            || !MessageDigest.isEqual(internalPasswordHash, other.internalPasswordHash)) return false;
+        if (internalPasswordHash == null || other.internalPasswordHash == null || !MessageDigest.isEqual(internalPasswordHash, other.internalPasswordHash))
+            return false;
         if (username == null) {
-            if (other.username != null) return false;
-        } else if (!username.equals(other.username)) return false;
+            if (other.username != null)
+                return false;
+        } else if (!username.equals(other.username))
+            return false;
         return true;
     }
 
     @Override
     public String toString() {
-        return "AuthCredentials [username="
-            + username
-            + ", password empty="
-            + (password == null)
-            + ", nativeCredentials empty="
-            + (nativeCredentials == null)
-            + ",backendRoles="
-            + backendRoles
-            + "]";
+        return "AuthCredentials [username=" + username + ", password empty=" + (password == null) + ", nativeCredentials empty="
+                + (nativeCredentials == null) + ",backendRoles="+backendRoles+"]";
     }
 
     /**
@@ -221,7 +218,7 @@ public final class AuthCredentials {
     }
 
     public void addAttribute(String name, String value) {
-        if (name != null && !name.isEmpty()) {
+        if(name != null && !name.isEmpty()) {
             this.attributes.put(name, value);
         }
     }
