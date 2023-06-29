@@ -24,23 +24,17 @@ import org.opensearch.security.configuration.Salt;
 
 public class RolesValidator extends AbstractConfigurationValidator {
 
-    private static final Salt SALT = new Salt(new byte[] { 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 });
+    private static final Salt SALT = new Salt(new byte[] {1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,6});
 
-    public RolesValidator(
-        final RestRequest request,
-        boolean isSuperAdmin,
-        final BytesReference ref,
-        final Settings opensearchSettings,
-        Object... param
-    ) {
-        super(request, ref, opensearchSettings, param);
-        this.payloadMandatory = true;
+	public RolesValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings opensearchSettings, Object... param) {
+		super(request, ref, opensearchSettings, param);
+		this.payloadMandatory = true;
         allowedKeys.put("cluster_permissions", DataType.ARRAY);
         allowedKeys.put("tenant_permissions", DataType.ARRAY);
         allowedKeys.put("index_permissions", DataType.ARRAY);
         allowedKeys.put("description", DataType.STRING);
         if (isSuperAdmin) allowedKeys.put("reserved", DataType.BOOLEAN);
-    }
+	}
 
     @Override
     public boolean validate() {
@@ -49,7 +43,7 @@ public class RolesValidator extends AbstractConfigurationValidator {
             return false;
         }
 
-        boolean valid = true;
+        boolean valid=true;
 
         if (this.content != null && this.content.length() > 0) {
 
@@ -66,8 +60,8 @@ public class RolesValidator extends AbstractConfigurationValidator {
             }
         }
 
-        if (!valid) {
-            this.errorType = ErrorType.WRONG_DATATYPE;
+        if(!valid) {
+           this.errorType = ErrorType.WRONG_DATATYPE;
         }
 
         return valid;
@@ -77,7 +71,7 @@ public class RolesValidator extends AbstractConfigurationValidator {
         try {
             new MaskedField(mf, SALT).isValid();
         } catch (Exception e) {
-            wrongDatatypes.put("Masked field not valid: " + mf, e.getMessage());
+            wrongDatatypes.put("Masked field not valid: "+mf, e.getMessage());
             return false;
         }
         return true;

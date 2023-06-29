@@ -47,8 +47,8 @@ public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
     }
 
     public ConfigUpdateRequest(String[] configTypes) {
-        this();
-        setConfigTypes(configTypes);
+    	this();
+    	setConfigTypes(configTypes);
     }
 
     @Override

@@ -12,7 +12,6 @@
 
 import com.diffplug.gradle.spotless.JavaExtension
 import org.opensearch.gradle.test.RestIntegTestTask
-import groovy.json.JsonBuilder
 
 buildscript {
     ext {
@@ -25,7 +24,7 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
-        kafka_version  = '3.5.0'
+        kafka_version  = '3.4.0'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -71,7 +70,54 @@ apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.testclusters'
-apply from: 'gradle/formatting.gradle'
+// apply from: 'gradle/formatting.gradle'
+
+spotless {
+    java {
+        // Normally this isn't necessary, but we have Java sources in
+        // non-standard places
+        target '**/com/amazon/dlic/**/*.java'
+        target '**/com/amazon/security/**/*.java'
+        target '**/test/**/*.java'
+
+        removeUnusedImports()
+        eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
+        trimTrailingWhitespace()
+        endWithNewline();
+
+        // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+
+        custom 'Refuse wildcard imports', {
+            // Wildcard imports can't be resolved; fail the build
+            if (it =~ /\s+import .*\*;/) {
+                throw new AssertionError("Do not use wildcard imports.  'spotlessApply' cannot resolve this issue.")
+            }
+        }
+
+        // See DEVELOPER_GUIDE.md for details of when to enable this.
+        if (System.getProperty('spotless.paddedcell') != null) {
+            paddedCell()
+        }
+    }
+    format 'misc', {
+        target '*.md', '*.gradle', '**/*.json', '**/*.yaml', '**/*.yml', '**/*.svg'
+
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    format('javaFoo', JavaExtension) {
+
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+        target '**/*.java'
+        targetExclude '**/com/amazon/dlic/**/*.java'
+        targetExclude '**/com/amazon/security/**/*.java'
+        targetExclude '**/test/**/*.java'
+
+        trimTrailingWhitespace()
+        endWithNewline();
+    }
+}
 
 licenseFile = rootProject.file('LICENSE.txt')
 noticeFile = rootProject.file('NOTICE.txt')
@@ -106,85 +152,12 @@ tasks.whenTaskAdded {task ->
     }
 }
 
-def splitTestConfig = [
-    ciSecurityIntegrationTest: [
-        description: "Runs integration tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*Integ*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
-        ]
-    ],
-    crossClusterTest: [
-        description: "Runs cross-cluster tests.",
-        filters: [
-            includeTestsMatching: [
-                    "org.opensearch.security.ccstest.*"
-            ]
-        ]
-    ],
-    dlicDlsflsTest: [
-        description: "Runs Document- and Field-Level Security tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.dlic.dlsfls.*"
-            ]
-        ]
-    ],
-    dlicRestApiTest: [
-        description: "Runs REST Management API tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.dlic.rest.*"
-            ]
-        ]
-    ],
-    indicesTest: [
-        description: "Runs indices tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*indices*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
-        ]
-    ],
-    opensslCITest: [
-        description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
-        include: '**/OpenSSL*.class'
-    ],
-    sslTest: [
-        description: "Runs most of the SSL tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.ssl.*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.ssl.OpenSSL*"
-            ]
-        ]
-    ]
-] as ConfigObject
-
-List<String> taskNames = splitTestConfig.keySet() as List
-
-task listTasksAsJSON {
-    // We are using `doLast` to explicitly specify when we
-    // want this action to be started. Without it the output
-    // is not shown at all or can be mixed with other outputs.
-    doLast {
-        System.out.println(new JsonBuilder(["citest"] + taskNames))
-    }
-}
 
 test {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
+        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
     }
     maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
@@ -212,37 +185,14 @@ test {
     }
 }
 
-task copyExtraTestResources(dependsOn: testClasses) {
-
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/test/src/test/resources'
-    }
-
-    taskNames.each { testName ->
-        copy {
-            from 'src/test/resources'
-            into "build/testrun/${testName}/src/test/resources"
-        }
-    }
-
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/citest/src/test/resources'
-    }
-}
-
-def setCommonTestConfig(Test task) {
-    task.maxParallelForks = 8
-    task.jvmArgs += "-Xmx3072m"
-    if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
-        task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
-    }
-    task.retry {
+//add new task that runs OpenSSL tests
+task opensslTest(type: Test) {
+    include '**/OpenSSL*.class'
+    retry {
         failOnPassedAfterRetry = false
         maxRetries = 5
     }
-    task.jacoco {
+    jacoco {
         excludes = [
                 "com.sun.jndi.dns.*",
                 "com.sun.security.sasl.gsskerb.*",
@@ -257,58 +207,21 @@ def setCommonTestConfig(Test task) {
                 "sun.util.resources.provider.*"
         ]
     }
-    task.dependsOn copyExtraTestResources
-    task.finalizedBy jacocoTestReport
 }
 
-task citest(type: Test) {
-    group = "Github Actions tests"
-    description = "Runs the test suite on classes not covered by rest of the task in this group."
-    include '**/*.class'
-    filter {
-        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
-        splitTestConfig.each { entry ->
-            entry.value.filters.each{ test ->
-                if (test.key == "includeTestsMatching") {
-                    test.value.each{
-                        excludeTestsMatching "${it}"
-                    }
-                } else if (test.key == "includeTest") {
-                    test.value.each{
-                        excludeTest "${it}"
-                    }
-                }
-            }
-        }
-    }
-    setCommonTestConfig(it)
-}
-
-splitTestConfig.each{ testName, testCfg ->
-    task "${testName}"(type: Test) {
-        group = testCfg.group ?: "Github Actions tests"
-        description = testCfg.description
-        include testCfg.include ?: '**/*.class'
-        filter {
-            testCfg.filters.each{ filter, values ->
-                values.each{ value ->
-                    "${filter}" "${value}"
-                }
-            }
-        }
-        setCommonTestConfig(it)
+task copyExtraTestResources(dependsOn: testClasses) {
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/test/src/test/resources'
     }
 }
-
-tasks.test.dependsOn(copyExtraTestResources)
+tasks.test.dependsOn(copyExtraTestResources, opensslTest)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")
 }
 
 jacocoTestReport {
-    getExecutionData().setFrom(fileTree(buildDir).include("/jacoco/*.exec"))
     reports {
         xml.required = true
     }
@@ -424,7 +337,6 @@ configurations {
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
             force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
             force "com.github.luben:zstd-jni:${versions.zstd}"
-            force "org.xerial.snappy:snappy-java:1.1.10.1"
         }
     }
 
@@ -476,10 +388,10 @@ dependencies {
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
-    implementation 'com.google.guava:guava:32.0.1-jre'
+    implementation 'com.google.guava:guava:30.0-jre'
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'commons-cli:commons-cli:1.3.1'
-    implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
+    implementation "org.bouncycastle:bcprov-jdk15on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
     implementation('org.apache.cxf:cxf-rt-rs-security-jose:3.5.5') {
@@ -541,7 +453,7 @@ dependencies {
     runtimeOnly 'io.dropwizard.metrics:metrics-core:3.1.2'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.30'
     runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.17.1'
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.1'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.8.4'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
     runtimeOnly 'org.glassfish.jaxb:txw2:2.3.4'
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.4.0'
@@ -549,8 +461,7 @@ dependencies {
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
     runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
-    runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
-    runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
+    runtimeOnly "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
 
 
     implementation 'org.apache.commons:commons-lang3:3.4'
@@ -613,8 +524,8 @@ dependencies {
     integrationTestImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
     integrationTestImplementation 'org.apache.logging.log4j:log4j-jul:2.17.1'
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
-    integrationTestImplementation "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
-    integrationTestImplementation "org.bouncycastle:bcutil-jdk15to18:${versions.bouncycastle}"
+    integrationTestImplementation "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
+    integrationTestImplementation "org.bouncycastle:bcutil-jdk15on:${versions.bouncycastle}"
     integrationTestImplementation('org.awaitility:awaitility:4.2.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }

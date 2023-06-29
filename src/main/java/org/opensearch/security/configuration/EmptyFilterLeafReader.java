@@ -83,7 +83,6 @@ class EmptyFilterLeafReader extends FilterLeafReader {
     public CacheHelper getReaderCacheHelper() {
         return null;
     }
-
     private static class EmptySubReaderWrapper extends FilterDirectoryReader.SubReaderWrapper {
 
         @Override

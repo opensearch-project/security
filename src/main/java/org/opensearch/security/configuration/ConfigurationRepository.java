@@ -95,18 +95,9 @@ public class ConfigurationRepository {
     private final AtomicBoolean installDefaultConfig = new AtomicBoolean();
     private final boolean acceptInvalid;
 
-    private ConfigurationRepository(
-        Settings settings,
-        final Path configPath,
-        ThreadPool threadPool,
-        Client client,
-        ClusterService clusterService,
-        AuditLog auditLog
-    ) {
-        this.securityIndex = settings.get(
-            ConfigConstants.SECURITY_CONFIG_INDEX_NAME,
-            ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX
-        );
+    private ConfigurationRepository(Settings settings, final Path configPath, ThreadPool threadPool,
+                                    Client client, ClusterService clusterService, AuditLog auditLog) {
+        this.securityIndex = settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.settings = settings;
         this.client = client;
         this.threadPool = threadPool;
@@ -116,90 +107,45 @@ public class ConfigurationRepository {
         this.acceptInvalid = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_ACCEPT_INVALID_CONFIG, false);
         cl = new ConfigurationLoaderSecurity7(client, threadPool, settings, clusterService);
 
-        configCache = CacheBuilder.newBuilder().build();
+        configCache = CacheBuilder
+                .newBuilder()
+                .build();
 
         bgThread = new Thread(() -> {
             try {
-                LOGGER.info("Background init thread started. Install default config?: " + installDefaultConfig.get());
+                LOGGER.info("Background init thread started. Install default config?: "+installDefaultConfig.get());
                 // wait for the cluster here until it will finish managed node election
                 while (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
                     LOGGER.info("Wait for cluster to be available ...");
                     TimeUnit.SECONDS.sleep(1);
                 }
 
-                if (installDefaultConfig.get()) {
+                if(installDefaultConfig.get()) {
 
                     try {
                         String lookupDir = System.getProperty("security.default_init.dir");
-                        final String cd = lookupDir != null
-                            ? (lookupDir + "/")
-                            : new Environment(settings, configPath).configDir().toAbsolutePath().toString() + "/opensearch-security/";
-                        File confFile = new File(cd + "config.yml");
-                        if (confFile.exists()) {
+                        final String cd = lookupDir != null? (lookupDir+"/") : new Environment(settings, configPath).configDir().toAbsolutePath().toString()+"/opensearch-security/";
+                        File confFile = new File(cd+"config.yml");
+                        if(confFile.exists()) {
                             final ThreadContext threadContext = threadPool.getThreadContext();
-                            try (StoredContext ctx = threadContext.stashContext()) {
+                            try(StoredContext ctx = threadContext.stashContext()) {
                                 threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
                                 createSecurityIndexIfAbsent();
                                 waitForSecurityIndexToBeAtLeastYellow();
 
-                                ConfigHelper.uploadFile(client, cd + "config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
-                                ConfigHelper.uploadFile(client, cd + "roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "roles_mapping.yml",
-                                    securityIndex,
-                                    CType.ROLESMAPPING,
-                                    DEFAULT_CONFIG_VERSION
-                                );
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "internal_users.yml",
-                                    securityIndex,
-                                    CType.INTERNALUSERS,
-                                    DEFAULT_CONFIG_VERSION
-                                );
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "action_groups.yml",
-                                    securityIndex,
-                                    CType.ACTIONGROUPS,
-                                    DEFAULT_CONFIG_VERSION
-                                );
-                                if (DEFAULT_CONFIG_VERSION == 2) {
-                                    ConfigHelper.uploadFile(
-                                        client,
-                                        cd + "tenants.yml",
-                                        securityIndex,
-                                        CType.TENANTS,
-                                        DEFAULT_CONFIG_VERSION
-                                    );
+                                ConfigHelper.uploadFile(client, cd+"config.yml", securityIndex, CType.CONFIG, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd+"roles.yml", securityIndex, CType.ROLES, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd+"roles_mapping.yml", securityIndex, CType.ROLESMAPPING, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd+"internal_users.yml", securityIndex, CType.INTERNALUSERS, DEFAULT_CONFIG_VERSION);
+                                ConfigHelper.uploadFile(client, cd+"action_groups.yml", securityIndex, CType.ACTIONGROUPS, DEFAULT_CONFIG_VERSION);
+                                if(DEFAULT_CONFIG_VERSION == 2) {
+                                    ConfigHelper.uploadFile(client, cd+"tenants.yml", securityIndex, CType.TENANTS, DEFAULT_CONFIG_VERSION);
                                 }
                                 final boolean populateEmptyIfFileMissing = true;
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "nodes_dn.yml",
-                                    securityIndex,
-                                    CType.NODESDN,
-                                    DEFAULT_CONFIG_VERSION,
-                                    populateEmptyIfFileMissing
-                                );
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "whitelist.yml",
-                                    securityIndex,
-                                    CType.WHITELIST,
-                                    DEFAULT_CONFIG_VERSION,
-                                    populateEmptyIfFileMissing
-                                );
-                                ConfigHelper.uploadFile(
-                                    client,
-                                    cd + "allowlist.yml",
-                                    securityIndex,
-                                    CType.ALLOWLIST,
-                                    DEFAULT_CONFIG_VERSION,
-                                    populateEmptyIfFileMissing
-                                );
+                                ConfigHelper.uploadFile(client, cd+"nodes_dn.yml", securityIndex, CType.NODESDN, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                ConfigHelper.uploadFile(client, cd + "whitelist.yml", securityIndex, CType.WHITELIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
+                                ConfigHelper.uploadFile(client, cd + "allowlist.yml", securityIndex, CType.ALLOWLIST, DEFAULT_CONFIG_VERSION, populateEmptyIfFileMissing);
 
                                 // audit.yml is not packaged by default
                                 final String auditConfigPath = cd + "audit.yml";
@@ -215,7 +161,7 @@ public class ConfigurationRepository {
                     }
                 }
 
-                while (!dynamicConfigFactory.isInitialized()) {
+                while(!dynamicConfigFactory.isInitialized()) {
                     try {
                         LOGGER.debug("Try to load config ...");
                         reloadConfiguration(Arrays.asList(CType.values()));
@@ -234,10 +180,7 @@ public class ConfigurationRepository {
 
                 final Set<String> deprecatedAuditKeysInSettings = AuditConfig.getDeprecatedKeys(settings);
                 if (!deprecatedAuditKeysInSettings.isEmpty()) {
-                    LOGGER.warn(
-                        "Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0",
-                        deprecatedAuditKeysInSettings
-                    );
+                    LOGGER.warn("Following keys {} are deprecated in opensearch settings. They will be removed in plugin v2.0.0.0", deprecatedAuditKeysInSettings);
                 }
                 final boolean isAuditConfigDocPresentInIndex = cl.isAuditConfigDocPresentInIndex();
                 if (isAuditConfigDocPresentInIndex) {
@@ -246,16 +189,14 @@ public class ConfigurationRepository {
                     }
                     LOGGER.info("Hot-reloading of audit configuration is enabled");
                 } else {
-                    LOGGER.info(
-                        "Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it."
-                    );
+                    LOGGER.info("Hot-reloading of audit configuration is disabled. Using configuration with defaults from opensearch settings.  Populate the configuration in index using audit.yml or securityadmin to enable it.");
                     auditLog.setConfig(AuditConfig.from(settings));
                 }
 
                 LOGGER.info("Node '{}' initialized", clusterService.localNode().getName());
 
             } catch (Exception e) {
-                LOGGER.error("Unexpected exception while initializing node " + e, e);
+                LOGGER.error("Unexpected exception while initializing node "+e, e);
             }
         });
 
@@ -263,9 +204,17 @@ public class ConfigurationRepository {
 
     private boolean createSecurityIndexIfAbsent() {
         try {
-            final Map<String, Object> indexSettings = ImmutableMap.of("index.number_of_shards", 1, "index.auto_expand_replicas", "0-all");
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityIndex).settings(indexSettings);
-            final boolean ok = client.admin().indices().create(createIndexRequest).actionGet().isAcknowledged();
+            final Map<String, Object> indexSettings = ImmutableMap.of(
+                    "index.number_of_shards", 1,
+                    "index.auto_expand_replicas", "0-all"
+            );
+            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(securityIndex)
+                    .settings(indexSettings);
+            final boolean ok = client.admin()
+                    .indices()
+                    .create(createIndexRequest)
+                    .actionGet()
+                    .isAcknowledged();
             LOGGER.info("Index {} created?: {}", securityIndex, ok);
             return ok;
         } catch (ResourceAlreadyExistsException resourceAlreadyExistsException) {
@@ -278,24 +227,19 @@ public class ConfigurationRepository {
         LOGGER.info("Node started, try to initialize it. Wait for at least yellow cluster state....");
         ClusterHealthResponse response = null;
         try {
-            response = client.admin()
-                .cluster()
-                .health(new ClusterHealthRequest(securityIndex).waitForActiveShards(1).waitForYellowStatus())
-                .actionGet();
+            response = client.admin().cluster().health(new ClusterHealthRequest(securityIndex)
+                    .waitForActiveShards(1)
+                    .waitForYellowStatus()).actionGet();
         } catch (Exception e) {
             LOGGER.debug("Caught a {} but we just try again ...", e.toString());
         }
 
-        while (response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
-            LOGGER.debug(
-                "index '{}' not healthy yet, we try again ... (Reason: {})",
-                securityIndex,
-                response == null ? "no response" : (response.isTimedOut() ? "timeout" : "other, maybe red cluster")
-            );
+        while(response == null || response.isTimedOut() || response.getStatus() == ClusterHealthStatus.RED) {
+            LOGGER.debug("index '{}' not healthy yet, we try again ... (Reason: {})", securityIndex, response==null?"no response":(response.isTimedOut()?"timeout":"other, maybe red cluster"));
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
-                // ignore
+                //ignore
                 Thread.currentThread().interrupt();
             }
             try {
@@ -312,17 +256,13 @@ public class ConfigurationRepository {
                 LOGGER.info("Will attempt to create index {} and default configs if they are absent", securityIndex);
                 installDefaultConfig.set(true);
                 bgThread.start();
-            } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)) {
-                LOGGER.info(
-                    "Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
-                    securityIndex
-                );
+            } else if (settings.getAsBoolean(ConfigConstants.SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true)){
+                LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Use securityadmin to initialize cluster",
+                        securityIndex);
                 bgThread.start();
             } else {
-                LOGGER.info(
-                    "Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
-                    securityIndex
-                );
+                LOGGER.info("Will not attempt to create index {} and default configs if they are absent. Will not perform background initialization",
+                        securityIndex);
             }
         } catch (Throwable e2) {
             LOGGER.error("Error during node initialization: {}", e2, e2);
@@ -334,22 +274,9 @@ public class ConfigurationRepository {
         return cl.isAuditConfigDocPresentInIndex();
     }
 
-    public static ConfigurationRepository create(
-        Settings settings,
-        final Path configPath,
-        final ThreadPool threadPool,
-        Client client,
-        ClusterService clusterService,
-        AuditLog auditLog
-    ) {
-        final ConfigurationRepository repository = new ConfigurationRepository(
-            settings,
-            configPath,
-            threadPool,
-            client,
-            clusterService,
-            auditLog
-        );
+    public static ConfigurationRepository create(Settings settings, final Path configPath, final ThreadPool threadPool,
+                                                 Client client,  ClusterService clusterService, AuditLog auditLog) {
+        final ConfigurationRepository repository = new ConfigurationRepository(settings, configPath, threadPool, client, clusterService, auditLog);
         return repository;
     }
 
@@ -363,8 +290,8 @@ public class ConfigurationRepository {
      * @return can also return empty in case it was never loaded
      */
     public SecurityDynamicConfiguration<?> getConfiguration(CType configurationType) {
-        SecurityDynamicConfiguration<?> conf = configCache.getIfPresent(configurationType);
-        if (conf != null) {
+        SecurityDynamicConfiguration<?> conf=  configCache.getIfPresent(configurationType);
+        if(conf != null) {
             return conf.deepClone();
         }
         return SecurityDynamicConfiguration.empty();
@@ -389,6 +316,7 @@ public class ConfigurationRepository {
         }
     }
 
+
     private void reloadConfiguration0(Collection<CType> configTypes, boolean acceptInvalid) {
         final Map<CType, SecurityDynamicConfiguration<?>> loaded = getConfigurationsFromIndex(configTypes, false, acceptInvalid);
         configCache.putAll(loaded);
@@ -405,7 +333,7 @@ public class ConfigurationRepository {
                 LOGGER.debug("Notify {} listener about change configuration with type {}", listener);
                 listener.onChange(typeToConfig);
             } catch (Exception e) {
-                LOGGER.error("{} listener errored: " + e, listener, e);
+                LOGGER.error("{} listener errored: "+e, listener, e);
                 throw ExceptionsHelper.convertToOpenSearchException(e);
             }
         }
@@ -417,44 +345,34 @@ public class ConfigurationRepository {
      * @param logComplianceEvent
      * @return
      */
-    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(
-        Collection<CType> configTypes,
-        boolean logComplianceEvent
-    ) {
+    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(Collection<CType> configTypes, boolean logComplianceEvent) {
         return getConfigurationsFromIndex(configTypes, logComplianceEvent, this.acceptInvalid);
     }
 
-    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(
-        Collection<CType> configTypes,
-        boolean logComplianceEvent,
-        boolean acceptInvalid
-    ) {
+    public Map<CType, SecurityDynamicConfiguration<?>> getConfigurationsFromIndex(Collection<CType> configTypes, boolean logComplianceEvent, boolean acceptInvalid) {
 
         final ThreadContext threadContext = threadPool.getThreadContext();
         final Map<CType, SecurityDynamicConfiguration<?>> retVal = new HashMap<>();
 
-        try (StoredContext ctx = threadContext.stashContext()) {
+        try(StoredContext ctx = threadContext.stashContext()) {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_CONF_REQUEST_HEADER, "true");
 
             IndexMetadata securityMetadata = clusterService.state().metadata().index(this.securityIndex);
-            MappingMetadata mappingMetadata = securityMetadata == null ? null : securityMetadata.mapping();
+            MappingMetadata mappingMetadata = securityMetadata==null?null:securityMetadata.mapping();
 
             if (securityMetadata != null && mappingMetadata != null) {
-                if ("security".equals(mappingMetadata.type())) {
+                if("security".equals(mappingMetadata.type())) {
                     LOGGER.debug("security index exists and was created before ES 7 (legacy layout)");
                 } else {
                     LOGGER.debug("security index exists and was created with ES 7 (new layout)");
                 }
-                retVal.putAll(
-                    validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size())
-                );
+                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
+
 
             } else {
-                // wait (and use new layout)
+                //wait (and use new layout)
                 LOGGER.debug("security index not exists (yet)");
-                retVal.putAll(
-                    validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size())
-                );
+                retVal.putAll(validate(cl.load(configTypes.toArray(new CType[0]), 10, TimeUnit.SECONDS, acceptInvalid), configTypes.size()));
             }
 
         } catch (Exception e) {
@@ -471,10 +389,9 @@ public class ConfigurationRepository {
         return retVal;
     }
 
-    private Map<CType, SecurityDynamicConfiguration<?>> validate(Map<CType, SecurityDynamicConfiguration<?>> conf, int expectedSize)
-        throws InvalidConfigException {
+    private Map<CType, SecurityDynamicConfiguration<?>> validate(Map<CType, SecurityDynamicConfiguration<?>> conf, int expectedSize) throws InvalidConfigException {
 
-        if (conf == null || conf.size() != expectedSize) {
+        if(conf == null || conf.size() != expectedSize) {
             throw new InvalidConfigException("Retrieved only partial configuration");
         }
 

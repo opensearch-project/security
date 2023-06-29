@@ -33,13 +33,7 @@ import org.opensearch.rest.RestRequest;
 
 public class TenantValidator extends AbstractConfigurationValidator {
 
-    public TenantValidator(
-        final RestRequest request,
-        boolean isSuperAdmin,
-        BytesReference ref,
-        final Settings opensearchSettings,
-        Object... param
-    ) {
+    public TenantValidator(final RestRequest request, boolean isSuperAdmin, BytesReference ref, final Settings opensearchSettings, Object... param) {
         super(request, ref, opensearchSettings, param);
         this.payloadMandatory = true;
         allowedKeys.put("description", DataType.STRING);

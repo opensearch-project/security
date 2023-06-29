@@ -27,11 +27,13 @@
 package org.opensearch.security.support;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -51,6 +53,8 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 import javax.crypto.EncryptedPrivateKeyInfo;
@@ -61,48 +65,91 @@ import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.util.encoders.Base64;
 
-import org.bouncycastle.util.io.pem.PemObject;
-import org.bouncycastle.util.io.pem.PemReader;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 
 public final class PemKeyReader {
 
-    private static final Logger log = LogManager.getLogger(PemKeyReader.class);
+    //private static final String[] EMPTY_STRING_ARRAY = new String[0];
+    protected static final Logger log = LogManager.getLogger(PemKeyReader.class);
     static final String JKS = "JKS";
     static final String PKCS12 = "PKCS12";
 
+    private static final Pattern KEY_PATTERN = Pattern.compile(
+            "-+BEGIN\\s+.*PRIVATE\\s+KEY[^-]*-+(?:\\s|\\r|\\n)+" + // Header
+                    "([a-z0-9+/=\\r\\n]+)" +                       // Base64 text
+                    "-+END\\s+.*PRIVATE\\s+KEY[^-]*-+",            // Footer
+            Pattern.CASE_INSENSITIVE);
+
     private static byte[] readPrivateKey(File file) throws KeyException {
-        try (final InputStream in = new FileInputStream(file)) {
-            return readPrivateKey(in);
-        } catch (final IOException e) {
+        try {
+            InputStream in = new FileInputStream(file);
+
+            try {
+                return readPrivateKey(in);
+            } finally {
+                safeClose(in);
+            }
+        } catch (FileNotFoundException e) {
             throw new KeyException("could not fine key file: " + file);
         }
     }
 
-    private static byte[] readPrivateKey(final InputStream in) throws KeyException {
-        try (final PemReader pemReader = new PemReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-            final PemObject pemObject = pemReader.readPemObject();
-            if (pemObject == null) {
-                throw new KeyException(
-                    "could not find a PKCS #8 private key in input stream"
-                        + " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)"
-                );
+    private static byte[] readPrivateKey(InputStream in) throws KeyException {
+        String content;
+        try {
+            content = readContent(in);
+        } catch (IOException e) {
+            throw new KeyException("failed to read key input stream", e);
+        }
+
+        Matcher m = KEY_PATTERN.matcher(content);
+        if (!m.find()) {
+            throw new KeyException("could not find a PKCS #8 private key in input stream" +
+                    " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)");
+        }
+
+        return Base64.decode(m.group(1));
+    }
+
+    private static String readContent(InputStream in) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            byte[] buf = new byte[8192];
+            for (;;) {
+                int ret = in.read(buf);
+                if (ret < 0) {
+                    break;
+                }
+                out.write(buf, 0, ret);
             }
-            return pemObject.getContent();
-        } catch (final IOException ioe) {
-            throw new KeyException(
-                "could not find a PKCS #8 private key in input stream"
-                    + " (see http://netty.io/wiki/sslcontextbuilder-and-private-key.html for more information)",
-                ioe
-            );
+            return out.toString(StandardCharsets.US_ASCII.name());
+        } finally {
+            safeClose(out);
+        }
+    }
+
+    private static void safeClose(InputStream in) {
+        try {
+            in.close();
+        } catch (IOException e) {
+            //ignore
+        }
+    }
+
+    private static void safeClose(OutputStream out) {
+        try {
+            out.close();
+        } catch (IOException e) {
+          //ignore
         }
     }
 
     public static PrivateKey toPrivateKey(File keyFile, String keyPassword) throws NoSuchAlgorithmException, NoSuchPaddingException,
-        InvalidKeySpecException, InvalidAlgorithmParameterException, KeyException, IOException {
+            InvalidKeySpecException, InvalidAlgorithmParameterException, KeyException, IOException {
         if (keyFile == null) {
             return null;
         }
@@ -110,7 +157,7 @@ public final class PemKeyReader {
     }
 
     public static PrivateKey toPrivateKey(InputStream in, String keyPassword) throws NoSuchAlgorithmException, NoSuchPaddingException,
-        InvalidKeySpecException, InvalidAlgorithmParameterException, KeyException, IOException {
+            InvalidKeySpecException, InvalidAlgorithmParameterException, KeyException, IOException {
         if (in == null) {
             return null;
         }
@@ -118,7 +165,7 @@ public final class PemKeyReader {
     }
 
     private static PrivateKey getPrivateKeyFromByteBuffer(byte[] encodedKey, String keyPassword) throws NoSuchAlgorithmException,
-        NoSuchPaddingException, InvalidKeySpecException, InvalidAlgorithmParameterException, KeyException, IOException {
+            NoSuchPaddingException, InvalidKeySpecException, InvalidAlgorithmParameterException, KeyException, IOException {
 
         PKCS8EncodedKeySpec encodedKeySpec = generateKeySpec(keyPassword == null ? null : keyPassword.toCharArray(), encodedKey);
         try {
@@ -136,8 +183,9 @@ public final class PemKeyReader {
         }
     }
 
-    private static PKCS8EncodedKeySpec generateKeySpec(char[] password, byte[] key) throws IOException, NoSuchAlgorithmException,
-        NoSuchPaddingException, InvalidKeySpecException, InvalidKeyException, InvalidAlgorithmParameterException {
+    private static PKCS8EncodedKeySpec generateKeySpec(char[] password, byte[] key)
+            throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+            InvalidKeyException, InvalidAlgorithmParameterException {
 
         if (password == null) {
             return new PKCS8EncodedKeySpec(key);
@@ -155,18 +203,18 @@ public final class PemKeyReader {
     }
 
     public static X509Certificate loadCertificateFromFile(String file) throws Exception {
-        if (file == null) {
+        if(file == null) {
             return null;
         }
 
         CertificateFactory fact = CertificateFactory.getInstance("X.509");
-        try (FileInputStream is = new FileInputStream(file)) {
+        try(FileInputStream is = new FileInputStream(file)) {
             return (X509Certificate) fact.generateCertificate(is);
         }
     }
 
     public static X509Certificate loadCertificateFromStream(InputStream in) throws Exception {
-        if (in == null) {
+        if(in == null) {
             return null;
         }
 
@@ -175,22 +223,22 @@ public final class PemKeyReader {
     }
 
     public static KeyStore loadKeyStore(String storePath, String keyStorePassword, String type) throws Exception {
-        if (storePath == null) {
-            return null;
-        }
+      if(storePath == null) {
+          return null;
+      }
 
-        if (type == null || !type.toUpperCase().equals(JKS) || !type.toUpperCase().equals(PKCS12)) {
-            type = JKS;
-        }
+      if(type == null || !type.toUpperCase().equals(JKS) || !type.toUpperCase().equals(PKCS12)) {
+          type = JKS;
+      }
 
-        final KeyStore store = KeyStore.getInstance(type.toUpperCase());
-        store.load(new FileInputStream(storePath), keyStorePassword == null ? null : keyStorePassword.toCharArray());
-        return store;
+      final KeyStore store = KeyStore.getInstance(type.toUpperCase());
+      store.load(new FileInputStream(storePath), keyStorePassword==null?null:keyStorePassword.toCharArray());
+      return store;
     }
 
     public static PrivateKey loadKeyFromFile(String password, String keyFile) throws Exception {
 
-        if (keyFile == null) {
+        if(keyFile == null) {
             return null;
         }
 
@@ -199,7 +247,7 @@ public final class PemKeyReader {
 
     public static PrivateKey loadKeyFromStream(String password, InputStream in) throws Exception {
 
-        if (in == null) {
+        if(in == null) {
             return null;
         }
 
@@ -209,67 +257,61 @@ public final class PemKeyReader {
     public static void checkPath(String keystoreFilePath, String fileNameLogOnly) {
 
         if (keystoreFilePath == null || keystoreFilePath.length() == 0) {
-            throw new OpenSearchException("Empty file path for " + fileNameLogOnly);
+            throw new OpenSearchException("Empty file path for "+fileNameLogOnly);
         }
 
         if (Files.isDirectory(Paths.get(keystoreFilePath), LinkOption.NOFOLLOW_LINKS)) {
-            throw new OpenSearchException("Is a directory: " + keystoreFilePath + " Expected a file for " + fileNameLogOnly);
+            throw new OpenSearchException("Is a directory: " + keystoreFilePath+" Expected a file for "+fileNameLogOnly);
         }
 
-        if (!Files.isReadable(Paths.get(keystoreFilePath))) {
-            throw new OpenSearchException(
-                "Unable to read "
-                    + keystoreFilePath
-                    + " ("
-                    + Paths.get(keystoreFilePath)
-                    + "). Please make sure this files exists and is readable regarding to permissions. Property: "
-                    + fileNameLogOnly
-            );
+        if(!Files.isReadable(Paths.get(keystoreFilePath))) {
+            throw new OpenSearchException("Unable to read " + keystoreFilePath + " ("+Paths.get(keystoreFilePath)+"). Please make sure this files exists and is readable regarding to permissions. Property: "+fileNameLogOnly);
         }
     }
 
     public static X509Certificate[] loadCertificatesFromFile(String file) throws Exception {
-        if (file == null) {
+        if(file == null) {
             return null;
         }
 
-        try (FileInputStream is = new FileInputStream(file)) {
-            return loadCertificatesFromStream(is);
+        try(FileInputStream is = new FileInputStream(file)) {
+        	return loadCertificatesFromStream(is);
         }
 
     }
 
     public static X509Certificate[] loadCertificatesFromFile(File file) throws Exception {
-        if (file == null) {
+        if(file == null) {
             return null;
         }
 
-        try (FileInputStream is = new FileInputStream(file)) {
-            return loadCertificatesFromStream(is);
+        try(FileInputStream is = new FileInputStream(file)) {
+        	return loadCertificatesFromStream(is);
         }
 
     }
 
     public static X509Certificate[] loadCertificatesFromStream(InputStream in) throws Exception {
-        if (in == null) {
+        if(in == null) {
             return null;
         }
 
         CertificateFactory fact = CertificateFactory.getInstance("X.509");
         Collection<? extends Certificate> certs = fact.generateCertificates(in);
         X509Certificate[] x509Certs = new X509Certificate[certs.size()];
-        int i = 0;
-        for (Certificate cert : certs) {
+        int i=0;
+        for(Certificate cert: certs) {
             x509Certs[i++] = (X509Certificate) cert;
         }
         return x509Certs;
 
     }
 
+
     public static InputStream resolveStream(String propName, Settings settings) {
         final String content = settings.get(propName, null);
 
-        if (content == null) {
+        if(content == null) {
             return null;
         }
 
@@ -286,49 +328,43 @@ public final class PemKeyReader {
         String path = originalPath;
         final Environment env = new Environment(settings, configPath);
 
-        if (env != null && originalPath != null && originalPath.length() > 0) {
+        if(env != null && originalPath != null && originalPath.length() > 0) {
             path = env.configDir().resolve(originalPath).toAbsolutePath().toString();
             log.debug("Resolved {} to {} against {}", originalPath, path, env.configDir().toAbsolutePath().toString());
         }
 
-        if (mustBeValid) {
+        if(mustBeValid) {
             checkPath(path, propName);
         }
 
-        if ("".equals(path)) {
+        if("".equals(path)) {
             path = null;
         }
 
         return path;
     }
 
-    public static KeyStore toTruststore(final String trustCertificatesAliasPrefix, final X509Certificate[] trustCertificates)
-        throws Exception {
+    public static KeyStore toTruststore(final String trustCertificatesAliasPrefix, final X509Certificate[] trustCertificates) throws Exception {
 
-        if (trustCertificates == null) {
+        if(trustCertificates == null) {
             return null;
         }
 
         KeyStore ks = KeyStore.getInstance(JKS);
         ks.load(null);
 
-        if (trustCertificates != null && trustCertificates.length > 0) {
+        if(trustCertificates != null && trustCertificates.length > 0) {
             for (int i = 0; i < trustCertificates.length; i++) {
                 X509Certificate x509Certificate = trustCertificates[i];
-                ks.setCertificateEntry(trustCertificatesAliasPrefix + "_" + i, x509Certificate);
+                ks.setCertificateEntry(trustCertificatesAliasPrefix+"_"+i, x509Certificate);
             }
         }
         return ks;
     }
 
-    public static KeyStore toKeystore(
-        final String authenticationCertificateAlias,
-        final char[] password,
-        final X509Certificate authenticationCertificate[],
-        final PrivateKey authenticationKey
-    ) throws Exception {
+    public static KeyStore toKeystore(final String authenticationCertificateAlias, final char[] password, final X509Certificate authenticationCertificate[], final PrivateKey authenticationKey) throws Exception {
 
-        if (authenticationCertificateAlias != null && authenticationCertificate != null && authenticationKey != null) {
+        if(authenticationCertificateAlias != null && authenticationCertificate != null && authenticationKey != null) {
             KeyStore ks = KeyStore.getInstance(JKS);
             ks.load(null, null);
             ks.setKeyEntry(authenticationCertificateAlias, authenticationKey, password, authenticationCertificate);
@@ -342,11 +378,11 @@ public final class PemKeyReader {
     public static char[] randomChars(int len) {
         final SecureRandom r = new SecureRandom();
         final char[] ret = new char[len];
-        for (int i = 0; i < len; i++) {
-            ret[i] = (char) (r.nextInt(26) + 'a');
+        for(int i=0; i<len;i++) {
+            ret[i] = (char)(r.nextInt(26) + 'a');
         }
         return ret;
     }
 
-    private PemKeyReader() {}
+    private PemKeyReader() { }
 }

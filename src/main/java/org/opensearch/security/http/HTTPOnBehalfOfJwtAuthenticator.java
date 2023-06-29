@@ -51,7 +51,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";
 
-    // TODO: TO SEE IF WE NEED THE FINAL FOR FOLLOWING
+    //TODO: TO SEE IF WE NEED THE FINAL FOR FOLLOWING
     private JwtParser jwtParser;
     private String subjectKey;
 
@@ -64,7 +64,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
     }
 
     // FOR TESTING
-    public HTTPOnBehalfOfJwtAuthenticator(String signingKey, String encryptionKey) {
+    public HTTPOnBehalfOfJwtAuthenticator(String signingKey, String encryptionKey){
         this.signingKey = signingKey;
         this.encryptionKey = encryptionKey;
         init();
@@ -73,7 +73,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
     private void init() {
 
         try {
-            if (signingKey == null || signingKey.length() == 0) {
+            if(signingKey == null || signingKey.length() == 0) {
                 log.error("signingKey must not be null or empty. JWT authentication will not work");
             } else {
 
@@ -95,7 +95,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
                     log.debug("No public ECDSA key, try other algos ({})", e.toString());
                 }
 
-                if (key != null) {
+                if(key != null) {
                     jwtParser = Jwts.parser().setSigningKey(key);
                 } else {
                     jwtParser = Jwts.parser().setSigningKey(decoded);
@@ -138,7 +138,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
         String jwtToken = request.header(HttpHeaders.AUTHORIZATION);
 
         if (jwtToken == null || jwtToken.length() == 0) {
-            if (log.isDebugEnabled()) {
+            if(log.isDebugEnabled()) {
                 log.debug("No JWT token found in '{}' header", HttpHeaders.AUTHORIZATION);
             }
             return null;
@@ -149,10 +149,10 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
         }
 
         final int index;
-        if ((index = jwtToken.toLowerCase().indexOf(BEARER_PREFIX)) > -1) { // detect Bearer
-            jwtToken = jwtToken.substring(index + BEARER_PREFIX.length());
+        if((index = jwtToken.toLowerCase().indexOf(BEARER_PREFIX)) > -1) { //detect Bearer
+            jwtToken = jwtToken.substring(index+BEARER_PREFIX.length());
         } else {
-            if (log.isDebugEnabled()) {
+            if(log.isDebugEnabled()) {
                 log.debug("No Bearer scheme found in header");
             }
         }
@@ -164,14 +164,14 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
             final String audience = claims.getAudience();
 
-            // TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
+            //TODO: GET ROLESCLAIM DEPENDING ON THE STATUS OF BWC MODE. ON: er / OFF: dr
             Object rolesObject = null;
             String[] roles;
 
             try {
                 rolesObject = claims.get("er");
             } catch (Throwable e) {
-                log.debug("No encrypted role founded in the claim, continue searching for decrypted roles.");
+                    log.debug("No encrypted role founded in the claim, continue searching for decrypted roles.");
             }
 
             try {
@@ -181,7 +181,8 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
             }
 
             if (rolesObject == null) {
-                log.warn("Failed to get roles from JWT claims. Check if this key is correct and available in the JWT payload.");
+                log.warn(
+                        "Failed to get roles from JWT claims. Check if this key is correct and available in the JWT payload.");
                 roles = new String[0];
             } else {
                 final String rolesClaim = rolesObject.toString();
@@ -189,7 +190,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
                 // Extracting roles based on the compatbility mode
                 String decryptedRoles = rolesClaim;
                 if (rolesObject == claims.get("er")) {
-                    // TODO: WHERE TO GET THE ENCRYTION KEY
+                    //TODO: WHERE TO GET THE ENCRYTION KEY
                     decryptedRoles = EncryptionDecryptionUtil.decrypt(encryptionKey, rolesClaim);
                 }
                 roles = Arrays.stream(decryptedRoles.split(",")).map(String::trim).toArray(String[]::new);
@@ -206,8 +207,8 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
 
             final AuthCredentials ac = new AuthCredentials(subject, roles).markComplete();
 
-            for (Entry<String, Object> claim : claims.entrySet()) {
-                ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
+            for(Entry<String, Object> claim: claims.entrySet()) {
+                ac.addAttribute("attr.jwt."+claim.getKey(), String.valueOf(claim.getValue()));
             }
 
             return ac;
@@ -216,7 +217,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
             log.error("Cannot authenticate user with JWT because of ", e);
             return null;
         } catch (Exception e) {
-            if (log.isDebugEnabled()) {
+            if(log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
             }
             return null;
@@ -233,33 +234,27 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
         return "onbehalfof_jwt";
     }
 
-    // TODO: Extract the audience (ext_id) and inject it into thread context
+    //TODO: Extract the audience (ext_id) and inject it into thread context
 
     protected String extractSubject(final Claims claims, final RestRequest request) {
         String subject = claims.getSubject();
-        if (subjectKey != null) {
+        if(subjectKey != null) {
             // try to get roles from claims, first as Object to avoid having to catch the ExpectedTypeException
             Object subjectObject = claims.get(subjectKey, Object.class);
-            if (subjectObject == null) {
+            if(subjectObject == null) {
                 log.warn("Failed to get subject from JWT claims, check if subject_key '{}' is correct.", subjectKey);
                 return null;
             }
             // We expect a String. If we find something else, convert to String but issue a warning
-            if (!(subjectObject instanceof String)) {
-                log.warn(
-                    "Expected type String in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
-                    subjectKey,
-                    subjectObject,
-                    subjectObject.getClass()
-                );
+            if(!(subjectObject instanceof String)) {
+                log.warn("Expected type String in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.", subjectKey, subjectObject, subjectObject.getClass());
             }
             subject = String.valueOf(subjectObject);
         }
         return subject;
     }
 
-    private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException,
-        InvalidKeySpecException {
+    private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException, InvalidKeySpecException {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(algo);
         return kf.generatePublic(spec);
@@ -268,8 +263,8 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
 
-        // TODO: #2615 FOR CONFIGURATION
-        // For Testing
+        //TODO: #2615 FOR CONFIGURATION
+        //For Testing
         signingKey = "abcd1234";
         encryptionKey = RandomStringUtils.randomAlphanumeric(16);
     }

@@ -60,41 +60,27 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     public static final String STATIC_OPENSEARCH_YML_NODES_DN = "STATIC_OPENSEARCH_YML_NODES_DN";
     private final List<String> staticNodesDnFromEsYml;
 
-    private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(
+    private static final List<Route> routes = addRoutesPrefix(ImmutableList.of(
             new Route(Method.GET, "/nodesdn/{name}"),
             new Route(Method.GET, "/nodesdn/"),
             new Route(Method.DELETE, "/nodesdn/{name}"),
             new Route(Method.PUT, "/nodesdn/{name}"),
             new Route(Method.PATCH, "/nodesdn/"),
             new Route(Method.PATCH, "/nodesdn/{name}")
-        )
-    );
+    ));
 
     @Inject
-    public NodesDnApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
-    ) {
+    public NodesDnApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
+                            final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
+                            final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList());
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
+    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+                                             final Object content,
+                                             final String resourceName) {
         return true;
     }
 
@@ -158,7 +144,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
         if (NodesDn.class.equals(configuration.getImplementingClass())) {
             NodesDn nodesDn = new NodesDn();
             nodesDn.setNodesDn(staticNodesDnFromEsYml);
-            ((SecurityDynamicConfiguration<NodesDn>) configuration).putCEntry(STATIC_OPENSEARCH_YML_NODES_DN, nodesDn);
+            ((SecurityDynamicConfiguration<NodesDn>)configuration).putCEntry(STATIC_OPENSEARCH_YML_NODES_DN, nodesDn);
         } else {
             throw new RuntimeException("Unknown class type - " + configuration.getImplementingClass());
         }

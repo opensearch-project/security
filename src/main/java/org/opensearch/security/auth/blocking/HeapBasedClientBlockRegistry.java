@@ -35,19 +35,15 @@ public class HeapBasedClientBlockRegistry<ClientIdType> implements ClientBlockRe
 
     public HeapBasedClientBlockRegistry(long expiryMs, int maxEntries, Class<ClientIdType> clientIdType) {
         this.clientIdType = clientIdType;
-        this.cache = CacheBuilder.newBuilder()
-            .expireAfterWrite(expiryMs, TimeUnit.MILLISECONDS)
-            .maximumSize(maxEntries)
-            .concurrencyLevel(4)
-            .removalListener(new RemovalListener<ClientIdType, Long>() {
-                @Override
-                public void onRemoval(RemovalNotification<ClientIdType, Long> notification) {
-                    if (log.isInfoEnabled()) {
-                        log.info("Unblocking " + notification.getKey());
+        this.cache = CacheBuilder.newBuilder().expireAfterWrite(expiryMs, TimeUnit.MILLISECONDS).maximumSize(maxEntries).concurrencyLevel(4)
+                .removalListener(new RemovalListener<ClientIdType, Long>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<ClientIdType, Long> notification) {
+                        if (log.isInfoEnabled()) {
+                            log.info("Unblocking " + notification.getKey());
+                        }
                     }
-                }
-            })
-            .build();
+                }).build();
     }
 
     @Override

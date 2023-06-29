@@ -28,21 +28,20 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.JWT_A
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class DisabledBasicAuthTests {
 
-    @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(false)
-        .authc(DISABLED_AUTHC_HTTPBASIC_INTERNAL)
-        .users(TEST_USER)
-        .authc(JWT_AUTH_DOMAIN)
-        .build();
+	@ClassRule
+	public static LocalCluster cluster = new LocalCluster.Builder()
+		.clusterManager(ClusterManager.SINGLENODE).anonymousAuth(false)
+		.authc(DISABLED_AUTHC_HTTPBASIC_INTERNAL).users(TEST_USER)
+		.authc(JWT_AUTH_DOMAIN)
+		.build();
 
-    @Test
-    public void shouldRespondWith401WhenCredentialsAreCorrectButBasicAuthIsDisabled() {
-        try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
+	@Test
+	public void shouldRespondWith401WhenCredentialsAreCorrectButBasicAuthIsDisabled() {
+		try (TestRestClient client = cluster.getRestClient(TEST_USER)) {
 
-            HttpResponse response = client.getAuthInfo();
+			HttpResponse response = client.getAuthInfo();
 
-            response.assertStatusCode(SC_UNAUTHORIZED);
-        }
-    }
+			response.assertStatusCode(SC_UNAUTHORIZED);
+		}
+	}
 }

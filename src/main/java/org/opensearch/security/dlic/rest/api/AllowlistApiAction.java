@@ -9,6 +9,7 @@
  * GitHub history for details.
  */
 
+
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
@@ -83,36 +84,24 @@ import org.opensearch.threadpool.ThreadPool;
  */
 public class AllowlistApiAction extends PatchableResourceApiAction {
     private static final List<Route> routes = ImmutableList.of(
-        new Route(RestRequest.Method.GET, "/_plugins/_security/api/allowlist"),
-        new Route(RestRequest.Method.PUT, "/_plugins/_security/api/allowlist"),
-        new Route(RestRequest.Method.PATCH, "/_plugins/_security/api/allowlist")
+            new Route(RestRequest.Method.GET, "/_plugins/_security/api/allowlist"),
+            new Route(RestRequest.Method.PUT, "/_plugins/_security/api/allowlist"),
+            new Route(RestRequest.Method.PATCH, "/_plugins/_security/api/allowlist")
     );
 
     private static final String name = "config";
 
     @Inject
-    public AllowlistApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        ThreadPool threadPool,
-        AuditLog auditLog
-    ) {
+    public AllowlistApiAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
+                              final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
+                              final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(
-        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-        final Object content,
-        final String resourceName
-    ) {
+    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+                                             final Object content,
+                                             final String resourceName) {
         return true;
     }
 
@@ -126,7 +115,9 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
+    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content)
+            throws IOException {
+
 
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
         filter(configuration);
@@ -134,45 +125,35 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handleDelete(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
+    protected void handleDelete(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
         notImplemented(channel, RestRequest.Method.DELETE);
     }
 
     @Override
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
+    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
         final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
 
         if (existingConfiguration.getSeqNo() < 0) {
-            forbidden(
-                channel,
-                "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate."
-            );
+            forbidden(channel, "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate.");
             return;
         }
 
         boolean existed = existingConfiguration.exists(name);
         existingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass()));
 
-        saveAndUpdateConfigs(
-            this.securityIndexName,
-            client,
-            getConfigName(),
-            existingConfiguration,
-            new OnSucessActionListener<IndexResponse>(channel) {
+        saveAndUpdateConfigs(this.securityIndexName,client, getConfigName(), existingConfiguration, new OnSucessActionListener<IndexResponse>(channel) {
 
-                @Override
-                public void onResponse(IndexResponse response) {
-                    if (existed) {
-                        successResponse(channel, "'" + name + "' updated.");
-                    } else {
-                        createdResponse(channel, "'" + name + "' created.");
-                    }
+            @Override
+            public void onResponse(IndexResponse response) {
+                if (existed) {
+                    successResponse(channel, "'" + name + "' updated.");
+                } else {
+                    createdResponse(channel, "'" + name + "' created.");
                 }
             }
-        );
+        });
     }
+
 
     @Override
     public List<Route> routes() {

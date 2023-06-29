@@ -50,57 +50,55 @@ import static org.opensearch.test.framework.matcher.ExceptionMatcherAssert.asser
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class TlsTests {
 
-    private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
+	private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
 
-    public static final String SUPPORTED_CIPHER_SUIT = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
-    public static final String NOT_SUPPORTED_CIPHER_SUITE = "TLS_RSA_WITH_AES_128_CBC_SHA";
-    public static final String AUTH_INFO_ENDPOINT = "/_opendistro/_security/authinfo?pretty";
+	public static final String SUPPORTED_CIPHER_SUIT = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+	public static final String NOT_SUPPORTED_CIPHER_SUITE = "TLS_RSA_WITH_AES_128_CBC_SHA";
+	public static final String AUTH_INFO_ENDPOINT = "/_opendistro/_security/authinfo?pretty";
 
-    @ClassRule
-    public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-        .anonymousAuth(false)
-        .nodeSettings(Map.of(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of(SUPPORTED_CIPHER_SUIT)))
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(USER_ADMIN)
-        .audit(
-            new AuditConfiguration(true).compliance(new AuditCompliance().enabled(true))
-                .filters(new AuditFilters().enabledRest(true).enabledTransport(true))
-        )
-        .build();
+	@ClassRule
+	public static final LocalCluster cluster = new LocalCluster.Builder()
+		.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).anonymousAuth(false)
+		.nodeSettings(Map.of(SECURITY_SSL_HTTP_ENABLED_CIPHERS, List.of(SUPPORTED_CIPHER_SUIT)))
+		.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_ADMIN)
+		.audit(new AuditConfiguration(true)
+			.compliance(new AuditCompliance().enabled(true))
+			.filters(new AuditFilters().enabledRest(true).enabledTransport(true))
+		).build();
 
-    @Rule
-    public AuditLogsRule auditLogsRule = new AuditLogsRule();
+	@Rule
+	public AuditLogsRule auditLogsRule = new AuditLogsRule();
 
-    @Test
-    public void shouldCreateAuditOnIncomingNonTlsConnection() throws IOException {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet("http://localhost:" + cluster.getHttpPort());
+	@Test
+	public void shouldCreateAuditOnIncomingNonTlsConnection() throws IOException {
+		try(CloseableHttpClient httpClient = HttpClients.createDefault()) {
+			HttpGet request = new HttpGet("http://localhost:" + cluster.getHttpPort());
 
-            assertThatThrownBy(() -> httpClient.execute(request), instanceOf(NoHttpResponseException.class));
-        }
-        auditLogsRule.assertAtLeast(1, auditPredicate(AuditCategory.SSL_EXCEPTION).withLayer(REST));
-    }
+			assertThatThrownBy(() -> httpClient.execute(request), instanceOf(NoHttpResponseException.class));
+		}
+		auditLogsRule.assertAtLeast(1, auditPredicate(AuditCategory.SSL_EXCEPTION).withLayer(REST));
+	}
 
-    @Test
-    public void shouldSupportClientCipherSuite_positive() throws IOException {
-        try (CloseableHttpClient client = cluster.getClosableHttpClient(new String[] { SUPPORTED_CIPHER_SUIT })) {
-            HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
-            httpGet.addHeader(getBasicAuthHeader(USER_ADMIN.getName(), USER_ADMIN.getPassword()));
+	@Test
+	public void shouldSupportClientCipherSuite_positive() throws IOException {
+		try(CloseableHttpClient client = cluster.getClosableHttpClient(new String[] { SUPPORTED_CIPHER_SUIT })) {
+			HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
+			httpGet.addHeader(getBasicAuthHeader(USER_ADMIN.getName(), USER_ADMIN.getPassword()));
 
-            try (CloseableHttpResponse response = client.execute(httpGet)) {
+			try(CloseableHttpResponse response = client.execute(httpGet)) {
 
-                int responseStatusCode = response.getCode();
-                assertThat(responseStatusCode, equalTo(200));
-            }
-        }
-    }
+				int responseStatusCode = response.getCode();
+				assertThat(responseStatusCode, equalTo(200));
+			}
+		}
+	}
 
-    @Test
-    public void shouldSupportClientCipherSuite_negative() throws IOException {
-        try (CloseableHttpClient client = cluster.getClosableHttpClient(new String[] { NOT_SUPPORTED_CIPHER_SUITE })) {
-            HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
+	@Test
+	public void shouldSupportClientCipherSuite_negative() throws IOException {
+		try(CloseableHttpClient client = cluster.getClosableHttpClient(new String[]{ NOT_SUPPORTED_CIPHER_SUITE })) {
+			HttpGet httpGet = new HttpGet("https://localhost:" + cluster.getHttpPort() + AUTH_INFO_ENDPOINT);
 
-            assertThatThrownBy(() -> client.execute(httpGet), instanceOf(SSLHandshakeException.class));
-        }
-    }
+			assertThatThrownBy(() -> client.execute(httpGet), instanceOf(SSLHandshakeException.class));
+		}
+	}
 }

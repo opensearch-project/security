@@ -52,69 +52,61 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class LdapAuthenticationTest {
 
-    private static final Logger log = LogManager.getLogger(LdapAuthenticationTest.class);
+	private static final Logger log = LogManager.getLogger(LdapAuthenticationTest.class);
 
-    private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
+	private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
-    private static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
+	private static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
 
-    public static final EmbeddedLDAPServer embeddedLDAPServer = new EmbeddedLDAPServer(
-        TEST_CERTIFICATES.getRootCertificateData(),
-        TEST_CERTIFICATES.getLdapCertificateData(),
-        LDIF_DATA
-    );
+	public static final EmbeddedLDAPServer embeddedLDAPServer = new EmbeddedLDAPServer(TEST_CERTIFICATES.getRootCertificateData(),
+		TEST_CERTIFICATES.getLdapCertificateData(), LDIF_DATA);
 
-    public static LocalCluster cluster = new LocalCluster.Builder().testCertificates(TEST_CERTIFICATES)
-        .clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(false)
-        .authc(
-            new AuthcDomain("ldap", BASIC_AUTH_DOMAIN_ORDER + 1, true).httpAuthenticator(new HttpAuthenticator("basic").challenge(false))
-                .backend(
-                    new AuthenticationBackend("ldap").config(
-                        () -> LdapAuthenticationConfigBuilder.config()
-                            // this port is available when embeddedLDAPServer is already started, therefore Supplier interface is used to
-                            // postpone
-                            // execution of the code in this block.
-                            .enableSsl(false)
-                            .enableStartTls(false)
-                            .hosts(List.of("localhost:" + embeddedLDAPServer.getLdapNonTlsPort()))
-                            .bindDn(DN_OPEN_SEARCH_PEOPLE_TEST_ORG)
-                            .password(PASSWORD_OPEN_SEARCH)
-                            .userBase(DN_PEOPLE_TEST_ORG)
-                            .userSearch(USER_SEARCH)
-                            .usernameAttribute(USERNAME_ATTRIBUTE)
-                            .build()
-                    )
-                )
-        )
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN_USER)
-        .build();
+	public static LocalCluster cluster = new LocalCluster.Builder()
+		.testCertificates(TEST_CERTIFICATES)
+		.clusterManager(ClusterManager.SINGLENODE).anonymousAuth(false)
+		.authc(new AuthcDomain("ldap", BASIC_AUTH_DOMAIN_ORDER + 1, true)
+			.httpAuthenticator(new HttpAuthenticator("basic").challenge(false))
+			.backend(new AuthenticationBackend("ldap")
+				.config(() -> LdapAuthenticationConfigBuilder.config()
+					// this port is available when embeddedLDAPServer is already started, therefore Supplier interface is used to postpone
+					// execution of the code in this block.
+					.enableSsl(false)
+					.enableStartTls(false)
+					.hosts(List.of("localhost:" + embeddedLDAPServer.getLdapNonTlsPort()))
+					.bindDn(DN_OPEN_SEARCH_PEOPLE_TEST_ORG)
+					.password(PASSWORD_OPEN_SEARCH)
+					.userBase(DN_PEOPLE_TEST_ORG)
+					.userSearch(USER_SEARCH)
+					.usernameAttribute(USERNAME_ATTRIBUTE)
+					.build())))
+		.authc(AUTHC_HTTPBASIC_INTERNAL)
+		.users(ADMIN_USER)
+		.build();
 
-    @ClassRule
-    public static RuleChain ruleChain = RuleChain.outerRule(embeddedLDAPServer).around(cluster);
+	@ClassRule
+	public static RuleChain ruleChain = RuleChain.outerRule(embeddedLDAPServer).around(cluster);
 
-    @Rule
-    public LogsRule logsRule = new LogsRule("com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
+	@Rule
+	public LogsRule logsRule = new LogsRule("com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
 
-    @Test
-    public void shouldAuthenticateUserWithLdap_positive() {
-        try (TestRestClient client = cluster.getRestClient(USER_SPOCK, PASSWORD_SPOCK)) {
-            TestRestClient.HttpResponse response = client.getAuthInfo();
+	@Test
+	public void shouldAuthenticateUserWithLdap_positive() {
+		try (TestRestClient client = cluster.getRestClient(USER_SPOCK, PASSWORD_SPOCK)) {
+			TestRestClient.HttpResponse response = client.getAuthInfo();
 
-            response.assertStatusCode(200);
-        }
-    }
+			response.assertStatusCode(200);
+		}
+	}
 
-    @Test
-    public void shouldAuthenticateUserWithLdap_negativeWhenIncorrectPassword() {
-        try (TestRestClient client = cluster.getRestClient(USER_SPOCK, "incorrect password")) {
-            TestRestClient.HttpResponse response = client.getAuthInfo();
+	@Test
+	public void shouldAuthenticateUserWithLdap_negativeWhenIncorrectPassword() {
+		try (TestRestClient client = cluster.getRestClient(USER_SPOCK, "incorrect password")) {
+			TestRestClient.HttpResponse response = client.getAuthInfo();
 
-            response.assertStatusCode(401);
-            String expectedStackTraceFragment = "Unable to bind as user '".concat(DN_CAPTAIN_SPOCK_PEOPLE_TEST_ORG)
-                .concat("' because the provided password was incorrect.");
-            logsRule.assertThatStackTraceContain(expectedStackTraceFragment);
-        }
-    }
+			response.assertStatusCode(401);
+			String expectedStackTraceFragment = "Unable to bind as user '".concat(DN_CAPTAIN_SPOCK_PEOPLE_TEST_ORG)
+				.concat("' because the provided password was incorrect.");
+			logsRule.assertThatStackTraceContain(expectedStackTraceFragment);
+		}
+	}
 }

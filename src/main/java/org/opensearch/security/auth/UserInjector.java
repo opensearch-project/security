@@ -172,16 +172,16 @@ public class UserInjector {
         return injectedUser;
     }
 
+
     boolean injectUser(RestRequest request) {
         InjectedUser injectedUser = getInjectedUser();
-        if (injectedUser == null) {
+        if(injectedUser == null) {
             return false;
         }
 
         // Set remote address into the thread context
         if (injectedUser.getTransportAddress() != null) {
-            threadPool.getThreadContext()
-                .putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, injectedUser.getTransportAddress());
+            threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, injectedUser.getTransportAddress());
         } else {
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, xffResolver.resolve(request));
         }

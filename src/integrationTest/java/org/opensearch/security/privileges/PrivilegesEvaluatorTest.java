@@ -36,36 +36,36 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class PrivilegesEvaluatorTest {
 
-    protected final static TestSecurityConfig.User NEGATIVE_LOOKAHEAD = new TestSecurityConfig.User("negative_lookahead_user").roles(
-        new Role("negative_lookahead_role").indexPermissions("read").on("/^(?!t.*).*/").clusterPermissions("cluster_composite_ops")
-    );
+	protected final static TestSecurityConfig.User NEGATIVE_LOOKAHEAD = new TestSecurityConfig.User(
+			"negative_lookahead_user")
+			.roles(new Role("negative_lookahead_role").indexPermissions("read").on("/^(?!t.*).*/")
+					.clusterPermissions("cluster_composite_ops"));
 
-    protected final static TestSecurityConfig.User NEGATED_REGEX = new TestSecurityConfig.User("negated_regex_user").roles(
-        new Role("negated_regex_role").indexPermissions("read").on("/^[a-z].*/").clusterPermissions("cluster_composite_ops")
-    );
+	protected final static TestSecurityConfig.User NEGATED_REGEX = new TestSecurityConfig.User("negated_regex_user")
+			.roles(new Role("negated_regex_role").indexPermissions("read").on("/^[a-z].*/")
+					.clusterPermissions("cluster_composite_ops"));
 
-    @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX)
-        .build();
+	@ClassRule
+	public static LocalCluster cluster = new LocalCluster.Builder()
+			.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).authc(AUTHC_HTTPBASIC_INTERNAL)
+			.users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX).build();
 
-    @Test
-    public void testNegativeLookaheadPattern() throws Exception {
+	@Test
+	public void testNegativeLookaheadPattern() throws Exception {
 
-        try (TestRestClient client = cluster.getRestClient(NEGATIVE_LOOKAHEAD)) {
-            assertThat(client.get("*/_search").getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-            assertThat(client.get("r*/_search").getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }
-    }
+		try (TestRestClient client = cluster.getRestClient(NEGATIVE_LOOKAHEAD)) {
+			assertThat(client.get("*/_search").getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+			assertThat(client.get("r*/_search").getStatusCode(), equalTo(HttpStatus.SC_OK));
+		}
+	}
 
-    @Test
-    public void testRegexPattern() throws Exception {
+	@Test
+	public void testRegexPattern() throws Exception {
 
-        try (TestRestClient client = cluster.getRestClient(NEGATED_REGEX)) {
-            assertThat(client.get("*/_search").getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
-            assertThat(client.get("r*/_search").getStatusCode(), equalTo(HttpStatus.SC_OK));
-        }
+		try (TestRestClient client = cluster.getRestClient(NEGATED_REGEX)) {
+			assertThat(client.get("*/_search").getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+			assertThat(client.get("r*/_search").getStatusCode(), equalTo(HttpStatus.SC_OK));
+		}
 
-    }
+	}
 }

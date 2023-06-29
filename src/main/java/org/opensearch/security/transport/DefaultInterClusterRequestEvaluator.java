@@ -58,8 +58,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
     public DefaultInterClusterRequestEvaluator(final Settings settings) {
         this.certOid = settings.get(ConfigConstants.SECURITY_CERT_OID, "1.2.3.4.5.5");
         this.staticNodesDnFromEsYml = WildcardMatcher.from(
-            settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList()),
-            false
+                settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList()),
+                false
         );
         this.dynamicNodesDnConfigEnabled = settings.getAsBoolean(ConfigConstants.SECURITY_NODES_DN_DYNAMIC_CONFIG_ENABLED, false);
         this.dynamicNodesDn = Collections.emptyMap();
@@ -79,18 +79,14 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
     }
 
     @Override
-    public boolean isInterClusterRequest(
-        TransportRequest request,
-        X509Certificate[] localCerts,
-        X509Certificate[] peerCerts,
-        final String principal
-    ) {
+    public boolean isInterClusterRequest(TransportRequest request, X509Certificate[] localCerts, X509Certificate[] peerCerts,
+            final String principal) {
 
         String[] principals = new String[2];
 
         if (principal != null && principal.length() > 0) {
             principals[0] = principal;
-            principals[1] = principal.replace(" ", "");
+            principals[1] = principal.replace(" ","");
         }
 
         WildcardMatcher nodesDn = this.getNodesDnToEvaluate();
@@ -99,22 +95,16 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
         if (principals[0] != null && nodesDn.matchAny(principals)) {
 
             if (isTraceEnabled) {
-                log.trace(
-                    "Treat certificate with principal {} as other node because of it matches one of {}",
-                    Arrays.toString(principals),
-                    nodesDn
-                );
+                log.trace("Treat certificate with principal {} as other node because of it matches one of {}", Arrays.toString(principals),
+                        nodesDn);
             }
 
             return true;
 
         } else {
             if (isTraceEnabled) {
-                log.trace(
-                    "Treat certificate with principal {} NOT as other node because we it does not matches one of {}",
-                    Arrays.toString(principals),
-                    nodesDn
-                );
+                log.trace("Treat certificate with principal {} NOT as other node because we it does not matches one of {}", Arrays.toString(principals),
+                        nodesDn);
             }
         }
 
@@ -143,11 +133,8 @@ public final class DefaultInterClusterRequestEvaluator implements InterClusterRe
                             if (value instanceof String) {
                                 sb.append(id + "::" + value);
                             } else if (value instanceof byte[]) {
-                                log.error(
-                                    "Unable to handle OID san {} with value {} of type byte[] (ASN.1 DER not supported here)",
-                                    id,
-                                    Arrays.toString((byte[]) value)
-                                );
+                                log.error("Unable to handle OID san {} with value {} of type byte[] (ASN.1 DER not supported here)", id,
+                                        Arrays.toString((byte[]) value));
                             } else {
                                 log.error("Unable to handle OID san {} with value {} of type {}", id, value, value.getClass());
                             }

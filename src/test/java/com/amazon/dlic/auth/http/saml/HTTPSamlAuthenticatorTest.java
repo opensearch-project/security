@@ -96,8 +96,6 @@ public class HTTPSamlAuthenticatorTest {
         + "T9IKkp7810LOKhrCDQ==\n"
         + "-----END ENCRYPTED PRIVATE KEY-----";
 
-    private final static String PRIVATE_KEY_PATTERN = "-----BEGIN PRIVATE KEY-----\n%s\n-----END PRIVATE KEY-----";
-
     private static X509Certificate spSigningCertificate;
     private static PrivateKey spSigningPrivateKey;
 
@@ -174,7 +172,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
             .put(
                 "sp.signature_private_key",
-                String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
+                "-BEGIN PRIVATE KEY-\n" + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-"
             )
             .put("exchange_key", "abc")
             .put("roles_key", "roles")
@@ -222,7 +220,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
             .put(
                 "sp.signature_private_key",
-                String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
+                "-BEGIN PRIVATE KEY-\n" + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-"
             )
             .put("exchange_key", "abc")
             .put("roles_key", "roles")
@@ -273,7 +271,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
             .put(
                 "sp.signature_private_key",
-                String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
+                "-BEGIN PRIVATE KEY-\n" + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-"
             )
             .put("exchange_key", "abc")
             .put("roles_key", "roles")
@@ -324,7 +322,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
             .put(
                 "sp.signature_private_key",
-                String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
+                "-BEGIN PRIVATE KEY-\n" + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-"
             )
             .put("exchange_key", "abc")
             .put("roles_key", "roles")
@@ -375,7 +373,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("idp.entity_id", mockSamlIdpServer.getIdpEntityId())
             .put(
                 "sp.signature_private_key",
-                String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
+                "-BEGIN PRIVATE KEY-\n" + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-"
             )
             .put("exchange_key", "abc")
             .put("roles_key", "roles")
@@ -784,7 +782,7 @@ public class HTTPSamlAuthenticatorTest {
             .put("roles_key", "roles")
             .put(
                 "sp.signature_private_key",
-                String.format(PRIVATE_KEY_PATTERN, Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()))
+                "-BEGIN PRIVATE KEY-\n" + Base64.getEncoder().encodeToString(spSigningPrivateKey.getEncoded()) + "-END PRIVATE KEY-"
             )
             .put("path.home", ".")
             .build();

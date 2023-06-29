@@ -51,16 +51,20 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
+
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
 
     private static final List<Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(new Route(GET, "/tenancy/config"), new Route(PUT, "/tenancy/config"))
+            ImmutableList.of(
+                    new Route(GET, "/tenancy/config"),
+                    new Route(PUT, "/tenancy/config")
+            )
     );
 
     private final static Set<String> ACCEPTABLE_DEFAULT_TENANTS = ImmutableSet.of(
-        ConfigConstants.TENANCY_GLOBAL_TENANT_DEFAULT_NAME,
-        ConfigConstants.TENANCY_GLOBAL_TENANT_NAME,
-        ConfigConstants.TENANCY_PRIVATE_TENANT_NAME
+            ConfigConstants.TENANCY_GLOBAL_TENANT_DEFAULT_NAME,
+            ConfigConstants.TENANCY_GLOBAL_TENANT_NAME,
+            ConfigConstants.TENANCY_PRIVATE_TENANT_NAME
     );
 
     @Override
@@ -74,18 +78,12 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     public MultiTenancyConfigApiAction(
-        final Settings settings,
-        final Path configPath,
-        final RestController controller,
-        final Client client,
-        final AdminDNs adminDNs,
-        final ConfigurationRepository cl,
-        final ClusterService cs,
-        final PrincipalExtractor principalExtractor,
-        final PrivilegesEvaluator evaluator,
-        final ThreadPool threadPool,
-        final AuditLog auditLog
-    ) {
+            final Settings settings, final Path configPath,
+            final RestController controller, final Client client,
+            final AdminDNs adminDNs, final ConfigurationRepository cl,
+            final ClusterService cs,  final PrincipalExtractor principalExtractor,
+            final PrivilegesEvaluator evaluator, final ThreadPool threadPool,
+            final AuditLog auditLog) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
     }
 
@@ -110,25 +108,31 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected void handleDelete(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
+    protected void handleDelete(final RestChannel channel,
+                                final RestRequest request,
+                                final Client client,
+                                final JsonNode content) throws IOException {
         notImplemented(channel, RestRequest.Method.DELETE);
     }
 
     private void multitenancyResponse(final ConfigV7 config, final RestChannel channel) {
         try (final XContentBuilder contentBuilder = channel.newBuilder()) {
             channel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.OK,
-                    contentBuilder.startObject()
-                        .field(MultiTenancyConfigValidator.DEFAULT_TENANT_JSON_PROPERTY, config.dynamic.kibana.default_tenant)
-                        .field(
-                            MultiTenancyConfigValidator.PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
-                            config.dynamic.kibana.private_tenant_enabled
-                        )
-                        .field(MultiTenancyConfigValidator.MULTITENANCY_ENABLED_JSON_PROPERTY, config.dynamic.kibana.multitenancy_enabled)
-                        .endObject()
-                )
+                    new BytesRestResponse(
+                            RestStatus.OK,
+                            contentBuilder
+                                    .startObject()
+                                    .field(
+                                            MultiTenancyConfigValidator.DEFAULT_TENANT_JSON_PROPERTY,
+                                            config.dynamic.kibana.default_tenant
+                                    ).field(
+                                            MultiTenancyConfigValidator.PRIVATE_TENANT_ENABLED_JSON_PROPERTY,
+                                            config.dynamic.kibana.private_tenant_enabled
+                                    ).field(
+                                            MultiTenancyConfigValidator.MULTITENANCY_ENABLED_JSON_PROPERTY,
+                                            config.dynamic.kibana.multitenancy_enabled
+                                    ).endObject()
+                    )
             );
         } catch (final Exception e) {
             internalErrorResponse(channel, e.getMessage());
@@ -136,49 +140,61 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         }
     }
 
+
     @Override
-    protected void handleGet(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
+    protected void handleGet(final RestChannel channel,
+                             final RestRequest request,
+                             final Client client,
+                             final JsonNode content) throws IOException {
         final SecurityDynamicConfiguration<?> dynamicConfiguration = load(CType.CONFIG, false);
         final ConfigV7 config = (ConfigV7) dynamicConfiguration.getCEntry(CType.CONFIG.toLCString());
         multitenancyResponse(config, channel);
     }
 
     @Override
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final SecurityDynamicConfiguration<ConfigV7> dynamicConfiguration = (SecurityDynamicConfiguration<ConfigV7>) load(
-            CType.CONFIG,
-            false
-        );
+    protected void handlePut(final RestChannel channel,
+                             final RestRequest request,
+                             final Client client,
+                             final JsonNode content) throws IOException {
+        final SecurityDynamicConfiguration<ConfigV7> dynamicConfiguration = (SecurityDynamicConfiguration<ConfigV7>)
+                load(CType.CONFIG, false);
         final ConfigV7 config = dynamicConfiguration.getCEntry(CType.CONFIG.toLCString());
         updateAndValidatesValues(config, content);
         dynamicConfiguration.putCEntry(CType.CONFIG.toLCString(), config);
-        saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), dynamicConfiguration, new OnSucessActionListener<>(channel) {
-            @Override
-            public void onResponse(IndexResponse response) {
-                multitenancyResponse(config, channel);
-            }
-        });
+        saveAndUpdateConfigs(
+                this.securityIndexName,
+                client,
+                getConfigName(),
+                dynamicConfiguration,
+                new OnSucessActionListener<>(channel) {
+                    @Override
+                    public void onResponse(IndexResponse response) {
+                        multitenancyResponse(config, channel);
+                    }
+                }
+        );
     }
 
     private void updateAndValidatesValues(final ConfigV7 config, final JsonNode jsonContent) {
         if (Objects.nonNull(jsonContent.findValue(MultiTenancyConfigValidator.DEFAULT_TENANT_JSON_PROPERTY))) {
-            config.dynamic.kibana.default_tenant = jsonContent.findValue(MultiTenancyConfigValidator.DEFAULT_TENANT_JSON_PROPERTY).asText();
+            config.dynamic.kibana.default_tenant =
+                    jsonContent.findValue(MultiTenancyConfigValidator.DEFAULT_TENANT_JSON_PROPERTY).asText();
         }
         if (Objects.nonNull(jsonContent.findValue(MultiTenancyConfigValidator.PRIVATE_TENANT_ENABLED_JSON_PROPERTY))) {
-            config.dynamic.kibana.private_tenant_enabled = jsonContent.findValue(
-                MultiTenancyConfigValidator.PRIVATE_TENANT_ENABLED_JSON_PROPERTY
-            ).booleanValue();
+            config.dynamic.kibana.private_tenant_enabled =
+                    jsonContent.findValue(MultiTenancyConfigValidator.PRIVATE_TENANT_ENABLED_JSON_PROPERTY).booleanValue();
         }
         if (Objects.nonNull(jsonContent.findValue(MultiTenancyConfigValidator.MULTITENANCY_ENABLED_JSON_PROPERTY))) {
-            config.dynamic.kibana.multitenancy_enabled = jsonContent.findValue(
-                MultiTenancyConfigValidator.MULTITENANCY_ENABLED_JSON_PROPERTY
-            ).asBoolean();
+            config.dynamic.kibana.multitenancy_enabled =
+                    jsonContent.findValue(MultiTenancyConfigValidator.MULTITENANCY_ENABLED_JSON_PROPERTY).asBoolean();
         }
-        final String defaultTenant = Optional.ofNullable(config.dynamic.kibana.default_tenant).map(String::toLowerCase).orElse("");
+        final String defaultTenant =
+                Optional.ofNullable(config.dynamic.kibana.default_tenant)
+                        .map(String::toLowerCase)
+                        .orElse("");
 
-        if (!config.dynamic.kibana.private_tenant_enabled && ConfigConstants.TENANCY_PRIVATE_TENANT_NAME.equals(defaultTenant)) {
+        if (!config.dynamic.kibana.private_tenant_enabled
+                && ConfigConstants.TENANCY_PRIVATE_TENANT_NAME.equals(defaultTenant)) {
             throw new IllegalArgumentException("Private tenant can not be disabled if it is the default tenant.");
         }
 
@@ -186,17 +202,15 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             return;
         }
 
-        final Set<String> availableTenants = cl.getConfiguration(CType.TENANTS)
-            .getCEntries()
-            .keySet()
-            .stream()
-            .map(String::toLowerCase)
-            .collect(Collectors.toSet());
+        final Set<String> availableTenants =
+                cl.getConfiguration(CType.TENANTS)
+                        .getCEntries()
+                        .keySet()
+                        .stream()
+                        .map(String::toLowerCase)
+                        .collect(Collectors.toSet());
         if (!availableTenants.contains(defaultTenant)) {
-            throw new IllegalArgumentException(
-                config.dynamic.kibana.default_tenant
-                    + " can not be set to default tenant. Default tenant should be selected from one of the available tenants."
-            );
+            throw new IllegalArgumentException(config.dynamic.kibana.default_tenant + " can not be set to default tenant. Default tenant should be selected from one of the available tenants.");
         }
     }
 

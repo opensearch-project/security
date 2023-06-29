@@ -71,29 +71,11 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
     private final SslExceptionHandler errorHandler;
     private final SSLConfig SSLConfig;
 
-    public SecuritySSLNettyTransport(
-        final Settings settings,
-        final Version version,
-        final ThreadPool threadPool,
-        final NetworkService networkService,
-        final PageCacheRecycler pageCacheRecycler,
-        final NamedWriteableRegistry namedWriteableRegistry,
-        final CircuitBreakerService circuitBreakerService,
-        final SecurityKeyStore ossks,
-        final SslExceptionHandler errorHandler,
-        SharedGroupFactory sharedGroupFactory,
-        final SSLConfig SSLConfig
-    ) {
-        super(
-            settings,
-            version,
-            threadPool,
-            networkService,
-            pageCacheRecycler,
-            namedWriteableRegistry,
-            circuitBreakerService,
-            sharedGroupFactory
-        );
+    public SecuritySSLNettyTransport(final Settings settings, final Version version, final ThreadPool threadPool, final NetworkService networkService,
+                                     final PageCacheRecycler pageCacheRecycler, final NamedWriteableRegistry namedWriteableRegistry,
+                                     final CircuitBreakerService circuitBreakerService, final SecurityKeyStore ossks, final SslExceptionHandler errorHandler, SharedGroupFactory sharedGroupFactory,
+                                     final SSLConfig SSLConfig) {
+        super(settings, version, threadPool, networkService, pageCacheRecycler, namedWriteableRegistry, circuitBreakerService, sharedGroupFactory);
 
         this.ossks = ossks;
         this.errorHandler = errorHandler;
@@ -166,17 +148,15 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         private final boolean hostnameVerificationResovleHostName;
         private final SslExceptionHandler errorHandler;
 
-        private ClientSSLHandler(
-            final SecurityKeyStore sks,
-            final boolean hostnameVerificationEnabled,
-            final boolean hostnameVerificationResovleHostName,
-            final SslExceptionHandler errorHandler
-        ) {
+
+        private ClientSSLHandler(final SecurityKeyStore sks, final boolean hostnameVerificationEnabled,
+                                 final boolean hostnameVerificationResovleHostName, final SslExceptionHandler errorHandler) {
             this.sks = sks;
             this.hostnameVerificationEnabled = hostnameVerificationEnabled;
             this.hostnameVerificationResovleHostName = hostnameVerificationResovleHostName;
             this.errorHandler = errorHandler;
         }
+
 
         @Override
         public final void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -191,8 +171,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         }
 
         @Override
-        public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise)
-            throws Exception {
+        public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) throws Exception {
             SSLEngine engine = null;
             try {
                 if (hostnameVerificationEnabled) {
@@ -204,14 +183,8 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
                         hostname = inetSocketAddress.getHostString();
                     }
 
-                    if (log.isDebugEnabled()) {
-                        log.debug(
-                            "Hostname of peer is {} ({}/{}) with hostnameVerificationResovleHostName: {}",
-                            hostname,
-                            inetSocketAddress.getHostName(),
-                            inetSocketAddress.getHostString(),
-                            hostnameVerificationResovleHostName
-                        );
+                    if(log.isDebugEnabled()) {
+                        log.debug("Hostname of peer is {} ({}/{}) with hostnameVerificationResovleHostName: {}", hostname, inetSocketAddress.getHostName(), inetSocketAddress.getHostString(), hostnameVerificationResovleHostName);
                     }
 
                     engine = sks.createClientTransportSSLEngine(hostname, inetSocketAddress.getPort());
@@ -237,23 +210,14 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         public SSLClientChannelInitializer(DiscoveryNode node) {
             this.node = node;
             hostnameVerificationEnabled = settings.getAsBoolean(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION,
-                true
-            );
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION, true);
             hostnameVerificationResovleHostName = settings.getAsBoolean(
-                SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME,
-                true
-            );
+                    SSLConfigConstants.SECURITY_SSL_TRANSPORT_ENFORCE_HOSTNAME_VERIFICATION_RESOLVE_HOST_NAME, true);
 
             connectionTestResult = SSLConnectionTestResult.SSL_AVAILABLE;
             if (SSLConfig.isDualModeEnabled()) {
-                SSLConnectionTestUtil sslConnectionTestUtil = new SSLConnectionTestUtil(
-                    node.getAddress().getAddress(),
-                    node.getAddress().getPort()
-                );
-                connectionTestResult = AccessController.doPrivileged(
-                    (PrivilegedAction<SSLConnectionTestResult>) sslConnectionTestUtil::testConnection
-                );
+                SSLConnectionTestUtil sslConnectionTestUtil = new SSLConnectionTestUtil(node.getAddress().getAddress(), node.getAddress().getPort());
+                connectionTestResult = AccessController.doPrivileged((PrivilegedAction<SSLConnectionTestResult>) sslConnectionTestUtil::testConnection);
             }
         }
 
@@ -261,21 +225,16 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
 
-            if (connectionTestResult == SSLConnectionTestResult.OPENSEARCH_PING_FAILED) {
-                logger.error(
-                    "SSL dual mode is enabled but dual mode handshake and OpenSearch ping has failed during client connection setup, closing channel"
-                );
+            if(connectionTestResult == SSLConnectionTestResult.OPENSEARCH_PING_FAILED) {
+                logger.error("SSL dual mode is enabled but dual mode handshake and OpenSearch ping has failed during client connection setup, closing channel");
                 ch.close();
                 return;
             }
 
             if (connectionTestResult == SSLConnectionTestResult.SSL_AVAILABLE) {
                 logger.debug("Connection to {} needs to be ssl, adding ssl handler to the client channel ", node.getHostName());
-                ch.pipeline()
-                    .addFirst(
-                        "client_ssl_handler",
-                        new ClientSSLHandler(ossks, hostnameVerificationEnabled, hostnameVerificationResovleHostName, errorHandler)
-                    );
+                ch.pipeline().addFirst("client_ssl_handler", new ClientSSLHandler(ossks, hostnameVerificationEnabled,
+                        hostnameVerificationResovleHostName, errorHandler));
             } else {
                 logger.debug("Connection to {} needs to be non ssl", node.getHostName());
             }
@@ -286,6 +245,7 @@ public class SecuritySSLNettyTransport extends Netty4Transport {
             if (cause instanceof DecoderException && cause != null) {
                 cause = cause.getCause();
             }
+
 
             errorHandler.logError(cause, false);
             logger.error("Exception during establishing a SSL connection: " + cause, cause);

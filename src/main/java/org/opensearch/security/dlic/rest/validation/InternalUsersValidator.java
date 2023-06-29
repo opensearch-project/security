@@ -20,13 +20,8 @@ import org.opensearch.rest.RestRequest;
  */
 public class InternalUsersValidator extends CredentialsValidator {
 
-    public InternalUsersValidator(
-        final RestRequest request,
-        boolean isSuperAdmin,
-        BytesReference ref,
-        final Settings opensearchSettings,
-        Object... param
-    ) {
+    public InternalUsersValidator(final RestRequest request, boolean isSuperAdmin, BytesReference ref, final Settings opensearchSettings,
+            Object... param) {
         super(request, ref, opensearchSettings, param);
         allowedKeys.put("backend_roles", DataType.ARRAY);
         allowedKeys.put("attributes", DataType.OBJECT);

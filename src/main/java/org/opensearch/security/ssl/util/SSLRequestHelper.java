@@ -67,13 +67,7 @@ public class SSLRequestHelper {
             this(x509Certs, principal, protocol, cipher, null);
         }
 
-        public SSLInfo(
-            final X509Certificate[] x509Certs,
-            final String principal,
-            final String protocol,
-            final String cipher,
-            X509Certificate[] localCertificates
-        ) {
+        public SSLInfo(final X509Certificate[] x509Certs, final String principal, final String protocol, final String cipher, X509Certificate[] localCertificates) {
             super();
             this.x509Certs = x509Certs;
             this.principal = principal;
@@ -104,38 +98,26 @@ public class SSLRequestHelper {
 
         @Override
         public String toString() {
-            return "SSLInfo [x509Certs="
-                + Arrays.toString(x509Certs)
-                + ", principal="
-                + principal
-                + ", protocol="
-                + protocol
-                + ", cipher="
-                + cipher
-                + "]";
+            return "SSLInfo [x509Certs=" + Arrays.toString(x509Certs) + ", principal=" + principal + ", protocol=" + protocol + ", cipher="
+                    + cipher + "]";
         }
 
     }
 
     @SuppressWarnings("removal")
-    public static SSLInfo getSSLInfo(
-        final Settings settings,
-        final Path configPath,
-        final RestRequest request,
-        PrincipalExtractor principalExtractor
-    ) throws SSLPeerUnverifiedException {
+    public static SSLInfo getSSLInfo(final Settings settings, final Path configPath, final RestRequest request, PrincipalExtractor principalExtractor) throws SSLPeerUnverifiedException {
 
-        if (request == null || request.getHttpChannel() == null || !(request.getHttpChannel() instanceof Netty4HttpChannel)) {
+        if(request == null || request.getHttpChannel() == null || !(request.getHttpChannel() instanceof Netty4HttpChannel)) {
             return null;
         }
 
-        final Netty4HttpChannel httpChannel = (Netty4HttpChannel) request.getHttpChannel();
+        final Netty4HttpChannel httpChannel = (Netty4HttpChannel)request.getHttpChannel();
         SslHandler sslhandler = (SslHandler) httpChannel.getNettyChannel().pipeline().get("ssl_http");
-        if (sslhandler == null && httpChannel.inboundPipeline() != null) {
+        if(sslhandler == null && httpChannel.inboundPipeline() != null) {
             sslhandler = (SslHandler) httpChannel.inboundPipeline().get("ssl_http");
         }
 
-        if (sslhandler == null) {
+        if(sslhandler == null) {
             return null;
         }
 
@@ -170,10 +152,10 @@ public class SSLRequestHelper {
                         }
                     });
 
-                    if (validationFailure) {
+                    if(validationFailure) {
                         throw new SSLPeerUnverifiedException("Unable to validate certificate (CRL)");
                     }
-                    principal = principalExtractor == null ? null : principalExtractor.extractPrincipal(x509Certs[0], Type.HTTP);
+                    principal = principalExtractor == null?null: principalExtractor.extractPrincipal(x509Certs[0], Type.HTTP);
                 } else if (engine.getNeedClientAuth()) {
                     final OpenSearchException ex = new OpenSearchException("No client certificates found but such are needed (SG 9).");
                     throw ex;
@@ -187,13 +169,7 @@ public class SSLRequestHelper {
         }
 
         Certificate[] localCerts = session.getLocalCertificates();
-        return new SSLInfo(
-            x509Certs,
-            principal,
-            protocol,
-            cipher,
-            localCerts == null ? null : Arrays.copyOf(localCerts, localCerts.length, X509Certificate[].class)
-        );
+        return new SSLInfo(x509Certs, principal, protocol, cipher, localCerts==null?null:Arrays.copyOf(localCerts, localCerts.length, X509Certificate[].class));
     }
 
     public static boolean containsBadHeader(final ThreadContext context, String prefix) {
@@ -217,7 +193,7 @@ public class SSLRequestHelper {
             log.trace("validateCrl: {}", validateCrl);
         }
 
-        if (!validateCrl) {
+        if(!validateCrl) {
             return true;
         }
 
@@ -228,9 +204,9 @@ public class SSLRequestHelper {
             Collection<? extends CRL> crls = null;
             final String crlFile = settings.get(SSLConfigConstants.SSECURITY_SSL_HTTP_CRL_FILE);
 
-            if (crlFile != null) {
+            if(crlFile != null) {
                 final File crl = env.configDir().resolve(crlFile).toAbsolutePath().toFile();
-                try (FileInputStream crlin = new FileInputStream(crl)) {
+                try(FileInputStream crlin = new FileInputStream(crl)) {
                     crls = CertificateFactory.getInstance("X.509").generateCRLs(crlin);
                 }
 
@@ -246,42 +222,33 @@ public class SSLRequestHelper {
             final String truststore = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_FILEPATH);
             CertificateValidator validator = null;
 
-            if (truststore != null) {
+            if(truststore != null) {
                 final String truststoreType = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_TYPE, "JKS");
                 final String truststorePassword = SECURITY_SSL_HTTP_TRUSTSTORE_PASSWORD.getSetting(settings);
-                // final String truststoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, null);
+                //final String truststoreAlias = settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_TRUSTSTORE_ALIAS, null);
 
                 final KeyStore ts = KeyStore.getInstance(truststoreType);
-                try (FileInputStream fin = new FileInputStream(new File(env.configDir().resolve(truststore).toAbsolutePath().toString()))) {
-                    ts.load(
-                        fin,
-                        (truststorePassword == null || truststorePassword.length() == 0) ? null : truststorePassword.toCharArray()
-                    );
+                try(FileInputStream fin = new FileInputStream(new File(env.configDir().resolve(truststore).toAbsolutePath().toString()))) {
+                    ts.load(fin, (truststorePassword == null || truststorePassword.length() == 0) ?null:truststorePassword.toCharArray());
                 }
                 validator = new CertificateValidator(ts, crls);
             } else {
-                final File trustedCas = env.configDir()
-                    .resolve(settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, ""))
-                    .toAbsolutePath()
-                    .toFile();
-                try (FileInputStream trin = new FileInputStream(trustedCas)) {
-                    Collection<? extends Certificate> cert = (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509")
-                        .generateCertificates(trin);
+                final File trustedCas = env.configDir().resolve(settings.get(SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, "")).toAbsolutePath().toFile();
+                try(FileInputStream trin = new FileInputStream(trustedCas)) {
+                    Collection<? extends Certificate> cert =  (Collection<? extends Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trin);
                     validator = new CertificateValidator(cert.toArray(new X509Certificate[0]), crls);
                 }
             }
 
             validator.setEnableCRLDP(!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_CRLDP, false));
             validator.setEnableOCSP(!settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_DISABLE_OCSP, false));
-            validator.setCheckOnlyEndEntities(
-                settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true)
-            );
+            validator.setCheckOnlyEndEntities(settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_CHECK_ONLY_END_ENTITIES, true));
             validator.setPreferCrl(settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_PREFER_CRLFILE_OVER_OCSP, false));
             Long dateTimestamp = settings.getAsLong(SSLConfigConstants.SECURITY_SSL_HTTP_CRL_VALIDATION_DATE, null);
-            if (dateTimestamp != null && dateTimestamp.longValue() < 0) {
+            if(dateTimestamp != null && dateTimestamp.longValue() < 0) {
                 dateTimestamp = null;
             }
-            validator.setDate(dateTimestamp == null ? null : new Date(dateTimestamp.longValue()));
+            validator.setDate(dateTimestamp==null?null:new Date(dateTimestamp.longValue()));
             validator.validate(x509Certs);
 
             return true;

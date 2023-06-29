@@ -24,10 +24,6 @@ import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.hasItem;
-
 public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
     private final String ENDPOINT;
 
@@ -177,9 +173,11 @@ public class RoleBasedAccessTest extends AbstractRestApiUnitTest {
         // Worf, has access to roles API, get captains role
         response = rh.executeGetRequest(ENDPOINT + "/roles/opendistro_security_role_starfleet_captains", encodeBasicHeader("worf", "worf"));
         Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
-        assertThat(
-            response.findArrayInJson("opendistro_security_role_starfleet_captains.cluster_permissions"),
-            allOf(hasItem("*bulk*"), hasItem("cluster:monitor*"))
+        Assert.assertEquals(
+            new SecurityJsonNode(DefaultObjectMapper.readTree(response.getBody())).getDotted(
+                "opendistro_security_role_starfleet_captains.cluster_permissions"
+            ).get(0).asString(),
+            "cluster:monitor*"
         );
 
         // Worf, has access to roles API, able to delete

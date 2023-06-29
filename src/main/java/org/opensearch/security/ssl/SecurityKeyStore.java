@@ -31,18 +31,12 @@ public interface SecurityKeyStore {
     public SSLEngine createClientTransportSSLEngine(String peerHost, int peerPort) throws SSLException;
 
     public String getHTTPProviderName();
-
     public String getTransportServerProviderName();
-
     public String getTransportClientProviderName();
-
     public String getSubjectAlternativeNames(X509Certificate cert);
 
     public void initHttpSSLConfig();
-
     public void initTransportSSLConfig();
-
     public X509Certificate[] getTransportCerts();
-
     public X509Certificate[] getHttpCerts();
 }

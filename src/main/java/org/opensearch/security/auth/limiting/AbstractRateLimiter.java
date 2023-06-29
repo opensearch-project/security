@@ -32,16 +32,10 @@ public abstract class AbstractRateLimiter<ClientIdType> implements AuthFailureLi
     protected final RateTracker<ClientIdType> rateTracker;
 
     public AbstractRateLimiter(Settings settings, Path configPath, Class<ClientIdType> clientIdType) {
-        this.clientBlockRegistry = new HeapBasedClientBlockRegistry<>(
-            settings.getAsInt("block_expiry_seconds", 60 * 10) * 1000,
-            settings.getAsInt("max_blocked_clients", 100_000),
-            clientIdType
-        );
-        this.rateTracker = RateTracker.create(
-            settings.getAsInt("time_window_seconds", 60 * 60) * 1000,
-            settings.getAsInt("allowed_tries", 10),
-            settings.getAsInt("max_tracked_clients", 100_000)
-        );
+        this.clientBlockRegistry = new HeapBasedClientBlockRegistry<>(settings.getAsInt("block_expiry_seconds", 60 * 10) * 1000,
+                settings.getAsInt("max_blocked_clients", 100_000), clientIdType);
+        this.rateTracker = RateTracker.create(settings.getAsInt("time_window_seconds", 60 * 60) * 1000, settings.getAsInt("allowed_tries", 10),
+                settings.getAsInt("max_tracked_clients", 100_000));
     }
 
     @Override

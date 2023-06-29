@@ -41,7 +41,10 @@ public class RoleMappingsV6 extends RoleMappings implements Hideable {
     private boolean readonly;
     private boolean hidden;
     private List<String> backendroles = Collections.emptyList();
-    private List<String> andBackendroles = Collections.emptyList();
+    private List<String> andBackendroles= Collections.emptyList();
+
+
+
 
     public RoleMappingsV6() {
         super();
@@ -50,51 +53,34 @@ public class RoleMappingsV6 extends RoleMappings implements Hideable {
     public boolean isReadonly() {
         return readonly;
     }
-
     public void setReadonly(boolean readonly) {
         this.readonly = readonly;
     }
-
     public boolean isHidden() {
         return hidden;
     }
-
     public void setHidden(boolean hidden) {
         this.hidden = hidden;
     }
-
     public List<String> getBackendroles() {
         return backendroles;
     }
-
     public void setBackendroles(List<String> backendroles) {
         this.backendroles = backendroles;
     }
 
-    @JsonProperty(value = "and_backendroles")
+    @JsonProperty(value="and_backendroles")
     public List<String> getAndBackendroles() {
         return andBackendroles;
     }
-
     public void setAndBackendroles(List<String> andBackendroles) {
         this.andBackendroles = andBackendroles;
     }
 
     @Override
     public String toString() {
-        return "RoleMappings [readonly="
-            + readonly
-            + ", hidden="
-            + hidden
-            + ", backendroles="
-            + backendroles
-            + ", hosts="
-            + getHosts()
-            + ", users="
-            + getUsers()
-            + ", andBackendroles="
-            + andBackendroles
-            + "]";
+        return "RoleMappings [readonly=" + readonly + ", hidden=" + hidden + ", backendroles=" + backendroles + ", hosts=" + getHosts() + ", users="
+                + getUsers() + ", andBackendroles=" + andBackendroles + "]";
     }
 
     @JsonIgnore

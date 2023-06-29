@@ -105,20 +105,19 @@ public class ComplianceConfig {
     private final boolean enabled;
 
     private ComplianceConfig(
-        final boolean enabled,
-        final boolean logExternalConfig,
-        final boolean logInternalConfig,
-        final boolean logReadMetadataOnly,
-        final Map<String, List<String>> watchedReadFields,
-        final Set<String> ignoredComplianceUsersForRead,
-        final boolean logWriteMetadataOnly,
-        final boolean logDiffsForWrite,
-        final List<String> watchedWriteIndicesPatterns,
-        final Set<String> ignoredComplianceUsersForWrite,
-        final String securityIndex,
-        final String destinationType,
-        final String destinationIndex
-    ) {
+            final boolean enabled,
+            final boolean logExternalConfig,
+            final boolean logInternalConfig,
+            final boolean logReadMetadataOnly,
+            final Map<String, List<String>> watchedReadFields,
+            final Set<String> ignoredComplianceUsersForRead,
+            final boolean logWriteMetadataOnly,
+            final boolean logDiffsForWrite,
+            final List<String> watchedWriteIndicesPatterns,
+            final Set<String> ignoredComplianceUsersForWrite,
+            final String securityIndex,
+            final String destinationType,
+            final String destinationIndex) {
         this.enabled = enabled;
         this.logExternalConfig = logExternalConfig;
         this.logInternalConfig = logInternalConfig;
@@ -134,20 +133,22 @@ public class ComplianceConfig {
         this.watchedWriteIndicesPatterns = watchedWriteIndicesPatterns;
         this.ignoredComplianceUsersForWrite = ignoredComplianceUsersForWrite;
 
-        this.readEnabledFields = watchedReadFields.entrySet()
-            .stream()
-            .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
-            .collect(
-                ImmutableMap.toImmutableMap(entry -> WildcardMatcher.from(entry.getKey()), entry -> ImmutableSet.copyOf(entry.getValue()))
-            );
+        this.readEnabledFields = watchedReadFields.entrySet().stream()
+                .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
+                .collect(
+                    ImmutableMap.toImmutableMap(
+                        entry -> WildcardMatcher.from(entry.getKey()),
+                        entry -> ImmutableSet.copyOf(entry.getValue())
+                    )
+                );
 
         DateTimeFormatter auditLogPattern = null;
         String auditLogIndex = null;
         if (INTERNAL_OPENSEARCH.equalsIgnoreCase(destinationType)) {
             try {
-                auditLogPattern = DateTimeFormat.forPattern(destinationIndex); // throws IllegalArgumentException if no pattern
+                auditLogPattern = DateTimeFormat.forPattern(destinationIndex); //throws IllegalArgumentException if no pattern
             } catch (IllegalArgumentException e) {
-                // no pattern
+                //no pattern
                 auditLogIndex = destinationIndex;
             } catch (Exception e) {
                 log.error("Unable to check if auditlog index {} is part of compliance setup", destinationIndex, e);
@@ -156,45 +157,43 @@ public class ComplianceConfig {
         this.auditLogPattern = auditLogPattern;
         this.auditLogIndex = auditLogIndex;
 
-        this.readEnabledFieldsCache = CacheBuilder.newBuilder().maximumSize(CACHE_SIZE).build(new CacheLoader<String, WildcardMatcher>() {
-            @Override
-            public WildcardMatcher load(String index) throws Exception {
-                return WildcardMatcher.from(getFieldsForIndex(index));
-            }
-        });
+        this.readEnabledFieldsCache = CacheBuilder.newBuilder()
+                .maximumSize(CACHE_SIZE)
+                .build(new CacheLoader<String, WildcardMatcher>() {
+                    @Override
+                    public WildcardMatcher load(String index) throws Exception {
+                        return WildcardMatcher.from(getFieldsForIndex(index));
+                    }
+                });
     }
 
     @VisibleForTesting
     public ComplianceConfig(
-        final boolean enabled,
-        final boolean logExternalConfig,
-        final boolean logInternalConfig,
-        final boolean logReadMetadataOnly,
-        final Map<String, List<String>> watchedReadFields,
-        final Set<String> ignoredComplianceUsersForRead,
-        final boolean logWriteMetadataOnly,
-        final boolean logDiffsForWrite,
-        final List<String> watchedWriteIndicesPatterns,
-        final Set<String> ignoredComplianceUsersForWrite,
-        Settings settings
-    ) {
+            final boolean enabled,
+            final boolean logExternalConfig,
+            final boolean logInternalConfig,
+            final boolean logReadMetadataOnly,
+            final Map<String, List<String>> watchedReadFields,
+            final Set<String> ignoredComplianceUsersForRead,
+            final boolean logWriteMetadataOnly,
+            final boolean logDiffsForWrite,
+            final List<String> watchedWriteIndicesPatterns,
+            final Set<String> ignoredComplianceUsersForWrite,
+            Settings settings) {
         this(
-            enabled,
-            logExternalConfig,
-            logInternalConfig,
-            logReadMetadataOnly,
-            watchedReadFields,
-            ignoredComplianceUsersForRead,
-            logWriteMetadataOnly,
-            logDiffsForWrite,
-            watchedWriteIndicesPatterns,
-            ignoredComplianceUsersForWrite,
-            settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
-            settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null),
-            settings.get(
-                ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX,
-                "'security-auditlog-'YYYY.MM.dd"
-            )
+                enabled,
+                logExternalConfig,
+                logInternalConfig,
+                logReadMetadataOnly,
+                watchedReadFields,
+                ignoredComplianceUsersForRead,
+                logWriteMetadataOnly,
+                logDiffsForWrite,
+                watchedWriteIndicesPatterns,
+                ignoredComplianceUsersForWrite,
+                settings.get(ConfigConstants.SECURITY_CONFIG_INDEX_NAME, ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX),
+                settings.get(ConfigConstants.SECURITY_AUDIT_TYPE_DEFAULT, null),
+                settings.get(ConfigConstants.SECURITY_AUDIT_CONFIG_DEFAULT_PREFIX + ConfigConstants.SECURITY_AUDIT_OPENSEARCH_INDEX, "'security-auditlog-'YYYY.MM.dd")
         );
     }
 
@@ -216,14 +215,7 @@ public class ComplianceConfig {
     @JsonCreator
     public static ComplianceConfig from(Map<String, Object> properties, @JacksonInject Settings settings) throws JsonProcessingException {
         if (!FIELDS.containsAll(properties.keySet())) {
-            throw new UnrecognizedPropertyException(
-                null,
-                "Invalid property present in the input data for compliance config",
-                null,
-                ComplianceConfig.class,
-                null,
-                null
-            );
+            throw new UnrecognizedPropertyException(null, "Invalid property present in the input data for compliance config", null, ComplianceConfig.class, null, null);
         }
 
         final boolean enabled = getOrDefault(properties, "enabled", true);
@@ -231,28 +223,24 @@ public class ComplianceConfig {
         final boolean logInternalConfig = getOrDefault(properties, "internal_config", false);
         final boolean logReadMetadataOnly = getOrDefault(properties, "read_metadata_only", false);
         final Map<String, List<String>> watchedReadFields = getOrDefault(properties, "read_watched_fields", Collections.emptyMap());
-        final Set<String> ignoredComplianceUsersForRead = ImmutableSet.copyOf(
-            getOrDefault(properties, "read_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS)
-        );
+        final Set<String> ignoredComplianceUsersForRead = ImmutableSet.copyOf(getOrDefault(properties, "read_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS));
         final boolean logWriteMetadataOnly = getOrDefault(properties, "write_metadata_only", false);
         final boolean logDiffsForWrite = getOrDefault(properties, "write_log_diffs", false);
         final List<String> watchedWriteIndicesPatterns = getOrDefault(properties, "write_watched_indices", Collections.emptyList());
-        final Set<String> ignoredComplianceUsersForWrite = ImmutableSet.copyOf(
-            getOrDefault(properties, "write_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS)
-        );
+        final Set<String> ignoredComplianceUsersForWrite = ImmutableSet.copyOf(getOrDefault(properties, "write_ignore_users", AuditConfig.DEFAULT_IGNORED_USERS));
 
         return new ComplianceConfig(
-            enabled,
-            logExternalConfig,
-            logInternalConfig,
-            logReadMetadataOnly,
-            watchedReadFields,
-            ignoredComplianceUsersForRead,
-            logWriteMetadataOnly,
-            logDiffsForWrite,
-            watchedWriteIndicesPatterns,
-            ignoredComplianceUsersForWrite,
-            settings
+                enabled,
+                logExternalConfig,
+                logInternalConfig,
+                logReadMetadataOnly,
+                watchedReadFields,
+                ignoredComplianceUsersForRead,
+                logWriteMetadataOnly,
+                logDiffsForWrite,
+                watchedWriteIndicesPatterns,
+                ignoredComplianceUsersForWrite,
+                settings
         );
     }
 
@@ -262,71 +250,47 @@ public class ComplianceConfig {
      * @return compliance configuration
      */
     public static ComplianceConfig from(Settings settings) {
-        final boolean logExternalConfig = settings.getAsBoolean(
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED,
-            false
-        );
+        final boolean logExternalConfig = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_EXTERNAL_CONFIG_ENABLED, false);
         final boolean logInternalConfig = settings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_HISTORY_INTERNAL_CONFIG_ENABLED, false);
-        final boolean logReadMetadataOnly = settings.getAsBoolean(
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY,
-            false
-        );
-        final boolean logWriteMetadataOnly = settings.getAsBoolean(
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY,
-            false
-        );
-        final boolean logDiffsForWrite = settings.getAsBoolean(
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS,
-            false
-        );
-        final List<String> watchedReadFields = settings.getAsList(
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
-            Collections.emptyList(),
-            false
-        );
-        // plugins.security.compliance.pii_fields:
-        // - indexpattern,fieldpattern,fieldpattern,....
+        final boolean logReadMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_METADATA_ONLY, false);
+        final boolean logWriteMetadataOnly = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_METADATA_ONLY, false);
+        final boolean logDiffsForWrite = settings.getAsBoolean(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_LOG_DIFFS, false);
+        final List<String> watchedReadFields = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_WATCHED_FIELDS,
+                Collections.emptyList(), false);
+        //plugins.security.compliance.pii_fields:
+        //  - indexpattern,fieldpattern,fieldpattern,....
         final Map<String, List<String>> readEnabledFields = watchedReadFields.stream()
-            .map(watchedReadField -> watchedReadField.split(","))
-            .filter(split -> split.length != 0 && !Strings.isNullOrEmpty(split[0]))
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    split -> split[0],
-                    split -> split.length == 1
-                        ? ImmutableList.of("*")
-                        : Arrays.stream(split).skip(1).collect(ImmutableList.toImmutableList())
-                )
-            );
-        final List<String> watchedWriteIndices = settings.getAsList(
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES,
-            Collections.emptyList()
-        );
+                .map(watchedReadField -> watchedReadField.split(","))
+                .filter(split -> split.length != 0 && !Strings.isNullOrEmpty(split[0]))
+                .collect(ImmutableMap.toImmutableMap(
+                        split -> split[0],
+                        split -> split.length == 1 ?
+                                ImmutableList.of("*") : Arrays.stream(split).skip(1).collect(ImmutableList.toImmutableList())
+                ));
+        final List<String> watchedWriteIndices = settings.getAsList(ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_WATCHED_INDICES, Collections.emptyList());
         final Set<String> ignoredComplianceUsersForRead = ConfigConstants.getSettingAsSet(
-            settings,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
-            AuditConfig.DEFAULT_IGNORED_USERS,
-            false
-        );
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_READ_IGNORE_USERS,
+                AuditConfig.DEFAULT_IGNORED_USERS,
+                false);
         final Set<String> ignoredComplianceUsersForWrite = ConfigConstants.getSettingAsSet(
-            settings,
-            ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
-            AuditConfig.DEFAULT_IGNORED_USERS,
-            false
-        );
+                settings,
+                ConfigConstants.OPENDISTRO_SECURITY_COMPLIANCE_HISTORY_WRITE_IGNORE_USERS,
+                AuditConfig.DEFAULT_IGNORED_USERS,
+                false);
 
         return new ComplianceConfig(
-            true,
-            logExternalConfig,
-            logInternalConfig,
-            logReadMetadataOnly,
-            readEnabledFields,
-            ignoredComplianceUsersForRead,
-            logWriteMetadataOnly,
-            logDiffsForWrite,
-            watchedWriteIndices,
-            ignoredComplianceUsersForWrite,
-            settings
-        );
+                true,
+                logExternalConfig,
+                logInternalConfig,
+                logReadMetadataOnly,
+                readEnabledFields,
+                ignoredComplianceUsersForRead,
+                logWriteMetadataOnly,
+                logDiffsForWrite,
+                watchedWriteIndices,
+                ignoredComplianceUsersForWrite,
+                settings);
     }
 
     /**
@@ -451,11 +415,10 @@ public class ComplianceConfig {
             }
         }
 
-        return readEnabledFields.entrySet()
-            .stream()
-            .filter(entry -> entry.getKey().test(index))
-            .flatMap(entry -> entry.getValue().stream())
-            .collect(ImmutableSet.toImmutableSet());
+        return readEnabledFields.entrySet().stream()
+                .filter(entry -> entry.getKey().test(index))
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(ImmutableSet.toImmutableSet());
     }
 
     /**

@@ -46,17 +46,15 @@ public class HTTPHelper {
                 return null;
             } else {
 
-                final String decodedBasicHeader = new String(
-                    Base64.getDecoder().decode(authorizationHeader.split(" ")[1]),
-                    StandardCharsets.UTF_8
-                );
+                final String decodedBasicHeader = new String(Base64.getDecoder().decode(authorizationHeader.split(" ")[1]),
+                        StandardCharsets.UTF_8);
 
-                // username:password
-                // special case
-                // username must not contain a :, but password is allowed to do so
-                // username:pass:word
-                // blank password
-                // username:
+                //username:password
+                //special case
+                //username must not contain a :, but password is allowed to do so
+                //   username:pass:word
+                //blank password
+                //   username:
 
                 final int firstColonIndex = decodedBasicHeader.indexOf(':');
 
@@ -66,11 +64,11 @@ public class HTTPHelper {
                 if (firstColonIndex > 0) {
                     username = decodedBasicHeader.substring(0, firstColonIndex);
 
-                    if (decodedBasicHeader.length() - 1 != firstColonIndex) {
+                    if(decodedBasicHeader.length() - 1 != firstColonIndex) {
                         password = decodedBasicHeader.substring(firstColonIndex + 1);
                     } else {
-                        // blank password
-                        password = "";
+                        //blank password
+                        password="";
                     }
                 }
 
@@ -90,9 +88,10 @@ public class HTTPHelper {
 
         final Map<String, List<String>> headers;
 
-        if (request != null && (headers = request.getHeaders()) != null) {
-            for (final String key : headers.keySet()) {
-                if (key != null && key.trim().toLowerCase().startsWith(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX.toLowerCase())) {
+        if (request != null && ( headers = request.getHeaders()) != null) {
+            for (final String key: headers.keySet()) {
+                if (    key != null
+                        && key.trim().toLowerCase().startsWith(ConfigConstants.OPENDISTRO_SECURITY_CONFIG_PREFIX.toLowerCase())) {
                     return true;
                 }
             }

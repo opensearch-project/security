@@ -50,55 +50,48 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class UntrustedLdapServerCertificateTest {
 
-    private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
+	private static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
-    private static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
+	private static final TestCertificates TEST_CERTIFICATES = new TestCertificates();
 
-    public static final EmbeddedLDAPServer embeddedLDAPServer = new EmbeddedLDAPServer(
-        TEST_CERTIFICATES.getRootCertificateData(),
-        TEST_CERTIFICATES.createSelfSignedCertificate("CN=untrusted"),
-        LDIF_DATA
-    );
+	public static final EmbeddedLDAPServer embeddedLDAPServer = new EmbeddedLDAPServer(TEST_CERTIFICATES.getRootCertificateData(),
+		TEST_CERTIFICATES.createSelfSignedCertificate("CN=untrusted"), LDIF_DATA);
 
-    public static LocalCluster cluster = new LocalCluster.Builder().testCertificates(TEST_CERTIFICATES)
-        .clusterManager(ClusterManager.SINGLENODE)
-        .anonymousAuth(false)
-        .authc(
-            new AuthcDomain("ldap", BASIC_AUTH_DOMAIN_ORDER + 1, true).httpAuthenticator(new HttpAuthenticator("basic").challenge(false))
-                .backend(
-                    new AuthenticationBackend("ldap").config(
-                        () -> LdapAuthenticationConfigBuilder.config()
-                            // this port is available when embeddedLDAPServer is already started, therefore Supplier interface is used
-                            .hosts(List.of("localhost:" + embeddedLDAPServer.getLdapTlsPort()))
-                            .enableSsl(true)
-                            .bindDn(DN_OPEN_SEARCH_PEOPLE_TEST_ORG)
-                            .password(PASSWORD_OPEN_SEARCH)
-                            .userBase(DN_PEOPLE_TEST_ORG)
-                            .userSearch(USER_SEARCH)
-                            .usernameAttribute(USERNAME_ATTRIBUTE)
-                            .penTrustedCasFilePath(TEST_CERTIFICATES.getRootCertificate().getAbsolutePath())
-                            .build()
-                    )
-                )
-        )
-        .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .users(ADMIN_USER)
-        .build();
+	public static LocalCluster cluster = new LocalCluster.Builder()
+		.testCertificates(TEST_CERTIFICATES)
+		.clusterManager(ClusterManager.SINGLENODE).anonymousAuth(false)
+		.authc(new AuthcDomain("ldap", BASIC_AUTH_DOMAIN_ORDER + 1, true)
+			.httpAuthenticator(new HttpAuthenticator("basic").challenge(false))
+			.backend(new AuthenticationBackend("ldap")
+				.config(() -> LdapAuthenticationConfigBuilder.config()
+					// this port is available when embeddedLDAPServer is already started, therefore Supplier interface is used
+					.hosts(List.of("localhost:" + embeddedLDAPServer.getLdapTlsPort()))
+					.enableSsl(true)
+					.bindDn(DN_OPEN_SEARCH_PEOPLE_TEST_ORG)
+					.password(PASSWORD_OPEN_SEARCH)
+					.userBase(DN_PEOPLE_TEST_ORG)
+					.userSearch(USER_SEARCH)
+					.usernameAttribute(USERNAME_ATTRIBUTE)
+					.penTrustedCasFilePath(TEST_CERTIFICATES.getRootCertificate().getAbsolutePath())
+					.build())))
+		.authc(AUTHC_HTTPBASIC_INTERNAL)
+		.users(ADMIN_USER)
+		.build();
 
-    @ClassRule
-    public static RuleChain ruleChain = RuleChain.outerRule(embeddedLDAPServer).around(cluster);
+	@ClassRule
+	public static RuleChain ruleChain = RuleChain.outerRule(embeddedLDAPServer).around(cluster);
 
-    @Rule
-    public LogsRule logsRule = new LogsRule("com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
+	@Rule
+	public LogsRule logsRule = new LogsRule("com.amazon.dlic.auth.ldap.backend.LDAPAuthenticationBackend");
 
-    @Test
-    public void shouldNotAuthenticateUserWithLdap() {
-        try (TestRestClient client = cluster.getRestClient(USER_SPOCK, PASSWORD_SPOCK)) {
-            TestRestClient.HttpResponse response = client.getAuthInfo();
+	@Test
+	public void shouldNotAuthenticateUserWithLdap() {
+		try (TestRestClient client = cluster.getRestClient(USER_SPOCK, PASSWORD_SPOCK)) {
+			TestRestClient.HttpResponse response = client.getAuthInfo();
 
-            response.assertStatusCode(401);
-        }
-        logsRule.assertThatStackTraceContain("javax.net.ssl.SSLHandshakeException");
-    }
+			response.assertStatusCode(401);
+		}
+		logsRule.assertThatStackTraceContain("javax.net.ssl.SSLHandshakeException");
+	}
 
 }

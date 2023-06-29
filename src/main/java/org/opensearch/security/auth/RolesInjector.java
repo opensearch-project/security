@@ -54,10 +54,8 @@ final public class RolesInjector {
 
         String[] strs = injectedUserAndRoles.split("\\|");
         if (strs.length == 0) {
-            log.error(
-                "Roles injected string malformed, could not extract parts. User string was '{}.'" + " Roles injection failed.",
-                injectedUserAndRoles
-            );
+            log.error("Roles injected string malformed, could not extract parts. User string was '{}.'" +
+                    " Roles injection failed.", injectedUserAndRoles);
             return null;
         }
 
@@ -73,20 +71,16 @@ final public class RolesInjector {
         }
         Set<String> roles = ImmutableSet.copyOf(strs[1].split(","));
 
-        if (user != null && roles != null) {
+        if(user != null && roles != null) {
             addUser(user, transportRequest, action, task, ctx);
         }
         return roles;
     }
 
-    private void addUser(
-        final User user,
-        final TransportRequest transportRequest,
-        final String action,
-        final Task task,
-        final ThreadContext threadContext
-    ) {
-        if (threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null) return;
+    private void addUser(final User user, final TransportRequest transportRequest,
+                         final String action, final Task task, final ThreadContext threadContext) {
+        if(threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null)
+            return;
 
         threadContext.putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, user);
     }

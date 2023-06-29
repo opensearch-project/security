@@ -57,15 +57,15 @@ public class ConfigUpdateResponse extends BaseNodesResponse<ConfigUpdateNodeResp
         out.writeList(nodes);
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("configupdate_response");
-        builder.field("nodes", getNodesMap());
-        builder.field("node_size", getNodes().size());
-        builder.field("has_failures", hasFailures());
-        builder.field("failures_size", failures().size());
-        builder.endObject();
+	@Override
+	public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+		builder.startObject("configupdate_response");
+		builder.field("nodes", getNodesMap());
+		builder.field("node_size", getNodes().size());
+		builder.field("has_failures", hasFailures());
+		builder.field("failures_size", failures().size());
+		builder.endObject();
 
-        return builder;
-    }
+		return builder;
+	}
 }

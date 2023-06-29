@@ -55,14 +55,13 @@ import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 
 public final class AuditMessage {
 
-    // clustername and cluster uuid
+    //clustername and cluster uuid
     private static final WildcardMatcher AUTHORIZATION_HEADER = WildcardMatcher.from("Authorization", false);
     private static final String SENSITIVE_KEY = "password";
     private static final String SENSITIVE_REPLACEMENT_VALUE = "__SENSITIVE__";
 
-    private static final Pattern SENSITIVE_PATHS = Pattern.compile(
-        "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/api/(account.*|internalusers.*|user.*)"
-    );
+    private static final Pattern SENSITIVE_PATHS =
+            Pattern.compile( "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/api/(account.*|internalusers.*|user.*)");
 
     @VisibleForTesting
     public static final Pattern BCRYPT_HASH = Pattern.compile("\\$2[ayb]\\$.{56}");
@@ -94,8 +93,8 @@ public final class AuditMessage {
     public static final String TRANSPORT_REQUEST_HEADERS = "audit_transport_headers";
 
     public static final String ID = "audit_trace_doc_id";
-    // public static final String TYPES = "audit_trace_doc_types";
-    // public static final String SOURCE = "audit_trace_doc_source";
+    //public static final String TYPES = "audit_trace_doc_types";
+    //public static final String SOURCE = "audit_trace_doc_source";
     public static final String INDICES = "audit_trace_indices";
     public static final String SHARD_ID = "audit_trace_shard_id";
     public static final String RESOLVED_INDICES = "audit_trace_resolved_indices";
@@ -112,8 +111,8 @@ public final class AuditMessage {
     public static final String COMPLIANCE_DIFF_CONTENT = "audit_compliance_diff_content";
     public static final String COMPLIANCE_FILE_INFOS = "audit_compliance_file_infos";
 
-    // public static final String COMPLIANCE_DIFF_STORED_IS_NOOP = "audit_compliance_diff_stored_is_noop";
-    // public static final String COMPLIANCE_STORED_FIELDS_CONTENT = "audit_compliance_stored_fields_content";
+    //public static final String COMPLIANCE_DIFF_STORED_IS_NOOP = "audit_compliance_diff_stored_is_noop";
+    //public static final String COMPLIANCE_STORED_FIELDS_CONTENT = "audit_compliance_stored_fields_content";
 
     public static final String REQUEST_LAYER = "audit_request_layer";
 
@@ -136,11 +135,11 @@ public final class AuditMessage {
         auditInfo.put(NODE_NAME, Objects.requireNonNull(clusterService).localNode().getName());
         auditInfo.put(CLUSTER_NAME, Objects.requireNonNull(clusterService).getClusterName().value());
 
-        if (origin != null) {
+        if(origin != null) {
             auditInfo.put(ORIGIN, origin);
         }
 
-        if (layer != null) {
+        if(layer != null) {
             auditInfo.put(REQUEST_LAYER, layer);
         }
     }
@@ -198,25 +197,25 @@ public final class AuditMessage {
         addComplianceWriteDiffSource(redactSecurityConfigContent(diff, id));
     }
 
-    // public void addComplianceWriteStoredFields0(String diff) {
-    // if (diff != null && !diff.isEmpty()) {
-    // auditInfo.put(COMPLIANCE_STORED_FIELDS_CONTENT, diff);
-    // //auditInfo.put(COMPLIANCE_DIFF_STORED_IS_NOOP, false);
-    // }
-    // }
+//    public void addComplianceWriteStoredFields0(String diff) {
+//        if (diff != null && !diff.isEmpty()) {
+//            auditInfo.put(COMPLIANCE_STORED_FIELDS_CONTENT, diff);
+//            //auditInfo.put(COMPLIANCE_DIFF_STORED_IS_NOOP, false);
+//        }
+//    }
 
     public void addTupleToRequestBody(Tuple<XContentType, BytesReference> xContentTuple) {
         if (xContentTuple != null) {
             try {
                 auditInfo.put(REQUEST_BODY, XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1()));
             } catch (Exception e) {
-                auditInfo.put(REQUEST_BODY, "ERROR: Unable to convert to json because of " + e.toString());
+                auditInfo.put(REQUEST_BODY, "ERROR: Unable to convert to json because of "+e.toString());
             }
         }
     }
 
     public void addMapToRequestBody(Map<String, ?> map) {
-        if (map != null) {
+        if(map != null) {
             auditInfo.put(REQUEST_BODY, Utils.convertStructuredMapToJson(map));
         }
     }
@@ -290,10 +289,10 @@ public final class AuditMessage {
     public void addFileInfos(Map<String, Path> paths) {
         if (paths != null && !paths.isEmpty()) {
             List<Object> infos = new ArrayList<>();
-            for (Entry<String, Path> path : paths.entrySet()) {
+            for(Entry<String, Path> path: paths.entrySet()) {
 
                 try {
-                    if (Files.isReadable(path.getValue())) {
+                    if(Files.isReadable(path.getValue())) {
                         final String chcksm = DigestUtils.sha256Hex(Files.readAllBytes(path.getValue()));
                         FileTime lm = Files.getLastModifiedTime(path.getValue(), LinkOption.NOFOLLOW_LINKS);
                         Map<String, Object> innerInfos = new HashMap<>();
@@ -304,7 +303,7 @@ public final class AuditMessage {
                         infos.add(innerInfos);
                     }
                 } catch (Throwable e) {
-                    // ignore non readable files
+                    //ignore non readable files
                 }
             }
             auditInfo.put(COMPLIANCE_FILE_INFOS, infos);
@@ -331,29 +330,29 @@ public final class AuditMessage {
     }
 
     public void addTaskId(long id) {
-        auditInfo.put(TASK_ID, auditInfo.get(NODE_ID) + ":" + id);
+         auditInfo.put(TASK_ID, auditInfo.get(NODE_ID)+":"+id);
     }
 
     public void addShardId(ShardId id) {
-        if (id != null) {
+        if(id != null) {
             auditInfo.put(SHARD_ID, id.getId());
         }
-    }
+   }
 
     public void addTaskParentId(String id) {
-        if (id != null) {
+        if(id != null) {
             auditInfo.put(TASK_PARENT_ID, id);
         }
     }
 
-    public void addRestParams(Map<String, String> params) {
-        if (params != null && !params.isEmpty()) {
+    public void addRestParams(Map<String,String> params) {
+        if(params != null && !params.isEmpty()) {
             auditInfo.put(REST_REQUEST_PARAMS, new HashMap<>(params));
         }
     }
 
-    public void addRestHeaders(Map<String, List<String>> headers, boolean excludeSensitiveHeaders) {
-        if (headers != null && !headers.isEmpty()) {
+    public void addRestHeaders(Map<String,List<String>> headers, boolean excludeSensitiveHeaders) {
+        if(headers != null && !headers.isEmpty()) {
             final Map<String, List<String>> headersClone = new HashMap<>(headers);
             if (excludeSensitiveHeaders) {
                 headersClone.keySet().removeIf(AUTHORIZATION_HEADER);
@@ -378,11 +377,10 @@ public final class AuditMessage {
             if (filter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
                 try {
                     final Tuple<XContentType, BytesReference> xContentTuple = request.contentOrSourceParam();
-                    final String requestBody = XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
-                    if (path != null
-                        && requestBody != null
-                        && SENSITIVE_PATHS.matcher(path).matches()
-                        && requestBody.contains(SENSITIVE_KEY)) {
+                    final String requestBody =  XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
+                    if (path != null && requestBody != null
+                            && SENSITIVE_PATHS.matcher(path).matches()
+                            && requestBody.contains(SENSITIVE_KEY)) {
                         auditInfo.put(REQUEST_BODY, SENSITIVE_REPLACEMENT_VALUE);
                     } else {
                         auditInfo.put(REQUEST_BODY, requestBody);
@@ -394,8 +392,8 @@ public final class AuditMessage {
         }
     }
 
-    public void addTransportHeaders(Map<String, String> headers, boolean excludeSensitiveHeaders) {
-        if (headers != null && !headers.isEmpty()) {
+    public void addTransportHeaders(Map<String,String> headers, boolean excludeSensitiveHeaders) {
+        if(headers != null && !headers.isEmpty()) {
             final Map<String, String> headersClone = new HashMap<>(headers);
             if (excludeSensitiveHeaders) {
                 headersClone.keySet().removeIf(AUTHORIZATION_HEADER);
@@ -405,7 +403,7 @@ public final class AuditMessage {
     }
 
     public void addComplianceOperation(Operation op) {
-        if (op != null) {
+        if(op != null) {
             auditInfo.put(COMPLIANCE_OPERATION, op);
         }
     }
@@ -415,7 +413,7 @@ public final class AuditMessage {
     }
 
     public Map<String, Object> getAsMap() {
-        return new HashMap<>(this.auditInfo);
+      return new HashMap<>(this.auditInfo);
     }
 
     public String getInitiatingUser() {
@@ -434,9 +432,9 @@ public final class AuditMessage {
         return (RestRequest.Method) this.auditInfo.get(REST_REQUEST_METHOD);
     }
 
-    public AuditCategory getCategory() {
-        return msgCategory;
-    }
+	public AuditCategory getCategory() {
+		return msgCategory;
+	}
 
     public Origin getOrigin() {
         return (Origin) this.auditInfo.get(ORIGIN);
@@ -462,14 +460,14 @@ public final class AuditMessage {
         return (String) this.auditInfo.get(ID);
     }
 
-    @Override
-    public String toString() {
-        try {
-            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
-        } catch (final IOException e) {
-            throw ExceptionsHelper.convertToOpenSearchException(e);
-        }
-    }
+	@Override
+	public String toString() {
+		try {
+			return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
+		} catch (final IOException e) {
+		    throw ExceptionsHelper.convertToOpenSearchException(e);
+		}
+	}
 
     public String toPrettyString() {
         try {
@@ -479,34 +477,34 @@ public final class AuditMessage {
         }
     }
 
-    public String toText() {
-        StringBuilder builder = new StringBuilder();
-        for (Entry<String, Object> entry : getAsMap().entrySet()) {
-            addIfNonEmpty(builder, entry.getKey(), stringOrNull(entry.getValue()));
-        }
-        return builder.toString();
-    }
+	public String toText() {
+		StringBuilder builder = new StringBuilder();
+		for (Entry<String, Object> entry : getAsMap().entrySet()) {
+			addIfNonEmpty(builder, entry.getKey(), stringOrNull(entry.getValue()));
+		}
+		return builder.toString();
+	}
 
-    public final String toJson() {
-        return this.toString();
-    }
+	public final String toJson() {
+		return this.toString();
+	}
 
-    public String toUrlParameters() {
-        URIBuilder builder = new URIBuilder();
-        for (Entry<String, Object> entry : getAsMap().entrySet()) {
-            builder.addParameter(entry.getKey(), stringOrNull(entry.getValue()));
-        }
-        return builder.toString();
-    }
+	public String toUrlParameters() {
+		URIBuilder builder = new URIBuilder();
+		for (Entry<String, Object> entry : getAsMap().entrySet()) {
+			builder.addParameter(entry.getKey(), stringOrNull(entry.getValue()));
+		}
+		return builder.toString();
+	}
 
-    protected static void addIfNonEmpty(StringBuilder builder, String key, String value) {
-        if (!Strings.isEmpty(value)) {
-            if (builder.length() > 0) {
-                builder.append("\n");
-            }
-            builder.append(key).append(": ").append(value);
-        }
-    }
+	protected static void addIfNonEmpty(StringBuilder builder, String key, String value) {
+		if (!Strings.isEmpty(value)) {
+			if (builder.length() > 0) {
+				builder.append("\n");
+			}
+			builder.append(key).append(": ").append(value);
+		}
+	}
 
     private String currentTime() {
         DateTime dt = new DateTime(DateTimeZone.UTC);
@@ -519,7 +517,7 @@ public final class AuditMessage {
     }
 
     protected String stringOrNull(Object object) {
-        if (object == null) {
+        if(object == null) {
             return null;
         }
 

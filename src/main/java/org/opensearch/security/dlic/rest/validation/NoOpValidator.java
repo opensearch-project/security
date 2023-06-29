@@ -17,8 +17,8 @@ import org.opensearch.rest.RestRequest;
 
 public class NoOpValidator extends AbstractConfigurationValidator {
 
-    public NoOpValidator(final RestRequest request, BytesReference ref, final Settings opensearchSettings, Object... param) {
-        super(request, ref, opensearchSettings, param);
-    }
+	public NoOpValidator(final RestRequest request, BytesReference ref, final Settings opensearchSettings, Object... param) {
+		super(request, ref, opensearchSettings, param);
+	}
 
 }

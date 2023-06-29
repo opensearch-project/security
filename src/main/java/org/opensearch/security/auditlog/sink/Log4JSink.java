@@ -27,18 +27,18 @@ public final class Log4JSink extends AuditLogSink {
 
     public Log4JSink(final String name, final Settings settings, final String settingsPrefix, AuditLogSink fallbackSink) {
         super(name, settings, settingsPrefix, fallbackSink);
-        loggerName = settings.get(settingsPrefix + ".log4j.logger_name", "sgaudit");
+        loggerName = settings.get( settingsPrefix + ".log4j.logger_name","sgaudit");
         auditLogger = LogManager.getLogger(loggerName);
-        logLevel = Level.toLevel(settings.get(settingsPrefix + ".log4j.level", "INFO").toUpperCase());
+        logLevel = Level.toLevel(settings.get(settingsPrefix + ".log4j.level","INFO").toUpperCase());
         enabled = auditLogger.isEnabled(logLevel);
     }
 
     public boolean isHandlingBackpressure() {
-        return !enabled; // no submit to thread pool if not enabled
+        return !enabled; //no submit to thread pool if not enabled
     }
 
     public boolean doStore(final AuditMessage msg) {
-        if (enabled) {
+        if(enabled) {
             auditLogger.log(logLevel, msg.toJson());
         }
         return true;
