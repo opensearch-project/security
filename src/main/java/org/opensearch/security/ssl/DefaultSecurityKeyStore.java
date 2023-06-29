@@ -17,9 +17,43 @@
 
 package org.opensearch.security.ssl;
 
-import java.io.ByteArrayInputStream;
+import com.google.common.collect.ImmutableList;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
+import io.netty.util.internal.PlatformDependent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Object;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.ASN1String;
+import org.bouncycastle.asn1.ASN1TaggedObject;
+import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.SpecialPermission;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
+import org.opensearch.security.ssl.util.CertFileProps;
+import org.opensearch.security.ssl.util.CertFromFile;
+import org.opensearch.security.ssl.util.CertFromKeystore;
+import org.opensearch.security.ssl.util.CertFromTruststore;
+import org.opensearch.security.ssl.util.ExceptionUtils;
+import org.opensearch.security.ssl.util.KeystoreProps;
+import org.opensearch.security.ssl.util.SSLConfigConstants;
+import org.opensearch.transport.NettyAllocator;
+
+import javax.crypto.Cipher;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -43,42 +77,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import javax.crypto.Cipher;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
-
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
-import io.netty.util.internal.PlatformDependent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.ASN1String;
-import org.bouncycastle.asn1.ASN1TaggedObject;
-
-import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.SpecialPermission;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.env.Environment;
-import org.opensearch.security.ssl.util.CertFileProps;
-import org.opensearch.security.ssl.util.CertFromFile;
-import org.opensearch.security.ssl.util.CertFromKeystore;
-import org.opensearch.security.ssl.util.CertFromTruststore;
-import org.opensearch.security.ssl.util.ExceptionUtils;
-import org.opensearch.security.ssl.util.KeystoreProps;
-import org.opensearch.security.ssl.util.SSLConfigConstants;
-import org.opensearch.transport.NettyAllocator;
 
 public class DefaultSecurityKeyStore implements SecurityKeyStore {
 
@@ -1130,34 +1128,27 @@ public class DefaultSecurityKeyStore implements SecurityKeyStore {
     }
 
     private List<String> getOtherName(List<?> altName) {
-        ASN1Primitive oct = null;
-        try {
-            byte[] altNameBytes = (byte[]) altName.get(1);
-            oct = (new ASN1InputStream(new ByteArrayInputStream(altNameBytes)).readObject());
-        } catch (IOException e) {
-            throw new RuntimeException("Could not read ASN1InputStream", e);
+        if (altName.size() < 2) {
+            log.warn("Couldn't parse subject alternative names");
+            return null;
         }
-        if (oct instanceof ASN1TaggedObject) {
-            oct = ((ASN1TaggedObject) oct).getObject();
+        try (final ASN1InputStream in = new ASN1InputStream((byte[]) altName.get(1))) {
+            final ASN1Primitive asn1Primitive = in.readObject();
+            final ASN1Sequence sequence = ASN1Sequence.getInstance(asn1Primitive);
+            final ASN1ObjectIdentifier asn1ObjectIdentifier = ASN1ObjectIdentifier.getInstance(sequence.getObjectAt(0));
+            final ASN1TaggedObject asn1TaggedObject = ASN1TaggedObject.getInstance(sequence.getObjectAt(1));
+            ASN1Object maybeTaggedAsn1Primitive = asn1TaggedObject.getBaseObject();
+            if (maybeTaggedAsn1Primitive instanceof ASN1TaggedObject) {
+                maybeTaggedAsn1Primitive = ASN1TaggedObject.getInstance(maybeTaggedAsn1Primitive).getBaseObject();
+            }
+            if (maybeTaggedAsn1Primitive instanceof ASN1String) {
+                return ImmutableList.of(asn1ObjectIdentifier.getId(), maybeTaggedAsn1Primitive.toString());
+            } else {
+                log.warn("Couldn't parse subject alternative names");
+                return null;
+            }
+        } catch (final Exception ioe) { // catch all exception here since BC throws diff exceptions
+            throw new RuntimeException("Couldn't parse subject alternative names", ioe);
         }
-        ASN1Sequence seq = ASN1Sequence.getInstance(oct);
-
-        // Get object identifier from first in sequence
-        ASN1ObjectIdentifier asnOID = (ASN1ObjectIdentifier) seq.getObjectAt(0);
-        String oid = asnOID.getId();
-
-        // Get value of object from second element
-        final ASN1TaggedObject obj = (ASN1TaggedObject) seq.getObjectAt(1);
-        // Could be tagged twice due to bug in java cert.getSubjectAltName
-        ASN1Primitive prim = obj.getObject();
-        if (prim instanceof ASN1TaggedObject) {
-            prim = ASN1TaggedObject.getInstance(((ASN1TaggedObject) prim)).getObject();
-        }
-
-        if (prim instanceof ASN1String) {
-            return Collections.unmodifiableList(Arrays.asList(oid, ((ASN1String) prim).getString()));
-        }
-
-        return null;
     }
 }
