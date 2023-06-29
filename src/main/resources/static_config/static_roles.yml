@@ -37,10 +37,10 @@ kibana_user:
         - ".opensearch_dashboards-6"
         - ".opensearch_dashboards_*"
       allowed_actions:
-        - "read"
         - "delete"
-        - "manage"
         - "index"
+        - "manage"
+        - "read"
     - index_patterns:
         - ".tasks"
         - ".management-beats"
@@ -55,13 +55,12 @@ own_index:
   static: true
   description: "Allow all for indices named like the current user"
   cluster_permissions:
-  - "cluster_composite_ops"
+    - "cluster_composite_ops"
   index_permissions:
-  - index_patterns:
-    - "${user_name}"
-    allowed_actions:
-    - "indices_all"
-
+    - index_patterns:
+        - "${user_name}"
+      allowed_actions:
+        - "indices_all"
 
 manage_snapshots:
   reserved: true
@@ -69,13 +68,13 @@ manage_snapshots:
   static: true
   description: "Provide the minimum permissions for managing snapshots"
   cluster_permissions:
-  - "manage_snapshots"
+    - "manage_snapshots"
   index_permissions:
-  - index_patterns:
-    - "*"
-    allowed_actions:
-    - "indices:data/write/index"
-    - "indices:admin/create"
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/create"
+        - "indices:data/write/index"
 
 kibana_server:
   reserved: true
@@ -83,40 +82,40 @@ kibana_server:
   static: true
   description: "Provide the minimum permissions for the Kibana server"
   cluster_permissions:
-  - "cluster_monitor"
-  - "cluster_composite_ops"
-  - "manage_point_in_time"
-  - "indices:admin/template*"
-  - "indices:admin/index_template*"
-  - "indices:data/read/scroll*"
+    - "cluster_composite_ops"
+    - "cluster_monitor"
+    - "indices:admin/index_template*"
+    - "indices:admin/template*"
+    - "indices:data/read/scroll*"
+    - "manage_point_in_time"
   index_permissions:
-  - index_patterns:
-    - ".kibana"
-    - ".opensearch_dashboards"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
-    - ".kibana-6"
-    - ".opensearch_dashboards-6"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
-    - ".kibana_*"
-    - ".opensearch_dashboards_*"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
-    - ".tasks"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
-    - ".management-beats*"
-    allowed_actions:
-    - "indices_all"
-  - index_patterns:
-    - "*"
-    allowed_actions:
-    - "indices:admin/aliases*"
+    - index_patterns:
+        - ".kibana"
+        - ".opensearch_dashboards"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".kibana-6"
+        - ".opensearch_dashboards-6"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".kibana_*"
+        - ".opensearch_dashboards_*"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".tasks"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - ".management-beats*"
+      allowed_actions:
+        - "indices_all"
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/aliases*"
 
 logstash:
   reserved: true
@@ -124,37 +123,38 @@ logstash:
   static: true
   description: "Provide the minimum permissions for logstash and beats"
   cluster_permissions:
-  - "cluster_monitor"
-  - "cluster_composite_ops"
-  - "indices:admin/template/get"
-  - "indices:admin/template/put"
-  - "cluster:admin/ingest/pipeline/put"
-  - "cluster:admin/ingest/pipeline/get"
+    - "cluster:admin/ingest/pipeline/get"
+    - "cluster:admin/ingest/pipeline/put"
+    - "cluster_composite_ops"
+    - "cluster_monitor"
+    - "indices:admin/template/get"
+    - "indices:admin/template/put"
   index_permissions:
-  - index_patterns:
-    - "logstash-*"
-    allowed_actions:
-    - "crud"
-    - "create_index"
-  - index_patterns:
-    - "*beat*"
-    allowed_actions:
-    - "crud"
-    - "create_index"
+    - index_patterns:
+        - "logstash-*"
+      allowed_actions:
+        - "create_index"
+        - "crud"
+    - index_patterns:
+        - "*beat*"
+      allowed_actions:
+        - "crud"
+        - "create_index"
 
 readall_and_monitor:
   reserved: true
   hidden: false
   static: true
-  description: "Provide the minimum permissions for to readall indices and monitor the cluster"
+  description: "Provide the minimum permissions for to readall indices and monitor
+    the cluster"
   cluster_permissions:
-  - "cluster_monitor"
-  - "cluster_composite_ops_ro"
+    - "cluster_composite_ops_ro"
+    - "cluster_monitor"
   index_permissions:
-  - index_patterns:
-    - "*"
-    allowed_actions:
-    - "read"
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "read"
 
 readall:
   reserved: true
@@ -162,9 +162,9 @@ readall:
   static: true
   description: "Provide the minimum permissions for to readall indices"
   cluster_permissions:
-  - "cluster_composite_ops_ro"
+    - "cluster_composite_ops_ro"
   index_permissions:
-  - index_patterns:
-    - "*"
-    allowed_actions:
-    - "read"
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "read"
