@@ -23,11 +23,13 @@ public class PrivilegesEvaluatorUnitTest {
         String writeIndex = "indices:data/write/reindex";
         String adminClose = "indices:admin/close";
         String monitorUpgrade = "indices:monitor/upgrade";
+        String searchTemplate = "indices:data/read/search/template";
 
         // Cluster Permissions
         assertTrue(isClusterPerm(multiSearchTemplate));
         assertTrue(isClusterPerm(writeIndex));
         assertTrue(isClusterPerm(monitorHealth));
+        assertTrue(isClusterPerm(searchTemplate));
 
         // Index Permissions
         assertFalse(isClusterPerm(adminClose));
