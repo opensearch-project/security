@@ -27,7 +27,9 @@ public class ThreadPoolConfig {
         }
 
         if (threadPoolMaxQueueLen <= 0) {
-            throw new IllegalArgumentException("Incorrect thread pool queue length: " + threadPoolMaxQueueLen + " configured for audit logging.");
+            throw new IllegalArgumentException(
+                "Incorrect thread pool queue length: " + threadPoolMaxQueueLen + " configured for audit logging."
+            );
         }
 
         this.threadPoolSize = threadPoolSize;
@@ -44,7 +46,10 @@ public class ThreadPoolConfig {
 
     public static ThreadPoolConfig getConfig(Settings settings) {
         int threadPoolSize = settings.getAsInt(ConfigConstants.SECURITY_AUDIT_THREADPOOL_SIZE, DEFAULT_THREAD_POOL_SIZE);
-        int threadPoolMaxQueueLen = settings.getAsInt(ConfigConstants.SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN, DEFAULT_THREAD_POOL_MAX_QUEUE_LEN);
+        int threadPoolMaxQueueLen = settings.getAsInt(
+            ConfigConstants.SECURITY_AUDIT_THREADPOOL_MAX_QUEUE_LEN,
+            DEFAULT_THREAD_POOL_MAX_QUEUE_LEN
+        );
 
         return new ThreadPoolConfig(threadPoolSize, threadPoolMaxQueueLen);
     }

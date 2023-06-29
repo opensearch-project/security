@@ -32,8 +32,7 @@ import org.opensearch.action.ActionRequestBuilder;
 import org.opensearch.client.ClusterAdminClient;
 import org.opensearch.client.OpenSearchClient;
 
-public class WhoAmIRequestBuilder extends
-ActionRequestBuilder<WhoAmIRequest, WhoAmIResponse> {
+public class WhoAmIRequestBuilder extends ActionRequestBuilder<WhoAmIRequest, WhoAmIResponse> {
     public WhoAmIRequestBuilder(final ClusterAdminClient client) throws IOException {
         this(client, WhoAmIAction.INSTANCE);
     }

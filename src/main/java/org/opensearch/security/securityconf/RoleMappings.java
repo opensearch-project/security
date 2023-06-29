@@ -16,8 +16,8 @@ import java.util.List;
 
 public class RoleMappings {
 
-    private List<String> hosts= Collections.emptyList();
-    private List<String> users= Collections.emptyList();
+    private List<String> hosts = Collections.emptyList();
+    private List<String> users = Collections.emptyList();
 
     public void setHosts(List<String> hosts) {
         this.hosts = hosts;

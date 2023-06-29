@@ -39,11 +39,24 @@ import org.opensearch.security.support.SecurityUtils;
 public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWrapper {
 
     // TODO: the list is outdated. It is necessary to change how meta fields are handled in the near future.
-    //  We may consider using MapperService.isMetadataField() instead of relying on the static set or
-    //  (if it is too costly or does not meet requirements) use IndicesModule.getBuiltInMetadataFields()
-    //  for OpenSearch version specific Set of meta fields
-    private static final Set<String> metaFields = Sets.newHashSet("_source", "_version", "_field_names",
-            "_seq_no", "_primary_term", "_id", IgnoredFieldMapper.NAME, "_index", "_routing", "_size", "_timestamp", "_ttl", "_type");
+    // We may consider using MapperService.isMetadataField() instead of relying on the static set or
+    // (if it is too costly or does not meet requirements) use IndicesModule.getBuiltInMetadataFields()
+    // for OpenSearch version specific Set of meta fields
+    private static final Set<String> metaFields = Sets.newHashSet(
+        "_source",
+        "_version",
+        "_field_names",
+        "_seq_no",
+        "_primary_term",
+        "_id",
+        IgnoredFieldMapper.NAME,
+        "_index",
+        "_routing",
+        "_size",
+        "_timestamp",
+        "_ttl",
+        "_type"
+    );
     private final ClusterService clusterService;
     private final IndexService indexService;
     private final AuditLog auditlog;
@@ -51,9 +64,16 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
     private final DlsQueryParser dlsQueryParser;
     private final Salt salt;
 
-    public SecurityFlsDlsIndexSearcherWrapper(final IndexService indexService, final Settings settings,
-                                              final AdminDNs adminDNs, final ClusterService clusterService, final AuditLog auditlog,
-                                              final ComplianceIndexingOperationListener ciol, final PrivilegesEvaluator evaluator, final Salt salt) {
+    public SecurityFlsDlsIndexSearcherWrapper(
+        final IndexService indexService,
+        final Settings settings,
+        final AdminDNs adminDNs,
+        final ClusterService clusterService,
+        final AuditLog auditlog,
+        final ComplianceIndexingOperationListener ciol,
+        final PrivilegesEvaluator evaluator,
+        final Salt salt
+    ) {
         super(indexService, settings, adminDNs, evaluator);
         ciol.setIs(indexService);
         this.clusterService = clusterService;
@@ -64,7 +84,7 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         if (allowNowinDlsQueries) {
             nowInMillis = () -> System.currentTimeMillis();
         } else {
-            nowInMillis = () -> {throw new IllegalArgumentException("'now' is not allowed in DLS queries");};
+            nowInMillis = () -> { throw new IllegalArgumentException("'now' is not allowed in DLS queries"); };
         }
         log.debug("FLS/DLS {} enabled for index {}", this, indexService.index().getName());
         this.salt = salt;
@@ -80,14 +100,20 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
         Set<String> maskedFields = null;
         Query dlsQuery = null;
 
-        if(!isAdmin) {
+        if (!isAdmin) {
 
-            final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
-                    ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER);
-            final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
-                    ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
-            final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadContext,
-                    ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER);
+            final Map<String, Set<String>> allowedFlsFields = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
+                threadContext,
+                ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER
+            );
+            final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
+                threadContext,
+                ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER
+            );
+            final Map<String, Set<String>> maskedFieldsMap = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
+                threadContext,
+                ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER
+            );
 
             final String flsEval = SecurityUtils.evalMap(allowedFlsFields, index.getName());
             final String dlsEval = SecurityUtils.evalMap(queries, index.getName());
@@ -114,7 +140,17 @@ public class SecurityFlsDlsIndexSearcherWrapper extends SecurityIndexSearcherWra
             }
         }
 
-        return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(reader, flsFields, dlsQuery,
-                indexService, threadContext, clusterService, auditlog, maskedFields, shardId, salt);
+        return new DlsFlsFilterLeafReader.DlsFlsDirectoryReader(
+            reader,
+            flsFields,
+            dlsQuery,
+            indexService,
+            threadContext,
+            clusterService,
+            auditlog,
+            maskedFields,
+            shardId,
+            salt
+        );
     }
 }

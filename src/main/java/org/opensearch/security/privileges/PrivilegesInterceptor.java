@@ -56,6 +56,7 @@ public class PrivilegesInterceptor {
     public static final ReplaceResult CONTINUE_EVALUATION_REPLACE_RESULT = new ReplaceResult(true, false, null);
     public static final ReplaceResult ACCESS_DENIED_REPLACE_RESULT = new ReplaceResult(false, true, null);
     public static final ReplaceResult ACCESS_GRANTED_REPLACE_RESULT = new ReplaceResult(false, false, null);
+
     protected static ReplaceResult newAccessGrantedReplaceResult(CreateIndexRequestBuilder createIndexRequestBuilder) {
         return new ReplaceResult(false, false, createIndexRequestBuilder);
     }
@@ -65,16 +66,26 @@ public class PrivilegesInterceptor {
     protected final Client client;
     protected final ThreadPool threadPool;
 
-    public PrivilegesInterceptor(final IndexNameExpressionResolver resolver, final ClusterService clusterService,
-            final Client client, ThreadPool threadPool) {
+    public PrivilegesInterceptor(
+        final IndexNameExpressionResolver resolver,
+        final ClusterService clusterService,
+        final Client client,
+        ThreadPool threadPool
+    ) {
         this.resolver = resolver;
         this.clusterService = clusterService;
         this.client = client;
         this.threadPool = threadPool;
     }
 
-    public ReplaceResult replaceDashboardsIndex(final ActionRequest request, final String action, final User user, final DynamicConfigModel config,
-                                                final Resolved requestedResolved, final Map<String, Boolean> tenants) {
+    public ReplaceResult replaceDashboardsIndex(
+        final ActionRequest request,
+        final String action,
+        final User user,
+        final DynamicConfigModel config,
+        final Resolved requestedResolved,
+        final Map<String, Boolean> tenants
+    ) {
         throw new RuntimeException("not implemented");
     }
 
