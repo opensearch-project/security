@@ -17,6 +17,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.opensearch.script.mustache.MustacheModulePlugin;
 import org.opensearch.test.framework.TestSecurityConfig;
 import org.opensearch.test.framework.TestSecurityConfig.Role;
 import org.opensearch.test.framework.cluster.ClusterManager;
@@ -48,6 +49,7 @@ public class PrivilegesEvaluatorTest {
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX)
+            .plugin(MustacheModulePlugin.class)
         .build();
 
     @Test
@@ -67,5 +69,13 @@ public class PrivilegesEvaluatorTest {
             assertThat(client.get("r*/_search").getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 
+    }
+
+    @Test
+    public void testSearchTemplateRequest() {
+        try (TestRestClient client = cluster.getRestClient(NEGATED_REGEX)) {
+            assertThat(client.getWithJsonBody("r*/_search/template", "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}").getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+//            assertThat(client.getWithJsonBody("logs-123/_search/template", "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}").getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+        }
     }
 }
