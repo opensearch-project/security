@@ -384,7 +384,7 @@ public class ConfigV6 {
 
         @Override
         public String toString() {
-            return "OnBehalfOf [signing_key=" + signingKey + ", encryption_key=" + encryptionKey +"]";
+            return "OnBehalfOf [signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
         }
     }
 

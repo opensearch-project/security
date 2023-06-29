@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;

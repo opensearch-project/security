@@ -33,8 +33,7 @@ public class EncryptionDecryptionUtil {
             byte[] cipherText = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(cipherText);
         } catch (Exception e) {
-            throw new RuntimeException(
-                    "Error occured while encrypting data", e);
+            throw new RuntimeException("Error occured while encrypting data", e);
         }
     }
 

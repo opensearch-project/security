@@ -49,7 +49,7 @@ public class JwtVendor {
     private JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
 
-    //TODO: Relocate/Remove them at once we make the descisions about the `roles`
+    // TODO: Relocate/Remove them at once we make the descisions about the `roles`
     private ConfigModel configModel;
     private ThreadContext threadContext;
 
@@ -69,7 +69,7 @@ public class JwtVendor {
         timeProvider = System::currentTimeMillis;
     }
 
-    //For testing the expiration in the future
+    // For testing the expiration in the future
     public JwtVendor(Settings settings, final LongSupplier timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
         try {
@@ -109,8 +109,7 @@ public class JwtVendor {
             Settings jwkSettings = settings.getAsSettings("jwt").getAsSettings("key");
 
             if (jwkSettings.isEmpty()) {
-                throw new Exception(
-                        "Settings for key is missing. Please specify at least the option signing_key with a shared secret.");
+                throw new Exception("Settings for key is missing. Please specify at least the option signing_key with a shared secret.");
             }
 
             JsonWebKey jwk = new JsonWebKey();
@@ -123,7 +122,7 @@ public class JwtVendor {
         }
     }
 
-    //TODO:Getting roles from User
+    // TODO:Getting roles from User
     public Map<String, String> prepareClaimsForUser(User user, ThreadPool threadPool) {
         Map<String, String> claims = new HashMap<>();
         this.threadContext = threadPool.getThreadContext();
@@ -166,7 +165,7 @@ public class JwtVendor {
             throw new Exception("The expiration time should be a positive integer");
         }
 
-        //TODO: IF USER ENABLES THE BWC MODE, WE ARE EXPECTING TO SET PLAIN TEXT ROLE AS `dr`
+        // TODO: IF USER ENABLES THE BWC MODE, WE ARE EXPECTING TO SET PLAIN TEXT ROLE AS `dr`
         if (roles != null) {
             String listOfRoles = String.join(",", roles);
             jwtClaims.setProperty("er", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
@@ -178,12 +177,12 @@ public class JwtVendor {
 
         if (logger.isDebugEnabled()) {
             logger.debug(
-                    "Created JWT: "
-                            + encodedJwt
-                            + "\n"
-                            + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
-                            + "\n"
-                            + JwtUtils.claimsToJson(jwt.getClaims())
+                "Created JWT: "
+                    + encodedJwt
+                    + "\n"
+                    + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
+                    + "\n"
+                    + JwtUtils.claimsToJson(jwt.getClaims())
             );
         }
 
