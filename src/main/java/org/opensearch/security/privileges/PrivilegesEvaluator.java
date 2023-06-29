@@ -672,8 +672,7 @@ public class PrivilegesEvaluator {
             || (action0.startsWith(MultiSearchAction.NAME))
             || (action0.equals(MultiTermVectorsAction.NAME))
             || (action0.equals(ReindexAction.NAME))
-            || (action0.equals(SearchTemplateAction.NAME))
-        );
+            || (action0.equals(SearchTemplateAction.NAME)));
     }
 
     @SuppressWarnings("unchecked")

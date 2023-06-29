@@ -46,11 +46,12 @@ public class PrivilegesEvaluatorTest {
     );
 
     protected final static TestSecurityConfig.User SEARCH_TEMPLATE = new TestSecurityConfig.User("search_template_user").roles(
-            new Role("search_template_role").indexPermissions("read").on("/^[a-z].*/").clusterPermissions("indices:data/read/search/template")
+        new Role("search_template_role").indexPermissions("read").on("/^[a-z].*/").clusterPermissions("indices:data/read/search/template")
     );
 
     @ClassRule
-    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS).plugin(MustacheModulePlugin.class)
+    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+        .plugin(MustacheModulePlugin.class)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
         .users(NEGATIVE_LOOKAHEAD, NEGATED_REGEX, SEARCH_TEMPLATE)
         .build();
@@ -77,7 +78,13 @@ public class PrivilegesEvaluatorTest {
     @Test
     public void testSearchTemplateRequest() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
-            assertThat(client.getWithJsonBody("r*/_search/template", "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}").getStatusCode(), equalTo(HttpStatus.SC_OK));
+            assertThat(
+                client.getWithJsonBody(
+                    "r*/_search/template",
+                    "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
+                ).getStatusCode(),
+                equalTo(HttpStatus.SC_OK)
+            );
         }
     }
 }
