@@ -25,6 +25,5 @@ public class SingleTryRateTracker<ClientIdType> implements RateTracker<ClientIdT
     }
 
     @Override
-    public void reset(ClientIdType clientId) {
-    }
+    public void reset(ClientIdType clientId) {}
 }

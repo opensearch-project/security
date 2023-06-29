@@ -41,8 +41,9 @@ public class CertFromFile {
         this.clientPemKey = new File(clientCertProps.getPemKeyFilePath());
         this.clientTrustedCas = nullOrFile(clientCertProps.getTrustedCasFilePath());
 
-        loadedCerts = new X509Certificate[]{PemKeyReader.loadCertificateFromFile(clientCertProps.getPemCertFilePath()),
-                PemKeyReader.loadCertificateFromFile(serverCertProps.getPemCertFilePath())};
+        loadedCerts = new X509Certificate[] {
+            PemKeyReader.loadCertificateFromFile(clientCertProps.getPemCertFilePath()),
+            PemKeyReader.loadCertificateFromFile(serverCertProps.getPemCertFilePath()) };
     }
 
     public CertFromFile(CertFileProps certProps) throws Exception {
@@ -56,7 +57,7 @@ public class CertFromFile {
         this.clientPemKey = serverPemKey;
         this.clientTrustedCas = serverTrustedCas;
 
-        loadedCerts = new X509Certificate[]{PemKeyReader.loadCertificateFromFile(certProps.getPemCertFilePath())};
+        loadedCerts = new X509Certificate[] { PemKeyReader.loadCertificateFromFile(certProps.getPemCertFilePath()) };
     }
 
     public X509Certificate[] getCerts() {

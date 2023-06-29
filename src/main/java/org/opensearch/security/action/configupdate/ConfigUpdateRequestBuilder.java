@@ -30,8 +30,10 @@ import org.opensearch.action.ActionType;
 import org.opensearch.action.support.nodes.NodesOperationRequestBuilder;
 import org.opensearch.client.OpenSearchClient;
 
-public class ConfigUpdateRequestBuilder extends
-NodesOperationRequestBuilder<ConfigUpdateRequest, ConfigUpdateResponse, ConfigUpdateRequestBuilder> {
+public class ConfigUpdateRequestBuilder extends NodesOperationRequestBuilder<
+    ConfigUpdateRequest,
+    ConfigUpdateResponse,
+    ConfigUpdateRequestBuilder> {
 
     protected ConfigUpdateRequestBuilder(OpenSearchClient client, ActionType<ConfigUpdateResponse> action) {
         super(client, action, new ConfigUpdateRequest());

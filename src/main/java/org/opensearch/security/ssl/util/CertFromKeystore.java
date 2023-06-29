@@ -40,15 +40,15 @@ public class CertFromKeystore {
 
     private X509Certificate[] loadedCerts;
 
-    public CertFromKeystore(KeystoreProps keystoreProps, String keystoreAlias, String keyPassword) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, UnrecoverableKeyException {
+    public CertFromKeystore(KeystoreProps keystoreProps, String keystoreAlias, String keyPassword) throws CertificateException,
+        NoSuchAlgorithmException, KeyStoreException, IOException, UnrecoverableKeyException {
         this.keystoreProps = keystoreProps;
         final KeyStore ks = keystoreProps.loadKeystore();
 
         this.serverKeystoreAlias = keystoreAlias;
         this.serverKeyPassword = Utils.toCharArray(keyPassword);
         this.serverCert = SSLCertificateHelper.exportServerCertChain(ks, serverKeystoreAlias);
-        this.serverKey = SSLCertificateHelper.exportDecryptedKey(
-                ks, serverKeystoreAlias, this.serverKeyPassword);
+        this.serverKey = SSLCertificateHelper.exportDecryptedKey(ks, serverKeystoreAlias, this.serverKeyPassword);
 
         this.clientKeystoreAlias = keystoreAlias;
         this.clientKeyPassword = serverKeyPassword;
@@ -61,22 +61,24 @@ public class CertFromKeystore {
     }
 
     public CertFromKeystore(
-            KeystoreProps keystoreProps,
-            String serverKeystoreAlias, String clientKeystoreAlias, String serverKeyPassword, String clientKeyPassword) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, UnrecoverableKeyException {
+        KeystoreProps keystoreProps,
+        String serverKeystoreAlias,
+        String clientKeystoreAlias,
+        String serverKeyPassword,
+        String clientKeyPassword
+    ) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, UnrecoverableKeyException {
         this.keystoreProps = keystoreProps;
         final KeyStore ks = keystoreProps.loadKeystore();
 
         this.serverKeystoreAlias = serverKeystoreAlias;
         this.serverKeyPassword = Utils.toCharArray(serverKeyPassword);
         this.serverCert = SSLCertificateHelper.exportServerCertChain(ks, serverKeystoreAlias);
-        this.serverKey = SSLCertificateHelper.exportDecryptedKey(
-                ks, serverKeystoreAlias, this.serverKeyPassword);
+        this.serverKey = SSLCertificateHelper.exportDecryptedKey(ks, serverKeystoreAlias, this.serverKeyPassword);
 
         this.clientKeystoreAlias = clientKeystoreAlias;
         this.clientKeyPassword = Utils.toCharArray(clientKeyPassword);
         this.clientCert = SSLCertificateHelper.exportServerCertChain(ks, clientKeystoreAlias);
-        this.clientKey = SSLCertificateHelper.exportDecryptedKey(
-                ks, clientKeystoreAlias, this.clientKeyPassword);
+        this.clientKey = SSLCertificateHelper.exportDecryptedKey(ks, clientKeystoreAlias, this.clientKeyPassword);
 
         this.loadedCerts = ArrayUtils.addAll(serverCert, clientCert);
 
@@ -85,23 +87,19 @@ public class CertFromKeystore {
 
     private void validate() {
         if (serverKey == null) {
-            throw new OpenSearchException(
-                    "No key found in " + keystoreProps.getFilePath() + " with alias " + serverKeystoreAlias);
+            throw new OpenSearchException("No key found in " + keystoreProps.getFilePath() + " with alias " + serverKeystoreAlias);
         }
 
         if (serverCert == null || serverCert.length == 0) {
-            throw new OpenSearchException(
-                    "No certificates found in " + keystoreProps.getFilePath() + " with alias " + serverKeystoreAlias);
+            throw new OpenSearchException("No certificates found in " + keystoreProps.getFilePath() + " with alias " + serverKeystoreAlias);
         }
 
         if (clientKey == null) {
-            throw new OpenSearchException(
-                    "No key found in " + keystoreProps.getFilePath() + " with alias " + clientKeystoreAlias);
+            throw new OpenSearchException("No key found in " + keystoreProps.getFilePath() + " with alias " + clientKeystoreAlias);
         }
 
         if (clientCert == null || clientCert.length == 0) {
-            throw new OpenSearchException(
-                    "No certificates found in " + keystoreProps.getFilePath() + " with alias " + clientKeystoreAlias);
+            throw new OpenSearchException("No certificates found in " + keystoreProps.getFilePath() + " with alias " + clientKeystoreAlias);
         }
     }
 

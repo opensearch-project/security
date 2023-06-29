@@ -7,7 +7,7 @@ opendistro_security_public:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:monitor/main"
+    - "cluster:monitor/main"
   index_permissions: []
   tenant_permissions: []
 opendistro_security_all_access:
@@ -15,14 +15,14 @@ opendistro_security_all_access:
   hidden: false
   description: "Migrated from v6 (all types mapped)"
   cluster_permissions:
-  - "cluster:monitor/main"
+    - "cluster:monitor/main"
   index_permissions:
-  - index_patterns:
-    - "*"
-    dls: null
-    fls: null
-    masked_fields: null
-    allowed_actions:
-    - "indices:data/read/search"
-    - "indices:admin/shards/search_shards"
+    - index_patterns:
+        - "*"
+      dls: null
+      fls: null
+      masked_fields: null
+      allowed_actions:
+        - "indices:admin/shards/search_shards"
+        - "indices:data/read/search"
   tenant_permissions: []

@@ -41,69 +41,77 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class AuthTokenProcessorAction extends AbstractApiAction {
-	private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(
-			new Route(Method.POST, "/authtoken")
-	));
+    private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(new Route(Method.POST, "/authtoken")));
 
-	@Inject
-	public AuthTokenProcessorAction(final Settings settings, final Path configPath, final RestController controller,
-                                    final Client client, final AdminDNs adminDNs, final ConfigurationRepository cl,
-                                    final ClusterService cs, final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator,
-                                    ThreadPool threadPool, AuditLog auditLog) {
-		super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool,
-				auditLog);
-	}
+    @Inject
+    public AuthTokenProcessorAction(
+        final Settings settings,
+        final Path configPath,
+        final RestController controller,
+        final Client client,
+        final AdminDNs adminDNs,
+        final ConfigurationRepository cl,
+        final ClusterService cs,
+        final PrincipalExtractor principalExtractor,
+        final PrivilegesEvaluator evaluator,
+        ThreadPool threadPool,
+        AuditLog auditLog
+    ) {
+        super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+    }
 
-	@Override
-	protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-											 final Object content,
-											 final String resourceName) {
-		return true;
-	}
+    @Override
+    protected boolean hasPermissionsToCreate(
+        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+        final Object content,
+        final String resourceName
+    ) {
+        return true;
+    }
 
-	@Override
-	public List<Route> routes() {
-		return routes;
-	}
+    @Override
+    public List<Route> routes() {
+        return routes;
+    }
 
-	@Override
-	protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException {
+    @Override
+    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
+        throws IOException {
 
-		// Just do nothing here. Eligible authenticators will intercept calls and
-		// provide own responses.
-	    successResponse(channel,"");
-	}
+        // Just do nothing here. Eligible authenticators will intercept calls and
+        // provide own responses.
+        successResponse(channel, "");
+    }
 
-	@Override
-	protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... param) {
-		return new NoOpValidator(request, ref, this.settings, param);
-	}
+    @Override
+    protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... param) {
+        return new NoOpValidator(request, ref, this.settings, param);
+    }
 
-	@Override
-	protected String getResourceName() {
-		return "authtoken";
-	}
+    @Override
+    protected String getResourceName() {
+        return "authtoken";
+    }
 
-	@Override
+    @Override
     protected CType getConfigName() {
-		return null;
-	}
+        return null;
+    }
 
-	@Override
-	protected Endpoint getEndpoint() {
-		return Endpoint.AUTHTOKEN;
-	}
+    @Override
+    protected Endpoint getEndpoint() {
+        return Endpoint.AUTHTOKEN;
+    }
 
+    public static class Response {
+        private String authorization;
 
-	public static class Response {
-		private String authorization;
+        public String getAuthorization() {
+            return authorization;
+        }
 
-		public String getAuthorization() {
-			return authorization;
-		}
-
-		public void setAuthorization(String authorization) {
-			this.authorization = authorization;
-		}
-	}
+        public void setAuthorization(String authorization) {
+            this.authorization = authorization;
+        }
+    }
 }

@@ -106,9 +106,12 @@ public class AuditMessageRouter {
         if (categorySinks != null) {
             return;
         }
-        Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(settings.getAsSettings(ConfigConstants.SECURITY_AUDIT_CONFIG_ROUTES));
+        Map<String, Object> routesConfiguration = Utils.convertJsonToxToStructuredMap(
+            settings.getAsSettings(ConfigConstants.SECURITY_AUDIT_CONFIG_ROUTES)
+        );
         EnumSet<AuditCategory> presentAuditCategory = EnumSet.noneOf(AuditCategory.class);
-        categorySinks = routesConfiguration.entrySet().stream()
+        categorySinks = routesConfiguration.entrySet()
+            .stream()
             .peek(entry -> log.trace("Setting up routes for endpoint {}, configuration is {}", entry.getKey(), entry.getValue()))
             .map(entry -> {
                 String categoryName = entry.getKey();
@@ -116,9 +119,16 @@ public class AuditMessageRouter {
                     // first set up all configured routes. We do it this way so category names are case insensitive
                     // and we can warn if a non-existing category has been detected.
                     AuditCategory auditCategory = AuditCategory.valueOf(categoryName.toUpperCase());
-                    return Maps.immutableEntry(auditCategory, createSinksForCategory(auditCategory, (Map<String, List<String>>)entry.getValue()));
+                    return Maps.immutableEntry(
+                        auditCategory,
+                        createSinksForCategory(auditCategory, (Map<String, List<String>>) entry.getValue())
+                    );
                 } catch (IllegalArgumentException e) {
-                    log.error("Invalid category '{}' found in routing configuration. Must be one of: {}", categoryName, AuditCategory.values());
+                    log.error(
+                        "Invalid category '{}' found in routing configuration. Must be one of: {}",
+                        categoryName,
+                        AuditCategory.values()
+                    );
                     return null;
                 }
             })
@@ -138,12 +148,7 @@ public class AuditMessageRouter {
                 }
                 return false;
             })
-            .collect(
-                Maps.toImmutableEnumMap(
-                    Map.Entry::getKey,
-                    Map.Entry::getValue
-                )
-            );
+            .collect(Maps.toImmutableEnumMap(Map.Entry::getKey, Map.Entry::getValue));
 
         // for all non-configured categories we automatically set up the default endpoint
         log.warn("No endpoint configured for categories {}, using default endpoint", EnumSet.complementOf(presentAuditCategory));

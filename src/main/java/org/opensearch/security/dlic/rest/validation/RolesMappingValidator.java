@@ -17,19 +17,25 @@ import org.opensearch.rest.RestRequest;
 
 public class RolesMappingValidator extends AbstractConfigurationValidator {
 
-	public RolesMappingValidator(final RestRequest request, boolean isSuperAdmin, final BytesReference ref, final Settings opensearchSettings, Object... param) {
-		super(request, ref, opensearchSettings, param);
-		this.payloadMandatory = true;
-		allowedKeys.put("backend_roles", DataType.ARRAY);
-		allowedKeys.put("and_backend_roles", DataType.ARRAY);
-		allowedKeys.put("hosts", DataType.ARRAY);
-		allowedKeys.put("users", DataType.ARRAY);
-		allowedKeys.put("description", DataType.STRING);
-		if (isSuperAdmin) allowedKeys.put("reserved", DataType.BOOLEAN);
+    public RolesMappingValidator(
+        final RestRequest request,
+        boolean isSuperAdmin,
+        final BytesReference ref,
+        final Settings opensearchSettings,
+        Object... param
+    ) {
+        super(request, ref, opensearchSettings, param);
+        this.payloadMandatory = true;
+        allowedKeys.put("backend_roles", DataType.ARRAY);
+        allowedKeys.put("and_backend_roles", DataType.ARRAY);
+        allowedKeys.put("hosts", DataType.ARRAY);
+        allowedKeys.put("users", DataType.ARRAY);
+        allowedKeys.put("description", DataType.STRING);
+        if (isSuperAdmin) allowedKeys.put("reserved", DataType.BOOLEAN);
 
-		mandatoryOrKeys.add("backend_roles");
-		mandatoryOrKeys.add("and_backend_roles");
-		mandatoryOrKeys.add("hosts");
-		mandatoryOrKeys.add("users");
-	}
+        mandatoryOrKeys.add("backend_roles");
+        mandatoryOrKeys.add("and_backend_roles");
+        mandatoryOrKeys.add("hosts");
+        mandatoryOrKeys.add("users");
+    }
 }
