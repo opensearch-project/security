@@ -204,6 +204,11 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 }
             }
 
+            if (channelType.equals("direct")) {
+                super.messageReceivedDecorate(request, handler, transportChannel, task);
+                return;
+            }
+
             boolean skipSecurityIfDualMode = getThreadContext().getTransient(
                 ConfigConstants.SECURITY_SSL_DUAL_MODE_SKIP_SECURITY
             ) == Boolean.TRUE;
@@ -224,6 +229,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                     );
                 }
 
+                super.messageReceivedDecorate(request, handler, transportChannel, task);
+                return;
             }
 
             // if the incoming request is an internal:* or a shard request allow only if request was sent by a server node
@@ -234,7 +241,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             if (!HeaderHelper.isInterClusterRequest(getThreadContext())
                 && !HeaderHelper.isTrustedClusterRequest(getThreadContext())
                 && !HeaderHelper.isExtensionRequest(getThreadContext())
-                && !HeaderHelper.isDirectRequest(getThreadContext())
                 && !task.getAction().equals("internal:transport/handshake")
                 && (task.getAction().startsWith("internal:") || task.getAction().contains("["))) {
                 // CS-ENFORCE-SINGLE
@@ -257,8 +263,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
             String principal = null;
 
-            if ((principal = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL)) == null
-                && !HeaderHelper.isDirectRequest(getThreadContext())) {
+            if ((principal = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_PRINCIPAL)) == null) {
                 Exception ex = new OpenSearchSecurityException(
                     "No SSL client certificates found for transport type "
                         + transportChannel.getChannelType()
@@ -281,8 +286,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
                 // CS-SUPPRESS-SINGLE: RegexpSingleline Used to allow/disallow TLS connections to extensions
                 if (!(HeaderHelper.isInterClusterRequest(getThreadContext())
                     || HeaderHelper.isTrustedClusterRequest(getThreadContext())
-                    || HeaderHelper.isExtensionRequest(getThreadContext())
-                    || channelType.equals("direct"))) {
+                    || HeaderHelper.isExtensionRequest(getThreadContext()))) {
                     // CS-ENFORCE-SINGLE
                     final OpenSearchException exception = ExceptionUtils.createTransportClientNoLongerSupportedException();
                     log.error(exception.toString());
