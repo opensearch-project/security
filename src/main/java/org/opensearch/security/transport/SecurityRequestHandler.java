@@ -95,7 +95,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         final TransportChannel transportChannel,
         Task task
     ) throws Exception {
-
         String resolvedActionClass = request.getClass().getSimpleName();
 
         if (request instanceof BulkShardRequest) {
@@ -142,9 +141,10 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             }
 
             // bypass non-netty requests
-            if (channelType.equals("direct")) {
-                // for direct channel requests user, injected user and injected roles value are already present as transient headers
-                // so we don't place them here again
+            if (getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER) != null
+                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER) != null
+                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES) != null
+                || getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS) != null) {
 
                 final String rolesValidation = getThreadContext().getHeader(
                     ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_VALIDATION_HEADER
