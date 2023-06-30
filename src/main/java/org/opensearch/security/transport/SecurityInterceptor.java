@@ -263,6 +263,10 @@ public class SecurityInterceptor {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, origin);
         }
 
+        if (getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_SAME_NODE_REQUEST) == null) {
+            getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SAME_NODE_REQUEST, isSameNodeRequest);
+        }
+
         if (origin == null && getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER) == null) {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
         }
