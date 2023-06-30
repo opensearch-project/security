@@ -47,8 +47,6 @@ public class ConfigConstants {
     public static final String OPENDISTRO_SECURITY_ORIGIN = OPENDISTRO_SECURITY_CONFIG_PREFIX + "origin";
     public static final String OPENDISTRO_SECURITY_ORIGIN_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "origin_header";
 
-    public static final String OPENDISTRO_SECURITY_SAME_NODE_REQUEST = OPENDISTRO_SECURITY_CONFIG_PREFIX + "is_same_node_request";
-
     public static final String OPENDISTRO_SECURITY_DLS_QUERY_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX + "dls_query";
 
     public static final String OPENDISTRO_SECURITY_DLS_FILTER_LEVEL_QUERY_HEADER = OPENDISTRO_SECURITY_CONFIG_PREFIX
