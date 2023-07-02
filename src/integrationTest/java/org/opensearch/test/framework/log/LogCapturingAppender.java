@@ -9,18 +9,8 @@
 */
 package org.opensearch.test.framework.log;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.commons.collections.Buffer;
-import org.apache.commons.collections.BufferUtils;
-import org.apache.commons.collections.buffer.CircularFifoBuffer;
+import com.google.common.collect.EvictingQueue;
+import com.google.common.collect.Queues;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Core;
 import org.apache.logging.log4j.core.Filter;
@@ -31,6 +21,15 @@ import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static org.opensearch.test.framework.log.LogCapturingAppender.PLUGIN_NAME;
 
@@ -56,12 +55,12 @@ public class LogCapturingAppender extends AbstractAppender {
     /**
     * Buffer for captured log messages
     */
-    private static final Buffer messages = BufferUtils.synchronizedBuffer(new CircularFifoBuffer(MAX_SIZE));
+    private static final Queue<LogMessage> messages = Queues.synchronizedQueue(EvictingQueue.create(MAX_SIZE));
 
     /**
     * Log messages are stored in buffer {@link #messages} only for classes which are added to the {@link #activeLoggers} set.
     */
-    private static final Set<String> activeLoggers = Collections.synchronizedSet(new HashSet<>());
+    private static final Set<String> activeLoggers = ConcurrentHashMap.newKeySet();
 
     protected LogCapturingAppender(
         String name,
