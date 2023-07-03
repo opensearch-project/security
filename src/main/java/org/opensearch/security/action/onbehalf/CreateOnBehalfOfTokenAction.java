@@ -117,7 +117,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                         .map(value -> Math.min(value, 10 * 60)) // Max duration is 10 minutes
                         .orElse(5 * 60); // Fallback to default of 5 minutes;
 
-                    final String source = "self-issued";
+                    final String service = (String) requestBody.getOrDefault("service", "self-issued");
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
                     final TransportAddress caller = threadPool.getThreadContext()
                         .getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
@@ -129,7 +129,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                     final String token = vendor.createJwt(
                         clusterIdentifier,
                         user.getName(),
-                        source,
+                        service,
                         tokenDuration,
                         mappedRoles.stream().collect(Collectors.toList()),
                         user.getRoles().stream().collect(Collectors.toList())
