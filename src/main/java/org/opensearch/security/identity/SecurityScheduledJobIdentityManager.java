@@ -58,7 +58,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     }
 
     @Override
-    public void saveUserDetails(String jobId, String indexName, Optional<ScheduledJobOperator> operator) {
+    public void associateJobWithOperator(String jobId, String indexName, Optional<ScheduledJobOperator> operator) {
         if (operator.isEmpty()) {
             User currentUser = threadPool.getThreadContext().getDurableTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT);
             System.out.println("Current User: " + currentUser);
@@ -199,7 +199,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     }
 
     @Override
-    public void deleteUserDetails(String jobId, String indexName) {
+    public void deleteJobOperatorEntry(String jobId, String indexName) {
         if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
             throw new OpenSearchSecurityException("Scheduled Job Identity Index (" + SCHEDULED_JOB_IDENTITY_INDEX + ") does not exist.");
         }
@@ -207,7 +207,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     }
 
     @Override
-    public AuthToken issueAccessTokenOnBehalfOfUser(String jobId, String indexName, Optional<String> extensionUniqueId) {
+    public AuthToken issueAccessTokenOnBehalfOfOperator(String jobId, String indexName, Optional<String> extensionUniqueId) {
         if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
             throw new OpenSearchSecurityException("Scheduled Job Identity Index (" + SCHEDULED_JOB_IDENTITY_INDEX + ") does not exist.");
         }
