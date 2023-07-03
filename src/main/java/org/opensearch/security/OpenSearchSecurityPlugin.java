@@ -493,11 +493,45 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                     new SecurityInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool))
                 );
                 handlers.add(new SecurityHealthAction(settings, restController, Objects.requireNonNull(backendRegistry)));
-                handlers.add(new DashboardsInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool)));
-                handlers.add(new TenantInfoAction(settings, restController, Objects.requireNonNull(evaluator), Objects.requireNonNull(threadPool),
-                        Objects.requireNonNull(cs), Objects.requireNonNull(adminDns), Objects.requireNonNull(cr)));
-                handlers.add(new SecurityConfigUpdateAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
-                handlers.add(new SecurityWhoAmIAction(settings, restController, Objects.requireNonNull(threadPool), adminDns, configPath, principalExtractor));
+                handlers.add(
+                    new DashboardsInfoAction(
+                        settings,
+                        restController,
+                        Objects.requireNonNull(evaluator),
+                        Objects.requireNonNull(threadPool)
+                    )
+                );
+                handlers.add(
+                    new TenantInfoAction(
+                        settings,
+                        restController,
+                        Objects.requireNonNull(evaluator),
+                        Objects.requireNonNull(threadPool),
+                        Objects.requireNonNull(cs),
+                        Objects.requireNonNull(adminDns),
+                        Objects.requireNonNull(cr)
+                    )
+                );
+                handlers.add(
+                    new SecurityConfigUpdateAction(
+                        settings,
+                        restController,
+                        Objects.requireNonNull(threadPool),
+                        adminDns,
+                        configPath,
+                        principalExtractor
+                    )
+                );
+                handlers.add(
+                    new SecurityWhoAmIAction(
+                        settings,
+                        restController,
+                        Objects.requireNonNull(threadPool),
+                        adminDns,
+                        configPath,
+                        principalExtractor
+                    )
+                );
                 CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool, Objects.requireNonNull(cs));
                 dcf.registerDCFListener(cobot);
                 handlers.add(cobot);
@@ -990,8 +1024,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
 
-        securityRestHandler = new SecurityRestFilter(backendRegistry, auditLog, threadPool,
-                principalExtractor, settings, configPath, compatConfig);
+        securityRestHandler = new SecurityRestFilter(
+            backendRegistry,
+            auditLog,
+            threadPool,
+            principalExtractor,
+            settings,
+            configPath,
+            compatConfig
+        );
         dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);

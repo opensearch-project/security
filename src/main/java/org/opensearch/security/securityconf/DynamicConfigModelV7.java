@@ -366,7 +366,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
 
         Settings oboSettings = getDynamicOnBehalfOfSettings();
         if (oboSettings.get("signing_key") != null && oboSettings.get("encryption_key") != null) {
-            final AuthDomain _ad = new AuthDomain(new NoOpAuthenticationBackend(Settings.EMPTY, null), new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings()), false, -1);
+            final AuthDomain _ad = new AuthDomain(
+                new NoOpAuthenticationBackend(Settings.EMPTY, null),
+                new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings()),
+                false,
+                -1
+            );
             restAuthDomains0.add(_ad);
         }
 

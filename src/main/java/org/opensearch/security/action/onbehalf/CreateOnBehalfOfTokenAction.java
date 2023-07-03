@@ -59,7 +59,8 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
     @Subscribe
     public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
         this.dcm = dcm;
-        if (dcm.getDynamicOnBehalfOfSettings().get("signing_key") != null && dcm.getDynamicOnBehalfOfSettings().get("encryption_key") != null) {
+        if (dcm.getDynamicOnBehalfOfSettings().get("signing_key") != null
+            && dcm.getDynamicOnBehalfOfSettings().get("encryption_key") != null) {
             this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
         } else {
             this.vendor = null;
@@ -78,11 +79,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return addRoutesPrefix(
-                ImmutableList.of(
-                        new Route(Method.POST, "/user/onbehalfof")
-                )
-        );
+        return addRoutesPrefix(ImmutableList.of(new Route(Method.POST, "/user/onbehalfof")));
     }
 
     @Override
@@ -103,45 +100,47 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
                 BytesRestResponse response;
                 try {
                     if (vendor == null) {
-                        channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "on_behalf_of configuration is not being configured"));
+                        channel.sendResponse(
+                            new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, "on_behalf_of configuration is not being configured")
+                        );
                         return;
                     }
 
                     final String clusterIdentifier = clusterService.getClusterName().value();
 
                     final Map<String, Object> requestBody = request.contentOrSourceParamParser().map();
-                    final String reason = (String)requestBody.getOrDefault("reason", null);
+                    final String reason = (String) requestBody.getOrDefault("reason", null);
 
                     final Integer tokenDuration = Optional.ofNullable(requestBody.get("duration"))
-                            .map(value -> (String)value)
-                            .map(Integer::parseInt)
-                            .map(value -> Math.min(value, 10 * 60)) // Max duration is 10 minutes
-                            .orElse(5 * 60); // Fallback to default of 5 minutes;
+                        .map(value -> (String) value)
+                        .map(Integer::parseInt)
+                        .map(value -> Math.min(value, 10 * 60)) // Max duration is 10 minutes
+                        .orElse(5 * 60); // Fallback to default of 5 minutes;
 
                     final String source = "self-issued";
                     final User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                    final TransportAddress caller = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+                    final TransportAddress caller = threadPool.getThreadContext()
+                        .getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
                     Set<String> mappedRoles = mapRoles(user, caller);
 
                     builder.startObject();
                     builder.field("user", user.getName());
 
                     final String token = vendor.createJwt(
-                            clusterIdentifier,
-                            user.getName(),
-                            source,
-                            tokenDuration,
-                            mappedRoles.stream().collect(Collectors.toList()),
-                            user.getRoles().stream().collect(Collectors.toList()));
+                        clusterIdentifier,
+                        user.getName(),
+                        source,
+                        tokenDuration,
+                        mappedRoles.stream().collect(Collectors.toList()),
+                        user.getRoles().stream().collect(Collectors.toList())
+                    );
                     builder.field("onBehalfOfToken", token);
                     builder.field("duration", tokenDuration + " seconds");
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
                 } catch (final Exception exception) {
-                    builder.startObject()
-                            .field("error", exception.toString())
-                            .endObject();
+                    builder.startObject().field("error", exception.toString()).endObject();
 
                     response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
                 }

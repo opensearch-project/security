@@ -59,7 +59,6 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auth.blocking.ClientBlockRegistry;
 import org.opensearch.security.auth.internal.NoOpAuthenticationBackend;
 import org.opensearch.security.configuration.AdminDNs;
-import org.opensearch.security.http.OnBehalfOfAuthenticator;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.ssl.util.Utils;

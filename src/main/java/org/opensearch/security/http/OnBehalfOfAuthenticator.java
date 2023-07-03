@@ -68,9 +68,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
 
         try {
-            final String minimalKeyFormat = signingKey
-                    .replace("-----BEGIN PUBLIC KEY-----\n", "")
-                    .replace("-----END PUBLIC KEY-----", "");
+            final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("-----END PUBLIC KEY-----", "");
 
             final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
             Key key = null;
@@ -121,7 +119,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private String[] extractBackendRolesFromClaims(Claims claims) {
-        //Object backendRolesObject = ObjectUtils.firstNonNull(claims.get("ebr"), claims.get("dbr"));
+        // Object backendRolesObject = ObjectUtils.firstNonNull(claims.get("ebr"), claims.get("dbr"));
         if (!claims.containsKey("dbr")) {
             return null;
         }
@@ -171,7 +169,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         String jwtToken = request.header(HttpHeaders.AUTHORIZATION);
 
         if (jwtToken == null || jwtToken.length() == 0) {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("No JWT token found in '{}' header", HttpHeaders.AUTHORIZATION);
             }
             return null;
@@ -181,10 +179,10 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             jwtToken = null;
         }
 
-        if(jwtToken != null && Pattern.compile(BEARER_PREFIX).matcher(jwtToken.toLowerCase()).find()) {
-                jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
+        if (jwtToken != null && Pattern.compile(BEARER_PREFIX).matcher(jwtToken.toLowerCase()).find()) {
+            jwtToken = jwtToken.substring(jwtToken.toLowerCase().indexOf(BEARER_PREFIX) + BEARER_PREFIX.length());
         } else {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("No Bearer scheme found in header");
             }
         }
@@ -213,8 +211,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
             final AuthCredentials ac = new AuthCredentials(subject, roles, backendRoles).markComplete();
 
-            for(Entry<String, Object> claim: claims.entrySet()) {
-                ac.addAttribute("attr.jwt."+claim.getKey(), String.valueOf(claim.getValue()));
+            for (Entry<String, Object> claim : claims.entrySet()) {
+                ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));
             }
 
             return ac;
@@ -224,7 +222,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             return null;
         } catch (Exception e) {
             e.printStackTrace();
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("Invalid or expired JWT token.", e);
             }
             return null;
@@ -241,7 +239,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         return "onbehalfof_jwt";
     }
 
-    private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException,
+        InvalidKeySpecException {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(algo);
         return kf.generatePublic(spec);

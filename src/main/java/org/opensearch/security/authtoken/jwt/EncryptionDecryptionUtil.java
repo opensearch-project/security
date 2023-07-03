@@ -56,7 +56,9 @@ public class EncryptionDecryptionUtil {
     private enum CipherMode {
         ENCRYPT(Cipher.ENCRYPT_MODE),
         DECRYPT(Cipher.DECRYPT_MODE);
+
         private final int opmode;
+
         private CipherMode(final int opmode) {
             this.opmode = opmode;
         }

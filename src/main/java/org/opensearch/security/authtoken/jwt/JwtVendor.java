@@ -41,7 +41,6 @@ public class JwtVendor {
     private final JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
 
-
     public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
         try {
@@ -98,7 +97,14 @@ public class JwtVendor {
         }
     }
 
-    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles, List<String> backendRoles) throws Exception {
+    public String createJwt(
+        String issuer,
+        String subject,
+        String audience,
+        Integer expirySeconds,
+        List<String> roles,
+        List<String> backendRoles
+    ) throws Exception {
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
