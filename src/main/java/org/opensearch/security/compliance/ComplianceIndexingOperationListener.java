@@ -37,6 +37,6 @@ import org.opensearch.index.shard.IndexingOperationListener;
 public class ComplianceIndexingOperationListener implements IndexingOperationListener {
 
     public void setIs(IndexService is) {
-        //noop
+        // noop
     }
 }

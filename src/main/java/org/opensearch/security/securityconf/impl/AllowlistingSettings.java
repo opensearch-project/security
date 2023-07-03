@@ -48,7 +48,7 @@ public class AllowlistingSettings {
     }
 
     public Map<String, List<HttpRequestMethods>> getRequests() {
-        return this.requests == null ? Collections.emptyMap(): this.requests;
+        return this.requests == null ? Collections.emptyMap() : this.requests;
     }
 
     public void setRequests(Map<String, List<HttpRequestMethods>> requests) {
@@ -59,7 +59,6 @@ public class AllowlistingSettings {
     public String toString() {
         return "AllowlistingSetting [enabled=" + enabled + ", requests=" + requests + ']';
     }
-
 
     /**
      * Helper function to check if a rest request is allowlisted, by checking if the path is allowlisted,
@@ -76,26 +75,26 @@ public class AllowlistingSettings {
      *      GET /_cluster/settings  - OK
      *      GET /_cluster/settings/ - OK
      */
-    private boolean requestIsAllowlisted(RestRequest request){
+    private boolean requestIsAllowlisted(RestRequest request) {
 
-        //ALSO ALLOWS REQUEST TO HAVE TRAILING '/'
-        //pathWithoutTrailingSlash stores the endpoint path without extra '/'. eg: /_cat/nodes
-        //pathWithTrailingSlash stores the endpoint path with extra '/'. eg: /_cat/nodes/
+        // ALSO ALLOWS REQUEST TO HAVE TRAILING '/'
+        // pathWithoutTrailingSlash stores the endpoint path without extra '/'. eg: /_cat/nodes
+        // pathWithTrailingSlash stores the endpoint path with extra '/'. eg: /_cat/nodes/
         String path = request.path();
         String pathWithoutTrailingSlash;
         String pathWithTrailingSlash;
 
-        //first obtain pathWithoutTrailingSlash, then add a '/' to it to get pathWithTrailingSlash
+        // first obtain pathWithoutTrailingSlash, then add a '/' to it to get pathWithTrailingSlash
         pathWithoutTrailingSlash = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
         pathWithTrailingSlash = pathWithoutTrailingSlash + '/';
 
-        //check if pathWithoutTrailingSlash is allowlisted
-        if(requests.containsKey(pathWithoutTrailingSlash) && requests.get(pathWithoutTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
-            return true;
+        // check if pathWithoutTrailingSlash is allowlisted
+        if (requests.containsKey(pathWithoutTrailingSlash)
+            && requests.get(pathWithoutTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString()))) return true;
 
-        //check if pathWithTrailingSlash is allowlisted
-        if(requests.containsKey(pathWithTrailingSlash) && requests.get(pathWithTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString())))
-            return true;
+        // check if pathWithTrailingSlash is allowlisted
+        if (requests.containsKey(pathWithTrailingSlash)
+            && requests.get(pathWithTrailingSlash).contains(HttpRequestMethods.valueOf(request.method().toString()))) return true;
         return false;
     }
 
@@ -108,15 +107,19 @@ public class AllowlistingSettings {
      * then all PUT /_opendistro/_security/api/rolesmapping/{resource_name} work.
      * Currently, each resource_name has to be allowlisted separately
      */
-    public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel,
-                                          NodeClient client) throws IOException {
+    public boolean checkRequestIsAllowed(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
         // if allowlisting is enabled but the request is not allowlisted, then return false, otherwise true.
-        if (this.enabled && !requestIsAllowlisted(request)){
-            channel.sendResponse(new BytesRestResponse(RestStatus.FORBIDDEN, channel.newErrorBuilder().startObject()
-                    .field("error", request.method() + " " + request.path() + " API not allowlisted")
-                    .field("status", RestStatus.FORBIDDEN)
-                    .endObject()
-            ));
+        if (this.enabled && !requestIsAllowlisted(request)) {
+            channel.sendResponse(
+                new BytesRestResponse(
+                    RestStatus.FORBIDDEN,
+                    channel.newErrorBuilder()
+                        .startObject()
+                        .field("error", request.method() + " " + request.path() + " API not allowlisted")
+                        .field("status", RestStatus.FORBIDDEN)
+                        .endObject()
+                )
+            );
             return false;
         }
         return true;

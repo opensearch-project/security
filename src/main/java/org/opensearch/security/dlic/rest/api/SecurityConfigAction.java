@@ -44,26 +44,30 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigAction extends PatchableResourceApiAction {
 
-    private static final List<Route> getRoutes = addRoutesPrefix(Collections.singletonList(
-            new Route(Method.GET, "/securityconfig/")
-    ));
+    private static final List<Route> getRoutes = addRoutesPrefix(Collections.singletonList(new Route(Method.GET, "/securityconfig/")));
 
-    private static final List<Route> allRoutes = new ImmutableList.Builder<Route>()
-            .addAll(getRoutes)
-            .addAll(addRoutesPrefix(
-                ImmutableList.of(
-                    new Route(Method.PUT, "/securityconfig/{name}"),
-                    new Route(Method.PATCH, "/securityconfig/")
-                )
-            ))
-            .build();
+    private static final List<Route> allRoutes = new ImmutableList.Builder<Route>().addAll(getRoutes)
+        .addAll(
+            addRoutesPrefix(ImmutableList.of(new Route(Method.PUT, "/securityconfig/{name}"), new Route(Method.PATCH, "/securityconfig/")))
+        )
+        .build();
 
     private final boolean allowPutOrPatch;
 
     @Inject
-    public SecurityConfigAction(final Settings settings, final Path configPath, final RestController controller, final Client client,
-                                final AdminDNs adminDNs, final ConfigurationRepository cl, final ClusterService cs,
-                                final PrincipalExtractor principalExtractor, final PrivilegesEvaluator evaluator, ThreadPool threadPool, AuditLog auditLog) {
+    public SecurityConfigAction(
+        final Settings settings,
+        final Path configPath,
+        final RestController controller,
+        final Client client,
+        final AdminDNs adminDNs,
+        final ConfigurationRepository cl,
+        final ClusterService cs,
+        final PrincipalExtractor principalExtractor,
+        final PrivilegesEvaluator evaluator,
+        ThreadPool threadPool,
+        AuditLog auditLog
+    ) {
 
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         allowPutOrPatch = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
@@ -75,22 +79,22 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected boolean hasPermissionsToCreate(final SecurityDynamicConfiguration<?> dynamicConfigFactory,
-                                             final Object content,
-                                             final String resourceName) {
+    protected boolean hasPermissionsToCreate(
+        final SecurityDynamicConfiguration<?> dynamicConfigFactory,
+        final Object content,
+        final String resourceName
+    ) {
         return true;
     }
 
     @Override
-    protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException{
+    protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
 
         filter(configuration);
 
         successResponse(channel, configuration);
     }
-
-
 
     @Override
     protected void handleApiRequest(RestChannel channel, RestRequest request, Client client) throws IOException {
@@ -102,10 +106,11 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException{
+    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
+        throws IOException {
         if (allowPutOrPatch) {
 
-            if(!"config".equals(request.param("name"))) {
+            if (!"config".equals(request.param("name"))) {
                 badRequestResponse(channel, "name must be config");
                 return;
             }
@@ -117,12 +122,14 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException{
+    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
+        throws IOException {
         notImplemented(channel, Method.POST);
     }
 
     @Override
-    protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) throws IOException{
+    protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
+        throws IOException {
         notImplemented(channel, Method.DELETE);
     }
 

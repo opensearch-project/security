@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -45,193 +44,189 @@ import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class SecurityConfigurationTests {
 
-	private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
-	private static final User LIMITED_USER = new User("limited-user")
-			.roles(new Role("limited-role").indexPermissions("indices:data/read/search", "indices:data/read/get").on("user-${user.name}"));
-	public static final String LIMITED_USER_INDEX = "user-" + LIMITED_USER.getName();
-	public static final String ADDITIONAL_USER_1 = "additional00001";
-	public static final String ADDITIONAL_PASSWORD_1 = "user 1 fair password";
+    private static final User USER_ADMIN = new User("admin").roles(ALL_ACCESS);
+    private static final User LIMITED_USER = new User("limited-user").roles(
+        new Role("limited-role").indexPermissions("indices:data/read/search", "indices:data/read/get").on("user-${user.name}")
+    );
+    public static final String LIMITED_USER_INDEX = "user-" + LIMITED_USER.getName();
+    public static final String ADDITIONAL_USER_1 = "additional00001";
+    public static final String ADDITIONAL_PASSWORD_1 = "user 1 fair password";
 
-	public static final String ADDITIONAL_USER_2 = "additional2";
-	public static final String ADDITIONAL_PASSWORD_2 = "user 2 fair password";
-	public static final String CREATE_USER_BODY = "{\"password\": \"%s\",\"opendistro_security_roles\": []}";
-	public static final String INTERNAL_USERS_RESOURCE = "_plugins/_security/api/internalusers/";
-	public static final String ID_1 = "one";
-	public static final String PROHIBITED_INDEX = "prohibited";
-	public static final String ID_2 = "two";
+    public static final String ADDITIONAL_USER_2 = "additional2";
+    public static final String ADDITIONAL_PASSWORD_2 = "user 2 fair password";
+    public static final String CREATE_USER_BODY = "{\"password\": \"%s\",\"opendistro_security_roles\": []}";
+    public static final String INTERNAL_USERS_RESOURCE = "_plugins/_security/api/internalusers/";
+    public static final String ID_1 = "one";
+    public static final String PROHIBITED_INDEX = "prohibited";
+    public static final String ID_2 = "two";
 
-	@ClassRule
-	public static LocalCluster cluster = new LocalCluster.Builder()
-			.clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
-			.authc(AUTHC_HTTPBASIC_INTERNAL).users(USER_ADMIN, LIMITED_USER).anonymousAuth(false)
-			.nodeSettings(Map.of(SECURITY_RESTAPI_ROLES_ENABLED, List.of("user_" + USER_ADMIN.getName()  +"__" + ALL_ACCESS.getName()),
-					SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST, true))
-			.build();
+    @ClassRule
+    public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
+        .authc(AUTHC_HTTPBASIC_INTERNAL)
+        .users(USER_ADMIN, LIMITED_USER)
+        .anonymousAuth(false)
+        .nodeSettings(
+            Map.of(
+                SECURITY_RESTAPI_ROLES_ENABLED,
+                List.of("user_" + USER_ADMIN.getName() + "__" + ALL_ACCESS.getName()),
+                SECURITY_BACKGROUND_INIT_IF_SECURITYINDEX_NOT_EXIST,
+                true
+            )
+        )
+        .build();
 
-	@Rule
-	public TemporaryFolder configurationDirectory = new TemporaryFolder();
+    @Rule
+    public TemporaryFolder configurationDirectory = new TemporaryFolder();
 
-	@BeforeClass
-	public static void initData() {
-		try(Client client = cluster.getInternalNodeClient()){
-			client.prepareIndex(LIMITED_USER_INDEX).setId(ID_1).setRefreshPolicy(IMMEDIATE).setSource("foo", "bar").get();
-			client.prepareIndex(PROHIBITED_INDEX).setId(ID_2).setRefreshPolicy(IMMEDIATE).setSource("three", "four").get();
-		}
-	}
+    @BeforeClass
+    public static void initData() {
+        try (Client client = cluster.getInternalNodeClient()) {
+            client.prepareIndex(LIMITED_USER_INDEX).setId(ID_1).setRefreshPolicy(IMMEDIATE).setSource("foo", "bar").get();
+            client.prepareIndex(PROHIBITED_INDEX).setId(ID_2).setRefreshPolicy(IMMEDIATE).setSource("three", "four").get();
+        }
+    }
 
-	@Test
-	public void shouldCreateUserViaRestApi_success() {
-		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_1, String.format(CREATE_USER_BODY,
-					ADDITIONAL_PASSWORD_1));
+    @Test
+    public void shouldCreateUserViaRestApi_success() {
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            HttpResponse httpResponse = client.putJson(
+                INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_1,
+                String.format(CREATE_USER_BODY, ADDITIONAL_PASSWORD_1)
+            );
 
-			assertThat(httpResponse.getStatusCode(), equalTo(201));
-		}
-		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-			client.assertCorrectCredentials(USER_ADMIN.getName());
-		}
-		try(TestRestClient client = cluster.getRestClient(ADDITIONAL_USER_1, ADDITIONAL_PASSWORD_1)) {
-			client.assertCorrectCredentials(ADDITIONAL_USER_1);
-		}
-	}
+            assertThat(httpResponse.getStatusCode(), equalTo(201));
+        }
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            client.assertCorrectCredentials(USER_ADMIN.getName());
+        }
+        try (TestRestClient client = cluster.getRestClient(ADDITIONAL_USER_1, ADDITIONAL_PASSWORD_1)) {
+            client.assertCorrectCredentials(ADDITIONAL_USER_1);
+        }
+    }
 
-	@Test
-	public void shouldCreateUserViaRestApi_failure() {
-		try(TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
-			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_1, String.format(CREATE_USER_BODY,
-					ADDITIONAL_PASSWORD_1));
+    @Test
+    public void shouldCreateUserViaRestApi_failure() {
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
+            HttpResponse httpResponse = client.putJson(
+                INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_1,
+                String.format(CREATE_USER_BODY, ADDITIONAL_PASSWORD_1)
+            );
 
-			httpResponse.assertStatusCode(403);
-		}
-	}
+            httpResponse.assertStatusCode(403);
+        }
+    }
 
-	@Test
-	public void shouldAuthenticateAsAdminWithCertificate_positive() {
-		try(TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
-			HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
+    @Test
+    public void shouldAuthenticateAsAdminWithCertificate_positive() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+            HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
 
-			httpResponse.assertStatusCode(200);
-			assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("true"));
-		}
-	}
+            httpResponse.assertStatusCode(200);
+            assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("true"));
+        }
+    }
 
-	@Test
-	public void shouldAuthenticateAsAdminWithCertificate_negativeSelfSignedCertificate() {
-		TestCertificates testCertificates = cluster.getTestCertificates();
-		try(TestRestClient client = cluster.getRestClient(testCertificates.createSelfSignedCertificate("CN=bond"))) {
-			HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
+    @Test
+    public void shouldAuthenticateAsAdminWithCertificate_negativeSelfSignedCertificate() {
+        TestCertificates testCertificates = cluster.getTestCertificates();
+        try (TestRestClient client = cluster.getRestClient(testCertificates.createSelfSignedCertificate("CN=bond"))) {
+            HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
 
-			httpResponse.assertStatusCode(200);
-			assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("false"));
-		}
-	}
+            httpResponse.assertStatusCode(200);
+            assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("false"));
+        }
+    }
 
-	@Test
-	public void shouldAuthenticateAsAdminWithCertificate_negativeIncorrectDn() {
-		TestCertificates testCertificates = cluster.getTestCertificates();
-		try(TestRestClient client = cluster.getRestClient(testCertificates.createAdminCertificate("CN=non_admin"))) {
-			HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
+    @Test
+    public void shouldAuthenticateAsAdminWithCertificate_negativeIncorrectDn() {
+        TestCertificates testCertificates = cluster.getTestCertificates();
+        try (TestRestClient client = cluster.getRestClient(testCertificates.createAdminCertificate("CN=non_admin"))) {
+            HttpResponse httpResponse = client.get("/_plugins/_security/whoami");
 
-			httpResponse.assertStatusCode(200);
-			assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("false"));
-		}
-	}
+            httpResponse.assertStatusCode(200);
+            assertThat(httpResponse.getTextFromJsonBody("/is_admin"), equalTo("false"));
+        }
+    }
 
-	@Test
-	public void shouldCreateUserViaRestApiWhenAdminIsAuthenticatedViaCertificate_positive() {
-		try(TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
+    @Test
+    public void shouldCreateUserViaRestApiWhenAdminIsAuthenticatedViaCertificate_positive() {
+        try (TestRestClient client = cluster.getRestClient(cluster.getAdminCertificate())) {
 
-			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_2, String.format(CREATE_USER_BODY,
-					ADDITIONAL_PASSWORD_2));
+            HttpResponse httpResponse = client.putJson(
+                INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_2,
+                String.format(CREATE_USER_BODY, ADDITIONAL_PASSWORD_2)
+            );
 
-			httpResponse.assertStatusCode(201);
-		}
-		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-			client.assertCorrectCredentials(USER_ADMIN.getName());
-		}
-		try(TestRestClient client = cluster.getRestClient(ADDITIONAL_USER_2, ADDITIONAL_PASSWORD_2)) {
-			client.assertCorrectCredentials(ADDITIONAL_USER_2);
-		}
-	}
+            httpResponse.assertStatusCode(201);
+        }
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            client.assertCorrectCredentials(USER_ADMIN.getName());
+        }
+        try (TestRestClient client = cluster.getRestClient(ADDITIONAL_USER_2, ADDITIONAL_PASSWORD_2)) {
+            client.assertCorrectCredentials(ADDITIONAL_USER_2);
+        }
+    }
 
-	@Test
-	public void shouldCreateUserViaRestApiWhenAdminIsAuthenticatedViaCertificate_negative() {
-		TestCertificates testCertificates = cluster.getTestCertificates();
-		try(TestRestClient client = cluster.getRestClient(testCertificates.createSelfSignedCertificate("CN=attacker"))) {
-			HttpResponse httpResponse = client.putJson(INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_2, String.format(CREATE_USER_BODY,
-					ADDITIONAL_PASSWORD_2));
+    @Test
+    public void shouldCreateUserViaRestApiWhenAdminIsAuthenticatedViaCertificate_negative() {
+        TestCertificates testCertificates = cluster.getTestCertificates();
+        try (TestRestClient client = cluster.getRestClient(testCertificates.createSelfSignedCertificate("CN=attacker"))) {
+            HttpResponse httpResponse = client.putJson(
+                INTERNAL_USERS_RESOURCE + ADDITIONAL_USER_2,
+                String.format(CREATE_USER_BODY, ADDITIONAL_PASSWORD_2)
+            );
 
-			httpResponse.assertStatusCode(401);
-		}
-	}
+            httpResponse.assertStatusCode(401);
+        }
+    }
 
-	@Test
-	public void shouldStillWorkAfterUpdateOfSecurityConfig() {
-		List<User> users = new ArrayList<>(cluster.getConfiguredUsers());
-		User newUser = new User("new-user");
-		users.add(newUser);
+    @Test
+    public void shouldStillWorkAfterUpdateOfSecurityConfig() {
+        List<User> users = new ArrayList<>(cluster.getConfiguredUsers());
+        User newUser = new User("new-user");
+        users.add(newUser);
 
-		cluster.updateUserConfiguration(users);
+        cluster.updateUserConfiguration(users);
 
-		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-			client.assertCorrectCredentials(USER_ADMIN.getName());
-		}
-		try(TestRestClient client = cluster.getRestClient(newUser)) {
-			client.assertCorrectCredentials(newUser.getName());
-		}
-	}
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            client.assertCorrectCredentials(USER_ADMIN.getName());
+        }
+        try (TestRestClient client = cluster.getRestClient(newUser)) {
+            client.assertCorrectCredentials(newUser.getName());
+        }
+    }
 
-	@Test
-	public void shouldAccessIndexWithPlaceholder_positive() {
-		try(TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
-			HttpResponse httpResponse = client.get("/" + LIMITED_USER_INDEX + "/_doc/" + ID_1);
+    @Test
+    public void shouldAccessIndexWithPlaceholder_positive() {
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
+            HttpResponse httpResponse = client.get("/" + LIMITED_USER_INDEX + "/_doc/" + ID_1);
 
-			httpResponse.assertStatusCode(200);
-		}
-	}
+            httpResponse.assertStatusCode(200);
+        }
+    }
 
-	@Test
-	public void shouldAccessIndexWithPlaceholder_negative() {
-		try(TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
-			HttpResponse httpResponse = client.get("/" + PROHIBITED_INDEX + "/_doc/" + ID_2);
+    @Test
+    public void shouldAccessIndexWithPlaceholder_negative() {
+        try (TestRestClient client = cluster.getRestClient(LIMITED_USER)) {
+            HttpResponse httpResponse = client.get("/" + PROHIBITED_INDEX + "/_doc/" + ID_2);
 
-			httpResponse.assertStatusCode(403);
-		}
-	}
+            httpResponse.assertStatusCode(403);
+        }
+    }
 
-	@Test
-	public void shouldUseSecurityAdminTool() throws Exception {
-		SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
-		File rolesMapping = configurationDirectory.newFile("roles_mapping.yml");
-		ConfigurationFiles.createRoleMappingFile(rolesMapping);
+    @Test
+    public void shouldUseSecurityAdminTool() throws Exception {
+        SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
+        File rolesMapping = configurationDirectory.newFile("roles_mapping.yml");
+        ConfigurationFiles.createRoleMappingFile(rolesMapping);
 
-		int exitCode = securityAdminLauncher.updateRoleMappings(rolesMapping);
+        int exitCode = securityAdminLauncher.updateRoleMappings(rolesMapping);
 
-		assertThat(exitCode, equalTo(0));
-		try(TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-			Awaitility.await().alias("Waiting for rolemapping 'readall' availability.")
-					.until(() -> client.get("_plugins/_security/api/rolesmapping/readall").getStatusCode(), equalTo(200));
-		}
-	}
-
-	@Test
-	public void shouldReloadOnBehalfOfConfigurationFromFile() throws Exception {
-		SecurityAdminLauncher securityAdminLauncher = new SecurityAdminLauncher(cluster.getHttpPort(), cluster.getTestCertificates());
-		File config = configurationDirectory.newFile("config.yml");
-		ConfigurationFiles.createConfigFile(config);
-		int exitCode = securityAdminLauncher.updateConfig(config);
-		assertThat(exitCode, equalTo(0));
-
-		try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
-			Awaitility.await()
-					.until(() ->
-							{
-								HttpResponse httpResponse = client.get("_plugins/_security/api/securityconfig");
-								JsonNode jsonNode = DefaultObjectMapper.objectMapper.readTree(httpResponse.getBody());
-								return jsonNode.get("config").get("dynamic").get("on_behalf_of");
-
-							}, jsonNode -> jsonNode.get("encryption_key").asText().equals("encryption key") && jsonNode.get("signing_key").asText().equals("signing key")
-					);
-		}
-	}
+        assertThat(exitCode, equalTo(0));
+        try (TestRestClient client = cluster.getRestClient(USER_ADMIN)) {
+            Awaitility.await()
+                .alias("Waiting for rolemapping 'readall' availability.")
+                .until(() -> client.get("_plugins/_security/api/rolesmapping/readall").getStatusCode(), equalTo(200));
+        }
+    }
 }

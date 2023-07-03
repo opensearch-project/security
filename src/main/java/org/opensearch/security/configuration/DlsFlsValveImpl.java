@@ -82,8 +82,8 @@ import org.opensearch.threadpool.ThreadPool;
 
 public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
-	private static final String MAP_EXECUTION_HINT = "map";
-	private static final Logger log = LogManager.getLogger(DlsFlsValveImpl.class);
+    private static final String MAP_EXECUTION_HINT = "map";
+    private static final Logger log = LogManager.getLogger(DlsFlsValveImpl.class);
 
     private final Client nodeClient;
     private final ClusterService clusterService;
@@ -92,8 +92,14 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     private final DlsQueryParser dlsQueryParser;
     private final IndexNameExpressionResolver resolver;
 
-    public DlsFlsValveImpl(Settings settings, Client nodeClient, ClusterService clusterService, IndexNameExpressionResolver resolver,
-    		NamedXContentRegistry namedXContentRegistry, ThreadContext threadContext) {
+    public DlsFlsValveImpl(
+        Settings settings,
+        Client nodeClient,
+        ClusterService clusterService,
+        IndexNameExpressionResolver resolver,
+        NamedXContentRegistry namedXContentRegistry,
+        ThreadContext threadContext
+    ) {
         super();
         this.nodeClient = nodeClient;
         this.clusterService = clusterService;
@@ -109,12 +115,25 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
      * @param listener
      * @return false on error
      */
-    public boolean invoke(String action, ActionRequest request, final ActionListener<?> listener, EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
-            final Resolved resolved) {
+    public boolean invoke(
+        String action,
+        ActionRequest request,
+        final ActionListener<?> listener,
+        EvaluatedDlsFlsConfig evaluatedDlsFlsConfig,
+        final Resolved resolved
+    ) {
 
         if (log.isDebugEnabled()) {
-            log.debug("DlsFlsValveImpl.invoke()\nrequest: " + request + "\nevaluatedDlsFlsConfig: " + evaluatedDlsFlsConfig + "\nresolved: "
-                    + resolved + "\nmode: " + mode);
+            log.debug(
+                "DlsFlsValveImpl.invoke()\nrequest: "
+                    + request
+                    + "\nevaluatedDlsFlsConfig: "
+                    + evaluatedDlsFlsConfig
+                    + "\nresolved: "
+                    + resolved
+                    + "\nmode: "
+                    + mode
+            );
         }
 
         if (evaluatedDlsFlsConfig == null || evaluatedDlsFlsConfig.isEmpty()) {
@@ -173,10 +192,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
             SearchRequest searchRequest = ((SearchRequest) request);
 
-            //When we encounter a terms or sampler aggregation with masked fields activated we forcibly
-            //need to switch off global ordinals because field masking can break ordering
+            // When we encounter a terms or sampler aggregation with masked fields activated we forcibly
+            // need to switch off global ordinals because field masking can break ordering
             // CS-SUPPRESS-SINGLE: RegexpSingleline Ignore term inside of url
-            //https://www.elastic.co/guide/en/elasticsearch/reference/master/eager-global-ordinals.html#_avoiding_global_ordinal_loading
+            // https://www.elastic.co/guide/en/elasticsearch/reference/master/eager-global-ordinals.html#_avoiding_global_ordinal_loading
             // CS-ENFORCE-SINGLE
             if (evaluatedDlsFlsConfig.hasFieldMasking()) {
 
@@ -197,8 +216,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 }
             }
 
-            if (!evaluatedDlsFlsConfig.hasFls() && !evaluatedDlsFlsConfig.hasDls()
-                    && searchRequest.source().aggregations() != null) {
+            if (!evaluatedDlsFlsConfig.hasFls() && !evaluatedDlsFlsConfig.hasDls() && searchRequest.source().aggregations() != null) {
 
                 boolean cacheable = true;
 
@@ -224,8 +242,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 if (!cacheable) {
                     searchRequest.requestCache(Boolean.FALSE);
                 } else {
-                	LogManager.getLogger("debuglogger").error("Shard requestcache enabled for "
-                            + (searchRequest.source() == null ? "<NULL>" : Strings.toString(XContentType.JSON, searchRequest.source())));
+                    LogManager.getLogger("debuglogger")
+                        .error(
+                            "Shard requestcache enabled for "
+                                + (searchRequest.source() == null ? "<NULL>" : Strings.toString(XContentType.JSON, searchRequest.source()))
+                        );
                 }
 
             } else {
@@ -241,7 +262,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         if (request instanceof BulkRequest) {
             for (DocWriteRequest<?> inner : ((BulkRequest) request).requests()) {
                 if (inner instanceof UpdateRequest) {
-                    listener.onFailure(new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
+                    listener.onFailure(
+                        new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated")
+                    );
                     return false;
                 }
             }
@@ -250,7 +273,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         if (request instanceof BulkShardRequest) {
             for (BulkItemRequest inner : ((BulkShardRequest) request).items()) {
                 if (inner.request() instanceof UpdateRequest) {
-                    listener.onFailure(new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated"));
+                    listener.onFailure(
+                        new OpenSearchSecurityException("Update is not supported when FLS or DLS or Fieldmasking is activated")
+                    );
                     return false;
                 }
             }
@@ -261,9 +286,13 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             return false;
         }
 
-        if(action.contains("plugins/replication")) {
-            listener.onFailure(new OpenSearchSecurityException("Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated",
-                    RestStatus.FORBIDDEN));
+        if (action.contains("plugins/replication")) {
+            listener.onFailure(
+                new OpenSearchSecurityException(
+                    "Cross Cluster Replication is not supported when FLS or DLS or Fieldmasking is activated",
+                    RestStatus.FORBIDDEN
+                )
+            );
             return false;
         }
 
@@ -292,8 +321,19 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         }
 
         if (doFilterLevelDls && filteredDlsFlsConfig.hasDls()) {
-            return DlsFilterLevelActionHandler.handle(action, request, listener, evaluatedDlsFlsConfig, resolved, nodeClient, clusterService,
-            		OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(), resolver, dlsQueryParser, threadContext);
+            return DlsFilterLevelActionHandler.handle(
+                action,
+                request,
+                listener,
+                evaluatedDlsFlsConfig,
+                resolved,
+                nodeClient,
+                clusterService,
+                OpenSearchSecurityPlugin.GuiceHolder.getIndicesService(),
+                resolver,
+                dlsQueryParser,
+                threadContext
+            );
         } else {
             return true;
         }
@@ -303,8 +343,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     public void handleSearchContext(SearchContext context, ThreadPool threadPool, NamedXContentRegistry namedXContentRegistry) {
         try {
             @SuppressWarnings("unchecked")
-            final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(threadPool.getThreadContext(),
-                    ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER);
+            final Map<String, Set<String>> queries = (Map<String, Set<String>>) HeaderHelper.deserializeSafeFromHeader(
+                threadPool.getThreadContext(),
+                ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER
+            );
 
             final String dlsEval = SecurityUtils.evalMap(queries, context.indexShard().indexSettings().getIndex().getName());
 
@@ -319,8 +361,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                 final Set<String> unparsedDlsQueries = queries.get(dlsEval);
 
                 if (unparsedDlsQueries != null && !unparsedDlsQueries.isEmpty()) {
-                    BooleanQuery.Builder queryBuilder = dlsQueryParser.parse(unparsedDlsQueries, context.getQueryShardContext(),
-                            (q) -> new ConstantScoreQuery(q));
+                    BooleanQuery.Builder queryBuilder = dlsQueryParser.parse(
+                        unparsedDlsQueries,
+                        context.getQueryShardContext(),
+                        (q) -> new ConstantScoreQuery(q)
+                    );
 
                     queryBuilder.add(context.parsedQuery().query(), Occur.MUST);
 
@@ -343,11 +388,11 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         assert aggregations != null;
 
         queryResult.aggregations(
-                InternalAggregations.from(
-                        StreamSupport.stream(aggregations.spliterator(), false)
-                                .map(aggregation -> aggregateBuckets((InternalAggregation)aggregation))
-                                .collect(ImmutableList.toImmutableList())
-                )
+            InternalAggregations.from(
+                StreamSupport.stream(aggregations.spliterator(), false)
+                    .map(aggregation -> aggregateBuckets((InternalAggregation) aggregation))
+                    .collect(ImmutableList.toImmutableList())
+            )
         );
     }
 
@@ -363,7 +408,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         return aggregation;
     }
 
-    private static List<StringTerms.Bucket> mergeBuckets(List<StringTerms.Bucket> buckets, Comparator<MultiBucketsAggregation.Bucket> comparator) {
+    private static List<StringTerms.Bucket> mergeBuckets(
+        List<StringTerms.Bucket> buckets,
+        Comparator<MultiBucketsAggregation.Bucket> comparator
+    ) {
         if (log.isDebugEnabled()) {
             log.debug("Merging buckets: {}", buckets.stream().map(b -> b.getKeyAsString()).collect(ImmutableList.toImmutableList()));
         }
@@ -383,18 +431,28 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             Map<String, Set<String>> dlsQueries = dlsFls.getDlsQueriesByIndex();
 
             if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
-                threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
+                threadContext.addResponseHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER,
+                    Base64Helper.serializeObject((Serializable) dlsQueries)
+                );
                 if (log.isDebugEnabled()) {
                     log.debug("added response header for DLS info: {}", dlsQueries);
                 }
             } else {
                 if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER) != null) {
-                    Object deserializedDlsQueries = Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER));
+                    Object deserializedDlsQueries = Base64Helper.deserializeObject(
+                        threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER)
+                    );
                     if (!dlsQueries.equals(deserializedDlsQueries)) {
-                        throw new OpenSearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER + " does not match (SG 900D)");
+                        throw new OpenSearchSecurityException(
+                            ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER + " does not match (SG 900D)"
+                        );
                     }
                 } else {
-                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER, Base64Helper.serializeObject((Serializable) dlsQueries));
+                    threadContext.putHeader(
+                        ConfigConstants.OPENDISTRO_SECURITY_DLS_QUERY_HEADER,
+                        Base64Helper.serializeObject((Serializable) dlsQueries)
+                    );
                     if (log.isDebugEnabled()) {
                         log.debug("attach DLS info: {}", dlsQueries);
                     }
@@ -408,7 +466,12 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER) != null) {
             if (!modeString.equals(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER))) {
-                log.warn("Cannot update DLS mode to " + mode + "; current: " + threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER));
+                log.warn(
+                    "Cannot update DLS mode to "
+                        + mode
+                        + "; current: "
+                        + threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER)
+                );
             }
         } else {
             threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_DLS_MODE_HEADER, modeString);
@@ -430,22 +493,32 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             Map<String, Set<String>> maskedFieldsMap = dlsFls.getFieldMaskingByIndex();
 
             if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
-                threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
+                threadContext.addResponseHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
+                    Base64Helper.serializeObject((Serializable) maskedFieldsMap)
+                );
                 if (log.isDebugEnabled()) {
                     log.debug("added response header for masked fields info: {}", maskedFieldsMap);
                 }
             } else {
 
                 if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER) != null) {
-                    if (!maskedFieldsMap.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER)))) {
-                        throw new OpenSearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " does not match (SG 901D)");
+                    if (!maskedFieldsMap.equals(
+                        Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER))
+                    )) {
+                        throw new OpenSearchSecurityException(
+                            ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " does not match (SG 901D)"
+                        );
                     } else {
                         if (log.isDebugEnabled()) {
                             log.debug(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER + " already set");
                         }
                     }
                 } else {
-                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER, Base64Helper.serializeObject((Serializable) maskedFieldsMap));
+                    threadContext.putHeader(
+                        ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_HEADER,
+                        Base64Helper.serializeObject((Serializable) maskedFieldsMap)
+                    );
                     if (log.isDebugEnabled()) {
                         log.debug("attach masked fields info: {}", maskedFieldsMap);
                     }
@@ -457,22 +530,37 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             Map<String, Set<String>> flsFields = dlsFls.getFlsByIndex();
 
             if (request instanceof ClusterSearchShardsRequest && HeaderHelper.isTrustedClusterRequest(threadContext)) {
-                threadContext.addResponseHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
+                threadContext.addResponseHeader(
+                    ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER,
+                    Base64Helper.serializeObject((Serializable) flsFields)
+                );
                 if (log.isDebugEnabled()) {
                     log.debug("added response header for FLS info: {}", flsFields);
                 }
             } else {
                 if (threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER) != null) {
-                    if (!flsFields.equals(Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)))) {
-                        throw new OpenSearchSecurityException(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER + " does not match (SG 901D) " + flsFields
-                                + "---" + Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)));
+                    if (!flsFields.equals(
+                        Base64Helper.deserializeObject(threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER))
+                    )) {
+                        throw new OpenSearchSecurityException(
+                            ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER
+                                + " does not match (SG 901D) "
+                                + flsFields
+                                + "---"
+                                + Base64Helper.deserializeObject(
+                                    threadContext.getHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER)
+                                )
+                        );
                     } else {
                         if (log.isDebugEnabled()) {
                             log.debug(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER + " already set");
                         }
                     }
                 } else {
-                    threadContext.putHeader(ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER, Base64Helper.serializeObject((Serializable) flsFields));
+                    threadContext.putHeader(
+                        ConfigConstants.OPENDISTRO_SECURITY_FLS_FIELDS_HEADER,
+                        Base64Helper.serializeObject((Serializable) flsFields)
+                    );
                     if (log.isDebugEnabled()) {
                         log.debug("attach FLS info: {}", flsFields);
                     }
@@ -500,9 +588,16 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
             if (mergeCount == 1) {
                 builder.add(this.bucket);
             } else {
-                builder.add(new StringTerms.Bucket(StringTermsGetter.getTerm(bucket), mergedDocCount,
-                        (InternalAggregations) bucket.getAggregations(), showDocCountError, mergedDocCountError,
-                        StringTermsGetter.getDocValueFormat(bucket)));
+                builder.add(
+                    new StringTerms.Bucket(
+                        StringTermsGetter.getTerm(bucket),
+                        mergedDocCount,
+                        (InternalAggregations) bucket.getAggregations(),
+                        showDocCountError,
+                        mergedDocCountError,
+                        StringTermsGetter.getDocValueFormat(bucket)
+                    )
+                );
             }
         }
 
@@ -543,8 +638,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
         private static final Field TERM_BYTES = getField(StringTerms.Bucket.class, "termBytes");
         private static final Field FORMAT = getField(InternalTerms.Bucket.class, "format");
 
-        private StringTermsGetter() {
-        }
+        private StringTermsGetter() {}
 
         private static <T> Field getFieldPrivileged(Class<T> cls, String name) {
             try {
@@ -569,7 +663,7 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
 
         private static <T, C> T getFieldValue(Field field, C c) {
             try {
-                return (T)field.get(c);
+                return (T) field.get(c);
             } catch (IllegalArgumentException | IllegalAccessException e) {
                 log.error("Exception while getting value {} of class {}", field.getName(), c.getClass().getSimpleName(), e);
                 if (e instanceof RuntimeException) {
@@ -594,7 +688,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
     }
 
     public static enum Mode {
-        ADAPTIVE, LUCENE_LEVEL, FILTER_LEVEL;
+        ADAPTIVE,
+        LUCENE_LEVEL,
+        FILTER_LEVEL;
 
         static Mode get(Settings settings) {
             String modeString = settings.get(ConfigConstants.SECURITY_DLS_MODE);

@@ -64,8 +64,7 @@ import java.util.Set;
  * operational, otherwise certificate validation *WILL FAIL* unconditionally.
  */
 // CS-ENFORCE-SINGLE
-public class CertificateValidator
-{
+public class CertificateValidator {
 
     boolean isPreferCrl() {
         return preferCrl;
@@ -98,7 +97,7 @@ public class CertificateValidator
 
     private boolean preferCrl = false;
     private boolean checkOnlyEndEntities = true;
-    private Date date = null; //current date
+    private Date date = null; // current date
 
     /**
      * creates an instance of the certificate validator
@@ -106,10 +105,8 @@ public class CertificateValidator
      * @param trustStore the truststore to use
      * @param crls the Certificate Revocation List to use
      */
-    public CertificateValidator(KeyStore trustStore, Collection<? extends CRL> crls)
-    {
-        if (trustStore == null)
-        {
+    public CertificateValidator(KeyStore trustStore, Collection<? extends CRL> crls) {
+        if (trustStore == null) {
             throw new InvalidParameterException("TrustStore must be specified for CertificateValidator.");
         }
 
@@ -117,10 +114,8 @@ public class CertificateValidator
         _crls = crls;
     }
 
-    public CertificateValidator(X509Certificate[] trustedCert, Collection<? extends CRL> crls)
-    {
-        if (trustedCert == null || trustedCert.length == 0)
-        {
+    public CertificateValidator(X509Certificate[] trustedCert, Collection<? extends CRL> crls) {
+        if (trustedCert == null || trustedCert.length == 0) {
             throw new InvalidParameterException("trustedCert must be specified for CertificateValidator.");
         }
 
@@ -128,26 +123,20 @@ public class CertificateValidator
         _crls = crls;
     }
 
-    public void validate(Certificate[] certChain) throws CertificateException
-    {
-        try
-        {
+    public void validate(Certificate[] certChain) throws CertificateException {
+        try {
             ArrayList<X509Certificate> certList = new ArrayList<X509Certificate>();
-            for (Certificate item : certChain)
-            {
-                if (item == null)
-                    continue;
+            for (Certificate item : certChain) {
+                if (item == null) continue;
 
-                if (!(item instanceof X509Certificate))
-                {
+                if (!(item instanceof X509Certificate)) {
                     throw new IllegalStateException("Invalid certificate type in chain");
                 }
 
-                certList.add((X509Certificate)item);
+                certList.add((X509Certificate) item);
             }
 
-            if (certList.isEmpty())
-            {
+            if (certList.isEmpty()) {
                 throw new IllegalStateException("Invalid certificate chain");
 
             }
@@ -160,16 +149,16 @@ public class CertificateValidator
 
             Set<PKIXRevocationChecker.Option> opts = new HashSet<>();
 
-            if(preferCrl) {
+            if (preferCrl) {
                 opts.add(PKIXRevocationChecker.Option.PREFER_CRLS);
             }
 
-            //opts.add(PKIXRevocationChecker.Option.SOFT_FAIL);
+            // opts.add(PKIXRevocationChecker.Option.SOFT_FAIL);
 
-            //opts.add(PKIXRevocationChecker.Option.NO_FALLBACK);
+            // opts.add(PKIXRevocationChecker.Option.NO_FALLBACK);
 
-            if(checkOnlyEndEntities) {
-                 opts.add(PKIXRevocationChecker.Option.ONLY_END_ENTITY);
+            if (checkOnlyEndEntities) {
+                opts.add(PKIXRevocationChecker.Option.ONLY_END_ENTITY);
             }
 
             revocationChecker.setOptions(opts);
@@ -177,7 +166,7 @@ public class CertificateValidator
             // Configure certification path builder parameters
             PKIXBuilderParameters pbParams = null;
 
-            if(_trustStore != null) {
+            if (_trustStore != null) {
                 pbParams = new PKIXBuilderParameters(_trustStore, certSelect);
             } else {
                 Set<TrustAnchor> trustAnchors = new HashSet<TrustAnchor>();
@@ -203,36 +192,30 @@ public class CertificateValidator
             pbParams.setRevocationEnabled(true);
 
             // Set static Certificate Revocation List
-            if (_crls != null && !_crls.isEmpty())
-            {
+            if (_crls != null && !_crls.isEmpty()) {
                 pbParams.addCertStore(CertStore.getInstance("Collection", new CollectionCertStoreParameters(_crls)));
             }
 
             // Enable On-Line Certificate Status Protocol (OCSP) support
-            if (_enableOCSP)
-            {
-                Security.setProperty("ocsp.enable","true");
+            if (_enableOCSP) {
+                Security.setProperty("ocsp.enable", "true");
             }
             // Enable Certificate Revocation List Distribution Points (CRLDP) support
-            if (_enableCRLDP)
-            {
-                System.setProperty("com.sun.security.enableCRLDP","true");
+            if (_enableCRLDP) {
+                System.setProperty("com.sun.security.enableCRLDP", "true");
             }
 
             // Build certification path
             CertPathBuilderResult buildResult = CertPathBuilder.getInstance("PKIX").build(pbParams);
 
             // Validate certification path
-            CertPathValidator.getInstance("PKIX").validate(buildResult.getCertPath(),pbParams);
-        }
-        catch (GeneralSecurityException gse)
-        {
+            CertPathValidator.getInstance("PKIX").validate(buildResult.getCertPath(), pbParams);
+        } catch (GeneralSecurityException gse) {
             throw new CertificateException("Unable to validate certificate: " + gse.getMessage(), gse);
         }
     }
 
-    public Collection<? extends CRL> getCrls()
-    {
+    public Collection<? extends CRL> getCrls() {
         return _crls;
     }
 
@@ -240,8 +223,7 @@ public class CertificateValidator
      * @return Maximum number of intermediate certificates in
      * the certification path (-1 for unlimited)
      */
-    public int getMaxCertPathLength()
-    {
+    public int getMaxCertPathLength() {
         return _maxCertPathLength;
     }
 
@@ -251,8 +233,7 @@ public class CertificateValidator
      *            maximum number of intermediate certificates in
      *            the certification path (-1 for unlimited)
      */
-    public void setMaxCertPathLength(int maxCertPathLength)
-    {
+    public void setMaxCertPathLength(int maxCertPathLength) {
         _maxCertPathLength = maxCertPathLength;
     }
 
@@ -260,8 +241,7 @@ public class CertificateValidator
     /**
      * @return true if CRL Distribution Points support is enabled
      */
-    public boolean isEnableCRLDP()
-    {
+    public boolean isEnableCRLDP() {
         return _enableCRLDP;
     }
 
@@ -269,8 +249,7 @@ public class CertificateValidator
     /** Enables CRL Distribution Points Support
      * @param enableCRLDP true - turn on, false - turns off
      */
-    public void setEnableCRLDP(boolean enableCRLDP)
-    {
+    public void setEnableCRLDP(boolean enableCRLDP) {
         _enableCRLDP = enableCRLDP;
     }
 
@@ -278,8 +257,7 @@ public class CertificateValidator
     /**
      * @return true if On-Line Certificate Status Protocol support is enabled
      */
-    public boolean isEnableOCSP()
-    {
+    public boolean isEnableOCSP() {
         return _enableOCSP;
     }
 
@@ -287,8 +265,7 @@ public class CertificateValidator
     /** Enables On-Line Certificate Status Protocol support
      * @param enableOCSP true - turn on, false - turn off
      */
-    public void setEnableOCSP(boolean enableOCSP)
-    {
+    public void setEnableOCSP(boolean enableOCSP) {
         _enableOCSP = enableOCSP;
     }
 
@@ -296,8 +273,7 @@ public class CertificateValidator
     /**
      * @return Location of the OCSP Responder
      */
-    public String getOcspResponderURL()
-    {
+    public String getOcspResponderURL() {
         return _ocspResponderURL;
     }
 
@@ -305,16 +281,15 @@ public class CertificateValidator
     /** Set the location of the OCSP Responder.
      * @param ocspResponderURL location of the OCSP Responder
      */
-    public void setOcspResponderURL(String ocspResponderURL)
-    {
+    public void setOcspResponderURL(String ocspResponderURL) {
         _ocspResponderURL = ocspResponderURL;
     }
 
     public Date getDate() {
-        return date==null?null:(Date) date.clone();
+        return date == null ? null : (Date) date.clone();
     }
 
     public void setDate(Date date) {
-        this.date = date==null?null:(Date) date.clone();
+        this.date = date == null ? null : (Date) date.clone();
     }
 }

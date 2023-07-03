@@ -52,24 +52,18 @@ public final class SecurityUtils {
     static final Pattern ENVBASE64_PATTERN = Pattern.compile("\\$\\{envbase64" + ENV_PATTERN_SUFFIX);
     public static Locale EN_Locale = forEN();
 
+    private SecurityUtils() {}
 
-    private SecurityUtils() {
-    }
-
-    //https://github.com/tonywasher/bc-java/commit/ee160e16aa7fc71330907067c5470e9bf3e6c383
-    //The Legion of the Bouncy Castle Inc
-    private static Locale forEN()
-    {
-        if ("en".equalsIgnoreCase(Locale.getDefault().getLanguage()))
-        {
+    // https://github.com/tonywasher/bc-java/commit/ee160e16aa7fc71330907067c5470e9bf3e6c383
+    // The Legion of the Bouncy Castle Inc
+    private static Locale forEN() {
+        if ("en".equalsIgnoreCase(Locale.getDefault().getLanguage())) {
             return Locale.getDefault();
         }
 
         Locale[] locales = Locale.getAvailableLocales();
-        for (int i = 0; i != locales.length; i++)
-        {
-            if ("en".equalsIgnoreCase(locales[i].getLanguage()))
-            {
+        for (int i = 0; i != locales.length; i++) {
+            if ("en".equalsIgnoreCase(locales[i].getLanguage())) {
                 return locales[i];
             }
         }
@@ -83,7 +77,7 @@ public final class SecurityUtils {
             return null;
         }
 
-        //TODO: check what to do with _all
+        // TODO: check what to do with _all
         /*if (map.get(index) != null) {
             return index;
         } else if (map.get("*") != null) {
@@ -93,15 +87,12 @@ public final class SecurityUtils {
             return "_all";
         }*/
 
-        return map.keySet().stream()
-                .filter(key -> WildcardMatcher.from(key).test(index))
-                .findAny()
-                .orElse(null);
+        return map.keySet().stream().filter(key -> WildcardMatcher.from(key).test(index)).findAny().orElse(null);
     }
 
     @SafeVarargs
-    public static <T> Map<T, T>  mapFromArray(T ... keyValues) {
-        if(keyValues == null) {
+    public static <T> Map<T, T> mapFromArray(T... keyValues) {
+        if (keyValues == null) {
             return Collections.emptyMap();
         }
         if (keyValues.length % 2 != 0) {
@@ -110,18 +101,18 @@ public final class SecurityUtils {
         }
         Map<T, T> map = new HashMap<>();
 
-        for(int i = 0; i<keyValues.length; i+=2) {
-            map.put(keyValues[i], keyValues[i+1]);
+        for (int i = 0; i < keyValues.length; i += 2) {
+            map.put(keyValues[i], keyValues[i + 1]);
         }
         return map;
     }
 
     public static String replaceEnvVars(String in, Settings settings) {
-        if(in == null || in.isEmpty()) {
+        if (in == null || in.isEmpty()) {
             return in;
         }
 
-        if(settings == null || settings.getAsBoolean(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)) {
+        if (settings == null || settings.getAsBoolean(ConfigConstants.SECURITY_DISABLE_ENVVAR_REPLACEMENT, false)) {
             return in;
         }
 
@@ -129,13 +120,13 @@ public final class SecurityUtils {
     }
 
     private static String replaceEnvVarsNonBC(String in) {
-        //${env.MY_ENV_VAR}
-        //${env.MY_ENV_VAR:-default}
+        // ${env.MY_ENV_VAR}
+        // ${env.MY_ENV_VAR:-default}
         Matcher matcher = ENV_PATTERN.matcher(in);
         StringBuffer sb = new StringBuffer();
-        while(matcher.find()) {
+        while (matcher.find()) {
             final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), false);
-            if(replacement != null) {
+            if (replacement != null) {
                 matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
             }
         }
@@ -144,13 +135,13 @@ public final class SecurityUtils {
     }
 
     private static String replaceEnvVarsBC(String in) {
-        //${envbc.MY_ENV_VAR}
-        //${envbc.MY_ENV_VAR:-default}
+        // ${envbc.MY_ENV_VAR}
+        // ${envbc.MY_ENV_VAR:-default}
         Matcher matcher = ENVBC_PATTERN.matcher(in);
         StringBuffer sb = new StringBuffer();
-        while(matcher.find()) {
+        while (matcher.find()) {
             final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), true);
-            if(replacement != null) {
+            if (replacement != null) {
                 matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
             }
         }
@@ -159,32 +150,35 @@ public final class SecurityUtils {
     }
 
     private static String replaceEnvVarsBase64(String in) {
-        //${envbc.MY_ENV_VAR}
-        //${envbc.MY_ENV_VAR:-default}
+        // ${envbc.MY_ENV_VAR}
+        // ${envbc.MY_ENV_VAR:-default}
         Matcher matcher = ENVBASE64_PATTERN.matcher(in);
         StringBuffer sb = new StringBuffer();
-        while(matcher.find()) {
+        while (matcher.find()) {
             final String replacement = resolveEnvVar(matcher.group(1), matcher.group(2), false);
-            if(replacement != null) {
-                matcher.appendReplacement(sb, (Matcher.quoteReplacement(new String(Base64.getDecoder().decode(replacement), StandardCharsets.UTF_8))));
+            if (replacement != null) {
+                matcher.appendReplacement(
+                    sb,
+                    (Matcher.quoteReplacement(new String(Base64.getDecoder().decode(replacement), StandardCharsets.UTF_8)))
+                );
             }
         }
         matcher.appendTail(sb);
         return sb.toString();
     }
 
-    //${env.MY_ENV_VAR}
-    //${env.MY_ENV_VAR:-default}
+    // ${env.MY_ENV_VAR}
+    // ${env.MY_ENV_VAR:-default}
     private static String resolveEnvVar(String envVarName, String mode, boolean bc) {
         final String envVarValue = System.getenv(envVarName);
-        if(envVarValue == null || envVarValue.isEmpty()) {
-            if(mode != null && mode.startsWith(":-") && mode.length() > 2) {
-                return bc?Hasher.hash(mode.substring(2).toCharArray()):mode.substring(2);
+        if (envVarValue == null || envVarValue.isEmpty()) {
+            if (mode != null && mode.startsWith(":-") && mode.length() > 2) {
+                return bc ? Hasher.hash(mode.substring(2).toCharArray()) : mode.substring(2);
             } else {
                 return null;
             }
         } else {
-            return bc?Hasher.hash(envVarValue.toCharArray()):envVarValue;
+            return bc ? Hasher.hash(envVarValue.toCharArray()) : envVarValue;
         }
     }
 }

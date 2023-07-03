@@ -24,14 +24,14 @@ import org.opensearch.transport.TransportRequest;
 public interface SslExceptionHandler {
 
     default void logError(Throwable t, RestRequest request, int type) {
-        //no-op
+        // no-op
     }
 
     default void logError(Throwable t, boolean isRest) {
-      //no-op
+        // no-op
     }
 
     default void logError(Throwable t, final TransportRequest request, String action, Task task, int type) {
-      //no-op
+        // no-op
     }
 }
