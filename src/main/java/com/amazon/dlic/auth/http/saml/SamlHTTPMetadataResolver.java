@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.time.Duration;
 
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.apache.http.client.HttpClient;
@@ -31,8 +32,8 @@ public class SamlHTTPMetadataResolver extends HTTPMetadataResolver {
 
     SamlHTTPMetadataResolver(String idpMetadataUrl, Settings opensearchSettings, Path configPath) throws Exception {
         super(createHttpClient(opensearchSettings, configPath), idpMetadataUrl);
-        setMinRefreshDelay(opensearchSettings.getAsLong("idp.min_refresh_delay", 60L * 1000L));
-        setMaxRefreshDelay(opensearchSettings.getAsLong("idp.max_refresh_delay", 14400000L));
+        setMinRefreshDelay(Duration.ofMillis(opensearchSettings.getAsLong("idp.min_refresh_delay", 60L * 1000L)));
+        setMaxRefreshDelay(Duration.ofMillis(opensearchSettings.getAsLong("idp.max_refresh_delay", 14400000L)));
         setRefreshDelayFactor(opensearchSettings.getAsFloat("idp.refresh_delay_factor", 0.75f));
     }
 

@@ -27,6 +27,8 @@ buildscript {
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
         kafka_version  = '3.5.0'
         apache_cxf_version = '4.0.2'
+        open_saml_version = '4.3.0'
+        one_login_java_saml = '2.9.0'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -42,6 +44,8 @@ buildscript {
         maven { url "https://plugins.gradle.org/m2/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+        maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
+        maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
     }
 
     dependencies {
@@ -373,6 +377,7 @@ repositories {
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+    maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
 }
 
 tasks.withType(Checkstyle) {
@@ -486,8 +491,6 @@ dependencies {
     implementation 'com.github.wnameless:json-flattener:0.5.0'
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.4'
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
-    implementation 'com.onelogin:java-saml:2.5.0'
-    implementation 'com.onelogin:java-saml-core:2.5.0'
 
     runtimeOnly 'net.minidev:accessors-smart:2.4.7'
 
@@ -509,23 +512,26 @@ dependencies {
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.14.2'
 
-    implementation 'net.shibboleth.utilities:java-support:7.5.1'
-    implementation 'org.opensaml:opensaml-core:3.4.5'
-    implementation 'org.opensaml:opensaml-security-impl:3.4.5'
-    implementation 'org.opensaml:opensaml-security-api:3.4.5'
-    implementation 'org.opensaml:opensaml-xmlsec-api:3.4.5'
-    implementation 'org.opensaml:opensaml-xmlsec-impl:3.4.5'
-    implementation 'org.opensaml:opensaml-saml-api:3.4.5'
-    implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
+    //OpenSAML
+    implementation 'net.shibboleth.utilities:java-support:8.4.0'
+    implementation "com.onelogin:java-saml:${one_login_java_saml}"
+    implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
+    implementation "org.opensaml:opensaml-core:${open_saml_version}"
+    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
+    implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
+    implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
+    implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
         exclude(group: 'org.apache.velocity', module: 'velocity')
     }
+    implementation "org.opensaml:opensaml-messaging-api:${open_saml_version}"
+    runtimeOnly "org.opensaml:opensaml-profile-api:${open_saml_version}"
+    runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
+    runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
+    implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
+
     implementation "com.nulab-inc:zxcvbn:1.7.0"
-    testImplementation 'org.opensaml:opensaml-messaging-impl:3.4.5'
-    implementation 'org.opensaml:opensaml-messaging-api:3.4.5'
-    runtimeOnly 'org.opensaml:opensaml-profile-api:3.4.5'
-    runtimeOnly 'org.opensaml:opensaml-soap-api:3.4.5'
-    runtimeOnly 'org.opensaml:opensaml-soap-impl:3.4.5'
-    implementation 'org.opensaml:opensaml-storage-api:3.4.5'
     implementation 'commons-collections:commons-collections:3.2.2'
     implementation 'com.jayway.jsonpath:json-path:2.4.0'
     implementation 'net.minidev:json-smart:2.4.10'
@@ -553,6 +559,7 @@ dependencies {
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
+    testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
