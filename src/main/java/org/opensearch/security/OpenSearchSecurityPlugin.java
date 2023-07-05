@@ -1909,7 +1909,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     @Override
     public TokenManager getTokenManager() {
         return new SecurityTokenManager(
-            threadPool.getThreadContext(),
             threadPool,
             new XFFResolver(threadPool),
             auditLog,

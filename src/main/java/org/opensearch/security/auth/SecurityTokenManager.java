@@ -39,7 +39,6 @@ public class SecurityTokenManager implements TokenManager {
     }
 
     public SecurityTokenManager(
-        ThreadContext threadContext,
         ThreadPool threadPool,
         final XFFResolver xffResolver,
         AuditLog auditLog,
@@ -47,17 +46,17 @@ public class SecurityTokenManager implements TokenManager {
     ) {
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
         this.extensionBwcCompatMode = settings.getAsBoolean(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT);
-        this.user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        this.user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        final TransportAddress caller = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+
         if (user == null) {
             user = userInjector.getInjectedUser();
         }
-        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
         this.mappedRoles = configModel.mapSecurityRoles(user, caller);
     }
 
     @Override
     public AuthToken issueToken(String audience) {
-
         if (extensionBwcCompatMode) {
             StringJoiner joiner = new StringJoiner("|");
             joiner.add(user.getName());
