@@ -64,7 +64,7 @@ public class InternalUserV7 implements Hideable, Hashed, StaticDefinable {
         this.service = false;
     }
 
-    private InternalUserV7(
+    public InternalUserV7(
         String hash,
         boolean reserved,
         boolean hidden,

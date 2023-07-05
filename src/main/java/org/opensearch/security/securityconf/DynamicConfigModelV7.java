@@ -191,12 +191,12 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     public List<AuthFailureListener> getIpAuthFailureListeners() {
         return Collections.unmodifiableList(ipAuthFailureListeners);
     }
-    
+
     @Override
     public Settings getDynamicOnBehalfOfSettings() {
         return Settings.builder()
-                .put(Settings.builder().loadFromSource(config.dynamic.on_behalf_of.configAsJson(), XContentType.JSON).build())
-                .build();
+            .put(Settings.builder().loadFromSource(config.dynamic.on_behalf_of.configAsJson(), XContentType.JSON).build())
+            .build();
     }
 
     @Override

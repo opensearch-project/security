@@ -177,12 +177,12 @@ public class JwtVendor {
 
         if (logger.isDebugEnabled()) {
             logger.debug(
-                    "Created JWT: "
-                            + encodedJwt
-                            + "\n"
-                            + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
-                            + "\n"
-                            + JwtUtils.claimsToJson(jwt.getClaims())
+                "Created JWT: "
+                    + encodedJwt
+                    + "\n"
+                    + jsonMapReaderWriter.toJson(jwt.getJwsHeaders())
+                    + "\n"
+                    + JwtUtils.claimsToJson(jwt.getClaims())
             );
         }
 

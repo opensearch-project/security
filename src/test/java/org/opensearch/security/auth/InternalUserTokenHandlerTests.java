@@ -36,8 +36,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.security.dlic.rest.support.Utils.universalHash;
 import static org.opensearch.test.OpenSearchTestCase.assertEquals;
 
-
-public class InternalUserTokenHandlerTests  {
+public class InternalUserTokenHandlerTests {
     private InternalUserTokenHandler internalUserTokenHandler;
     private UserService userService;
     private SecurityDynamicConfiguration internalUsersConfiguration;

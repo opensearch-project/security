@@ -75,16 +75,16 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "Dynamic [filtered_alias_mode="
-                    + filtered_alias_mode
-                    + ", kibana="
-                    + kibana
-                    + ", http="
-                    + http
-                    + ", authc="
-                    + authc
-                    + ", authz="
-                    + authz
-                    + "]";
+                + filtered_alias_mode
+                + ", kibana="
+                + kibana
+                + ", http="
+                + http
+                + ", authc="
+                + authc
+                + ", authz="
+                + authz
+                + "]";
         }
     }
 
@@ -104,16 +104,16 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "Kibana [multitenancy_enabled="
-                    + multitenancy_enabled
-                    + ", server_username="
-                    + server_username
-                    + ", opendistro_role="
-                    + opendistro_role
-                    + ", index="
-                    + index
-                    + ", do_not_fail_on_forbidden="
-                    + do_not_fail_on_forbidden
-                    + "]";
+                + multitenancy_enabled
+                + ", server_username="
+                + server_username
+                + ", opendistro_role="
+                + opendistro_role
+                + ", index="
+                + index
+                + ", do_not_fail_on_forbidden="
+                + do_not_fail_on_forbidden
+                + "]";
         }
 
     }
@@ -172,13 +172,13 @@ public class ConfigV6 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public String internalProxies = Pattern.compile(
-                "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "192\\.168\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "169\\.254\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
+            "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "192\\.168\\.\\d{1,3}\\.\\d{1,3}|"
+                + "169\\.254\\.\\d{1,3}\\.\\d{1,3}|"
+                + "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
         ).toString();
         public String remoteIpHeader = "X-Forwarded-For";
         public String proxiesHeader = "X-Forwarded-By";
@@ -187,16 +187,16 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "Xff [enabled="
-                    + enabled
-                    + ", internalProxies="
-                    + internalProxies
-                    + ", remoteIpHeader="
-                    + remoteIpHeader
-                    + ", proxiesHeader="
-                    + proxiesHeader
-                    + ", trustedProxies="
-                    + trustedProxies
-                    + "]";
+                + enabled
+                + ", internalProxies="
+                + internalProxies
+                + ", remoteIpHeader="
+                + remoteIpHeader
+                + ", proxiesHeader="
+                + proxiesHeader
+                + ", trustedProxies="
+                + trustedProxies
+                + "]";
         }
 
     }
@@ -237,18 +237,18 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "AuthcDomain [http_enabled="
-                    + http_enabled
-                    + ", transport_enabled="
-                    + transport_enabled
-                    + ", enabled="
-                    + enabled
-                    + ", order="
-                    + order
-                    + ", http_authenticator="
-                    + http_authenticator
-                    + ", authentication_backend="
-                    + authentication_backend
-                    + "]";
+                + http_enabled
+                + ", transport_enabled="
+                + transport_enabled
+                + ", enabled="
+                + enabled
+                + ", order="
+                + order
+                + ", http_authenticator="
+                + http_authenticator
+                + ", authentication_backend="
+                + authentication_backend
+                + "]";
         }
 
     }
@@ -348,14 +348,14 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "AuthzDomain [http_enabled="
-                    + http_enabled
-                    + ", transport_enabled="
-                    + transport_enabled
-                    + ", enabled="
-                    + enabled
-                    + ", authorization_backend="
-                    + authorization_backend
-                    + "]";
+                + http_enabled
+                + ", transport_enabled="
+                + transport_enabled
+                + ", enabled="
+                + enabled
+                + ", authorization_backend="
+                + authorization_backend
+                + "]";
         }
 
     }

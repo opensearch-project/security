@@ -21,9 +21,10 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.identity.tokens.BearerAuthToken;
-import org.opensearch.identity.tokens.NoopToken;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.identity.SecurityTokenManager;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.user.InternalUserTokenHandler;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
@@ -44,14 +45,13 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 public class SecurityTokenManagerTests {
 
-
     SecurityTokenManager securityTokenManager;
     private UserTokenHandler userTokenHandler;
     private InternalUserTokenHandler internalUserTokenHandler;
 
     private ClusterService clusterService;
     UserService userService;
-
+    Map<CType, SecurityDynamicConfiguration<?> internalUserMap;
 
     @Before
     public void setup() {
@@ -62,7 +62,9 @@ public class SecurityTokenManagerTests {
         ConfigurationRepository configurationRepository = mock(ConfigurationRepository.class);
         clusterService = mock(ClusterService.class);
         userService = mock(UserService.class);
-        securityTokenManager = spy(new SecurityTokenManager(threadPool, clusterService, configurationRepository, client, settings, userService));
+        securityTokenManager = spy(
+            new SecurityTokenManager(threadPool, clusterService, configurationRepository, client, settings, userService)
+        );
         userTokenHandler = mock(UserTokenHandler.class);
         internalUserTokenHandler = mock(InternalUserTokenHandler.class);
         securityTokenManager.setInternalUserTokenHandler(internalUserTokenHandler);
@@ -70,10 +72,10 @@ public class SecurityTokenManagerTests {
     }
 
     @Test
-    public void testIssueTokenShouldPass() throws Exception {
+    public void testIssueTokenShouldPass() {
         doReturn(new BearerAuthToken("header.payload.signature")).when(userTokenHandler).issueToken("test");
-        AuthToken createdBearerToken = securityTokenManager.issueToken("onBehalfOfToken", "test");
-        assert(createdBearerToken instanceof BearerAuthToken);
+        AuthToken createdBearerToken = securityTokenManager.issueToken("test");
+        assert (createdBearerToken instanceof BearerAuthToken);
         BearerAuthToken bearerAuthToken = (BearerAuthToken) createdBearerToken;
         String header = bearerAuthToken.getHeader();
         String payload = bearerAuthToken.getPayload();
@@ -83,22 +85,13 @@ public class SecurityTokenManagerTests {
         assertEquals(signature, "signature");
 
         doReturn(new BasicAuthToken("Basic dGVzdDp0ZTpzdA==")).when(internalUserTokenHandler).issueToken("test");
-        AuthToken createdBasicToken = securityTokenManager.issueToken("internalAuthToken", "test");
-        assert(createdBasicToken instanceof BasicAuthToken);
+        AuthToken createdBasicToken = securityTokenManager.issueToken("test");
+        assert (createdBasicToken instanceof BasicAuthToken);
         BasicAuthToken basicAuthToken = (BasicAuthToken) createdBasicToken;
         String accountName = basicAuthToken.getUser();
         String password = basicAuthToken.getPassword();
         assertEquals(accountName, "test");
         assertEquals(password, "te:st");
-    }
-
-    @Test
-    public void testIssueTokenShouldThrow() throws Exception {
-        Exception exception1 = assertThrows(UserServiceException.class, () -> securityTokenManager.issueToken());
-        assert(exception1.getMessage().contains("The Security Plugin does not support generic token creation. Please specify a token type and argument."));
-
-        Exception exception2 = assertThrows(UserServiceException.class, () -> securityTokenManager.issueToken("notAToken", "test"));
-        assert(exception2.getMessage().contains("The provided type notAToken is not a valid token. Please specify either \"onBehalfOf\" or \"internalAuthToken\"."));
     }
 
     @Test
@@ -127,8 +120,13 @@ public class SecurityTokenManagerTests {
 
     @Test
     public void testValidateTokenShouldThrow() {
-        Exception exception = assertThrows(UserServiceException.class, () -> securityTokenManager.validateToken(new NoopToken()));
-        assert(exception.getMessage().contains(securityTokenManager.TOKEN_NOT_SUPPORTED_MESSAGE));
+        Exception exception = assertThrows(UserServiceException.class, () -> securityTokenManager.validateToken(new AuthToken() {
+            @Override
+            public int hashCode() {
+                return super.hashCode();
+            }
+        }));
+        assert (exception.getMessage().contains(securityTokenManager.TOKEN_NOT_SUPPORTED_MESSAGE));
     }
 
     @Test
@@ -145,24 +143,28 @@ public class SecurityTokenManagerTests {
 
     @Test
     public void testGetTokenInfoShouldThrow() {
-        NoopToken noopToken = new NoopToken();
-        Exception exception = assertThrows(UserServiceException.class, () -> securityTokenManager.getTokenInfo(noopToken));
-        assert(exception.getMessage().contains(securityTokenManager.TOKEN_NOT_SUPPORTED_MESSAGE));
+        Exception exception = assertThrows(UserServiceException.class, () -> securityTokenManager.getTokenInfo(new AuthToken() {
+            @Override
+            public int hashCode() {
+                return super.hashCode();
+            }
+        }));
+        assert (exception.getMessage().contains(securityTokenManager.TOKEN_NOT_SUPPORTED_MESSAGE));
     }
 
     @Test
     public void testRevokeTokenShouldPass() throws Exception {
 
         doReturn(new BearerAuthToken("header.payload.signature")).when(userTokenHandler).issueToken("test");
-        AuthToken createdBearerToken = securityTokenManager.issueToken("onBehalfOfToken", "test");
-        assert(createdBearerToken instanceof BearerAuthToken);
+        AuthToken createdBearerToken = securityTokenManager.issueToken("test");
+        assert (createdBearerToken instanceof BearerAuthToken);
         doReturn(true).when(userTokenHandler).validateToken(createdBearerToken);
         securityTokenManager.revokeToken(createdBearerToken);
         verify(userTokenHandler, times(1)).revokeToken(createdBearerToken);
 
         doReturn(new BasicAuthToken("Basic dGVzdDp0ZTpzdA==")).when(internalUserTokenHandler).issueToken("test");
-        AuthToken createdBasicToken = securityTokenManager.issueToken("internalAuthToken", "test");
-        assert(createdBasicToken instanceof BasicAuthToken);
+        AuthToken createdBasicToken = securityTokenManager.issueToken("test");
+        assert (createdBasicToken instanceof BasicAuthToken);
         doReturn(true).when(internalUserTokenHandler).validateToken(createdBasicToken);
         securityTokenManager.revokeToken(createdBasicToken);
         verify(internalUserTokenHandler, times(1)).revokeToken(any());
@@ -170,32 +172,29 @@ public class SecurityTokenManagerTests {
 
     @Test
     public void testRevokeTokenShouldThrow() {
-        NoopToken noopToken = new NoopToken();
-        Exception exception = assertThrows(UserServiceException.class, () -> securityTokenManager.revokeToken(noopToken));
-        assert(exception.getMessage().contains(securityTokenManager.TOKEN_NOT_SUPPORTED_MESSAGE));
+        Exception exception = assertThrows(UserServiceException.class, () -> securityTokenManager.revokeToken(new AuthToken() {
+            @Override
+            public int hashCode() {
+                return super.hashCode();
+            }
+        }));
+        assert (exception.getMessage().contains(securityTokenManager.TOKEN_NOT_SUPPORTED_MESSAGE));
     }
 
     @Test
     public void testResetTokenShouldPass() throws Exception {
         doReturn(new BearerAuthToken("header.payload.signature")).when(userTokenHandler).issueToken("test");
-        AuthToken createdBearerToken = securityTokenManager.issueToken("onBehalfOfToken", "test");
-        assert(createdBearerToken instanceof BearerAuthToken);
+        AuthToken createdBearerToken = securityTokenManager.issueToken("test");
+        assert (createdBearerToken instanceof BearerAuthToken);
         doReturn(true).when(userTokenHandler).validateToken(createdBearerToken);
         securityTokenManager.revokeToken(createdBearerToken);
         verify(userTokenHandler, times(1)).revokeToken(createdBearerToken);
 
         doReturn(new BasicAuthToken("Basic dGVzdDp0ZTpzdA==")).when(internalUserTokenHandler).issueToken("test");
-        AuthToken createdBasicToken = securityTokenManager.issueToken("internalAuthToken", "test");
-        assert(createdBasicToken instanceof BasicAuthToken);
+        AuthToken createdBasicToken = securityTokenManager.issueToken("test");
+        assert (createdBasicToken instanceof BasicAuthToken);
         doReturn(true).when(internalUserTokenHandler).validateToken(createdBasicToken);
         securityTokenManager.revokeToken(createdBasicToken);
         verify(internalUserTokenHandler, times(1)).revokeToken(any());
-    }
-
-    @Test
-    public void testResetTokenShouldThrow() {
-        NoopToken noopToken = new NoopToken();
-        Exception exception = assertThrows(UserServiceException.class, () -> securityTokenManager.resetToken(noopToken));
-        assert(exception.getMessage().contains(securityTokenManager.TOKEN_NOT_SUPPORTED_MESSAGE));
     }
 }

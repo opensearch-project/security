@@ -32,7 +32,6 @@ public class InternalUserTokenHandler implements TokenManager {
 
     public SecurityDynamicConfiguration<?> internalUsersConfiguration;
 
-
     @Inject
     public InternalUserTokenHandler(final Settings settings, UserService userService) {
         this.settings = settings;
@@ -41,14 +40,16 @@ public class InternalUserTokenHandler implements TokenManager {
     }
 
     public AuthToken issueToken() {
-        throw new UserServiceException("The InternalUserTokenHandler is unable to issue generic auth tokens. Please specify a valid internal user.");
+        throw new UserServiceException(
+            "The InternalUserTokenHandler is unable to issue generic auth tokens. Please specify a valid internal user."
+        );
     }
 
     public AuthToken issueToken(String internalUser) {
         String tokenAsString;
         try {
             tokenAsString = this.userService.generateAuthToken(internalUser);
-        } catch (IOException | UserServiceException ex){
+        } catch (IOException | UserServiceException ex) {
             throw new UserServiceException("Failed to generate an auth token for " + internalUser);
         }
         return new BasicAuthToken(tokenAsString);
@@ -58,7 +59,7 @@ public class InternalUserTokenHandler implements TokenManager {
         if (!(token instanceof BasicAuthToken)) {
             throw new UserServiceException("The provided auth token is of an incorrect type. Please provide a BasicAuthToken object.");
         }
-        BasicAuthToken basicToken  = (BasicAuthToken) token;
+        BasicAuthToken basicToken = (BasicAuthToken) token;
         String accountName = basicToken.getUser();
         String password = basicToken.getPassword();
         String hash;
@@ -67,7 +68,8 @@ public class InternalUserTokenHandler implements TokenManager {
         } catch (NoSuchAlgorithmException e) {
             throw new UserServiceException("The provided token could not be validated.");
         }
-        return (internalUsersConfiguration.exists(accountName) && hash.equals(((Hashed) internalUsersConfiguration.getCEntry(accountName)).getHash()));
+        return (internalUsersConfiguration.exists(accountName)
+            && hash.equals(((Hashed) internalUsersConfiguration.getCEntry(accountName)).getHash()));
     }
 
     public String getTokenInfo(AuthToken token) {
@@ -80,7 +82,7 @@ public class InternalUserTokenHandler implements TokenManager {
 
     public void revokeToken(AuthToken token) {
         if (validateToken(token)) {
-            BasicAuthToken basicToken  = (BasicAuthToken) token;
+            BasicAuthToken basicToken = (BasicAuthToken) token;
             String accountName = basicToken.getUser();
             try {
                 userService.clearHash(accountName);
@@ -96,4 +98,3 @@ public class InternalUserTokenHandler implements TokenManager {
         throw new UserServiceException("The InternalUserTokenHandler is unable to reset auth tokens.");
     }
 }
-

@@ -95,43 +95,43 @@ public class BackendRegistry {
 
     private void createCaches() {
         userCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-                .removalListener(new RemovalListener<AuthCredentials, User>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
-                        log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
-                    }
-                })
-                .build();
+            .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+            .removalListener(new RemovalListener<AuthCredentials, User>() {
+                @Override
+                public void onRemoval(RemovalNotification<AuthCredentials, User> notification) {
+                    log.debug("Clear user cache for {} due to {}", notification.getKey().getUsername(), notification.getCause());
+                }
+            })
+            .build();
 
         restImpersonationCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-                .removalListener(new RemovalListener<String, User>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<String, User> notification) {
-                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
-                    }
-                })
-                .build();
+            .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+            .removalListener(new RemovalListener<String, User>() {
+                @Override
+                public void onRemoval(RemovalNotification<String, User> notification) {
+                    log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
+                }
+            })
+            .build();
 
         restRoleCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
-                .removalListener(new RemovalListener<User, Set<String>>() {
-                    @Override
-                    public void onRemoval(RemovalNotification<User, Set<String>> notification) {
-                        log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
-                    }
-                })
-                .build();
+            .expireAfterWrite(ttlInMin, TimeUnit.MINUTES)
+            .removalListener(new RemovalListener<User, Set<String>>() {
+                @Override
+                public void onRemoval(RemovalNotification<User, Set<String>> notification) {
+                    log.debug("Clear user cache for {} due to {}", notification.getKey(), notification.getCause());
+                }
+            })
+            .build();
 
     }
 
     public BackendRegistry(
-            final Settings settings,
-            final AdminDNs adminDns,
-            final XFFResolver xffResolver,
-            final AuditLog auditLog,
-            final ThreadPool threadPool
+        final Settings settings,
+        final AdminDNs adminDns,
+        final XFFResolver xffResolver,
+        final AuditLog auditLog,
+        final ThreadPool threadPool
     ) {
         this.adminDns = adminDns;
         this.opensearchSettings = settings;
@@ -163,7 +163,7 @@ public class BackendRegistry {
 
         invalidateCache();
         anonymousAuthEnabled = dcm.isAnonymousAuthenticationEnabled()// config.dynamic.http.anonymous_auth_enabled
-                && !opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
+            && !opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_COMPLIANCE_DISABLE_ANONYMOUS_AUTHENTICATION, false);
 
         restAuthDomains = Collections.unmodifiableSortedSet(dcm.getRestAuthDomains());
         restAuthorizers = Collections.unmodifiableSet(dcm.getRestAuthorizers());
@@ -187,7 +187,7 @@ public class BackendRegistry {
     public boolean authenticate(final RestRequest request, final RestChannel channel, final ThreadContext threadContext) {
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress
-                && isBlocked(((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress())) {
+            && isBlocked(((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress())) {
             if (isDebugEnabled) {
                 log.debug("Rejecting REST request because of blocked address: {}", request.getHttpChannel().getRemoteAddress());
             }
@@ -237,10 +237,10 @@ public class BackendRegistry {
         for (final AuthDomain authDomain : restAuthDomains) {
             if (isDebugEnabled) {
                 log.debug(
-                        "Check authdomain for rest {}/{} or {} in total",
-                        authDomain.getBackend().getType(),
-                        authDomain.getOrder(),
-                        restAuthDomains.size()
+                    "Check authdomain for rest {}/{} or {} in total",
+                    authDomain.getBackend().getType(),
+                    authDomain.getOrder(),
+                    restAuthDomains.size()
                 );
             }
 
@@ -311,22 +311,22 @@ public class BackendRegistry {
             if (authenticatedUser == null) {
                 if (isDebugEnabled) {
                     log.debug(
-                            "Cannot authenticate rest user {} (or add roles) with authdomain {}/{} of {}, try next",
-                            ac.getUsername(),
-                            authDomain.getBackend().getType(),
-                            authDomain.getOrder(),
-                            restAuthDomains
+                        "Cannot authenticate rest user {} (or add roles) with authdomain {}/{} of {}, try next",
+                        ac.getUsername(),
+                        authDomain.getBackend().getType(),
+                        authDomain.getOrder(),
+                        restAuthDomains
                     );
                 }
                 for (AuthFailureListener authFailureListener : this.authBackendFailureListeners.get(
-                        authDomain.getBackend().getClass().getName()
+                    authDomain.getBackend().getClass().getName()
                 )) {
                     authFailureListener.onAuthFailure(
-                            (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress)
-                                    ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress()
-                                    : null,
-                            ac,
-                            request
+                        (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress)
+                            ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress()
+                            : null,
+                        ac,
+                        request
                     );
                 }
                 continue;
@@ -336,10 +336,10 @@ public class BackendRegistry {
                 log.error("Cannot authenticate rest user because admin user is not permitted to login via HTTP");
                 auditLog.logFailedLogin(authenticatedUser.getName(), true, null, request);
                 channel.sendResponse(
-                        new BytesRestResponse(
-                                RestStatus.FORBIDDEN,
-                                "Cannot authenticate user because admin user is not permitted to login via HTTP"
-                        )
+                    new BytesRestResponse(
+                        RestStatus.FORBIDDEN,
+                        "Cannot authenticate user because admin user is not permitted to login via HTTP"
+                    )
                 );
                 return false;
             }
@@ -359,14 +359,14 @@ public class BackendRegistry {
         if (authenticated) {
             final User impersonatedUser = impersonate(request, authenticatedUser);
             threadContext.putTransient(
-                    ConfigConstants.OPENDISTRO_SECURITY_USER,
-                    impersonatedUser == null ? authenticatedUser : impersonatedUser
+                ConfigConstants.OPENDISTRO_SECURITY_USER,
+                impersonatedUser == null ? authenticatedUser : impersonatedUser
             );
             auditLog.logSucceededLogin(
-                    (impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(),
-                    false,
-                    authenticatedUser.getName(),
-                    request
+                (impersonatedUser == null ? authenticatedUser : impersonatedUser).getName(),
+                false,
+                authenticatedUser.getName(),
+                request
             );
         } else {
             if (isDebugEnabled) {
@@ -398,9 +398,9 @@ public class BackendRegistry {
                     }
 
                     log.warn(
-                            "Authentication finally failed for {} from {}",
-                            authCredenetials == null ? null : authCredenetials.getUsername(),
-                            remoteAddress
+                        "Authentication finally failed for {} from {}",
+                        authCredenetials == null ? null : authCredenetials.getUsername(),
+                        remoteAddress
                     );
                     auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
                     return false;
@@ -408,9 +408,9 @@ public class BackendRegistry {
             }
 
             log.warn(
-                    "Authentication finally failed for {} from {}",
-                    authCredenetials == null ? null : authCredenetials.getUsername(),
-                    remoteAddress
+                "Authentication finally failed for {} from {}",
+                authCredenetials == null ? null : authCredenetials.getUsername(),
+                remoteAddress
             );
             auditLog.logFailedLogin(authCredenetials == null ? null : authCredenetials.getUsername(), false, null, request);
 
@@ -425,11 +425,11 @@ public class BackendRegistry {
 
     private void notifyIpAuthFailureListeners(RestRequest request, AuthCredentials authCredentials) {
         notifyIpAuthFailureListeners(
-                (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress)
-                        ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress()
-                        : null,
-                authCredentials,
-                request
+            (request.getHttpChannel().getRemoteAddress() instanceof InetSocketAddress)
+                ? ((InetSocketAddress) request.getHttpChannel().getRemoteAddress()).getAddress()
+                : null,
+            authCredentials,
+            request
         );
     }
 
@@ -445,10 +445,10 @@ public class BackendRegistry {
      * @return null if user cannot b authenticated
      */
     private User checkExistsAndAuthz(
-            final Cache<String, User> cache,
-            final User user,
-            final AuthenticationBackend authenticationBackend,
-            final Set<AuthorizationBackend> authorizers
+        final Cache<String, User> cache,
+        final User user,
+        final AuthenticationBackend authenticationBackend,
+        final Set<AuthorizationBackend> authorizers
     ) {
         if (user == null) {
             return null;
@@ -463,9 +463,9 @@ public class BackendRegistry {
                 public User call() throws Exception {
                     if (isTraceEnabled) {
                         log.trace(
-                                "Credentials for user {} not cached, return from {} backend directly",
-                                user.getName(),
-                                authenticationBackend.getType()
+                            "Credentials for user {} not cached, return from {} backend directly",
+                            user.getName(),
+                            authenticationBackend.getType()
                         );
                     }
                     if (authenticationBackend.exists(user)) {
@@ -512,9 +512,9 @@ public class BackendRegistry {
             try {
                 if (isTraceEnabled) {
                     log.trace(
-                            "Backend roles for {} not cached, return from {} backend directly",
-                            authenticatedUser.getName(),
-                            ab.getType()
+                        "Backend roles for {} not cached, return from {} backend directly",
+                        authenticatedUser.getName(),
+                        ab.getType()
                     );
                 }
                 ab.fillRoles(authenticatedUser, new AuthCredentials(authenticatedUser.getName()));
@@ -534,11 +534,11 @@ public class BackendRegistry {
      * @return null if user cannot b authenticated
      */
     private User authcz(
-            final Cache<AuthCredentials, User> cache,
-            Cache<User, Set<String>> roleCache,
-            final AuthCredentials ac,
-            final AuthenticationBackend authBackend,
-            final Set<AuthorizationBackend> authorizers
+        final Cache<AuthCredentials, User> cache,
+        Cache<User, Set<String>> roleCache,
+        final AuthCredentials ac,
+        final AuthenticationBackend authBackend,
+        final Set<AuthorizationBackend> authorizers
     ) {
         if (ac == null) {
             return null;
@@ -557,9 +557,9 @@ public class BackendRegistry {
                 public User call() throws Exception {
                     if (log.isTraceEnabled()) {
                         log.trace(
-                                "Credentials for user {} not cached, return from {} backend directly",
-                                ac.getUsername(),
-                                authBackend.getType()
+                            "Credentials for user {} not cached, return from {} backend directly",
+                            ac.getUsername(),
+                            authBackend.getType()
                         );
                     }
                     final User authenticatedUser = authBackend.authenticate(ac);
@@ -591,15 +591,15 @@ public class BackendRegistry {
 
         if (adminDns.isAdminDN(impersonatedUserHeader)) {
             throw new OpenSearchSecurityException(
-                    "It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
-                    RestStatus.FORBIDDEN
+                "It is not allowed to impersonate as an adminuser  '" + impersonatedUserHeader + "'",
+                RestStatus.FORBIDDEN
             );
         }
 
         if (!adminDns.isRestImpersonationAllowed(originalUser.getName(), impersonatedUserHeader)) {
             throw new OpenSearchSecurityException(
-                    "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'",
-                    RestStatus.FORBIDDEN
+                "'" + originalUser.getName() + "' is not allowed to impersonate as '" + impersonatedUserHeader + "'",
+                RestStatus.FORBIDDEN
             );
         } else {
             final boolean isDebugEnabled = log.isDebugEnabled();
@@ -607,27 +607,27 @@ public class BackendRegistry {
             for (final AuthDomain authDomain : restAuthDomains) {
                 final AuthenticationBackend authenticationBackend = authDomain.getBackend();
                 final User impersonatedUser = checkExistsAndAuthz(
-                        restImpersonationCache,
-                        new User(impersonatedUserHeader),
-                        authenticationBackend,
-                        restAuthorizers
+                    restImpersonationCache,
+                    new User(impersonatedUserHeader),
+                    authenticationBackend,
+                    restAuthorizers
                 );
 
                 if (impersonatedUser == null) {
                     log.debug(
-                            "Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...",
-                            originalUser.getName(),
-                            impersonatedUserHeader,
-                            authenticationBackend.getType()
+                        "Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists in {}, try next ...",
+                        originalUser.getName(),
+                        impersonatedUserHeader,
+                        authenticationBackend.getType()
                     );
                     continue;
                 }
 
                 if (isDebugEnabled) {
                     log.debug(
-                            "Impersonate rest user from '{}' to '{}'",
-                            originalUser.toStringWithAttributes(),
-                            impersonatedUser.toStringWithAttributes()
+                        "Impersonate rest user from '{}' to '{}'",
+                        originalUser.toStringWithAttributes(),
+                        impersonatedUser.toStringWithAttributes()
                     );
                 }
 
@@ -636,9 +636,9 @@ public class BackendRegistry {
             }
 
             log.debug(
-                    "Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists",
-                    originalUser.getName(),
-                    impersonatedUserHeader
+                "Unable to impersonate rest user from '{}' to '{}' because the impersonated user does not exists",
+                originalUser.getName(),
+                impersonatedUserHeader
             );
             throw new OpenSearchSecurityException("No such user:" + impersonatedUserHeader, RestStatus.FORBIDDEN);
         }

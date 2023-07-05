@@ -11,6 +11,7 @@
 
 package org.opensearch.security.identity;
 
+import java.util.Collections;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -20,6 +21,9 @@ import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.identity.tokens.BearerAuthToken;
 import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.securityconf.DynamicConfigFactory;
+import org.opensearch.security.securityconf.impl.CType;
+import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.user.InternalUserTokenHandler;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
@@ -47,39 +51,39 @@ public class SecurityTokenManager implements TokenManager {
     public final String TOKEN_NOT_SUPPORTED_MESSAGE = "The provided token type is not supported by the Security Plugin.";
 
     @Inject
-    public SecurityTokenManager(ThreadPool threadPool, ClusterService clusterService, ConfigurationRepository configurationRepository, Client client, Settings settings, UserService userService) {
+    public SecurityTokenManager(
+        ThreadPool threadPool,
+        ClusterService clusterService,
+        ConfigurationRepository configurationRepository,
+        Client client,
+        Settings settings,
+        UserService userService
+    ) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.client = client;
         this.configurationRepository = configurationRepository;
         this.settings = settings;
         this.userService = userService;
-        userTokenHandler = new UserTokenHandler(threadPool,  clusterService,  configurationRepository,  client);
+        userTokenHandler = new UserTokenHandler(threadPool, clusterService, configurationRepository, client);
         internalUserTokenHandler = new InternalUserTokenHandler(settings, userService);
 
     }
 
     @Override
-    public AuthToken issueToken() {
-        throw new UserServiceException("The Security Plugin does not support generic token creation. Please specify a token type and argument.");
-    }
-
-    public AuthToken issueToken(String type, String account) throws Exception {
+    public AuthToken issueToken(String account) {
 
         AuthToken token;
-        switch (type) {
-            case "onBehalfOfToken":
-                token = userTokenHandler.issueToken(account);
-                break;
-            case "internalAuthToken":
-                token = internalUserTokenHandler.issueToken(account);
-                break;
-            default: throw new UserServiceException("The provided type " + type + " is not a valid token. Please specify either \"onBehalfOf\" or \"internalAuthToken\".");
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(UserService.getUserConfigName(), false);
+        if (internalUsersConfiguration.exists(account)) {
+            token = internalUserTokenHandler.issueToken(account);
+        }
+         else {
+            token = userTokenHandler.issueToken(account);
         }
         return token;
     }
 
-    @Override
     public boolean validateToken(AuthToken authToken) {
 
         if (authToken instanceof BearerAuthToken) {
@@ -91,7 +95,6 @@ public class SecurityTokenManager implements TokenManager {
         throw new UserServiceException(TOKEN_NOT_SUPPORTED_MESSAGE);
     }
 
-    @Override
     public String getTokenInfo(AuthToken authToken) {
 
         if (authToken instanceof BearerAuthToken) {
@@ -103,7 +106,6 @@ public class SecurityTokenManager implements TokenManager {
         throw new UserServiceException(TOKEN_NOT_SUPPORTED_MESSAGE);
     }
 
-    @Override
     public void revokeToken(AuthToken authToken) {
         if (authToken instanceof BearerAuthToken) {
             userTokenHandler.revokeToken(authToken);
@@ -112,17 +114,6 @@ public class SecurityTokenManager implements TokenManager {
         if (authToken instanceof BasicAuthToken) {
             internalUserTokenHandler.revokeToken(authToken);
             return;
-        }
-        throw new UserServiceException(TOKEN_NOT_SUPPORTED_MESSAGE);
-    }
-
-    @Override
-    public void resetToken(AuthToken authToken) {
-        if (authToken instanceof BearerAuthToken) {
-            userTokenHandler.resetToken(authToken);
-        }
-        if (authToken instanceof BasicAuthToken) {
-            internalUserTokenHandler.resetToken(authToken);
         }
         throw new UserServiceException(TOKEN_NOT_SUPPORTED_MESSAGE);
     }
@@ -139,5 +130,18 @@ public class SecurityTokenManager implements TokenManager {
      */
     public void setUserTokenHandler(UserTokenHandler handler) {
         this.userTokenHandler = handler;
+    }
+
+    /**
+     * Load data for a given CType
+     * @param config CType whose data is to be loaded in-memory
+     * @return configuration loaded with given CType data
+     */
+    protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
+            Collections.singleton(config),
+            logComplianceEvent
+        ).get(config).deepClone();
+        return DynamicConfigFactory.addStatics(loaded);
     }
 }

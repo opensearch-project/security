@@ -98,6 +98,8 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
+import org.opensearch.identity.Subject;
+import org.opensearch.identity.tokens.TokenManager;
 import org.opensearch.index.Index;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
@@ -142,9 +144,11 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
+import org.opensearch.security.http.HTTPOnBehalfOfJwtAuthenticator;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.resolver.IndexResolverReplacer;
@@ -1881,6 +1885,16 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             return field.substring(0, field.length() - KEYWORD.length());
         }
         return field;
+    }
+
+    @Override
+    public Subject getSubject() {
+        return null;
+    }
+
+    @Override
+    public TokenManager getTokenManager() {
+        return securityTokenManager;
     }
 
     public static class GuiceHolder implements LifecycleComponent {

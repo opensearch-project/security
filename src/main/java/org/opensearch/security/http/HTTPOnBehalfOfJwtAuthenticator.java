@@ -247,10 +247,10 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
             // We expect a String. If we find something else, convert to String but issue a warning
             if (!(subjectObject instanceof String)) {
                 log.warn(
-                        "Expected type String in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
-                        subjectKey,
-                        subjectObject,
-                        subjectObject.getClass()
+                    "Expected type String in the JWT for subject_key {}, but value was '{}' ({}). Will convert this value to String.",
+                    subjectKey,
+                    subjectObject,
+                    subjectObject.getClass()
                 );
             }
             subject = String.valueOf(subjectObject);
@@ -259,7 +259,7 @@ public class HTTPOnBehalfOfJwtAuthenticator implements HTTPAuthenticator {
     }
 
     private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException,
-            InvalidKeySpecException {
+        InvalidKeySpecException {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance(algo);
         return kf.generatePublic(spec);

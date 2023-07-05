@@ -13,6 +13,7 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -158,6 +159,8 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             return;
         } catch (IOException ex) {
             throw new IOException(ex);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
 
         // for existing users, hash is optional

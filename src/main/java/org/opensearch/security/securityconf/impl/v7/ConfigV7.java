@@ -87,27 +87,27 @@ public class ConfigV7 {
         dynamic.authc = new Authc();
 
         dynamic.authc.domains.putAll(
-                c6.dynamic.authc.getDomains()
-                        .entrySet()
-                        .stream()
-                        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthcDomain(entry.getValue())))
+            c6.dynamic.authc.getDomains()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthcDomain(entry.getValue())))
         );
 
         dynamic.authz = new Authz();
 
         dynamic.authz.domains.putAll(
-                c6.dynamic.authz.getDomains()
-                        .entrySet()
-                        .stream()
-                        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthzDomain(entry.getValue())))
+            c6.dynamic.authz.getDomains()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthzDomain(entry.getValue())))
         );
 
         dynamic.auth_failure_listeners = new AuthFailureListeners();
         dynamic.auth_failure_listeners.listeners.putAll(
-                c6.dynamic.auth_failure_listeners.getListeners()
-                        .entrySet()
-                        .stream()
-                        .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthFailureListener(entry.getValue())))
+            c6.dynamic.auth_failure_listeners.getListeners()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> new AuthFailureListener(entry.getValue())))
         );
     }
 
@@ -139,16 +139,16 @@ public class ConfigV7 {
         @Override
         public String toString() {
             return "Dynamic [filtered_alias_mode="
-                    + filtered_alias_mode
-                    + ", kibana="
-                    + kibana
-                    + ", http="
-                    + http
-                    + ", authc="
-                    + authc
-                    + ", authz="
-                    + authz
-                    + "]";
+                + filtered_alias_mode
+                + ", kibana="
+                + kibana
+                + ", http="
+                + http
+                + ", authc="
+                + authc
+                + ", authz="
+                + authz
+                + "]";
         }
     }
 
@@ -167,18 +167,18 @@ public class ConfigV7 {
         @Override
         public String toString() {
             return "Kibana [multitenancy_enabled="
-                    + multitenancy_enabled
-                    + ", private_tenant_enabled="
-                    + private_tenant_enabled
-                    + ", default_tenant="
-                    + default_tenant
-                    + ", server_username="
-                    + server_username
-                    + ", opendistro_role="
-                    + opendistro_role
-                    + ", index="
-                    + index
-                    + "]";
+                + multitenancy_enabled
+                + ", private_tenant_enabled="
+                + private_tenant_enabled
+                + ", default_tenant="
+                + default_tenant
+                + ", server_username="
+                + server_username
+                + ", opendistro_role="
+                + opendistro_role
+                + ", index="
+                + index
+                + "]";
         }
 
     }
@@ -247,13 +247,13 @@ public class ConfigV7 {
     public static class Xff {
         public boolean enabled = false;
         public String internalProxies = Pattern.compile(
-                "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "192\\.168\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "169\\.254\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
-                        + "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
+            "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "192\\.168\\.\\d{1,3}\\.\\d{1,3}|"
+                + "169\\.254\\.\\d{1,3}\\.\\d{1,3}|"
+                + "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
+                + "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
         ).toString();
         public String remoteIpHeader = "X-Forwarded-For";
 
@@ -319,18 +319,18 @@ public class ConfigV7 {
         @Override
         public String toString() {
             return "AuthcDomain [http_enabled="
-                    + http_enabled
-                    + ", transport_enabled="
-                    + transport_enabled
-                    + ", order="
-                    + order
-                    + ", http_authenticator="
-                    + http_authenticator
-                    + ", authentication_backend="
-                    + authentication_backend
-                    + ", description="
-                    + description
-                    + "]";
+                + http_enabled
+                + ", transport_enabled="
+                + transport_enabled
+                + ", order="
+                + order
+                + ", http_authenticator="
+                + http_authenticator
+                + ", authentication_backend="
+                + authentication_backend
+                + ", description="
+                + description
+                + "]";
         }
 
     }
@@ -468,14 +468,14 @@ public class ConfigV7 {
         @Override
         public String toString() {
             return "AuthzDomain [http_enabled="
-                    + http_enabled
-                    + ", transport_enabled="
-                    + transport_enabled
-                    + ", authorization_backend="
-                    + authorization_backend
-                    + ", description="
-                    + description
-                    + "]";
+                + http_enabled
+                + ", transport_enabled="
+                + transport_enabled
+                + ", authorization_backend="
+                + authorization_backend
+                + ", description="
+                + description
+                + "]";
         }
 
     }
@@ -518,4 +518,3 @@ public class ConfigV7 {
     }
 
 }
-

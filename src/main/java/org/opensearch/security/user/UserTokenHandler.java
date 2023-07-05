@@ -66,28 +66,38 @@ public class UserTokenHandler implements TokenManager {
     }
 
     @Inject
-    public UserTokenHandler(ThreadPool threadPool, ClusterService clusterService, ConfigurationRepository configurationRepository, Client client) {
+    public UserTokenHandler(
+        ThreadPool threadPool,
+        ClusterService clusterService,
+        ConfigurationRepository configurationRepository,
+        Client client
+    ) {
         this.settings = Settings.builder().put("signing_key", signingKey).put("encryption_key", claimsEncryptionKey).build();
-        this.jwtVendor = new JwtVendor(settings,  () -> System.nanoTime() / 1000 + (DEFAULT_EXPIRATION_TIME_SECONDS * 1000));
+        this.jwtVendor = new JwtVendor(settings, () -> System.nanoTime() / 1000 + (DEFAULT_EXPIRATION_TIME_SECONDS * 1000));
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.client = client;
         this.configurationRepository = configurationRepository;
     }
 
-    @Override
-    public AuthToken issueToken() {
-        throw new UserServiceException("The UserTokenHandler is unable to issue generic auth tokens. Please specify a valid subject.");
-    }
-
-    public AuthToken issueToken(String audience) throws Exception {
+    public AuthToken issueToken(String audience) {
         ThreadContext threadContext = threadPool.getThreadContext();
         final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        String jwt = jwtVendor.createJwt(clusterService.getClusterName().toString(), user.getName(), audience, DEFAULT_EXPIRATION_TIME_SECONDS, new ArrayList<String>(user.getRoles()));
+        String jwt = null;
+        try {
+            jwt = jwtVendor.createJwt(
+                clusterService.getClusterName().toString(),
+                user.getName(),
+                audience,
+                DEFAULT_EXPIRATION_TIME_SECONDS,
+                new ArrayList<String>(user.getRoles())
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return new BearerAuthToken(jwt);
     }
 
-    @Override
     public boolean validateToken(AuthToken authToken) {
         if (!(authToken instanceof BearerAuthToken)) {
             throw new UserServiceException("The provided token is not a BearerAuthToken.");
@@ -99,15 +109,10 @@ public class UserTokenHandler implements TokenManager {
         Long iat = (Long) jwt.getClaim("iat");
         Long exp = (Long) jwt.getClaim("exp");
         SecurityDynamicConfiguration revokedTokens = load(getRevokedTokensConfigName(), false);
-        System.out.println("IAT is : " + iat);
-        System.out.println("EXP is : " + exp);
-        System.out.println("Current time is : " + System.currentTimeMillis());
-        System.out.println("Exists in revoked is: " + revokedTokens.exists(bearerAuthToken.getCompleteToken()));
         Long currentTime = System.currentTimeMillis();
         return (exp > currentTime && !revokedTokens.exists(bearerAuthToken.getCompleteToken()));
     }
 
-    @Override
     public String getTokenInfo(AuthToken authToken) {
         if (!(authToken instanceof BearerAuthToken)) {
             throw new UserServiceException("The provided token is not a BearerAuthToken.");
@@ -116,7 +121,6 @@ public class UserTokenHandler implements TokenManager {
         return "The provided token is a BearerAuthToken with content: " + bearerAuthToken;
     }
 
-    @Override
     public void revokeToken(AuthToken authToken) {
         if (!(authToken instanceof BearerAuthToken)) {
             throw new UserServiceException("The provided token is not a BearerAuthToken.");
@@ -127,10 +131,6 @@ public class UserTokenHandler implements TokenManager {
         saveAndUpdateConfigs(getRevokedTokensConfigName().toString(), client, CType.REVOKEDTOKENS, revokedTokens);
     }
 
-    @Override
-    public void resetToken(AuthToken authToken) {
-        throw new UserServiceException("The UserTokenHandler does not support the reset operation. Please issue a new token instead.");
-    }
 
     /**
      * Load data for a given CType
@@ -138,22 +138,32 @@ public class UserTokenHandler implements TokenManager {
      * @return configuration loaded with given CType data
      */
     public SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
-        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent).get(config).deepClone();
+        SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
+            Collections.singleton(config),
+            logComplianceEvent
+        ).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 
-    public void saveAndUpdateConfigs(final String indexName, final Client client, final CType cType, final SecurityDynamicConfiguration<?> configuration) {
+    public void saveAndUpdateConfigs(
+        final String indexName,
+        final Client client,
+        final CType cType,
+        final SecurityDynamicConfiguration<?> configuration
+    ) {
         final IndexRequest ir = new IndexRequest(indexName);
         final String id = cType.toLCString();
 
         configuration.removeStatic();
 
         try {
-            client.index(ir.id(id)
+            client.index(
+                ir.id(id)
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                     .setIfSeqNo(configuration.getSeqNo())
                     .setIfPrimaryTerm(configuration.getPrimaryTerm())
-                    .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false)));
+                    .source(id, XContentHelper.toXContent(configuration, XContentType.JSON, false))
+            );
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }

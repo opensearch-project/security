@@ -220,8 +220,7 @@ public class Utils {
     public static String universalHash(String password) throws NoSuchAlgorithmException {
 
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(
-                password.getBytes(StandardCharsets.UTF_8));
+        byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
         return new String(Hex.encode(hash));
     }
 

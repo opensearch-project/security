@@ -20,7 +20,6 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.BearerAuthToken;
-import org.opensearch.identity.tokens.NoopToken;
 import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -64,9 +63,7 @@ public class UserTokenHandlerTests {
     @Before
     public void setup() {
         MockitoAnnotations.openMocks(this);
-        Settings settings = Settings.builder()
-                .put("signing_key", "abc123")
-                .put("encryption_key", "def456").build();
+        Settings settings = Settings.builder().put("signing_key", "abc123").put("encryption_key", "def456").build();
         jwtVendor = spy(new JwtVendor(settings));
         client = mock(Client.class);
         user = new User("test_user");
@@ -128,7 +125,12 @@ public class UserTokenHandlerTests {
                 "test_role3"));
 
         // This is required because the ThreadContext cannot be mocked -- basically skips over the step of pulling the User from the threadContext
-        doReturn(new NoopToken()).when(userTokenHandler).issueToken("test");
+        doReturn(new AuthToken() {
+            @Override
+            public int hashCode() {
+                return super.hashCode();
+            }
+        }).when(userTokenHandler).issueToken("test");
 
         AuthToken token = userTokenHandler.issueToken("test");
         Exception ex = assertThrows(UserServiceException.class, () -> userTokenHandler.validateToken(token));
@@ -202,25 +204,4 @@ public class UserTokenHandlerTests {
         assertFalse(isValid);
 
     }
-
-    @Test
-    public void testResetShouldThrowException() throws Exception {
-        when(clusterService.getClusterName()).thenReturn(new ClusterName("test_cluster"));
-        doReturn(revokedTokensConfiguration).when(userTokenHandler).load(getRevokedTokensConfigName(), false);
-        when(jwtVendor.createJwt(clusterService.getClusterName().toString(), user.getName(), "test", DEFAULT_EXPIRATION_TIME_SECONDS, Arrays.asList("test_role1",
-                "test_role2",
-                "test_role3"))).thenCallRealMethod();
-
-        String tokenString = jwtVendor.createJwt(clusterService.getClusterName().toString(), user.getName(), "test", DEFAULT_EXPIRATION_TIME_SECONDS, Arrays.asList("test_role1",
-                "test_role2",
-                "test_role3"));
-
-        // This is required because the ThreadContext cannot be mocked -- basically skips over the step of pulling the User from the threadContext
-        doReturn(new BearerAuthToken(tokenString)).when(userTokenHandler).issueToken("test");
-
-        AuthToken token = userTokenHandler.issueToken("test");
-        Exception exception = assertThrows(UserServiceException.class, () -> userTokenHandler.resetToken(token));
-        assert(exception.getMessage().contains("The UserTokenHandler does not support the reset operation. Please issue a new token instead."));
-    }
 }
-
