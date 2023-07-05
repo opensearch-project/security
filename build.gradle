@@ -425,6 +425,7 @@ configurations {
             force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.1"
+            force 'com.google.guava:guava:32.0.1-jre'
         }
     }
 
@@ -618,6 +619,14 @@ dependencies {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+
+    //Checkstyle
+    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
+
+    //spotless
+    implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
+        exclude group: 'com.google.guava'
+    }
 }
 
 jar {
