@@ -1908,12 +1908,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     @Override
     public TokenManager getTokenManager() {
-        return new SecurityTokenManager(
-            threadPool,
-            new XFFResolver(threadPool),
-            auditLog,
-            settings
-        );
+        return new SecurityTokenManager(threadPool, new XFFResolver(threadPool), auditLog, settings);
     }
 
     public static class GuiceHolder implements LifecycleComponent {

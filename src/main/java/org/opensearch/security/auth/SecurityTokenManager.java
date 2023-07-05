@@ -11,7 +11,6 @@ package org.opensearch.security.auth;
 import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.set.Sets;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.BasicAuthToken;
@@ -23,7 +22,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.util.*;
+import java.util.Set;
+import java.util.StringJoiner;
 
 public class SecurityTokenManager implements TokenManager {
 
@@ -38,14 +38,12 @@ public class SecurityTokenManager implements TokenManager {
         this.configModel = configModel;
     }
 
-    public SecurityTokenManager(
-        ThreadPool threadPool,
-        final XFFResolver xffResolver,
-        AuditLog auditLog,
-        Settings settings
-    ) {
+    public SecurityTokenManager(ThreadPool threadPool, final XFFResolver xffResolver, AuditLog auditLog, Settings settings) {
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
-        this.extensionBwcCompatMode = settings.getAsBoolean(ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE, ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT);
+        this.extensionBwcCompatMode = settings.getAsBoolean(
+            ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE,
+            ConfigConstants.EXTENSIONS_BWC_PLUGIN_MODE_DEFAULT
+        );
         this.user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final TransportAddress caller = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
 
@@ -63,7 +61,7 @@ public class SecurityTokenManager implements TokenManager {
             joiner.add(String.join(",", user.getRoles()));
             joiner.add(String.join(",", Sets.union(user.getSecurityRoles(), mappedRoles)));
 
-            return new BasicAuthToken(joiner.toString() + "This is the Token including the encrypted backend roles");
+            return new BasicAuthToken(joiner + "This is the Token including the encrypted backend roles");
         } else {
             return new BasicAuthToken("This is standard Token without the roles");
         }
