@@ -244,7 +244,7 @@ public class SecurityRestFilter {
 
         Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
         final String suffix = matcher.matches() ? matcher.group(2) : null;
-        if (request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix)) && !(WHO_AM_I_SUFFIX.equals(suffix))) {
+        if (request.method() != Method.OPTIONS && !(HEALTH_SUFFIX.equals(suffix))) {
             if (!registry.authenticate(request, channel, threadContext)) {
                 // another roundtrip
                 org.apache.logging.log4j.ThreadContext.remove("user");
