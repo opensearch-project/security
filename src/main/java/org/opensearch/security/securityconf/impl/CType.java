@@ -60,6 +60,7 @@ public enum CType {
     WHITELIST(toMap(1, WhitelistingSettings.class, 2, WhitelistingSettings.class)),
     ALLOWLIST(toMap(1, AllowlistingSettings.class, 2, AllowlistingSettings.class)),
     AUDIT(toMap(1, AuditConfig.class, 2, AuditConfig.class));
+    REVOKEDTOKENS(toMap(1, BearerAuthToken.class));
 
     private Map<Integer, Class<?>> implementations;
 

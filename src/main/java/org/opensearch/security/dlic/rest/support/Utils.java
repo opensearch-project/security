@@ -12,10 +12,8 @@
 package org.opensearch.security.dlic.rest.support;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.security.SecureRandom;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
+import org.bouncycastle.util.encoders.Hex;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.SpecialPermission;
@@ -210,6 +209,20 @@ public class Utils {
         Arrays.fill(salt, (byte) 0);
         Arrays.fill(clearTextPassword, '\0');
         return hash;
+    }
+
+    /**
+     * This generates a SHA-256 hash for a given password.
+     * It is used for validating internal user tokens since we don't want to store the salt in the plugin.
+     * @param password The password to be hashed
+     * @return hash of the password
+     */
+    public static String universalHash(String password) throws NoSuchAlgorithmException {
+
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(
+                password.getBytes(StandardCharsets.UTF_8));
+        return new String(Hex.encode(hash));
     }
 
     /**

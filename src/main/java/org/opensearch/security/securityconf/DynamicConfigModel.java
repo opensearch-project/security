@@ -38,6 +38,7 @@ import com.google.common.collect.Multimap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auth.AuthDomain;
 import org.opensearch.security.auth.AuthFailureListener;
 import org.opensearch.security.auth.AuthorizationBackend;
@@ -91,6 +92,8 @@ public abstract class DynamicConfigModel {
     public abstract boolean isMultiRolespanEnabled();
 
     public abstract String getFilteredAliasMode();
+
+    public abstract Settings getDynamicOnBehalfOfSettings();
 
     public abstract String getHostsResolverMode();
 

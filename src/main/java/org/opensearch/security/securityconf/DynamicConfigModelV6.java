@@ -188,6 +188,11 @@ public class DynamicConfigModelV6 extends DynamicConfigModel {
     }
 
     @Override
+    public Settings getDynamicOnBehalfOfSettings() {
+        return Settings.EMPTY;
+    }
+
+    @Override
     public List<AuthFailureListener> getIpAuthFailureListeners() {
         return Collections.unmodifiableList(ipAuthFailureListeners);
     }

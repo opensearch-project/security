@@ -36,6 +36,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.opensearch.security.DefaultObjectMapper;
@@ -67,20 +68,23 @@ public class ConfigV6 {
         public String hosts_resolver_mode = "ip-only";
         public String transport_userrname_attribute;
         public boolean do_not_fail_on_forbidden_empty;
+        public OnBehalfOf on_behalf_of = new OnBehalfOf() {
+
+        };
 
         @Override
         public String toString() {
             return "Dynamic [filtered_alias_mode="
-                + filtered_alias_mode
-                + ", kibana="
-                + kibana
-                + ", http="
-                + http
-                + ", authc="
-                + authc
-                + ", authz="
-                + authz
-                + "]";
+                    + filtered_alias_mode
+                    + ", kibana="
+                    + kibana
+                    + ", http="
+                    + http
+                    + ", authc="
+                    + authc
+                    + ", authz="
+                    + authz
+                    + "]";
         }
     }
 
@@ -100,16 +104,16 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "Kibana [multitenancy_enabled="
-                + multitenancy_enabled
-                + ", server_username="
-                + server_username
-                + ", opendistro_role="
-                + opendistro_role
-                + ", index="
-                + index
-                + ", do_not_fail_on_forbidden="
-                + do_not_fail_on_forbidden
-                + "]";
+                    + multitenancy_enabled
+                    + ", server_username="
+                    + server_username
+                    + ", opendistro_role="
+                    + opendistro_role
+                    + ", index="
+                    + index
+                    + ", do_not_fail_on_forbidden="
+                    + do_not_fail_on_forbidden
+                    + "]";
         }
 
     }
@@ -168,13 +172,13 @@ public class ConfigV6 {
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public boolean enabled = true;
         public String internalProxies = Pattern.compile(
-            "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
-                + "192\\.168\\.\\d{1,3}\\.\\d{1,3}|"
-                + "169\\.254\\.\\d{1,3}\\.\\d{1,3}|"
-                + "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
-                + "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
-                + "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
-                + "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
+                "10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
+                        + "192\\.168\\.\\d{1,3}\\.\\d{1,3}|"
+                        + "169\\.254\\.\\d{1,3}\\.\\d{1,3}|"
+                        + "127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|"
+                        + "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
+                        + "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|"
+                        + "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}"
         ).toString();
         public String remoteIpHeader = "X-Forwarded-For";
         public String proxiesHeader = "X-Forwarded-By";
@@ -183,16 +187,16 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "Xff [enabled="
-                + enabled
-                + ", internalProxies="
-                + internalProxies
-                + ", remoteIpHeader="
-                + remoteIpHeader
-                + ", proxiesHeader="
-                + proxiesHeader
-                + ", trustedProxies="
-                + trustedProxies
-                + "]";
+                    + enabled
+                    + ", internalProxies="
+                    + internalProxies
+                    + ", remoteIpHeader="
+                    + remoteIpHeader
+                    + ", proxiesHeader="
+                    + proxiesHeader
+                    + ", trustedProxies="
+                    + trustedProxies
+                    + "]";
         }
 
     }
@@ -233,18 +237,18 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "AuthcDomain [http_enabled="
-                + http_enabled
-                + ", transport_enabled="
-                + transport_enabled
-                + ", enabled="
-                + enabled
-                + ", order="
-                + order
-                + ", http_authenticator="
-                + http_authenticator
-                + ", authentication_backend="
-                + authentication_backend
-                + "]";
+                    + http_enabled
+                    + ", transport_enabled="
+                    + transport_enabled
+                    + ", enabled="
+                    + enabled
+                    + ", order="
+                    + order
+                    + ", http_authenticator="
+                    + http_authenticator
+                    + ", authentication_backend="
+                    + authentication_backend
+                    + "]";
         }
 
     }
@@ -344,16 +348,44 @@ public class ConfigV6 {
         @Override
         public String toString() {
             return "AuthzDomain [http_enabled="
-                + http_enabled
-                + ", transport_enabled="
-                + transport_enabled
-                + ", enabled="
-                + enabled
-                + ", authorization_backend="
-                + authorization_backend
-                + "]";
+                    + http_enabled
+                    + ", transport_enabled="
+                    + transport_enabled
+                    + ", enabled="
+                    + enabled
+                    + ", authorization_backend="
+                    + authorization_backend
+                    + "]";
         }
 
+    }
+
+    public static class OnBehalfOf {
+        @JsonProperty("signing_key")
+        private String signingKey;
+        @JsonProperty("encryption_key")
+        private String encryptionKey;
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+
+        public void setSigningKey(String signingKey) {
+            this.signingKey = signingKey;
+        }
+
+        public String getEncryptionKey() {
+            return encryptionKey;
+        }
+
+        public void setEncryptionKey(String encryptionKey) {
+            this.encryptionKey = encryptionKey;
+        }
+
+        @Override
+        public String toString() {
+            return "OnBehalfOf [signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+        }
     }
 
 }

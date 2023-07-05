@@ -105,6 +105,7 @@ import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.IdentityPlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
@@ -191,7 +192,7 @@ import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
 // CS-ENFORCE-SINGLE
 
-public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
+public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin, IdentityPlugin {
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -205,6 +206,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
     private volatile UserService userService;
+    private volatile SecurityTokenManager securityTokenManager;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
@@ -988,6 +990,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         userService = new UserService(cs, cr, settings, localClient);
 
+        securityTokenManager = new SecurityTokenManager(threadPool, clusterService, cr, localClient, settings, userService);
+
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
 
@@ -1029,6 +1033,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             compatConfig
         );
 
+        HTTPOnBehalfOfJwtAuthenticator acInstance = new HTTPOnBehalfOfJwtAuthenticator();
+
         final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
@@ -1036,6 +1042,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(securityRestHandler);
+        dcf.registerDCFListener(acInstance);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);
