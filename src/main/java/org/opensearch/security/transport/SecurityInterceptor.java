@@ -132,7 +132,6 @@ public class SecurityInterceptor {
         TransportRequestOptions options,
         TransportResponseHandler<T> handler
     ) {
-
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
         final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String injectedUserString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
