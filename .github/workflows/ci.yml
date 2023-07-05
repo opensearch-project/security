@@ -51,7 +51,6 @@ jobs:
       with:
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
-          -x test
 
     - name: Coverage
       uses: codecov/codecov-action@v1
