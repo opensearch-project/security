@@ -36,7 +36,7 @@ import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.identity.SecurityIndices.SCHEDULED_JOB_IDENTITY_INDEX;
-import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT;
+import static org.opensearch.security.support.ConfigConstants.OPENDISTRO_SECURITY_USER;
 
 public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentityManager {
     protected Logger logger = LogManager.getLogger(getClass());
@@ -60,7 +60,8 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
     @Override
     public void associateJobWithOperator(String jobId, String indexName, Optional<ScheduledJobOperator> operator) {
         if (operator.isEmpty()) {
-            User currentUser = threadPool.getThreadContext().getDurableTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT);
+            // TODO Associate Job with Authenticated User
+            User currentUser = (User) threadPool.getThreadContext().getPersistent(OPENDISTRO_SECURITY_USER);
             System.out.println("Current User: " + currentUser);
         }
         if (!securityIndices.doesScheduledJobIdentityIndexExists()) {
@@ -127,16 +128,7 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
         } else if (totalHits == 1) {
             logger.info("Scheduled Job Identity already exists in " + SCHEDULED_JOB_IDENTITY_INDEX + " for job with jobId " + jobId);
         } else {
-            ScheduledJobIdentityModel identity = operator.getIdentity();
-            ScheduledJobUserModel userModel = identity.getUser();
-            String username = userModel.getUsername();
-            Map<String, String> attributes = userModel.getAttributes();
-            if (!(attributes.containsKey("roles") && attributes.containsKey("backend_roles"))) {
-                throw new OpenSearchSecurityException("Attempting to save user details for scheduled job, but user info is empty");
-            }
-            List<String> roles = Arrays.stream(attributes.get("roles").split(",")).collect(Collectors.toList());
-            List<String> backendRoles = Arrays.stream(attributes.get("backend_roles").split(",")).collect(Collectors.toList());
-            final User user = new User(username, backendRoles, roles, List.of(), null);
+            final User user = convertOperatorToUser(operator);
             ScheduledJobIdentity identityOfJob = new ScheduledJobIdentity(jobId, indexName, Instant.now(), Instant.now(), user);
             IndexRequest indexRequest = new IndexRequest(SCHEDULED_JOB_IDENTITY_INDEX).setRefreshPolicy(
                 WriteRequest.RefreshPolicy.IMMEDIATE
@@ -153,6 +145,22 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
                 )
             );
         }
+    }
+
+    private User convertOperatorToUser(ScheduledJobOperator operator) {
+        ScheduledJobIdentityModel identity = operator.getIdentity();
+
+        // TODO Handle either token or user supplied
+        ScheduledJobUserModel userModel = identity.getUser();
+        String username = userModel.getUsername();
+        Map<String, String> attributes = userModel.getAttributes();
+        if (!(attributes.containsKey("roles") && attributes.containsKey("backend_roles"))) {
+            throw new OpenSearchSecurityException("Attempting to save user details for scheduled job, but user info is empty");
+        }
+        List<String> roles = Arrays.stream(attributes.get("roles").split(",")).collect(Collectors.toList());
+        List<String> backendRoles = Arrays.stream(attributes.get("backend_roles").split(",")).collect(Collectors.toList());
+        final User user = new User(username, backendRoles, roles, List.of(), null);
+        return user;
     }
 
     private void deleteScheduledJobIdentity(SearchResponse response, String jobId, String indexName) {
