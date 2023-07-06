@@ -8,15 +8,15 @@ extension_hw_greet:
   cluster_permissions:
     - 'hw:greet'
 
+extension_hw_full:
+  reserved: true
+  cluster_permissions:
+    - 'hw:goodbye'
+    - 'hw:greet'
+    - 'hw:greet_with_adjective'
+    - 'hw:greet_with_name'
+
 legacy_hw_greet_with_name:
   reserved: true
   cluster_permissions:
     - 'cluster:admin/opensearch/hw/greet_with_name'
-
-extension_hw_full:
-  reserved: true
-  cluster_permissions:
-    - 'hw:greet'
-    - 'hw:greet_with_adjective'
-    - 'hw:greet_with_name'
-    - 'hw:goodbye'
