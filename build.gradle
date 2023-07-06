@@ -285,6 +285,7 @@ configurations.all {
         force "io.netty:netty-transport:${versions.netty}"
         force "io.netty:netty-transport-native-unix-common:${versions.netty}"
         force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
+        force 'com.google.guava:guava:32.0.1-jre'
     }
 }
 
@@ -418,6 +419,14 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
+
+    //Checkstyle
+    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
+
+    //spotless
+    implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
+        exclude group: 'com.google.guava'
+    }
 }
 
 jar {
