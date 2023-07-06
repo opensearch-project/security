@@ -44,7 +44,7 @@ public class DashboardsInfoTest {
         .build();
 
     @Test
-    public void testNegativeLookaheadPattern() throws Exception {
+    public void testDashboardsInfoValidationMessage() throws Exception {
 
         try (TestRestClient client = cluster.getRestClient(DASHBOARDS_USER)) {
             TestRestClient.HttpResponse response = client.get("_plugins/_security/dashboardsinfo");
