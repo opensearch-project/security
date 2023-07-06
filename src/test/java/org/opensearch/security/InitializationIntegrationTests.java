@@ -42,10 +42,7 @@ import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
-import org.opensearch.client.Client;
-import org.opensearch.client.Request;
-import org.opensearch.client.Response;
-import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.*;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
@@ -132,14 +129,21 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             .build();
         setup(
             Settings.EMPTY,
-            new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml").setSecurityRoles("roles_deny.yml"),
+            new DynamicSecurityConfig().setSecurityInternalUsers("internal_users.yml")
+                .setSecurityRoles("roles.yml")
+                .setSecurityRolesMapping("roles_mapping.yml"),
             settings,
             true
         );
 
         try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "spock-keystore.jks", "truststore.jks")) {
-            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
-            Assert.assertEquals(whoAmIRes.getStatusLine().getStatusCode(), 200);
+            Request request = new Request("GET", "/_plugins/_security/whoami");
+            RequestOptions.Builder options = request.getOptions().toBuilder();
+            Header header = encodeBasicHeader("nagilum", "nagilum");
+            options.addHeader(header.getName(), header.getValue());
+            request.setOptions(options);
+            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(request);
+            Assert.assertEquals(whoAmIRes.getStatusLine().getStatusCode(), HttpStatus.SC_OK);
             // Should be using HTTP/2 by default
             Assert.assertEquals(whoAmIRes.getStatusLine().getProtocolVersion(), HttpVersion.HTTP_2);
             JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
@@ -159,7 +163,9 @@ public class InitializationIntegrationTests extends SingleClusterTest {
             .build();
         setup(
             Settings.EMPTY,
-            new DynamicSecurityConfig().setSecurityInternalUsers("internal_empty.yml").setSecurityRoles("roles_deny.yml"),
+            new DynamicSecurityConfig().setSecurityInternalUsers("internal_users.yml")
+                .setSecurityRoles("roles.yml")
+                .setSecurityRolesMapping("roles_mapping.yml"),
             settings,
             true
         );
@@ -172,7 +178,12 @@ public class InitializationIntegrationTests extends SingleClusterTest {
                 HttpVersionPolicy.FORCE_HTTP_1
             )
         ) {
-            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
+            Request request = new Request("GET", "/_plugins/_security/whoami");
+            RequestOptions.Builder options = request.getOptions().toBuilder();
+            Header header = encodeBasicHeader("nagilum", "nagilum");
+            options.addHeader(header.getName(), header.getValue());
+            request.setOptions(options);
+            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(request);
             Assert.assertEquals(whoAmIRes.getStatusLine().getStatusCode(), 200);
             // The HTTP/1.1 is forced and should be used instead
             Assert.assertEquals(whoAmIRes.getStatusLine().getProtocolVersion(), HttpVersion.HTTP_1_1);

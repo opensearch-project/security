@@ -577,39 +577,44 @@ public class SecurityAdmin {
             )
         ) {
 
-            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
-            if (whoAmIRes.getStatusLine().getStatusCode() != 200) {
-                System.out.println("Unable to check whether cluster is sane because return code was " + whoAmIRes.getStatusLine());
-                return (-1);
-            }
-
-            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
-            System.out.println("Connected as " + whoAmIResNode.get("dn"));
-
-            if (!whoAmIResNode.get("is_admin").asBoolean()) {
-
-                System.out.println("ERR: " + whoAmIResNode.get("dn") + " is not an admin user");
-
-                if (!whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
-                    System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
-                    System.out.println("Make sure opensearch.yml on all nodes contains:");
-                    System.out.println(
-                        "plugins.security.authcz.admin_dn:" + System.lineSeparator() + "  - \"" + whoAmIResNode.get("dn") + "\""
-                    );
-                } else {
-                    System.out.println(
-                        "Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in opensearch.yml"
-                    );
-                }
-                return (-1);
-            } else if (whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
-                System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
-                System.out.println("     That may have worked with older OpenSearch Security versions but it indicates");
-                System.out.println("     a configuration error and is therefore forbidden now.");
-                if (failFast) {
+            if (whoami) {
+                Response whoAmIRes = restHighLevelClient.getLowLevelClient()
+                    .performRequest(new Request("GET", "/_plugins/_security/whoami"));
+                if (whoAmIRes.getStatusLine().getStatusCode() != 200) {
+                    System.out.println("Unable to check whether cluster is sane because return code was " + whoAmIRes.getStatusLine());
                     return (-1);
                 }
 
+                JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+                System.out.println("Connected as " + whoAmIResNode.get("dn"));
+
+                if (!whoAmIResNode.get("is_admin").asBoolean()) {
+
+                    System.out.println("ERR: " + whoAmIResNode.get("dn") + " is not an admin user");
+
+                    if (!whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
+                        System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
+                        System.out.println("Make sure opensearch.yml on all nodes contains:");
+                        System.out.println(
+                            "plugins.security.authcz.admin_dn:" + System.lineSeparator() + "  - \"" + whoAmIResNode.get("dn") + "\""
+                        );
+                    } else {
+                        System.out.println(
+                            "Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in opensearch.yml"
+                        );
+                    }
+                    return (-1);
+                } else if (whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
+                    System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
+                    System.out.println("     That may have worked with older OpenSearch Security versions but it indicates");
+                    System.out.println("     a configuration error and is therefore forbidden now.");
+                    if (failFast) {
+                        return (-1);
+                    }
+
+                }
+                System.out.println(whoAmIResNode.toPrettyString());
+                return (0);
             }
 
             try {
@@ -669,11 +674,6 @@ public class SecurityAdmin {
                 return (0);
             }
 
-            if (whoami) {
-                System.out.println(whoAmIResNode.toPrettyString());
-                return (0);
-            }
-
             if (replicaAutoExpand != null) {
                 Settings indexSettings = Settings.builder()
                     .put("index.auto_expand_replicas", replicaAutoExpand ? "0-all" : "false")
@@ -684,7 +684,7 @@ public class SecurityAdmin {
                     );
 
                 if (res.getStatusLine().getStatusCode() != 200) {
-                    System.out.println("Unable to reload configuration because return code was " + whoAmIRes.getStatusLine());
+                    System.out.println("Unable to reload configuration because return code was " + res.getStatusLine());
                     return (-1);
                 }
 

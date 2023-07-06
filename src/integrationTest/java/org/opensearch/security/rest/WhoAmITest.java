@@ -66,7 +66,7 @@ public class WhoAmITest {
     @Test
     public void testWhoAmIWithoutGetPermissions() throws Exception {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
-            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 
