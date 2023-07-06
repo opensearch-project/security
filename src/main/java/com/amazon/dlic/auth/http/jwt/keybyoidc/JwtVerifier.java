@@ -12,7 +12,7 @@
 package com.amazon.dlic.auth.http.jwt.keybyoidc;
 
 import com.google.common.base.Strings;
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.cxf.rs.security.jose.jwa.SignatureAlgorithm;
 import org.apache.cxf.rs.security.jose.jwk.JsonWebKey;
 import org.apache.cxf.rs.security.jose.jwk.KeyType;
