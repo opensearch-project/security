@@ -9,6 +9,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.Jwts;
+import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
+import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -149,17 +153,28 @@ public class SecurityScheduledJobIdentityManager implements ScheduledJobIdentity
 
     private User convertOperatorToUser(ScheduledJobOperator operator) {
         ScheduledJobIdentityModel identity = operator.getIdentity();
+        User user = null;
 
-        // TODO Handle either token or user supplied
-        ScheduledJobUserModel userModel = identity.getUser();
-        String username = userModel.getUsername();
-        Map<String, String> attributes = userModel.getAttributes();
-        if (!(attributes.containsKey("roles") && attributes.containsKey("backend_roles"))) {
-            throw new OpenSearchSecurityException("Attempting to save user details for scheduled job, but user info is empty");
+        if (identity.getUser() != null) {
+            ScheduledJobUserModel userModel = identity.getUser();
+            String username = userModel.getUsername();
+            Map<String, String> attributes = userModel.getAttributes();
+            if (!(attributes.containsKey("roles") && attributes.containsKey("backend_roles"))) {
+                throw new OpenSearchSecurityException("Attempting to save user details for scheduled job, but user info is empty");
+            }
+            List<String> roles = Arrays.stream(attributes.get("roles").split(",")).collect(Collectors.toList());
+            List<String> backendRoles = Arrays.stream(attributes.get("backend_roles").split(",")).collect(Collectors.toList());
+            user = new User(username, backendRoles, roles, List.of(), null);
+        } else if (identity.getAuthToken() != null) {
+            // TODO get token info
+            String oboToken = identity.getAuthToken();
+            JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(oboToken);
+            JwtToken jwt = jwtConsumer.getJwtToken();
+            System.out.println("jwt claims: " + jwt.getClaims());
         }
-        List<String> roles = Arrays.stream(attributes.get("roles").split(",")).collect(Collectors.toList());
-        List<String> backendRoles = Arrays.stream(attributes.get("backend_roles").split(",")).collect(Collectors.toList());
-        final User user = new User(username, backendRoles, roles, List.of(), null);
+        if (user == null) {
+            throw new OpenSearchSecurityException("Unable to convert operator to a user");
+        }
         return user;
     }
 
