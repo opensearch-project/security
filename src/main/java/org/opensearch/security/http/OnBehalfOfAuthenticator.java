@@ -13,14 +13,8 @@ package org.opensearch.security.http;
 
 import java.security.AccessController;
 import java.security.Key;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -45,6 +39,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.user.AuthCredentials;
+import org.opensearch.security.util.keyUtil;
 
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
@@ -68,22 +63,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
         }
 
         try {
-            final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("-----END PUBLIC KEY-----", "");
-
-            final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
-            Key key = null;
-
-            try {
-                key = getPublicKey(decoded, "RSA");
-            } catch (Exception e) {
-                log.debug("No public RSA key, try other algos ({})", e.toString());
-            }
-
-            try {
-                key = getPublicKey(decoded, "EC");
-            } catch (Exception e) {
-                log.debug("No public ECDSA key, try other algos ({})", e.toString());
-            }
+            Key key = keyUtil.keyAlgorithmCheck(signingKey, log);
 
             if (Objects.nonNull(key)) {
                 return Jwts.parser().setSigningKey(key);
@@ -237,13 +217,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     @Override
     public String getType() {
         return "onbehalfof_jwt";
-    }
-
-    private static PublicKey getPublicKey(final byte[] keyBytes, final String algo) throws NoSuchAlgorithmException,
-        InvalidKeySpecException {
-        X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-        KeyFactory kf = KeyFactory.getInstance(algo);
-        return kf.generatePublic(spec);
     }
 
 }
