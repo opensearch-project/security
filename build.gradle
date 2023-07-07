@@ -63,6 +63,10 @@ plugins {
     id "com.google.osdetector" version "1.7.3"
 }
 
+configurations.all {
+    resolutionStrategy.force 'org.apache.httpcomponents:httpclient:4.5.14'
+}
+
 allprojects {
     group = "org.opensearch"
     version = opensearch_build
