@@ -28,7 +28,7 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class WhoAmITest {
+public class WhoAmITests {
     protected final static TestSecurityConfig.User WHO_AM_I = new TestSecurityConfig.User("who_am_i_user").roles(
         new Role("who_am_i_role").clusterPermissions("security:whoami")
     );
@@ -40,6 +40,8 @@ public class WhoAmITest {
     protected final static TestSecurityConfig.User WHO_AM_I_NO_PERM = new TestSecurityConfig.User("who_am_i_user_no_perm").roles(
         new Role("who_am_i_role_no_perm")
     );
+
+    protected final static TestSecurityConfig.User WHO_AM_I_UNREGISTERED = new TestSecurityConfig.User("who_am_i_user_no_perm");
 
     public static final String WHOAMI_ENDPOINT = "_plugins/_security/whoami";
 
@@ -66,7 +68,7 @@ public class WhoAmITest {
     @Test
     public void testWhoAmIWithoutGetPermissions() throws Exception {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
-            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
+            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
         }
     }
 
@@ -81,6 +83,10 @@ public class WhoAmITest {
         }
 
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
+            assertThat(client.post(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
+
+        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_UNREGISTERED)) {
             assertThat(client.post(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
 
