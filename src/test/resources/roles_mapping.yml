@@ -498,3 +498,8 @@ sem-role2:
   hidden: false
   users:
     - "sem-user2"
+who_am_i:
+  reserved: false
+  hidden: false
+  users:
+    - "nagilum"
