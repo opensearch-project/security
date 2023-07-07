@@ -70,19 +70,19 @@ Unsuccessful authz scenarios for a user:
 
 ### Sample API in Security Plugin
 
-As part of this effort an existing uri `GET /whoami` was translated from Route to be a NamedRoute. Here is how you can test it:
+As part of this effort a new uri `GET /whoamiprotected` was introduced as a NamedRoute version of `GET /whoami`. Here is how you can test it:
 
 #### roles.yml
 ```yaml
 who_am_i_role:
   reserved: true
   cluster_permissions:
-    - 'security:whoami'
+    - 'security:whoamiprotected'
 
 who_am_i_role_legacy:
   reserved: true
   cluster_permissions:
-    - 'cluster:admin/opendistro_security/whoami'
+    - 'cluster:admin/opendistro_security/whoamiprotected'
 
 who_am_i_role_no_perm:
   reserved: true
