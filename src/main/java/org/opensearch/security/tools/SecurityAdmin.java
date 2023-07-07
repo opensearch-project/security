@@ -100,6 +100,7 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
@@ -1367,7 +1368,15 @@ public class SecurityAdmin {
     }
 
     private static int issueWarnings(RestHighLevelClient restHighLevelClient) throws IOException {
-        Response res = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_nodes"));
+        Response res = null;
+        try {
+            res = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_nodes"));
+        } catch (ResponseException re) {
+            if (re.getResponse().getStatusLine().getStatusCode() == 401) {
+                return -1;
+            }
+            throw re;
+        }
 
         if (res.getStatusLine().getStatusCode() != 200) {
             System.out.println("Unable to get nodes " + res.getStatusLine());
