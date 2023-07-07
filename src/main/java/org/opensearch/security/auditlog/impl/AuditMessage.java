@@ -451,14 +451,14 @@ public final class AuditMessage {
         return (String) this.auditInfo.get(EXCEPTION);
     }
 
-	@Override
-	public String toString() {
-		try {
-			return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
-		} catch (final IOException e) {
-		    throw ExceptionsHelper.convertToOpenSearchException(e);
-		}
-	}
+    @Override
+    public String toString() {
+        try {
+            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
+        } catch (final IOException e) {
+            throw ExceptionsHelper.convertToOpenSearchException(e);
+        }
+    }
 
     public String toPrettyString() {
         try {
