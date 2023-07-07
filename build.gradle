@@ -533,7 +533,7 @@ dependencies {
     implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
 
     implementation "com.nulab-inc:zxcvbn:1.7.0"
-    implementation 'commons-collections:commons-collections:3.2.2'
+
     implementation 'com.jayway.jsonpath:json-path:2.4.0'
     implementation 'net.minidev:json-smart:2.4.10'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
