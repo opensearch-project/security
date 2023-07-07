@@ -76,7 +76,7 @@ public class RestLayerPrivilegesEvaluator {
         return configModel != null && configModel.getSecurityRoles() != null && dcm != null;
     }
 
-    public PrivilegesEvaluatorResponse evaluate(final User user, Set<String> action0) {
+    public PrivilegesEvaluatorResponse evaluate(final User user, Set<String> actions) {
 
         if (!isInitialized()) {
             throw new OpenSearchSecurityException("OpenSearch Security is not initialized.");
@@ -94,11 +94,11 @@ public class RestLayerPrivilegesEvaluator {
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {
             log.debug("Evaluate permissions for {} on {}", user, clusterService.localNode().getName());
-            log.debug("Action: {}", action0);
+            log.debug("Action: {}", actions);
             log.debug("Mapped roles: {}", mappedRoles.toString());
         }
 
-        for (String action : action0) {
+        for (String action : actions) {
             if (!securityRoles.impliesClusterPermissionPermission(action)) {
                 presponse.missingPrivileges.add(action);
                 presponse.allowed = false;
@@ -111,7 +111,7 @@ public class RestLayerPrivilegesEvaluator {
                 );
             } else {
                 if (isDebugEnabled) {
-                    log.debug("Allowed because we have permissions for {}", action0);
+                    log.debug("Allowed because we have permissions for {}", actions);
                 }
                 presponse.allowed = true;
 
