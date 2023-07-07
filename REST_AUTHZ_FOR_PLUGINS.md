@@ -2,6 +2,8 @@
 
 This feature is introduced as an added layer of security on top of existing TransportLayer authorization framework. In order to leverage these feature some core changes need to be made at Route registration level. This document talks about how you can achieve this.
 
+**NOTE:** This doesn't replace Transport Layer Authorization. Plugin developers may choose to skip creating transport actions for APIs that do not need interaction with the Transport Layer.
+
 ## Pre-requisites
 
 The security plugin must be installed and operational in your OpenSearch cluster for this feature to work.

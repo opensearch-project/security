@@ -99,7 +99,7 @@ public class RestLayerPrivilegesEvaluator {
         }
 
         for (String action : action0) {
-            if (!securityRoles.impliesClusterPermissionPermission(action) && !securityRoles.impliesLegacyPermission(action)) {
+            if (!securityRoles.impliesClusterPermissionPermission(action)) {
                 presponse.missingPrivileges.add(action);
                 presponse.allowed = false;
                 log.info(

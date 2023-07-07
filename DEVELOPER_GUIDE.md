@@ -84,7 +84,7 @@ rm -rf config/
 If you are working with an extension and want to set up demo users for the Hello-World extension, append following items to files inside `$OPENSEARCH_HOME/config/opensearch-security/`:
 1. In **internal_users.yml**
 ```yaml
-new-user:
+hw-user:
   hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"
   reserved: true
   description: "Demo user for ext-test"
@@ -116,12 +116,12 @@ legacy_hw_greet_with_name:
 legacy_hw_greet_with_name:
   reserved: true
   users:
-    - "new-user"
+    - "hw-user"
 
 extension_hw_greet:
   reserved: true
   users:
-    - "new-user"
+    - "hw-user"
 ```
 
 To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:

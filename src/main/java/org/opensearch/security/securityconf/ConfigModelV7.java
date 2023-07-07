@@ -34,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -497,78 +496,6 @@ public class ConfigModelV7 extends ConfigModel {
             return roles.stream().filter(r -> r.impliesClusterPermission(action)).count() > 0;
         }
 
-        /**
-         * Checks if the route is accessible via legacy naming convention.
-         * We check against cluster permissions because the legacy convention for cluster permissions map 1-1 with a transport
-         * action call initiated via REST API handler. Hence we use the same to allow/block request forwarding to ext.
-         * This ensures backwards-compatibility
-         *
-         * This assumes the convention that every new route register will be of type `plugin:routeName` and will then c
-         *
-         * NOTE: THIS CHECK WILL BE REMOVED ONCE ALL ACTIONS HAVE BEEN MIGRATED TO THE NEW CONVENTION
-         *
-         * E.g For ext `hw`, following are two possible ways actions an be defined in roles:
-         *
-         * ext_hw_greet:
-         *   reserved: true
-         *   cluster_permissions:
-         *     - 'hw:greet'
-         *
-         * legacy_hw_greet:
-         *   reserved: true
-         *   cluster_permissions:
-         *     - 'cluster:admin/opensearch/hw/greet'
-         *
-         *
-         * @param action - The action to be checked against its legacy version
-         * @return true, if a legacy version was found and validated, false otherwise
-         */
-        @Override
-        public boolean impliesLegacyPermission(String action) {
-            boolean isAlreadyLegacy = action.startsWith("cluster:admin/open");
-            if (isAlreadyLegacy) {
-                return false; // this check was already made, so return false
-            }
-
-            log.info("Checking legacy permissions for {}", action);
-
-            // This assumes that the route name will be one of these two formats: `shortName:action` OR `action`
-            String[] parts = action.split(":");
-            if (parts.length > 1) {
-                action = parts[1];  // e.g. `hw:greet` would check for action `greet` for plugin/ext `hw`
-            } else {
-                action = parts[0]; // e.g. `greet` would check for action `greet`
-            }
-
-            /* Regex: `/(?:cluster:admin\/\b(open(distro|search))\b\/[a-zA-Z]+\/|\*)action\/?(?:\*|[\/a-zA-Z0-9]*)/gm`
-             *  matches:
-             *  *action*
-             *  cluster:admin/opensearch/abcd/action
-             *  cluster:admin/opensearch/abcd/action*
-             *  cluster:admin/opensearch/abcd/action/*
-             *  cluster:admin/opensearch/abcd/action/a/*
-             *  cluster:admin/opensearch/abcd/action/a/b/c
-             *  *action*
-             *  *action/abc
-             *
-             *  doesn't match:
-             *  action
-             *  action*
-             *  action/
-             *  indices:admin/action/
-             *
-             * This regex is plugin name/shortName agnostic, to provide flexibility in providing shortnames for plugin devs when registering routes.
-             *
-             *  For more details on regex, please visit regex101.com and paste the regex
-             */
-            String legacyActionMatchRegex = "(?:cluster:admin/\\\\b(open(distro|search))\\\\b/[a-zA-Z]+/|\\\\*)%s/?(?:\\\\*|[/a-zA-Z0-9]*)";
-
-            String regex = String.format(legacyActionMatchRegex, action);
-            Predicate<String> pattern = Pattern.compile(regex).asPredicate();
-
-            return roles.stream().filter(r -> r.impliesLegacyPermission(pattern)).count() > 0;
-        }
-
         @Override
         public boolean hasExplicitClusterPermissionPermission(String action) {
             return roles.stream()
@@ -607,8 +534,6 @@ public class ConfigModelV7 extends ConfigModel {
         private final String name;
         private final Set<IndexPattern> ipatterns;
         private final WildcardMatcher clusterPerms;
-        // Holds all legacy permissions of this role in a Set format to then be matched by a predicate via impliesLegacyPermission()
-        private final Set<String> legacyPerms;
 
         public static final class Builder {
             private final String name;
@@ -632,23 +557,18 @@ public class ConfigModelV7 extends ConfigModel {
             }
 
             public SecurityRole build() {
-                return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms), clusterPerms);
+                return new SecurityRole(name, ipatterns, WildcardMatcher.from(clusterPerms));
             }
         }
 
-        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms, Set<String> legacyPerms) {
+        private SecurityRole(String name, Set<IndexPattern> ipatterns, WildcardMatcher clusterPerms) {
             this.name = Objects.requireNonNull(name);
             this.ipatterns = ipatterns;
             this.clusterPerms = clusterPerms;
-            this.legacyPerms = legacyPerms;
         }
 
         private boolean impliesClusterPermission(String action) {
             return clusterPerms.test(action);
-        }
-
-        private boolean impliesLegacyPermission(Predicate<String> action) {
-            return legacyPerms.stream().anyMatch(action);
         }
 
         // get indices which are permitted for the given types and actions

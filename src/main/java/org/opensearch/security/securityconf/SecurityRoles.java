@@ -39,8 +39,6 @@ public interface SecurityRoles {
 
     boolean impliesClusterPermissionPermission(String action0);
 
-    boolean impliesLegacyPermission(String action0);
-
     boolean hasExplicitClusterPermissionPermission(String action);
 
     Set<String> getRoleNames();

@@ -492,12 +492,6 @@ public class ConfigModelV6 extends ConfigModel {
         }
 
         @Override
-        public boolean impliesLegacyPermission(String action0) {
-            // no support for ES 6 and below
-            return false;
-        }
-
-        @Override
         public boolean hasExplicitClusterPermissionPermission(String action) {
             return roles.stream().map(r -> {
                 final WildcardMatcher m = WildcardMatcher.from(r.clusterPerms);

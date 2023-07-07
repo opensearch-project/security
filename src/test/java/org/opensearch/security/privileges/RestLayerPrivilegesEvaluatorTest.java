@@ -92,7 +92,6 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(configModel.getSecurityRoles()).thenReturn(securityRoles);
         when(configModel.getSecurityRoles().filter(Collections.emptySet())).thenReturn(securityRoles);
         when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(false);
-        when(securityRoles.impliesLegacyPermission(action)).thenReturn(false);
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
@@ -127,13 +126,11 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(configModel.getSecurityRoles()).thenReturn(securityRoles);
         when(configModel.getSecurityRoles().filter(Collections.emptySet())).thenReturn(securityRoles);
         when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(true);
-        when(securityRoles.impliesLegacyPermission(action)).thenReturn(true);
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
         assertTrue(response.allowed);
         verify(securityRoles).impliesClusterPermissionPermission(any());
-        verify(securityRoles, times(0)).impliesLegacyPermission(any());
     }
 
     @Test
@@ -142,14 +139,12 @@ public class RestLayerPrivilegesEvaluatorTest {
         SecurityRoles securityRoles = mock(SecurityRoles.class);
         when(configModel.getSecurityRoles()).thenReturn(securityRoles);
         when(configModel.getSecurityRoles().filter(Collections.emptySet())).thenReturn(securityRoles);
-        when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(false);
-        when(securityRoles.impliesLegacyPermission(action)).thenReturn(true);
+        when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(true);
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
         assertTrue(response.allowed);
         verify(securityRoles).impliesClusterPermissionPermission(any());
-        verify(securityRoles).impliesLegacyPermission(any());
     }
 
     @Test
@@ -159,12 +154,10 @@ public class RestLayerPrivilegesEvaluatorTest {
         when(configModel.getSecurityRoles()).thenReturn(securityRoles);
         when(configModel.getSecurityRoles().filter(Collections.emptySet())).thenReturn(securityRoles);
         when(securityRoles.impliesClusterPermissionPermission(action)).thenReturn(false);
-        when(securityRoles.impliesLegacyPermission(action)).thenReturn(false);
 
         PrivilegesEvaluatorResponse response = privilegesEvaluator.evaluate(TEST_USER, Set.of(action));
 
         assertFalse(response.allowed);
         verify(securityRoles).impliesClusterPermissionPermission(any());
-        verify(securityRoles).impliesLegacyPermission(any());
     }
 }
