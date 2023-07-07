@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
@@ -25,6 +26,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
@@ -44,7 +46,15 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 public class SecurityWhoAmIAction extends BaseRestHandler {
 
     private static final List<Route> routes = addRoutesPrefix(
-        ImmutableList.of(new Route(GET, "/whoami"), new Route(POST, "/whoami")),
+        ImmutableList.of(
+            new Route(GET, "/whoami"),
+            new Route(POST, "/whoami"),
+            new NamedRoute.Builder().method(GET)
+                .path("/whoamiprotected")
+                .uniqueName("security:whoamiprotected")
+                .legacyActionNames(Set.of("cluster:admin/opendistro_security/whoamiprotected"))
+                .build()
+        ),
         "/_plugins/_security"
     );
 

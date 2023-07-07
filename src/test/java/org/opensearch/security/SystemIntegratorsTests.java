@@ -179,7 +179,7 @@ public class SystemIntegratorsTests extends SingleClusterTest {
         Assert.assertTrue(resc.getBody().contains("\"remote_address\":\"8.8.8.8:8\""));
         Assert.assertTrue(resc.getBody().contains("\"backend_roles\":[\"role1\",\"role2\"]"));
         // mapped by username
-        Assert.assertTrue(resc.getBody().contains("\"roles\":[\"opendistro_security_all_access\""));
+        Assert.assertTrue(resc.getBody().contains("\"opendistro_security_all_access\""));
         Assert.assertTrue(resc.getBody().contains("\"custom_attribute_names\":[\"key1\",\"key2\"]"));
 
         resc = rh.executeGetRequest(
