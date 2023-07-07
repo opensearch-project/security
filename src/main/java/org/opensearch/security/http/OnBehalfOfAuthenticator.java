@@ -58,23 +58,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private JwtParser initParser(final String signingKey) {
-        if (signingKey == null || signingKey.length() == 0) {
-            throw new RuntimeException("Unable to find on behalf of authenticator signing key");
-        }
-
-        try {
-            Key key = keyUtil.keyAlgorithmCheck(signingKey, log);
-
-            if (Objects.nonNull(key)) {
-                return Jwts.parser().setSigningKey(key);
-            }
-            // Fallback to the decoded signing key
-            // TODO: Should we ever do this, I think no??
-            return Jwts.parser().setSigningKey(signingKey);
-        } catch (Throwable e) {
-            log.error("Error while creating JWT authenticator", e);
-            throw new RuntimeException(e);
-        }
+        JwtParser _jwtParser = keyUtil.keyAlgorithmCheck(signingKey, log);
+        return _jwtParser;
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {
