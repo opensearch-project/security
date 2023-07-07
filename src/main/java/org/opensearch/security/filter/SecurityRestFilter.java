@@ -133,9 +133,11 @@ public class SecurityRestFilter {
             org.apache.logging.log4j.ThreadContext.clearAll();
             if (!checkAndAuthenticateRequest(request, channel)) {
                 User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-                if (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
-                    && allowlistingSettings.checkRequestIsAllowed(request, channel, client)) {
-                    if (userIsSuperAdmin(user, adminDNs) || authorizeRequest(original, request, channel, user)) {
+                boolean isSuperAdminUser = userIsSuperAdmin(user, adminDNs);
+                if (isSuperAdminUser
+                    || (whitelistingSettings.checkRequestIsAllowed(request, channel, client)
+                        && allowlistingSettings.checkRequestIsAllowed(request, channel, client))) {
+                    if (isSuperAdminUser || authorizeRequest(original, request, channel, user)) {
                         original.handleRequest(request, channel, client);
                     }
                 }

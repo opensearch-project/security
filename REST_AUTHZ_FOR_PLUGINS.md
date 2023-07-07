@@ -1,18 +1,18 @@
 # Authorization at REST Layer for plugins
 
-This feature is introduced as an added layer of security on top of existing TransportLayer authorization framework. In order to leverage these feature some core changes need to be made at Route registration level. This document talks about you can achieve this.
+This feature is introduced as an added layer of security on top of existing TransportLayer authorization framework. In order to leverage these feature some core changes need to be made at Route registration level. This document talks about how you can achieve this.
 
 ## Pre-requisites
 
-The security plugin must be installed and operational in OpenSearch cluster for this feature to work.
+The security plugin must be installed and operational in your OpenSearch cluster for this feature to work.
 
 ### How does NamedRoute authorization work?
 
-Once the routes are defined as NamedRoute, they, along-with their handlers, will be registered the same way as Route. Once the request comes in `SecurityRestFilter.java` applies an authorization check which extracts information about the NamedRoute.
-Next we get the unique named associated with that route and evaluate those against existing `cluster_permissions` across all roles of the requesting user. If the authz check succeeds the request chain proceeds as normal. Else, a 403 response is returned to the user.
+Once the routes are defined as NamedRoute, they, along-with their handlers, will be registered the same way as Route objects. When a request comes in, `SecurityRestFilter.java` applies an authorization check which extracts information about the NamedRoute.
+Next we get the unique name and actionNames associated with that route and evaluate these against existing `cluster_permissions` across all roles of the requesting user. If the authorization check succeeds, the request chain proceeds as normal. If it fails, a 401 response is returned to the user.
 
 NOTE:
-1. These action names defined in roles must exactly match the names of registered routes, or else, the request would be deemed unauthorized.
+1. The action names defined in roles must exactly match the names of registered routes, or else, the request would be deemed unauthorized.
 2. This check will not be implemented for plugins who do not use NamedRoutes.
 
 
@@ -40,7 +40,7 @@ public List<NamedRoute> routes() {
 `actionNames()` are optional. They correspond to any current actions defined as permissions in roles.
 Ensure that these name-to-route mappings are easily accessible to the cluster admins to allow granting access to these APIs.
 
-### How does authorization at REST Layer work?
+### How does authorization in the REST Layer work?
 
 We will continue on the above example of translating `/uri` from Route to NamedRoute.
 

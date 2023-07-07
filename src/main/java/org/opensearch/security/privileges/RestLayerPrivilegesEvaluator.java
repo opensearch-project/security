@@ -49,8 +49,6 @@ public class RestLayerPrivilegesEvaluator {
         final ClusterInfoHolder clusterInfoHolder,
         AtomicReference<NamedXContentRegistry> namedXContentRegistry
     ) {
-
-        super();
         this.clusterService = clusterService;
         this.auditLog = auditLog;
 

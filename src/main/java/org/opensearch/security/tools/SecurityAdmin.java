@@ -581,7 +581,9 @@ public class SecurityAdmin {
                 Response whoAmIRes = restHighLevelClient.getLowLevelClient()
                     .performRequest(new Request("GET", "/_plugins/_security/whoami"));
                 if (whoAmIRes.getStatusLine().getStatusCode() != 200) {
-                    System.out.println("Unable to check whether cluster is sane because return code was " + whoAmIRes.getStatusLine());
+                    System.out.println(
+                        "Unable to check whether cluster is successfully initialized because return code was " + whoAmIRes.getStatusLine()
+                    );
                     return (-1);
                 }
 
@@ -622,7 +624,7 @@ public class SecurityAdmin {
                     return (-1);
                 }
             } catch (Exception e1) {
-                System.out.println("Unable to check whether cluster is sane");
+                System.out.println("Unable to check whether cluster is successfully initialized");
                 throw e1;
             }
 
