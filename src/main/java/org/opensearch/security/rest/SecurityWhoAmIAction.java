@@ -47,12 +47,13 @@ public class SecurityWhoAmIAction extends BaseRestHandler {
 
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
+            new Route(GET, "/whoami"),
+            new Route(POST, "/whoami"),
             new NamedRoute.Builder().method(GET)
-                .path("/whoami")
-                .uniqueName("security:whoami")
-                .legacyActionNames(Set.of("cluster:admin/opendistro_security/whoami"))
-                .build(),
-            new Route(POST, "/whoami")
+                .path("/whoamiprotected")
+                .uniqueName("security:whoamiprotected")
+                .legacyActionNames(Set.of("cluster:admin/opendistro_security/whoamiprotected"))
+                .build()
         ),
         "/_plugins/_security"
     );

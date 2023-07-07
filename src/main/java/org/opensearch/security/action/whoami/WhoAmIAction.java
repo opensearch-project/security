@@ -31,7 +31,7 @@ import org.opensearch.action.ActionType;
 public class WhoAmIAction extends ActionType<WhoAmIResponse> {
 
     public static final WhoAmIAction INSTANCE = new WhoAmIAction();
-    public static final String NAME = "cluster:admin/opendistro_security/whoami";
+    public static final String NAME = "cluster:admin/opendistro_security/whoamiprotected";
 
     protected WhoAmIAction() {
         super(NAME, WhoAmIResponse::new);

@@ -1410,4 +1410,4 @@ who_am_i:
   reserved: true
   hidden: false
   description: "Test role to grant access to /whoami endpoint"
-  cluster_permissions: [ "security:whoami" ]
+  cluster_permissions: [ "security:whoamiprotected" ]

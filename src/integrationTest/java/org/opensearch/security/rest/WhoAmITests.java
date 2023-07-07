@@ -30,11 +30,11 @@ import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class WhoAmITests {
     protected final static TestSecurityConfig.User WHO_AM_I = new TestSecurityConfig.User("who_am_i_user").roles(
-        new Role("who_am_i_role").clusterPermissions("security:whoami")
+        new Role("who_am_i_role").clusterPermissions("security:whoamiprotected")
     );
 
     protected final static TestSecurityConfig.User WHO_AM_I_LEGACY = new TestSecurityConfig.User("who_am_i_user_legacy").roles(
-        new Role("who_am_i_role_legacy").clusterPermissions("cluster:admin/opendistro_security/whoami")
+        new Role("who_am_i_role_legacy").clusterPermissions("cluster:admin/opendistro_security/whoamiprotected")
     );
 
     protected final static TestSecurityConfig.User WHO_AM_I_NO_PERM = new TestSecurityConfig.User("who_am_i_user_no_perm").roles(
@@ -44,6 +44,7 @@ public class WhoAmITests {
     protected final static TestSecurityConfig.User WHO_AM_I_UNREGISTERED = new TestSecurityConfig.User("who_am_i_user_no_perm");
 
     public static final String WHOAMI_ENDPOINT = "_plugins/_security/whoami";
+    public static final String WHOAMI_PROTECTED_ENDPOINT = "_plugins/_security/whoamiprotected";
 
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
@@ -54,6 +55,10 @@ public class WhoAmITests {
     @Test
     public void testWhoAmIWithGetPermissions() throws Exception {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I)) {
+            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
+
+        try (TestRestClient client = cluster.getRestClient(WHO_AM_I)) {
             assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
     }
@@ -63,12 +68,20 @@ public class WhoAmITests {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_LEGACY)) {
             assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
+
+        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_LEGACY)) {
+            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
     }
 
     @Test
     public void testWhoAmIWithoutGetPermissions() throws Exception {
         try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
-            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
+            assertThat(client.get(WHOAMI_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_OK));
+        }
+
+        try (TestRestClient client = cluster.getRestClient(WHO_AM_I_NO_PERM)) {
+            assertThat(client.get(WHOAMI_PROTECTED_ENDPOINT).getStatusCode(), equalTo(HttpStatus.SC_UNAUTHORIZED));
         }
     }
 

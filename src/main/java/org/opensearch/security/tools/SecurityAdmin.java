@@ -100,7 +100,6 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
-import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
@@ -578,46 +577,39 @@ public class SecurityAdmin {
             )
         ) {
 
-            if (whoami) {
-                Response whoAmIRes = restHighLevelClient.getLowLevelClient()
-                    .performRequest(new Request("GET", "/_plugins/_security/whoami"));
-                if (whoAmIRes.getStatusLine().getStatusCode() != 200) {
+            Response whoAmIRes = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_plugins/_security/whoami"));
+            if (whoAmIRes.getStatusLine().getStatusCode() != 200) {
+                System.out.println("Unable to check whether cluster is sane because return code was " + whoAmIRes.getStatusLine());
+                return (-1);
+            }
+
+            JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
+            System.out.println("Connected as " + whoAmIResNode.get("dn"));
+
+            if (!whoAmIResNode.get("is_admin").asBoolean()) {
+
+                System.out.println("ERR: " + whoAmIResNode.get("dn") + " is not an admin user");
+
+                if (!whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
+                    System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
+                    System.out.println("Make sure opensearch.yml on all nodes contains:");
                     System.out.println(
-                        "Unable to check whether cluster is successfully initialized because return code was " + whoAmIRes.getStatusLine()
+                        "plugins.security.authcz.admin_dn:" + System.lineSeparator() + "  - \"" + whoAmIResNode.get("dn") + "\""
                     );
+                } else {
+                    System.out.println(
+                        "Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in opensearch.yml"
+                    );
+                }
+                return (-1);
+            } else if (whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
+                System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
+                System.out.println("     That may have worked with older OpenSearch Security versions but it indicates");
+                System.out.println("     a configuration error and is therefore forbidden now.");
+                if (failFast) {
                     return (-1);
                 }
 
-                JsonNode whoAmIResNode = DefaultObjectMapper.objectMapper.readTree(whoAmIRes.getEntity().getContent());
-                System.out.println("Connected as " + whoAmIResNode.get("dn"));
-
-                if (!whoAmIResNode.get("is_admin").asBoolean()) {
-
-                    System.out.println("ERR: " + whoAmIResNode.get("dn") + " is not an admin user");
-
-                    if (!whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
-                        System.out.println("Seems you use a client certificate but this one is not registered as admin_dn");
-                        System.out.println("Make sure opensearch.yml on all nodes contains:");
-                        System.out.println(
-                            "plugins.security.authcz.admin_dn:" + System.lineSeparator() + "  - \"" + whoAmIResNode.get("dn") + "\""
-                        );
-                    } else {
-                        System.out.println(
-                            "Seems you use a node certificate. This is not permitted, you have to use a client certificate and register it as admin_dn in opensearch.yml"
-                        );
-                    }
-                    return (-1);
-                } else if (whoAmIResNode.get("is_node_certificate_request").asBoolean()) {
-                    System.out.println("ERR: Seems you use a node certificate which is also an admin certificate");
-                    System.out.println("     That may have worked with older OpenSearch Security versions but it indicates");
-                    System.out.println("     a configuration error and is therefore forbidden now.");
-                    if (failFast) {
-                        return (-1);
-                    }
-
-                }
-                System.out.println(whoAmIResNode.toPrettyString());
-                return (0);
             }
 
             try {
@@ -625,7 +617,7 @@ public class SecurityAdmin {
                     return (-1);
                 }
             } catch (Exception e1) {
-                System.out.println("Unable to check whether cluster is successfully initialized");
+                System.out.println("Unable to check whether cluster is sane");
                 throw e1;
             }
 
@@ -677,6 +669,11 @@ public class SecurityAdmin {
                 return (0);
             }
 
+            if (whoami) {
+                System.out.println(whoAmIResNode.toPrettyString());
+                return (0);
+            }
+
             if (replicaAutoExpand != null) {
                 Settings indexSettings = Settings.builder()
                     .put("index.auto_expand_replicas", replicaAutoExpand ? "0-all" : "false")
@@ -687,7 +684,7 @@ public class SecurityAdmin {
                     );
 
                 if (res.getStatusLine().getStatusCode() != 200) {
-                    System.out.println("Unable to reload configuration because return code was " + res.getStatusLine());
+                    System.out.println("Unable to reload configuration because return code was " + whoAmIRes.getStatusLine());
                     return (-1);
                 }
 
@@ -1368,15 +1365,7 @@ public class SecurityAdmin {
     }
 
     private static int issueWarnings(RestHighLevelClient restHighLevelClient) throws IOException {
-        Response res = null;
-        try {
-            res = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_nodes"));
-        } catch (ResponseException re) {
-            if (re.getResponse().getStatusLine().getStatusCode() == 401) {
-                return -1;
-            }
-            throw re;
-        }
+        Response res = restHighLevelClient.getLowLevelClient().performRequest(new Request("GET", "/_nodes"));
 
         if (res.getStatusLine().getStatusCode() != 200) {
             System.out.println("Unable to get nodes " + res.getStatusLine());

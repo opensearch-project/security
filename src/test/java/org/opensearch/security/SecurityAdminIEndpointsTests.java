@@ -39,7 +39,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
             rh.executePutRequest("_plugins/_security/configupdate?config_types=xxx", "", encodeBasicHeader("nagilum", "nagilum"))
                 .getStatusCode()
         );
-        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, rh.executeGetRequest("_plugins/_security/whoami").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executeGetRequest("_plugins/_security/whoami").getStatusCode());
     }
 
     @Test
@@ -69,19 +69,13 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
         );
 
         RestHelper.HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_plugins/_security/whoami", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
-        );
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode());
 
         assertContains(res, "*\"dn\":null*");
 
         rh.sendAdminCertificate = true;
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_plugins/_security/whoami", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
-        );
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode());
 
         assertContains(res, "*\"dn\":\"CN=node-0.example.com*");
         assertContains(res, "*\"is_admin\":false*");
@@ -101,10 +95,7 @@ public class SecurityAdminIEndpointsTests extends SingleClusterTest {
 
         rh.keystore = "spock-keystore.jks";
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executeGetRequest("_plugins/_security/whoami", encodeBasicHeader("nagilum", "nagilum"))).getStatusCode()
-        );
+        Assert.assertEquals(HttpStatus.SC_OK, (res = rh.executeGetRequest("_plugins/_security/whoami")).getStatusCode());
 
         assertContains(res, "*\"dn\":\"CN=spock*");
         assertContains(res, "*\"is_admin\":false*");
