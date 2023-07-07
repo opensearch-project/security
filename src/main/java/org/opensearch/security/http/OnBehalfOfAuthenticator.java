@@ -12,7 +12,6 @@
 package org.opensearch.security.http;
 
 import java.security.AccessController;
-import java.security.Key;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +22,6 @@ import java.util.stream.Collectors;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.WeakKeyException;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.hc.core5.http.HttpHeaders;
@@ -59,7 +57,11 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private JwtParser initParser(final String signingKey) {
         JwtParser _jwtParser = keyUtil.keyAlgorithmCheck(signingKey, log);
-        return _jwtParser;
+        if (_jwtParser != null) {
+            return _jwtParser;
+        } else {
+            throw new RuntimeException("Unable to find on behalf of authenticator signing key");
+        }
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {

@@ -28,36 +28,38 @@ public class keyUtil {
 
     public static JwtParser keyAlgorithmCheck(final String signingKey, final Logger log) {
         if (signingKey == null || signingKey.length() == 0) {
-            throw new RuntimeException("Unable to find on behalf of authenticator signing key");
-        }
-
-        try {
-            Key key = null;
-
-            final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "").replace("-----END PUBLIC KEY-----", "");
-
-            final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
-
+            log.error("Unable to find signing key");
+            return null;
+        } else {
             try {
-                key = getPublicKey(decoded, "RSA");
-            } catch (Exception e) {
-                log.debug("No public RSA key, try other algos ({})", e.toString());
-            }
+                Key key = null;
 
-            try {
-                key = getPublicKey(decoded, "EC");
-            } catch (final Exception e) {
-                log.debug("No public ECDSA key, try other algos ({})", e.toString());
-            }
+                final String minimalKeyFormat = signingKey.replace("-----BEGIN PUBLIC KEY-----\n", "")
+                    .replace("-----END PUBLIC KEY-----", "");
 
-            if (Objects.nonNull(key)) {
-                return Jwts.parser().setSigningKey(key);
-            }
+                final byte[] decoded = Base64.getDecoder().decode(minimalKeyFormat);
 
-            return Jwts.parser().setSigningKey(decoded);
-        } catch (Throwable e) {
-            log.error("Error while creating JWT authenticator", e);
-            throw new RuntimeException(e);
+                try {
+                    key = getPublicKey(decoded, "RSA");
+                } catch (Exception e) {
+                    log.debug("No public RSA key, try other algos ({})", e.toString());
+                }
+
+                try {
+                    key = getPublicKey(decoded, "EC");
+                } catch (final Exception e) {
+                    log.debug("No public ECDSA key, try other algos ({})", e.toString());
+                }
+
+                if (Objects.nonNull(key)) {
+                    return Jwts.parser().setSigningKey(key);
+                }
+
+                return Jwts.parser().setSigningKey(decoded);
+            } catch (Throwable e) {
+                log.error("Error while creating JWT authenticator", e);
+                throw new RuntimeException(e);
+            }
         }
     }
 
