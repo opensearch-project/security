@@ -12,10 +12,8 @@
 package org.opensearch.security.authtoken.jwt;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.function.LongSupplier;
 
 import com.google.common.base.Strings;
@@ -32,28 +30,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.security.securityconf.ConfigModel;
-import org.opensearch.security.support.ConfigConstants;
-import org.opensearch.security.user.User;
-import org.opensearch.threadpool.ThreadPool;
 
 public class JwtVendor {
     private static final Logger logger = LogManager.getLogger(JwtVendor.class);
 
     private static JsonMapObjectReaderWriter jsonMapReaderWriter = new JsonMapObjectReaderWriter();
 
-    private String claimsEncryptionKey;
-    private JsonWebKey signingKey;
-    private JoseJwtProducer jwtProducer;
+    private final String claimsEncryptionKey;
+    private final JsonWebKey signingKey;
+    private final JoseJwtProducer jwtProducer;
     private final LongSupplier timeProvider;
 
-    // TODO: Relocate/Remove them at once we make the descisions about the `roles`
-    private ConfigModel configModel;
-    private ThreadContext threadContext;
-
-    public JwtVendor(Settings settings) {
+    public JwtVendor(final Settings settings, final Optional<LongSupplier> timeProvider) {
         JoseJwtProducer jwtProducer = new JoseJwtProducer();
         try {
             this.signingKey = createJwkFromSettings(settings);
@@ -66,32 +54,19 @@ public class JwtVendor {
         } else {
             this.claimsEncryptionKey = settings.get("encryption_key");
         }
-        timeProvider = System::currentTimeMillis;
-    }
-
-    // For testing the expiration in the future
-    public JwtVendor(Settings settings, final LongSupplier timeProvider) {
-        JoseJwtProducer jwtProducer = new JoseJwtProducer();
-        try {
-            this.signingKey = createJwkFromSettings(settings);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        this.jwtProducer = jwtProducer;
-        if (settings.get("encryption_key") == null) {
-            throw new RuntimeException("encryption_key cannot be null");
+        if (timeProvider.isPresent()) {
+            this.timeProvider = timeProvider.get();
         } else {
-            this.claimsEncryptionKey = settings.get("encryption_key");
+            this.timeProvider = () -> System.currentTimeMillis() / 1000;
         }
-        this.timeProvider = timeProvider;
     }
 
     /*
-    * The default configuration of this web key should be:
-    *   KeyType: OCTET
-    *   PublicKeyUse: SIGN
-    *   Encryption Algorithm: HS512
-    * */
+     * The default configuration of this web key should be:
+     *   KeyType: OCTET
+     *   PublicKeyUse: SIGN
+     *   Encryption Algorithm: HS512
+     * */
     static JsonWebKey createJwkFromSettings(Settings settings) throws Exception {
         String signingKey = settings.get("signing_key");
 
@@ -122,22 +97,14 @@ public class JwtVendor {
         }
     }
 
-    // TODO:Getting roles from User
-    public Map<String, String> prepareClaimsForUser(User user, ThreadPool threadPool) {
-        Map<String, String> claims = new HashMap<>();
-        this.threadContext = threadPool.getThreadContext();
-        final TransportAddress caller = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-        Set<String> mappedRoles = mapRoles(user, caller);
-        claims.put("sub", user.getName());
-        claims.put("roles", String.join(",", mappedRoles));
-        return claims;
-    }
-
-    public Set<String> mapRoles(final User user, final TransportAddress caller) {
-        return this.configModel.mapSecurityRoles(user, caller);
-    }
-
-    public String createJwt(String issuer, String subject, String audience, Integer expirySeconds, List<String> roles) throws Exception {
+    public String createJwt(
+        String issuer,
+        String subject,
+        String audience,
+        Integer expirySeconds,
+        List<String> roles,
+        List<String> backendRoles
+    ) throws Exception {
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
@@ -156,22 +123,23 @@ public class JwtVendor {
         jwtClaims.setNotBefore(timeMillis);
 
         if (expirySeconds == null) {
-            long expiryTime = timeProvider.getAsLong() + (300 * 1000);
+            long expiryTime = timeProvider.getAsLong() + 300;
             jwtClaims.setExpiryTime(expiryTime);
         } else if (expirySeconds > 0) {
-            long expiryTime = timeProvider.getAsLong() + (expirySeconds * 1000);
+            long expiryTime = timeProvider.getAsLong() + expirySeconds;
             jwtClaims.setExpiryTime(expiryTime);
         } else {
             throw new Exception("The expiration time should be a positive integer");
         }
 
-        // TODO: IF USER ENABLES THE BWC MODE, WE ARE EXPECTING TO SET PLAIN TEXT ROLE AS `dr`
         if (roles != null) {
             String listOfRoles = String.join(",", roles);
             jwtClaims.setProperty("er", EncryptionDecryptionUtil.encrypt(claimsEncryptionKey, listOfRoles));
         } else {
             throw new Exception("Roles cannot be null");
         }
+
+        /* TODO: If the backendRoles is not null and the BWC Mode is on, put them into the "dbr" claim */
 
         String encodedJwt = jwtProducer.processJwt(jwt);
 

@@ -117,6 +117,7 @@ import org.opensearch.search.internal.SearchContext;
 import org.opensearch.search.query.QuerySearchResult;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.TransportConfigUpdateAction;
+import org.opensearch.security.action.onbehalf.CreateOnBehalfOfTokenAction;
 import org.opensearch.security.action.whoami.TransportWhoAmIAction;
 import org.opensearch.security.action.whoami.WhoAmIAction;
 import org.opensearch.security.auditlog.AuditLog;
@@ -141,7 +142,6 @@ import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
-import org.opensearch.security.http.HTTPOnBehalfOfJwtAuthenticator;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
@@ -215,6 +215,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SslExceptionHandler sslExceptionHandler;
     private volatile Client localClient;
     private final boolean disabled;
+    private volatile DynamicConfigFactory dcf;
     private final List<String> demoCertHashes = new ArrayList<String>(3);
     private volatile SecurityFilter sf;
     private volatile IndexResolverReplacer irr;
@@ -531,6 +532,9 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                         principalExtractor
                     )
                 );
+                CreateOnBehalfOfTokenAction cobot = new CreateOnBehalfOfTokenAction(settings, threadPool, Objects.requireNonNull(cs));
+                dcf.registerDCFListener(cobot);
+                handlers.add(cobot);
                 handlers.addAll(
                     SecurityRestApiActions.getHandler(
                         settings,
@@ -1029,17 +1033,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             configPath,
             compatConfig
         );
-
-        HTTPOnBehalfOfJwtAuthenticator acInstance = new HTTPOnBehalfOfJwtAuthenticator();
-
-        final DynamicConfigFactory dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
         dcf.registerDCFListener(securityRestHandler);
-        dcf.registerDCFListener(acInstance);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
             dcf.registerDCFListener(auditLog);

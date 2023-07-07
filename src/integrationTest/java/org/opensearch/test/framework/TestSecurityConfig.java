@@ -115,6 +115,11 @@ public class TestSecurityConfig {
         return this;
     }
 
+    public TestSecurityConfig onBehalfOf(OnBehalfOfConfig onBehalfOfConfig) {
+        config.onBehalfOfConfig(onBehalfOfConfig);
+        return this;
+    }
+
     public TestSecurityConfig authc(AuthcDomain authcDomain) {
         config.authc(authcDomain);
         return this;
@@ -171,6 +176,7 @@ public class TestSecurityConfig {
 
         private Boolean doNotFailOnForbidden;
         private XffConfig xffConfig;
+        private OnBehalfOfConfig onBehalfOfConfig;
         private Map<String, AuthcDomain> authcDomainMap = new LinkedHashMap<>();
 
         private AuthFailureListeners authFailureListeners;
@@ -188,6 +194,11 @@ public class TestSecurityConfig {
 
         public Config xffConfig(XffConfig xffConfig) {
             this.xffConfig = xffConfig;
+            return this;
+        }
+
+        public Config onBehalfOfConfig(OnBehalfOfConfig onBehalfOfConfig) {
+            this.onBehalfOfConfig = onBehalfOfConfig;
             return this;
         }
 
@@ -210,6 +221,10 @@ public class TestSecurityConfig {
         public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
             xContentBuilder.startObject();
             xContentBuilder.startObject("dynamic");
+
+            if (onBehalfOfConfig != null) {
+                xContentBuilder.field("on_behalf_of", onBehalfOfConfig);
+            }
 
             if (anonymousAuth || (xffConfig != null)) {
                 xContentBuilder.startObject("http");

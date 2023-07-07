@@ -74,6 +74,7 @@ public class AccountApiTest extends AbstractRestApiUnitTest {
         assertNotNull(body.getAsList("custom_attribute_names").size());
         assertNotNull(body.getAsSettings("tenants"));
         assertNotNull(body.getAsList("roles"));
+
     }
 
     @Test
