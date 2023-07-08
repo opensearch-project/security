@@ -534,7 +534,7 @@ dependencies {
 
     implementation "com.nulab-inc:zxcvbn:1.7.0"
 
-    implementation 'com.jayway.jsonpath:json-path:2.4.0'
+    implementation 'com.jayway.jsonpath:json-path:2.8.0'
     implementation 'net.minidev:json-smart:2.4.10'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
