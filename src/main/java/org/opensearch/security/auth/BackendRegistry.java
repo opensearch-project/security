@@ -202,7 +202,7 @@ public class BackendRegistry {
         if (adminDns.isAdminDN(sslPrincipal)) {
             // PKI authenticated REST call
             threadPool.getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
-            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_USER, new User(sslPrincipal));
+            threadPool.getThreadContext().putPersistent(ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER, new User(sslPrincipal));
             auditLog.logSucceededLogin(sslPrincipal, true, null, request);
             return true;
         }
@@ -364,7 +364,7 @@ public class BackendRegistry {
                 impersonatedUser == null ? authenticatedUser : impersonatedUser
             );
             threadContext.putPersistent(
-                ConfigConstants.OPENDISTRO_SECURITY_USER,
+                ConfigConstants.OPENDISTRO_SECURITY_AUTHENTICATED_USER,
                 impersonatedUser == null ? authenticatedUser : impersonatedUser
             );
             auditLog.logSucceededLogin(

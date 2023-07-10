@@ -213,7 +213,7 @@ public class PrivilegesEvaluator {
                 joiner.add(requestedTenant);
             }
             threadContext.putTransient(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
-            threadContext.putPersistent(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
+            // threadContext.putPersistent(OPENDISTRO_SECURITY_USER_INFO_THREAD_CONTEXT, joiner.toString());
         }
     }
 
