@@ -29,6 +29,7 @@ buildscript {
         apache_cxf_version = '4.0.2'
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
+        guava_version = '32.1.1-jre'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -430,7 +431,7 @@ configurations {
             force "org.apache.bcel:bcel:6.7.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.1"
-            force 'com.google.guava:guava:32.0.1-jre'
+            force "com.google.guava:guava:${guava_version}"
         }
     }
 
@@ -482,7 +483,7 @@ dependencies {
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
-    implementation 'com.google.guava:guava:32.0.1-jre'
+    implementation "com.google.guava:guava:${guava_version}"
     implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.5.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
@@ -543,7 +544,6 @@ dependencies {
     runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:4.0.3'
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
-    runtimeOnly 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'io.dropwizard.metrics:metrics-core:3.1.2'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.30'
