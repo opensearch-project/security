@@ -281,6 +281,7 @@ configurations.all {
         force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
         force "com.github.luben:zstd-jni:${versions.zstd}"
         force "org.xerial.snappy:snappy-java:1.1.10.1"
+        force 'com.google.guava:guava:32.0.1-jre'
     }
 }
 
@@ -289,7 +290,7 @@ dependencies {
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation 'com.google.guava:guava:32.0.1-jre'
     implementation 'org.greenrobot:eventbus:3.2.0'
-    implementation 'commons-cli:commons-cli:1.3.1'
+    implementation 'commons-cli:commons-cli:1.5.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation "org.apache.httpcomponents:httpclient-cache:${versions.httpclient}"
@@ -412,6 +413,14 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
+
+    //Checkstyle
+    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
+
+    //spotless
+    implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
+        exclude group: 'com.google.guava'
+    }
 }
 
 jar {
