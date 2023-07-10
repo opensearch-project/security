@@ -537,7 +537,7 @@ dependencies {
     implementation 'com.jayway.jsonpath:json-path:2.4.0'
     implementation 'net.minidev:json-smart:2.4.10'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
     runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:2.3.4'
