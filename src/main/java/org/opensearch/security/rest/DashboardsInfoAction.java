@@ -65,6 +65,9 @@ public class DashboardsInfoAction extends BaseRestHandler {
     private final PrivilegesEvaluator evaluator;
     private final ThreadContext threadContext;
 
+    public static final String DEFAULT_PASSWORD_MESSAGE = "Password should be at least 8 characters long and contain at least one "
+        + "uppercase letter, one lowercase letter, one digit, and one special character.";
+
     public DashboardsInfoAction(
         final Settings settings,
         final RestController controller,
@@ -103,6 +106,10 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     builder.field("multitenancy_enabled", evaluator.multitenancyEnabled());
                     builder.field("private_tenant_enabled", evaluator.privateTenantEnabled());
                     builder.field("default_tenant", evaluator.dashboardsDefaultTenant());
+                    builder.field(
+                        "password_validation_error_message",
+                        client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, DEFAULT_PASSWORD_MESSAGE)
+                    );
                     builder.endObject();
 
                     response = new BytesRestResponse(RestStatus.OK, builder);
