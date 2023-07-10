@@ -30,6 +30,7 @@ buildscript {
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
         guava_version = '32.1.1-jre'
+        jaxb_version = '2.3.8'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -541,7 +542,7 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
-    runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:4.0.3'
+    runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
@@ -550,7 +551,7 @@ dependencies {
     runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.17.1'
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.1'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
-    runtimeOnly 'org.glassfish.jaxb:txw2:2.3.4'
+    runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.4.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
