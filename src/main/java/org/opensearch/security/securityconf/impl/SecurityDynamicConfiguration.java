@@ -291,8 +291,6 @@ public class SecurityDynamicConfiguration<T> implements ToXContent {
     @JsonIgnore
     public void remove(List<String> keySet) {
         keySet.stream().forEach(this::remove);
-
-        centries.remove(key);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
