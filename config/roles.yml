@@ -257,13 +257,13 @@ cross_cluster_search_remote_full_access:
 ml_read_access:
   reserved: true
   cluster_permissions:
+    - 'cluster:admin/opensearch/ml/connectors/get'
+    - 'cluster:admin/opensearch/ml/connectors/search'
     - 'cluster:admin/opensearch/ml/model_groups/search'
     - 'cluster:admin/opensearch/ml/models/get'
     - 'cluster:admin/opensearch/ml/models/search'
     - 'cluster:admin/opensearch/ml/tasks/get'
     - 'cluster:admin/opensearch/ml/tasks/search'
-    - 'cluster:admin/opensearch/ml/connectors/get'
-    - 'cluster:admin/opensearch/ml/connectors/search'
 
 # Allows users to use all ML functionality
 ml_full_access:
