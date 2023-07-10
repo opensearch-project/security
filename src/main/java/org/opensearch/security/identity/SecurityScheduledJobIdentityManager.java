@@ -9,8 +9,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
 import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.apache.logging.log4j.LogManager;
