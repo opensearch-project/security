@@ -13,14 +13,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.Assume;
-import org.junit.Assert;
 import org.junit.Before;
-import org.opensearch.client.Response;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 import org.opensearch.Version;
-import com.google.common.collect.ImmutableMap;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
