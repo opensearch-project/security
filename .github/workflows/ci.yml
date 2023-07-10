@@ -6,13 +6,34 @@ env:
   GRADLE_OPTS: -Dhttp.keepAlive=false
 
 jobs:
-  build:
-    name: build
+  generate-test-list:
+    runs-on: ubuntu-latest
+    outputs:
+      separateTestsNames: ${{ steps.set-matrix.outputs.separateTestsNames }}
+    steps:
+    - name: Set up JDK for build and test
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin # Temurin is a distribution of adoptium
+        java-version: 17
+
+    - name: Checkout security
+      uses: actions/checkout@v2
+
+    - name: Generate list of tasks
+      id: set-matrix
+      run: |
+        echo "separateTestsNames=$(./gradlew listTasksAsJSON -q --console=plain | tail -n 1)" >> $GITHUB_OUTPUT
+
+  test:
+    name: test
+    needs: generate-test-list
     strategy:
       fail-fast: false
       matrix:
+        gradle_task: ${{ fromJson(needs.generate-test-list.outputs.separateTestsNames) }}
+        platform: [windows-latest, ubuntu-latest]
         jdk: [11, 17]
-        platform: ["ubuntu-latest", "windows-latest", "macos-latest"]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -29,11 +50,8 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         arguments: |
-          build test -Dbuild.snapshot=false
-          -x spotlessCheck
-          -x checkstyleMain
-          -x checkstyleTest
-          -x spotbugsMain
+          ${{ matrix.gradle_task }} -Dbuild.snapshot=false
+          -x test
 
     - name: Coverage
       uses: codecov/codecov-action@v1
@@ -53,25 +71,27 @@ jobs:
       run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
   backward-compatibility:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [11, 17]
+        platform: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
     steps:
-    - uses: actions/checkout@v2
     - uses: actions/setup-java@v1
       with:
-        java-version: 11
-    - run: ./gradlew clean build -Dbuild.snapshot=false -x test
-    - run: |
-        echo "Running backwards compatibility tests ..."
-        security_plugin_version_no_snapshot=$(./gradlew properties -q | grep -E '^version:' | awk '{print $2}' | sed 's/-SNAPSHOT//g')
-        bwc_version=2.8.0
-        cp -r build/ ./bwc-test/
-        mkdir ./bwc-test/src/test/resources/security_plugin_version_no_snapshot
-        cp build/distributions/opensearch-security-${security_plugin_version_no_snapshot}.zip ./bwc-test/src/test/resources/${security_plugin_version_no_snapshot}
-        mkdir bwc-test/src/test/resources/${bwc_version}.0
-        wget https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${bwc_version}/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-security-${bwc_version}.0.zip
-        mv opensearch-security-${bwc_version}.0.zip bwc-test/src/test/resources/${bwc_version}.0/
-        cd bwc-test/
-        ./gradlew bwcTestSuite -Dtests.security.manager=false
+        java-version: ${{ matrix.jdk }}
+
+    - name: Checkout Security Repo
+      uses: actions/checkout@v2
+
+    - id: build-previous
+      uses: ./.github/actions/run-bwc-suite
+      with:
+        plugin-previous-branch: "2.8"
+        plugin-next-branch: "2.x"
+        report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
 
   code-ql:
     runs-on: ubuntu-latest
