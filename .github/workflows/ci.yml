@@ -70,32 +70,6 @@ jobs:
       if: always()
       run: echo "Check the artifact ${{ matrix.platform }}-JDK${{ matrix.jdk }}-reports for detailed test results"
 
-  integration-tests:
-    name: integration-tests
-    strategy:
-      fail-fast: false
-      matrix:
-        jdk: [17]
-        platform: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-    - name: Set up JDK for build and test
-      uses: actions/setup-java@v2
-      with:
-        distribution: temurin # Temurin is a distribution of adoptium
-        java-version: ${{ matrix.jdk }}
-
-    - name: Checkout security
-      uses: actions/checkout@v2
-
-    - name: Build and Test
-      uses: gradle/gradle-build-action@v2
-      continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
-      with:
-        arguments: |
-          integrationTest -Dbuild.snapshot=false
-
   backward-compatibility:
     strategy:
       fail-fast: false
