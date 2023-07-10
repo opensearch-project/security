@@ -10,6 +10,7 @@
  */
 
 import org.opensearch.gradle.test.RestIntegTestTask
+import groovy.json.JsonBuilder
 
 buildscript {
     ext {
@@ -23,6 +24,7 @@ buildscript {
 
         common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
         kafka_version  = '3.5.0'
+        jaxb_version = '2.3.8'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -96,12 +98,91 @@ forbiddenPatterns.enabled = false
 testingConventions.enabled = false
 // Conflicts between runtime kafka-clients:x.y.z & testRuntime kafka-clients:x.y.z:test
 jarHell.enabled = false
+tasks.whenTaskAdded {task ->
+    if(task.name.contains("forbiddenApisIntegrationTest")) {
+        task.enabled = false
+    }
+}
+
+def splitTestConfig = [
+    ciSecurityIntegrationTest: [
+        description: "Runs integration tests from all classes.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.*Integ*"
+            ],
+            excludeTestsMatching: [
+                "org.opensearch.security.sanity.tests.*"
+            ]
+        ]
+    ],
+    crossClusterTest: [
+        description: "Runs cross-cluster tests.",
+        filters: [
+            includeTestsMatching: [
+                    "org.opensearch.security.ccstest.*"
+            ]
+        ]
+    ],
+    dlicDlsflsTest: [
+        description: "Runs Document- and Field-Level Security tests.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.dlic.dlsfls.*"
+            ]
+        ]
+    ],
+    dlicRestApiTest: [
+        description: "Runs REST Management API tests.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.dlic.rest.*"
+            ]
+        ]
+    ],
+    indicesTest: [
+        description: "Runs indices tests from all classes.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.*indices*"
+            ],
+            excludeTestsMatching: [
+                "org.opensearch.security.sanity.tests.*"
+            ]
+        ]
+    ],
+    opensslCITest: [
+        description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
+        include: '**/OpenSSL*.class'
+    ],
+    sslTest: [
+        description: "Runs most of the SSL tests.",
+        filters: [
+            includeTestsMatching: [
+                "org.opensearch.security.ssl.*"
+            ],
+            excludeTestsMatching: [
+                "org.opensearch.security.ssl.OpenSSL*"
+            ]
+        ]
+    ]
+] as ConfigObject
+
+List<String> taskNames = splitTestConfig.keySet() as List
+
+task listTasksAsJSON {
+    // We are using `doLast` to explicitly specify when we
+    // want this action to be started. Without it the output
+    // is not shown at all or can be mixed with other outputs.
+    doLast {
+        System.out.println(new JsonBuilder(["citest"] + taskNames))
+    }
+}
 
 test {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
     }
     maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
@@ -129,14 +210,37 @@ test {
     }
 }
 
-//add new task that runs OpenSSL tests
-task opensslTest(type: Test) {
-    include '**/OpenSSL*.class'
-    retry {
+task copyExtraTestResources(dependsOn: testClasses) {
+
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/test/src/test/resources'
+    }
+
+    taskNames.each { testName ->
+        copy {
+            from 'src/test/resources'
+            into "build/testrun/${testName}/src/test/resources"
+        }
+    }
+
+    copy {
+        from 'src/test/resources'
+        into 'build/testrun/citest/src/test/resources'
+    }
+}
+
+def setCommonTestConfig(Test task) {
+    task.maxParallelForks = 8
+    task.jvmArgs += "-Xmx3072m"
+    if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
+        task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
+    }
+    task.retry {
         failOnPassedAfterRetry = false
         maxRetries = 5
     }
-    jacoco {
+    task.jacoco {
         excludes = [
             "com.sun.jndi.dns.*",
             "com.sun.security.sasl.gsskerb.*",
@@ -151,21 +255,58 @@ task opensslTest(type: Test) {
             "sun.util.resources.provider.*"
         ]
     }
+    task.dependsOn copyExtraTestResources
+    task.finalizedBy jacocoTestReport
 }
 
-task copyExtraTestResources(dependsOn: testClasses) {
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/test/src/test/resources'
+task citest(type: Test) {
+    group = "Github Actions tests"
+    description = "Runs the test suite on classes not covered by rest of the task in this group."
+    include '**/*.class'
+    filter {
+        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
+        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
+        splitTestConfig.each { entry ->
+            entry.value.filters.each{ test ->
+                if (test.key == "includeTestsMatching") {
+                    test.value.each{
+                        excludeTestsMatching "${it}"
+                    }
+                } else if (test.key == "includeTest") {
+                    test.value.each{
+                        excludeTest "${it}"
+                    }
+                }
+            }
+        }
+    }
+    setCommonTestConfig(it)
+}
+
+splitTestConfig.each{ testName, testCfg ->
+    task "${testName}"(type: Test) {
+        group = testCfg.group ?: "Github Actions tests"
+        description = testCfg.description
+        include testCfg.include ?: '**/*.class'
+        filter {
+            testCfg.filters.each{ filter, values ->
+                values.each{ value ->
+                    "${filter}" "${value}"
+                }
+            }
+        }
+        setCommonTestConfig(it)
     }
 }
-tasks.test.dependsOn(copyExtraTestResources, opensslTest)
+
+tasks.test.dependsOn(copyExtraTestResources)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")
 }
 
 jacocoTestReport {
+    getExecutionData().setFrom(fileTree(buildDir).include("/jacoco/*.exec"))
     reports {
         xml.required = true
     }
@@ -281,6 +422,7 @@ configurations.all {
         force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
         force "com.github.luben:zstd-jni:${versions.zstd}"
         force "org.xerial.snappy:snappy-java:1.1.10.1"
+        force 'com.google.guava:guava:32.0.1-jre'
     }
 }
 
@@ -289,7 +431,7 @@ dependencies {
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
     implementation 'com.google.guava:guava:32.0.1-jre'
     implementation 'org.greenrobot:eventbus:3.2.0'
-    implementation 'commons-cli:commons-cli:1.3.1'
+    implementation 'commons-cli:commons-cli:1.5.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
     implementation "org.apache.httpcomponents:httpclient-cache:${versions.httpclient}"
@@ -338,7 +480,6 @@ dependencies {
     runtimeOnly 'org.opensaml:opensaml-soap-impl:3.4.5'
     implementation 'org.opensaml:opensaml-storage-api:3.4.5'
     implementation 'commons-lang:commons-lang:2.4'
-    implementation 'commons-collections:commons-collections:3.2.2'
     implementation 'com.jayway.jsonpath:json-path:2.4.0'
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation 'net.minidev:json-smart:2.4.10'
@@ -346,7 +487,7 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
-    runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:2.3.4'
+    runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:1.3'
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
@@ -356,7 +497,7 @@ dependencies {
     runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.17.1'
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.1'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
-    runtimeOnly 'org.glassfish.jaxb:txw2:2.3.4'
+    runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.4.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
@@ -413,6 +554,14 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
+
+    //Checkstyle
+    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
+
+    //spotless
+    implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
+        exclude group: 'com.google.guava'
+    }
 }
 
 jar {

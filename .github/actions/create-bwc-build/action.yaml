@@ -1,0 +1,43 @@
+name: 'Create a backwards compatible ready build'
+description: 'Checkouts the official version of a the Security plugin and builds it so it can be used for BWC tests'
+
+inputs:
+  plugin-branch:
+    description: 'The branch of the plugin that should be built, e.g "2.2", "1.x"'
+    required: true
+
+outputs:
+  built-version:
+    description: 'The version of OpenSearch that was associated with this branch'
+    value: ${{ steps.get-opensearch-version.outputs.version }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Enable Longpaths if on Windows
+      if: ${{ runner.os == 'Windows' }}
+      run: git config --system core.longpaths true
+      shell: pwsh
+
+    - uses: actions/checkout@v3
+      with:
+        repository: opensearch-project/security
+        ref: ${{ inputs.plugin-branch }}
+        path: ${{ inputs.plugin-branch }}
+
+    - name: Build
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: assemble -Dbuild.snapshot=false
+        build-root-directory: ${{ inputs.plugin-branch }}
+
+    - id: get-opensearch-version
+      uses: peternied/get-opensearch-version@v1
+      with:
+        working-directory: ${{ inputs.plugin-branch }}
+
+    - name: Copy current distro into the expected folder
+      run: |
+        mkdir -p ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
+        cp ${{ inputs.plugin-branch }}/build/distributions/opensearch-security-${{ steps.get-opensearch-version.outputs.version }}.zip ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
+      shell: bash

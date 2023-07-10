@@ -12,14 +12,28 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
+import org.opensearch.Version;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
-    private static final ClusterType CLUSTER_TYPE = ClusterType.parse(System.getProperty("tests.rest.bwcsuite"));
-    private static final String CLUSTER_NAME = System.getProperty("tests.clustername");
+    private ClusterType CLUSTER_TYPE;
+    private String CLUSTER_NAME;
+
+    @Before
+    private void testSetup() {
+        final String bwcsuiteString = System.getProperty("tests.rest.bwcsuite");
+        Assume.assumeTrue("Test cannot be run outside the BWC gradle task 'bwcTestSuite' or its dependent tasks", bwcsuiteString != null);
+        CLUSTER_TYPE = ClusterType.parse(bwcsuiteString);
+        CLUSTER_NAME = System.getProperty("tests.clustername");
+    }
 
     @Override
     protected final boolean preserveIndicesUponCompletion() {
@@ -47,16 +61,9 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             .build();
     }
 
-    public void testPluginUpgradeInAMixedCluster() throws Exception {
-        assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-0/plugins");
-    }
-
-    public void testPluginUpgradeInAnUpgradedCluster() throws Exception {
-        assertPluginUpgrade("_nodes/plugins");
-    }
-
-    public void testPluginUpgradeInARollingUpgradedCluster() throws Exception {
+    public void testBasicBackwardsCompatibility() throws Exception {
         String round = System.getProperty("tests.rest.bwcsuite_round");
+
         if (round.equals("first") || round.equals("old")) {
             assertPluginUpgrade("_nodes/" + CLUSTER_NAME + "-0/plugins");
         } else if (round.equals("second")) {
@@ -90,19 +97,16 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         Map<String, Map<String, Object>> responseMap = (Map<String, Map<String, Object>>) getAsMap(uri).get("nodes");
         for (Map<String, Object> response : responseMap.values()) {
             List<Map<String, Object>> plugins = (List<Map<String, Object>>) response.get("plugins");
-            Set<Object> pluginNames = plugins.stream().map(map -> map.get("name")).collect(Collectors.toSet());
-            switch (CLUSTER_TYPE) {
-                case OLD:
-                    Assert.assertTrue(pluginNames.contains("opendistro_security"));
-                    break;
-                case MIXED:
-                    Assert.assertTrue(pluginNames.contains("opensearch-security"));
-                    break;
-                case UPGRADED:
-                    Assert.assertTrue(pluginNames.contains("opendistro_security"));
-                    break;
+            Set<String> pluginNames = plugins.stream().map(map -> (String) map.get("name")).collect(Collectors.toSet());
+
+            final Version minNodeVersion = this.minimumNodeVersion();
+
+            if (minNodeVersion.major <= 1) {
+                assertThat(pluginNames, hasItem("opensearch_security"));
+            } else {
+                assertThat(pluginNames, hasItem("opensearch-security"));
             }
-            break;
+
         }
     }
 }
