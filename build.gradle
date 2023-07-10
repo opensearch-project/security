@@ -338,7 +338,6 @@ dependencies {
     runtimeOnly 'org.opensaml:opensaml-soap-impl:3.4.5'
     implementation 'org.opensaml:opensaml-storage-api:3.4.5'
     implementation 'commons-lang:commons-lang:2.4'
-    implementation 'commons-collections:commons-collections:3.2.2'
     implementation 'com.jayway.jsonpath:json-path:2.4.0'
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation 'net.minidev:json-smart:2.4.10'
