@@ -124,7 +124,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     protected final Logger log = LogManager.getLogger(this.getClass());
     private final ConfigurationRepository cr;
     private final AtomicBoolean initialized = new AtomicBoolean();
-    private final EventBus eventBus = EVENT_BUS_BUILDER.logger(new JavaLogger(DynamicConfigFactory.class.getCanonicalName())).build();
+    private final EventBus eventBus;
     private final Settings opensearchSettings;
     private final Path configPath;
     private final InternalAuthenticationBackend iab = new InternalAuthenticationBackend();
@@ -143,7 +143,9 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         this.cr = cr;
         this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
-
+        this.eventBus = EVENT_BUS_BUILDER.logger(new JavaLogger(DynamicConfigFactory.class.getCanonicalName()))
+            .executorService(threadPool.generic())
+            .build();
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
                 loadStaticConfig();
@@ -153,7 +155,6 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         } else {
             log.info("Static resources will not be loaded.");
         }
-
         registerDCFListener(this.iab);
         this.cr.subscribeOnChange(this);
     }
