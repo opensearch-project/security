@@ -29,6 +29,7 @@ buildscript {
         apache_cxf_version = '4.0.2'
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
+        jjwt_version = '0.11.5'
         guava_version = '32.1.1-jre'
         jaxb_version = '2.3.8'
 
@@ -489,10 +490,26 @@ dependencies {
     implementation 'commons-cli:commons-cli:1.5.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
 
-    implementation 'com.github.wnameless:json-flattener:0.5.0'
-    implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.4'
+    //JWT
+    implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
+    implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
+    implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
+    // JSON flattener
+    implementation ("com.github.wnameless.json:json-base:2.4.0") {
+        exclude group: "org.glassfish", module: "jakarta.json"
+        exclude group: "com.google.code.gson", module: "gson"
+        exclude group: "org.json", module: "json"
+    }
+    implementation 'com.github.wnameless.json:json-flattener:0.16.4'
+    // JSON patch
+    implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.14'
+    implementation 'org.apache.commons:commons-collections4:4.4'
+
+    //JSON path
+    implementation 'com.jayway.jsonpath:json-path:2.8.0'
+    implementation 'net.minidev:json-smart:2.4.11'
+
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
     runtimeOnly 'net.minidev:accessors-smart:2.4.7'
@@ -536,10 +553,6 @@ dependencies {
 
     implementation "com.nulab-inc:zxcvbn:1.7.0"
 
-    implementation 'com.jayway.jsonpath:json-path:2.4.0'
-    implementation 'net.minidev:json-smart:2.4.10'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
