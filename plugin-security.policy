@@ -60,7 +60,6 @@ grant {
   permission java.security.SecurityPermission "putProviderProperty.BC";
   permission java.security.SecurityPermission "insertProvider.BC";
   permission java.security.SecurityPermission "removeProviderProperty.BC";
-  permission java.util.PropertyPermission "jdk.tls.rejectClientInitiatedRenegotiation", "write";
 
   permission java.lang.RuntimePermission "accessUserInformation";
   
@@ -74,6 +73,10 @@ grant {
 
   //Enable this permission to debug unauthorized de-serialization attempt
   //permission java.io.SerializablePermission "enableSubstitution";
+
+  //SAML policy
+  permission java.util.PropertyPermission "*", "read,write";
+  permission org.opensearch.secure_sm.ThreadPermission "modifyArbitraryThread";
 };
 
 grant codeBase "${codebase.netty-common}" {
