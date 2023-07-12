@@ -262,7 +262,7 @@ public class PrivilegesEvaluator {
 
         setUserInfoInThreadContext(user, mappedRoles);
         // Add the security roles for this user so that they can be used for DLS parameter substitution.
-        user.addSecurityRoles(mappedRoles);
+        user.setSecurityRoles(mappedRoles);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
         if (isDebugEnabled) {

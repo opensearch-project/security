@@ -48,6 +48,7 @@ public final class AuthCredentials {
     private final String username;
     private byte[] password;
     private Object nativeCredentials;
+    private final Set<String> securityRoles = new HashSet<String>();
     private final Set<String> backendRoles = new HashSet<String>();
     private boolean complete;
     private final byte[] internalPasswordHash;
@@ -201,6 +202,14 @@ public final class AuthCredentials {
      */
     public Set<String> getBackendRoles() {
         return new HashSet<String>(backendRoles);
+    }
+
+    /**
+     *
+     * @return Defensive copy of the security roles this user is member of.
+     */
+    public Set<String> getSecurityRoles() {
+        return new HashSet<String>(securityRoles);
     }
 
     public boolean isComplete() {

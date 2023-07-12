@@ -73,7 +73,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
 
             final List<String> securityRoles = internalUsersModel.getSecurityRoles(user.getName());
             if (securityRoles != null) {
-                user.addSecurityRoles(securityRoles);
+                user.setSecurityRoles(securityRoles);
             }
 
             user.addAttributes(attributeMap);
@@ -140,7 +140,7 @@ public class InternalAuthenticationBackend implements AuthenticationBackend, Aut
 
                 final List<String> securityRoles = internalUsersModel.getSecurityRoles(credentials.getUsername());
                 if (securityRoles != null) {
-                    user.addSecurityRoles(securityRoles);
+                    user.setSecurityRoles(securityRoles);
                 }
                 return user;
             } else {

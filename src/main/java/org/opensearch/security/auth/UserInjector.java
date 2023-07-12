@@ -73,7 +73,7 @@ public class UserInjector {
         private Object writeReplace() throws ObjectStreamException {
             User user = new User(getName());
             user.addRoles(getRoles());
-            user.addSecurityRoles(getSecurityRoles());
+            user.setSecurityRoles(getSecurityRoles());
             user.setRequestedTenant(getRequestedTenant());
             user.addAttributes(getCustomAttributesMap());
             user.setInjected(true);
