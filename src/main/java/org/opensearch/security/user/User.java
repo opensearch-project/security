@@ -33,9 +33,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.opensearch.common.io.stream.StreamInput;
@@ -73,7 +78,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
      * roles == backend_roles
      */
     private final Set<String> roles = Collections.synchronizedSet(new HashSet<String>());
-    private final Set<String> securityRoles = Collections.synchronizedSet(new HashSet<String>());
+    private final AtomicReference<Set<String>> securityRoles = new AtomicReference<>(new HashSet<String>());
     private String requestedTenant;
     private Map<String, String> attributes = Collections.synchronizedMap(new HashMap<>());
     private boolean isInjected = false;
@@ -84,7 +89,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         roles.addAll(in.readList(StreamInput::readString));
         requestedTenant = in.readString();
         attributes = Collections.synchronizedMap(in.readMap(StreamInput::readString, StreamInput::readString));
-        securityRoles.addAll(in.readList(StreamInput::readString));
+        securityRoles.get().addAll(in.readList(StreamInput::readString));
     }
 
     /**
@@ -257,7 +262,7 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         out.writeStringCollection(new ArrayList<String>(roles));
         out.writeString(requestedTenant);
         out.writeMap(attributes, StreamOutput::writeString, StreamOutput::writeString);
-        out.writeStringCollection(securityRoles == null ? Collections.emptyList() : new ArrayList<String>(securityRoles));
+        out.writeStringCollection(securityRoles.get() ==null?Collections.emptyList():new ArrayList<String>(securityRoles.get()));
     }
 
     /**
@@ -272,15 +277,14 @@ public class User implements Serializable, Writeable, CustomAttributesAware {
         return attributes;
     }
 
-    public synchronized final void addSecurityRoles(final Collection<String> securityRoles) {
+    public final void addSecurityRoles(final Collection<String> securityRoles) {
         if (securityRoles != null && this.securityRoles != null) {
-            this.securityRoles.addAll(securityRoles);
+            List<String> filteredRoles = securityRoles.stream().filter(r -> r != null).collect(Collectors.toList());
+            this.securityRoles.get().addAll(filteredRoles);
         }
     }
 
-    public synchronized final Set<String> getSecurityRoles() {
-        return this.securityRoles == null
-            ? Collections.synchronizedSet(Collections.emptySet())
-            : Collections.unmodifiableSet(this.securityRoles);
+    public final Set<String> getSecurityRoles() {
+        return this.securityRoles.get() == null ? Collections.synchronizedSet(Collections.emptySet()) : ImmutableSet.copyOf(this.securityRoles.get());
     }
 }

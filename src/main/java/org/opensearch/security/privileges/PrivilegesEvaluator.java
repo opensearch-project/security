@@ -207,7 +207,7 @@ public class PrivilegesEvaluator {
             StringJoiner joiner = new StringJoiner("|");
             joiner.add(user.getName());
             joiner.add(String.join(",", user.getRoles()));
-            joiner.add(String.join(",", Sets.union(user.getSecurityRoles().stream().collect(ImmutableSet.toImmutableSet()), mappedRoles)));
+            joiner.add(String.join(",", Sets.union(user.getSecurityRoles(), mappedRoles)));
             String requestedTenant = user.getRequestedTenant();
             if (!Strings.isNullOrEmpty(requestedTenant)) {
                 joiner.add(requestedTenant);
