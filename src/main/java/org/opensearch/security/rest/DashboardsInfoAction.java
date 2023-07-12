@@ -113,8 +113,8 @@ public class DashboardsInfoAction extends BaseRestHandler {
                         client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, DEFAULT_PASSWORD_MESSAGE)
                     );
                     builder.field(
-                            "password_validation_regex",
-                            client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, DEFAULT_PASSWORD_REGEX)
+                        "password_validation_regex",
+                        client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, DEFAULT_PASSWORD_REGEX)
                     );
                     builder.endObject();
 
