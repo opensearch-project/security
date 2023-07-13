@@ -31,6 +31,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.rest.RestRequest;
@@ -100,4 +103,40 @@ public class HTTPHelper {
 
         return false;
     }
+
+    public static boolean containsOBOToken(final RestRequest request){
+        final Map<String, List<String>> headers;
+
+        if (request != null && (headers = request.getHeaders()) != null) {
+            List<String> authHeaders = headers.get("Authorization");
+            if (authHeaders != null && !authHeaders.isEmpty()) {
+                // Iterate through the list of 'Authorization' headers, checking each for the 'Bearer' prefix.
+                for (String authHeader : authHeaders) {
+                    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                        // Header found, extract the token to verify it's an OBO token.
+                        String token = authHeader.substring("Bearer ".length());
+                        if (isOBOToken(token)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean isOBOToken(String token) {
+        String tokenIdentifierClaimKey = "token_identifier";
+        String tokenIdentifier = "OBO";
+
+        Jws<Claims> claimsJws = Jwts.parserBuilder().build().parseClaimsJws(token);
+        Claims claims = claimsJws.getBody();
+
+        if (claims.containsKey(tokenIdentifierClaimKey) && tokenIdentifier.equals(claims.get(tokenIdentifierClaimKey))) {
+            return true;
+        }
+        return false;
+    }
+
 }

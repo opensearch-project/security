@@ -259,6 +259,17 @@ public class SecurityRestFilter {
             }
         }
 
+        if (HTTPHelper.containsOBOToken(request)) {
+            String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/user/onbehalfof";
+            if (request.method() == Method.POST && OBO_ENDPOINT_PREFIX.equals(suffix)) {
+                final OpenSearchException exception = ExceptionUtils.invalidUsageOfOBOTokenException();
+                log.error(exception.toString());
+                auditLog.logBadHeaders(request);
+                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
+                return true;
+            }
+        }
+
         return false;
     }
 
