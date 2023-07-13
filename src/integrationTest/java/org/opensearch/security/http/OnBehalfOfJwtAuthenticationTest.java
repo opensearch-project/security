@@ -19,6 +19,7 @@ import java.util.Map;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +35,7 @@ import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.junit.Assert;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 import static org.opensearch.test.framework.TestSecurityConfig.Role.ALL_ACCESS;
 
@@ -76,60 +78,51 @@ public class OnBehalfOfJwtAuthenticationTest {
 
     @Test
     public void shouldAuthenticateWithOBOTokenEndPoint() {
-        Header adminOboAuthHeader;
-
-        try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-
-            client.assertCorrectCredentials(ADMIN_USER_NAME);
-
-            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
-            response.assertStatusCode(200);
-
-            Map<String, Object> oboEndPointResponse = response.getBodyAs(Map.class);
-            assertThat(oboEndPointResponse, allOf(aMapWithSize(3), hasKey("user"), hasKey("onBehalfOfToken"), hasKey("duration")));
-
-            String encodedOboTokenStr = oboEndPointResponse.get("onBehalfOfToken").toString();
-
-            adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + encodedOboTokenStr);
-        }
-
-        try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
-
-            TestRestClient.HttpResponse response = client.getAuthInfo();
-            response.assertStatusCode(200);
-
-            String username = response.getTextFromJsonBody(POINTER_USERNAME);
-            assertThat(username, equalTo(ADMIN_USER_NAME));
-        }
+        String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
+        Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+        authenticateWithOboToken(adminOboAuthHeader, ADMIN_USER_NAME, 200);
     }
 
     @Test
     public void shouldNotAuthenticateWithATemperedOBOToken() {
-        Header adminOboAuthHeader;
+        String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
+        oboToken = oboToken.substring(0, oboToken.length() - 1); // tampering the token
+        Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+        authenticateWithOboToken(adminOboAuthHeader, ADMIN_USER_NAME, 401);
+    }
 
-        try (TestRestClient client = cluster.getRestClient(ADMIN_USER_NAME, DEFAULT_PASSWORD)) {
-
-            client.assertCorrectCredentials(ADMIN_USER_NAME);
-
-            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
-            response.assertStatusCode(200);
-
-            Map<String, Object> oboEndPointResponse = response.getBodyAs(Map.class);
-            assertThat(oboEndPointResponse, allOf(aMapWithSize(3), hasKey("user"), hasKey("onBehalfOfToken"), hasKey("duration")));
-
-            String encodedOboTokenStr = oboEndPointResponse.get("onBehalfOfToken").toString();
-            StringBuilder stringBuilder = new StringBuilder(encodedOboTokenStr);
-            stringBuilder.deleteCharAt(encodedOboTokenStr.length() - 1);
-            String temperedOboTokenStr = stringBuilder.toString();
-
-            adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + temperedOboTokenStr);
-        }
+    @Test
+    public void shouldNotAuthenticateForUsingOBOTokenToAccessOBOEndpoint() {
+        String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
+        Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
+            TestRestClient.HttpResponse response = client.getOBOToken(adminOboAuthHeader);
+            response.assertStatusCode(403);
+        }
+    }
 
+    private String generateOboToken(String username, String password) {
+        try (TestRestClient client = cluster.getRestClient(username, password)) {
+            client.assertCorrectCredentials(username);
+            TestRestClient.HttpResponse response = client.postJson(OBO_ENDPOINT_PREFIX, OBO_TOKEN_REASON);
+            response.assertStatusCode(200);
+            Map<String, Object> oboEndPointResponse = response.getBodyAs(Map.class);
+            assertThat(oboEndPointResponse, allOf(aMapWithSize(3), hasKey("user"), hasKey("onBehalfOfToken"), hasKey("duration")));
+            return oboEndPointResponse.get("onBehalfOfToken").toString();
+        }
+    }
+
+    private void authenticateWithOboToken(Header authHeader, String expectedUsername, int expectedStatusCode) {
+        try (TestRestClient client = cluster.getRestClient(authHeader)) {
             TestRestClient.HttpResponse response = client.getAuthInfo();
-            response.assertStatusCode(401);
-            response.getBody().contains("Unauthorized");
+            response.assertStatusCode(expectedStatusCode);
+            if (expectedStatusCode == 200) {
+                String username = response.getTextFromJsonBody(POINTER_USERNAME);
+                assertThat(username, equalTo(expectedUsername));
+            } else {
+                Assert.assertTrue(response.getBody().contains("Unauthorized"));
+            }
         }
     }
 }

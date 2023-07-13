@@ -104,7 +104,7 @@ public class HTTPHelper {
         return false;
     }
 
-    public static boolean containsOBOToken(final RestRequest request){
+    public static boolean containsOBOToken(final RestRequest request) {
         final Map<String, List<String>> headers;
 
         if (request != null && (headers = request.getHeaders()) != null) {

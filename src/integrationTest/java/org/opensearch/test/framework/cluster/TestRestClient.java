@@ -135,6 +135,10 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
     }
 
+    public HttpResponse getOBOToken(Header... headers) {
+        return executeRequest(new HttpPost(getHttpServerUri() + "/_plugin/_security/api/user/onbehalfof?pretty"), headers);
+    }
+
     public void assertCorrectCredentials(String expectedUserName) {
         HttpResponse response = getAuthInfo();
         assertThat(response, notNullValue());
