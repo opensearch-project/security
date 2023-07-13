@@ -105,7 +105,7 @@ public final class FieldReadCallback {
                     fieldValue = Utils.jsonMapToByteArray(filteredSource);
                 }
 
-                Map<String, Object> filteredSource = new JsonFlattener(new String(fieldValue, StandardCharsets.UTF_8)).flattenAsMap();
+                final Map<String, Object> filteredSource = JsonFlattener.flattenAsMap(new String(fieldValue, StandardCharsets.UTF_8));
                 for (String k : filteredSource.keySet()) {
                     if (!recordField(k, filteredSource.get(k) instanceof String)) {
                         continue;

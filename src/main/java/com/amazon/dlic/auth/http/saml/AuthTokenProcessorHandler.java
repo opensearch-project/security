@@ -168,9 +168,7 @@ class AuthTokenProcessorHandler {
 
         try {
 
-            SamlResponse samlResponse = new SamlResponse(saml2Settings, null);
-            samlResponse.setDestinationUrl(acsEndpoint);
-            samlResponse.loadXmlFromBase64(samlResponseBase64);
+            final SamlResponse samlResponse = new SamlResponse(saml2Settings, acsEndpoint, samlResponseBase64);
 
             if (!samlResponse.isValid(samlRequestId)) {
                 log.warn("Error while validating SAML response in /_opendistro/_security/api/authtoken");
