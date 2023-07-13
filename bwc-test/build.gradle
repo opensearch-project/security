@@ -69,7 +69,7 @@ repositories {
 dependencies {
     testImplementation 'com.google.guava:guava:30.0-jre'
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
-    testImplementation 'org.apache.logging.log4j:log4j-core:2.20.0'
+    testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
 }
 
 loggerUsageCheck.enabled = false
