@@ -13,7 +13,7 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 import static java.util.Objects.requireNonNull;
 
