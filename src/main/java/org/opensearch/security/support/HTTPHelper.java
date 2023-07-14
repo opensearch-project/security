@@ -127,8 +127,8 @@ public class HTTPHelper {
     }
 
     private static boolean isOBOToken(String token) {
-        String tokenIdentifierClaimKey = "token_identifier";
-        String tokenIdentifier = "OBO";
+        String tokenIdentifierClaimKey = "typ";
+        String tokenIdentifier = "obo";
 
         Jws<Claims> claimsJws = Jwts.parserBuilder().build().parseClaimsJws(token);
         Claims claims = claimsJws.getBody();
