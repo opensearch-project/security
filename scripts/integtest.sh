@@ -20,7 +20,7 @@ function usage() {
     echo -e "-v OPENSEARCH_VERSION\t, no defaults"
     echo -e "-n SNAPSHOT\t, defaults to false"
     echo -e "-m CLUSTER_NAME\t, defaults to docker-cluster"
-    echo -e "-u COMMON_UTILS_VERSION\t, defaults to 2.2.0.0"
+    echo -e "-u COMMON_UTILS_VERSION\t, defaults to 2.9.0.0"
     echo "--------------------------------------------------------------------------"
 }
 
@@ -101,7 +101,7 @@ then
 fi
 if [ -z "$COMMON_UTILS_VERSION" ]
 then
-  COMMON_UTILS_VERSION="2.2.0.0"
+  COMMON_UTILS_VERSION="2.9.0.0"
 fi
 
 USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
