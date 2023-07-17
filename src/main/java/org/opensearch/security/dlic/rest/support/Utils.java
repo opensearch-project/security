@@ -35,7 +35,7 @@ import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentHelper;

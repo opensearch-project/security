@@ -13,7 +13,7 @@ package org.opensearch.security.auditlog.helper;
 
 import java.util.Collections;
 
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
 
