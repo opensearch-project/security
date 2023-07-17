@@ -63,7 +63,7 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.19.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.1.0"
+    id 'com.netflix.nebula.ospackage' version "11.3.0"
     id "org.gradle.test-retry" version "1.5.2"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.14"
