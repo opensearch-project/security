@@ -111,7 +111,7 @@ public class DlsTest extends AbstractDlsFlsTest {
         );
         Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
         Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
-        Assert.assertEquals(res.getHeaders().toString(), 1, res.getHeaders().size());
+        Assert.assertEquals(res.getHeaders().toString(), 3, res.getHeaders().size());
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
