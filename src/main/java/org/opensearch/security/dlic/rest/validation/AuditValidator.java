@@ -15,7 +15,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.DefaultObjectMapper;
