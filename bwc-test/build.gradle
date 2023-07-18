@@ -84,8 +84,8 @@ String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
 String projectVersion = nextVersion
 
-String previousOpenSearch  = extractVersion(previousVersion);
-String nextOpenSearch  = extractVersion(nextVersion);
+String previousOpenSearch  = extractVersion(previousVersion) + "-SNAPSHOT";
+String nextOpenSearch  = extractVersion(nextVersion) + "-SNAPSHOT";
 
 println previousOpenSearch + nextOpenSearch;
 
