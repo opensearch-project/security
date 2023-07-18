@@ -45,7 +45,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private static final Pattern BEARER = Pattern.compile("^\\s*Bearer\\s.*", Pattern.CASE_INSENSITIVE);
     private static final String BEARER_PREFIX = "bearer ";
-    private static final String SUBJECT_CLAIM = "sub";
+    private static final String TOKEN_TYPE_CLAIM = "typ";
+    private static final String TOKEN_TYPE = "obo";
 
     private final JwtParser jwtParser;
     private final String encryptionKey;
@@ -179,6 +180,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             final String audience = claims.getAudience();
             if (Objects.isNull(audience)) {
                 log.error("Valid jwt on behalf of token with no audience");
+                return null;
+            }
+
+            final String tokenType = claims.get(TOKEN_TYPE_CLAIM).toString();
+            if (tokenType != TOKEN_TYPE) {
+                log.error("This toke is not verifying as an on-behalf-of token");
                 return null;
             }
 

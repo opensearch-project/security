@@ -52,7 +52,7 @@ public class OnBehalfOfAuthenticatorTest {
             final AuthCredentials credentials = extractCredentialsFromJwtHeader(
                 null,
                 claimsEncryptionKey,
-                Jwts.builder().setSubject("Leonard McCoy"),
+                Jwts.builder().claim("typ", "obo").setSubject("Leonard McCoy"),
                 false
             );
             Assert.fail("Expected a RuntimeException");
@@ -68,7 +68,7 @@ public class OnBehalfOfAuthenticatorTest {
             final AuthCredentials credentials = extractCredentialsFromJwtHeader(
                 null,
                 claimsEncryptionKey,
-                Jwts.builder().setSubject("Leonard McCoy"),
+                Jwts.builder().claim("typ", "obo").setSubject("Leonard McCoy"),
                 false
             );
             Assert.fail("Expected a RuntimeException");
@@ -153,6 +153,7 @@ public class OnBehalfOfAuthenticatorTest {
     public void testBearer() throws Exception {
 
         String jwsToken = Jwts.builder()
+            .claim("typ", "obo")
             .setSubject("Leonard McCoy")
             .setAudience("ext_0")
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
@@ -175,6 +176,7 @@ public class OnBehalfOfAuthenticatorTest {
     public void testBearerWrongPosition() throws Exception {
 
         String jwsToken = Jwts.builder()
+            .claim("typ", "obo")
             .setSubject("Leonard McCoy")
             .setAudience("ext_0")
             .signWith(secretKey, SignatureAlgorithm.HS512)
@@ -192,6 +194,7 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testBasicAuthHeader() throws Exception {
         String jwsToken = Jwts.builder()
+            .claim("typ", "obo")
             .setSubject("Leonard McCoy")
             .setAudience("ext_0")
             .signWith(secretKey, SignatureAlgorithm.HS512)
@@ -207,11 +210,10 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testRoles() throws Exception {
 
-        List<String> roles = List.of("IT", "HR");
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setSubject("Leonard McCoy").claim("dr", "role1,role2").setAudience("svc1"),
+            Jwts.builder().claim("typ", "obo").setSubject("Leonard McCoy").claim("dr", "role1,role2").setAudience("svc1"),
             true
         );
 
@@ -222,12 +224,25 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     @Test
+    public void testNoTokenType() throws Exception {
+
+        final AuthCredentials credentials = extractCredentialsFromJwtHeader(
+                signingKeyB64Encoded,
+                claimsEncryptionKey,
+                Jwts.builder().setSubject("Leonard McCoy").claim("dr", "role1,role2").setAudience("svc1"),
+                true
+        );
+
+        Assert.assertNull(credentials);
+    }
+
+    @Test
     public void testNullClaim() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setSubject("Leonard McCoy").claim("dr", null).setAudience("svc1"),
+            Jwts.builder().claim("typ", "obo").setSubject("Leonard McCoy").claim("dr", null).setAudience("svc1"),
             false
         );
 
@@ -242,7 +257,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setSubject("Leonard McCoy").claim("dr", 123L).setAudience("svc1"),
+            Jwts.builder().claim("typ", "obo").setSubject("Leonard McCoy").claim("dr", 123L).setAudience("svc1"),
             true
         );
 
@@ -258,7 +273,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setSubject("Leonard McCoy").setAudience("svc1"),
+            Jwts.builder().claim("typ", "obo").setSubject("Leonard McCoy").setAudience("svc1"),
             false
         );
 
@@ -274,7 +289,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().claim("roles", "role1,role2").claim("asub", "Dr. Who").setAudience("svc1"),
+            Jwts.builder().claim("typ", "obo").claim("roles", "role1,role2").claim("asub", "Dr. Who").setAudience("svc1"),
             false
         );
 
@@ -287,7 +302,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setSubject("Expired").setExpiration(new Date(100)),
+            Jwts.builder().claim("typ", "obo").setSubject("Expired").setExpiration(new Date(100)),
             false
         );
 
@@ -300,7 +315,7 @@ public class OnBehalfOfAuthenticatorTest {
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
             signingKeyB64Encoded,
             claimsEncryptionKey,
-            Jwts.builder().setSubject("Expired").setNotBefore(new Date(System.currentTimeMillis() + (1000 * 36000))),
+            Jwts.builder().claim("typ", "obo").setSubject("Expired").setNotBefore(new Date(System.currentTimeMillis() + (1000 * 36000))),
             false
         );
 
@@ -311,7 +326,7 @@ public class OnBehalfOfAuthenticatorTest {
     public void testRolesArray() throws Exception {
 
         JwtBuilder builder = Jwts.builder()
-            .setPayload("{" + "\"sub\": \"Cluster_0\"," + "\"aud\": \"ext_0\"," + "\"dr\": \"a,b,3rd\"" + "}");
+            .setPayload("{" + "\"typ\": \"obo\"," + "\"sub\": \"Cluster_0\"," + "\"aud\": \"ext_0\"," + "\"dr\": \"a,b,3rd\"" + "}");
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(signingKeyB64Encoded, claimsEncryptionKey, builder, true);
 
