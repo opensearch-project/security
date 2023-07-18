@@ -16,7 +16,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.crypto.SecretKey;
@@ -169,7 +168,7 @@ public class OnBehalfOfAuthenticatorTest {
         Assert.assertEquals("Leonard McCoy", credentials.getUsername());
         Assert.assertEquals(0, credentials.getSecurityRoles().size());
         Assert.assertEquals(0, credentials.getBackendRoles().size());
-        Assert.assertEquals(2, credentials.getAttributes().size());
+        Assert.assertEquals(3, credentials.getAttributes().size());
     }
 
     @Test
@@ -227,10 +226,10 @@ public class OnBehalfOfAuthenticatorTest {
     public void testNoTokenType() throws Exception {
 
         final AuthCredentials credentials = extractCredentialsFromJwtHeader(
-                signingKeyB64Encoded,
-                claimsEncryptionKey,
-                Jwts.builder().setSubject("Leonard McCoy").claim("dr", "role1,role2").setAudience("svc1"),
-                true
+            signingKeyB64Encoded,
+            claimsEncryptionKey,
+            Jwts.builder().setSubject("Leonard McCoy").claim("dr", "role1,role2").setAudience("svc1"),
+            true
         );
 
         Assert.assertNull(credentials);

@@ -184,7 +184,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             }
 
             final String tokenType = claims.get(TOKEN_TYPE_CLAIM).toString();
-            if (tokenType != TOKEN_TYPE) {
+            if (!tokenType.equals(TOKEN_TYPE)) {
                 log.error("This toke is not verifying as an on-behalf-of token");
                 return null;
             }
