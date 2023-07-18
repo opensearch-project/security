@@ -68,6 +68,8 @@ public class DashboardsInfoAction extends BaseRestHandler {
     public static final String DEFAULT_PASSWORD_MESSAGE = "Password should be at least 8 characters long and contain at least one "
         + "uppercase letter, one lowercase letter, one digit, and one special character.";
 
+    public static final String DEFAULT_PASSWORD_REGEX = "(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{8,}";
+
     public DashboardsInfoAction(
         final Settings settings,
         final RestController controller,
@@ -109,6 +111,10 @@ public class DashboardsInfoAction extends BaseRestHandler {
                     builder.field(
                         "password_validation_error_message",
                         client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, DEFAULT_PASSWORD_MESSAGE)
+                    );
+                    builder.field(
+                        "password_validation_regex",
+                        client.settings().get(ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX, DEFAULT_PASSWORD_REGEX)
                     );
                     builder.endObject();
 
