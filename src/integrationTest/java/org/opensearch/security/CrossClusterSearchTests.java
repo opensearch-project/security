@@ -36,7 +36,7 @@ import org.opensearch.test.framework.cluster.TestRestClient;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
-import static org.opensearch.rest.RestStatus.FORBIDDEN;
+import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.security.Song.ARTIST_FIRST;
 import static org.opensearch.security.Song.FIELD_ARTIST;
 import static org.opensearch.security.Song.FIELD_GENRE;
