@@ -456,7 +456,7 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.14'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.4'
-    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.3.4'
+    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.20.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:3.0.12'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.3'
     runtimeOnly 'org.ow2.asm:asm:9.1'
