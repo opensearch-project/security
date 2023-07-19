@@ -63,7 +63,7 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.19.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.1.0"
+    id 'com.netflix.nebula.ospackage' version "11.3.0"
     id "org.gradle.test-retry" version "1.5.2"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.14"
@@ -525,12 +525,12 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.16.0'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.4'
-    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.3.4'
+    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.20.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
     runtimeOnly 'org.ow2.asm:asm:9.1'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.14.2'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.0'
 
     //OpenSAML
     implementation 'net.shibboleth.utilities:java-support:8.4.0'
@@ -551,7 +551,7 @@ dependencies {
     runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
     implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
 
-    implementation "com.nulab-inc:zxcvbn:1.7.0"
+    implementation "com.nulab-inc:zxcvbn:1.8.0"
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
@@ -569,7 +569,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.36.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
