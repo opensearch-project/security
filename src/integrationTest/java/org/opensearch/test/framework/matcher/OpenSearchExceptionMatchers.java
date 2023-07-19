@@ -11,7 +11,7 @@ package org.opensearch.test.framework.matcher;
 
 import org.hamcrest.Matcher;
 
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 import static org.hamcrest.Matchers.containsString;
 

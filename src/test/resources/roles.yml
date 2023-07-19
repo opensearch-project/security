@@ -1405,3 +1405,9 @@ sem-role2:
         - "sem*"
       allowed_actions:
         - "indices:admin/index_template/put"
+
+who_am_i:
+  reserved: true
+  hidden: false
+  description: "Test role to grant access to /whoami endpoint"
+  cluster_permissions: [ "security:whoamiprotected" ]

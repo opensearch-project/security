@@ -29,6 +29,8 @@ package org.opensearch.security.securityconf;
 
 import java.net.InetAddress;
 import java.nio.file.Path;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -44,6 +46,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
+import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.auth.AuthDomain;
@@ -396,14 +399,11 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     }
 
     private <T> T newInstance(final String clazzOrShortcut, String type, final Settings settings, final Path configPath) {
-
-        String clazz = clazzOrShortcut;
-
-        if (authImplMap.containsKey(clazz + "_" + type)) {
-            clazz = authImplMap.get(clazz + "_" + type);
-        }
-
-        return ReflectionHelper.instantiateAAA(clazz, settings, configPath);
+        final String clazz = authImplMap.computeIfAbsent(clazzOrShortcut + "_" + type, k -> clazzOrShortcut);
+        return AccessController.doPrivileged((PrivilegedAction<T>) () -> {
+            SpecialPermission.check();
+            return ReflectionHelper.instantiateAAA(clazz, settings, configPath);
+        });
     }
 
     private String translateShortcutToClassName(final String clazzOrShortcut, final String type) {

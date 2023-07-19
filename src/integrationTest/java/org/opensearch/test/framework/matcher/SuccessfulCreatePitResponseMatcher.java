@@ -13,7 +13,7 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.search.CreatePitResponse;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 class SuccessfulCreatePitResponseMatcher extends TypeSafeDiagnosingMatcher<CreatePitResponse> {
 

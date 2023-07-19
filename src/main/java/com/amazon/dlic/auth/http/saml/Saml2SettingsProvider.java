@@ -14,6 +14,7 @@ package com.amazon.dlic.auth.http.saml;
 import java.security.AccessController;
 import java.security.PrivateKey;
 import java.security.PrivilegedAction;
+import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,7 +29,6 @@ import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.joda.time.DateTime;
 import org.opensaml.core.criterion.EntityIdCriterion;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
 import org.opensaml.saml.metadata.resolver.RefreshableMetadataResolver;
@@ -54,7 +54,7 @@ public class Saml2SettingsProvider {
     private final String idpEntityId;
     private final PrivateKey spSignaturePrivateKey;
     private Saml2Settings cachedSaml2Settings;
-    private DateTime metadataUpdateTime;
+    private Instant metadataUpdateTime;
 
     Saml2SettingsProvider(Settings opensearchSettings, MetadataResolver metadataResolver, PrivateKey spSignaturePrivateKey) {
         this.opensearchSettings = opensearchSettings;
@@ -107,7 +107,7 @@ public class Saml2SettingsProvider {
     }
 
     Saml2Settings getCached() throws SamlConfigException {
-        DateTime tempLastUpdate = null;
+        Instant tempLastUpdate = null;
 
         if (this.metadataResolver instanceof RefreshableMetadataResolver && this.isUpdateRequired()) {
             this.cachedSaml2Settings = null;

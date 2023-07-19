@@ -73,13 +73,14 @@ import org.opensearch.action.search.SearchScrollAction;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.component.Lifecycle.State;
 import org.opensearch.common.component.LifecycleComponent;
 import org.opensearch.common.component.LifecycleListener;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.network.NetworkService;
@@ -98,7 +99,7 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.extensions.ExtensionsManager;
 import org.opensearch.http.HttpServerTransport;
 import org.opensearch.http.HttpServerTransport.Dispatcher;
-import org.opensearch.index.Index;
+import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
@@ -109,7 +110,7 @@ import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.script.ScriptService;
 import org.opensearch.search.internal.InternalScrollSearchRequest;
 import org.opensearch.search.internal.ReaderContext;
@@ -146,6 +147,7 @@ import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
+import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.rest.DashboardsInfoAction;
 import org.opensearch.security.rest.SecurityConfigUpdateAction;
@@ -205,10 +207,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
     private volatile UserService userService;
+    private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
+    private static volatile DiscoveryNode localNode;
     private volatile AuditLog auditLog;
     private volatile BackendRegistry backendRegistry;
     private volatile SslExceptionHandler sslExceptionHandler;
@@ -1019,8 +1023,11 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             principalExtractor = ReflectionHelper.instantiatePrincipalExtractor(principalExtractorClass);
         }
 
+        restLayerEvaluator = new RestLayerPrivilegesEvaluator(clusterService, threadPool, auditLog, cih, namedXContentRegistry);
+
         securityRestHandler = new SecurityRestFilter(
             backendRegistry,
+            restLayerEvaluator,
             auditLog,
             threadPool,
             principalExtractor,
@@ -1035,6 +1042,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         dcf.registerDCFListener(irr);
         dcf.registerDCFListener(xffResolver);
         dcf.registerDCFListener(evaluator);
+        dcf.registerDCFListener(restLayerEvaluator);
         dcf.registerDCFListener(securityRestHandler);
         if (!(auditLog instanceof NullAuditLog)) {
             // Don't register if advanced modules is disabled in which case auditlog is instance of NullAuditLog
@@ -1072,6 +1080,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         components.add(xffResolver);
         components.add(backendRegistry);
         components.add(evaluator);
+        components.add(restLayerEvaluator);
         components.add(si);
         components.add(dcf);
         components.add(userService);
@@ -1792,11 +1801,12 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     }
 
     @Override
-    public void onNodeStarted() {
+    public void onNodeStarted(DiscoveryNode localNode) {
         log.info("Node started");
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
         }
+        this.localNode = localNode;
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -1874,6 +1884,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             return field.substring(0, field.length() - KEYWORD.length());
         }
         return field;
+    }
+
+    public static DiscoveryNode getLocalNode() {
+        return localNode;
+    }
+
+    public static void setLocalNode(DiscoveryNode node) {
+        localNode = node;
     }
 
     public static class GuiceHolder implements LifecycleComponent {
