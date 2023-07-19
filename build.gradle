@@ -55,7 +55,7 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.19.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage'  version "11.0.0"
+    id 'com.netflix.nebula.ospackage' version "11.3.0"
     id "org.gradle.test-retry" version "1.5.2"
     id "com.github.spotbugs" version "5.0.13"
     id "com.google.osdetector" version "1.7.1"
@@ -461,7 +461,7 @@ dependencies {
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.3'
     runtimeOnly 'org.ow2.asm:asm:9.1'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.14.2'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.0'
 
     implementation 'net.shibboleth.utilities:java-support:7.5.1'
     implementation 'org.opensaml:opensaml-core:3.4.5'
@@ -473,7 +473,7 @@ dependencies {
     implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
         exclude(group: 'org.apache.velocity', module: 'velocity')
     }
-    implementation "com.nulab-inc:zxcvbn:1.7.0"
+    implementation "com.nulab-inc:zxcvbn:1.8.0"
     testImplementation 'org.opensaml:opensaml-messaging-impl:3.4.5'
     implementation 'org.opensaml:opensaml-messaging-api:3.4.5'
     runtimeOnly 'org.opensaml:opensaml-profile-api:3.4.5'
@@ -502,7 +502,7 @@ dependencies {
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.36.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
