@@ -27,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_MESSAGE;
+import static org.opensearch.security.rest.DashboardsInfoAction.DEFAULT_PASSWORD_REGEX;
 import static org.opensearch.test.framework.TestSecurityConfig.AuthcDomain.AUTHC_HTTPBASIC_INTERNAL;
 
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
@@ -51,6 +52,8 @@ public class DashboardsInfoTest {
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
             assertThat(response.getBody(), containsString("password_validation_error_message"));
             assertThat(response.getBody(), containsString(DEFAULT_PASSWORD_MESSAGE));
+            assertThat(response.getBody(), containsString("password_validation_regex"));
+            assertThat(response.getBody(), containsString(DEFAULT_PASSWORD_REGEX));
         }
     }
 }

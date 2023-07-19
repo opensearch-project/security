@@ -41,6 +41,8 @@ public class DashboardsInfoWithSettingsTest {
     private static final String CUSTOM_PASSWORD_MESSAGE =
         "Password must be minimum 5 characters long and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
 
+    private static final String CUSTOM_PASSWORD_REGEX = "(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{5,}";
+
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
@@ -48,7 +50,7 @@ public class DashboardsInfoWithSettingsTest {
         .nodeSettings(
             Map.of(
                 ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_REGEX,
-                "(?=.*[A-Z])(?=.*[^a-zA-Z\\d])(?=.*[0-9])(?=.*[a-z]).{5,}",
+                CUSTOM_PASSWORD_REGEX,
                 ConfigConstants.SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE,
                 CUSTOM_PASSWORD_MESSAGE
             )
@@ -63,6 +65,8 @@ public class DashboardsInfoWithSettingsTest {
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
             assertThat(response.getBody(), containsString("password_validation_error_message"));
             assertThat(response.getBody(), containsString(CUSTOM_PASSWORD_MESSAGE));
+            assertThat(response.getBody(), containsString("password_validation_regex"));
+            assertThat(response.getBody(), containsString(CUSTOM_PASSWORD_REGEX));
         }
     }
 }
