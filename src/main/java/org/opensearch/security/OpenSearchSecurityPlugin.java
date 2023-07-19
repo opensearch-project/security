@@ -146,6 +146,7 @@ import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.identity.SecurityTokenManager;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.privileges.RestLayerPrivilegesEvaluator;
@@ -192,9 +193,13 @@ import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
+
+import org.opensearch.identity.Subject;
+import org.opensearch.identity.tokens.TokenManager;
+import org.opensearch.plugins.IdentityPlugin;
 // CS-ENFORCE-SINGLE
 
-public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
+public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin, IdentityPlugin {
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -208,6 +213,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile SecurityInterceptor si;
     private volatile PrivilegesEvaluator evaluator;
     private volatile UserService userService;
+    private volatile SecurityTokenManager securityTokenManager;
     private volatile RestLayerPrivilegesEvaluator restLayerEvaluator;
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
@@ -996,6 +1002,8 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         cr = ConfigurationRepository.create(settings, this.configPath, threadPool, localClient, clusterService, auditLog);
 
         userService = new UserService(cs, cr, settings, localClient);
+
+        securityTokenManager = new SecurityTokenManager(threadPool, clusterService, cr, localClient, settings, userService);
 
         final XFFResolver xffResolver = new XFFResolver(threadPool);
         backendRegistry = new BackendRegistry(settings, adminDns, xffResolver, auditLog, threadPool);
@@ -1888,6 +1896,24 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             return field.substring(0, field.length() - KEYWORD.length());
         }
         return field;
+    }
+
+    public static DiscoveryNode getLocalNode() {
+        return localNode;
+    }
+
+    public static void setLocalNode(DiscoveryNode node) {
+        localNode = node;
+    }
+
+    @Override
+    public Subject getSubject() {
+        return null;
+    }
+
+    @Override
+    public TokenManager getTokenManager() {
+        return securityTokenManager;
     }
 
     public static class GuiceHolder implements LifecycleComponent {

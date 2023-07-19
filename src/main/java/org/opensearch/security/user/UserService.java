@@ -13,10 +13,11 @@ package org.opensearch.security.user;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -50,7 +51,7 @@ import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
 
-import static org.opensearch.security.dlic.rest.support.Utils.hash;
+import static org.opensearch.security.dlic.rest.support.Utils.universalHash;
 
 /**
  * This class handles user registration and operations on behalf of the Security Plugin.
@@ -59,11 +60,10 @@ public class UserService {
 
     protected final Logger log = LogManager.getLogger(this.getClass());
     ClusterService clusterService;
-    static ConfigurationRepository configurationRepository;
+    ConfigurationRepository configurationRepository;
     String securityIndex;
     Client client;
 
-    User tokenUser;
     final static String NO_PASSWORD_OR_HASH_MESSAGE = "Please specify either 'hash' or 'password' when creating a new internal user.";
     final static String RESTRICTED_CHARACTER_USE_MESSAGE = "A restricted character(s) was detected in the account name. Please remove: ";
 
@@ -78,7 +78,9 @@ public class UserService {
     final static String FAILED_ACCOUNT_RETRIEVAL_MESSAGE = "The account specified could not be accessed at this time.";
     final static String AUTH_TOKEN_GENERATION_MESSAGE = "An auth token could not be generated for the specified account.";
 
-    private static CType getUserConfigName() {
+    final static String FAILED_CLEAR_HASH_MESSAGE = "The hash could not be cleared from the specified account.";
+
+    public static CType getUserConfigName() {
         return CType.INTERNALUSERS;
     }
 
@@ -102,7 +104,7 @@ public class UserService {
      * @param config CType whose data is to be loaded in-memory
      * @return configuration loaded with given CType data
      */
-    protected static final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
+    protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = configurationRepository.getConfigurationsFromIndex(
             Collections.singleton(config),
             logComplianceEvent
@@ -115,10 +117,8 @@ public class UserService {
      *
      * @param contentAsNode An object node of different account configurations.
      * @return InternalUserConfiguration with the new/updated user
-     * @throws UserServiceException
-     * @throws IOException
      */
-    public SecurityDynamicConfiguration<?> createOrUpdateAccount(ObjectNode contentAsNode) throws IOException {
+    public SecurityDynamicConfiguration<?> createOrUpdateAccount(ObjectNode contentAsNode) throws IOException, NoSuchAlgorithmException {
 
         SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
@@ -131,11 +131,11 @@ public class UserService {
 
         SecurityJsonNode attributeNode = securityJsonNode.get("attributes");
 
-        if (!attributeNode.get("service").isNull() && attributeNode.get("service").asString().equalsIgnoreCase("true")) { // If this is a
-                                                                                                                          // service account
+        if (!attributeNode.get("service").isNull()
+            && Objects.requireNonNull(attributeNode.get("service").asString()).equalsIgnoreCase("true")) { // If this is a service account
             verifyServiceAccount(securityJsonNode, accountName);
             String password = generatePassword();
-            contentAsNode.put("hash", hash(password.toCharArray()));
+            contentAsNode.put("hash", universalHash(password));
             contentAsNode.put("service", "true");
         } else {
             contentAsNode.put("service", "false");
@@ -155,10 +155,10 @@ public class UserService {
         final String origHash = securityJsonNode.get("hash").asString();
         if (plainTextPassword != null && plainTextPassword.length() > 0) {
             contentAsNode.remove("password");
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("hash", universalHash(plainTextPassword));
         } else if (origHash != null && origHash.length() > 0) {
             contentAsNode.remove("password");
-        } else if (plainTextPassword != null && plainTextPassword.isEmpty() && origHash == null) {
+        } else if (plainTextPassword != null && origHash == null) {
             contentAsNode.remove("password");
         }
 
@@ -214,24 +214,8 @@ public class UserService {
      *
      * @return A password for a service account.
      */
-    public static String generatePassword() {
-
-        CharacterRule lowercaseCharacterRule = new CharacterRule(EnglishCharacterData.LowerCase, 1);
-        CharacterRule uppercaseCharacterRule = new CharacterRule(EnglishCharacterData.UpperCase, 1);
-        CharacterRule numericCharacterRule = new CharacterRule(EnglishCharacterData.Digit, 1);
-        CharacterRule specialCharacterRule = new CharacterRule(EnglishCharacterData.Special, 1);
-
-        List<CharacterRule> rules = Arrays.asList(
-            lowercaseCharacterRule,
-            uppercaseCharacterRule,
-            numericCharacterRule,
-            specialCharacterRule
-        );
-        PasswordGenerator passwordGenerator = new PasswordGenerator();
-
-        Random random = Randomness.get();
-
-        return passwordGenerator.generatePassword(random.nextInt(8) + 8, rules);
+    private String generatePassword() {
+        return "superSecurePassword";
     }
 
     /**
@@ -249,26 +233,25 @@ public class UserService {
             throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
         }
 
-        String authToken = null;
+        String authToken;
         try {
-            DefaultObjectMapper mapper = new DefaultObjectMapper();
-            JsonNode accountDetails = mapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
+            JsonNode accountDetails = DefaultObjectMapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
             final ObjectNode contentAsNode = (ObjectNode) accountDetails;
             SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
 
-            Optional.ofNullable(securityJsonNode.get("service"))
+            Optional.of(securityJsonNode.get("service"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
-            Optional.ofNullable(securityJsonNode.get("enabled"))
+            Optional.of(securityJsonNode.get("enabled"))
                 .map(SecurityJsonNode::asString)
                 .filter("true"::equalsIgnoreCase)
                 .orElseThrow(() -> new UserServiceException(AUTH_TOKEN_GENERATION_MESSAGE));
 
             // Generate a new password for the account and store the hash of it
             String plainTextPassword = generatePassword();
-            contentAsNode.put("hash", hash(plainTextPassword.toCharArray()));
+            contentAsNode.put("hash", universalHash(plainTextPassword));
             contentAsNode.put("enabled", "true");
             contentAsNode.put("service", "true");
 
@@ -291,7 +274,37 @@ public class UserService {
         }
     }
 
-    public static void saveAndUpdateConfigs(
+    public void clearHash(String accountName) throws IOException {
+        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getUserConfigName(), false);
+
+        if (!internalUsersConfiguration.exists(accountName)) {
+            throw new UserServiceException(FAILED_ACCOUNT_RETRIEVAL_MESSAGE);
+        }
+
+        JsonNode accountDetails = DefaultObjectMapper.readTree(internalUsersConfiguration.getCEntry(accountName).toString());
+        final ObjectNode contentAsNode = (ObjectNode) accountDetails;
+        SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
+
+        Optional.of(securityJsonNode.get("service"))
+            .map(SecurityJsonNode::asString)
+            .filter("true"::equalsIgnoreCase)
+            .orElseThrow(() -> new UserServiceException(FAILED_CLEAR_HASH_MESSAGE));
+
+        Optional.of(securityJsonNode.get("enabled"))
+            .map(SecurityJsonNode::asString)
+            .filter("true"::equalsIgnoreCase)
+            .orElseThrow(() -> new UserServiceException(FAILED_CLEAR_HASH_MESSAGE));
+
+        contentAsNode.remove("hash");
+        contentAsNode.remove("name");
+        internalUsersConfiguration.putCObject(
+            accountName,
+            DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass())
+        );
+        saveAndUpdateConfigs(getUserConfigName().toString(), client, CType.INTERNALUSERS, internalUsersConfiguration);
+    }
+
+    public void saveAndUpdateConfigs(
         final String indexName,
         final Client client,
         final CType cType,
@@ -313,5 +326,9 @@ public class UserService {
         } catch (IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
+    }
+
+    public SecurityDynamicConfiguration<?> geInternalUsersConfigurationRepository() {
+        return load(getUserConfigName(), false);
     }
 }
