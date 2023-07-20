@@ -101,7 +101,7 @@ then
 fi
 if [ -z "$COMMON_UTILS_VERSION" ]
 then
-  COMMON_UTILS_VERSION="2.9x.0.0-SNAPSHOT"
+  COMMON_UTILS_VERSION="2.9.0.0-SNAPSHOT"
 fi
 
 USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
