@@ -34,14 +34,14 @@ import org.joda.time.format.DateTimeFormatter;
 
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.common.Strings;
-import org.opensearch.index.shard.ShardId;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auditlog.AuditLog.Operation;
 import org.opensearch.security.auditlog.AuditLog.Origin;

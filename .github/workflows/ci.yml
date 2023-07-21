@@ -89,8 +89,8 @@ jobs:
     - id: build-previous
       uses: ./.github/actions/run-bwc-suite
       with:
-        plugin-previous-branch: "2.8"
-        plugin-next-branch: "2.x"
+        plugin-previous-branch: "2.9"
+        plugin-next-branch: "current_branch"
         report-artifact-name: bwc-${{ matrix.platform }}-jdk${{ matrix.jdk }}
 
   code-ql:
