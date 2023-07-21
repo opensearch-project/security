@@ -232,8 +232,10 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         }, 2);
 
-
-        final AuditMessage desginationMsg = messages.stream().filter(msg -> msg.getRequestBody().contains("Designation")).findFirst().orElseThrow();
+        final AuditMessage desginationMsg = messages.stream()
+            .filter(msg -> msg.getRequestBody().contains("Designation"))
+            .findFirst()
+            .orElseThrow();
         assertThat(desginationMsg.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
         assertThat(desginationMsg.getRequestBody(), containsString("Designation"));
         assertThat(desginationMsg.getRequestBody(), not(containsString("Salary")));
@@ -263,7 +265,15 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
 
-        final List<String> expectedDocumentsTypes = List.of("config", "actiongroups", "internalusers", "roles", "rolesmapping", "tenants", "audit");
+        final List<String> expectedDocumentsTypes = List.of(
+            "config",
+            "actiongroups",
+            "internalusers",
+            "roles",
+            "rolesmapping",
+            "tenants",
+            "audit"
+        );
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "kirk-keystore.jks", "truststore.jks")) {
                 for (IndexRequest ir : new DynamicSecurityConfig().setSecurityRoles("roles_2.yml").getDynamicConfig(getResourceFolder())) {
@@ -285,7 +295,8 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
         messages.stream().collect(Collectors.groupingBy(AuditMessage::getDocId)).entrySet().forEach((e) -> {
             final String docId = e.getKey();
             final List<AuditMessage> messagesByDocId = e.getValue();
-            assertThat("Doc " + docId + " should have a read/write config message",
+            assertThat(
+                "Doc " + docId + " should have a read/write config message",
                 messagesByDocId.stream().map(AuditMessage::getCategory).collect(Collectors.toList()),
                 equalTo(List.of(AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE, AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ))
             );

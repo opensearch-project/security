@@ -137,8 +137,10 @@ public class BasicAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
-            final RuntimeException ex = Assert.assertThrows(RuntimeException.class,
-                () -> nonSslRestHelper().executeGetRequest("_search", encodeBasicHeader("admin", "admin")));
+            final RuntimeException ex = Assert.assertThrows(
+                RuntimeException.class,
+                () -> nonSslRestHelper().executeGetRequest("_search", encodeBasicHeader("admin", "admin"))
+            );
             Assert.assertEquals("org.apache.http.NoHttpResponseException", ex.getCause().getClass().getName());
         }, 2);
 

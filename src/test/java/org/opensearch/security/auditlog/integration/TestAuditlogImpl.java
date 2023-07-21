@@ -61,7 +61,7 @@ public class TestAuditlogImpl extends AuditLogSink {
         final List<AuditMessage> missedMessages = new ArrayList<>();
         final List<AuditMessage> messages = new ArrayList<>();
         final CountDownLatch latch = resetAuditStorage(expectedCount, messages);
-        
+
         try {
             action.run();
             final int maxSecondsToWaitForMessages = 1;
@@ -81,14 +81,11 @@ public class TestAuditlogImpl extends AuditLogSink {
             try {
                 Thread.sleep(100);
                 if (missedMessages.size() != 0) {
-                    final String missedMessagesErrorMessage = new StringBuilder()
-                    .append("Audit messages were missed! ")
-                    .append("Found " + (missedMessages.size()) + " messages.")
-                    .append("Messages found during this time: \n\n")
-                    .append(missedMessages.stream()
-                        .map(AuditMessage::toString)
-                        .collect(Collectors.joining("\n")))
-                    .toString();
+                    final String missedMessagesErrorMessage = new StringBuilder().append("Audit messages were missed! ")
+                        .append("Found " + (missedMessages.size()) + " messages.")
+                        .append("Messages found during this time: \n\n")
+                        .append(missedMessages.stream().map(AuditMessage::toString).collect(Collectors.joining("\n")))
+                        .toString();
 
                     throw new RuntimeException(missedMessagesErrorMessage);
                 }
