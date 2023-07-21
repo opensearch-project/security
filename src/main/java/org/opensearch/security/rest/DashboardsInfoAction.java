@@ -42,7 +42,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;

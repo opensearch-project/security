@@ -30,8 +30,8 @@ import java.io.IOException;
 
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.support.nodes.BaseNodesRequest;
-import org.opensearch.common.io.stream.StreamInput;
-import org.opensearch.common.io.stream.StreamOutput;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
 
 public class ConfigUpdateRequest extends BaseNodesRequest<ConfigUpdateRequest> {
 
