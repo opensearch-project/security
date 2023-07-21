@@ -43,6 +43,8 @@ import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThrows;
@@ -90,10 +92,11 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         });
 
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_DOC_READ"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("Designation"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("Salary"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("Gender"));
+        assertThat(message.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
+        assertThat(message.getRequestBody(), not(containsString("Designation")));
+        assertThat(message.getRequestBody(), not(containsString("Salary")));
+        assertThat(message.getRequestBody(), containsString("Gender"));
+
         Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
     }
 
@@ -223,17 +226,26 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             + "}"
             + System.lineSeparator();
 
-        TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             HttpResponse response = rh.executePostRequest("_msearch?pretty", search, encodeBasicHeader("admin", "admin"));
             assertNotContains(response, "*exception*");
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         }, 2);
-        System.out.println(TestAuditlogImpl.sb.toString());
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_DOC_READ"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("Salary"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("Gender"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("Designation"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+
+        final AuditMessage desginationMsg = messages.stream()
+            .filter(msg -> msg.getRequestBody().contains("Designation"))
+            .findFirst()
+            .orElseThrow();
+        assertThat(desginationMsg.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
+        assertThat(desginationMsg.getRequestBody(), containsString("Designation"));
+        assertThat(desginationMsg.getRequestBody(), not(containsString("Salary")));
+
+        final AuditMessage genderMsg = messages.stream().filter(msg -> msg.getRequestBody().contains("Gender")).findFirst().orElseThrow();
+        assertThat(genderMsg.getCategory(), equalTo(AuditCategory.COMPLIANCE_DOC_READ));
+        assertThat(genderMsg.getRequestBody(), containsString("Gender"));
+        assertThat(genderMsg.getRequestBody(), not(containsString("Salary")));
+
+        Assert.assertTrue(validateMsgs(messages));
     }
 
     @Test
@@ -253,6 +265,15 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
 
         setup(additionalSettings);
 
+        final List<String> expectedDocumentsTypes = List.of(
+            "config",
+            "actiongroups",
+            "internalusers",
+            "roles",
+            "rolesmapping",
+            "tenants",
+            "audit"
+        );
         final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try (RestHighLevelClient restHighLevelClient = getRestClient(clusterInfo, "kirk-keystore.jks", "truststore.jks")) {
                 for (IndexRequest ir : new DynamicSecurityConfig().setSecurityRoles("roles_2.yml").getDynamicConfig(getResourceFolder())) {
@@ -268,23 +289,20 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             assertThat(response.getStatusCode(), equalTo(HttpStatus.SC_OK));
         }, 14);
 
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_READ"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_INTERNAL_CONFIG_WRITE"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("anonymous_auth_enabled"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/read/suggest"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("internalusers"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("opendistro_security_all_access"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("indices:data/read/suggest"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("eyJzZWFyY2hndWFy"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("eyJBTEwiOlsiaW"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("eyJhZG1pbiI6e"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("eyJzZ19hb"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("eyJzZ19hbGx"));
-        Assert.assertFalse(TestAuditlogImpl.sb.toString().contains("dvcmYiOnsiY2x"));
-        Assert.assertTrue(
-            TestAuditlogImpl.sb.toString().contains("\\\"op\\\":\\\"remove\\\",\\\"path\\\":\\\"/opendistro_security_worf\\\"")
-        );
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        final List<String> documentIds = messages.stream().map(AuditMessage::getDocId).distinct().collect(Collectors.toList());
+        assertThat(documentIds, equalTo(expectedDocumentsTypes));
+
+        messages.stream().collect(Collectors.groupingBy(AuditMessage::getDocId)).entrySet().forEach((e) -> {
+            final String docId = e.getKey();
+            final List<AuditMessage> messagesByDocId = e.getValue();
+            assertThat(
+                "Doc " + docId + " should have a read/write config message",
+                messagesByDocId.stream().map(AuditMessage::getCategory).collect(Collectors.toList()),
+                equalTo(List.of(AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE, AuditCategory.COMPLIANCE_INTERNAL_CONFIG_READ))
+            );
+        });
+
+        Assert.assertTrue(validateMsgs(messages));
     }
 
     @Test
@@ -301,7 +319,7 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             .put(ConfigConstants.OPENDISTRO_SECURITY_AUDIT_CONFIG_DISABLED_REST_CATEGORIES, "authenticated,GRANTED_PRIVILEGES")
             .build();
 
-        TestAuditlogImpl.doThenWaitForMessages(() -> {
+        final List<AuditMessage> messages = TestAuditlogImpl.doThenWaitForMessages(() -> {
             try {
                 setup(additionalSettings);
             } catch (final Exception ex) {
@@ -318,10 +336,17 @@ public class ComplianceAuditlogTest extends AbstractAuditlogiUnitTest {
             Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         }, 4);
 
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("external_configuration"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("COMPLIANCE_EXTERNAL_CONFIG"));
-        Assert.assertTrue(TestAuditlogImpl.sb.toString().contains("opensearch_yml"));
-        Assert.assertTrue(validateMsgs(TestAuditlogImpl.messages));
+        // Record the updated config, and then for each node record that the config was updated
+        assertThat(messages.get(0).getCategory(), equalTo(AuditCategory.COMPLIANCE_INTERNAL_CONFIG_WRITE));
+        assertThat(messages.get(1).getCategory(), equalTo(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG));
+        assertThat(messages.get(2).getCategory(), equalTo(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG));
+        assertThat(messages.get(3).getCategory(), equalTo(AuditCategory.COMPLIANCE_EXTERNAL_CONFIG));
+
+        // Make sure that the config update messsages are for each node in the cluster
+        assertThat(messages.get(1).getNodeId(), not(equalTo(messages.get(2).getNodeId())));
+        assertThat(messages.get(2).getNodeId(), not(equalTo(messages.get(3).getNodeId())));
+
+        Assert.assertTrue(validateMsgs(messages));
     }
 
     @Test
