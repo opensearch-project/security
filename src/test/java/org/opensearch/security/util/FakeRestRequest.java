@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.rest.RestRequest;
 
 public class FakeRestRequest extends RestRequest {

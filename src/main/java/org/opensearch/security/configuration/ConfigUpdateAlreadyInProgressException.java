@@ -20,7 +20,7 @@ package org.opensearch.security.configuration;
 import java.io.IOException;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamInput;
 
 public class ConfigUpdateAlreadyInProgressException extends OpenSearchException {
 

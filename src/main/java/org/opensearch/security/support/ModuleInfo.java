@@ -26,14 +26,14 @@
 
 package org.opensearch.security.support;
 
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.common.io.stream.Writeable;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.opensearch.common.io.stream.StreamInput;
-import org.opensearch.common.io.stream.StreamOutput;
-import org.opensearch.common.io.stream.Writeable;
 
 public class ModuleInfo implements Serializable, Writeable {
 
