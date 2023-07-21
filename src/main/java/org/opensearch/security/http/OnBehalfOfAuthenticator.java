@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.common.settings.Settings;
@@ -36,10 +38,18 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
+import org.opensearch.security.ssl.util.ExceptionUtils;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.keyUtil;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.LEGACY_OPENDISTRO_PREFIX;
+import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
+
 public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
+
+    private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
+    private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
+    private static final String ON_BEHALF_OF_SUFFIX = "onbehalfof";
 
     protected final Logger log = LogManager.getLogger(this.getClass());
 
@@ -193,6 +203,14 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             String[] backendRoles = extractBackendRolesFromClaims(claims);
 
             final AuthCredentials ac = new AuthCredentials(subject, roles, backendRoles).markComplete();
+
+            Matcher matcher = PATTERN_PATH_PREFIX.matcher(request.path());
+            final String suffix = matcher.matches() ? matcher.group(2) : null;
+            if (request.method() == RestRequest.Method.POST && ON_BEHALF_OF_SUFFIX.equals(suffix)) {
+                final OpenSearchException exception = ExceptionUtils.invalidUsageOfOBOTokenException();
+                log.error(exception.toString());
+                return null;
+            }
 
             for (Entry<String, Object> claim : claims.entrySet()) {
                 ac.addAttribute("attr.jwt." + claim.getKey(), String.valueOf(claim.getValue()));

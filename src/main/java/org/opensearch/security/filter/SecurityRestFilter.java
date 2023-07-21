@@ -89,8 +89,6 @@ public class SecurityRestFilter {
     private static final String HEALTH_SUFFIX = "health";
     private static final String WHO_AM_I_SUFFIX = "whoami";
 
-    private static final String ON_BEHALF_OF_SUFFIX = "onbehalfof";
-
     private static final String REGEX_PATH_PREFIX = "/(" + LEGACY_OPENDISTRO_PREFIX + "|" + PLUGINS_PREFIX + ")/" + "(.*)";
     private static final Pattern PATTERN_PATH_PREFIX = Pattern.compile(REGEX_PATH_PREFIX);
 
@@ -260,17 +258,6 @@ public class SecurityRestFilter {
                 );
             }
         }
-
-        if (HTTPHelper.containsOBOToken(request)) {
-            if (request.method() == Method.POST && ON_BEHALF_OF_SUFFIX.equals(suffix)) {
-                final OpenSearchException exception = ExceptionUtils.invalidUsageOfOBOTokenException();
-                log.error(exception.toString());
-                auditLog.logBadHeaders(request);
-                channel.sendResponse(new BytesRestResponse(channel, RestStatus.FORBIDDEN, exception));
-                return true;
-            }
-        }
-
         return false;
     }
 
