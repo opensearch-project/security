@@ -303,7 +303,7 @@ public class RestHelper {
 
         hcb.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(60 * 1000).build());
 
-        return hcb.build();
+        return hcb.disableAutomaticRetries().build();
     }
 
     public static class HttpResponse {

@@ -451,6 +451,18 @@ public final class AuditMessage {
         return (String) this.auditInfo.get(EXCEPTION);
     }
 
+    public String getRequestBody() {
+        return (String) this.auditInfo.get(REQUEST_BODY);
+    }
+
+    public String getNodeId() {
+        return (String) this.auditInfo.get(NODE_ID);
+    }
+
+    public String getDocId() {
+        return (String) this.auditInfo.get(ID);
+    }
+
     @Override
     public String toString() {
         try {
