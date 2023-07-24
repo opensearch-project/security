@@ -45,6 +45,7 @@ public class OnBehalfOfJwtAuthenticationTest {
 
     static final TestSecurityConfig.User ADMIN_USER = new TestSecurityConfig.User("admin").roles(ALL_ACCESS);
 
+    private static Boolean oboEnabled = true;
     private static final String signingKey = Base64.getEncoder()
         .encodeToString(
             "jwt signing key for an on behalf of token authentication backend for testing of OBO authentication".getBytes(
@@ -70,7 +71,7 @@ public class OnBehalfOfJwtAuthenticationTest {
             )
         )
         .authc(AUTHC_HTTPBASIC_INTERNAL)
-        .onBehalfOf(new OnBehalfOfConfig().signing_key(signingKey).encryption_key(encryptionKey))
+        .onBehalfOf(new OnBehalfOfConfig().oboEnabled(oboEnabled).signing_key(signingKey).encryption_key(encryptionKey))
         .build();
 
     @Test

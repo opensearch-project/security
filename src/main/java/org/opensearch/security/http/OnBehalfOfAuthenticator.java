@@ -49,13 +49,18 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private final JwtParser jwtParser;
     private final String encryptionKey;
+    private final Boolean oboEnabled;
 
     public OnBehalfOfAuthenticator(Settings settings) {
+        oboEnabled = Boolean.valueOf(settings.get("on_behalf_of_enabled"));
         encryptionKey = settings.get("encryption_key");
-        jwtParser = initParser(settings.get("signing_key"));
+        jwtParser = initParser(settings.get("signing_key"), oboEnabled);
     }
 
-    private JwtParser initParser(final String signingKey) {
+    private JwtParser initParser(final String signingKey, final Boolean oboEnabled) {
+        if (oboEnabled != true) {
+            throw new RuntimeException("On-behalf-of authentication has been disabled");
+        }
         JwtParser _jwtParser = keyUtil.keyAlgorithmCheck(signingKey, log);
         if (_jwtParser != null) {
             return _jwtParser;
