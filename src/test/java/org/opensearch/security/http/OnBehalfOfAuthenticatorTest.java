@@ -125,10 +125,28 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
             .compact();
 
-        Assert.assertThrows(RuntimeException.class, () -> {
-            OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(disableOBOSettings());
-            // any usage of jwtAuth here would also be part of the lambda if needed
-        });
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(disableOBOSettings());
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testNonSpecifyOBOSetting() throws Exception {
+        String jwsToken = Jwts.builder()
+                .setSubject("Leonard McCoy")
+                .setAudience("ext_0")
+                .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+                .compact();
+
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(nonSpecifyOBOSetting());
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNotNull(credentials);
     }
 
     @Test
@@ -342,5 +360,9 @@ public class OnBehalfOfAuthenticatorTest {
             .put("signing_key", signingKeyB64Encoded)
             .put("encryption_key", claimsEncryptionKey)
             .build();
+    }
+
+    private Settings nonSpecifyOBOSetting() {
+        return Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
     }
 }
