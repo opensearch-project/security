@@ -523,7 +523,13 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "OnBehalfOf [ on_behalf_of=" + oboEnabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
+            return "OnBehalfOf [ on_behalf_of_enabled="
+                + oboEnabled
+                + ", signing_key="
+                + signingKey
+                + ", encryption_key="
+                + encryptionKey
+                + "]";
         }
     }
 

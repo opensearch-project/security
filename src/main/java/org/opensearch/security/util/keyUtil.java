@@ -52,10 +52,10 @@ public class keyUtil {
                 }
 
                 if (Objects.nonNull(key)) {
-                    return Jwts.parser().setSigningKey(key);
+                    return Jwts.parserBuilder().setSigningKey(key).build();
                 }
 
-                return Jwts.parser().setSigningKey(decoded);
+                return Jwts.parserBuilder().setSigningKey(decoded).build();
             } catch (Throwable e) {
                 log.error("Error while creating JWT authenticator", e);
                 throw new RuntimeException(e);
