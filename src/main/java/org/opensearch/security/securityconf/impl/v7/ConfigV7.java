@@ -498,7 +498,7 @@ public class ConfigV7 {
         }
 
         public Boolean getOboEnabled() {
-            return oboEnabled;
+            return oboEnabled == null ? Boolean.TRUE : oboEnabled;
         }
 
         public void setOboEnabled(Boolean oboEnabled) {

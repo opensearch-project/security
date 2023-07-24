@@ -52,7 +52,8 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     private final Boolean oboEnabled;
 
     public OnBehalfOfAuthenticator(Settings settings) {
-        oboEnabled = Boolean.valueOf(settings.get("on_behalf_of_enabled"));
+        String oboEnabledSetting = settings.get("on_behalf_of_enabled");
+        oboEnabled = oboEnabledSetting == null ? Boolean.TRUE : Boolean.valueOf(oboEnabledSetting);
         encryptionKey = settings.get("encryption_key");
         jwtParser = initParser(settings.get("signing_key"));
     }
@@ -143,7 +144,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private AuthCredentials extractCredentials0(final RestRequest request) {
-        if (oboEnabled != true) {
+        if (!oboEnabled) {
             log.error("On-behalf-of authentication has been disabled");
             return null;
         }
