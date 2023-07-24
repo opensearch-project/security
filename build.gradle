@@ -419,7 +419,7 @@ configurations {
     all {
         resolutionStrategy {
             force 'commons-codec:commons-codec:1.16.0'
-            force 'org.slf4j:slf4j-api:1.7.30'
+            force 'org.slf4j:slf4j-api:2.0.7'
             force 'org.scala-lang:scala-library:2.13.9'
             force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
@@ -560,7 +560,7 @@ dependencies {
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
     runtimeOnly 'io.dropwizard.metrics:metrics-core:3.1.2'
-    runtimeOnly 'org.slf4j:slf4j-api:1.7.30'
+    runtimeOnly 'org.slf4j:slf4j-api:2.0.7'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.1'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
