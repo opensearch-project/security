@@ -48,6 +48,7 @@ import static org.junit.Assert.assertEquals;
  *  Refer:    "plugins.security.system_indices.enabled"
  *            "plugins.security.system_indices.indices";
  */
+@SuppressWarnings("RegexpSingleline")
 public class SystemIndicesTests extends SingleClusterTest {
 
     private static final List<String> listOfIndexesToTest = Arrays.asList(".system_index_a", ".system_index_b");
