@@ -48,7 +48,9 @@ import static org.junit.Assert.assertEquals;
  *  Refer:    "plugins.security.system_indices.enabled"
  *            "plugins.security.system_indices.indices";
  */
+
 public class SystemIndicesTests extends SingleClusterTest {
+    // CS-SUPPRESS-SINGLE: RegexpSingleline See http://github/issues/1234
 
     private static final List<String> listOfIndexesToTest = Arrays.asList(".system_index_a", ".system_index_b");
     private static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
@@ -252,7 +254,7 @@ public class SystemIndicesTests extends SingleClusterTest {
     }
 
     @Test
-    public void testSearchInOwnSystemIndicesShouldSucceedAsExtensionUser() throws Exception {
+    public void testSearchInOwnSystemIndicesShouldSucceedAsExtensionUser() throws Exception {     // CS-SUPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
         setupSystemIndicesEnabledWithSsl();
         createTestIndicesAndDocs();
         RestHelper restHelper = sslRestHelper();
@@ -718,7 +720,7 @@ public class SystemIndicesTests extends SingleClusterTest {
     }
 
     @Test
-    public void testExtensionIndexAccessShouldSucceedForExtensionUser() throws Exception {
+    public void testExtensionIndexAccessShouldSucceedForExtensionUser() throws Exception {     // CS-SUPRESS-ALL: Legacy code to be deleted in Z.Y.X see http://github/issues/1234
         setupSystemIndicesEnabledWithSsl();
         RestHelper sslRestHelper = sslRestHelper();
 
@@ -755,5 +757,7 @@ public class SystemIndicesTests extends SingleClusterTest {
             )
         );
     }
+
+    // CS-SUPPRESS-SINGLE
 
 }
