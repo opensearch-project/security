@@ -601,7 +601,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
-        testImplementation "io.netty:netty-tcnative-classes:2.0.54.Final"
+        testImplementation "io.netty:netty-tcnative-classes:2.0.61.Final"
         testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.54.Final:${osdetector.classifier}"
     }
     // JUnit build requirement
