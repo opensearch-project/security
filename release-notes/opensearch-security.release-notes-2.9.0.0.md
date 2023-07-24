@@ -9,7 +9,6 @@ Compatible with OpenSearch 2.9.0
 * Add password message to /dashboardsinfo endpoint ([#2949](https://github.com/opensearch-project/security/pull/2949)) ([#2955](https://github.com/opensearch-project/security/pull/2955))
 * Add .plugins-ml-connector to system index ([#2947](https://github.com/opensearch-project/security/pull/2947)) ([#2954](https://github.com/opensearch-project/security/pull/2954))
 * Parallel test jobs for CI ([#2861](https://github.com/opensearch-project/security/pull/2861)) ([#2936](https://github.com/opensearch-project/security/pull/2936))
-* Adds a check to skip serialization-deserialization if request is for same node ([#2765](https://github.com/opensearch-project/security/pull/2765)) ([#2973](https://github.com/opensearch-project/security/pull/2973))
 * Add workflow cluster permissions to alerting roles and add .plugins-ml-config in the system index ([#2996](https://github.com/opensearch-project/security/pull/2996))
 
 ### Maintenance
