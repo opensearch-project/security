@@ -58,12 +58,25 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private JwtParser initParser(final String signingKey) {
-        JwtParser _jwtParser = keyUtil.keyAlgorithmCheck(signingKey, log);
-        if (_jwtParser != null) {
-            return _jwtParser;
-        } else {
-            throw new RuntimeException("Unable to find on behalf of authenticator signing key");
+        final SecurityManager sm = System.getSecurityManager();
+
+        if (sm != null) {
+            sm.checkPermission(new SpecialPermission());
         }
+
+        JwtParser _jwtParser = AccessController.doPrivileged(new PrivilegedAction<JwtParser>() {
+            @Override
+            public JwtParser run() {
+                JwtParser parser = keyUtil.keyAlgorithmCheck(signingKey, log);
+                if (parser != null) {
+                    return parser;
+                } else {
+                    throw new RuntimeException("Unable to find on behalf of authenticator signing key");
+                }
+            }
+        });
+
+        return _jwtParser;
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {
