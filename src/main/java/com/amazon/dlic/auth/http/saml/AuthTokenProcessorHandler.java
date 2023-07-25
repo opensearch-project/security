@@ -55,6 +55,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
@@ -192,7 +193,7 @@ class AuthTokenProcessorHandler {
         XPathExpressionException, ParserConfigurationException, SAXException, SettingsException {
         try {
 
-            if (restRequest.getXContentType() != XContentType.JSON) {
+            if (restRequest.getMediaType() != XContentType.JSON) {
                 throw new OpenSearchSecurityException(
                     "/_opendistro/_security/api/authtoken expects content with type application/json",
                     RestStatus.UNSUPPORTED_MEDIA_TYPE
