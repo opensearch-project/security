@@ -1,3 +1,17 @@
+- [OpenSearch Security Plugin Architecture](#opensearch-security-plugin-architecture)
+  - [Components](#components)
+    - [Security Plugin](#security-plugin)
+    - [Security Configuration](#security-configuration)
+      - [Configuration Files](#configuration-files)
+    - [Admin Tools](#admin-tools)
+  - [Flows](#flows)
+    - [Authentication / Authorization](#authentication--authorization)
+      - [Multiple Authorization Provider flow](#multiple-authorization-provider-flow)
+      - [Rest vs Transport flow](#rest-vs-transport-flow)
+      - [Plugin Authorization Flows](#plugin-authorization-flows)
+      - [Extension On Behalf Of Authorization Flows](#extension-on-behalf-of-authorization-flows)
+      - [Extension Service Account Authorization](#extension-service-account-authorization)
+
 # OpenSearch Security Plugin Architecture
 
 OpenSearch’s core systems do not include security features, these features are added by installing the Security Plugin. The Security Plugin extends OpenSearch to provide authentication, authorization, end to end Encryption, audit logging, and management interfaces.
