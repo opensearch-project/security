@@ -142,6 +142,7 @@ There are some actions run by plugins that do not reuse the authentication or au
 
 ```mermaid
 sequenceDiagram
+    title Authorization during action flow for Plugins
     autonumber
     participant C as Client
     participant OS as OpenSearch
@@ -151,15 +152,15 @@ sequenceDiagram
     C->>OS: Request
     OS->>SP: Request
     SP->>SP: Add Auth information to request context
-    OS->>Plugin: Client Request
+    OS->>P: Client Request
     P->>SP: Execute transport layer action
     SP->>SP: Check if action is allowed
     alt Allowed
         SP->>OS: Continue request
-        OS-->>Plugin: Transport layer action result
+        OS-->>P: Transport layer action result
     else Denied
         SP-->>OS: Return 403 Forbidden
-        OS-->>Client: 403 Forbidden
+        OS-->>C: 403 Forbidden
     end
     alt Plugin run outside user context
     P->>P: Stash context
@@ -171,7 +172,7 @@ sequenceDiagram
     end
     P-->>SP: Result
     SP-->>OS: Result
-    OS-->>Client: Result
+    OS-->>C: Result
 ```
 
 #### Extension On Behalf Of Authorization Flows
