@@ -992,7 +992,7 @@ public class HTTPSamlAuthenticatorTest {
         }
 
         @Override
-        public XContentBuilder newBuilder(MediaType xContentType, boolean useFiltering) throws IOException {
+        public XContentBuilder newBuilder(MediaType mediaType, boolean useFiltering) throws IOException {
             return null;
         }
 
@@ -1018,7 +1018,7 @@ public class HTTPSamlAuthenticatorTest {
         }
 
         @Override
-        public XContentBuilder newBuilder(MediaType xContentType, MediaType responseContentType, boolean useFiltering) throws IOException {
+        public XContentBuilder newBuilder(MediaType mediaType, MediaType responseContentType, boolean useFiltering) throws IOException {
             return null;
         }
 

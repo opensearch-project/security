@@ -382,7 +382,7 @@ public final class RequestResolver {
         final String[] indices,
         final IndexNameExpressionResolver resolver,
         final ClusterService cs,
-        final MediaType xContentType,
+        final MediaType mediaType,
         final Object source,
         final Settings settings,
         boolean resolveIndices,
