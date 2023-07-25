@@ -31,6 +31,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
 import org.opensearch.rest.RestChannel;
@@ -71,7 +72,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
     }
 
     private void handlePatch(RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        if (request.getXContentType() != XContentType.JSON) {
+        if (request.getMediaType() != XContentType.JSON) {
             badRequestResponse(channel, "PATCH accepts only application/json");
             return;
         }
