@@ -136,10 +136,10 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testNonSpecifyOBOSetting() throws Exception {
         String jwsToken = Jwts.builder()
-                .setSubject("Leonard McCoy")
-                .setAudience("ext_0")
-                .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
-                .compact();
+            .setSubject("Leonard McCoy")
+            .setAudience("ext_0")
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .compact();
 
         OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(nonSpecifyOBOSetting());
         Map<String, String> headers = new HashMap<String, String>();
