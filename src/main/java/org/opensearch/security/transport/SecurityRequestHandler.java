@@ -66,6 +66,7 @@ import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 
+import static org.opensearch.security.OpenSearchSecurityPlugin.EXTENSION_NODES_DN;
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
 // CS-ENFORCE-SINGLE
 
@@ -383,7 +384,8 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             ExtensionsManager extManager = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager();
             Optional<ExtensionsSettings.Extension> extension = extManager.lookupExtensionSettingsById(extensionUniqueId);
 
-            if (extension.isPresent() && isExtensionAllowed(extension.get().getDistinguishedNames(), principal)) {
+            if (extension.isPresent()
+                && isExtensionAllowed((List<String>) extension.get().getAdditionalSettings().get(EXTENSION_NODES_DN), principal)) {
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST, Boolean.TRUE);
             }
         }

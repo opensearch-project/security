@@ -106,6 +106,7 @@ import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.ExtensionAwarePlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
@@ -194,7 +195,11 @@ import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
 // CS-ENFORCE-SINGLE
 
-public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin implements ClusterPlugin, MapperPlugin {
+public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
+    implements
+        ClusterPlugin,
+        MapperPlugin,
+        ExtensionAwarePlugin {
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -227,6 +232,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile DlsFlsRequestValve dlsFlsValve = null;
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
+
+    public static Setting EXTENSION_NODES_DN = Setting.listSetting(
+        "distinguishedNames",
+        List.of(),
+        Function.identity(),
+        Property.ExtensionScope
+    );
 
     public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
@@ -1091,6 +1103,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
         return components;
 
+    }
+
+    @Override
+    public List<Setting<?>> getExtensionSettings() {
+        List<Setting<?>> settings = new ArrayList<Setting<?>>();
+        settings.add(EXTENSION_NODES_DN);
+        return settings;
     }
 
     @Override
