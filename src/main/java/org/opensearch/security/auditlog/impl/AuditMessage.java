@@ -206,7 +206,7 @@ public final class AuditMessage {
     // }
     // }
 
-    public void addTupleToRequestBody(Tuple<XContentType, BytesReference> xContentTuple) {
+    public void addTupleToRequestBody(Tuple<MediaType, BytesReference> xContentTuple) {
         if (xContentTuple != null) {
             try {
                 auditInfo.put(REQUEST_BODY, XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1()));
