@@ -424,14 +424,14 @@ public final class RequestResolver {
             if (sourceIsSensitive && source != null) {
                 if (!allIndicesMatcher.test(securityIndex)) {
                     if (source instanceof BytesReference) {
-                        msg.addTupleToRequestBody(convertSource(xContentType, (BytesReference) source));
+                        msg.addTupleToRequestBody(convertSource(mediaType, (BytesReference) source));
                     } else {
                         msg.addMapToRequestBody((Map) source);
                     }
                 }
             } else if (source != null) {
                 if (source instanceof BytesReference) {
-                    msg.addTupleToRequestBody(convertSource(xContentType, (BytesReference) source));
+                    msg.addTupleToRequestBody(convertSource(mediaType, (BytesReference) source));
                 } else {
                     msg.addMapToRequestBody((Map) source);
                 }
