@@ -62,7 +62,7 @@ public class CreateOnBehalfOfTokenAction extends BaseRestHandler {
 
         Settings settings = dcm.getDynamicOnBehalfOfSettings();
         if (settings != null) {
-            Boolean enabled = Boolean.parseBoolean(settings.get("on_behalf_of_enabled"));
+            Boolean enabled = Boolean.parseBoolean(settings.get("enabled"));
             String signingKey = settings.get("signing_key");
             String encryptionKey = settings.get("encryption_key");
 

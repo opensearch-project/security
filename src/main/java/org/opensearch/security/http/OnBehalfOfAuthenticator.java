@@ -52,7 +52,7 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     private final Boolean oboEnabled;
 
     public OnBehalfOfAuthenticator(Settings settings) {
-        String oboEnabledSetting = settings.get("on_behalf_of_enabled");
+        String oboEnabledSetting = settings.get("enabled");
         oboEnabled = oboEnabledSetting == null ? Boolean.TRUE : Boolean.valueOf(oboEnabledSetting);
         encryptionKey = settings.get("encryption_key");
         jwtParser = initParser(settings.get("signing_key"));

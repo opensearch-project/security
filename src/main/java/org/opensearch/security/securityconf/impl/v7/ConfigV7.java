@@ -481,7 +481,7 @@ public class ConfigV7 {
     }
 
     public static class OnBehalfOf {
-        @JsonProperty("on_behalf_of_enabled")
+        @JsonProperty("enabled")
         private Boolean oboEnabled;
         @JsonProperty("signing_key")
         private String signingKey;
@@ -523,13 +523,7 @@ public class ConfigV7 {
 
         @Override
         public String toString() {
-            return "OnBehalfOf [ on_behalf_of_enabled="
-                + oboEnabled
-                + ", signing_key="
-                + signingKey
-                + ", encryption_key="
-                + encryptionKey
-                + "]";
+            return "OnBehalfOf [ enabled=" + oboEnabled + ", signing_key=" + signingKey + ", encryption_key=" + encryptionKey + "]";
         }
     }
 

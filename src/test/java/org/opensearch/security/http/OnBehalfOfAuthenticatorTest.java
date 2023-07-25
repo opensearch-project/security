@@ -332,7 +332,7 @@ public class OnBehalfOfAuthenticatorTest {
     ) {
         final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(
             Settings.builder()
-                .put("on_behalf_of_enabled", enableOBO)
+                .put("enabled", enableOBO)
                 .put("signing_key", signingKeyB64Encoded)
                 .put("encryption_key", encryptionKey)
                 .build()
@@ -348,7 +348,7 @@ public class OnBehalfOfAuthenticatorTest {
 
     private Settings defaultSettings() {
         return Settings.builder()
-            .put("on_behalf_of_enabled", enableOBO)
+            .put("enabled", enableOBO)
             .put("signing_key", signingKeyB64Encoded)
             .put("encryption_key", claimsEncryptionKey)
             .build();
@@ -356,7 +356,7 @@ public class OnBehalfOfAuthenticatorTest {
 
     private Settings disableOBOSettings() {
         return Settings.builder()
-            .put("on_behalf_of_enabled", disableOBO)
+            .put("enabled", disableOBO)
             .put("signing_key", signingKeyB64Encoded)
             .put("encryption_key", claimsEncryptionKey)
             .build();

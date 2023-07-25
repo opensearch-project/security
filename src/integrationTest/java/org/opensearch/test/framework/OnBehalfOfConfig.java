@@ -41,7 +41,7 @@ public class OnBehalfOfConfig implements ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, ToXContent.Params params) throws IOException {
         xContentBuilder.startObject();
         if (oboEnabled || oboEnabled == null) {
-            xContentBuilder.field("on_behalf_of_enabled", oboEnabled);
+            xContentBuilder.field("enabled", oboEnabled);
         }
         xContentBuilder.field("signing_key", signing_key);
         if (StringUtils.isNoneBlank(encryption_key)) {
