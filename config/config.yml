@@ -130,7 +130,7 @@ config:
           type: jwt
           challenge: false
           config:
-            signing_key: "base64 encoded HMAC key or public RSA/ECDSA pem key"
+            signing_key: "VGhpcyBpcyB0aGUgand0IHNpZ25pbmcga2V5IGZvciBhbiBvbiBiZWhhbGYgb2YgdG9rZW4gYXV0aGVudGljYXRpb24gYmFja2VuZCBmb3IgdGVzdGluZyBvZiBleHRlbnNpb25z"
             jwt_header: "Authorization"
             jwt_url_parameter: null
             jwt_clock_skew_tolerance_seconds: 30
