@@ -233,7 +233,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
 
-    public static Setting EXTENSION_NODES_DN = Setting.listSetting(
+    public static Setting<List<String>> EXTENSION_NODES_DN = Setting.listSetting(
         "distinguishedNames",
         List.of(),
         Function.identity(),

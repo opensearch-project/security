@@ -9,118 +9,75 @@
 package org.opensearch.security.transport;
 
 import org.junit.Test;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.extensions.ExtensionScopedSettings;
 import org.opensearch.extensions.ExtensionsSettings;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class SecurityRequestHandlerTests {
 
-    private SecurityRequestHandler securityRequestHandler = new SecurityRequestHandler(
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-    );
+    private static ExtensionsSettings.Extension prepareExtension(String... dn) {
+        Setting<List<String>> distinguishedNames = Setting.listSetting(
+            "distinguishedNames",
+            List.of(),
+            Function.identity(),
+            Setting.Property.ExtensionScope
+        );
+
+        ExtensionScopedSettings scopedSettings = new ExtensionScopedSettings(Set.of(distinguishedNames));
+        Map<String, ?> additionalSettingsMap = Map.of("distinguishedNames", dn);
+
+        Settings.Builder output = Settings.builder();
+        output.loadFromMap(additionalSettingsMap);
+        scopedSettings.applySettings(output.build());
+
+        return new ExtensionsSettings.Extension(
+            "name",
+            "uniqueId",
+            "hostAddress",
+            "port",
+            "version",
+            "opensearchVersion",
+            "minimumCompatibleVersion",
+            List.of(),
+            scopedSettings
+        );
+    }
 
     @Test
     public void testShouldAllowExtensionRequest() {
         String principal = "CN=transport-0.example.com, OU=SSL, O=Test, L=Test, C=DE";
-        ExtensionsSettings.Extension extension = new ExtensionsSettings.Extension(
-            "name",
-            "uniqueId",
-            "hostAddress",
-            "port",
-            "version",
-            "opensearchVersion",
-            "minimumCompatibleVersion",
-            List.of("CN=transport-1.example.com, OU=SSL, O=Test, L=Test, C=DE", "CN=transport-0.example.com, OU=SSL, O=Test, L=Test, C=DE"),
-            List.of(),
-            new ExtensionScopedSettings(Set.of())
+
+        ExtensionsSettings.Extension extension = prepareExtension(
+            "CN=transport-1.example.com, OU=SSL, O=Test, L=Test, C=DE",
+            "CN=transport-0.example.com, OU=SSL, O=Test, L=Test, C=DE"
         );
 
-        assertTrue(securityRequestHandler.isExtensionAllowed(extension.getDistinguishedNames(), principal));
+        assertTrue(SecurityRequestHandler.isExtensionAllowed(extension, principal));
 
-        extension = new ExtensionsSettings.Extension(
-            "name",
-            "uniqueId",
-            "hostAddress",
-            "port",
-            "version",
-            "opensearchVersion",
-            "minimumCompatibleVersion",
-            List.of("CN=*0.example.com, OU=SSL, O=Test, L=Test, C=*"),
-            List.of(),
-            new ExtensionScopedSettings(Set.of())
-        );
-        assertTrue(securityRequestHandler.isExtensionAllowed(extension.getDistinguishedNames(), principal));
+        extension = prepareExtension("CN=NonPass", "CN=*0.example.com, OU=SSL, O=Test, L=Test, C=*", "CN=NonPass");
+        assertTrue(SecurityRequestHandler.isExtensionAllowed(extension, principal));
 
-        extension = new ExtensionsSettings.Extension(
-            "name",
-            "uniqueId",
-            "hostAddress",
-            "port",
-            "version",
-            "opensearchVersion",
-            "minimumCompatibleVersion",
-            List.of("CN=*"),
-            List.of(),
-            new ExtensionScopedSettings(Set.of())
-        );
-        assertTrue(securityRequestHandler.isExtensionAllowed(extension.getDistinguishedNames(), principal));
+        extension = prepareExtension("CN=*");
+        assertTrue(SecurityRequestHandler.isExtensionAllowed(extension, principal));
 
-        extension = new ExtensionsSettings.Extension(
-            "name",
-            "uniqueId",
-            "hostAddress",
-            "port",
-            "version",
-            "opensearchVersion",
-            "minimumCompatibleVersion",
-            null,
-            List.of(),
-            new ExtensionScopedSettings(Set.of())
-        );
-        assertTrue(securityRequestHandler.isExtensionAllowed(extension.getDistinguishedNames(), principal));
-
-        extension = new ExtensionsSettings.Extension(
-            "name",
-            "uniqueId",
-            "hostAddress",
-            "port",
-            "version",
-            "opensearchVersion",
-            "minimumCompatibleVersion",
-            null,
-            null,
-            new ExtensionScopedSettings(Set.of())
-        );
-        assertTrue(securityRequestHandler.isExtensionAllowed(extension.getDistinguishedNames(), principal));
+        extension = prepareExtension();
+        assertTrue(SecurityRequestHandler.isExtensionAllowed(extension, principal));
     }
 
     @Test
     public void testShouldNotAllowExtensionRequest() {
         String principal = "CN=transport-0.example.com, OU=SSL, O=Test, L=Test, C=DE";
-        ExtensionsSettings.Extension extension = new ExtensionsSettings.Extension(
-            "name",
-            "uniqueId",
-            "hostAddress",
-            "port",
-            "version",
-            "opensearchVersion",
-            "minimumCompatibleVersion",
-            List.of("CN=*0.example.com, OU=SSL, O=false, L=Test, C=*"),
-            List.of(),
-            new ExtensionScopedSettings(Set.of())
-        );
-        assertFalse(securityRequestHandler.isExtensionAllowed(extension.getDistinguishedNames(), principal));
+        ExtensionsSettings.Extension extension = prepareExtension("CN=*0.example.com, OU=SSL, O=false, L=Test, C=*");
+
+        assertFalse(SecurityRequestHandler.isExtensionAllowed(extension, principal));
     }
 }

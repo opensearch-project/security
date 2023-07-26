@@ -384,8 +384,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             ExtensionsManager extManager = OpenSearchSecurityPlugin.GuiceHolder.getExtensionsManager();
             Optional<ExtensionsSettings.Extension> extension = extManager.lookupExtensionSettingsById(extensionUniqueId);
 
-            if (extension.isPresent()
-                && isExtensionAllowed((List<String>) extension.get().getAdditionalSettings().get(EXTENSION_NODES_DN), principal)) {
+            if (extension.isPresent() && isExtensionAllowed(extension.get(), principal)) {
                 getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_SSL_TRANSPORT_EXTENSION_REQUEST, Boolean.TRUE);
             }
         }
@@ -394,7 +393,9 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);
     }
 
-    public boolean isExtensionAllowed(List<String> extensionDistinguishedNames, String principal) {
+    public static boolean isExtensionAllowed(ExtensionsSettings.Extension extension, String principal) {
+        List<String> distinguishedNames = extension.getAdditionalSettings().get(EXTENSION_NODES_DN);
+
         String[] principals = new String[2];
 
         if (principal != null && principal.length() > 0) {
@@ -402,13 +403,13 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
             principals[1] = principal.replace(" ", "");
         }
 
-        if (extensionDistinguishedNames == null || extensionDistinguishedNames.isEmpty()) {
-            // no distinguished names set for extension, skipping validation
+        if (distinguishedNames == null || distinguishedNames.isEmpty()) {
+            // no distinguished names set, skipping validation
             return true;
         }
-        WildcardMatcher extensionDNMatcher = WildcardMatcher.from(extensionDistinguishedNames);
+        WildcardMatcher dnMatcher = WildcardMatcher.from(distinguishedNames);
 
-        return principals[0] != null && extensionDNMatcher.matchAny(principals);
+        return principals[0] != null && dnMatcher.matchAny(principals);
     }
 
 }
