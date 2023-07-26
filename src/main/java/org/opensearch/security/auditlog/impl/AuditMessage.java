@@ -38,6 +38,7 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.common.Strings;
@@ -205,7 +206,7 @@ public final class AuditMessage {
     // }
     // }
 
-    public void addTupleToRequestBody(Tuple<XContentType, BytesReference> xContentTuple) {
+    public void addTupleToRequestBody(Tuple<MediaType, BytesReference> xContentTuple) {
         if (xContentTuple != null) {
             try {
                 auditInfo.put(REQUEST_BODY, XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1()));
@@ -377,7 +378,7 @@ public final class AuditMessage {
             addRestMethod(request.method());
             if (filter.shouldLogRequestBody() && request.hasContentOrSourceParam()) {
                 try {
-                    final Tuple<XContentType, BytesReference> xContentTuple = request.contentOrSourceParam();
+                    final Tuple<MediaType, BytesReference> xContentTuple = request.contentOrSourceParam();
                     final String requestBody = XContentHelper.convertToJson(xContentTuple.v2(), false, xContentTuple.v1());
                     if (path != null
                         && requestBody != null

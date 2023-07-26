@@ -71,7 +71,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
     }
 
     private void handlePatch(RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        if (request.getXContentType() != XContentType.JSON) {
+        if (request.getMediaType() != XContentType.JSON) {
             badRequestResponse(channel, "PATCH accepts only application/json");
             return;
         }
