@@ -1783,6 +1783,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                     Property.Filtered
                 )
             );
+            settings.add(
+                Setting.boolSetting(
+                    ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY,
+                    ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_DEFAULT,
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
         }
 
         return settings;

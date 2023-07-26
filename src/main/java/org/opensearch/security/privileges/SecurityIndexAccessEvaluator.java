@@ -59,6 +59,7 @@ public class SecurityIndexAccessEvaluator {
     // for system-indices configuration
     private final WildcardMatcher systemIndexMatcher;
     private final boolean systemIndexEnabled;
+    private boolean systemIndicesAdditionalControlFlag;
 
     public SecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.securityIndex = settings.get(
@@ -97,6 +98,10 @@ public class SecurityIndexAccessEvaluator {
         securityDeniedActionMatcher = WildcardMatcher.from(
             restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot
         );
+        systemIndicesAdditionalControlFlag = settings.getAsBoolean(
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY,
+            false
+        );
     }
 
     public PrivilegesEvaluatorResponse evaluate(
@@ -107,10 +112,11 @@ public class SecurityIndexAccessEvaluator {
         final PrivilegesEvaluatorResponse presponse,
         final SecurityRoles securityRoles
     ) {
-
         final boolean isDebugEnabled = log.isDebugEnabled();
 
-        if (matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)) {
+        if (systemIndicesAdditionalControlFlag
+            && matchAnySystemIndices(requestedResolved)
+            && !checkSystemIndexPermissionsForUser(securityRoles)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             if (log.isInfoEnabled()) {
                 log.info(
