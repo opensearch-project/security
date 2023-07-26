@@ -67,9 +67,9 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'com.google.guava:guava:30.0-jre'
+    testImplementation "com.google.guava:guava:${versions.guava}"
     testImplementation "org.opensearch.test:framework:${opensearch_version}"
-    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
 }
 
 loggerUsageCheck.enabled = false
@@ -84,8 +84,8 @@ String baseName = "securityBwcCluster"
 String bwcFilePath = "src/test/resources/"
 String projectVersion = nextVersion
 
-String previousOpenSearch  = extractVersion(previousVersion);
-String nextOpenSearch  = extractVersion(nextVersion);
+String previousOpenSearch  = extractVersion(previousVersion) + "-SNAPSHOT";
+String nextOpenSearch  = extractVersion(nextVersion) + "-SNAPSHOT";
 
 println previousOpenSearch + nextOpenSearch;
 

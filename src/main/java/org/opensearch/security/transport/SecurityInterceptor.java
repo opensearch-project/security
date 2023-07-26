@@ -43,8 +43,9 @@ import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -131,7 +132,6 @@ public class SecurityInterceptor {
         TransportRequestOptions options,
         TransportResponseHandler<T> handler
     ) {
-
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
         final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String injectedUserString = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER);
@@ -146,6 +146,9 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
+        final DiscoveryNode localNode = OpenSearchSecurityPlugin.getLocalNode();
+        boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
+
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);
             getThreadContext().putHeader("_opendistro_security_remotecn", cs.getClusterName().value());
@@ -223,7 +226,7 @@ public class SecurityInterceptor {
 
             getThreadContext().putHeader(headerMap);
 
-            ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString);
+            ensureCorrectHeaders(remoteAddress0, user0, origin0, injectedUserString, injectedRolesString, isSameNodeRequest);
 
             if (isActionTraceEnabled()) {
                 getThreadContext().putHeader(
@@ -249,7 +252,8 @@ public class SecurityInterceptor {
         final User origUser,
         final String origin,
         final String injectedUserString,
-        final String injectedRolesString
+        final String injectedRolesString,
+        boolean isSameNodeRequest
     ) {
         // keep original address
 
@@ -263,30 +267,49 @@ public class SecurityInterceptor {
             getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_ORIGIN_HEADER, Origin.LOCAL.toString());
         }
 
+        TransportAddress transportAddress = null;
         if (remoteAdr != null && remoteAdr instanceof TransportAddress) {
-
             String remoteAddressHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER);
-
             if (remoteAddressHeader == null) {
+                transportAddress = (TransportAddress) remoteAdr;
+            }
+        }
+
+        // we put headers as transient for same node requests
+        if (isSameNodeRequest) {
+            if (transportAddress != null) {
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS, transportAddress);
+            }
+
+            if (origUser != null) {
+                // if request is going to be handled by same node, we directly put transient value as the thread context is not going to be
+                // stah.
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_USER, origUser);
+            } else if (StringUtils.isNotEmpty(injectedRolesString)) {
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES, injectedRolesString);
+            } else if (StringUtils.isNotEmpty(injectedUserString)) {
+                getThreadContext().putTransient(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER, injectedUserString);
+            }
+        } else {
+            if (transportAddress != null) {
                 getThreadContext().putHeader(
                     ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS_HEADER,
-                    Base64Helper.serializeObject(((TransportAddress) remoteAdr).address())
+                    Base64Helper.serializeObject(transportAddress.address())
                 );
             }
-        }
 
-        String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
-
-        if (userHeader == null) {
-            if (origUser != null) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
-            } else if (StringUtils.isNotEmpty(injectedRolesString)) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
-            } else if (StringUtils.isNotEmpty(injectedUserString)) {
-                getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
+            final String userHeader = getThreadContext().getHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER);
+            if (userHeader == null) {
+                // put as headers for other requests
+                if (origUser != null) {
+                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_USER_HEADER, Base64Helper.serializeObject(origUser));
+                } else if (StringUtils.isNotEmpty(injectedRolesString)) {
+                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_ROLES_HEADER, injectedRolesString);
+                } else if (StringUtils.isNotEmpty(injectedUserString)) {
+                    getThreadContext().putHeader(ConfigConstants.OPENDISTRO_SECURITY_INJECTED_USER_HEADER, injectedUserString);
+                }
             }
         }
-
     }
 
     private ThreadContext getThreadContext() {
