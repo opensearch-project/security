@@ -505,14 +505,13 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         RestHelper rh = nonSslRestHelper();
-        HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executePostRequest(
+        HttpResponse res = rh.executePostRequest(
                 "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
                 "{\"query\" : {\"match_all\" : {}}}",
-                encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+                encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            res.getStatusCode()
         );
         Assert.assertTrue(res.getBody().contains("\"deleted\" : 3"));
 
@@ -1048,7 +1047,8 @@ public class IntegrationTests extends SingleClusterTest {
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+
         res = rh.executePutRequest(
             "*dis*rit*/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",

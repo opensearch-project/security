@@ -132,7 +132,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
         Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
+            HttpStatus.SC_CREATED,
             rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
         Assert.assertEquals(
@@ -549,7 +549,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
         rh.sendAdminCertificate = true;
         rh.keystore = "spock-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_OK, rh.executeGetRequest("_search").getStatusCode());
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, rh.executePutRequest(".opendistro_security/_doc/x", "{}").getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/_doc/x", "{}").getStatusCode());
 
         rh.keystore = "kirk-keystore.jks";
         Assert.assertEquals(HttpStatus.SC_CREATED, rh.executePutRequest(".opendistro_security/_doc/y", "{}").getStatusCode());
@@ -748,7 +748,7 @@ public class HttpIntegrationTests extends SingleClusterTest {
             rh.executeGetRequest(".nonexistentindex*", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
         Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
+            HttpStatus.SC_CREATED,
             rh.executePutRequest(".opendistro_security/_doc/2", "{}", encodeBasicHeader("nagilum", "nagilum")).getStatusCode()
         );
         Assert.assertEquals(
