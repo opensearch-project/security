@@ -27,11 +27,13 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.commons.rest.SecureRestClientBuilder;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
-import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_ENABLED;
-import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
-import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
-import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;
-import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_HTTP_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_KEYSTORE_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMCERT_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMKEY_FILEPATH;
+import static org.opensearch.security.ssl.util.SSLConfigConstants.SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH;
 
 /**
  * Overrides OpenSearchRestTestCase to fit the use-case for testing
@@ -54,16 +56,15 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
 
     @Override
     protected Settings restAdminSettings() {
-
         return Settings.builder()
             .put("http.port", 9200)
-            .put(OPENSEARCH_SECURITY_SSL_HTTP_ENABLED, isHttps())
-            .put(OPENSEARCH_SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "opensearch-node.pem")
-            .put("plugins.security.ssl.http.pemkey_filepath", CERT_FILE_DIRECTORY + "opensearch-node-key.pem")
-            .put("plugins.security.ssl.transport.pemtrustedcas_filepath", CERT_FILE_DIRECTORY + "root-ca.pem")
-            .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, CERT_FILE_DIRECTORY + "test-kirk.jks")
-            .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD, "changeit")
-            .put(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD, "changeit")
+            .put(SECURITY_SSL_HTTP_ENABLED, isHttps())
+            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, CERT_FILE_DIRECTORY + "opensearch-node.pem")
+            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, CERT_FILE_DIRECTORY + "opensearch-node-key.pem")
+            .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, CERT_FILE_DIRECTORY + "root-ca.pem")
+            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, CERT_FILE_DIRECTORY + "test-kirk.jks")
+            .put(SECURITY_SSL_HTTP_KEYSTORE_PASSWORD.insecurePropertyName, "changeit")
+            .put(SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD.insecurePropertyName, "changeit")
             .build();
     }
 
@@ -71,7 +72,7 @@ public class SecurityRestTestCase extends OpenSearchRestTestCase {
     protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
 
         if (securityEnabled()) {
-            String keystore = settings.get(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_FILEPATH);
+            String keystore = settings.get(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH);
 
             if (keystore != null) {
                 // create adminDN (super-admin) client
