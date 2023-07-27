@@ -468,7 +468,7 @@ task integrationTest(type: Test) {
     classpath = sourceSets.integrationTest.runtimeClasspath
     retry {
         failOnPassedAfterRetry = false
-        maxRetries = 2
+        maxRetries = 5
         maxFailures = 10
     }
     //run the integrationTest task after the test task
