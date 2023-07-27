@@ -11,24 +11,40 @@
 
 package org.opensearch.security.identity;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import org.apache.cxf.rs.security.jose.jwt.JwtConstants;
+import org.greenrobot.eventbus.Subscribe;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.identity.tokens.AuthToken;
 import org.opensearch.identity.tokens.BasicAuthToken;
 import org.opensearch.identity.tokens.BearerAuthToken;
 import org.opensearch.identity.tokens.TokenManager;
+import org.opensearch.security.authtoken.jwt.JwtVendor;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.securityconf.ConfigModel;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
+import org.opensearch.security.securityconf.DynamicConfigModel;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.InternalUserTokenHandler;
+import org.opensearch.security.user.User;
 import org.opensearch.security.user.UserService;
 import org.opensearch.security.user.UserServiceException;
 import org.opensearch.security.user.UserTokenHandler;
 import org.opensearch.threadpool.ThreadPool;
+import org.apache.cxf.rs.security.jose.jwt.JwtConstants;
 
 /**
  * This class serves as a funneling implementation of the TokenManager interface.
@@ -49,6 +65,9 @@ public class SecurityTokenManager implements TokenManager {
     InternalUserTokenHandler internalUserTokenHandler;
 
     public final String TOKEN_NOT_SUPPORTED_MESSAGE = "The provided token type is not supported by the Security Plugin.";
+    private ConfigModel configModel;
+    private DynamicConfigModel dcm;
+    private JwtVendor vendor;
 
     @Inject
     public SecurityTokenManager(
@@ -81,6 +100,38 @@ public class SecurityTokenManager implements TokenManager {
             token = userTokenHandler.issueToken(account);
         }
         return token;
+    }
+
+    @Override
+    public AuthToken issueOnBehalfOfToken(Map<String, Object> claims) {
+        String oboToken;
+
+        User user = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
+        if (user == null && !claims.containsKey(JwtConstants.CLAIM_AUDIENCE)) {
+            throw new OpenSearchSecurityException("On-behalf-of Token cannot be issued due to the missing of subject/audience.");
+        }
+
+        final TransportAddress caller = threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
+
+        String issuer = clusterService.getClusterName().value();
+        String subject = user.getName();
+        String audience = (String) claims.get(JwtConstants.CLAIM_AUDIENCE);
+        Integer expirySeconds = null;
+        List<String> roles = new ArrayList<>(mapRoles(user, caller));
+        List<String> backendRoles = new ArrayList<>(user.getRoles());
+
+        try {
+            oboToken = vendor.createJwt(issuer, subject, audience, expirySeconds, roles, backendRoles);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return new BearerAuthToken(oboToken);
+    }
+
+    @Override
+    public AuthToken issueServiceAccountToken(String pluginOrExtensionPrincipal) {
+        return null;
     }
 
     public boolean validateToken(AuthToken authToken) {
@@ -142,5 +193,25 @@ public class SecurityTokenManager implements TokenManager {
             logComplianceEvent
         ).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
+    }
+
+    public Set<String> mapRoles(final User user, final TransportAddress caller) {
+        return this.configModel.mapSecurityRoles(user, caller);
+    }
+
+    @Subscribe
+    public void onConfigModelChanged(ConfigModel configModel) {
+        this.configModel = configModel;
+    }
+
+    @Subscribe
+    public void onDynamicConfigModelChanged(DynamicConfigModel dcm) {
+        this.dcm = dcm;
+        if (dcm.getDynamicOnBehalfOfSettings().get("signing_key") != null
+            && dcm.getDynamicOnBehalfOfSettings().get("encryption_key") != null) {
+            this.vendor = new JwtVendor(dcm.getDynamicOnBehalfOfSettings(), Optional.empty());
+        } else {
+            this.vendor = null;
+        }
     }
 }
