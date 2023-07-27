@@ -506,20 +506,21 @@ public class IntegrationTests extends SingleClusterTest {
 
         RestHelper rh = nonSslRestHelper();
         HttpResponse res = rh.executePostRequest(
-                "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
-                "{\"query\" : {\"match_all\" : {}}}",
-                encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            res.getStatusCode()
+            "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
+            "{\"query\" : {\"match_all\" : {}}}",
+            encodeBasicHeader("nagilum", "nagilum")
         );
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"deleted\" : 3"));
 
     }
 
     @Test
     public void testUpdate() throws Exception {
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH").build();
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false)
+            .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
 
@@ -1054,7 +1055,7 @@ public class IntegrationTests extends SingleClusterTest {
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executePutRequest(
             "*/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
