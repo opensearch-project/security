@@ -18,7 +18,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.cxf.rs.security.jose.jws.JwsJwtCompactConsumer;
 import org.apache.cxf.rs.security.jose.jwt.JwtConstants;
+import org.apache.cxf.rs.security.jose.jwt.JwtToken;
 import org.greenrobot.eventbus.Subscribe;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.client.Client;
@@ -90,19 +92,6 @@ public class SecurityTokenManager implements TokenManager {
     }
 
     @Override
-    public AuthToken issueToken(String account) {
-
-        AuthToken token;
-        final SecurityDynamicConfiguration<?> internalUsersConfiguration = load(UserService.getUserConfigName(), false);
-        if (internalUsersConfiguration.exists(account)) {
-            token = internalUserTokenHandler.issueToken(account);
-        } else {
-            token = userTokenHandler.issueToken(account);
-        }
-        return token;
-    }
-
-    @Override
     public AuthToken issueOnBehalfOfToken(Map<String, Object> claims) {
         String oboToken;
 
@@ -129,6 +118,7 @@ public class SecurityTokenManager implements TokenManager {
         return new BearerAuthToken(oboToken);
     }
 
+    // TODO: IMPLEMENT ISSUE SERVICE ACCOUNT INTERFACE FIRST
     @Override
     public AuthToken issueServiceAccountToken(String pluginOrExtensionPrincipal) {
         return null;
@@ -137,8 +127,15 @@ public class SecurityTokenManager implements TokenManager {
     public boolean validateToken(AuthToken authToken) {
 
         if (authToken instanceof BearerAuthToken) {
+            String encodedTokenString = authToken.getTokenValue();
+            JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedTokenString);
+            JwtToken jwt = jwtConsumer.getJwtToken();
+            if ("obo".equals(jwt.getClaim("typ"))) {
+                return userTokenHandler.validateJustInTimeToken(authToken);
+            }
             return userTokenHandler.validateToken(authToken);
         }
+
         if (authToken instanceof BasicAuthToken) {
             return internalUserTokenHandler.validateToken(authToken);
         }
@@ -166,6 +163,13 @@ public class SecurityTokenManager implements TokenManager {
             return;
         }
         throw new UserServiceException(TOKEN_NOT_SUPPORTED_MESSAGE);
+    }
+
+    /**
+     * Only for testing
+     */
+    public void setJwtVendor(JwtVendor vendor) {
+        this.vendor = vendor;
     }
 
     /**

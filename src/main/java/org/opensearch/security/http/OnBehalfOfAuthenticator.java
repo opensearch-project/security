@@ -58,7 +58,6 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     private static final String BEARER_PREFIX = "bearer ";
     private static final String TOKEN_TYPE_CLAIM = "typ";
     private static final String TOKEN_TYPE = "obo";
-
     private final JwtParser jwtParser;
     private final String encryptionKey;
     private final Boolean oboEnabled;
@@ -190,6 +189,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             }
 
             final Claims claims = jwtParser.parseClaimsJws(jwtToken).getBody();
+
+            final String tokenType = claims.get(TOKEN_TYPE_CLAIM).toString();
+            if (!tokenType.equals(TOKEN_TYPE)) {
+                log.error("This token is not verifying as an on-behalf-of token");
+                return null;
+            }
 
             final String subject = claims.getSubject();
             if (Objects.isNull(subject)) {
