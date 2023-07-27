@@ -23,8 +23,8 @@ import org.junit.Test;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -192,14 +192,14 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{some: \"thing\" asd  other: \"thing\"}", header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.BODY_NOT_PARSEABLE.getMessage());
+        Assert.assertEquals(settings.get("reason"), RequestContentValidator.ValidationError.BODY_NOT_PARSEABLE.message());
 
         // Missing quotes in JSON - parseable in 6.x, but wrong config keys
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{some: \"thing\", other: \"thing\"}", header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         // JK: this should be "Could not parse content of request." because JSON is truly invalid
-        // Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage());
+        // Assert.assertEquals(settings.get("reason"), ValidationError.INVALID_CONFIGURATION.message());
         // Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
         // Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
 
@@ -238,9 +238,9 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}", header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("reason"), AbstractConfigurationValidator.ErrorType.INVALID_CONFIGURATION.getMessage());
-        Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
-        Assert.assertTrue(settings.get(AbstractConfigurationValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
+        Assert.assertEquals(settings.get("reason"), RequestContentValidator.ValidationError.INVALID_CONFIGURATION.message());
+        Assert.assertTrue(settings.get(RequestContentValidator.INVALID_KEYS_KEY + ".keys").contains("some"));
+        Assert.assertTrue(settings.get(RequestContentValidator.INVALID_KEYS_KEY + ".keys").contains("other"));
 
     }
 
@@ -518,7 +518,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -530,7 +530,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -542,7 +542,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
         Assert.assertTrue(settings.get("password").equals("String expected"));
         Assert.assertTrue(settings.get("backend_roles") == null);
         rh.sendAdminCertificate = false;
@@ -555,7 +555,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.WRONG_DATATYPE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.WRONG_DATATYPE.message(), settings.get("reason"));
         Assert.assertTrue(settings.get("backend_roles").equals("Array expected"));
         rh.sendAdminCertificate = false;
 
@@ -792,18 +792,18 @@ public class UserApiTest extends AbstractRestApiUnitTest {
             "admin",
             "password89",
             HttpStatus.SC_BAD_REQUEST,
-            AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD.getMessage()
+            RequestContentValidator.ValidationError.WEAK_PASSWORD.message()
         );
         addUserWithPassword(
             "admin",
             "A123456789",
             HttpStatus.SC_BAD_REQUEST,
-            AbstractConfigurationValidator.ErrorType.WEAK_PASSWORD.getMessage()
+            RequestContentValidator.ValidationError.WEAK_PASSWORD.message()
         );
 
         addUserWithPassword("admin", "pas", HttpStatus.SC_BAD_REQUEST, "Password does not match minimum criteria");
 
-        verifySimilarity(AbstractConfigurationValidator.ErrorType.SIMILAR_PASSWORD.getMessage());
+        verifySimilarity(RequestContentValidator.ValidationError.SIMILAR_PASSWORD.message());
 
         addUserWithPassword("some_user_name", "ASSDsadwe324wadaasdadqwe", HttpStatus.SC_CREATED);
     }
@@ -1001,7 +1001,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/internalusers/picard", body, new Header[0]);
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message(), settings.get("reason"));
     }
 
 }
