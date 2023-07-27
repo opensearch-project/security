@@ -84,7 +84,7 @@ configurations.all {
         force "org.apache.commons:commons-lang3:3.4"
         force "org.springframework:spring-core:5.3.28"
         force "org.springframework:spring-expression:5.3.28"
-        force "com.google.guava:guava:30.0-jre"
+        force "com.google.guava:guava:32.0.1-jre"
         force "com.fasterxml.woodstox:woodstox-core:6.4.0"
         force "org.scala-lang:scala-library:2.13.9"
         force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
@@ -102,7 +102,7 @@ dependencies {
     implementation 'jakarta.annotation:jakarta.annotation-api:1.3.5'
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
-    implementation 'com.google.guava:guava:30.0-jre'
+    implementation 'com.google.guava:guava:32.0.1-jre'
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'commons-cli:commons-cli:1.3.1'
     implementation 'org.bouncycastle:bcprov-jdk15to18:1.75'
@@ -417,4 +417,4 @@ task updateVersion {
         }
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
     }
-} 
+}
