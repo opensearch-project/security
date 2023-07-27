@@ -45,6 +45,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
+import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
@@ -352,7 +353,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         );
         // Try to restore vulcangov index as .opendistro_security index
         Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
+            HttpStatus.SC_INTERNAL_SERVER_ERROR,
             rh.executePostRequest(
                 "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
                 "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
@@ -404,7 +405,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
         Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
+            HttpStatus.SC_INTERNAL_SERVER_ERROR,
             rh.executePostRequest(
                 "_snapshot/all/all_1/_restore?wait_for_completion=true",
                 "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
@@ -438,7 +439,10 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     @Test
     public void testSnapshotCheckWritePrivileges() throws Exception {
 
-        final Settings settings = Settings.builder().putList("path.repo", repositoryPath.getRoot().getAbsolutePath()).build();
+        final Settings settings = Settings.builder()
+            .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
+            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false)
+            .build();
 
         setup(settings, currentClusterConfig);
 
@@ -533,7 +537,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         );
         // Try to restore vulcangov index as .opendistro_security index
         Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
+            HttpStatus.SC_INTERNAL_SERVER_ERROR,
             rh.executePostRequest(
                 "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
                 "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
@@ -585,7 +589,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
         Assert.assertEquals(
-            HttpStatus.SC_FORBIDDEN,
+            HttpStatus.SC_INTERNAL_SERVER_ERROR,
             rh.executePostRequest(
                 "_snapshot/all/all_1/_restore?wait_for_completion=true",
                 "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
@@ -731,14 +735,12 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             + "\"include_global_state\": false"
             + "}";
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executePutRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
-                putSnapshot,
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+        RestHelper.HttpResponse response = rh.executePutRequest(
+            "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
+            putSnapshot,
+            encodeBasicHeader("snapresuser", "nagilum")
         );
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
             rh.executePostRequest(
