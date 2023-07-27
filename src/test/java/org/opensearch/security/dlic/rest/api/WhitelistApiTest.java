@@ -26,7 +26,7 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.auditlog.impl.AuditMessage;
 import org.opensearch.security.auditlog.integration.TestAuditlogImpl;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
@@ -149,7 +149,7 @@ public class WhitelistApiTest extends AbstractRestApiUnitTest {
         response = rh.executePutRequest(ENDPOINT + "/whitelist", "", new Header[0]);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         JsonNode settings = DefaultObjectMapper.readTree(response.getBody());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.PAYLOAD_MANDATORY.getMessage(), settings.get("reason").asText());
+        Assert.assertEquals(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message(), settings.get("reason").asText());
     }
 
     /**
