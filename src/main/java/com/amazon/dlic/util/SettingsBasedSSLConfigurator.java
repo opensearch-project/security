@@ -49,6 +49,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.PemKeyReader;
 
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD;
+import static org.opensearch.security.ssl.SecureSSLSettings.SSLSetting.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD;
+
 public class SettingsBasedSSLConfigurator {
     private static final Logger log = LogManager.getLogger(SettingsBasedSSLConfigurator.class);
 
@@ -328,7 +331,7 @@ public class SettingsBasedSSLConfigurator {
                     configPath,
                     !isTrustAllEnabled()
                 ),
-                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                SECURITY_SSL_TRANSPORT_TRUSTSTORE_PASSWORD.getSetting(settings),
                 settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_TRUSTSTORE_TYPE)
             );
         } catch (Exception e) {
@@ -350,7 +353,7 @@ public class SettingsBasedSSLConfigurator {
                     configPath,
                     enableSslClientAuth
                 ),
-                settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
+                SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD),
                 settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_TYPE)
             );
         } catch (Exception e) {
@@ -360,10 +363,7 @@ public class SettingsBasedSSLConfigurator {
             );
         }
 
-        String keyStorePassword = settings.get(
-            SSLConfigConstants.SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD,
-            SSLConfigConstants.DEFAULT_STORE_PASSWORD
-        );
+        String keyStorePassword = SECURITY_SSL_TRANSPORT_KEYSTORE_PASSWORD.getSetting(settings, SSLConfigConstants.DEFAULT_STORE_PASSWORD);
         effectiveKeyPassword = keyStorePassword == null || keyStorePassword.isEmpty() ? null : keyStorePassword.toCharArray();
         effectiveKeyAlias = getSetting(CERT_ALIAS);
 
