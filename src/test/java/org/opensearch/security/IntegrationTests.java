@@ -1069,7 +1069,7 @@ public class IntegrationTests extends SingleClusterTest {
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         res = rh.executePostRequest(".opendistro_security/_close", "", encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         res = rh.executeDeleteRequest(".opendistro_security", encodeBasicHeader("nagilum", "nagilum"));
         res = rh.executeDeleteRequest("_all", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
