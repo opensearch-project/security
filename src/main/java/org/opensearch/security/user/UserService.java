@@ -297,32 +297,17 @@ public class UserService {
         }
     }
 
-    public void removeNonServiceAccounts(SecurityDynamicConfiguration<?> configuration) {
-
-        List<String> nonServiceAccounts = new ArrayList<>();
+public void filterAccountsByType(SecurityDynamicConfiguration<?> configuration, boolean isServiceAccount) {
+        List<String> filteredAccounts = new ArrayList<>();
         for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
             final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
             final Map accountAttributes = internalUserEntry.getAttributes();
             final String accountName = entry.getKey();
-            if (accountAttributes.getOrDefault("service", "false").equals("false")) {
-                nonServiceAccounts.add(accountName);
+            if (accountAttributes.getOrDefault("service", "false").equals(isServiceAccount)) {
+                filteredAccounts.add(accountName);
             }
         }
-        configuration.remove(nonServiceAccounts);
-    }
-
-    public void removeNonInternalAccounts(SecurityDynamicConfiguration<?> configuration) {
-
-        List<String> nonInternalAccounts = new ArrayList<>();
-        for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
-            final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
-            final Map accountAttributes = internalUserEntry.getAttributes();
-            final String accountName = entry.getKey();
-            if (accountAttributes.getOrDefault("service", "false").equals("true")) {
-                nonInternalAccounts.add(accountName);
-            }
-        }
-        configuration.remove(nonInternalAccounts);
-    }
+        configuration.remove(filteredAccounts);
+}
 
 }
