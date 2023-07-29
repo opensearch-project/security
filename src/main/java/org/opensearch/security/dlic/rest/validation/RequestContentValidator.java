@@ -286,14 +286,6 @@ public class RequestContentValidator implements ToXContent {
                         .get(SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, "Password does not match minimum criteria")
                 );
                 break;
-            case WEAK_PASSWORD:
-            case SIMILAR_PASSWORD:
-                builder.field("status", "error");
-                builder.field(
-                    "reason",
-                    validationContext.settings().get(SECURITY_RESTAPI_PASSWORD_VALIDATION_ERROR_MESSAGE, validationError.message())
-                );
-                break;
             case WRONG_DATATYPE:
                 builder.field("status", "error");
                 builder.field("reason", ValidationError.WRONG_DATATYPE.message());
