@@ -497,7 +497,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
     // JSON flattener
-    implementation ("com.github.wnameless.json:json-base:2.4.0") {
+    implementation ("com.github.wnameless.json:json-base:2.4.1") {
         exclude group: "org.glassfish", module: "jakarta.json"
         exclude group: "com.google.code.gson", module: "gson"
         exclude group: "org.json", module: "json"
@@ -525,7 +525,7 @@ dependencies {
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.16.0'
-    runtimeOnly 'org.cryptacular:cryptacular:1.2.4'
+    runtimeOnly 'org.cryptacular:cryptacular:1.2.5'
     runtimeOnly 'com.google.errorprone:error_prone_annotations:2.20.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
