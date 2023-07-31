@@ -212,7 +212,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
-    private static volatile DiscoveryNode localNode;
+    private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
     private volatile AuditLog auditLog;
     private volatile BackendRegistry backendRegistry;
     private volatile SslExceptionHandler sslExceptionHandler;
@@ -776,7 +776,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                             TransportRequestOptions options,
                             TransportResponseHandler<T> handler
                         ) {
-                            si.sendRequestDecorate(sender, connection, action, request, options, handler);
+                            si.sendRequestDecorate(sender, connection, action, request, options, handler, localNode.get());
                         }
                     };
                 }
@@ -1814,7 +1814,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
         }
-        this.localNode = localNode;
+        this.localNode.set(localNode);
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -1892,14 +1892,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             return field.substring(0, field.length() - KEYWORD.length());
         }
         return field;
-    }
-
-    public static DiscoveryNode getLocalNode() {
-        return localNode;
-    }
-
-    public static void setLocalNode(DiscoveryNode node) {
-        localNode = node;
     }
 
     public static class GuiceHolder implements LifecycleComponent {
