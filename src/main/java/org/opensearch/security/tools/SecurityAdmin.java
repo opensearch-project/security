@@ -1194,7 +1194,7 @@ public class SecurityAdmin {
         BytesReference retVal;
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(mediaType).createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
+            parser = mediaType.xContent().createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, content);
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.copyCurrentStructure(parser);
