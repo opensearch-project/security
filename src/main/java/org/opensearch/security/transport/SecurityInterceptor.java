@@ -130,7 +130,8 @@ public class SecurityInterceptor {
         String action,
         TransportRequest request,
         TransportRequestOptions options,
-        TransportResponseHandler<T> handler
+        TransportResponseHandler<T> handler,
+        DiscoveryNode localNode
     ) {
         final Map<String, String> origHeaders0 = getThreadContext().getHeaders();
         final User user0 = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
@@ -146,8 +147,7 @@ public class SecurityInterceptor {
         final String origCCSTransientMf = getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_MASKED_FIELD_CCS);
 
         final boolean isDebugEnabled = log.isDebugEnabled();
-        final DiscoveryNode localNode = OpenSearchSecurityPlugin.getLocalNode();
-        boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
+        final boolean isSameNodeRequest = localNode != null && localNode.equals(connection.getNode());
 
         try (ThreadContext.StoredContext stashedContext = getThreadContext().stashContext()) {
             final TransportResponseHandler<T> restoringHandler = new RestoringTransportResponseHandler<T>(handler, stashedContext);

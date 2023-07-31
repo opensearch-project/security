@@ -110,7 +110,7 @@ public class FileHelper {
 
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML)
+            parser = XContentType.YAML.xContent()
                 .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(loadFile(file)));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -133,7 +133,7 @@ public class FileHelper {
 
         XContentParser parser = null;
         try {
-            parser = XContentFactory.xContent(XContentType.YAML)
+            parser = XContentType.YAML.xContent()
                 .createParser(NamedXContentRegistry.EMPTY, THROW_UNSUPPORTED_OPERATION, new StringReader(yaml));
             parser.nextToken();
             final XContentBuilder builder = XContentFactory.jsonBuilder();
