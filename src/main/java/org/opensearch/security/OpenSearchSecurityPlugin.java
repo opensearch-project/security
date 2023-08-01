@@ -1791,6 +1791,15 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                     Property.Filtered
                 )
             );
+            settings.add(
+                Setting.listSetting(
+                    ConfigConstants.SECURITY_INDICES_DENYLIST_KEY,
+                    ConfigConstants.SECURITY_INDICES_DENYLIST_KEY_DEFAULT,
+                    Function.identity(),
+                    Property.NodeScope,
+                    Property.Filtered
+                )
+            );
         }
 
         return settings;

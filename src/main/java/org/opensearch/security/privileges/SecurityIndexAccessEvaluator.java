@@ -58,6 +58,8 @@ public class SecurityIndexAccessEvaluator {
     private final boolean filterSecurityIndex;
     // for system-indices configuration
     private final WildcardMatcher systemIndexMatcher;
+    private final WildcardMatcher denylistIndexMatcher;
+
     private final boolean systemIndexEnabled;
     private boolean systemIndicesAdditionalControlFlag;
 
@@ -71,6 +73,9 @@ public class SecurityIndexAccessEvaluator {
         this.filterSecurityIndex = settings.getAsBoolean(ConfigConstants.SECURITY_FILTER_SECURITYINDEX_FROM_ALL_REQUESTS, false);
         this.systemIndexMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
+        );
+        this.denylistIndexMatcher = WildcardMatcher.from(
+            settings.getAsList(ConfigConstants.SECURITY_INDICES_DENYLIST_KEY, ConfigConstants.SECURITY_INDICES_DENYLIST_KEY_DEFAULT)
         );
         this.systemIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
@@ -113,6 +118,19 @@ public class SecurityIndexAccessEvaluator {
         final SecurityRoles securityRoles
     ) {
         final boolean isDebugEnabled = log.isDebugEnabled();
+
+        if (systemIndicesAdditionalControlFlag && matchAnyDenyIndices(requestedResolved)) {
+            if (log.isInfoEnabled()) {
+                log.info(
+                    "{} not permited for regular user {} on denylist indices {}",
+                    action,
+                    securityRoles,
+                    requestedResolved.getAllIndices()
+                );
+            }
+            presponse.allowed = false;
+            return presponse.markComplete();
+        }
 
         if (systemIndicesAdditionalControlFlag
             && matchAnySystemIndices(requestedResolved)
@@ -204,4 +222,16 @@ public class SecurityIndexAccessEvaluator {
         }
         return protectedIndexes;
     }
+
+    private boolean matchAnyDenyIndices(final Resolved requestedResolved) {
+        return !getDenyListIndices(requestedResolved).isEmpty();
+    }
+
+    private List<String> getDenyListIndices(final Resolved requestedResolved) {
+        final List<String> denyList = new ArrayList<>();
+        denyList.addAll(denylistIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
+
+        return denyList;
+    }
+
 }

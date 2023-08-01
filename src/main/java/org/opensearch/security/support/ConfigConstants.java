@@ -26,11 +26,7 @@
 
 package org.opensearch.security.support;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -317,7 +313,8 @@ public class ConfigConstants {
     public static final String SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY =
         "plugins.security.system_indices.additional_control.enabled";
     public static final Boolean SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_DEFAULT = false;
-
+    public static final String SECURITY_INDICES_DENYLIST_KEY = "plugins.security.system_indices.denylist";
+    public static final List<String> SECURITY_INDICES_DENYLIST_KEY_DEFAULT = Arrays.asList(".opendistro_security");
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
 
