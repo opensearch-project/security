@@ -193,13 +193,13 @@ import org.opensearch.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 import org.opensearch.watcher.ResourceWatcherService;
-// CS-ENFORCE-SINGLE
 
 public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     implements
         ClusterPlugin,
         MapperPlugin,
         ExtensionAwarePlugin {
+    // CS-ENFORCE-SINGLE
 
     private static final String KEYWORD = ".keyword";
     private static final Logger actionTrace = LogManager.getLogger("opendistro_security_action_trace");
@@ -233,12 +233,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
     private volatile Salt salt;
     private volatile OpensearchDynamicSetting<Boolean> transportPassiveAuthSetting;
 
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Extension distinguishedNames allowed to connect to cluster
     public static Setting<List<String>> EXTENSION_NODES_DN = Setting.listSetting(
         "distinguishedNames",
         List.of(),
         Function.identity(),
         Property.ExtensionScope
     );
+    // CS-ENFORCE-SINGLE
 
     public static boolean isActionTraceEnabled() {
         return actionTrace.isTraceEnabled();
@@ -1105,12 +1107,14 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin
 
     }
 
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Implementation of interface ExtensionAwarePlugin
     @Override
     public List<Setting<?>> getExtensionSettings() {
         List<Setting<?>> settings = new ArrayList<Setting<?>>();
         settings.add(EXTENSION_NODES_DN);
         return settings;
     }
+    // CS-ENFORCE-SINGLE
 
     @Override
     public Settings additionalSettings() {

@@ -393,6 +393,7 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
         super.addAdditionalContextValues(action, request, localCerts, peerCerts, principal);
     }
 
+    // CS-SUPPRESS-SINGLE: RegexpSingleline Is extension allowed to connect based on distinguishedNames list
     public static boolean isExtensionAllowed(ExtensionsSettings.Extension extension, String principal) {
         List<String> distinguishedNames = extension.getAdditionalSettings().get(EXTENSION_NODES_DN);
 
@@ -411,5 +412,6 @@ public class SecurityRequestHandler<T extends TransportRequest> extends Security
 
         return principals[0] != null && dnMatcher.matchAny(principals);
     }
+    // CS-ENFORCE-SINGLE
 
 }
