@@ -120,12 +120,13 @@ public class SecurityIndexAccessEvaluator {
         final boolean isDebugEnabled = log.isDebugEnabled();
 
         if (systemIndicesAdditionalControlFlag && matchAnyDenyIndices(requestedResolved)) {
+            auditLog.logSecurityIndexAttempt(request, action, task);
             if (log.isInfoEnabled()) {
                 log.info(
                     "{} not permited for regular user {} on denylist indices {}",
                     action,
                     securityRoles,
-                    requestedResolved.getAllIndices()
+                    getDenyListIndices(requestedResolved).stream().collect(Collectors.joining(", "))
                 );
             }
             presponse.allowed = false;

@@ -164,7 +164,25 @@ public class SecurityIndexAccessEvaluatorTest {
     @Test
     public void protectedActionSystemIndex() {
         setupEvaluatorWithSystemIndicesControl();
-        final Resolved resolved = createResolved(".testSystemIndex", ".opendistro_security");
+        final Resolved resolved = createResolved(".testSystemIndex");
+
+        // Action
+        evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, securityRoles);
+
+        verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
+        assertThat(presponse.allowed, is(false));
+        verify(presponse).markComplete();
+
+        verify(log).isDebugEnabled();
+        verify(log).isInfoEnabled();
+
+        verify(log).info("No {} permission for user roles {} to System Indices {}", PROTECTED_ACTION, securityRoles, ".testSystemIndex");
+    }
+
+    @Test
+    public void protectedActionDenyListIndex() {
+        setupEvaluatorWithSystemIndicesControl();
+        final Resolved resolved = createResolved(".opendistro_security");
 
         // Action
         evaluator.evaluate(request, task, PROTECTED_ACTION, resolved, presponse, securityRoles);
@@ -177,10 +195,10 @@ public class SecurityIndexAccessEvaluatorTest {
         verify(log).isInfoEnabled();
 
         verify(log).info(
-            "No {} permission for user roles {} to System Indices {}",
+            "{} not permited for regular user {} on denylist indices {}",
             PROTECTED_ACTION,
             securityRoles,
-            ".opendistro_security, .testSystemIndex"
+            ".opendistro_security"
         );
     }
 
