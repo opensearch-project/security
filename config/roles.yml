@@ -108,6 +108,18 @@ knn_full_access:
     - 'cluster:admin/knn_get_model_action'
     - 'cluster:admin/knn_stats_action'
 
+# Allow users to execute read only ip2geo datasource action
+ip2geo_datasource_read_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/geospatial/datasource/get'
+
+# Allow users to use all ip2geo datasource action
+ip2geo_datasource_full_access:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/geospatial/datasource/*'
+
 # Allows users to read Notebooks
 notebooks_read_access:
   reserved: true
