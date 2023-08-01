@@ -62,7 +62,7 @@ ext {
     buildVersionQualifier = System.getProperty("build.version_qualifier", "")
     version_tokens = opensearch_version.tokenize('-')
     opensearch_build = version_tokens[0] + '.0'
-    kafka_version  = '3.4.0'
+    kafka_version  = '3.5.1'
 
     if (buildVersionQualifier) {
         opensearch_build += "-${buildVersionQualifier}"
