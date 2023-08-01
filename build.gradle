@@ -23,7 +23,7 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
-        kafka_version  = '3.5.0'
+        kafka_version  = '3.5.1'
         jaxb_version = '2.3.8'
         guava_version = '32.1.1-jre'
 
