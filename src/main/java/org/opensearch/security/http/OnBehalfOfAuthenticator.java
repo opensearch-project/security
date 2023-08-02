@@ -49,19 +49,23 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
 
     private final JwtParser jwtParser;
     private final String encryptionKey;
+    private final Boolean oboEnabled;
 
     public OnBehalfOfAuthenticator(Settings settings) {
+        String oboEnabledSetting = settings.get("enabled");
+        oboEnabled = oboEnabledSetting == null ? Boolean.TRUE : Boolean.valueOf(oboEnabledSetting);
         encryptionKey = settings.get("encryption_key");
         jwtParser = initParser(settings.get("signing_key"));
     }
 
     private JwtParser initParser(final String signingKey) {
         JwtParser _jwtParser = keyUtil.keyAlgorithmCheck(signingKey, log);
-        if (_jwtParser != null) {
-            return _jwtParser;
-        } else {
+
+        if (_jwtParser == null) {
             throw new RuntimeException("Unable to find on behalf of authenticator signing key");
         }
+
+        return _jwtParser;
     }
 
     private List<String> extractSecurityRolesFromClaims(Claims claims) {
@@ -128,6 +132,11 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     }
 
     private AuthCredentials extractCredentials0(final RestRequest request) {
+        if (!oboEnabled) {
+            log.error("On-behalf-of authentication has been disabled");
+            return null;
+        }
+
         if (jwtParser == null) {
             log.error("Missing Signing Key. JWT authentication will not work");
             return null;

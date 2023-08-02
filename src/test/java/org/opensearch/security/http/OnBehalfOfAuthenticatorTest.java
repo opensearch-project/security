@@ -36,6 +36,8 @@ import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
 
 public class OnBehalfOfAuthenticatorTest {
+    final static String enableOBO = "true";
+    final static String disableOBO = "false";
     final static String claimsEncryptionKey = RandomStringUtils.randomAlphanumeric(16);
 
     final static String signingKey =
@@ -113,6 +115,38 @@ public class OnBehalfOfAuthenticatorTest {
 
         AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
         Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testDisabled() throws Exception {
+        String jwsToken = Jwts.builder()
+            .setSubject("Leonard McCoy")
+            .setAudience("ext_0")
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .compact();
+
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(disableOBOSettings());
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNull(credentials);
+    }
+
+    @Test
+    public void testNonSpecifyOBOSetting() throws Exception {
+        String jwsToken = Jwts.builder()
+            .setSubject("Leonard McCoy")
+            .setAudience("ext_0")
+            .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
+            .compact();
+
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(nonSpecifyOBOSetting());
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Authorization", "Bearer " + jwsToken);
+
+        AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
+        Assert.assertNotNull(credentials);
     }
 
     @Test
@@ -297,7 +331,11 @@ public class OnBehalfOfAuthenticatorTest {
         final Boolean bwcPluginCompatibilityMode
     ) {
         final OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(
-            Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", encryptionKey).build()
+            Settings.builder()
+                .put("enabled", enableOBO)
+                .put("signing_key", signingKeyB64Encoded)
+                .put("encryption_key", encryptionKey)
+                .build()
         );
 
         final String jwsToken = jwtBuilder.signWith(
@@ -309,6 +347,22 @@ public class OnBehalfOfAuthenticatorTest {
     }
 
     private Settings defaultSettings() {
+        return Settings.builder()
+            .put("enabled", enableOBO)
+            .put("signing_key", signingKeyB64Encoded)
+            .put("encryption_key", claimsEncryptionKey)
+            .build();
+    }
+
+    private Settings disableOBOSettings() {
+        return Settings.builder()
+            .put("enabled", disableOBO)
+            .put("signing_key", signingKeyB64Encoded)
+            .put("encryption_key", claimsEncryptionKey)
+            .build();
+    }
+
+    private Settings nonSpecifyOBOSetting() {
         return Settings.builder().put("signing_key", signingKeyB64Encoded).put("encryption_key", claimsEncryptionKey).build();
     }
 }
