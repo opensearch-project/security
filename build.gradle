@@ -25,7 +25,7 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
-        kafka_version  = '3.5.0'
+        kafka_version  = '3.5.1'
         apache_cxf_version = '4.0.2'
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
@@ -64,7 +64,7 @@ plugins {
     id 'com.diffplug.spotless' version '6.19.0'
     id 'checkstyle'
     id 'com.netflix.nebula.ospackage' version "11.3.0"
-    id "org.gradle.test-retry" version "1.5.2"
+    id "org.gradle.test-retry" version "1.5.4"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.14"
     id "com.google.osdetector" version "1.7.3"
@@ -496,7 +496,7 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
     implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
     // JSON flattener
-    implementation ("com.github.wnameless.json:json-base:2.4.0") {
+    implementation ("com.github.wnameless.json:json-base:2.4.1") {
         exclude group: "org.glassfish", module: "jakarta.json"
         exclude group: "com.google.code.gson", module: "gson"
         exclude group: "org.json", module: "json"
@@ -524,7 +524,7 @@ dependencies {
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.16.0'
-    runtimeOnly 'org.cryptacular:cryptacular:1.2.4'
+    runtimeOnly 'org.cryptacular:cryptacular:1.2.5'
     runtimeOnly 'com.google.errorprone:error_prone_annotations:2.20.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
@@ -559,7 +559,7 @@ dependencies {
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
-    runtimeOnly 'io.dropwizard.metrics:metrics-core:3.1.2'
+    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.19'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.30'
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.1'
@@ -630,7 +630,7 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.11.0'
+    integrationTestImplementation 'commons-io:commons-io:2.13.0'
     integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
