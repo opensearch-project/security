@@ -39,7 +39,7 @@ import org.opensearch.transport.Transport.Connection;
 import org.opensearch.transport.TransportInterceptor.AsyncSender;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestOptions;
-import org.opensearch.transport.TransportResponse;
+import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 

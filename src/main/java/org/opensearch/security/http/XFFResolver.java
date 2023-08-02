@@ -33,7 +33,7 @@ import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.http.netty4.Netty4HttpChannel;
 import org.opensearch.rest.RestRequest;
