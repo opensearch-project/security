@@ -28,7 +28,7 @@
           "challenge" : false,
           "type" : "jwt",
           "config" : {
-            "signing_key" : "VGhpcyBpcyB0aGUgand0IHNpZ25pbmcga2V5IGZvciBhbiBvbiBiZWhhbGYgb2YgdG9rZW4gYXV0aGVudGljYXRpb24gYmFja2VuZCBmb3IgdGVzdGluZyBvZiBleHRlbnNpb25z",
+            "signing_key" : "base64 encoded HMAC key or public RSA/ECDSA pem key",
             "jwt_header" : "Authorization"
           }
         },
