@@ -87,7 +87,6 @@ import org.apache.http.io.HttpMessageWriterFactory;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
-import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
