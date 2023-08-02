@@ -15,13 +15,16 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestChannel;
@@ -31,8 +34,8 @@ import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.NodesDnValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
@@ -180,7 +183,27 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
-        return new NodesDnValidator(request, ref, this.settings, params);
+    protected RequestContentValidator createValidator(final Object... params) {
+        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return params;
+            }
+
+            @Override
+            public Settings settings() {
+                return settings;
+            }
+
+            @Override
+            public Set<String> mandatoryKeys() {
+                return ImmutableSet.of("nodes_dn");
+            }
+
+            @Override
+            public Map<String, DataType> allowedKeys() {
+                return ImmutableMap.of("nodes_dn", DataType.ARRAY);
+            }
+        });
     }
 }

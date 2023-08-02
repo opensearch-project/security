@@ -53,7 +53,7 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.PageCacheRecycler;
-import org.opensearch.indices.breaker.CircuitBreakerService;
+import org.opensearch.core.indices.breaker.CircuitBreakerService;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.SslExceptionHandler;
 import org.opensearch.security.ssl.util.SSLConfigConstants;

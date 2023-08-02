@@ -46,6 +46,7 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.TermState;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -470,6 +471,24 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
         @Override
         public void close() throws IOException {
             in.close();
+        }
+    }
+
+    private class DlsFlsStoredFields extends StoredFields {
+        private final StoredFields in;
+
+        public DlsFlsStoredFields(StoredFields storedFields) {
+            this.in = storedFields;
+        }
+
+        @Override
+        public void document(final int docID, StoredFieldVisitor visitor) throws IOException {
+            visitor = getDlsFlsVisitor(visitor);
+            try {
+                in.document(docID, visitor);
+            } finally {
+                finishVisitor(visitor);
+            }
         }
     }
 
@@ -1282,6 +1301,12 @@ class DlsFlsFilterLeafReader extends SequentialStoredFieldsLeafReader {
             return delegate.termState();
         }
 
+    }
+
+    @Override
+    public StoredFields storedFields() throws IOException {
+        ensureOpen();
+        return new DlsFlsStoredFields(in.storedFields());
     }
 
     private String getRuntimeActionName() {
