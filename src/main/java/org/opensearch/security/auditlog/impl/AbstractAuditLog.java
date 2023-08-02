@@ -48,6 +48,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -656,7 +657,7 @@ public abstract class AbstractAuditLog implements AuditLog {
                 // originalResult.internalSourceRef()));
 
                 // current source, normally not null or empty
-                msg.addTupleToRequestBody(new Tuple<XContentType, BytesReference>(XContentType.JSON, currentIndex.source()));
+                msg.addTupleToRequestBody(new Tuple<MediaType, BytesReference>(XContentType.JSON, currentIndex.source()));
             }
 
         }

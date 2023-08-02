@@ -47,6 +47,7 @@ import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.index.Index;
@@ -381,7 +382,7 @@ public final class RequestResolver {
         final String[] indices,
         final IndexNameExpressionResolver resolver,
         final ClusterService cs,
-        final XContentType xContentType,
+        final MediaType mediaType,
         final Object source,
         final Settings settings,
         boolean resolveIndices,
@@ -423,14 +424,14 @@ public final class RequestResolver {
             if (sourceIsSensitive && source != null) {
                 if (!allIndicesMatcher.test(securityIndex)) {
                     if (source instanceof BytesReference) {
-                        msg.addTupleToRequestBody(convertSource(xContentType, (BytesReference) source));
+                        msg.addTupleToRequestBody(convertSource(mediaType, (BytesReference) source));
                     } else {
                         msg.addMapToRequestBody((Map) source);
                     }
                 }
             } else if (source != null) {
                 if (source instanceof BytesReference) {
-                    msg.addTupleToRequestBody(convertSource(xContentType, (BytesReference) source));
+                    msg.addTupleToRequestBody(convertSource(mediaType, (BytesReference) source));
                 } else {
                     msg.addMapToRequestBody((Map) source);
                 }
@@ -438,12 +439,12 @@ public final class RequestResolver {
         }
     }
 
-    private static Tuple<XContentType, BytesReference> convertSource(XContentType type, BytesReference bytes) {
+    private static Tuple<MediaType, BytesReference> convertSource(MediaType type, BytesReference bytes) {
         if (type == null) {
             type = XContentType.JSON;
         }
 
-        return new Tuple<XContentType, BytesReference>(type, bytes);
+        return new Tuple<MediaType, BytesReference>(type, bytes);
     }
 
     private static String[] arrayOrEmpty(String[] array) {
