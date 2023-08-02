@@ -9,12 +9,13 @@
  * GitHub history for details.
  */
 
+
+import com.diffplug.gradle.spotless.JavaExtension
 import org.opensearch.gradle.test.RestIntegTestTask
-import groovy.json.JsonBuilder
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.10.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
 
@@ -22,10 +23,8 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
 
-        common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
-        kafka_version  = '3.5.1'
-        jaxb_version = '2.3.8'
-        guava_version = '32.1.1-jre'
+        common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
+        kafka_version  = '3.4.0'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -36,8 +35,8 @@ buildscript {
     }
 
     repositories {
-        mavenLocal()
         mavenCentral()
+        mavenLocal()
         maven { url "https://plugins.gradle.org/m2/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
@@ -55,10 +54,11 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.19.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.3.0"
+    id 'com.netflix.nebula.ospackage' version "11.1.0"
     id "org.gradle.test-retry" version "1.5.2"
-    id "com.github.spotbugs" version "5.0.13"
-    id "com.google.osdetector" version "1.7.1"
+    id 'eclipse'
+    id "com.github.spotbugs" version "5.0.14"
+    id "com.google.osdetector" version "1.7.3"
 }
 
 allprojects {
@@ -70,7 +70,56 @@ apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.testclusters'
-apply from: 'gradle/formatting.gradle'
+//apply from: 'gradle/formatting.gradle'
+
+spotless {
+    java {
+        // Normally this isn't necessary, but we have Java sources in
+        // non-standard places
+        target '**/com/amazon/dlic/**/*.java'
+
+        removeUnusedImports()
+        eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
+        trimTrailingWhitespace()
+        endWithNewline();
+
+        // note: you can use an empty string for all the imports you didn't specify explicitly, and '\\#` prefix for static imports
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+
+        custom 'Refuse wildcard imports', {
+            // Wildcard imports can't be resolved; fail the build
+            if (it =~ /\s+import .*\*;/) {
+                throw new AssertionError("Do not use wildcard imports.  'spotlessApply' cannot resolve this issue.")
+            }
+        }
+
+        // See DEVELOPER_GUIDE.md for details of when to enable this.
+        if (System.getProperty('spotless.paddedcell') != null) {
+            paddedCell()
+        }
+    }
+    format 'misc', {
+        target '*.md', '*.gradle', '**/*.json', '**/*.yaml', '**/*.yml', '**/*.svg'
+
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    format('javaFoo', JavaExtension) {
+
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+        target '**/*.java'
+        targetExclude '**/com/amazon/dlic/**/*.java'
+        targetExclude('src/integrationTest/**')
+
+        trimTrailingWhitespace()
+        endWithNewline();
+    }
+    format("integrationTest", JavaExtension) {
+        target('src/integrationTest/java/**/*.java')
+        importOrder('java', 'javax', '', 'com.amazon', 'org.opensearch', '\\#')
+        indentWithTabs(4)
+    }
+}
 
 licenseFile = rootProject.file('LICENSE.txt')
 noticeFile = rootProject.file('NOTICE.txt')
@@ -105,85 +154,12 @@ tasks.whenTaskAdded {task ->
     }
 }
 
-def splitTestConfig = [
-    ciSecurityIntegrationTest: [
-        description: "Runs integration tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*Integ*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
-        ]
-    ],
-    crossClusterTest: [
-        description: "Runs cross-cluster tests.",
-        filters: [
-            includeTestsMatching: [
-                    "org.opensearch.security.ccstest.*"
-            ]
-        ]
-    ],
-    dlicDlsflsTest: [
-        description: "Runs Document- and Field-Level Security tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.dlic.dlsfls.*"
-            ]
-        ]
-    ],
-    dlicRestApiTest: [
-        description: "Runs REST Management API tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.dlic.rest.*"
-            ]
-        ]
-    ],
-    indicesTest: [
-        description: "Runs indices tests from all classes.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.*indices*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.sanity.tests.*"
-            ]
-        ]
-    ],
-    opensslCITest: [
-        description: "Runs portion of SSL tests related to OpenSSL. Explained in https://github.com/opensearch-project/security/pull/2301",
-        include: '**/OpenSSL*.class'
-    ],
-    sslTest: [
-        description: "Runs most of the SSL tests.",
-        filters: [
-            includeTestsMatching: [
-                "org.opensearch.security.ssl.*"
-            ],
-            excludeTestsMatching: [
-                "org.opensearch.security.ssl.OpenSSL*"
-            ]
-        ]
-    ]
-] as ConfigObject
-
-List<String> taskNames = splitTestConfig.keySet() as List
-
-task listTasksAsJSON {
-    // We are using `doLast` to explicitly specify when we
-    // want this action to be started. Without it the output
-    // is not shown at all or can be mixed with other outputs.
-    doLast {
-        System.out.println(new JsonBuilder(["citest"] + taskNames))
-    }
-}
 
 test {
     include '**/*.class'
     filter {
         excludeTestsMatching "org.opensearch.security.sanity.tests.*"
+        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
     }
     maxParallelForks = 8
     jvmArgs += "-Xmx3072m"
@@ -196,118 +172,58 @@ test {
     }
     jacoco {
         excludes = [
-            "com.sun.jndi.dns.*",
-            "com.sun.security.sasl.gsskerb.*",
-            "java.sql.*",
-            "javax.script.*",
-            "org.jcp.xml.dsig.internal.dom.*",
-            "sun.nio.cs.ext.*",
-            "sun.security.ec.*",
-            "sun.security.jgss.*",
-            "sun.security.pkcs11.*",
-            "sun.security.smartcardio.*",
-            "sun.util.resources.provider.*"
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
+        ]
+    }
+}
+
+//add new task that runs OpenSSL tests
+task opensslTest(type: Test) {
+    include '**/OpenSSL*.class'
+    retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 5
+    }
+    jacoco {
+        excludes = [
+                "com.sun.jndi.dns.*",
+                "com.sun.security.sasl.gsskerb.*",
+                "java.sql.*",
+                "javax.script.*",
+                "org.jcp.xml.dsig.internal.dom.*",
+                "sun.nio.cs.ext.*",
+                "sun.security.ec.*",
+                "sun.security.jgss.*",
+                "sun.security.pkcs11.*",
+                "sun.security.smartcardio.*",
+                "sun.util.resources.provider.*"
         ]
     }
 }
 
 task copyExtraTestResources(dependsOn: testClasses) {
-
     copy {
         from 'src/test/resources'
         into 'build/testrun/test/src/test/resources'
     }
-
-    taskNames.each { testName ->
-        copy {
-            from 'src/test/resources'
-            into "build/testrun/${testName}/src/test/resources"
-        }
-    }
-
-    copy {
-        from 'src/test/resources'
-        into 'build/testrun/citest/src/test/resources'
-    }
 }
-
-def setCommonTestConfig(Test task) {
-    task.maxParallelForks = 8
-    task.jvmArgs += "-Xmx3072m"
-    if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
-        task.jvmArgs += "--add-opens=java.base/java.io=ALL-UNNAMED"
-    }
-    task.retry {
-        failOnPassedAfterRetry = false
-        maxRetries = 5
-    }
-    task.jacoco {
-        excludes = [
-            "com.sun.jndi.dns.*",
-            "com.sun.security.sasl.gsskerb.*",
-            "java.sql.*",
-            "javax.script.*",
-            "org.jcp.xml.dsig.internal.dom.*",
-            "sun.nio.cs.ext.*",
-            "sun.security.ec.*",
-            "sun.security.jgss.*",
-            "sun.security.pkcs11.*",
-            "sun.security.smartcardio.*",
-            "sun.util.resources.provider.*"
-        ]
-    }
-    task.dependsOn copyExtraTestResources
-    task.finalizedBy jacocoTestReport
-}
-
-task citest(type: Test) {
-    group = "Github Actions tests"
-    description = "Runs the test suite on classes not covered by rest of the task in this group."
-    include '**/*.class'
-    filter {
-        excludeTestsMatching "org.opensearch.security.sanity.tests.*"
-        excludeTestsMatching "org.opensearch.security.ssl.OpenSSL*"
-        splitTestConfig.each { entry ->
-            entry.value.filters.each{ test ->
-                if (test.key == "includeTestsMatching") {
-                    test.value.each{
-                        excludeTestsMatching "${it}"
-                    }
-                } else if (test.key == "includeTest") {
-                    test.value.each{
-                        excludeTest "${it}"
-                    }
-                }
-            }
-        }
-    }
-    setCommonTestConfig(it)
-}
-
-splitTestConfig.each{ testName, testCfg ->
-    task "${testName}"(type: Test) {
-        group = testCfg.group ?: "Github Actions tests"
-        description = testCfg.description
-        include testCfg.include ?: '**/*.class'
-        filter {
-            testCfg.filters.each{ filter, values ->
-                values.each{ value ->
-                    "${filter}" "${value}"
-                }
-            }
-        }
-        setCommonTestConfig(it)
-    }
-}
-
-tasks.test.dependsOn(copyExtraTestResources)
+tasks.test.dependsOn(copyExtraTestResources, opensslTest)
 
 jacoco {
     reportsDirectory = file("$buildDir/reports/jacoco")
 }
 
 jacocoTestReport {
-    getExecutionData().setFrom(fileTree(buildDir).include("/jacoco/*.exec"))
     reports {
         xml.required = true
     }
@@ -366,8 +282,8 @@ publishing {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
+    mavenLocal()
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
@@ -405,37 +321,79 @@ bundlePlugin {
     }
 }
 
-configurations.all {
-    resolutionStrategy {
-        force 'commons-codec:commons-codec:1.14'
-        force 'org.slf4j:slf4j-api:1.7.30'
-        force 'org.scala-lang:scala-library:2.13.9'
-        force 'commons-io:commons-io:2.11.0'
-        force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
-        force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
-        force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
-        force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-        force "io.netty:netty-buffer:${versions.netty}"
-        force "io.netty:netty-common:${versions.netty}"
-        force "io.netty:netty-handler:${versions.netty}"
-        force "io.netty:netty-transport:${versions.netty}"
-        force "io.netty:netty-transport-native-unix-common:${versions.netty}"
-        force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
-        force "com.github.luben:zstd-jni:${versions.zstd}"
-        force "org.xerial.snappy:snappy-java:1.1.10.1"
-        force "com.google.guava:guava:${guava_version}"
+configurations {
+    all {
+        resolutionStrategy {
+            force 'commons-codec:commons-codec:1.14'
+            force 'org.slf4j:slf4j-api:1.7.30'
+            force 'org.scala-lang:scala-library:2.13.9'
+            force 'commons-io:commons-io:2.11.0'
+            force "com.fasterxml.jackson:jackson-bom:${versions.jackson}"
+            force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+            force "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${versions.jackson}"
+            force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+            force "io.netty:netty-buffer:${versions.netty}"
+            force "io.netty:netty-common:${versions.netty}"
+            force "io.netty:netty-handler:${versions.netty}"
+            force "io.netty:netty-transport:${versions.netty}"
+            force "io.netty:netty-transport-native-unix-common:${versions.netty}"
+            force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
+        }
+    }
+
+    integrationTestImplementation.extendsFrom implementation
+    integrationTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+//create source set 'integrationTest'
+//add classes from the main source set to the compilation and runtime classpaths of the integrationTest
+sourceSets {
+    integrationTest {
+        java {
+            srcDir file ('src/integrationTest/java')
+            compileClasspath += sourceSets.main.output
+            runtimeClasspath += sourceSets.main.output
+        }
+        resources {
+            srcDir file('src/integrationTest/resources')
+        }
+        processIntegrationTestResources {
+            duplicatesStrategy(DuplicatesStrategy.INCLUDE)
+        }
     }
 }
+
+//add new task that runs integration tests
+task integrationTest(type: Test) {
+    description = 'Run integration tests.'
+    group = 'verification'
+    systemProperty "java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager"
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    retry {
+        failOnPassedAfterRetry = false
+        maxRetries = 2
+        maxFailures = 10
+    }
+    //run the integrationTest task after the test task
+    shouldRunAfter test
+}
+
+//run the integrationTest task before the check task
+check.dependsOn integrationTest
 
 dependencies {
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
-    implementation "com.google.guava:guava:${guava_version}"
+    implementation "org.apache.httpcomponents.client5:httpclient5-cache:${versions.httpclient5}"
+    implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
+    implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
+    implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
+    implementation 'com.google.guava:guava:30.0-jre'
     implementation 'org.greenrobot:eventbus:3.2.0'
-    implementation 'commons-cli:commons-cli:1.5.0'
-    implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
+    implementation 'commons-cli:commons-cli:1.3.1'
+    implementation "org.bouncycastle:bcprov-jdk15on:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation "org.apache.httpcomponents:httpclient-cache:${versions.httpclient}"
     implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
     implementation('org.apache.cxf:cxf-rt-rs-security-jose:3.5.5') {
         exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
@@ -456,12 +414,12 @@ dependencies {
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.14'
     runtimeOnly 'org.cryptacular:cryptacular:1.2.4'
-    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.20.0'
+    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.3.4'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:3.0.12'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.3'
     runtimeOnly 'org.ow2.asm:asm:9.1'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.0'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.14.2'
 
     implementation 'net.shibboleth.utilities:java-support:7.5.1'
     implementation 'org.opensaml:opensaml-core:3.4.5'
@@ -473,7 +431,7 @@ dependencies {
     implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
         exclude(group: 'org.apache.velocity', module: 'velocity')
     }
-    implementation "com.nulab-inc:zxcvbn:1.8.0"
+    implementation "com.nulab-inc:zxcvbn:1.7.0"
     testImplementation 'org.opensaml:opensaml-messaging-impl:3.4.5'
     implementation 'org.opensaml:opensaml-messaging-api:3.4.5'
     runtimeOnly 'org.opensaml:opensaml-profile-api:3.4.5'
@@ -481,47 +439,49 @@ dependencies {
     runtimeOnly 'org.opensaml:opensaml-soap-impl:3.4.5'
     implementation 'org.opensaml:opensaml-storage-api:3.4.5'
     implementation 'commons-lang:commons-lang:2.4'
+    implementation 'commons-collections:commons-collections:3.2.2'
     implementation 'com.jayway.jsonpath:json-path:2.4.0'
-    implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation 'net.minidev:json-smart:2.4.10'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
-    runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
+    runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:2.3.4'
     runtimeOnly 'com.google.j2objc:j2objc-annotations:1.3'
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    runtimeOnly 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
-    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.19'
+    runtimeOnly 'io.dropwizard.metrics:metrics-core:3.1.2'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.30'
-    runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.1'
+    runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.17.1'
+    runtimeOnly 'org.xerial.snappy:snappy-java:1.1.8.4'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
-    runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
+    runtimeOnly 'org.glassfish.jaxb:txw2:2.3.4'
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.4.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
-    runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.36.0'
-    runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
-    runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
+    runtimeOnly 'com.github.luben:zstd-jni:1.5.2-1'
+    runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
+    runtimeOnly "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
 
 
     implementation 'org.apache.commons:commons-lang3:3.4'
+    testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
     testImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
-    testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
-    testImplementation 'commons-io:commons-io:2.7'
+    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    testImplementation 'commons-io:commons-io:2.11.0'
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
     testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation "org.apache.httpcomponents:fluent-hc:${versions.httpclient}"
+    testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
+    testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}"
     testImplementation "org.apache.kafka:kafka-group-coordinator:${kafka_version}"
     testImplementation "org.apache.kafka:kafka_2.13:${kafka_version}:test"
@@ -530,7 +490,6 @@ dependencies {
     testImplementation 'org.springframework:spring-beans:5.3.20'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testImplementation "org.opensearch:common-utils:${common_utils_version}"
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
         testImplementation "io.netty:netty-tcnative-classes:2.0.54.Final"
@@ -555,13 +514,23 @@ dependencies {
 
     compileOnly "org.opensearch:opensearch:${opensearch_version}"
 
-    //Checkstyle
-    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
-
-    //spotless
-    implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
-        exclude group: 'com.google.guava'
+    //integration test framework:
+    integrationTestImplementation('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.7.1') {
+        exclude(group: 'junit', module: 'junit')
     }
+    integrationTestImplementation 'junit:junit:4.13.2'
+    integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
+    integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
+    integrationTestImplementation 'commons-io:commons-io:2.11.0'
+    integrationTestImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    integrationTestImplementation 'org.apache.logging.log4j:log4j-jul:2.17.1'
+    integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
+    integrationTestImplementation "org.bouncycastle:bcpkix-jdk15on:${versions.bouncycastle}"
+    integrationTestImplementation "org.bouncycastle:bcutil-jdk15on:${versions.bouncycastle}"
+    integrationTestImplementation('org.awaitility:awaitility:4.2.0') {
+        exclude(group: 'org.hamcrest', module: 'hamcrest')
+    }
+    integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
 }
 
 jar {
@@ -694,7 +663,7 @@ afterEvaluate {
             from("$buildDir/distributions")
             into("$buildDir/distributions")
             rename "$archiveFileName", "${packageName}-${version}.rpm"
-            doLast { delete file("$buildDir/distributions/$archiveName") }
+            doLast { delete file("$buildDir/distributions/$archiveFileName") }
         }
     }
 
@@ -706,7 +675,7 @@ afterEvaluate {
             from("$buildDir/distributions")
             into("$buildDir/distributions")
             rename "$archiveFileName", "${packageName}-${version}.deb"
-            doLast { delete file("$buildDir/distributions/$archiveName") }
+            doLast { delete file("$buildDir/distributions/$archiveFileName") }
         }
     }
 
