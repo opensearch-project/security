@@ -525,7 +525,10 @@ public class IndexIntegrationTests extends SingleClusterTest {
     @Test
     public void testAliases() throws Exception {
 
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH").build();
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false)
+            .build();
 
         setup(settings);
 

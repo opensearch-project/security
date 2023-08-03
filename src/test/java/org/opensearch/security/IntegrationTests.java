@@ -1040,7 +1040,7 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testSecurityIndexSecurity() throws Exception {
-        setup(Settings.builder().put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, true).build());
+        setup(Settings.builder().put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false).build());
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executePutRequest(
@@ -1048,14 +1048,14 @@ public class IntegrationTests extends SingleClusterTest {
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
 
         res = rh.executePutRequest(
             "*dis*rit*/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         res = rh.executePutRequest(
             "*/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
@@ -1069,7 +1069,7 @@ public class IntegrationTests extends SingleClusterTest {
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         res = rh.executePostRequest(".opendistro_security/_close", "", encodeBasicHeader("nagilum", "nagilum"));
-        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         res = rh.executeDeleteRequest(".opendistro_security", encodeBasicHeader("nagilum", "nagilum"));
         res = rh.executeDeleteRequest("_all", encodeBasicHeader("nagilum", "nagilum"));
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
@@ -1078,16 +1078,15 @@ public class IntegrationTests extends SingleClusterTest {
             "{\"index\" : {\"number_of_replicas\" : 2}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        // Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
         res = rh.executePutRequest(
             ".opendistro_secur*/_settings",
             "{\"index\" : {\"number_of_replicas\" : 2}}",
             encodeBasicHeader("nagilum", "nagilum")
         );
-        // Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
-        // res = rh.executePostRequest(".opendistro_security/_freeze", "",
-        // encodeBasicHeader("nagilum", "nagilum"));
-        // Assert.assertTrue(res.getStatusCode() >= 400);
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+        res = rh.executePostRequest(".opendistro_security/_freeze", "", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertTrue(res.getStatusCode() >= 400);
 
         String bulkBody = "{ \"index\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"1\" } }\n"
             + "{ \"field1\" : \"value1\" }\n"
@@ -1100,7 +1099,7 @@ public class IntegrationTests extends SingleClusterTest {
         JsonNode jsonNode = readTree(res.getBody());
         System.out.println(res.getBody());
         Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
-        // Assert.assertEquals(403, jsonNode.get("items").get(0).get("index").get("status").intValue());
+        Assert.assertEquals(403, jsonNode.get("items").get(0).get("index").get("status").intValue());
         Assert.assertEquals(403, jsonNode.get("items").get(1).get("index").get("status").intValue());
         Assert.assertEquals(201, jsonNode.get("items").get(2).get("index").get("status").intValue());
         Assert.assertEquals(403, jsonNode.get("items").get(3).get("delete").get("status").intValue());
