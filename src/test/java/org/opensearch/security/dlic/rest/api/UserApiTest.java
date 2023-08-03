@@ -39,6 +39,7 @@ import org.passay.PasswordData;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotEquals;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
@@ -1030,6 +1031,10 @@ public class UserApiTest extends AbstractRestApiUnitTest {
 
         org.passay.PasswordValidator validator = new org.passay.PasswordValidator(lengthRule, characteristicsRule);
         validator.validate(data);
-    }
 
+        String password2 = UserService.generatePassword();
+        PasswordData data2 = new PasswordData(password2);
+        assertNotEquals(password, password2);
+        assertNotEquals(data, data2);
+    }
 }
