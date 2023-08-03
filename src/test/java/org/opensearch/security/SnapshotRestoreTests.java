@@ -353,7 +353,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         );
         // Try to restore vulcangov index as .opendistro_security index
         Assert.assertEquals(
-            HttpStatus.SC_INTERNAL_SERVER_ERROR,
+            HttpStatus.SC_FORBIDDEN,
             rh.executePostRequest(
                 "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
                 "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
@@ -405,7 +405,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
         Assert.assertEquals(
-            HttpStatus.SC_INTERNAL_SERVER_ERROR,
+            HttpStatus.SC_FORBIDDEN,
             rh.executePostRequest(
                 "_snapshot/all/all_1/_restore?wait_for_completion=true",
                 "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
@@ -440,9 +440,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     public void testSnapshotCheckWritePrivileges() throws Exception {
 
         final Settings settings = Settings.builder()
-            .putList("path.repo", repositoryPath.getRoot().getAbsolutePath())
-            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false)
-            .build();
+            .putList("path.repo", repositoryPath.getRoot().getAbsolutePath()).build();
 
         setup(settings, currentClusterConfig);
 
@@ -537,7 +535,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         );
         // Try to restore vulcangov index as .opendistro_security index
         Assert.assertEquals(
-            HttpStatus.SC_INTERNAL_SERVER_ERROR,
+            HttpStatus.SC_FORBIDDEN,
             rh.executePostRequest(
                 "_snapshot/vulcangov/vulcangov_1/_restore?wait_for_completion=true",
                 "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
@@ -589,7 +587,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
         );
         // Try to restore .opendistro_security index as .opendistro_security_copy index
         Assert.assertEquals(
-            HttpStatus.SC_INTERNAL_SERVER_ERROR,
+            HttpStatus.SC_FORBIDDEN,
             rh.executePostRequest(
                 "_snapshot/all/all_1/_restore?wait_for_completion=true",
                 "{ \"indices\": \"vulcangov\", \"rename_pattern\": \"(.+)\", \"rename_replacement\": \".opendistro_security\" }",
