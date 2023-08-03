@@ -106,7 +106,7 @@ public class SecurityIndexAccessEvaluator {
         );
         systemIndicesAdditionalControlFlag = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY,
-            false
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_DEFAULT
         );
     }
 
@@ -120,10 +120,11 @@ public class SecurityIndexAccessEvaluator {
     ) {
         final boolean isDebugEnabled = log.isDebugEnabled();
 
+        // As per issue #2845, the legacy access control to indices with additional protection should be kept in place for the meantime.
         if (systemIndicesAdditionalControlFlag) {
-            newSecuredIndexEvaluator(action, requestedResolved, request, task, presponse, securityRoles);
+            evaluateNewSecuredIndicesAccess(action, requestedResolved, request, task, presponse, securityRoles);
         } else {
-            legacySecuredIndexEvaluator(action, requestedResolved, request, task, presponse);
+            evaluateLegacySecuredIndicesAccess(action, requestedResolved, request, task, presponse);
         }
         if (presponse.isComplete()) {
             return presponse;
@@ -193,7 +194,7 @@ public class SecurityIndexAccessEvaluator {
         return denyList;
     }
 
-    private PrivilegesEvaluatorResponse newSecuredIndexEvaluator(
+    private PrivilegesEvaluatorResponse evaluateNewSecuredIndicesAccess(
         String action,
         Resolved requestedResolved,
         ActionRequest request,
@@ -255,7 +256,7 @@ public class SecurityIndexAccessEvaluator {
         return presponse;
     }
 
-    private PrivilegesEvaluatorResponse legacySecuredIndexEvaluator(
+    private PrivilegesEvaluatorResponse evaluateLegacySecuredIndicesAccess(
         String action,
         Resolved requestedResolved,
         ActionRequest request,

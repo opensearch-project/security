@@ -318,7 +318,7 @@ public class ConfigConstants {
         "plugins.security.system_indices.additional_control.enabled";
     public static final Boolean SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_DEFAULT = false;
     public static final String SECURITY_INDICES_DENYLIST_KEY = "plugins.security.system_indices.denylist";
-    public static final List<String> SECURITY_INDICES_DENYLIST_KEY_DEFAULT = Arrays.asList(".opendistro_security");
+    public static final List<String> SECURITY_INDICES_DENYLIST_KEY_DEFAULT = Arrays.asList(OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
     public static final String SECURITY_SYSTEM_INDICES_KEY = "plugins.security.system_indices.indices";
     public static final List<String> SECURITY_SYSTEM_INDICES_DEFAULT = Collections.emptyList();
 
