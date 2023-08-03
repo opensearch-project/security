@@ -533,7 +533,7 @@ dependencies {
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.0'
 
     //OpenSAML
-    implementation 'net.shibboleth.utilities:java-support:8.4.0'
+    implementation 'net.shibboleth.utilities:java-support:7.5.1'
     implementation "com.onelogin:java-saml:${one_login_java_saml}"
     implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
     implementation "org.opensaml:opensaml-core:${open_saml_version}"
