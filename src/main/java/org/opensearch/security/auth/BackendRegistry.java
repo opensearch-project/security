@@ -49,7 +49,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
