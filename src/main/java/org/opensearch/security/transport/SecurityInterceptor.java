@@ -67,7 +67,7 @@ import org.opensearch.transport.TransportInterceptor.AsyncSender;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestHandler;
 import org.opensearch.transport.TransportRequestOptions;
-import org.opensearch.transport.TransportResponse;
+import org.opensearch.core.transport.TransportResponse;
 import org.opensearch.transport.TransportResponseHandler;
 
 import static org.opensearch.security.OpenSearchSecurityPlugin.isActionTraceEnabled;
