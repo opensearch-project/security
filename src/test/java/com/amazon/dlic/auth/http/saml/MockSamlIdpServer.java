@@ -64,6 +64,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import net.shibboleth.utilities.java.support.codec.Base64Support;
+import net.shibboleth.utilities.java.support.codec.EncodingException;
 import net.shibboleth.utilities.java.support.component.ComponentInitializationException;
 import org.apache.http.Header;
 import org.apache.http.HttpConnectionFactory;
@@ -87,6 +88,7 @@ import org.apache.http.io.HttpMessageWriterFactory;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
+import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -521,7 +523,7 @@ class MockSamlIdpServer implements Closeable {
 
             return Base64Support.encode(marshalledXml.getBytes("UTF-8"), Base64Support.UNCHUNKED);
 
-        } catch (MarshallingException | SignatureException | UnsupportedEncodingException | EncryptionException e) {
+        } catch (MarshallingException | SignatureException | UnsupportedEncodingException | EncryptionException | EncodingException e) {
             throw new RuntimeException(e);
         }
     }

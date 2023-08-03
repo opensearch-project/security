@@ -27,7 +27,7 @@ buildscript {
         common_utils_version = System.getProperty("common_utils.version", '2.9.0.0-SNAPSHOT')
         kafka_version  = '3.5.1'
         apache_cxf_version = '4.0.2'
-        open_saml_version = '4.3.0'
+        open_saml_version = '3.4.5'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.11.5'
         guava_version = '32.1.1-jre'
@@ -481,6 +481,7 @@ check.dependsOn integrationTest
 dependencies {
     implementation "org.opensearch.plugin:transport-netty4-client:${opensearch_version}"
     implementation "org.opensearch.client:opensearch-rest-high-level-client:${opensearch_version}"
+    implementation "org.apache.httpcomponents:httpclient-cache:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
@@ -554,6 +555,7 @@ dependencies {
 
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
+    implementation 'commons-io:commons-io:2.13.0'
     runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
     runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
