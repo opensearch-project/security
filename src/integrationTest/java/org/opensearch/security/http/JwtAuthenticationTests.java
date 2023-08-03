@@ -47,7 +47,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.opensearch.client.RequestOptions.DEFAULT;
-import static org.opensearch.rest.RestStatus.FORBIDDEN;
+import static org.opensearch.core.rest.RestStatus.FORBIDDEN;
 import static org.opensearch.security.Song.FIELD_TITLE;
 import static org.opensearch.security.Song.QUERY_TITLE_MAGNUM_OPUS;
 import static org.opensearch.security.Song.SONGS;

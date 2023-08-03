@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
@@ -147,13 +147,13 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/SOMEGROUP", "", header);
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.PAYLOAD_MANDATORY.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.PAYLOAD_MANDATORY.message(), settings.get("reason"));
 
         // put new configuration with invalid payload, must fail
         response = rh.executePutRequest(ENDPOINT + "/SOMEGROUP", FileHelper.loadFile("restapi/actiongroup_not_parseable.json"), header);
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.BODY_NOT_PARSEABLE.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.BODY_NOT_PARSEABLE.message(), settings.get("reason"));
 
         response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", FileHelper.loadFile("restapi/actiongroup_crud.json"), header);
         Assert.assertEquals(HttpStatus.SC_CREATED, response.getStatusCode());
@@ -553,7 +553,7 @@ public class ActionGroupsApiTest extends AbstractRestApiUnitTest {
         HttpResponse response = rh.executePutRequest(ENDPOINT + "/CRUD_UT", body, new Header[0]);
         Settings settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
-        Assert.assertEquals(AbstractConfigurationValidator.ErrorType.NULL_ARRAY_ELEMENT.getMessage(), settings.get("reason"));
+        Assert.assertEquals(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message(), settings.get("reason"));
     }
 
 }

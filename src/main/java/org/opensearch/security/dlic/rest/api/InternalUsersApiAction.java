@@ -14,19 +14,19 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 
+import com.google.common.collect.ImmutableMap;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
@@ -35,8 +35,9 @@ import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.InternalUsersValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
@@ -268,33 +269,23 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected AbstractConfigurationValidator postProcessApplyPatchResult(
+    protected ValidationResult postProcessApplyPatchResult(
         RestChannel channel,
         RestRequest request,
         JsonNode existingResourceAsJsonNode,
         JsonNode updatedResourceAsJsonNode,
         String resourceName
-    ) {
-        AbstractConfigurationValidator retVal = null;
+    ) throws IOException {
+        RequestContentValidator retVal = null;
         JsonNode passwordNode = updatedResourceAsJsonNode.get("password");
-
         if (passwordNode != null) {
             String plainTextPassword = passwordNode.asText();
-            try {
-                XContentBuilder builder = channel.newBuilder();
-                builder.startObject();
-                builder.field("password", plainTextPassword);
-                builder.endObject();
-                retVal = getValidator(request, BytesReference.bytes(builder), resourceName);
-            } catch (IOException e) {
-                log.error(e.toString());
-            }
-
+            final JsonNode passwordObject = DefaultObjectMapper.objectMapper.createObjectNode().put("password", plainTextPassword);
+            final ValidationResult validationResult = createValidator(resourceName).validate(request, passwordObject);
             ((ObjectNode) updatedResourceAsJsonNode).remove("password");
             ((ObjectNode) updatedResourceAsJsonNode).set("hash", new TextNode(hash(plainTextPassword.toCharArray())));
-            return retVal;
+            return validationResult;
         }
-
         return null;
     }
 
@@ -309,7 +300,32 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params) {
-        return new InternalUsersValidator(request, isSuperAdmin(), ref, this.settings, params);
+    protected RequestContentValidator createValidator(final Object... params) {
+        return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
+            @Override
+            public Object[] params() {
+                return params;
+            }
+
+            @Override
+            public Settings settings() {
+                return settings;
+            }
+
+            @Override
+            public Map<String, RequestContentValidator.DataType> allowedKeys() {
+                final ImmutableMap.Builder<String, DataType> allowedKeys = ImmutableMap.builder();
+                if (isSuperAdmin()) {
+                    allowedKeys.put("reserved", DataType.BOOLEAN);
+                }
+                return allowedKeys.put("backend_roles", DataType.ARRAY)
+                    .put("attributes", DataType.OBJECT)
+                    .put("description", DataType.STRING)
+                    .put("opendistro_security_roles", DataType.ARRAY)
+                    .put("hash", DataType.STRING)
+                    .put("password", DataType.STRING)
+                    .build();
+            }
+        });
     }
 }

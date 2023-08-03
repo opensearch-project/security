@@ -27,10 +27,10 @@ import org.apache.lucene.index.FieldInfo;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.support.XContentMapValues;
-import org.opensearch.index.Index;
+import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.mapper.Uid;
-import org.opensearch.index.shard.ShardId;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.support.HeaderHelper;
@@ -105,7 +105,7 @@ public final class FieldReadCallback {
                     fieldValue = Utils.jsonMapToByteArray(filteredSource);
                 }
 
-                Map<String, Object> filteredSource = new JsonFlattener(new String(fieldValue, StandardCharsets.UTF_8)).flattenAsMap();
+                final Map<String, Object> filteredSource = JsonFlattener.flattenAsMap(new String(fieldValue, StandardCharsets.UTF_8));
                 for (String k : filteredSource.keySet()) {
                     if (!recordField(k, filteredSource.get(k) instanceof String)) {
                         continue;

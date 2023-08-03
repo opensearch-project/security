@@ -35,7 +35,7 @@ runs:
     - name: Build
       uses: gradle/gradle-build-action@v2
       with:
-        arguments: assemble -Dbuild.snapshot=false
+        arguments: assemble
         build-root-directory: ${{ inputs.plugin-branch }}
 
     - id: get-opensearch-version
@@ -46,5 +46,5 @@ runs:
     - name: Copy current distro into the expected folder
       run: |
         mkdir -p ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
-        cp ${{ inputs.plugin-branch }}/build/distributions/opensearch-security-${{ steps.get-opensearch-version.outputs.version }}.zip ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
+        cp ${{ inputs.plugin-branch }}/build/distributions/opensearch-security-${{ steps.get-opensearch-version.outputs.version }}-SNAPSHOT.zip ./bwc-test/src/test/resources/${{ steps.get-opensearch-version.outputs.version }}
       shell: bash

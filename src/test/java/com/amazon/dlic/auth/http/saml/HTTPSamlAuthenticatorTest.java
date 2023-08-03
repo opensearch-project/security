@@ -41,17 +41,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensaml.saml.saml2.core.NameIDType;
 
-import org.opensearch.common.bytes.BytesArray;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.rest.RestResponse;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.user.AuthCredentials;
@@ -992,7 +992,7 @@ public class HTTPSamlAuthenticatorTest {
         }
 
         @Override
-        public XContentBuilder newBuilder(XContentType xContentType, boolean useFiltering) throws IOException {
+        public XContentBuilder newBuilder(MediaType mediaType, boolean useFiltering) throws IOException {
             return null;
         }
 
@@ -1018,8 +1018,7 @@ public class HTTPSamlAuthenticatorTest {
         }
 
         @Override
-        public XContentBuilder newBuilder(XContentType xContentType, XContentType responseContentType, boolean useFiltering)
-            throws IOException {
+        public XContentBuilder newBuilder(MediaType mediaType, MediaType responseContentType, boolean useFiltering) throws IOException {
             return null;
         }
 

@@ -38,7 +38,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.ssl.SecurityKeyStore;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.ssl.util.SSLRequestHelper;
