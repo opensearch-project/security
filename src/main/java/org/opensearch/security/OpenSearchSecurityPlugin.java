@@ -76,10 +76,10 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.component.Lifecycle.State;
-import org.opensearch.common.component.LifecycleComponent;
-import org.opensearch.common.component.LifecycleListener;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.lifecycle.Lifecycle;
+import org.opensearch.common.lifecycle.LifecycleComponent;
+import org.opensearch.common.lifecycle.LifecycleListener;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.common.logging.DeprecationLogger;
 import org.opensearch.common.network.NetworkModule;
@@ -93,6 +93,7 @@ import org.opensearch.common.settings.SettingsFilter;
 import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.PageCacheRecycler;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.indices.breaker.CircuitBreakerService;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
@@ -104,7 +105,6 @@ import org.opensearch.index.IndexModule;
 import org.opensearch.index.cache.query.QueryCache;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.indices.SystemIndexDescriptor;
-import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.MapperPlugin;
 import org.opensearch.repositories.RepositoriesService;
@@ -212,7 +212,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
     private volatile ClusterService cs;
-    private static volatile DiscoveryNode localNode;
+    private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
     private volatile AuditLog auditLog;
     private volatile BackendRegistry backendRegistry;
     private volatile SslExceptionHandler sslExceptionHandler;
@@ -776,7 +776,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
                             TransportRequestOptions options,
                             TransportResponseHandler<T> handler
                         ) {
-                            si.sendRequestDecorate(sender, connection, action, request, options, handler);
+                            si.sendRequestDecorate(sender, connection, action, request, options, handler, localNode.get());
                         }
                     };
                 }
@@ -1806,7 +1806,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         if (!SSLConfig.isSslOnlyMode() && !client && !disabled) {
             cr.initOnNodeStart();
         }
-        this.localNode = localNode;
+        this.localNode.set(localNode);
         final Set<ModuleInfo> securityModules = ReflectionHelper.getModulesLoaded();
         log.info("{} OpenSearch Security modules loaded so far: {}", securityModules.size(), securityModules);
     }
@@ -1886,14 +1886,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         return field;
     }
 
-    public static DiscoveryNode getLocalNode() {
-        return localNode;
-    }
-
-    public static void setLocalNode(DiscoveryNode node) {
-        localNode = node;
-    }
-
     public static class GuiceHolder implements LifecycleComponent {
 
         private static RepositoriesService repositoriesService;
@@ -1946,7 +1938,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         public void close() {}
 
         @Override
-        public State lifecycleState() {
+        public Lifecycle.State lifecycleState() {
             return null;
         }
 
