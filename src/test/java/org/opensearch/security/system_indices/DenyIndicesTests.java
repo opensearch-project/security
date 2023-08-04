@@ -53,51 +53,24 @@ public class DenyIndicesTests extends SingleClusterTest {
         allAccessUser
     );
 
-    private static final String extensionUser = "extensions_user";
-    private static final Header extensionUserHeader = encodeBasicHeader(extensionUser, allAccessUser);
-    private static final String extensionUserC = "extensions_user_c";
-    private static final Header extensionUserCHeader = encodeBasicHeader(extensionUserC, allAccessUser);
+    private void setupDenyIndicesEnabledWithSsl(Boolean securedIndicesAdditionalControlenable  ) throws Exception {
 
-    private void setupDenyIndicesDisabledWithSsl() throws Exception {
-
-        Settings systemIndexSettings = Settings.builder()
-            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, true)
-            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, true)
+        Settings denyIndexSettings = Settings.builder()
+            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, securedIndicesAdditionalControlenable)
             .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
             .put("plugins.security.ssl.http.enabled", true)
             .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
             .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
             .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
             .build();
+
         setup(
             Settings.EMPTY,
             new DynamicSecurityConfig().setConfig("config_system_indices.yml")
                 .setSecurityRoles("roles_system_indices.yml")
                 .setSecurityInternalUsers("internal_users_system_indices.yml")
                 .setSecurityRolesMapping("roles_mapping_system_indices.yml"),
-            systemIndexSettings,
-            true
-        );
-    }
-
-    private void setupDenyIndicesEnabledWithSsl() throws Exception {
-
-        Settings systemIndexSettings = Settings.builder()
-            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY, true)
-            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, true)
-            .putList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, listOfIndexesToTest)
-            .put("plugins.security.ssl.http.enabled", true)
-            .put("plugins.security.ssl.http.keystore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("node-0-keystore.jks"))
-            .put("plugins.security.ssl.http.truststore_filepath", FileHelper.getAbsoluteFilePathFromClassPath("truststore.jks"))
-            .put("path.repo", repositoryPath.getRoot().getAbsolutePath())
-            .build();
-        setup(
-            Settings.EMPTY,
-            new DynamicSecurityConfig().setConfig("config_system_indices.yml")
-                .setSecurityRoles("roles_system_indices.yml")
-                .setSecurityInternalUsers("internal_users_system_indices.yml")
-                .setSecurityRolesMapping("roles_mapping_system_indices.yml"),
-            systemIndexSettings,
+            denyIndexSettings,
             true
         );
     }
@@ -107,25 +80,6 @@ public class DenyIndicesTests extends SingleClusterTest {
      *
      * @throws Exception
      */
-    private void createSnapshots() {
-        try (Client tc = getClient()) {
-            for (String index : listOfIndexesToTest) {
-                tc.admin()
-                    .cluster()
-                    .putRepository(
-                        new PutRepositoryRequest(index).type("fs")
-                            .settings(Settings.builder().put("location", repositoryPath.getRoot().getAbsolutePath() + "/" + index))
-                    )
-                    .actionGet();
-                tc.admin()
-                    .cluster()
-                    .createSnapshot(
-                        new CreateSnapshotRequest(index, index + "_1").indices(index).includeGlobalState(true).waitForCompletion(true)
-                    )
-                    .actionGet();
-            }
-        }
-    }
 
     private RestHelper keyStoreRestHelper() {
         RestHelper restHelper = restHelper();
@@ -158,48 +112,10 @@ public class DenyIndicesTests extends SingleClusterTest {
         assertEquals(5, searchResponse.getSuccessfulShards());
     }
 
-    @Test
-    public void testSearchAsSuperAdmin() throws Exception {
-        setupDenyIndicesEnabledWithSsl();
-        RestHelper restHelper = keyStoreRestHelper();
-
-        // search system indices
-        for (String index : listOfIndexesToTest) {
-            validateSearchResponse(restHelper.executePostRequest(index + "/_search", matchAllQuery), 10);
-        }
-
-        // search all indices
-        RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery);
-        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
-    }
-
-    @Test
-    public void testSearchAsAdmin() throws Exception {
-        setupDenyIndicesEnabledWithSsl();
-        RestHelper restHelper = sslRestHelper();
-
-        // search system indices
-        for (String index : listOfIndexesToTest) {
-            RestHelper.HttpResponse responseDoc = restHelper.executePostRequest(index + "/_search", matchAllQuery, allAccessUserHeader);
-
-            assertEquals(RestStatus.FORBIDDEN.getStatus(), responseDoc.getStatusCode());
-
-            MatcherAssert.assertThat(
-                responseDoc.getBody(),
-                Matchers.containsStringIgnoringCase(
-                    "no permissions for [] and User [name=admin_all_access, backend_roles=[], requestedTenant=null]"
-                )
-            );
-        }
-
-        // search all indices
-        RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
-        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
-    }
 
     @Test
     public void testSearchWithDenyIndicesAsSuperAdmin() throws Exception {
-        setupDenyIndicesEnabledWithSsl();
+        setupDenyIndicesEnabledWithSsl(true);
         RestHelper restHelper = keyStoreRestHelper();
 
         // search system indices
@@ -214,7 +130,7 @@ public class DenyIndicesTests extends SingleClusterTest {
 
     @Test
     public void testSearchWithDenyIndicesShouldFailAsAdmin() throws Exception {
-        setupDenyIndicesEnabledWithSsl();
+        setupDenyIndicesEnabledWithSsl(true);
         RestHelper restHelper = sslRestHelper();
 
         // search system indices
@@ -231,12 +147,31 @@ public class DenyIndicesTests extends SingleClusterTest {
 
         // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
-        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
-        XContentParser xcp = XContentType.JSON.xContent()
-            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, response.getBody());
-        SearchResponse searchResponse = SearchResponse.fromXContent(xcp);
-        assertEquals(RestStatus.OK, searchResponse.status());
-        assertEquals(0, searchResponse.getHits().getHits().length);
+        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
     }
+
+    @Test
+    public void testSearchWithDenyIndicesShouldSuccedAsAdminNoAdditinalAccesslControl() throws Exception {
+        setupDenyIndicesEnabledWithSsl(false);
+        RestHelper restHelper = sslRestHelper();
+
+        // search system indices
+        for (String index : listOfIndexesToTest) {
+            RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", matchAllQuery, allAccessUserHeader);
+            assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+            MatcherAssert.assertThat(
+                    response.getBody(),
+                    Matchers.containsStringIgnoringCase(
+                            "\"failed\":0"
+                    )
+            );
+        }
+
+        // search all indices
+        RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
+        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
+    }
+
+
 
 }

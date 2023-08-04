@@ -45,7 +45,6 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
-import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.DynamicSecurityConfig;
 import org.opensearch.security.test.SingleClusterTest;
 import org.opensearch.security.test.helper.cluster.ClusterConfiguration;
@@ -439,8 +438,7 @@ public class SnapshotRestoreTests extends SingleClusterTest {
     @Test
     public void testSnapshotCheckWritePrivileges() throws Exception {
 
-        final Settings settings = Settings.builder()
-            .putList("path.repo", repositoryPath.getRoot().getAbsolutePath()).build();
+        final Settings settings = Settings.builder().putList("path.repo", repositoryPath.getRoot().getAbsolutePath()).build();
 
         setup(settings, currentClusterConfig);
 

@@ -50,7 +50,7 @@ import static org.junit.Assert.assertEquals;
  */
 
 public class SystemIndicesTests extends SingleClusterTest {
-    // CS-SUPPRESS-SINGLE: RegexpSingleline See http://github/issues/1234
+    // CS-SUPPRESS-SINGLE: RegexpSingleline See http://github/issues/2553
 
     private static final List<String> listOfIndexesToTest = Arrays.asList(".system_index_a", ".system_index_b");
     private static final String matchAllQuery = "{\n\"query\": {\"match_all\": {}}}";
