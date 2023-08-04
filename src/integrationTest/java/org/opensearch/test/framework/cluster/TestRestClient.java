@@ -62,6 +62,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.routing.HttpRoutePlanner;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicHeader;
@@ -140,6 +141,16 @@ public class TestRestClient implements AutoCloseable {
             HttpPost httpPost = new HttpPost(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/user/onbehalfof?pretty").build());
             httpPost.setEntity(toStringEntity(jsonData));
             return executeRequest(httpPost, mergeHeaders(CONTENT_TYPE_JSON, headers));
+        } catch (URISyntaxException ex) {
+            throw new RuntimeException("Incorrect URI syntax", ex);
+        }
+    }
+
+    public HttpResponse changeInternalUserPassword(String jsonData, Header...headers) {
+        try {
+            HttpPut httpPut = new HttpPut(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/account?pretty").build());
+            httpPut.setEntity(toStringEntity(jsonData));
+            return executeRequest(httpPut, mergeHeaders(CONTENT_TYPE_JSON, headers));
         } catch (URISyntaxException ex) {
             throw new RuntimeException("Incorrect URI syntax", ex);
         }

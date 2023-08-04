@@ -56,9 +56,11 @@ public class OnBehalfOfJwtAuthenticationTest {
     private static final String encryptionKey = Base64.getEncoder().encodeToString("encryptionKey".getBytes(StandardCharsets.UTF_8));
     public static final String ADMIN_USER_NAME = "admin";
     public static final String DEFAULT_PASSWORD = "secret";
+    public static final String NEW_PASSWORD = "testPassword123!!";
     public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
     public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/user/onbehalfof";
     public static final String OBO_REASON = "{\"reason\":\"Testing\", \"service\":\"extension123\"}";
+    public static final String CURRENT_AND_NEW_PASSWORDS = "{ \"current_password\": \"" + DEFAULT_PASSWORD + "\", \"password\": \"" + NEW_PASSWORD + "\" }";
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -98,6 +100,17 @@ public class OnBehalfOfJwtAuthenticationTest {
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
             TestRestClient.HttpResponse response = client.getOBOTokenFromOboEndpoint(OBO_REASON, adminOboAuthHeader);
+            response.assertStatusCode(401);
+        }
+    }
+
+    @Test
+    public void shouldNotAuthenticateForUsingOBOTokenToAccessAccountEndpoint() {
+        String oboToken = generateOboToken(ADMIN_USER_NAME, DEFAULT_PASSWORD);
+        Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
+
+        try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
+            TestRestClient.HttpResponse response = client.changeInternalUserPassword(CURRENT_AND_NEW_PASSWORDS, adminOboAuthHeader);
             response.assertStatusCode(401);
         }
     }
