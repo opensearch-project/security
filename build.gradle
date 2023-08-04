@@ -506,6 +506,9 @@ dependencies {
     implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.14'
     implementation 'org.apache.commons:commons-collections4:4.4'
 
+    //Password generation
+    implementation 'org.passay:passay:1.6.3'
+
     //JSON path
     implementation 'com.jayway.jsonpath:json-path:2.8.0'
     implementation 'net.minidev:json-smart:2.4.11'
