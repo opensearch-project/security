@@ -60,7 +60,11 @@ public class OnBehalfOfJwtAuthenticationTest {
     public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
     public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/user/onbehalfof";
     public static final String OBO_REASON = "{\"reason\":\"Testing\", \"service\":\"self-issued\"}";
-    public static final String CURRENT_AND_NEW_PASSWORDS = "{ \"current_password\": \"" + DEFAULT_PASSWORD + "\", \"password\": \"" + NEW_PASSWORD + "\" }";
+    public static final String CURRENT_AND_NEW_PASSWORDS = "{ \"current_password\": \""
+        + DEFAULT_PASSWORD
+        + "\", \"password\": \""
+        + NEW_PASSWORD
+        + "\" }";
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)

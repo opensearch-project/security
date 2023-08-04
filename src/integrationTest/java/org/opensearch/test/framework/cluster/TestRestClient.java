@@ -145,7 +145,7 @@ public class TestRestClient implements AutoCloseable {
         }
     }
 
-    public HttpResponse changeInternalUserPassword(String jsonData, Header...headers) {
+    public HttpResponse changeInternalUserPassword(String jsonData, Header... headers) {
         try {
             HttpPut httpPut = new HttpPut(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/account?pretty").build());
             httpPut.setEntity(toStringEntity(jsonData));
