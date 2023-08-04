@@ -15,10 +15,7 @@ import org.apache.hc.core5.http.Header;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.opensearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.opensearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
@@ -53,7 +50,7 @@ public class DenyIndicesTests extends SingleClusterTest {
         allAccessUser
     );
 
-    private void setupDenyIndicesEnabledWithSsl(Boolean securedIndicesAdditionalControlenable  ) throws Exception {
+    private void setupDenyIndicesEnabledWithSsl(Boolean securedIndicesAdditionalControlenable) throws Exception {
 
         Settings denyIndexSettings = Settings.builder()
             .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, securedIndicesAdditionalControlenable)
@@ -112,7 +109,6 @@ public class DenyIndicesTests extends SingleClusterTest {
         assertEquals(5, searchResponse.getSuccessfulShards());
     }
 
-
     @Test
     public void testSearchWithDenyIndicesAsSuperAdmin() throws Exception {
         setupDenyIndicesEnabledWithSsl(true);
@@ -159,19 +155,12 @@ public class DenyIndicesTests extends SingleClusterTest {
         for (String index : listOfIndexesToTest) {
             RestHelper.HttpResponse response = restHelper.executePostRequest(index + "/_search", matchAllQuery, allAccessUserHeader);
             assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
-            MatcherAssert.assertThat(
-                    response.getBody(),
-                    Matchers.containsStringIgnoringCase(
-                            "\"failed\":0"
-                    )
-            );
+            MatcherAssert.assertThat(response.getBody(), Matchers.containsStringIgnoringCase("\"failed\":0"));
         }
 
         // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
         assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
     }
-
-
 
 }
