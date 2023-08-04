@@ -120,11 +120,12 @@ public class SecurityIndexAccessEvaluator {
     ) {
         final boolean isDebugEnabled = log.isDebugEnabled();
 
-        // As per issue #2845, the legacy access control to indices with additional protection should be kept in place for the meantime.
+        // As per issue #2845, the legacy access control to indices with additional protection should be kept in place in the meantime and
+        // be the default.
         if (systemIndicesAdditionalControlFlag) {
-            evaluateNewSecuredIndicesAccess(action, requestedResolved, request, task, presponse, securityRoles);
+            evaluateNewSecuredIndicesAccess(action, requestedResolved, request, task, presponse, securityRoles, isDebugEnabled);
         } else {
-            evaluateLegacySecuredIndicesAccess(action, requestedResolved, request, task, presponse);
+            evaluateLegacySecuredIndicesAccess(action, requestedResolved, request, task, presponse, isDebugEnabled);
         }
         if (presponse.isComplete()) {
             return presponse;
@@ -200,10 +201,10 @@ public class SecurityIndexAccessEvaluator {
         ActionRequest request,
         Task task,
         PrivilegesEvaluatorResponse presponse,
-        SecurityRoles securityRoles
-    ) {
-        final boolean isDebugEnabled = log.isDebugEnabled();
+        SecurityRoles securityRoles,
+        Boolean isDebugEnabled
 
+    ) {
         if (matchAnyDenyIndices(requestedResolved) || requestedResolved.getAllIndices().contains(securityIndex)) {
             auditLog.logSecurityIndexAttempt(request, action, task);
             if (log.isInfoEnabled()) {
@@ -261,10 +262,9 @@ public class SecurityIndexAccessEvaluator {
         Resolved requestedResolved,
         ActionRequest request,
         Task task,
-        PrivilegesEvaluatorResponse presponse
+        PrivilegesEvaluatorResponse presponse,
+        Boolean isDebugEnabled
     ) {
-        final boolean isDebugEnabled = log.isDebugEnabled();
-
         if (securityDeniedActionMatcher.test(action)) {
             if (requestedResolved.isLocalAll()) {
                 if (filterSecurityIndex) {
@@ -281,7 +281,7 @@ public class SecurityIndexAccessEvaluator {
                     return presponse;
                 } else {
                     auditLog.logSecurityIndexAttempt(request, action, task);
-                    log.warn("{} for '_all' indices is not allowed for a regular user", action);
+                    log.info("{} for '_all' indices is not allowed for a regular user", action);
                     presponse.allowed = false;
                     return presponse.markComplete();
                 }

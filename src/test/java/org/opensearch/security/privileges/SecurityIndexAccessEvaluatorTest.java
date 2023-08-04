@@ -36,7 +36,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -115,8 +114,7 @@ public class SecurityIndexAccessEvaluatorTest {
             presponse,
             securityRoles
         );
-
-        verifyNoInteractions(presponse);
+        verify(presponse).isComplete();
         assertThat(response, is(presponse));
 
         verify(log).isDebugEnabled();
@@ -139,6 +137,7 @@ public class SecurityIndexAccessEvaluatorTest {
         verify(searchRequest).requestCache(Boolean.FALSE);
         verify(realtimeRequest).realtime(Boolean.FALSE);
 
+        verify(presponse, times(3)).isComplete();
         verify(log, times(3)).isDebugEnabled();
         verify(log).debug("Disable search request cache for this request");
         verify(log).debug("Disable realtime for this request");
@@ -156,7 +155,7 @@ public class SecurityIndexAccessEvaluatorTest {
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
         verify(presponse).markComplete();
-
+        verify(presponse).isComplete();
         verify(log).isDebugEnabled();
         verify(log).info("{} for '_all' indices is not allowed for a regular user", "indices:data/write");
     }
@@ -172,10 +171,9 @@ public class SecurityIndexAccessEvaluatorTest {
         verify(auditLog).logSecurityIndexAttempt(request, PROTECTED_ACTION, task);
         assertThat(presponse.allowed, is(false));
         verify(presponse).markComplete();
-
+        verify(presponse).isComplete();
         verify(log).isDebugEnabled();
         verify(log).isInfoEnabled();
-
         verify(log).info("No {} permission for user roles {} to System Indices {}", PROTECTED_ACTION, securityRoles, ".testSystemIndex");
     }
 
@@ -193,7 +191,7 @@ public class SecurityIndexAccessEvaluatorTest {
 
         verify(log).isDebugEnabled();
         verify(log).isInfoEnabled();
-
+        verify(presponse).isComplete();
         verify(log).info(
             "{} not permited for regular user {} on denylist indices {}",
             PROTECTED_ACTION,

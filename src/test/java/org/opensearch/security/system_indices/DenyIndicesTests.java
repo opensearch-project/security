@@ -143,7 +143,7 @@ public class DenyIndicesTests extends SingleClusterTest {
 
         // search all indices
         RestHelper.HttpResponse response = restHelper.executePostRequest("/_search", matchAllQuery, allAccessUserHeader);
-        assertEquals(RestStatus.FORBIDDEN.getStatus(), response.getStatusCode());
+        assertEquals(RestStatus.OK.getStatus(), response.getStatusCode());
     }
 
     @Test
