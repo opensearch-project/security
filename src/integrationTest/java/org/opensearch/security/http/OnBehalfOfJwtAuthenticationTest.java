@@ -58,6 +58,7 @@ public class OnBehalfOfJwtAuthenticationTest {
     public static final String DEFAULT_PASSWORD = "secret";
     public static final String OBO_TOKEN_REASON = "{\"reason\":\"Test generation\"}";
     public static final String OBO_ENDPOINT_PREFIX = "_plugins/_security/api/user/onbehalfof";
+    public static final String OBO_REASON = "{\"reason\":\"Testing\", \"service\":\"extension123\"}";
 
     @ClassRule
     public static final LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.SINGLENODE)
@@ -96,8 +97,8 @@ public class OnBehalfOfJwtAuthenticationTest {
         Header adminOboAuthHeader = new BasicHeader("Authorization", "Bearer " + oboToken);
 
         try (TestRestClient client = cluster.getRestClient(adminOboAuthHeader)) {
-            TestRestClient.HttpResponse response = client.getOBOToken(adminOboAuthHeader);
-            response.assertStatusCode(403);
+            TestRestClient.HttpResponse response = client.getOBOTokenFromOboEndpoint(OBO_REASON, adminOboAuthHeader);
+            response.assertStatusCode(401);
         }
     }
 

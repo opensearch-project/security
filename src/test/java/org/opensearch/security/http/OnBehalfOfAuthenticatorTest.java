@@ -83,7 +83,7 @@ public class OnBehalfOfAuthenticatorTest {
             final AuthCredentials credentials = extractCredentialsFromJwtHeader(
                 BaseEncoding.base64().encode(new byte[] { 1, 3, 3, 4, 3, 6, 7, 8, 3, 10 }),
                 claimsEncryptionKey,
-                Jwts.builder().setSubject("Leonard McCoy"),
+                Jwts.builder().claim("typ", "obo").setSubject("Leonard McCoy"),
                 false
             );
             Assert.fail("Expected a WeakKeyException");
@@ -119,6 +119,7 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testDisabled() throws Exception {
         String jwsToken = Jwts.builder()
+            .claim("typ", "obo")
             .setSubject("Leonard McCoy")
             .setAudience("ext_0")
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
@@ -135,6 +136,7 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testNonSpecifyOBOSetting() throws Exception {
         String jwsToken = Jwts.builder()
+            .claim("typ", "obo")
             .setSubject("Leonard McCoy")
             .setAudience("ext_0")
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
