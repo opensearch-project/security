@@ -62,6 +62,7 @@ public class JwtVendorTest {
         JwsJwtCompactConsumer jwtConsumer = new JwsJwtCompactConsumer(encodedJwt);
         JwtToken jwt = jwtConsumer.getJwtToken();
 
+        Assert.assertEquals("obo", jwt.getClaim("typ"));
         Assert.assertEquals("cluster_0", jwt.getClaim("iss"));
         Assert.assertEquals("admin", jwt.getClaim("sub"));
         Assert.assertEquals("audience_0", jwt.getClaim("aud"));

@@ -135,6 +135,26 @@ public class TestRestClient implements AutoCloseable {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
     }
 
+    public HttpResponse getOBOTokenFromOboEndpoint(String jsonData, Header... headers) {
+        try {
+            HttpPost httpPost = new HttpPost(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/user/onbehalfof?pretty").build());
+            httpPost.setEntity(toStringEntity(jsonData));
+            return executeRequest(httpPost, mergeHeaders(CONTENT_TYPE_JSON, headers));
+        } catch (URISyntaxException ex) {
+            throw new RuntimeException("Incorrect URI syntax", ex);
+        }
+    }
+
+    public HttpResponse changeInternalUserPassword(String jsonData, Header... headers) {
+        try {
+            HttpPut httpPut = new HttpPut(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/account?pretty").build());
+            httpPut.setEntity(toStringEntity(jsonData));
+            return executeRequest(httpPut, mergeHeaders(CONTENT_TYPE_JSON, headers));
+        } catch (URISyntaxException ex) {
+            throw new RuntimeException("Incorrect URI syntax", ex);
+        }
+    }
+
     public void assertCorrectCredentials(String expectedUserName) {
         HttpResponse response = getAuthInfo();
         assertThat(response, notNullValue());

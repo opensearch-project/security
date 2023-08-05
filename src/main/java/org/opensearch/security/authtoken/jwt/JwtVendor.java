@@ -105,12 +105,15 @@ public class JwtVendor {
         List<String> roles,
         List<String> backendRoles
     ) throws Exception {
+        String tokenIdentifier = "obo";
         long timeMillis = timeProvider.getAsLong();
         Instant now = Instant.ofEpochMilli(timeProvider.getAsLong());
 
         jwtProducer.setSignatureProvider(JwsUtils.getSignatureProvider(signingKey));
         JwtClaims jwtClaims = new JwtClaims();
         JwtToken jwt = new JwtToken(jwtClaims);
+
+        jwtClaims.setProperty("typ", tokenIdentifier);
 
         jwtClaims.setIssuer(issuer);
 
