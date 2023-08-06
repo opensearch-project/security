@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -272,12 +273,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
             final var configuration = securityConfiguration.configuration();
             configuration.putCObject(READONLY_FIELD, readonlyFields);
             return ValidationResult.success(securityConfiguration);
-        }));
-    }
-
-    @Override
-    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) {
-        notImplemented(channel, RestRequest.Method.POST);
+        })).override(RestRequest.Method.POST, methodNotImplementedHandler);
     }
 
     @Override

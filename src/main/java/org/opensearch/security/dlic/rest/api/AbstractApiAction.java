@@ -66,6 +66,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.notFoundMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.payload;
@@ -131,6 +133,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final var requestHandlersBuilder = new RequestHandler.RequestHandlersBuilder();
         requestHandlersBuilder.withAccessHandler(request -> isSuperAdmin())
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
+            .add(Method.POST, methodNotImplementedHandler)
             .onGetRequest(this::processGetRequest);
         configureRequestHandlers(requestHandlersBuilder);
         return requestHandlersBuilder.build();
@@ -156,6 +159,14 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             return null;
         }
         return name;
+    }
+
+    protected ValidationResult<String> withRequiredResourceName(final RestRequest request) {
+        final var resourceName = nameParam(request);
+        if (resourceName == null) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("No " + getResourceName() + " specified."));
+        }
+        return ValidationResult.success(resourceName);
     }
 
     protected final ValidationResult<SecurityConfiguration> loadFilteredConfiguration(final String resourceName) throws IOException {
@@ -230,9 +241,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                     handleDelete(channel, request, client, null);
                     break;
                 case POST:
-                    createValidator().validate(request)
-                        .valid(jsonContent -> handlePost(channel, request, client, jsonContent))
-                        .error((status, toXContent) -> requestContentInvalid(request, channel, toXContent));
+                    requestHandlers.get(Method.DELETE).handle(channel, request, client);
                     break;
                 case PUT:
                     createValidator().validate(request)
@@ -353,11 +362,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             }
         );
 
-    }
-
-    protected void handlePost(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.POST);
     }
 
     protected boolean hasPermissionsToCreate(

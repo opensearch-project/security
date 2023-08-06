@@ -158,12 +158,6 @@ public class ValidateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.GET);
-    }
-
-    @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
         throws IOException {
         notImplemented(channel, Method.PUT);

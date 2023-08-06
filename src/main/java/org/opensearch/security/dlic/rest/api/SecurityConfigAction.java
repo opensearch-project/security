@@ -98,6 +98,11 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.allMethodsNotImplemented();
+    }
+
+    @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
         throws IOException {
         if (allowPutOrPatch) {
@@ -111,12 +116,6 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
         } else {
             notImplemented(channel, Method.PUT);
         }
-    }
-
-    @Override
-    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.POST);
     }
 
     @Override

@@ -68,6 +68,9 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 // CS-ENFORCE-SINGLE
 
@@ -112,14 +115,18 @@ public class MigrateApiAction extends AbstractApiAction {
         return true;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    protected void handlePost(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.allMethodsNotImplemented().override(Method.POST, (channel, request, client) -> migrate(channel, client));
+    }
+
+    @SuppressWarnings("unchecked")
+    protected void migrate(final RestChannel channel, final Client client) throws IOException {
 
         final SecurityDynamicConfiguration<?> loadedConfig = load(CType.CONFIG, true);
 
         if (loadedConfig.getVersion() != 1) {
-            badRequestResponse(channel, "Can not migrate configuration because it was already migrated.");
+            badRequest(channel, "Can not migrate configuration because it was already migrated.");
             return;
         }
 
@@ -207,7 +214,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                 final BulkRequestBuilder br = client.prepareBulk(securityIndexName);
                                 br.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
                                 try {
-                                    for (SecurityDynamicConfiguration dynamicConfiguration : dynamicConfigurations) {
+                                    for (SecurityDynamicConfiguration<?> dynamicConfiguration : dynamicConfigurations) {
                                         final String id = dynamicConfiguration.getCType().toLCString();
                                         final BytesReference xContent = XContentHelper.toXContent(
                                             dynamicConfiguration,
@@ -219,7 +226,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                     }
                                 } catch (final IOException e1) {
                                     LOGGER.error("Unable to create bulk request " + e1, e1);
-                                    internalErrorResponse(channel, "Unable to create bulk request.");
+                                    internalSeverError(channel, "Unable to create bulk request.");
                                     return;
                                 }
 
@@ -236,13 +243,13 @@ public class MigrateApiAction extends AbstractApiAction {
                                                         "Unable to upload migrated configuration because of "
                                                             + response.buildFailureMessage()
                                                     );
-                                                    internalErrorResponse(
+                                                    internalSeverError(
                                                         channel,
                                                         "Unable to upload migrated configuration (bulk index failed)."
                                                     );
                                                 } else {
                                                     LOGGER.debug("Migration completed");
-                                                    successResponse(channel, "Migration completed.");
+                                                    ok(channel, "Migration completed.");
                                                 }
 
                                             }
@@ -250,7 +257,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                             @Override
                                             public void onFailure(Exception e) {
                                                 LOGGER.error("Unable to upload migrated configuration because of " + e, e);
-                                                internalErrorResponse(channel, "Unable to upload migrated configuration.");
+                                                internalSeverError(channel, "Unable to upload migrated configuration.");
                                             }
                                         }
                                     )
@@ -261,7 +268,7 @@ public class MigrateApiAction extends AbstractApiAction {
                             @Override
                             public void onFailure(Exception e) {
                                 LOGGER.error("Unable to create opendistro_security index because of " + e, e);
-                                internalErrorResponse(channel, "Unable to create opendistro_security index.");
+                                internalSeverError(channel, "Unable to create opendistro_security index.");
                             }
                         });
 
@@ -273,7 +280,7 @@ public class MigrateApiAction extends AbstractApiAction {
             @Override
             public void onFailure(Exception e) {
                 LOGGER.error("Unable to delete opendistro_security index because of " + e, e);
-                internalErrorResponse(channel, "Unable to delete opendistro_security index.");
+                internalSeverError(channel, "Unable to delete opendistro_security index.");
             }
         });
 

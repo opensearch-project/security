@@ -93,6 +93,11 @@ public class FlushCacheApiAction extends AbstractApiAction {
     }
 
     @Override
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.allMethodsNotImplemented();
+    }
+
+    @Override
     protected void handleDelete(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
 
         client.execute(
@@ -121,12 +126,6 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
             }
         );
-    }
-
-    @Override
-    protected void handlePost(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.POST);
     }
 
     @Override
