@@ -12,10 +12,13 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,7 +50,6 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
@@ -135,7 +137,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
             .add(Method.POST, methodNotImplementedHandler)
             .onGetRequest(this::processGetRequest)
-            .onChangeRequest(Method.DELETE, this::processDeleteRequest);
+            .onChangeRequest(Method.DELETE, this::processDeleteRequest)
+            .onChangeRequest(Method.PUT, this::processPutRequest);
         configureRequestHandlers(requestHandlersBuilder);
         return requestHandlersBuilder.build();
     }
@@ -152,7 +155,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return loadFilteredConfiguration(nameParam(request)).map(this::resourceExists);
     }
 
-    void saveOrUpdateConfiguration(
+    protected final ValidationResult<SecurityConfiguration> processPutRequest(final RestRequest request) throws IOException {
+        return withRequiredResourceName(request).map(name -> loadSecurityConfigurationWithRequestContent(name, request))
+            .map(this::resourceCanBeChanged);
+    }
+
+    final void saveOrUpdateConfiguration(
         final Client client,
         final SecurityDynamicConfiguration<?> configuration,
         final OnSucessActionListener<IndexResponse> onSucessActionListener
@@ -168,7 +176,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return name;
     }
 
-    protected ValidationResult<String> withRequiredResourceName(final RestRequest request) {
+    protected final ValidationResult<String> withRequiredResourceName(final RestRequest request) {
         final var resourceName = nameParam(request);
         if (resourceName == null) {
             return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("No " + getResourceName() + " specified."));
@@ -186,6 +194,18 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             configuration.set_meta(null);
             return ValidationResult.success(securityConfiguration);
         });
+    }
+
+    protected final ValidationResult<SecurityConfiguration> loadSecurityConfigurationWithRequestContent(
+        final String resourceName,
+        final RestRequest request
+    ) throws IOException {
+        return createValidator().validate(request)
+            .map(
+                content -> loadConfiguration(getConfigName(), false).map(
+                    configuration -> ValidationResult.success(SecurityConfiguration.of(resourceName, content, configuration))
+                )
+            );
     }
 
     protected final ValidationResult<SecurityConfiguration> loadSecurityConfiguration(
@@ -214,11 +234,18 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected final ValidationResult<SecurityConfiguration> resourceExists(final SecurityConfiguration securityConfiguration) {
+        return resourceExists(getResourceName(), securityConfiguration);
+    }
+
+    protected final ValidationResult<SecurityConfiguration> resourceExists(
+        final String resourceName,
+        final SecurityConfiguration securityConfiguration
+    ) {
         if (securityConfiguration.maybeResourceName().isPresent()) {
             if (!securityConfiguration.resourceExists()) {
                 return ValidationResult.error(
                     RestStatus.NOT_FOUND,
-                    notFoundMessage(getResourceName() + " '" + securityConfiguration.resourceName() + "' not found.")
+                    notFoundMessage(resourceName + " '" + securityConfiguration.resourceName() + "' not found.")
                 );
             }
             return ValidationResult.success(securityConfiguration);
@@ -257,6 +284,27 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return ValidationResult.success(securityConfiguration);
     }
 
+    protected final ValidationResult<SecurityConfiguration> validateRoles(
+        final SecurityConfiguration securityConfiguration,
+        final List<String> roles
+    ) throws IOException {
+        return loadConfiguration(CType.ROLES, false).map(rolesConfiguration -> {
+            if (roles != null) {
+                final var maybeNotValidRole = roles.stream().map(role -> {
+                    try {
+                        return resourceExists("role", SecurityConfiguration.of(role, rolesConfiguration)).map(this::resourceCanBeChanged);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                }).filter(Predicate.not(ValidationResult::isValid)).findFirst();
+                if (maybeNotValidRole.isPresent()) {
+                    return maybeNotValidRole.get();
+                }
+            }
+            return ValidationResult.success(securityConfiguration);
+        });
+    }
+
     protected abstract RequestContentValidator createValidator(final Object... params);
 
     protected abstract String getResourceName();
@@ -274,9 +322,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                     requestHandlers.get(Method.POST).handle(channel, request, client);
                     break;
                 case PUT:
-                    createValidator().validate(request)
-                        .valid(jsonContent -> handlePut(channel, request, client, jsonContent))
-                        .error((status, toXContent) -> requestContentInvalid(request, channel, toXContent));
+                    requestHandlers.get(Method.PUT).handle(channel, request, client);
                     break;
                 case GET:
                     requestHandlers.get(Method.GET).handle(channel, request, client);
@@ -291,69 +337,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             // throw jme;
             // } else throw new JsonMappingException(null, jme.getMessage());
         }
-    }
-
-    protected void requestContentInvalid(final RestRequest request, final RestChannel channel, final ToXContent toXContent) {
-        request.params().clear();
-        badRequestResponse(channel, toXContent);
-    }
-
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final String name = request.param("name");
-        if (name == null || name.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
-            return;
-        }
-        final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
-        if (existingConfiguration.getSeqNo() < 0) {
-            forbidden(
-                channel,
-                "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate."
-            );
-            return;
-        }
-
-        if (!isWriteable(channel, existingConfiguration, name)) {
-            return;
-        }
-
-        if (isReadonlyFieldUpdated(existingConfiguration, content)) {
-            conflict(channel, "Attempted to update read-only property.");
-            return;
-        }
-
-        if (LOGGER.isTraceEnabled() && content != null) {
-            LOGGER.trace(content.toString());
-        }
-
-        boolean existed = existingConfiguration.exists(name);
-        final Object newContent = DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass());
-        if (!hasPermissionsToCreate(existingConfiguration, newContent, getResourceName())) {
-            forbidden(channel, "No permissions");
-            return;
-        }
-        existingConfiguration.putCObject(name, newContent);
-
-        AbstractApiAction.saveAndUpdateConfigs(
-            this.securityIndexName,
-            client,
-            getConfigName(),
-            existingConfiguration,
-            new OnSucessActionListener<IndexResponse>(channel) {
-
-                @Override
-                public void onResponse(IndexResponse response) {
-                    if (existed) {
-                        successResponse(channel, "'" + name + "' updated.");
-                    } else {
-                        createdResponse(channel, "'" + name + "' created.");
-                    }
-
-                }
-            }
-        );
-
     }
 
     protected boolean hasPermissionsToCreate(

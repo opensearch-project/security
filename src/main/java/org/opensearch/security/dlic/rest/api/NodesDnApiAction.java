@@ -129,6 +129,14 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
         requestHandlersBuilder.verifyAccessForAllMethods()
+                .onChangeRequest(Method.PUT, request ->
+                        withRequiredResourceName(request)
+                                .map(this::notStaticNodesDn)
+                                .map(ignore -> processPutRequest(request)))
+                .onChangeRequest(Method.DELETE, request ->
+                        withRequiredResourceName(request)
+                                .map(this::notStaticNodesDn)
+                                .map(ignore -> processDeleteRequest(request)))
                 .onGetRequest(request ->
                         processGetRequest(request)
                                 .map(securityConfiguration -> {
@@ -138,11 +146,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
                                     }
                                     return ValidationResult.success(securityConfiguration);
                                 })
-                ).onChangeRequest(Method.DELETE, request ->
-                        withRequiredResourceName(request)
-                                .map(this::notStaticNodesDn)
-                                .map(ignore -> processDeleteRequest(request))
-        );
+                );
         // spotless:on
     }
 

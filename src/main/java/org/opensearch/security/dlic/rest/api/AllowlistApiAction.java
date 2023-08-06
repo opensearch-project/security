@@ -38,6 +38,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+
 /**
  * This class implements GET and PUT operations to manage dynamic AllowlistingSettings.
  * <p>
@@ -120,6 +122,13 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
             return;
         }
         super.handleApiRequest(channel, request, client);
+    }
+
+    @Override
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.verifyAccessForAllMethods()
+            .onChangeRequest(RestRequest.Method.PUT, request -> loadSecurityConfigurationWithRequestContent(RESOURCE_NAME, request))
+            .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
     }
 
     @Override

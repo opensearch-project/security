@@ -17,21 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -78,10 +73,21 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
 
     @Override
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onChangeRequest(
-            Method.DELETE,
-            request -> processDeleteRequest(request).map(this::canChangeRolesMappingRestAdminPermissions)
-        ).override(Method.POST, methodNotImplementedHandler);
+        // spotless:off
+        requestHandlersBuilder
+                .onChangeRequest(Method.PUT, request ->
+                        processPutRequest(request)
+                                .map(securityConfiguration ->
+                                        validateRoles(
+                                                securityConfiguration,
+                                                List.of(securityConfiguration.resourceName())
+                                        )
+                                )
+                                .map(this::canChangeRolesMappingRestAdminPermissions))
+                .onChangeRequest(Method.DELETE, request ->
+                        processDeleteRequest(request).map(this::canChangeRolesMappingRestAdminPermissions))
+                .override(Method.POST, methodNotImplementedHandler);
+        // spotless:on
     }
 
     private ValidationResult<SecurityConfiguration> canChangeRolesMappingRestAdminPermissions(
@@ -95,50 +101,6 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
                 SecurityConfiguration.of(securityConfiguration.resourceName(), rolesConfiguration)
             );
         }).map(ignore -> ValidationResult.success(securityConfiguration));
-    }
-
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final String name = request.param("name");
-
-        if (name == null || name.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
-            return;
-        }
-
-        final SecurityDynamicConfiguration<?> rolesConfiguration = load(CType.ROLES, false);
-        final SecurityDynamicConfiguration<?> rolesMappingConfiguration = load(getConfigName(), false);
-        final boolean rolesMappingExists = rolesMappingConfiguration.exists(name);
-
-        if (!isValidRolesMapping(channel, name)) return;
-
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(rolesConfiguration.getCEntry(name))) {
-            if (!isSuperAdmin()) {
-                forbidden(channel, "No permissions");
-                return;
-            }
-        }
-        rolesMappingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, rolesMappingConfiguration.getImplementingClass()));
-
-        saveAndUpdateConfigs(
-            this.securityIndexName,
-            client,
-            getConfigName(),
-            rolesMappingConfiguration,
-            new OnSucessActionListener<IndexResponse>(channel) {
-
-                @Override
-                public void onResponse(IndexResponse response) {
-                    if (rolesMappingExists) {
-                        successResponse(channel, "'" + name + "' updated.");
-                    } else {
-                        createdResponse(channel, "'" + name + "' created.");
-                    }
-
-                }
-            }
-        );
     }
 
     @Override

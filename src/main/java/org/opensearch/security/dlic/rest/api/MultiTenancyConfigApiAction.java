@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
@@ -32,17 +33,14 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -101,6 +99,21 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
     }
 
     @Override
+    protected Endpoint getEndpoint() {
+        return Endpoint.TENANTS;
+    }
+
+    @Override
+    protected String getResourceName() {
+        return null;
+    }
+
+    @Override
+    protected CType getConfigName() {
+        return CType.CONFIG;
+    }
+
+    @Override
     protected RequestContentValidator createValidator(final Object... params) {
         return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
             @Override
@@ -127,39 +140,6 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         });
     }
 
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.TENANTS;
-    }
-
-    @Override
-    protected String getResourceName() {
-        return null;
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return CType.CONFIG;
-    }
-
-    private void multitenancyResponse(final ConfigV7 config, final RestChannel channel) {
-        try (final XContentBuilder contentBuilder = channel.newBuilder()) {
-            channel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.OK,
-                    contentBuilder.startObject()
-                        .field(DEFAULT_TENANT_JSON_PROPERTY, config.dynamic.kibana.default_tenant)
-                        .field(PRIVATE_TENANT_ENABLED_JSON_PROPERTY, config.dynamic.kibana.private_tenant_enabled)
-                        .field(MULTITENANCY_ENABLED_JSON_PROPERTY, config.dynamic.kibana.multitenancy_enabled)
-                        .endObject()
-                )
-            );
-        } catch (final Exception e) {
-            internalErrorResponse(channel, e.getMessage());
-            LOGGER.error("Error handle request ", e);
-        }
-    }
-
     private ToXContent multitenancyContent(final ConfigV7 config) {
         return (builder, params) -> builder.startObject()
             .field(DEFAULT_TENANT_JSON_PROPERTY, config.dynamic.kibana.default_tenant)
@@ -174,23 +154,36 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             .override(GET, (channel, request, client) -> loadConfiguration(getConfigName(), false).valid(configuration -> {
                 final var config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
                 ok(channel, multitenancyContent(config));
-            }).error((status, toXContent) -> Responses.response(channel, status, toXContent)));
+            }).error((status, toXContent) -> Responses.response(channel, status, toXContent)))
+            .override(PUT, (channel, request, client) -> {
+                createValidator().validate(request)
+                    .map(
+                        content -> loadConfiguration(getConfigName(), false).map(
+                            configuration -> ValidationResult.success(Pair.of(content, configuration))
+                        )
+                    )
+                    .valid(contentAndConfig -> {
+                        updateMultitenancy(channel, client, contentAndConfig.getRight(), contentAndConfig.getLeft());
+                    })
+                    .error((status, toXContent) -> Responses.response(channel, status, toXContent));
+            });
     }
 
-    @Override
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final SecurityDynamicConfiguration<ConfigV7> dynamicConfiguration = (SecurityDynamicConfiguration<ConfigV7>) load(
-            CType.CONFIG,
-            false
-        );
-        final ConfigV7 config = dynamicConfiguration.getCEntry(CType.CONFIG.toLCString());
+    protected void updateMultitenancy(
+        final RestChannel channel,
+        Client client,
+        final SecurityDynamicConfiguration<?> configuration,
+        final JsonNode content
+    ) throws IOException {
+        @SuppressWarnings("unchecked")
+        final var dynamicConfiguration = (SecurityDynamicConfiguration<ConfigV7>) configuration;
+        final var config = dynamicConfiguration.getCEntry(CType.CONFIG.toLCString());
         updateAndValidatesValues(config, content);
         dynamicConfiguration.putCEntry(CType.CONFIG.toLCString(), config);
-        saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), dynamicConfiguration, new OnSucessActionListener<>(channel) {
+        saveOrUpdateConfiguration(client, dynamicConfiguration, new OnSucessActionListener<>(channel) {
             @Override
-            public void onResponse(IndexResponse response) {
-                multitenancyResponse(config, channel);
+            public void onResponse(IndexResponse indexResponse) {
+                ok(channel, multitenancyContent(config));
             }
         });
     }

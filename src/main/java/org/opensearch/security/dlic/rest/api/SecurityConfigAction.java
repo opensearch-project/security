@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 
 import com.google.common.collect.ImmutableMap;
@@ -25,6 +24,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
@@ -34,6 +34,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -42,6 +43,8 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigAction extends PatchableResourceApiAction {
@@ -81,6 +84,22 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
+    protected CType getConfigName() {
+        return CType.CONFIG;
+    }
+
+    @Override
+    protected Endpoint getEndpoint() {
+        return Endpoint.CONFIG;
+    }
+
+    @Override
+    protected String getResourceName() {
+        // not needed, no single resource
+        return null;
+    }
+
+    @Override
     protected boolean hasPermissionsToCreate(
         final SecurityDynamicConfiguration<?> dynamicConfigFactory,
         final Object content,
@@ -100,25 +119,24 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
 
     @Override
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.allMethodsNotImplemented()
+        requestHandlersBuilder.onChangeRequest(Method.PUT, request -> {
+            if (!allowPutOrPatch) {
+                return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));
+            } else {
+                return withConfigResourceNameOnly(request).map(ignore -> processPutRequest(request));
+            }
+        })
+            .override(Method.POST, methodNotImplementedHandler)
             .override(Method.DELETE, methodNotImplementedHandler)
             .override(Method.POST, methodNotImplementedHandler);
     }
 
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        if (allowPutOrPatch) {
-
-            if (!"config".equals(request.param("name"))) {
-                badRequestResponse(channel, "name must be config");
-                return;
-            }
-
-            super.handlePut(channel, request, client, content);
-        } else {
-            notImplemented(channel, Method.PUT);
+    private ValidationResult<String> withConfigResourceNameOnly(final RestRequest request) {
+        final var name = nameParam(request);
+        if (!"config".equals(name)) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
         }
+        return ValidationResult.success(name);
     }
 
     @Override
@@ -139,22 +157,6 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
                 return ImmutableMap.of("dynamic", DataType.OBJECT);
             }
         });
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return CType.CONFIG;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.CONFIG;
-    }
-
-    @Override
-    protected String getResourceName() {
-        // not needed, no single resource
-        return null;
     }
 
 }

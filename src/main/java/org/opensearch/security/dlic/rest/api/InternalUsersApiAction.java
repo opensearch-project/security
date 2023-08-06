@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 
 import com.google.common.collect.ImmutableMap;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -51,8 +50,10 @@ import org.opensearch.security.user.UserServiceException;
 import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
+import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
@@ -121,89 +122,13 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
+    protected String getResourceName() {
+        return "user";
+    }
 
-        final String username = request.param("name");
-
-        SecurityDynamicConfiguration<?> internalUsersConfiguration = load(getConfigName(), false);
-
-        if (!isWriteable(channel, internalUsersConfiguration, username)) {
-            return;
-        }
-
-        final ObjectNode contentAsNode = (ObjectNode) content;
-        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
-
-        // Don't allow user to add non-existent role or a role for which role-mapping is hidden or reserved
-        final List<String> securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
-        if (securityRoles != null) {
-            for (final String role : securityRoles) {
-                if (!isValidRolesMapping(channel, role)) {
-                    return;
-                }
-            }
-        }
-
-        final boolean userExisted = internalUsersConfiguration.exists(username);
-
-        // when updating an existing user password hash can be blank, which means no
-        // changes
-
-        try {
-            if (request.hasParam("service")) {
-                ((ObjectNode) content).put("service", request.param("service"));
-            }
-            if (request.hasParam("enabled")) {
-                ((ObjectNode) content).put("enabled", request.param("enabled"));
-            }
-            ((ObjectNode) content).put("name", username);
-            internalUsersConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
-        } catch (UserServiceException ex) {
-            badRequestResponse(channel, ex.getMessage());
-            return;
-        } catch (IOException ex) {
-            throw new IOException(ex);
-        }
-
-        // for existing users, hash is optional
-        if (userExisted && securityJsonNode.get("hash").asString() == null) {
-            // sanity check, this should usually not happen
-            final String hash = ((Hashed) internalUsersConfiguration.getCEntry(username)).getHash();
-            if (hash == null || hash.length() == 0) {
-                internalErrorResponse(
-                    channel,
-                    "Existing user " + username + " has no password, and no new password or hash was specified."
-                );
-                return;
-            }
-            contentAsNode.put("hash", hash);
-        }
-
-        internalUsersConfiguration.remove(username);
-
-        // checks complete, create or update the user
-        Object userData = DefaultObjectMapper.readTree(contentAsNode, internalUsersConfiguration.getImplementingClass());
-        internalUsersConfiguration.putCObject(username, userData);
-
-        saveAndUpdateConfigs(
-            this.securityIndexName,
-            client,
-            CType.INTERNALUSERS,
-            internalUsersConfiguration,
-            new OnSucessActionListener<IndexResponse>(channel) {
-
-                @Override
-                public void onResponse(IndexResponse response) {
-                    if (userExisted) {
-                        successResponse(channel, "'" + username + "' updated.");
-                    } else {
-                        createdResponse(channel, "'" + username + "' created.");
-                    }
-
-                }
-            }
-        );
+    @Override
+    protected CType getConfigName() {
+        return CType.INTERNALUSERS;
     }
 
     @Override
@@ -216,8 +141,11 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
                                 .map(this::loadFilteredConfiguration)
                                 .map(this::resourceExists)
                                 .valid(securityConfiguration -> generateAuthToken(channel, securityConfiguration))
-                                .error((status, toXContent) -> Responses.response(channel, status, toXContent))
-                );
+                                .error((status, toXContent) -> Responses.response(channel, status, toXContent)))
+                .onChangeRequest(Method.PUT, request ->
+                        processPutRequest(request)
+                                .map(securityConfiguration -> createOrUpdateUser(request, securityConfiguration))
+        );
         // spotless:on
     }
 
@@ -245,6 +173,64 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
     }
 
+    private ValidationResult<SecurityConfiguration> createOrUpdateUser(
+        final RestRequest request,
+        final SecurityConfiguration securityConfiguration
+    ) throws IOException {
+        final var username = securityConfiguration.resourceName();
+        final ObjectNode contentAsNode = (ObjectNode) securityConfiguration.requestContent();
+        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(contentAsNode);
+        // FIXME do we need to verify roles as well?
+        final var securityRoles = securityJsonNode.get("opendistro_security_roles").asList();
+        // Don't allow user to add non-existent role or a role for which role-mapping is hidden or reserved
+        // spotless:off
+        return validateRoles(securityConfiguration, securityRoles)
+                .map(ignore -> createOrUpdateAccount(request, securityConfiguration))
+                .map(updatedSecurityConfiguration -> {
+                    // when updating an existing user password hash can be blank, which means no changes
+                    // for existing users, hash is optional
+                    if (updatedSecurityConfiguration.resourceExists() && securityJsonNode.get("hash").asString() == null) {
+                        final String hash = ((Hashed) updatedSecurityConfiguration.configuration().getCEntry(username)).getHash();
+                        if (Strings.isNullOrEmpty(hash)) {
+                            return ValidationResult.error(
+                                    RestStatus.INTERNAL_SERVER_ERROR,
+                                    payload(
+                                            RestStatus.INTERNAL_SERVER_ERROR,
+                                            "Existing user " + username + " has no password, and no new password or hash was specified."
+                                    )
+                            );
+                        }
+                        contentAsNode.put("hash", hash);
+                    }
+                    return ValidationResult.success(updatedSecurityConfiguration);
+                });
+        // spotless:on
+    }
+
+    private ValidationResult<SecurityConfiguration> createOrUpdateAccount(
+        final RestRequest request,
+        final SecurityConfiguration securityConfiguration
+    ) throws IOException {
+        try {
+            final var username = securityConfiguration.resourceName();
+            final var content = securityConfiguration.requestContent();
+            if (request.hasParam("service")) {
+                ((ObjectNode) content).put("service", request.param("service"));
+            }
+            if (request.hasParam("enabled")) {
+                ((ObjectNode) content).put("enabled", request.param("enabled"));
+            }
+            ((ObjectNode) content).put("name", username);
+            // FIXME add better solution for account and internal users
+            final var updateConfiguration = userService.createOrUpdateAccount((ObjectNode) content);
+            // remove extra user in case we deal with the new one. not nice better to redesign account users.
+            if (!securityConfiguration.resourceExists()) updateConfiguration.remove(securityConfiguration.resourceName());
+            return ValidationResult.success(SecurityConfiguration.of(username, content, updateConfiguration));
+        } catch (UserServiceException ex) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage(ex.getMessage()));
+        }
+    }
+
     @Override
     protected ValidationResult<JsonNode> postProcessApplyPatchResult(
         RestChannel channel,
@@ -264,16 +250,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             return validationResult;
         }
         return null;
-    }
-
-    @Override
-    protected String getResourceName() {
-        return "user";
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return CType.INTERNALUSERS;
     }
 
     @Override

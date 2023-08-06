@@ -49,6 +49,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.conflictMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -258,22 +260,58 @@ public class AuditApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        if (!RESOURCE_NAME.equals(request.param("name"))) {
-            badRequestResponse(channel, "name must be config");
-            return;
-        }
-        super.handlePut(channel, request, client, content);
+    protected String getResourceName() {
+        return RESOURCE_NAME;
+    }
+
+    @Override
+    protected Endpoint getEndpoint() {
+        return Endpoint.AUDIT;
+    }
+
+    @Override
+    protected CType getConfigName() {
+        return CType.AUDIT;
     }
 
     @Override
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onGetRequest(request -> processGetRequest(request).map(securityConfiguration -> {
-            final var configuration = securityConfiguration.configuration();
-            configuration.putCObject(READONLY_FIELD, readonlyFields);
-            return ValidationResult.success(securityConfiguration);
-        })).override(RestRequest.Method.POST, methodNotImplementedHandler).override(RestRequest.Method.DELETE, methodNotImplementedHandler);
+        // spotless:off
+        requestHandlersBuilder
+                .onGetRequest(request ->
+                        processGetRequest(request)
+                                .map(securityConfiguration -> {
+                                    final var configuration = securityConfiguration.configuration();
+                                    configuration.putCObject(READONLY_FIELD, readonlyFields);
+                                    return ValidationResult.success(securityConfiguration);
+                                }))
+                .onChangeRequest(RestRequest.Method.PUT, request ->
+                        withConfigResourceNameOnly(request)
+                                .map(ignore -> processPutRequest(request))
+                                .map(this::verifyNotReadonlyFieldUpdated))
+                .override(RestRequest.Method.POST, methodNotImplementedHandler)
+                .override(RestRequest.Method.DELETE, methodNotImplementedHandler);
+        // spotless:on
+    }
+
+    private ValidationResult<String> withConfigResourceNameOnly(final RestRequest request) {
+        final var name = nameParam(request);
+        if (!RESOURCE_NAME.equals(name)) {
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("name must be config"));
+        }
+        return ValidationResult.success(name);
+    }
+
+    private ValidationResult<SecurityConfiguration> verifyNotReadonlyFieldUpdated(final SecurityConfiguration securityConfiguration)
+        throws IOException {
+        if (!isSuperAdmin()) {
+            final var existingResource = securityConfiguration.configurationAsJsonNode().get(getResourceName());
+            final var targetResource = securityConfiguration.requestContent();
+            if (readonlyFields.stream().anyMatch(path -> !existingResource.at(path).equals(targetResource.at(path)))) {
+                return ValidationResult.error(RestStatus.CONFLICT, conflictMessage("Attempted to update read-only property."));
+            }
+        }
+        return ValidationResult.success(securityConfiguration);
     }
 
     @Override
@@ -294,21 +332,6 @@ public class AuditApiAction extends PatchableResourceApiAction {
                 return ImmutableMap.of("enabled", DataType.BOOLEAN, "audit", DataType.OBJECT, "compliance", DataType.OBJECT);
             }
         });
-    }
-
-    @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.AUDIT;
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return CType.AUDIT;
     }
 
     @Override

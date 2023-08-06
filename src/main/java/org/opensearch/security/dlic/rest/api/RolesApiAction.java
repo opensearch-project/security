@@ -131,10 +131,14 @@ public class RolesApiAction extends PatchableResourceApiAction {
 
     @Override
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onChangeRequest(
-            Method.DELETE,
-            request -> processDeleteRequest(request).map(this::canChangeRolesRestAdminPermissions)
-        ).override(Method.POST, methodNotImplementedHandler);
+        // spotless:off
+        requestHandlersBuilder
+                .onChangeRequest(Method.PUT, request ->
+                        processPutRequest(request).map(this::canChangeRolesRestAdminPermissions))
+                .onChangeRequest(Method.DELETE, request ->
+                        processDeleteRequest(request).map(this::canChangeRolesRestAdminPermissions))
+                .override(Method.POST, methodNotImplementedHandler);
+        // spotless:on
     }
 
     private ValidationResult<SecurityConfiguration> canChangeRolesRestAdminPermissions(final SecurityConfiguration securityConfiguration)

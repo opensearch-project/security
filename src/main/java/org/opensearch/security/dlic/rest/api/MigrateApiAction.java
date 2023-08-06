@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.logging.log4j.LogManager;
@@ -284,12 +283,6 @@ public class MigrateApiAction extends AbstractApiAction {
             }
         });
 
-    }
-
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.PUT);
     }
 
     @Override

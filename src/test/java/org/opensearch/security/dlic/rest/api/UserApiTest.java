@@ -239,7 +239,7 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         );
         Assert.assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusCode());
         settings = Settings.builder().loadFromSource(response.getBody(), XContentType.JSON).build();
-        Assert.assertEquals(settings.get("message"), "Role 'non_existent' is not available for role-mapping.");
+        Assert.assertEquals(settings.get("message"), "role 'non_existent' not found.");
 
         // Wrong config keys
         response = rh.executePutRequest(ENDPOINT + "/internalusers/nagilum", "{\"some\": \"thing\", \"other\": \"thing\"}", header);

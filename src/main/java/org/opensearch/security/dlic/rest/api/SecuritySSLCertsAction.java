@@ -11,30 +11,17 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -49,6 +36,15 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
 import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
@@ -61,10 +57,8 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
  */
 public class SecuritySSLCertsAction extends AbstractApiAction {
     private static final List<Route> ROUTES = addRoutesPrefix(
-        ImmutableList.of(new Route(Method.GET, "/ssl/certs"), new Route(Method.PUT, "/ssl/{certType}/reloadcerts"))
+        ImmutableList.of(new Route(Method.GET, "/ssl/certs"), new Route(Method.PUT, "/ssl/{certType}/reloadcerts/"))
     );
-
-    private final Logger log = LogManager.getLogger(this.getClass());
 
     private final SecurityKeyStore securityKeyStore;
 
@@ -108,18 +102,18 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     }
 
     @Override
-    protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        switch (request.method()) {
-            case GET:
-                super.handleApiRequest(channel, request, client);
-                break;
-            case PUT:
-                if (!restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint(), "reloadcerts")) {
-                    forbidden(channel, "");
-                    return;
-                }
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        // spotless:off
+        requestHandlersBuilder.withAccessHandler(this::accessHandler)
+            .allMethodsNotImplemented()
+            .verifyAccessForAllMethods()
+            .override(Method.GET, (channel, request, client) ->
+                    withSecurityKeyStore()
+                            .valid(keyStore -> loadCertificates(channel, keyStore))
+                            .error((status, toXContent) -> Responses.response(channel, status, toXContent)))
+            .override(Method.PUT, (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> {
                 if (!certificatesReloadEnabled) {
-                    badRequestResponse(
+                    badRequest(
                         channel,
                         String.format(
                             "no handler found for uri [%s] and method [%s]. In order to use SSL reload functionality set %s to true",
@@ -128,26 +122,11 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
                             ConfigConstants.SECURITY_SSL_CERT_RELOAD_ENABLED
                         )
                     );
-                    return;
+                } else {
+                    reloadCertificates(channel, request, keyStore);
                 }
-                handlePut(channel, request, client, null);
-                break;
-            default:
-                notImplemented(channel, request.method());
-                break;
-        }
-    }
-
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.withAccessHandler(this::accessHandler)
-            .allMethodsNotImplemented()
-            .verifyAccessForAllMethods()
-            .override(
-                Method.GET,
-                (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> loadCertificates(channel, keyStore))
-                    .error((status, toXContent) -> Responses.response(channel, status, toXContent))
-            );
+            }).error((status, toXContent) -> Responses.response(channel, status, toXContent)));
+        // spotless:on
     }
 
     private boolean accessHandler(final RestRequest request) {
@@ -169,88 +148,13 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     }
 
     protected void loadCertificates(final RestChannel channel, final SecurityKeyStore keyStore) throws IOException {
-        try {
-            ok(
-                channel,
-                (builder, params) -> builder.startObject()
-                    .field("http_certificates_list", httpsEnabled ? generateCertDetailList(keyStore.getHttpCerts()) : null)
-                    .field("transport_certificates_list", generateCertDetailList(keyStore.getTransportCerts()))
-                    .endObject()
-            );
-        } catch (final Exception e) {
-            log.error("Error handle request ", e);
-            throw new IOException(e);
-        }
-    }
-
-    /**
-     * PUT request to reload SSL Certificates.
-     *
-     * Sample request:
-     * PUT _opendistro/_security/api/ssl/transport/reloadcerts
-     * PUT _opendistro/_security/api/ssl/http/reloadcerts
-     *
-     * NOTE: No request body is required. We will assume new certificates are loaded in the paths specified in your opensearch.yml file
-     * (https://docs-beta.opensearch.org/docs/security/configuration/tls/)
-     *
-     * Sample response:
-     * { "message": "updated http certs" }
-     *
-     * @param request request to be served
-     * @param client client
-     * @throws IOException
-     */
-    @Override
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        if (securityKeyStore == null) {
-            noKeyStoreResponse(channel);
-            return;
-        }
-        final String certType = request.param("certType").toLowerCase().trim();
-        try (final XContentBuilder contentBuilder = channel.newBuilder()) {
-            switch (certType) {
-                case "http":
-                    if (!httpsEnabled) {
-                        badRequestResponse(channel, "SSL for HTTP is disabled");
-                        return;
-                    }
-                    securityKeyStore.initHttpSSLConfig();
-                    channel.sendResponse(
-                        new BytesRestResponse(
-                            RestStatus.OK,
-                            contentBuilder.startObject().field("message", "updated http certs").endObject()
-                        )
-                    );
-                    break;
-                case "transport":
-                    securityKeyStore.initTransportSSLConfig();
-                    channel.sendResponse(
-                        new BytesRestResponse(
-                            RestStatus.OK,
-                            contentBuilder.startObject().field("message", "updated transport certs").endObject()
-                        )
-                    );
-                    break;
-                default:
-                    forbidden(
-                        channel,
-                        "invalid uri path, please use /_plugins/_security/api/ssl/http/reload or "
-                            + "/_plugins/_security/api/ssl/transport/reload"
-                    );
-                    break;
-            }
-        } catch (final Exception e) {
-            log.error("Reload of certificates for {} failed", certType, e);
-            try (final XContentBuilder contentBuilder = channel.newBuilder()) {
-                channel.sendResponse(
-                    new BytesRestResponse(
-                        RestStatus.INTERNAL_SERVER_ERROR,
-                        contentBuilder.startObject().field("error", e.toString()).endObject()
-                    )
-                );
-            }
-        }
+        ok(
+            channel,
+            (builder, params) -> builder.startObject()
+                .field("http_certificates_list", httpsEnabled ? generateCertDetailList(keyStore.getHttpCerts()) : null)
+                .field("transport_certificates_list", generateCertDetailList(keyStore.getTransportCerts()))
+                .endObject()
+        );
     }
 
     private List<Map<String, String>> generateCertDetailList(final X509Certificate[] certs) {
@@ -280,8 +184,35 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
         }).collect(Collectors.toList());
     }
 
-    private void noKeyStoreResponse(final RestChannel channel) throws IOException {
-        response(channel, RestStatus.OK, "keystore is not initialized");
+    protected void reloadCertificates(final RestChannel channel, final RestRequest request, final SecurityKeyStore keyStore)
+        throws IOException {
+        final String certType = request.param("certType").toLowerCase().trim();
+        try {
+            switch (certType) {
+                case "http":
+                    if (!httpsEnabled) {
+                        badRequest(channel, "SSL for HTTP is disabled");
+                        return;
+                    }
+                    keyStore.initHttpSSLConfig();
+                    ok(channel, (builder, params) -> builder.startObject().field("message", "updated http certs").endObject());
+                    break;
+                case "transport":
+                    keyStore.initTransportSSLConfig();
+                    ok(channel, (builder, params) -> builder.startObject().field("message", "updated transport certs").endObject());
+                    break;
+                default:
+                    Responses.forbidden(
+                        channel,
+                        "invalid uri path, please use /_plugins/_security/api/ssl/http/reload or "
+                            + "/_plugins/_security/api/ssl/transport/reload"
+                    );
+                    break;
+            }
+        } catch (final OpenSearchSecurityException e) {
+            // LOGGER.error("Reload of certificates for {} failed", certType, e);
+            throw new IOException(e);
+        }
     }
 
     @Override

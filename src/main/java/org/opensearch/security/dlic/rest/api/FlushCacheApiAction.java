@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +19,6 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -37,7 +35,6 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -125,12 +122,6 @@ public class FlushCacheApiAction extends AbstractApiAction {
                 }
             );
         });
-    }
-
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.PUT);
     }
 
     @Override

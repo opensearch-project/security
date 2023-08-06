@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
@@ -149,12 +148,6 @@ public class ValidateApiAction extends AbstractApiAction {
         } catch (Exception e) {
             internalSeverError(channel, "Configuration is not valid.");
         }
-    }
-
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.PUT);
     }
 
     @Override

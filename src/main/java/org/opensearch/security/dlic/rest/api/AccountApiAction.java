@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -26,9 +25,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.transport.TransportAddress;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
@@ -46,12 +45,13 @@ import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.opensearch.security.dlic.rest.api.Responses.badRequest;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
@@ -105,45 +105,56 @@ public class AccountApiAction extends AbstractApiAction {
     }
 
     @Override
+    protected String getResourceName() {
+        return RESOURCE_NAME;
+    }
+
+    @Override
+    protected Endpoint getEndpoint() {
+        return Endpoint.ACCOUNT;
+    }
+
+    @Override
+    protected CType getConfigName() {
+        return CType.INTERNALUSERS;
+    }
+
+    @Override
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
         requestHandlersBuilder.allMethodsNotImplemented()
-            .override(
-                Method.GET,
-                (channel, request, client) -> withUserAndRemoteAddress().map(
-                    userAndRemoteAddress -> loadConfiguration(getConfigName(), false).map(
-                        configuration -> ValidationResult.success(
-                            Triple.of(userAndRemoteAddress.getLeft(), userAndRemoteAddress.getRight(), configuration)
-                        )
-                    )
-                ).valid(userRemoteAddressAndConfig -> {
-                    final var user = userRemoteAddressAndConfig.getLeft();
-                    final var remoteAddress = userRemoteAddressAndConfig.getMiddle();
-                    final var configuration = userRemoteAddressAndConfig.getRight();
-                    userAccount(channel, user, remoteAddress, configuration);
-                }).error((status, toXContent) -> Responses.response(channel, status, toXContent))
-            );
+            .override(Method.GET, (channel, request, client) ->
+                    withUserAndRemoteAddress().map(
+                            userAndRemoteAddress ->
+                                    loadConfiguration(getConfigName(), false)
+                                            .map(configuration ->
+                                                    ValidationResult.success(
+                                                            Triple.of(
+                                                                    userAndRemoteAddress.getLeft(),
+                                                                    userAndRemoteAddress.getRight(), configuration
+                                                            )
+                                                    )
+                                            )
+                    ).valid(userRemoteAddressAndConfig -> {
+                        final var user = userRemoteAddressAndConfig.getLeft();
+                        final var remoteAddress = userRemoteAddressAndConfig.getMiddle();
+                        final var configuration = userRemoteAddressAndConfig.getRight();
+                        userAccount(channel, user, remoteAddress, configuration);
+                    }).error((status, toXContent) -> Responses.response(channel, status, toXContent))
+            ).override(Method.PUT,(channel, request, client) ->
+                withUserAndRemoteAddress()
+                        .map(userAndRemoteAddress -> {
+                            final var user = userAndRemoteAddress.getLeft();
+                            return loadSecurityConfigurationWithRequestContent(user.getName(), request)
+                                    .map(this::resourceExists)
+                                    .map(this::resourceCanBeChanged);
+                        }).map(this::passwordCanBeValidated)
+                        .valid(securityConfiguration -> updateUserPassword(channel, client, securityConfiguration))
+                        .error((status, toXContent) -> Responses.response(channel, status, toXContent))
+        );
+        // spotless:on
     }
 
-    /**
-     * GET request to fetch account details
-     * Sample response:
-     * {
-     *   "user_name" : "test",
-     *   "is_reserved" : false,
-     *   "is_hidden" : false,
-     *   "is_internal_user" : true,
-     *   "user_requested_tenant" : "__user__",
-     *   "backend_roles" : [ ],
-     *   "custom_attribute_names" : [ ],
-     *   "tenants" : {
-     *     "test" : true
-     *   },
-     *   "roles" : [
-     *     "own_index"
-     *   ]
-     * }
-     */
     private void userAccount(
         final RestChannel channel,
         final User user,
@@ -167,56 +178,24 @@ public class AccountApiAction extends AbstractApiAction {
         );
     }
 
-    /**
-     * PUT request to update account password.
-     *
-     * Sample request:
-     * PUT _opendistro/_security/api/account
-     * {
-     *     "current_password": "old-pass",
-     *     "password": "new-pass"
-     * }
-     *
-     * Sample response:
-     * {
-     *     "status":"OK",
-     *     "message":"'test' updated."
-     * }
-     *
-     * @param channel channel to return response
-     * @param request request to be served
-     * @param client client
-     * @param content content body
-     * @throws IOException
-     */
-    @Override
-    protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-        final String username = user.getName();
-        final SecurityDynamicConfiguration<?> internalUser = load(CType.INTERNALUSERS, false);
-
-        if (!internalUser.exists(username)) {
-            notFound(channel, "Could not find user.");
-            return;
-        }
-
-        if (!isWriteable(channel, internalUser, username)) {
-            return;
-        }
-
-        final SecurityJsonNode securityJsonNode = new SecurityJsonNode(content);
-        final String currentPassword = content.get("current_password").asText();
-        final Hashed internalUserEntry = (Hashed) internalUser.getCEntry(username);
-        final String currentHash = internalUserEntry.getHash();
-
+    private ValidationResult<SecurityConfiguration> passwordCanBeValidated(final SecurityConfiguration securityConfiguration) {
+        final var username = securityConfiguration.resourceName();
+        final var content = securityConfiguration.requestContent();
+        final var currentPassword = content.get("current_password").asText();
+        final var internalUserEntry = (Hashed) securityConfiguration.configuration().getCEntry(username);
+        final var currentHash = internalUserEntry.getHash();
         if (currentHash == null || !OpenBSDBCrypt.checkPassword(currentHash, currentPassword.toCharArray())) {
-            badRequestResponse(channel, "Could not validate your current password.");
-            return;
+            return ValidationResult.error(RestStatus.BAD_REQUEST, badRequestMessage("Could not validate your current password."));
         }
+        return ValidationResult.success(securityConfiguration);
+    }
 
+    private void updateUserPassword(final RestChannel channel, final Client client, final SecurityConfiguration securityConfiguration) {
+        final var username = securityConfiguration.resourceName();
+        final var securityJsonNode = new SecurityJsonNode(securityConfiguration.requestContent());
+        final var internalUserEntry = (Hashed) securityConfiguration.configuration().getCEntry(username);
         // if password is set, it takes precedence over hash
-        final String password = securityJsonNode.get("password").asString();
+        final var password = securityJsonNode.get("password").asString();
         final String hash;
         if (Strings.isNullOrEmpty(password)) {
             hash = securityJsonNode.get("hash").asString();
@@ -224,24 +203,16 @@ public class AccountApiAction extends AbstractApiAction {
             hash = hash(password.toCharArray());
         }
         if (Strings.isNullOrEmpty(hash)) {
-            badRequestResponse(channel, "Both provided password and hash cannot be null/empty.");
+            badRequest(channel, "Both provided password and hash cannot be null/empty.");
             return;
         }
-
         internalUserEntry.setHash(hash);
-
-        AccountApiAction.saveAndUpdateConfigs(
-            this.securityIndexName,
-            client,
-            CType.INTERNALUSERS,
-            internalUser,
-            new OnSucessActionListener<IndexResponse>(channel) {
-                @Override
-                public void onResponse(IndexResponse response) {
-                    successResponse(channel, "'" + username + "' updated.");
-                }
+        saveOrUpdateConfiguration(client, securityConfiguration.configuration(), new OnSucessActionListener<>(channel) {
+            @Override
+            public void onResponse(IndexResponse indexResponse) {
+                ok(channel, "'" + username + "' updated.");
             }
-        );
+        });
     }
 
     @Override
@@ -270,27 +241,4 @@ public class AccountApiAction extends AbstractApiAction {
         });
     }
 
-    @Override
-    protected String getResourceName() {
-        return RESOURCE_NAME;
-    }
-
-    @Override
-    protected Endpoint getEndpoint() {
-        return Endpoint.ACCOUNT;
-    }
-
-    @Override
-    protected void filter(SecurityDynamicConfiguration<?> builder) {
-        super.filter(builder);
-        // replace password hashes in addition. We must not remove them from the
-        // Builder since this would remove users completely if they
-        // do not have any addition properties like roles or attributes
-        builder.clearHashes();
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return CType.INTERNALUSERS;
-    }
 }

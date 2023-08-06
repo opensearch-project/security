@@ -11,7 +11,6 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -19,19 +18,19 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.rest.RestChannel;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
+import org.opensearch.security.securityconf.impl.v7.ActionGroupsV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -42,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ActionGroupsApiAction extends PatchableResourceApiAction {
@@ -95,11 +95,62 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
 
     @Override
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.onChangeRequest(
-            Method.DELETE,
-            request -> processDeleteRequest(request).map(this::canChangeObjectWithRestAdminPermissions)
-        ).override(Method.POST, methodNotImplementedHandler);
+        // spotless:off
+        requestHandlersBuilder
+                .onChangeRequest(Method.PUT, request ->
+                        processPutRequest(request)
+                                .map(this::actionGroupNameIsNotSameAsRoleName)
+                                .map(this::hasSelfReference)
+                                .map(this::canChangeObjectWithRestAdminPermissions))
+                .onChangeRequest(Method.DELETE, request ->
+                        processDeleteRequest(request).map(this::canChangeObjectWithRestAdminPermissions))
+                .override(Method.POST, methodNotImplementedHandler);
+        // spotless:on
+    }
 
+    private ValidationResult<SecurityConfiguration> actionGroupNameIsNotSameAsRoleName(final SecurityConfiguration securityConfiguration)
+        throws IOException {
+        // Prevent the case where action group and role share a same name.
+        return loadConfiguration(CType.ROLES, false).map(
+            rolesConfiguration -> actionGroupNameIsNotSameAsRoleName(securityConfiguration, rolesConfiguration)
+        );
+    }
+
+    private ValidationResult<SecurityConfiguration> actionGroupNameIsNotSameAsRoleName(
+        final SecurityConfiguration securityConfiguration,
+        final SecurityDynamicConfiguration<?> rolesConfiguration
+    ) {
+        if (rolesConfiguration.getCEntries().containsKey(securityConfiguration.resourceName())) {
+            return ValidationResult.error(
+                RestStatus.BAD_REQUEST,
+                badRequestMessage(
+                    securityConfiguration.resourceName()
+                        + " is an existing role. A action group cannot be named with an existing role name."
+                )
+            );
+        }
+        return ValidationResult.success(securityConfiguration);
+    }
+
+    private ValidationResult<SecurityConfiguration> hasSelfReference(final SecurityConfiguration securityConfiguration) throws IOException {
+        // Prevent the case where action group references to itself in the allowed_actions.
+        return loadConfiguration(getConfigName(), false).map(actionGroupsConfig -> {
+            final var actionGroupName = securityConfiguration.resourceName();
+            final var actionGroup = securityConfiguration.contentAsConfigObject();
+            actionGroupsConfig.putCObject(securityConfiguration.resourceName(), actionGroup);
+            if (hasSelfReference(securityConfiguration.resourceName(), actionGroupsConfig)) {
+                return ValidationResult.error(
+                    RestStatus.BAD_REQUEST,
+                    badRequestMessage(actionGroupName + " cannot be an allowed_action of itself")
+                );
+            }
+            return ValidationResult.success(securityConfiguration);
+        });
+    }
+
+    private boolean hasSelfReference(final String name, final SecurityDynamicConfiguration<?> configuration) {
+        List<String> allowedActions = ((ActionGroupsV7) configuration.getCEntry(name)).getAllowed_actions();
+        return allowedActions.contains(name);
     }
 
     @Override
@@ -142,39 +193,6 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
     @Override
     protected String getResourceName() {
         return "actiongroup";
-    }
-
-    @Override
-    protected void handlePut(RestChannel channel, RestRequest request, Client client, JsonNode content) throws IOException {
-        final String name = request.param("name");
-
-        if (name == null || name.length() == 0) {
-            badRequestResponse(channel, "No " + getResourceName() + " specified.");
-            return;
-        }
-
-        // Prevent the case where action group and role share a same name.
-        SecurityDynamicConfiguration<?> existingRolesConfig = load(CType.ROLES, false);
-        Set<String> existingRoles = existingRolesConfig.getCEntries().keySet();
-        if (existingRoles.contains(name)) {
-            badRequestResponse(channel, name + " is an existing role. A action group cannot be named with an existing role name.");
-            return;
-        }
-
-        // Prevent the case where action group references to itself in the allowed_actions.
-        final SecurityDynamicConfiguration<?> existingActionGroupsConfig = load(getConfigName(), false);
-        final Object actionGroup = DefaultObjectMapper.readTree(content, existingActionGroupsConfig.getImplementingClass());
-        existingActionGroupsConfig.putCObject(name, actionGroup);
-        if (hasActionGroupSelfReference(existingActionGroupsConfig, name)) {
-            badRequestResponse(channel, name + " cannot be an allowed_action of itself");
-            return;
-        }
-        // prevent creation of groups for REST admin api
-        if (restApiAdminPrivilegesEvaluator.containsRestApiAdminPermissions(actionGroup)) {
-            forbidden(channel, "Not allowed");
-            return;
-        }
-        super.handlePut(channel, request, client, content);
     }
 
     @Override
