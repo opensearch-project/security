@@ -137,7 +137,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
-        ValidationResult originalValidationResult = postProcessApplyPatchResult(
+        ValidationResult<JsonNode> originalValidationResult = postProcessApplyPatchResult(
             channel,
             request,
             existingResourceAsJsonNode,
@@ -160,7 +160,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         }
 
         RequestContentValidator validator = createValidator();
-        final ValidationResult validationResult = validator.validate(request, patchedResourceAsJsonNode);
+        final ValidationResult<JsonNode> validationResult = validator.validate(request, patchedResourceAsJsonNode);
         if (!validationResult.isValid()) {
             request.params().clear();
             badRequestResponse(channel, validator);
@@ -227,7 +227,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             JsonNode oldResource = existingAsObjectNode.get(resourceName);
             JsonNode patchedResource = patchedAsJsonNode.get(resourceName);
 
-            ValidationResult originalValidationResult = postProcessApplyPatchResult(
+            ValidationResult<JsonNode> originalValidationResult = postProcessApplyPatchResult(
                 channel,
                 request,
                 oldResource,
@@ -251,7 +251,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
 
             if (oldResource == null || !oldResource.equals(patchedResource)) {
                 RequestContentValidator validator = createValidator();
-                final ValidationResult validationResult = validator.validate(request, patchedResource);
+                final ValidationResult<JsonNode> validationResult = validator.validate(request, patchedResource);
                 if (!validationResult.isValid()) {
                     request.params().clear();
                     badRequestResponse(channel, validator);
@@ -296,7 +296,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         return JsonPatch.apply(jsonPatch, existingResourceAsJsonNode);
     }
 
-    protected ValidationResult postProcessApplyPatchResult(
+    protected ValidationResult<JsonNode> postProcessApplyPatchResult(
         RestChannel channel,
         RestRequest request,
         JsonNode existingResourceAsJsonNode,

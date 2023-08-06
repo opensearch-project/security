@@ -21,6 +21,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
@@ -170,16 +171,16 @@ public class AuditApiAction extends PatchableResourceApiAction {
         }
 
         @Override
-        public ValidationResult validate(RestRequest request) throws IOException {
+        public ValidationResult<JsonNode> validate(RestRequest request) throws IOException {
             return super.validate(request).map(this::validateAuditPayload);
         }
 
         @Override
-        public ValidationResult validate(RestRequest request, JsonNode jsonContent) throws IOException {
+        public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonContent) throws IOException {
             return super.validate(request, jsonContent).map(this::validateAuditPayload);
         }
 
-        private ValidationResult validateAuditPayload(final JsonNode jsonContent) {
+        private ValidationResult<JsonNode> validateAuditPayload(final JsonNode jsonContent) {
             try {
                 // try parsing to target type
                 final AuditConfig auditConfig = DefaultObjectMapper.readTree(jsonContent, AuditConfig.class);
@@ -195,7 +196,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
                 // this.content is not valid json
                 this.validationError = ValidationError.BODY_NOT_PARSEABLE;
                 LOGGER.error("Invalid content passed in the request", e);
-                return ValidationResult.error(this);
+                return ValidationResult.error(RestStatus.BAD_REQUEST, this);
             }
         }
     }

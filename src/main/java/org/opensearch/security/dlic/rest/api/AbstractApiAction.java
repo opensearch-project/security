@@ -131,12 +131,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                 case POST:
                     createValidator().validate(request)
                         .valid(jsonContent -> handlePost(channel, request, client, jsonContent))
-                        .error(toXContent -> requestContentInvalid(request, channel, toXContent));
+                        .error((status, toXContent) -> requestContentInvalid(request, channel, toXContent));
                     break;
                 case PUT:
                     createValidator().validate(request)
                         .valid(jsonContent -> handlePut(channel, request, client, jsonContent))
-                        .error(toXContent -> requestContentInvalid(request, channel, toXContent));
+                        .error((status, toXContent) -> requestContentInvalid(request, channel, toXContent));
                     break;
                 case GET:
                     handleGet(channel, request, client, null);

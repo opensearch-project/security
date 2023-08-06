@@ -20,6 +20,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
@@ -65,23 +66,23 @@ public class RolesApiAction extends PatchableResourceApiAction {
         }
 
         @Override
-        public ValidationResult validate(RestRequest request) throws IOException {
+        public ValidationResult<JsonNode> validate(RestRequest request) throws IOException {
             return super.validate(request).map(this::validateMaskedFields);
         }
 
         @Override
-        public ValidationResult validate(RestRequest request, JsonNode jsonContent) throws IOException {
+        public ValidationResult<JsonNode> validate(RestRequest request, JsonNode jsonContent) throws IOException {
             return super.validate(request, jsonContent).map(this::validateMaskedFields);
         }
 
-        private ValidationResult validateMaskedFields(final JsonNode content) {
+        private ValidationResult<JsonNode> validateMaskedFields(final JsonNode content) {
             final ReadContext ctx = JsonPath.parse(content.toString());
             final List<String> maskedFields = ctx.read("$..masked_fields[*]");
             if (maskedFields != null) {
                 for (String mf : maskedFields) {
                     if (!validateMaskedFieldSyntax(mf)) {
                         this.validationError = ValidationError.WRONG_DATATYPE;
-                        return ValidationResult.error(this);
+                        return ValidationResult.error(RestStatus.BAD_REQUEST, this);
                     }
                 }
             }

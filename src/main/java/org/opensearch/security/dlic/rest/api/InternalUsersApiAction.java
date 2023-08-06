@@ -269,7 +269,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected ValidationResult postProcessApplyPatchResult(
+    protected ValidationResult<JsonNode> postProcessApplyPatchResult(
         RestChannel channel,
         RestRequest request,
         JsonNode existingResourceAsJsonNode,
@@ -281,7 +281,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         if (passwordNode != null) {
             String plainTextPassword = passwordNode.asText();
             final JsonNode passwordObject = DefaultObjectMapper.objectMapper.createObjectNode().put("password", plainTextPassword);
-            final ValidationResult validationResult = createValidator(resourceName).validate(request, passwordObject);
+            final ValidationResult<JsonNode> validationResult = createValidator(resourceName).validate(request, passwordObject);
             ((ObjectNode) updatedResourceAsJsonNode).remove("password");
             ((ObjectNode) updatedResourceAsJsonNode).set("hash", new TextNode(hash(plainTextPassword.toCharArray())));
             return validationResult;
