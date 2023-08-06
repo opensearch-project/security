@@ -11,39 +11,31 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
-
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Hashed;
 import org.opensearch.security.securityconf.impl.CType;
@@ -54,6 +46,13 @@ import org.opensearch.security.support.SecurityJsonNode;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
@@ -105,12 +104,29 @@ public class AccountApiAction extends AbstractApiAction {
         return routes;
     }
 
+    @Override
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        // spotless:off
+        requestHandlersBuilder.allMethodsNotImplemented()
+            .override(
+                Method.GET,
+                (channel, request, client) -> withUserAndRemoteAddress().map(
+                    userAndRemoteAddress -> loadConfiguration(getConfigName(), false).map(
+                        configuration -> ValidationResult.success(
+                            Triple.of(userAndRemoteAddress.getLeft(), userAndRemoteAddress.getRight(), configuration)
+                        )
+                    )
+                ).valid(userRemoteAddressAndConfig -> {
+                    final var user = userRemoteAddressAndConfig.getLeft();
+                    final var remoteAddress = userRemoteAddressAndConfig.getMiddle();
+                    final var configuration = userRemoteAddressAndConfig.getRight();
+                    userAccount(channel, user, remoteAddress, configuration);
+                }).error((status, toXContent) -> Responses.response(channel, status, toXContent))
+            );
+    }
+
     /**
      * GET request to fetch account details
-     *
-     * Sample request:
-     * GET _opendistro/_security/api/account
-     *
      * Sample response:
      * {
      *   "user_name" : "test",
@@ -127,47 +143,28 @@ public class AccountApiAction extends AbstractApiAction {
      *     "own_index"
      *   ]
      * }
-     *
-     * @param channel channel to return response
-     * @param request request to be served
-     * @param client client
-     * @param content content body
-     * @throws IOException
      */
-    @Override
-    protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-        final XContentBuilder builder = channel.newBuilder();
-        BytesRestResponse response;
-
-        try {
-            builder.startObject();
-            final User user = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
-            if (user != null) {
-                final TransportAddress remoteAddress = threadContext.getTransient(ConfigConstants.OPENDISTRO_SECURITY_REMOTE_ADDRESS);
-                final Set<String> securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
-                final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), false);
-
-                builder.field("user_name", user.getName())
-                    .field("is_reserved", isReserved(configuration, user.getName()))
-                    .field("is_hidden", configuration.isHidden(user.getName()))
-                    .field("is_internal_user", configuration.exists(user.getName()))
-                    .field("user_requested_tenant", user.getRequestedTenant())
-                    .field("backend_roles", user.getRoles())
-                    .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
-                    .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
-                    .field("roles", securityRoles);
-            }
-            builder.endObject();
-
-            response = new BytesRestResponse(RestStatus.OK, builder);
-        } catch (final Exception exception) {
-            LOGGER.error(exception.toString());
-
-            builder.startObject().field("error", exception.toString()).endObject();
-
-            response = new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder);
-        }
-        channel.sendResponse(response);
+    private void userAccount(
+        final RestChannel channel,
+        final User user,
+        final TransportAddress remoteAddress,
+        final SecurityDynamicConfiguration<?> configuration
+    ) {
+        final var securityRoles = privilegesEvaluator.mapRoles(user, remoteAddress);
+        ok(
+            channel,
+            (builder, params) -> builder.startObject()
+                .field("user_name", user.getName())
+                .field("is_reserved", isReserved(configuration, user.getName()))
+                .field("is_hidden", configuration.isHidden(user.getName()))
+                .field("is_internal_user", configuration.exists(user.getName()))
+                .field("user_requested_tenant", user.getRequestedTenant())
+                .field("backend_roles", user.getRoles())
+                .field("custom_attribute_names", user.getCustomAttributesMap().keySet())
+                .field("tenants", privilegesEvaluator.mapTenants(user, securityRoles))
+                .field("roles", securityRoles)
+                .endObject()
+        );
     }
 
     /**

@@ -14,10 +14,12 @@ package org.opensearch.security.dlic.rest.api;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -32,6 +34,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.engine.VersionConflictEngineException;
@@ -50,7 +54,9 @@ import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -60,6 +66,9 @@ import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.user.User;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.notFoundMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.payload;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
 
 public abstract class AbstractApiAction extends BaseRestHandler {
@@ -74,6 +83,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     protected final RestApiAdminPrivilegesEvaluator restApiAdminPrivilegesEvaluator;
     protected final AuditLog auditLog;
     protected final Settings settings;
+
+    private final Map<Method, RequestHandler> requestHandlers;
 
     protected AbstractApiAction(
         final Settings settings,
@@ -113,6 +124,96 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
         );
         this.auditLog = auditLog;
+        this.requestHandlers = buildRequestHandlers();
+    }
+
+    private Map<Method, RequestHandler> buildRequestHandlers() {
+        final var requestHandlersBuilder = new RequestHandler.RequestHandlersBuilder();
+        requestHandlersBuilder.withAccessHandler(request -> isSuperAdmin())
+            .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
+            .onGetRequest(this::processGetRequest);
+        configureRequestHandlers(requestHandlersBuilder);
+        return requestHandlersBuilder.build();
+    }
+
+    protected void configureRequestHandlers(final RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {}
+
+    protected final ValidationResult<SecurityConfiguration> processGetRequest(final RestRequest request) throws IOException {
+        return loadFilteredConfiguration(nameParam(request)).map(this::resourceExists);
+    }
+
+    void saveOrUpdateConfiguration(
+        final Client client,
+        final SecurityDynamicConfiguration<?> configuration,
+        final OnSucessActionListener<IndexResponse> onSucessActionListener
+    ) {
+        saveAndUpdateConfigs(this.securityIndexName, client, getConfigName(), configuration, onSucessActionListener);
+    }
+
+    protected final String nameParam(final RestRequest request) {
+        final String name = request.param("name");
+        if (Strings.isNullOrEmpty(name)) {
+            return null;
+        }
+        return name;
+    }
+
+    protected final ValidationResult<SecurityConfiguration> loadFilteredConfiguration(final String resourceName) throws IOException {
+        return loadSecurityConfiguration(resourceName, true).map(this::resourceNotHidden).map(securityConfiguration -> {
+            final var configuration = securityConfiguration.configuration();
+            if (!isSuperAdmin()) {
+                configuration.removeHidden();
+            }
+            configuration.clearHashes();
+            configuration.set_meta(null);
+            return ValidationResult.success(securityConfiguration);
+        });
+    }
+
+    protected final ValidationResult<SecurityConfiguration> loadSecurityConfiguration(
+        final String resourceName,
+        final boolean logComplianceEvent
+    ) throws IOException {
+        return loadConfiguration(getConfigName(), logComplianceEvent).map(
+            configuration -> ValidationResult.success(SecurityConfiguration.of(resourceName, configuration))
+        );
+    }
+
+    protected final ValidationResult<SecurityDynamicConfiguration<?>> loadConfiguration(
+        final CType cType,
+        final boolean logComplianceEvent
+    ) {
+        final var configuration = load(cType, logComplianceEvent);
+        if (configuration.getSeqNo() < 0) {
+            return ValidationResult.error(
+                RestStatus.FORBIDDEN,
+                forbiddenMessage(
+                    "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate."
+                )
+            );
+        }
+        return ValidationResult.success(configuration);
+    }
+
+    protected ValidationResult<SecurityConfiguration> resourceExists(final SecurityConfiguration securityConfiguration) {
+        if (securityConfiguration.maybeResourceName().isPresent()) {
+            if (!securityConfiguration.resourceExists()) {
+                return ValidationResult.error(
+                    RestStatus.NOT_FOUND,
+                    notFoundMessage(getResourceName() + " '" + securityConfiguration.resourceName() + "' not found.")
+                );
+            }
+            return ValidationResult.success(securityConfiguration);
+        }
+        return ValidationResult.success(securityConfiguration);
+    }
+
+    protected final ValidationResult<Pair<User, TransportAddress>> withUserAndRemoteAddress() {
+        final var userAndRemoteAddress = Utils.userAndRemoteAddressFrom(threadPool.getThreadContext());
+        if (userAndRemoteAddress.getLeft() == null) {
+            return ValidationResult.error(RestStatus.UNAUTHORIZED, payload(RestStatus.UNAUTHORIZED, "Unauthorized"));
+        }
+        return ValidationResult.success(userAndRemoteAddress);
     }
 
     protected abstract RequestContentValidator createValidator(final Object... params);
@@ -139,7 +240,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                         .error((status, toXContent) -> requestContentInvalid(request, channel, toXContent));
                     break;
                 case GET:
-                    handleGet(channel, request, client, null);
+                    requestHandlers.get(Method.GET).handle(channel, request, client);
                     break;
                 default:
                     throw new IllegalArgumentException(request.method() + " not supported");
@@ -265,24 +366,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final String resourceName
     ) throws IOException {
         return false;
-    }
-
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-        final String resourcename = request.param("name");
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
-        filter(configuration);
-        // no specific resource requested, return complete config
-        if (resourcename == null || resourcename.length() == 0) {
-
-            successResponse(channel, configuration);
-            return;
-        }
-        if (!configuration.exists(resourcename)) {
-            notFound(channel, "Resource '" + resourcename + "' not found.");
-            return;
-        }
-        configuration.removeOthers(resourcename);
-        successResponse(channel, configuration);
     }
 
     protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
@@ -526,6 +609,16 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     protected void notImplemented(RestChannel channel, Method method) {
         response(channel, RestStatus.NOT_IMPLEMENTED, "Method " + method.name() + " not supported for this action.");
+    }
+
+    protected final ValidationResult<SecurityConfiguration> resourceNotHidden(final SecurityConfiguration securityConfiguration) {
+        if (isHidden(securityConfiguration.configuration(), securityConfiguration.resourceName())) {
+            return ValidationResult.error(
+                RestStatus.NOT_FOUND,
+                notFoundMessage("Resource '" + securityConfiguration.resourceName() + "' is not available.")
+            );
+        }
+        return ValidationResult.success(securityConfiguration);
     }
 
     protected final boolean isReserved(SecurityDynamicConfiguration<?> configuration, String resourceName) {

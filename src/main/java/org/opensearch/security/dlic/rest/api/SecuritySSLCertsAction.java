@@ -39,6 +39,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -48,6 +49,8 @@ import org.opensearch.security.ssl.util.SSLConfigConstants;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -108,11 +111,7 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
     protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
         switch (request.method()) {
             case GET:
-                if (!restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint(), "certs")) {
-                    forbidden(channel, "");
-                    return;
-                }
-                handleGet(channel, request, client, null);
+                super.handleApiRequest(channel, request, client);
                 break;
             case PUT:
                 if (!restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint(), "reloadcerts")) {
@@ -139,57 +138,48 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
         }
     }
 
-    /**
-     * GET request to fetch transport certificate details
-     *
-     * Sample request:
-     * GET _plugins/_security/api/ssl/certs
-     *
-     * Sample response:
-     * {
-     *   "http_certificates_list" : [
-     *     {
-     *       "issuer_dn" : "CN=Example Com Inc. Signing CA, OU=Example Com Inc. Signing CA, O=Example Com Inc., DC=example, DC=com",
-     *       "subject_dn" : "CN=transport-0.example.com, OU=SSL, O=Test, L=Test, C=DE",
-     *       "san", "[[2, node-0.example.com], [2, localhost], [7, 127.0.0.1], [8, 1.2.3.4.5.5]]",
-     *       "not_before" : "2018-05-05T14:37:09.000Z",
-     *       "not_after" : "2028-05-02T14:37:09.000Z"
-     *     }
-     *  "transport_certificates_list" : [
-     *     {
-     *       "issuer_dn" : "CN=Example Com Inc. Signing CA, OU=Example Com Inc. Signing CA, O=Example Com Inc., DC=example, DC=com",
-     *       "subject_dn" : "CN=transport-0.example.com, OU=SSL, O=Test, L=Test, C=DE",
-     *       "san", "[[2, node-0.example.com], [2, localhost], [7, 127.0.0.1], [8, 1.2.3.4.5.5]]",
-     *       "not_before" : "2018-05-05T14:37:09.000Z",
-     *       "not_after" : "2028-05-02T14:37:09.000Z"
-     *      }
-     *   ]
-     * }
-     *
-     * @param request request to be served
-     * @param client client
-     * @throws IOException
-     */
     @Override
-    protected void handleGet(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        if (securityKeyStore == null) {
-            noKeyStoreResponse(channel);
-            return;
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.withAccessHandler(this::accessHandler)
+            .allMethodsNotImplemented()
+            .verifyAccessForAllMethods()
+            .override(
+                Method.GET,
+                (channel, request, client) -> withSecurityKeyStore().valid(keyStore -> loadCertificates(channel, keyStore))
+                    .error((status, toXContent) -> Responses.response(channel, status, toXContent))
+            );
+    }
+
+    private boolean accessHandler(final RestRequest request) {
+        switch (request.method()) {
+            case GET:
+                return restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint(), "certs");
+            case PUT:
+                return restApiAdminPrivilegesEvaluator.isCurrentUserRestApiAdminFor(getEndpoint(), "reloadcerts");
+            default:
+                return false;
         }
-        try (final XContentBuilder contentBuilder = channel.newBuilder()) {
-            channel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.OK,
-                    contentBuilder.startObject()
-                        .field("http_certificates_list", httpsEnabled ? generateCertDetailList(securityKeyStore.getHttpCerts()) : null)
-                        .field("transport_certificates_list", generateCertDetailList(securityKeyStore.getTransportCerts()))
-                        .endObject()
-                )
+    }
+
+    private ValidationResult<SecurityKeyStore> withSecurityKeyStore() {
+        if (securityKeyStore == null) {
+            return ValidationResult.error(RestStatus.OK, badRequestMessage("keystore is not initialized"));
+        }
+        return ValidationResult.success(securityKeyStore);
+    }
+
+    protected void loadCertificates(final RestChannel channel, final SecurityKeyStore keyStore) throws IOException {
+        try {
+            ok(
+                channel,
+                (builder, params) -> builder.startObject()
+                    .field("http_certificates_list", httpsEnabled ? generateCertDetailList(keyStore.getHttpCerts()) : null)
+                    .field("transport_certificates_list", generateCertDetailList(keyStore.getTransportCerts()))
+                    .endObject()
             );
         } catch (final Exception e) {
-            internalErrorResponse(channel, e.getMessage());
             log.error("Error handle request ", e);
+            throw new IOException(e);
         }
     }
 

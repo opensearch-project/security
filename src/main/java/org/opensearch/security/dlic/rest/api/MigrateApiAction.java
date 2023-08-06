@@ -286,12 +286,6 @@ public class MigrateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected void handleGet(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.GET);
-    }
-
-    @Override
     protected void handlePut(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
         throws IOException {
         notImplemented(channel, Method.PUT);

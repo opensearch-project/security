@@ -267,18 +267,12 @@ public class AuditApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) {
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
-        filter(configuration);
-
-        final String resourcename = getResourceName();
-        if (!configuration.exists(resourcename)) {
-            notFound(channel, "Resource '" + resourcename + "' not found.");
-            return;
-        }
-
-        configuration.putCObject(READONLY_FIELD, readonlyFields);
-        successResponse(channel, configuration);
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.onGetRequest(request -> processGetRequest(request).map(securityConfiguration -> {
+            final var configuration = securityConfiguration.configuration();
+            configuration.putCObject(READONLY_FIELD, readonlyFields);
+            return ValidationResult.success(securityConfiguration);
+        }));
     }
 
     @Override

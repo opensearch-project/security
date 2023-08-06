@@ -11,10 +11,8 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
@@ -22,7 +20,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
@@ -88,7 +85,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
         new Route(RestRequest.Method.PATCH, "/_plugins/_security/api/allowlist")
     );
 
-    private static final String name = "config";
+    private static final String RESOURCE_NAME = "config";
 
     @Inject
     public AllowlistApiAction(
@@ -126,57 +123,18 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
-        filter(configuration);
-        successResponse(channel, configuration);
-    }
-
-    @Override
-    protected void handleDelete(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, RestRequest.Method.DELETE);
-    }
-
-    @Override
-    protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
-
-        if (existingConfiguration.getSeqNo() < 0) {
-            forbidden(
-                channel,
-                "Security index need to be updated to support '" + getConfigName().toLCString() + "'. Use SecurityAdmin to populate."
-            );
-            return;
-        }
-
-        boolean existed = existingConfiguration.exists(name);
-        existingConfiguration.putCObject(name, DefaultObjectMapper.readTree(content, existingConfiguration.getImplementingClass()));
-
-        saveAndUpdateConfigs(
-            this.securityIndexName,
-            client,
-            getConfigName(),
-            existingConfiguration,
-            new OnSucessActionListener<IndexResponse>(channel) {
-
-                @Override
-                public void onResponse(IndexResponse response) {
-                    if (existed) {
-                        successResponse(channel, "'" + name + "' updated.");
-                    } else {
-                        createdResponse(channel, "'" + name + "' created.");
-                    }
-                }
-            }
-        );
-    }
-
-    @Override
     public List<Route> routes() {
         return routes;
+    }
+
+    @Override
+    protected String getResourceName() {
+        return RESOURCE_NAME;
+    }
+
+    @Override
+    protected CType getConfigName() {
+        return CType.ALLOWLIST;
     }
 
     @Override
@@ -202,16 +160,6 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
                 return ImmutableMap.of("enabled", DataType.BOOLEAN, "requests", DataType.OBJECT);
             }
         });
-    }
-
-    @Override
-    protected String getResourceName() {
-        return name;
-    }
-
-    @Override
-    protected CType getConfigName() {
-        return CType.ALLOWLIST;
     }
 
 }

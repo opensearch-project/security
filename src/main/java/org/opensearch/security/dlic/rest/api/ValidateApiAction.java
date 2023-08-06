@@ -11,13 +11,7 @@
 
 package org.opensearch.security.dlic.rest.api;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
@@ -51,6 +45,13 @@ import org.opensearch.security.securityconf.impl.v7.TenantV7;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+
+import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ValidateApiAction extends AbstractApiAction {
@@ -92,9 +93,13 @@ public class ValidateApiAction extends AbstractApiAction {
         return Endpoint.VALIDATE;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.allMethodsNotImplemented().override(Method.GET, (channel, request, client) -> validate(channel, request));
+    }
+
+    @SuppressWarnings("unchecked")
+    protected void validate(RestChannel channel, RestRequest request) throws IOException {
 
         final boolean acceptInvalid = request.paramAsBoolean("accept_invalid", false);
 
@@ -140,9 +145,9 @@ public class ValidateApiAction extends AbstractApiAction {
             final SecurityDynamicConfiguration<RoleMappingsV7> rolesmappingV7 = Migration.migrateRoleMappings(rolesmappingV6);
             final SecurityDynamicConfiguration<AuditConfig> auditConfigV7 = Migration.migrateAudit(auditConfigV6);
 
-            successResponse(channel, "OK.");
+            ok(channel, "OK.");
         } catch (Exception e) {
-            internalErrorResponse(channel, "Configuration is not valid.");
+            internalSeverError(channel, "Configuration is not valid.");
         }
     }
 

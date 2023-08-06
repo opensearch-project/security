@@ -31,6 +31,7 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
@@ -52,6 +53,7 @@ import org.opensearch.threadpool.ThreadPool;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class MultiTenancyConfigApiAction extends AbstractApiAction {
@@ -164,12 +166,21 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         }
     }
 
+    private ToXContent multitenancyContent(final ConfigV7 config) {
+        return (builder, params) -> builder.startObject()
+            .field(DEFAULT_TENANT_JSON_PROPERTY, config.dynamic.kibana.default_tenant)
+            .field(PRIVATE_TENANT_ENABLED_JSON_PROPERTY, config.dynamic.kibana.private_tenant_enabled)
+            .field(MULTITENANCY_ENABLED_JSON_PROPERTY, config.dynamic.kibana.multitenancy_enabled)
+            .endObject();
+    }
+
     @Override
-    protected void handleGet(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        final SecurityDynamicConfiguration<?> dynamicConfiguration = load(CType.CONFIG, false);
-        final ConfigV7 config = (ConfigV7) dynamicConfiguration.getCEntry(CType.CONFIG.toLCString());
-        multitenancyResponse(config, channel);
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.allMethodsNotImplemented()
+            .override(GET, (channel, request, client) -> loadConfiguration(getConfigName(), false).valid(configuration -> {
+                final var config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());
+                ok(channel, multitenancyContent(config));
+            }).error((status, toXContent) -> Responses.response(channel, status, toXContent)));
     }
 
     @Override

@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 
 import com.google.common.collect.ImmutableMap;
@@ -36,6 +35,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.NodesDn;
@@ -124,6 +124,23 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     }
 
     @Override
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        // spotless:off
+        requestHandlersBuilder.verifyAccessForAllMethods()
+                .onGetRequest(request ->
+                        processGetRequest(request)
+                                .map(securityConfiguration -> {
+                                    if (request.paramAsBoolean("show_all", false)) {
+                                        final var configuration = securityConfiguration.configuration();
+                                        addStaticNodesDn(configuration);
+                                    }
+                                    return ValidationResult.success(securityConfiguration);
+                                })
+                );
+        // spotless:on
+    }
+
+    @Override
     protected boolean isReadOnly(SecurityDynamicConfiguration<?> existingConfiguration, String name) {
         if (STATIC_OPENSEARCH_YML_NODES_DN.equals(name)) {
             return true;
@@ -131,33 +148,8 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
         return super.isReadOnly(existingConfiguration, name);
     }
 
-    @Override
-    protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-        final String resourcename = request.param("name");
-
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
-        filter(configuration);
-
-        // no specific resource requested, return complete config
-        if (resourcename == null || resourcename.length() == 0) {
-            final Boolean showAll = request.paramAsBoolean("show_all", Boolean.FALSE);
-            if (showAll) {
-                putStaticEntry(configuration);
-            }
-            successResponse(channel, configuration);
-            return;
-        }
-
-        if (!configuration.exists(resourcename)) {
-            notFound(channel, "Resource '" + resourcename + "' not found.");
-            return;
-        }
-
-        configuration.removeOthers(resourcename);
-        successResponse(channel, configuration);
-    }
-
-    private void putStaticEntry(SecurityDynamicConfiguration<?> configuration) {
+    @SuppressWarnings("unchecked")
+    private void addStaticNodesDn(SecurityDynamicConfiguration<?> configuration) {
         if (NodesDn.class.equals(configuration.getImplementingClass())) {
             NodesDn nodesDn = new NodesDn();
             nodesDn.setNodesDn(staticNodesDnFromEsYml);

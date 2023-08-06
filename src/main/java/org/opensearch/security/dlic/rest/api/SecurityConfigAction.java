@@ -89,15 +89,6 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     }
 
     @Override
-    protected void handleGet(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-        final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
-
-        filter(configuration);
-
-        successResponse(channel, configuration);
-    }
-
-    @Override
     protected void handleApiRequest(RestChannel channel, RestRequest request, Client client) throws IOException {
         if (request.method() == Method.PATCH && !allowPutOrPatch) {
             notImplemented(channel, Method.PATCH);
