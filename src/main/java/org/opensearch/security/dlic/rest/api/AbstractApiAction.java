@@ -316,7 +316,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         return false;
     }
 
-    abstract class OnSucessActionListener<Response> implements ActionListener<Response> {
+    abstract static class OnSucessActionListener<Response> implements ActionListener<Response> {
 
         private final RestChannel channel;
 
@@ -328,9 +328,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         @Override
         public final void onFailure(Exception e) {
             if (ExceptionsHelper.unwrapCause(e) instanceof VersionConflictEngineException) {
-                conflict(channel, e.getMessage());
+                Responses.conflict(channel, e.getMessage());
             } else {
-                internalErrorResponse(channel, "Error " + e.getMessage());
+                Responses.internalSeverError(channel, "Error " + e.getMessage());
             }
         }
 

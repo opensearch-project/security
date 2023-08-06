@@ -106,6 +106,14 @@ public class Utils {
 
     }
 
+    public static JsonNode toJsonNode(final String content) throws IOException {
+        return DefaultObjectMapper.readTree(content);
+    }
+
+    public static Object toConfigObject(final JsonNode content, final Class<?> clazz) throws IOException {
+        return DefaultObjectMapper.readTree(content, clazz);
+    }
+
     public static JsonNode convertJsonToJackson(ToXContent jsonContent, boolean omitDefaults) {
         try {
             Map<String, String> pm = new HashMap<>(1);
@@ -125,30 +133,6 @@ public class Utils {
 
     }
 
-    public static <T> T serializeToXContentToPojo(ToXContent jsonContent, Class<T> clazz) {
-        try {
-
-            if (jsonContent instanceof BytesReference) {
-                return serializeToXContentToPojo(((BytesReference) jsonContent).utf8ToString(), clazz);
-            }
-
-            final BytesReference bytes = XContentHelper.toXContent(jsonContent, XContentType.JSON, false);
-            return DefaultObjectMapper.readValue(bytes.utf8ToString(), clazz);
-        } catch (IOException e1) {
-            throw ExceptionsHelper.convertToOpenSearchException(e1);
-        }
-
-    }
-
-    public static <T> T serializeToXContentToPojo(String jsonContent, Class<T> clazz) {
-        try {
-            return DefaultObjectMapper.readValue(jsonContent, clazz);
-        } catch (IOException e1) {
-            throw ExceptionsHelper.convertToOpenSearchException(e1);
-        }
-
-    }
-
     @SuppressWarnings("removal")
     public static byte[] jsonMapToByteArray(Map<String, Object> jsonAsMap) throws IOException {
 
@@ -159,12 +143,7 @@ public class Utils {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<byte[]>() {
-                @Override
-                public byte[] run() throws Exception {
-                    return internalMapper.writeValueAsBytes(jsonAsMap);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedExceptionAction<byte[]>) () -> internalMapper.writeValueAsBytes(jsonAsMap));
         } catch (final PrivilegedActionException e) {
             if (e.getCause() instanceof JsonProcessingException) {
                 throw (JsonProcessingException) e.getCause();
@@ -186,13 +165,13 @@ public class Utils {
         }
 
         try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<Map<String, Object>>() {
-                @Override
-                public Map<String, Object> run() throws Exception {
-                    return internalMapper.readValue(jsonBytes, new TypeReference<Map<String, Object>>() {
-                    });
-                }
-            });
+            return AccessController.doPrivileged(
+                (PrivilegedExceptionAction<Map<String, Object>>) () -> internalMapper.readValue(
+                    jsonBytes,
+                    new TypeReference<Map<String, Object>>() {
+                    }
+                )
+            );
         } catch (final PrivilegedActionException e) {
             if (e.getCause() instanceof IOException) {
                 throw (IOException) e.getCause();
