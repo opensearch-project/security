@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesApiAction extends PatchableResourceApiAction {
@@ -126,6 +127,22 @@ public class RolesApiAction extends PatchableResourceApiAction {
     @Override
     protected Endpoint getEndpoint() {
         return Endpoint.ROLES;
+    }
+
+    @Override
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.onChangeRequest(
+            Method.DELETE,
+            request -> processDeleteRequest(request).map(this::canChangeRolesRestAdminPermissions)
+        ).override(Method.POST, methodNotImplementedHandler);
+    }
+
+    private ValidationResult<SecurityConfiguration> canChangeRolesRestAdminPermissions(final SecurityConfiguration securityConfiguration)
+        throws IOException {
+        if (isSuperAdmin()) {
+            return ValidationResult.success(securityConfiguration);
+        }
+        return canChangeObjectWithRestAdminPermissions(securityConfiguration);
     }
 
     @Override

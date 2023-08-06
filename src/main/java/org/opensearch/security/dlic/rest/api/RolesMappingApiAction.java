@@ -37,12 +37,14 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator.DataType;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class RolesMappingApiAction extends PatchableResourceApiAction {
@@ -72,6 +74,27 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
         AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+    }
+
+    @Override
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.onChangeRequest(
+            Method.DELETE,
+            request -> processDeleteRequest(request).map(this::canChangeRolesMappingRestAdminPermissions)
+        ).override(Method.POST, methodNotImplementedHandler);
+    }
+
+    private ValidationResult<SecurityConfiguration> canChangeRolesMappingRestAdminPermissions(
+        final SecurityConfiguration securityConfiguration
+    ) throws IOException {
+        return loadConfiguration(CType.ROLES, false).map(rolesConfiguration -> {
+            if (isSuperAdmin()) {
+                return ValidationResult.success(securityConfiguration);
+            }
+            return canChangeObjectWithRestAdminPermissions(
+                SecurityConfiguration.of(securityConfiguration.resourceName(), rolesConfiguration)
+            );
+        }).map(ignore -> ValidationResult.success(securityConfiguration));
     }
 
     @Override

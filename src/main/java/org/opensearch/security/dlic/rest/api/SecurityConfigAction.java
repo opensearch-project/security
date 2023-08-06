@@ -41,6 +41,7 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class SecurityConfigAction extends PatchableResourceApiAction {
@@ -99,7 +100,9 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
 
     @Override
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.allMethodsNotImplemented();
+        requestHandlersBuilder.allMethodsNotImplemented()
+            .override(Method.DELETE, methodNotImplementedHandler)
+            .override(Method.POST, methodNotImplementedHandler);
     }
 
     @Override
@@ -116,12 +119,6 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
         } else {
             notImplemented(channel, Method.PUT);
         }
-    }
-
-    @Override
-    protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, Method.DELETE);
     }
 
     @Override

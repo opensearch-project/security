@@ -41,6 +41,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.opensearch.security.dlic.rest.api.Responses.internalSeverError;
+import static org.opensearch.security.dlic.rest.api.Responses.ok;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class FlushCacheApiAction extends AbstractApiAction {
@@ -94,38 +96,35 @@ public class FlushCacheApiAction extends AbstractApiAction {
 
     @Override
     protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
-        requestHandlersBuilder.allMethodsNotImplemented();
-    }
+        requestHandlersBuilder.allMethodsNotImplemented().override(Method.DELETE, (channel, request, client) -> {
+            client.execute(
+                ConfigUpdateAction.INSTANCE,
+                new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])),
+                new ActionListener<>() {
 
-    @Override
-    protected void handleDelete(RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-
-        client.execute(
-            ConfigUpdateAction.INSTANCE,
-            new ConfigUpdateRequest(CType.lcStringValues().toArray(new String[0])),
-            new ActionListener<ConfigUpdateResponse>() {
-
-                @Override
-                public void onResponse(ConfigUpdateResponse ur) {
-                    if (ur.hasFailures()) {
-                        LOGGER.error("Cannot flush cache due to", ur.failures().get(0));
-                        internalErrorResponse(channel, "Cannot flush cache due to " + ur.failures().get(0).getMessage() + ".");
-                        return;
-                    }
-                    successResponse(channel, "Cache flushed successfully.");
-                    if (LOGGER.isDebugEnabled()) {
+                    @Override
+                    public void onResponse(ConfigUpdateResponse configUpdateResponse) {
+                        if (configUpdateResponse.hasFailures()) {
+                            LOGGER.error("Cannot flush cache due to", configUpdateResponse.failures().get(0));
+                            internalSeverError(
+                                channel,
+                                "Cannot flush cache due to " + configUpdateResponse.failures().get(0).getMessage() + "."
+                            );
+                            return;
+                        }
                         LOGGER.debug("cache flushed successfully");
+                        ok(channel, "Cache flushed successfully.");
                     }
-                }
 
-                @Override
-                public void onFailure(Exception e) {
-                    LOGGER.error("Cannot flush cache due to", e);
-                    internalErrorResponse(channel, "Cannot flush cache due to " + e.getMessage() + ".");
-                }
+                    @Override
+                    public void onFailure(final Exception e) {
+                        LOGGER.error("Cannot flush cache due to", e);
+                        internalSeverError(channel, "Cannot flush cache due to " + e.getMessage() + ".");
+                    }
 
-            }
-        );
+                }
+            );
+        });
     }
 
     @Override

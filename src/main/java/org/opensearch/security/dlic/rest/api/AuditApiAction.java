@@ -273,12 +273,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
             final var configuration = securityConfiguration.configuration();
             configuration.putCObject(READONLY_FIELD, readonlyFields);
             return ValidationResult.success(securityConfiguration);
-        })).override(RestRequest.Method.POST, methodNotImplementedHandler);
-    }
-
-    @Override
-    protected void handleDelete(RestChannel channel, final RestRequest request, final Client client, final JsonNode content) {
-        notImplemented(channel, RestRequest.Method.DELETE);
+        })).override(RestRequest.Method.POST, methodNotImplementedHandler).override(RestRequest.Method.DELETE, methodNotImplementedHandler);
     }
 
     @Override

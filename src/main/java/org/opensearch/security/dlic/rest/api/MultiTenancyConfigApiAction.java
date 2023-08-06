@@ -142,12 +142,6 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         return CType.CONFIG;
     }
 
-    @Override
-    protected void handleDelete(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
-        throws IOException {
-        notImplemented(channel, RestRequest.Method.DELETE);
-    }
-
     private void multitenancyResponse(final ConfigV7 config, final RestChannel channel) {
         try (final XContentBuilder contentBuilder = channel.newBuilder()) {
             channel.sendResponse(

@@ -26,6 +26,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
@@ -44,6 +45,7 @@ import org.opensearch.security.ssl.transport.PrincipalExtractor;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.threadpool.ThreadPool;
 
+import static org.opensearch.security.dlic.rest.api.Responses.forbiddenMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 /**
@@ -136,8 +138,19 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
                                     }
                                     return ValidationResult.success(securityConfiguration);
                                 })
-                );
+                ).onChangeRequest(Method.DELETE, request ->
+                        withRequiredResourceName(request)
+                                .map(this::notStaticNodesDn)
+                                .map(ignore -> processDeleteRequest(request))
+        );
         // spotless:on
+    }
+
+    private ValidationResult<String> notStaticNodesDn(final String resourceName) {
+        if (STATIC_OPENSEARCH_YML_NODES_DN.equals(resourceName)) {
+            return ValidationResult.error(RestStatus.FORBIDDEN, forbiddenMessage("Resource '" + resourceName + "' is read-only."));
+        }
+        return ValidationResult.success(resourceName);
     }
 
     @Override

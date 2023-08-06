@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.opensearch.security.dlic.rest.api.RequestHandler.methodNotImplementedHandler;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class ActionGroupsApiAction extends PatchableResourceApiAction {
@@ -93,6 +94,15 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
     }
 
     @Override
+    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+        requestHandlersBuilder.onChangeRequest(
+            Method.DELETE,
+            request -> processDeleteRequest(request).map(this::canChangeObjectWithRestAdminPermissions)
+        ).override(Method.POST, methodNotImplementedHandler);
+
+    }
+
+    @Override
     protected RequestContentValidator createValidator(final Object... params) {
         return RequestContentValidator.of(new RequestContentValidator.ValidationContext() {
             @Override
@@ -132,11 +142,6 @@ public class ActionGroupsApiAction extends PatchableResourceApiAction {
     @Override
     protected String getResourceName() {
         return "actiongroup";
-    }
-
-    @Override
-    protected void consumeParameters(final RestRequest request) {
-        request.param("name");
     }
 
     @Override
