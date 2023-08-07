@@ -148,10 +148,22 @@ def String extractVersion(versionStr) {
     }
 }
 
+1.times {i ->
+    task "${baseName}#singleCluster$i"(type: StandaloneRestIntegTestTask) {
+        useCluster testClusters."${baseName}$i"
+        systemProperty 'tests.rest.bwcsuite', 'old_cluster'
+        systemProperty 'tests.rest.bwcsuite_round', 'old'
+        systemProperty 'tests.plugin_bwc_version', version
+        nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
+        nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
+    }
+}
+
 tasks.register("${baseName}#runClusterTask", StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#singleCluster0"
     useCluster testClusters."${baseName}0"
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+    testClusters."${baseName}0".start()
+    testClusters."${baseName}0".waitForAllConditions()
 }
 
 task runTestCluster(type: StandaloneRestIntegTestTask) {
