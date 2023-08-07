@@ -18,7 +18,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
-import org.opensearch.common.Strings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.security.test.DynamicSecurityConfig;
@@ -65,7 +64,7 @@ public class FlsFlatTests extends AbstractDlsFlsTest {
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
-        final String mappings = Strings.toString(builder);
+        final String mappings = builder.toString();
 
         final Consumer<String> createIndexWithMapping = (indexName) -> {
             final CreateIndexRequest createIndex = new CreateIndexRequest(indexName);

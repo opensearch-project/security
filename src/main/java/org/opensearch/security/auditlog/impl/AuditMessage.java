@@ -467,7 +467,7 @@ public final class AuditMessage {
     @Override
     public String toString() {
         try {
-            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
+            return JsonXContent.contentBuilder().map(getAsMap()).toString();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
@@ -475,7 +475,7 @@ public final class AuditMessage {
 
     public String toPrettyString() {
         try {
-            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().prettyPrint().map(getAsMap()));
+            return JsonXContent.contentBuilder().prettyPrint().map(getAsMap()).toString();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
