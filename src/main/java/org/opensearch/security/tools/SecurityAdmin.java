@@ -109,7 +109,7 @@ import org.opensearch.client.indices.GetIndexRequest.Feature;
 import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.transport.NoNodeAvailableException;
 import org.opensearch.cluster.health.ClusterHealthStatus;
-import org.opensearch.common.Strings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
@@ -1240,7 +1240,7 @@ public class SecurityAdmin {
                 builder.prettyPrint();
             }
             builder.rawValue(new ByteArrayInputStream(parser.binaryValue()), XContentType.YAML);
-            return Strings.toString(builder);
+            return builder.toString();
         }
     }
 
