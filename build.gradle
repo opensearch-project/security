@@ -588,9 +588,9 @@ dependencies {
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    testImplementation 'com.unboundid:unboundid-ldapsdk:6.0.9'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
-    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    testImplementation 'com.unboundid:unboundid-ldapsdk:6.0.9'
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
     testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
@@ -642,7 +642,7 @@ dependencies {
     integrationTestImplementation('org.awaitility:awaitility:4.2.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
-    integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:6.0.9'
 
     //Checkstyle
     checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
