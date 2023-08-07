@@ -62,8 +62,8 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.auditlog.AuditLog;
@@ -464,7 +464,7 @@ public class ConfigurationRepository {
         if (logComplianceEvent && auditLog.getComplianceConfig().isEnabled()) {
             CType configurationType = configTypes.iterator().next();
             Map<String, String> fields = new HashMap<String, String>();
-            fields.put(configurationType.toLCString(), Strings.toString(XContentType.JSON, retVal.get(configurationType)));
+            fields.put(configurationType.toLCString(), Strings.toString(MediaTypeRegistry.JSON, retVal.get(configurationType)));
             auditLog.logDocumentRead(this.securityIndex, configurationType.toLCString(), null, fields);
         }
 
