@@ -36,7 +36,7 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.common.xcontent.XContentType;
@@ -466,7 +466,7 @@ public final class AuditMessage {
     @Override
     public String toString() {
         try {
-            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().map(getAsMap()));
+            return JsonXContent.contentBuilder().map(getAsMap()).toString();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }
@@ -474,7 +474,7 @@ public final class AuditMessage {
 
     public String toPrettyString() {
         try {
-            return org.opensearch.common.Strings.toString(JsonXContent.contentBuilder().prettyPrint().map(getAsMap()));
+            return JsonXContent.contentBuilder().prettyPrint().map(getAsMap()).toString();
         } catch (final IOException e) {
             throw ExceptionsHelper.convertToOpenSearchException(e);
         }

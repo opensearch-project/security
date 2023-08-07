@@ -77,7 +77,7 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.NamedXContentRegistry;

@@ -21,7 +21,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.bytes.BytesArray;
@@ -301,7 +300,7 @@ public class RequestContentValidatorTest {
     private JsonNode xContentToJsonNode(final ToXContent toXContent) throws IOException {
         try (final var xContentBuilder = XContentFactory.jsonBuilder()) {
             toXContent.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
-            return DefaultObjectMapper.readTree(Strings.toString(xContentBuilder));
+            return DefaultObjectMapper.readTree(xContentBuilder.toString());
         }
     }
 
