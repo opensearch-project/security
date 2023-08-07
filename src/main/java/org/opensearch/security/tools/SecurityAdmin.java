@@ -112,6 +112,7 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.MediaType;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -1259,7 +1260,7 @@ public class SecurityAdmin {
         try {
             sb.append("ClusterHealthRequest:" + System.lineSeparator());
             ClusterHealthResponse nir = restHighLevelClient.cluster().health(new ClusterHealthRequest(), RequestOptions.DEFAULT);
-            sb.append(Strings.toString(XContentType.JSON, nir, true, true));
+            sb.append(Strings.toString(MediaTypeRegistry.JSON, nir, true, true));
         } catch (Exception e1) {
             sb.append(ExceptionsHelper.stackTrace(e1));
         }
