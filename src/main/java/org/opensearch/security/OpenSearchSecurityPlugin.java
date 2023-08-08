@@ -940,7 +940,6 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         this.threadPool = threadPool;
         this.cs = clusterService;
         this.localClient = localClient;
-        setClusterService(this.cs);
 
         final List<Object> components = new ArrayList<Object>();
 
