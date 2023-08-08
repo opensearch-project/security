@@ -82,21 +82,18 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private Multimap<String, AuthFailureListener> authBackendFailureListeners;
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
-    private String clusterNameString;
 
     public DynamicConfigModelV7(
         ConfigV7 config,
         Settings opensearchSettings,
         Path configPath,
-        InternalAuthenticationBackend iab,
-        String clusterNameString
+        InternalAuthenticationBackend iab
     ) {
         super();
         this.config = config;
         this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
         this.iab = iab;
-        this.clusterNameString = clusterNameString;
         buildAAA();
     }
 
@@ -379,7 +376,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
         if (oboSettings.get("signing_key") != null && oboSettings.get("encryption_key") != null) {
             final AuthDomain _ad = new AuthDomain(
                 new NoOpAuthenticationBackend(Settings.EMPTY, null),
-                new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings(), this.clusterNameString),
+                new OnBehalfOfAuthenticator(getDynamicOnBehalfOfSettings()),
                 false,
                 -1
             );

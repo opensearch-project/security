@@ -96,7 +96,7 @@ public class OnBehalfOfAuthenticatorTest {
     @Test
     public void testTokenMissing() throws Exception {
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterNameString);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
         Map<String, String> headers = new HashMap<String, String>();
 
         AuthCredentials credentials = jwtAuth.extractCredentials(new FakeRestRequest(headers, new HashMap<String, String>()), null);
@@ -109,7 +109,7 @@ public class OnBehalfOfAuthenticatorTest {
 
         String jwsToken = "123invalidtoken..";
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterNameString);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -127,7 +127,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(disableOBOSettings(), clusterNameString);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(disableOBOSettings());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -145,7 +145,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(nonSpecifyOBOSetting(), clusterNameString);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(nonSpecifyOBOSetting());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -164,7 +164,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterNameString);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -187,7 +187,7 @@ public class OnBehalfOfAuthenticatorTest {
             .setAudience("ext_0")
             .signWith(secretKey, SignatureAlgorithm.HS512)
             .compact();
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterNameString);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
 
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", jwsToken + "Bearer " + " 123");
@@ -206,7 +206,7 @@ public class OnBehalfOfAuthenticatorTest {
             .setAudience("ext_0")
             .signWith(secretKey, SignatureAlgorithm.HS512)
             .compact();
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterNameString);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
 
         Map<String, String> headers = Collections.singletonMap(HttpHeaders.AUTHORIZATION, "Basic " + jwsToken);
 
@@ -388,7 +388,7 @@ public class OnBehalfOfAuthenticatorTest {
             .signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(signingKeyB64Encoded)), SignatureAlgorithm.HS512)
             .compact();
 
-        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings(), clusterNameString);
+        OnBehalfOfAuthenticator jwtAuth = new OnBehalfOfAuthenticator(defaultSettings());
         Map<String, String> headers = new HashMap<String, String>();
         headers.put("Authorization", "Bearer " + jwsToken);
 
@@ -409,8 +409,7 @@ public class OnBehalfOfAuthenticatorTest {
                 .put("enabled", enableOBO)
                 .put("signing_key", signingKeyB64Encoded)
                 .put("encryption_key", encryptionKey)
-                .build(),
-            clusterNameString
+                .build()
         );
 
         final String jwsToken = jwtBuilder.signWith(
