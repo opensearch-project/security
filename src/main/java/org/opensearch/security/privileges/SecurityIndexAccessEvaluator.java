@@ -75,9 +75,7 @@ public class SecurityIndexAccessEvaluator {
         this.systemIndexMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
         );
-        this.denylistIndexMatcher = WildcardMatcher.from(
-            settings.getAsList(ConfigConstants.SECURITY_INDICES_DENYLIST_KEY, ConfigConstants.SECURITY_INDICES_DENYLIST_KEY_DEFAULT)
-        );
+        this.denylistIndexMatcher = WildcardMatcher.from(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.systemIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
@@ -205,7 +203,7 @@ public class SecurityIndexAccessEvaluator {
         Boolean isDebugEnabled
 
     ) {
-        if (matchAnyDenyIndices(requestedResolved) || requestedResolved.getAllIndices().contains(securityIndex)) {
+        if (matchAnyDenyIndices(requestedResolved)){
             auditLog.logSecurityIndexAttempt(request, action, task);
             if (log.isInfoEnabled()) {
                 log.info(

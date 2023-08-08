@@ -263,7 +263,6 @@ def setCommonTestConfig(Test task) {
                 "sun.security.pkcs11.*",
                 "sun.security.smartcardio.*",
                 "sun.util.resources.provider.*",
-                "org/opensearch/security/securityconf/impl/v6.*"
         ]
     }
     task.dependsOn copyExtraTestResources
