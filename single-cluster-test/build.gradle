@@ -144,6 +144,9 @@ def String extractVersion(versionStr) {
 
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
             setting 'http.content_type.required', 'true'
+            setting 'tests.opensearch.http.protocol', 'https'
+            setting 'tests.opensearch.username', 'admin'
+            setting 'tests.opensearch.password', 'admin'
         }
     }
 }
@@ -151,9 +154,6 @@ def String extractVersion(versionStr) {
 1.times {i ->
     task "${baseName}#singleCluster$i"(type: StandaloneRestIntegTestTask) {
         useCluster testClusters."${baseName}$i"
-        systemProperty 'tests.rest.bwcsuite', 'old_cluster'
-        systemProperty 'tests.rest.bwcsuite_round', 'old'
-        systemProperty 'tests.plugin_bwc_version', version
         nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
         nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
     }
