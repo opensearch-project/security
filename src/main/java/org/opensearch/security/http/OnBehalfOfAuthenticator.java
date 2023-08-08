@@ -62,12 +62,14 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
     private final JwtParser jwtParser;
     private final String encryptionKey;
     private final Boolean oboEnabled;
+    private final String clusterNameString;
 
-    public OnBehalfOfAuthenticator(Settings settings) {
+    public OnBehalfOfAuthenticator(Settings settings, String clusterNameString) {
         String oboEnabledSetting = settings.get("enabled");
         oboEnabled = oboEnabledSetting == null ? Boolean.TRUE : Boolean.valueOf(oboEnabledSetting);
         encryptionKey = settings.get("encryption_key");
         jwtParser = initParser(settings.get("signing_key"));
+        this.clusterNameString = clusterNameString;
     }
 
     private JwtParser initParser(final String signingKey) {
@@ -206,6 +208,12 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             final String tokenType = claims.get(TOKEN_TYPE_CLAIM).toString();
             if (!tokenType.equals(TOKEN_TYPE)) {
                 log.error("This toke is not verifying as an on-behalf-of token");
+                return null;
+            }
+
+            final String issuer = claims.getIssuer();
+            if (!issuer.equals(clusterNameString)) {
+                log.error("This issuer of this OBO does not match the current cluster identifier");
                 return null;
             }
 

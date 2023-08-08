@@ -81,6 +81,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
     private static SecurityDynamicConfiguration<TenantV7> staticTenants = SecurityDynamicConfiguration.empty();
     private static final WhitelistingSettings defaultWhitelistingSettings = new WhitelistingSettings();
     private static final AllowlistingSettings defaultAllowlistingSettings = new AllowlistingSettings();
+    private final String clusterNameString;
 
     static void resetStatics() {
         staticRoles = SecurityDynamicConfiguration.empty();
@@ -137,12 +138,14 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
         final Path configPath,
         Client client,
         ThreadPool threadPool,
-        ClusterInfoHolder cih
+        ClusterInfoHolder cih,
+        String clusterNameString
     ) {
         super();
         this.cr = cr;
         this.opensearchSettings = opensearchSettings;
         this.configPath = configPath;
+        this.clusterNameString = clusterNameString;
 
         if (opensearchSettings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_LOAD_STATIC_RESOURCES, true)) {
             try {
@@ -271,7 +274,7 @@ public class DynamicConfigFactory implements Initializable, ConfigurationChangeL
             );
 
             // rebuild v7 Models
-            dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab);
+            dcm = new DynamicConfigModelV7(getConfigV7(config), opensearchSettings, configPath, iab, this.clusterNameString);
             ium = new InternalUsersModelV7(
                 (SecurityDynamicConfiguration<InternalUserV7>) internalusers,
                 (SecurityDynamicConfiguration<RoleV7>) roles,

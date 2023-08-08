@@ -1040,7 +1040,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
             configPath,
             compatConfig
         );
-        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih);
+        dcf = new DynamicConfigFactory(cr, settings, configPath, localClient, threadPool, cih, this.cs.getClusterName().value());
         dcf.registerDCFListener(backendRegistry);
         dcf.registerDCFListener(compatConfig);
         dcf.registerDCFListener(irr);
