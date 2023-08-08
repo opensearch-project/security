@@ -27,12 +27,20 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import org.opensearch.cluster.ClusterName;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.user.AuthCredentials;
 import org.opensearch.security.util.FakeRestRequest;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class OnBehalfOfAuthenticatorTest {
     final static String clusterNameString = "cluster_0";
@@ -44,6 +52,20 @@ public class OnBehalfOfAuthenticatorTest {
         "This is my super safe signing key that no one will ever be able to guess. It's would take billions of years and the world's most powerful quantum computer to crack";
     final static String signingKeyB64Encoded = BaseEncoding.base64().encode(signingKey.getBytes(StandardCharsets.UTF_8));
     final static SecretKey secretKey = Keys.hmacShaKeyFor(signingKeyB64Encoded.getBytes(StandardCharsets.UTF_8));
+
+    @Before
+    public void setupMocks() {
+        ClusterService mockedClusterService = mock(ClusterService.class);
+        ClusterName mockedClusterName = new ClusterName(clusterNameString);
+        when(mockedClusterService.getClusterName()).thenReturn(mockedClusterName);
+
+        OpenSearchSecurityPlugin.setClusterService(mockedClusterService);
+    }
+
+    @After
+    public void tearDown() {
+        OpenSearchSecurityPlugin.setClusterService(null);
+    }
 
     @Test
     public void testNoKey() throws Exception {

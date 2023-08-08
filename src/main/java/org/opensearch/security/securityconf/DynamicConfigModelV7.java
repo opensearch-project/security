@@ -83,12 +83,7 @@ public class DynamicConfigModelV7 extends DynamicConfigModel {
     private List<ClientBlockRegistry<InetAddress>> ipClientBlockRegistries;
     private Multimap<String, ClientBlockRegistry<String>> authBackendClientBlockRegistries;
 
-    public DynamicConfigModelV7(
-        ConfigV7 config,
-        Settings opensearchSettings,
-        Path configPath,
-        InternalAuthenticationBackend iab
-    ) {
+    public DynamicConfigModelV7(ConfigV7 config, Settings opensearchSettings, Path configPath, InternalAuthenticationBackend iab) {
         super();
         this.config = config;
         this.opensearchSettings = opensearchSettings;

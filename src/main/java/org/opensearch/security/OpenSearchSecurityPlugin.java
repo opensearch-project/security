@@ -1961,9 +1961,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
 
     }
 
-    public static void setClusterService (ClusterService clusterService) {
+    public static void setClusterService(ClusterService clusterService) {
         cs = clusterService;
     }
+
     public static ClusterService getClusterNameString() {
         return cs;
     }
