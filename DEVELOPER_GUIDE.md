@@ -10,6 +10,7 @@ So you want to contribute code to OpenSearch Security? Excellent! We're glad you
   - [Running integration tests](#running-integration-tests)
     - [Bulk test runs](#bulk-test-runs)
     - [Checkstyle Violations](#checkstyle-violations)
+  - [Authorization in REST Layer](#authorization-in-rest-layer)
   - [Submitting Changes](#submitting-changes)
   - [Backports](#backports)
 
@@ -76,6 +77,51 @@ rm opensearch-security-*.zip
 mkdir $OPENSEARCH_HOME/config/opensearch-security
 mv config/* $OPENSEARCH_HOME/config/opensearch-security/
 rm -rf config/
+```
+
+### Installing demo extension users and roles
+
+If you are working with an extension and want to set up demo users for the Hello-World extension, append following items to files inside `$OPENSEARCH_HOME/config/opensearch-security/`:
+1. In **internal_users.yml**
+```yaml
+hw-user:
+  hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"
+  reserved: true
+  description: "Demo user for ext-test"
+```
+
+2. In **roles.yml**
+```yaml
+extension_hw_greet:
+  reserved: true
+  cluster_permissions:
+    - 'hw:greet'
+
+extension_hw_full:
+  reserved: true
+  cluster_permissions:
+    - 'hw:goodbye'
+    - 'hw:greet'
+    - 'hw:greet_with_adjective'
+    - 'hw:greet_with_name'
+
+legacy_hw_greet_with_name:
+  reserved: true
+  cluster_permissions:
+    - 'cluster:admin/opensearch/hw/greet_with_name'
+```
+
+3. In **roles_mapping.yml**
+```yaml
+legacy_hw_greet_with_name:
+  reserved: true
+  users:
+    - "hw-user"
+
+extension_hw_greet:
+  reserved: true
+  users:
+    - "hw-user"
 ```
 
 To install the demo certificates and default configuration, answer `y` to the first two questions and `n` to the last one. The log should look like below:
@@ -187,6 +233,11 @@ Checkstyle enforces several rules within this codebase. Sometimes it will be nec
   ...
   // CS-ENFORCE-ALL
 ```
+
+## Authorization in REST Layer
+
+See [REST_AUTHZ_FOR_PLUGINS](REST_AUTHZ_FOR_PLUGINS.md).
+
 
 ## Submitting Changes
 

@@ -25,8 +25,13 @@ buildscript {
         opensearch_build = version_tokens[0] + '.0'
 
         common_utils_version = System.getProperty("common_utils.version", '3.0.0.0-SNAPSHOT')
-        kafka_version  = '3.5.0'
+        kafka_version  = '3.5.1'
         apache_cxf_version = '4.0.2'
+        open_saml_version = '4.3.0'
+        one_login_java_saml = '2.9.0'
+        jjwt_version = '0.11.5'
+        guava_version = '32.1.1-jre'
+        jaxb_version = '2.3.8'
 
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
@@ -37,11 +42,13 @@ buildscript {
     }
 
     repositories {
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+        maven { url "https://build.shibboleth.net/nexus/content/groups/public" }
+        maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
     }
 
     dependencies {
@@ -56,8 +63,8 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.19.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.1.0"
-    id "org.gradle.test-retry" version "1.5.2"
+    id 'com.netflix.nebula.ospackage' version "11.3.0"
+    id "org.gradle.test-retry" version "1.5.4"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.14"
     id "com.google.osdetector" version "1.7.3"
@@ -368,11 +375,12 @@ publishing {
 }
 
 repositories {
-    mavenCentral()
     mavenLocal()
+    mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+    maven { url "https://build.shibboleth.net/nexus/content/repositories/releases" }
 }
 
 tasks.withType(Checkstyle) {
@@ -422,9 +430,10 @@ configurations {
             force "io.netty:netty-handler:${versions.netty}"
             force "io.netty:netty-transport:${versions.netty}"
             force "io.netty:netty-transport-native-unix-common:${versions.netty}"
-            force "org.apache.bcel:bcel:6.6.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
+            force "org.apache.bcel:bcel:6.7.0" // This line should be removed once Spotbugs is upgraded to 4.7.4
             force "com.github.luben:zstd-jni:${versions.zstd}"
             force "org.xerial.snappy:snappy-java:1.1.10.1"
+            force "com.google.guava:guava:${guava_version}"
         }
     }
 
@@ -476,18 +485,32 @@ dependencies {
     implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "org.apache.httpcomponents:httpasyncclient:${versions.httpasyncclient}"
-    implementation 'com.google.guava:guava:32.0.1-jre'
-    implementation 'org.greenrobot:eventbus:3.2.0'
+    implementation "com.google.guava:guava:${guava_version}"
+    implementation 'org.greenrobot:eventbus-java:3.3.1'
     implementation 'commons-cli:commons-cli:1.5.0'
     implementation "org.bouncycastle:bcprov-jdk15to18:${versions.bouncycastle}"
     implementation 'org.ldaptive:ldaptive:1.2.3'
-    implementation 'io.jsonwebtoken:jjwt-api:0.10.8'
 
-    implementation 'com.github.wnameless:json-flattener:0.5.0'
-    implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.4'
+    //JWT
+    implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
+    implementation "io.jsonwebtoken:jjwt-impl:${jjwt_version}"
+    implementation "io.jsonwebtoken:jjwt-jackson:${jjwt_version}"
+    // JSON flattener
+    implementation ("com.github.wnameless.json:json-base:2.4.1") {
+        exclude group: "org.glassfish", module: "jakarta.json"
+        exclude group: "com.google.code.gson", module: "gson"
+        exclude group: "org.json", module: "json"
+    }
+    implementation 'com.github.wnameless.json:json-flattener:0.16.4'
+    // JSON patch
+    implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.14'
+    implementation 'org.apache.commons:commons-collections4:4.4'
+
+    //JSON path
+    implementation 'com.jayway.jsonpath:json-path:2.8.0'
+    implementation 'net.minidev:json-smart:2.4.11'
+
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
-    implementation 'com.onelogin:java-saml:2.5.0'
-    implementation 'com.onelogin:java-saml-core:2.5.0'
 
     runtimeOnly 'net.minidev:accessors-smart:2.4.7'
 
@@ -501,58 +524,57 @@ dependencies {
     runtimeOnly 'com.sun.activation:jakarta.activation:1.2.2'
     runtimeOnly 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     runtimeOnly 'commons-codec:commons-codec:1.16.0'
-    runtimeOnly 'org.cryptacular:cryptacular:1.2.4'
-    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.3.4'
-    runtimeOnly 'com.sun.istack:istack-commons-runtime:3.0.12'
-    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:2.3.3'
+    runtimeOnly 'org.cryptacular:cryptacular:1.2.5'
+    runtimeOnly 'com.google.errorprone:error_prone_annotations:2.20.0'
+    runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
+    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
     runtimeOnly 'org.ow2.asm:asm:9.1'
 
-    testImplementation 'org.apache.camel:camel-xmlsecurity:3.14.2'
+    testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.0'
 
-    implementation 'net.shibboleth.utilities:java-support:7.5.1'
-    implementation 'org.opensaml:opensaml-core:3.4.5'
-    implementation 'org.opensaml:opensaml-security-impl:3.4.5'
-    implementation 'org.opensaml:opensaml-security-api:3.4.5'
-    implementation 'org.opensaml:opensaml-xmlsec-api:3.4.5'
-    implementation 'org.opensaml:opensaml-xmlsec-impl:3.4.5'
-    implementation 'org.opensaml:opensaml-saml-api:3.4.5'
-    implementation ('org.opensaml:opensaml-saml-impl:3.4.5') {
+    //OpenSAML
+    implementation 'net.shibboleth.utilities:java-support:8.4.0'
+    implementation "com.onelogin:java-saml:${one_login_java_saml}"
+    implementation "com.onelogin:java-saml-core:${one_login_java_saml}"
+    implementation "org.opensaml:opensaml-core:${open_saml_version}"
+    implementation "org.opensaml:opensaml-security-impl:${open_saml_version}"
+    implementation "org.opensaml:opensaml-security-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-xmlsec-api:${open_saml_version}"
+    implementation "org.opensaml:opensaml-xmlsec-impl:${open_saml_version}"
+    implementation "org.opensaml:opensaml-saml-api:${open_saml_version}"
+    implementation ("org.opensaml:opensaml-saml-impl:${open_saml_version}") {
         exclude(group: 'org.apache.velocity', module: 'velocity')
     }
-    implementation "com.nulab-inc:zxcvbn:1.7.0"
-    testImplementation 'org.opensaml:opensaml-messaging-impl:3.4.5'
-    implementation 'org.opensaml:opensaml-messaging-api:3.4.5'
-    runtimeOnly 'org.opensaml:opensaml-profile-api:3.4.5'
-    runtimeOnly 'org.opensaml:opensaml-soap-api:3.4.5'
-    runtimeOnly 'org.opensaml:opensaml-soap-impl:3.4.5'
-    implementation 'org.opensaml:opensaml-storage-api:3.4.5'
-    implementation 'commons-collections:commons-collections:3.2.2'
-    implementation 'com.jayway.jsonpath:json-path:2.4.0'
-    implementation 'net.minidev:json-smart:2.4.10'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.10.8'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.10.8'
+    implementation "org.opensaml:opensaml-messaging-api:${open_saml_version}"
+    runtimeOnly "org.opensaml:opensaml-profile-api:${open_saml_version}"
+    runtimeOnly "org.opensaml:opensaml-soap-api:${open_saml_version}"
+    runtimeOnly "org.opensaml:opensaml-soap-impl:${open_saml_version}"
+    implementation "org.opensaml:opensaml-storage-api:${open_saml_version}"
+
+    implementation "com.nulab-inc:zxcvbn:1.8.0"
+
     runtimeOnly 'com.google.guava:failureaccess:1.0.1'
     runtimeOnly 'org.apache.commons:commons-text:1.10.0'
-    runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:2.3.4'
-    runtimeOnly 'com.google.j2objc:j2objc-annotations:1.3'
+    runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${jaxb_version}"
+    runtimeOnly 'com.google.j2objc:j2objc-annotations:2.8'
     runtimeOnly 'com.google.code.findbugs:jsr305:3.0.2'
-    runtimeOnly 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
     runtimeOnly 'org.lz4:lz4-java:1.8.0'
-    runtimeOnly 'io.dropwizard.metrics:metrics-core:3.1.2'
+    runtimeOnly 'io.dropwizard.metrics:metrics-core:4.2.19'
     runtimeOnly 'org.slf4j:slf4j-api:1.7.30'
-    runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.17.1'
+    runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.1'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
-    runtimeOnly 'org.glassfish.jaxb:txw2:2.3.4'
+    runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
     runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.4.0'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
-    runtimeOnly 'org.checkerframework:checker-qual:3.5.0'
+    runtimeOnly 'org.checkerframework:checker-qual:3.36.0'
     runtimeOnly "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     runtimeOnly 'org.scala-lang.modules:scala-java8-compat_3:1.0.2'
 
 
+    testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
     implementation 'org.apache.commons:commons-lang3:3.12.0'
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
@@ -561,7 +583,7 @@ dependencies {
     testImplementation "org.opensearch.plugin:lang-mustache-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:parent-join-client:${opensearch_version}"
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
-    testImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
@@ -583,7 +605,7 @@ dependencies {
         testImplementation "io.netty:netty-tcnative-boringssl-static:2.0.54.Final:${osdetector.classifier}"
     }
     // JUnit build requirement
-    testCompileOnly 'org.apiguardian:apiguardian-api:1.0.0'
+    testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     // Kafka test execution
     testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
     testRuntimeOnly ('org.springframework:spring-core:5.3.27') {
@@ -608,9 +630,9 @@ dependencies {
     integrationTestImplementation 'junit:junit:4.13.2'
     integrationTestImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     integrationTestImplementation "org.opensearch.plugin:percolator-client:${opensearch_version}"
-    integrationTestImplementation 'commons-io:commons-io:2.11.0'
-    integrationTestImplementation 'org.apache.logging.log4j:log4j-core:2.17.1'
-    integrationTestImplementation 'org.apache.logging.log4j:log4j-jul:2.17.1'
+    integrationTestImplementation 'commons-io:commons-io:2.13.0'
+    integrationTestImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+    integrationTestImplementation "org.apache.logging.log4j:log4j-jul:${versions.log4j}"
     integrationTestImplementation 'org.hamcrest:hamcrest:2.2'
     integrationTestImplementation "org.bouncycastle:bcpkix-jdk15to18:${versions.bouncycastle}"
     integrationTestImplementation "org.bouncycastle:bcutil-jdk15to18:${versions.bouncycastle}"
@@ -618,6 +640,14 @@ dependencies {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
     integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+
+    //Checkstyle
+    checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
+
+    //spotless
+    implementation('com.google.googlejavaformat:google-java-format:1.17.0') {
+        exclude group: 'com.google.guava'
+    }
 }
 
 jar {

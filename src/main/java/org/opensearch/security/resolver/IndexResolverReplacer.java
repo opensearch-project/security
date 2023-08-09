@@ -35,12 +35,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
@@ -82,7 +82,7 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.index.Index;
+import org.opensearch.core.index.Index;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.reindex.ReindexRequest;
 import org.opensearch.security.OpenSearchSecurityPlugin;
@@ -112,7 +112,7 @@ public class IndexResolverReplacer {
         this.clusterInfoHolder = clusterInfoHolder;
     }
 
-    private static final boolean isAllWithNoRemote(final String... requestedPatterns) {
+    private static boolean isAllWithNoRemote(final String... requestedPatterns) {
 
         final List<String> patterns = requestedPatterns == null ? null : Arrays.asList(requestedPatterns);
 
@@ -131,11 +131,11 @@ public class IndexResolverReplacer {
         return false;
     }
 
-    private static final boolean isLocalAll(String... requestedPatterns) {
+    private static boolean isLocalAll(String... requestedPatterns) {
         return isLocalAll(requestedPatterns == null ? null : Arrays.asList(requestedPatterns));
     }
 
-    private static final boolean isLocalAll(Collection<String> patterns) {
+    private static boolean isLocalAll(Collection<String> patterns) {
         if (IndexNameExpressionResolver.isAllIndices(patterns)) {
             return true;
         }
@@ -158,8 +158,48 @@ public class IndexResolverReplacer {
         private final ImmutableSet.Builder<String> remoteIndices;
         // set of previously resolved index requests to avoid resolving
         // the same index more than once while processing bulk requests
-        private final Set<MultiKey> alreadyResolved;
+        private final Set<AlreadyResolvedKey> alreadyResolved;
         private final String name;
+
+        private final class AlreadyResolvedKey {
+
+            private final IndicesOptions indicesOptions;
+
+            private final boolean enableCrossClusterResolution;
+
+            private final String[] original;
+
+            private AlreadyResolvedKey(final IndicesOptions indicesOptions, final boolean enableCrossClusterResolution) {
+                this(indicesOptions, enableCrossClusterResolution, null);
+            }
+
+            private AlreadyResolvedKey(
+                final IndicesOptions indicesOptions,
+                final boolean enableCrossClusterResolution,
+                final String[] original
+            ) {
+                this.indicesOptions = indicesOptions;
+                this.enableCrossClusterResolution = enableCrossClusterResolution;
+                this.original = original;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                AlreadyResolvedKey that = (AlreadyResolvedKey) o;
+                return enableCrossClusterResolution == that.enableCrossClusterResolution
+                    && Objects.equals(indicesOptions, that.indicesOptions)
+                    && Arrays.equals(original, that.original);
+            }
+
+            @Override
+            public int hashCode() {
+                int result = Objects.hash(indicesOptions, enableCrossClusterResolution);
+                result = 31 * result + Arrays.hashCode(original);
+                return result;
+            }
+        }
 
         ResolvedIndicesProvider(Object request) {
             aliases = ImmutableSet.builder();
@@ -336,9 +376,13 @@ public class IndexResolverReplacer {
                 || localRequest instanceof SearchRequest
                 || localRequest instanceof ResolveIndexAction.Request;
             // skip the whole thing if we have seen this exact resolveIndexPatterns request
-            if (alreadyResolved.add(
-                new MultiKey(indicesOptions, enableCrossClusterResolution, (original != null) ? new MultiKey(original, false) : null)
-            )) {
+            final AlreadyResolvedKey alreadyResolvedKey;
+            if (original != null) {
+                alreadyResolvedKey = new AlreadyResolvedKey(indicesOptions, enableCrossClusterResolution, original);
+            } else {
+                alreadyResolvedKey = new AlreadyResolvedKey(indicesOptions, enableCrossClusterResolution);
+            }
+            if (alreadyResolved.add(alreadyResolvedKey)) {
                 resolveIndexPatterns(localRequest.getClass().getSimpleName(), indicesOptions, enableCrossClusterResolution, original);
             }
             return IndicesProvider.NOOP;

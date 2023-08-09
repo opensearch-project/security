@@ -50,6 +50,19 @@ While we are always happy to help the community, the best resource for implement
 
 There you can find answers to many common questions as well as speak with implementation experts.
 
+### What are the issue labels associated with triaging?
+
+Yes, there are several labels that are used to identify the 'state' of issues filed in OpenSearch and the Security Plugin.
+
+| Label | When applied | Meaning |
+| ----- | ------------ | ------- |
+| Untriaged | When issues are created or re-opened. | Issues labeled as 'Untriaged' require the attention of the repository maintainers and may need to be prioritized for quicker resolution. It's crucial to keep the count of 'Untriaged' labels low to ensure all potential security issues are addressed in a timely manner. See [SECURITY.md](https://github.com/opensearch-project/security/blob/main/SECURITY.md) for more details on handling these issues. |
+| Triaged | During triage meetings. | Issues labeled as 'Triaged' have been reviewed and are deemed actionable. Opening a pull request for an issue with the 'Triaged' label has a higher likelihood of approval from the project maintainers, particularly in novel areas. |
+| Neither Label | During triage meetings. | This category is for issues that lack sufficient details to formulate a potential solution. Until more details are provided, it's difficult to ascertain if a proposed solution would be acceptable. When dealing with an 'Untriaged' issue that falls into this category, the triage team should provide further insights so the issue can be appropriately closed or labeled as 'Triaged'. Issues in this state are reviewed during every triage meeting. |
+| Help Wanted | Anytime. | Issues marked as 'Help Wanted' signal that they are actionable and not the current focus of the project maintainers. Community contributions are especially encouraged for these issues. |
+| Good First Issue | Anytime. | Issues labeled as 'Good First Issue' are small in scope and can be resolved with a single pull request. These are recommended starting points for newcomers looking to make their first contributions. |
+
+
 ### What if my issue is critical to OpenSearch operations, do I have to wait for the weekly meeting for it to be addressed?
 
 All new issues for the [security](https://github.com/opensearch-project/security/issues?q=is%3Aissue+is%3Aopen+label%3Auntriaged) repo and [security-dashboards](https://github.com/opensearch-project/security-dashboards-plugin/issues?q=is%3Aissue+is%3Aopen+-label%3Atriaged) repo are reviewed daily to check for critical issues which require immediate triaging. If an issue relates to a severe concern for OpenSearch operation, it will be triaged by a maintainer mid-week. You can still come to discuss an issue at the following meeting even if it has already been triaged during the week.

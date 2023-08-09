@@ -14,7 +14,7 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import org.opensearch.action.search.DeletePitInfo;
 import org.opensearch.action.search.DeletePitResponse;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 class SuccessfulDeletePitResponseMatcher extends TypeSafeDiagnosingMatcher<DeletePitResponse> {
 
