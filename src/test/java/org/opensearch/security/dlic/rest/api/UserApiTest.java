@@ -159,21 +159,26 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         final int SERVICE_ACCOUNTS_IN_SETTINGS = 1;
         final int INTERNAL_ACCOUNTS_IN_SETTINGS = 19;
 
-        response = rh.executeGetRequest(ENDPOINT + "/internalusers/internalaccounts");
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=internal");
 
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         JsonNode list = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
 
-        response = rh.executeGetRequest(ENDPOINT + "/internalusers/serviceaccounts");
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=service");
         Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
         list = DefaultObjectMapper.readTree(response.getBody());
         Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS, list.size());
 
-        response = rh.executeGetRequest(ENDPOINT + "/internalusers/serviceaccounts?wrongparameter=jhondoe");
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?filterBy=ssas");
+        Assert.assertEquals(response.getBody(), HttpStatus.SC_OK, response.getStatusCode());
+        list = DefaultObjectMapper.readTree(response.getBody());
+        Assert.assertEquals(SERVICE_ACCOUNTS_IN_SETTINGS + INTERNAL_ACCOUNTS_IN_SETTINGS, list.size());
+
+        response = rh.executeGetRequest(ENDPOINT + "/internalusers?wrongparameter=jhondoe");
         Assert.assertEquals(response.getBody(), HttpStatus.SC_BAD_REQUEST, response.getStatusCode());
 
-        response = rh.executePutRequest(ENDPOINT + "/internalusers/serviceaccounts", "{sample:value");
+        response = rh.executePutRequest(ENDPOINT + "/internalusers", "{sample:value");
         Assert.assertEquals(response.getBody(), HttpStatus.SC_METHOD_NOT_ALLOWED, response.getStatusCode());
     }
 

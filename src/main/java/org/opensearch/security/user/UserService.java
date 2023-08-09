@@ -13,12 +13,7 @@ package org.opensearch.security.user;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -316,17 +311,23 @@ public class UserService {
         }
     }
 
-public void filterAccountsByType(SecurityDynamicConfiguration<?> configuration, boolean isServiceAccount) {
-        List<String> filteredAccounts = new ArrayList<>();
+    public void filterAccountsByType(SecurityDynamicConfiguration<?> configuration, String requestedAccountType) {
+        List<String> toBeRemoved = new ArrayList<>();
+
         for (Map.Entry<String, ?> entry : configuration.getCEntries().entrySet()) {
             final InternalUserV7 internalUserEntry = (InternalUserV7) entry.getValue();
             final Map accountAttributes = internalUserEntry.getAttributes();
             final String accountName = entry.getKey();
-            if (accountAttributes.getOrDefault("service", "false").equals(isServiceAccount)) {
-                filteredAccounts.add(accountName);
+            boolean isServiceAccount = Boolean.parseBoolean(accountAttributes.getOrDefault("service", "false").toString());
+
+            if (requestedAccountType.equalsIgnoreCase("internal") && isServiceAccount) {
+                toBeRemoved.add(accountName);
+            } else if (requestedAccountType.equalsIgnoreCase("service") && isServiceAccount == false) {
+                toBeRemoved.add(accountName);
             }
+
         }
-        configuration.remove(filteredAccounts);
-}
+        configuration.remove(toBeRemoved);
+    }
 
 }

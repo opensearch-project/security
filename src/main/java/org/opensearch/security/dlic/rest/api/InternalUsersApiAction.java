@@ -52,15 +52,19 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
 public class InternalUsersApiAction extends PatchableResourceApiAction {
+
+    @Override
+    protected void consumeParameters(final RestRequest request) {
+        request.param("name");
+        request.param("filterBy");
+    }
+
     static final List<String> RESTRICTED_FROM_USERNAME = ImmutableList.of(
         ":" // Not allowed in basic auth, see https://stackoverflow.com/a/33391003/533057
     );
 
     public static final String LEGACY_OPENDISTRO_PREFIX = "_opendistro/_security";
     public static final String PLUGINS_PREFIX = "_plugins/_security";
-    public static final String SERVICE_ACCOUNTS_ENDPOINT = "/internalusers/serviceaccounts";
-    public static final String INTERNAL_ACCOUNTS_ENDPOINT = "/internalusers/internalaccounts";
-
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.GET, "/user/{name}"),
@@ -72,8 +76,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
             // corrected mapping, introduced in OpenSearch Security
             new Route(Method.GET, "/internalusers/{name}"),
             new Route(Method.GET, "/internalusers/"),
-            new Route(Method.GET, SERVICE_ACCOUNTS_ENDPOINT),
-            new Route(Method.GET, INTERNAL_ACCOUNTS_ENDPOINT),
             new Route(Method.POST, "/internalusers/{name}/authtoken"),
             new Route(Method.DELETE, "/internalusers/{name}"),
             new Route(Method.PUT, "/internalusers/{name}"),
@@ -129,18 +131,12 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
         filter(configuration);
 
-        String requestDestination = request.rawPath().split("/api")[1];
+        String filterBy = request.param("filterBy", "all");
 
-        if (requestDestination.equalsIgnoreCase(INTERNAL_ACCOUNTS_ENDPOINT)) {
-            userService.removeNonInternalAccounts(configuration);
-            successResponse(channel, configuration);
-            return;
+        if (filterBy != "internal" && filterBy != "service") {
+            userService.filterAccountsByType(configuration, filterBy);
         }
-        if (requestDestination.equalsIgnoreCase(SERVICE_ACCOUNTS_ENDPOINT)) {
-            userService.removeNonServiceAccounts(configuration);
-            successResponse(channel, configuration);
-            return;
-        }
+
         // no specific resource requested, return complete config
         if (resourcename == null || resourcename.length() == 0) {
             successResponse(channel, configuration);
@@ -152,7 +148,6 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         }
         configuration.removeOthers(resourcename);
         successResponse(channel, configuration);
-
     }
 
     @Override
