@@ -212,7 +212,7 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
     private volatile ThreadPool threadPool;
     private volatile ConfigurationRepository cr;
     private volatile AdminDNs adminDns;
-    private volatile ClusterService cs;
+    private static volatile ClusterService cs;
     private volatile AtomicReference<DiscoveryNode> localNode = new AtomicReference<>();
     private volatile AuditLog auditLog;
     private volatile BackendRegistry backendRegistry;
@@ -1958,5 +1958,13 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         @Override
         public void stop() {}
 
+    }
+
+    public static void setClusterService(ClusterService clusterService) {
+        cs = clusterService;
+    }
+
+    public static ClusterService getClusterNameString() {
+        return cs;
     }
 }

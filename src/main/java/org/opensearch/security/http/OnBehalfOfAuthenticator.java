@@ -36,6 +36,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.security.OpenSearchSecurityPlugin;
 import org.opensearch.security.auth.HTTPAuthenticator;
 import org.opensearch.security.authtoken.jwt.EncryptionDecryptionUtil;
 import org.opensearch.security.ssl.util.ExceptionUtils;
@@ -206,6 +207,13 @@ public class OnBehalfOfAuthenticator implements HTTPAuthenticator {
             final String tokenType = claims.get(TOKEN_TYPE_CLAIM).toString();
             if (!tokenType.equals(TOKEN_TYPE)) {
                 log.error("This toke is not verifying as an on-behalf-of token");
+                return null;
+            }
+
+            final String issuer = claims.getIssuer();
+            final String clusterID = OpenSearchSecurityPlugin.getClusterNameString().getClusterName().value();
+            if (!issuer.equals(clusterID)) {
+                log.error("This issuer of this OBO does not match the current cluster identifier");
                 return null;
             }
 
