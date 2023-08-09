@@ -48,6 +48,9 @@ public class PrivilegesEvaluatorTest {
         new Role("search_template_role").indexPermissions("read").on("services")
     );
 
+    private String TEST_QUERY =
+        "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}";
+
     @ClassRule
     public static LocalCluster cluster = new LocalCluster.Builder().clusterManager(ClusterManager.THREE_CLUSTER_MANAGERS)
         .authc(AUTHC_HTTPBASIC_INTERNAL)
@@ -76,39 +79,21 @@ public class PrivilegesEvaluatorTest {
     @Test
     public void testSearchTemplateRequestSuccess() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
-            assertThat(
-                client.getWithJsonBody(
-                    "services/_search/template",
-                    "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
-                ).getStatusCode(),
-                equalTo(HttpStatus.SC_OK)
-            );
+            assertThat(client.getWithJsonBody("services/_search/template", TEST_QUERY).getStatusCode(), equalTo(HttpStatus.SC_OK));
         }
     }
 
     @Test
     public void testSearchTemplateRequestUnauthorizedIndex() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
-            assertThat(
-                client.getWithJsonBody(
-                    "movies/_search/template",
-                    "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
-                ).getStatusCode(),
-                equalTo(HttpStatus.SC_FORBIDDEN)
-            );
+            assertThat(client.getWithJsonBody("movies/_search/template", TEST_QUERY).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 
     @Test
     public void testSearchTemplateRequestUnauthorizedAllIndices() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
-            assertThat(
-                client.getWithJsonBody(
-                    "_search/template",
-                    "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
-                ).getStatusCode(),
-                equalTo(HttpStatus.SC_FORBIDDEN)
-            );
+            assertThat(client.getWithJsonBody("_search/template", TEST_QUERY).getStatusCode(), equalTo(HttpStatus.SC_FORBIDDEN));
         }
     }
 }
