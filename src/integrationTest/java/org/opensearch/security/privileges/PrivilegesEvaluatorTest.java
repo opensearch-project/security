@@ -45,7 +45,7 @@ public class PrivilegesEvaluatorTest {
     );
 
     protected final static TestSecurityConfig.User SEARCH_TEMPLATE = new TestSecurityConfig.User("search_template_user").roles(
-        new Role("search_template_role").indexPermissions("read").on("/^[a-z].*/").clusterPermissions("indices:data/read/search/template")
+        new Role("search_template_role").indexPermissions("read").on("services")
     );
 
     @ClassRule
@@ -74,14 +74,40 @@ public class PrivilegesEvaluatorTest {
     }
 
     @Test
-    public void testSearchTemplateRequest() {
+    public void testSearchTemplateRequestSuccess() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
             assertThat(
                 client.getWithJsonBody(
-                    "r*/_search/template",
+                    "services/_search/template",
                     "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
                 ).getStatusCode(),
                 equalTo(HttpStatus.SC_OK)
+            );
+        }
+    }
+
+    @Test
+    public void testSearchTemplateRequestUnauthorizedIndex() {
+        try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
+            assertThat(
+                    client.getWithJsonBody(
+                            "movies/_search/template",
+                            "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
+                    ).getStatusCode(),
+                    equalTo(HttpStatus.SC_FORBIDDEN)
+            );
+        }
+    }
+
+    @Test
+    public void testSearchTemplateRequestUnauthorizedAllIndices() {
+        try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
+            assertThat(
+                    client.getWithJsonBody(
+                            "_search/template",
+                            "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
+                    ).getStatusCode(),
+                    equalTo(HttpStatus.SC_FORBIDDEN)
             );
         }
     }
