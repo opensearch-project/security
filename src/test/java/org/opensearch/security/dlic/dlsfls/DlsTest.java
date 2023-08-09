@@ -35,6 +35,13 @@ public class DlsTest extends AbstractDlsFlsTest {
             new IndexRequest("deals").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"amount\": 1500}", XContentType.JSON)
         ).actionGet();
 
+        tc.index(
+            new IndexRequest("terms").id("0").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"foo\": \"bar\"}", XContentType.JSON)
+        ).actionGet();
+        tc.index(
+            new IndexRequest("terms").id("1").setRefreshPolicy(RefreshPolicy.IMMEDIATE).source("{\"foo\": \"baz\"}", XContentType.JSON)
+        ).actionGet();
+
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
@@ -44,6 +51,7 @@ public class DlsTest extends AbstractDlsFlsTest {
         System.out.println("q");
         System.out.println(Strings.toString(XContentType.JSON, tc.search(new SearchRequest().indices(".opendistro_security")).actionGet()));
         tc.search(new SearchRequest().indices("deals")).actionGet();
+        tc.search(new SearchRequest().indices("terms")).actionGet();
     }
 
     @Test
@@ -249,6 +257,32 @@ public class DlsTest extends AbstractDlsFlsTest {
         Assert.assertTrue(res.getBody().contains("amount"));
         Assert.assertTrue(res.getBody().contains("\"found\" : false"));
 
+    }
+
+    @Test
+    public void testDlsWithTermsQuery() throws Exception {
+
+        setup();
+
+        HttpResponse res;
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/terms/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
+        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
+        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
+
+        Assert.assertEquals(
+            HttpStatus.SC_OK,
+            (res = rh.executeGetRequest("/terms/_doc/0", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
+        );
+        Assert.assertTrue(res.getBody().contains("\"foo\": \"bar\""));
+
+        Assert.assertEquals(
+            HttpStatus.SC_NOT_FOUND,
+            rh.executeGetRequest("/terms/_doc/1", encodeBasicHeader("dept_manager", "password")).getStatusCode()
+        );
     }
 
     @Test
