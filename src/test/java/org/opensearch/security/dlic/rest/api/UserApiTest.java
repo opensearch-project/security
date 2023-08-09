@@ -29,10 +29,17 @@ import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.test.helper.file.FileHelper;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
+import org.opensearch.security.user.UserService;
+import org.passay.CharacterCharacteristicsRule;
+import org.passay.CharacterRule;
+import org.passay.EnglishCharacterData;
+import org.passay.LengthRule;
+import org.passay.PasswordData;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotEquals;
 import static org.opensearch.security.OpenSearchSecurityPlugin.PLUGINS_PREFIX;
 import static org.opensearch.security.dlic.rest.api.InternalUsersApiAction.RESTRICTED_FROM_USERNAME;
 import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_ADMIN_ENABLED;
@@ -1004,4 +1011,30 @@ public class UserApiTest extends AbstractRestApiUnitTest {
         Assert.assertEquals(RequestContentValidator.ValidationError.NULL_ARRAY_ELEMENT.message(), settings.get("reason"));
     }
 
+    @Test
+    public void testGeneratedPasswordContents() {
+        String password = UserService.generatePassword();
+        PasswordData data = new PasswordData(password);
+
+        LengthRule lengthRule = new LengthRule(8, 16);
+
+        CharacterCharacteristicsRule characteristicsRule = new CharacterCharacteristicsRule();
+
+        // Define M (3 in this case)
+        characteristicsRule.setNumberOfCharacteristics(3);
+
+        // Define elements of N (upper, lower, digit, symbol)
+        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.UpperCase, 1));
+        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.LowerCase, 1));
+        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.Digit, 1));
+        characteristicsRule.getRules().add(new CharacterRule(EnglishCharacterData.Special, 1));
+
+        org.passay.PasswordValidator validator = new org.passay.PasswordValidator(lengthRule, characteristicsRule);
+        validator.validate(data);
+
+        String password2 = UserService.generatePassword();
+        PasswordData data2 = new PasswordData(password2);
+        assertNotEquals(password, password2);
+        assertNotEquals(data, data2);
+    }
 }
