@@ -90,11 +90,11 @@ public class PrivilegesEvaluatorTest {
     public void testSearchTemplateRequestUnauthorizedIndex() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
             assertThat(
-                    client.getWithJsonBody(
-                            "movies/_search/template",
-                            "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
-                    ).getStatusCode(),
-                    equalTo(HttpStatus.SC_FORBIDDEN)
+                client.getWithJsonBody(
+                    "movies/_search/template",
+                    "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
+                ).getStatusCode(),
+                equalTo(HttpStatus.SC_FORBIDDEN)
             );
         }
     }
@@ -103,11 +103,11 @@ public class PrivilegesEvaluatorTest {
     public void testSearchTemplateRequestUnauthorizedAllIndices() {
         try (TestRestClient client = cluster.getRestClient(SEARCH_TEMPLATE)) {
             assertThat(
-                    client.getWithJsonBody(
-                            "_search/template",
-                            "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
-                    ).getStatusCode(),
-                    equalTo(HttpStatus.SC_FORBIDDEN)
+                client.getWithJsonBody(
+                    "_search/template",
+                    "{\"source\":{\"query\":{\"match\":{\"service\":\"{{service_name}}\"}}},\"params\":{\"service_name\":\"Oracle\"}}"
+                ).getStatusCode(),
+                equalTo(HttpStatus.SC_FORBIDDEN)
             );
         }
     }
