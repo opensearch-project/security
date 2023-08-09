@@ -270,14 +270,14 @@ public class DlsTest extends AbstractDlsFlsTest {
             HttpStatus.SC_OK,
             (res = rh.executeGetRequest("/terms/_search?pretty", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
         );
-        Assert.assertTrue(res.getBody().contains("\"value\" : 1,\n      \"relation"));
-        Assert.assertTrue(res.getBody().contains("\"failed\" : 0"));
+        Assert.assertEquals(res.getTextFromJsonBody("/hits/total/value"), "1");
+        Assert.assertEquals(res.getTextFromJsonBody("/_shards/failed"), "0");
 
         Assert.assertEquals(
             HttpStatus.SC_OK,
             (res = rh.executeGetRequest("/terms/_doc/0", encodeBasicHeader("dept_manager", "password"))).getStatusCode()
         );
-        Assert.assertTrue(res.getBody().contains("\"foo\": \"bar\""));
+        Assert.assertEquals(res.getTextFromJsonBody("/_source/foo"), "bar");
 
         Assert.assertEquals(
             HttpStatus.SC_NOT_FOUND,
