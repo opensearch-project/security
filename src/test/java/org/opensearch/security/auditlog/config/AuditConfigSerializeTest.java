@@ -11,6 +11,10 @@
 
 package org.opensearch.security.auditlog.config;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.EnumSet;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Test;
+
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -26,10 +31,6 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.EnumSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

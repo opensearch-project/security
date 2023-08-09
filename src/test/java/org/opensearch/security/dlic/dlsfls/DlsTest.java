@@ -20,8 +20,8 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
-import org.opensearch.core.common.Strings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.security.test.helper.rest.RestHelper.HttpResponse;
 
 public class DlsTest extends AbstractDlsFlsTest {

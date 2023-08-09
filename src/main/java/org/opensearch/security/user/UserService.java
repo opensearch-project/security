@@ -13,12 +13,12 @@ package org.opensearch.security.user;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,6 +33,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.Randomness;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentHelper;
@@ -46,6 +47,9 @@ import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
 import org.opensearch.security.securityconf.impl.v7.InternalUserV7;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.SecurityJsonNode;
+import org.passay.CharacterRule;
+import org.passay.EnglishCharacterData;
+import org.passay.PasswordGenerator;
 
 import static org.opensearch.security.dlic.rest.support.Utils.hash;
 
@@ -207,13 +211,28 @@ public class UserService {
     }
 
     /**
-     * This will be swapped in for a real solution once one is decided on.
+     * Use Passay to generate an 8 - 16 character password with 1+ lowercase, 1+ uppercase, 1+ digit, 1+ special character
      *
      * @return A password for a service account.
      */
-    private String generatePassword() {
-        String generatedPassword = "superSecurePassword";
-        return generatedPassword;
+    public static String generatePassword() {
+
+        CharacterRule lowercaseCharacterRule = new CharacterRule(EnglishCharacterData.LowerCase, 1);
+        CharacterRule uppercaseCharacterRule = new CharacterRule(EnglishCharacterData.UpperCase, 1);
+        CharacterRule numericCharacterRule = new CharacterRule(EnglishCharacterData.Digit, 1);
+        CharacterRule specialCharacterRule = new CharacterRule(EnglishCharacterData.Special, 1);
+
+        List<CharacterRule> rules = Arrays.asList(
+            lowercaseCharacterRule,
+            uppercaseCharacterRule,
+            numericCharacterRule,
+            specialCharacterRule
+        );
+        PasswordGenerator passwordGenerator = new PasswordGenerator();
+
+        Random random = Randomness.get();
+
+        return passwordGenerator.generatePassword(random.nextInt(8) + 8, rules);
     }
 
     /**
