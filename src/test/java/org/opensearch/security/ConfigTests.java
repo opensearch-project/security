@@ -27,7 +27,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.opensearch.common.Strings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.securityconf.Migration;

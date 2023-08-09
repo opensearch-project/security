@@ -25,7 +25,6 @@ import org.junit.Test;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.security.DefaultObjectMapper;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
 import org.opensearch.security.dlic.rest.validation.PasswordValidator;
 import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.securityconf.impl.CType;

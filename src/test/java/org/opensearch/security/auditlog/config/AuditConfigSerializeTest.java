@@ -11,10 +11,6 @@
 
 package org.opensearch.security.auditlog.config;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.EnumSet;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,8 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -32,6 +26,10 @@ import org.opensearch.security.auditlog.impl.AuditCategory;
 import org.opensearch.security.compliance.ComplianceConfig;
 import org.opensearch.security.support.ConfigConstants;
 import org.opensearch.security.support.WildcardMatcher;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.EnumSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -88,7 +86,7 @@ public class AuditConfigSerializeTest {
             .endObject()
             .endObject();
 
-        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
+        assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
     @Test
@@ -148,7 +146,7 @@ public class AuditConfigSerializeTest {
             .field("write_ignore_users", Collections.singletonList("test-user-3"))
             .endObject()
             .endObject();
-        final String json = Strings.toString(jsonBuilder);
+        final String json = jsonBuilder.toString();
 
         // act
         final AuditConfig auditConfig = objectMapper.readValue(json, AuditConfig.class);
@@ -246,7 +244,7 @@ public class AuditConfigSerializeTest {
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
+        assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
     @Test
@@ -288,7 +286,7 @@ public class AuditConfigSerializeTest {
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
+        assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
     @Test
@@ -348,7 +346,7 @@ public class AuditConfigSerializeTest {
             .field("write_log_diffs", false)
             .endObject()
             .endObject();
-        final String json = Strings.toString(jsonBuilder);
+        final String json = jsonBuilder.toString();
 
         // act
         final AuditConfig auditConfig = customObjectMapper.readValue(json, AuditConfig.class);

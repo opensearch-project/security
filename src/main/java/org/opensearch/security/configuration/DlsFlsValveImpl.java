@@ -48,7 +48,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.Strings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
