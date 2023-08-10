@@ -30,7 +30,7 @@ buildscript {
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.11.5'
-        guava_version = '32.1.1-jre'
+        guava_version = '32.1.2-jre'
         jaxb_version = '2.3.8'
 
         if (buildVersionQualifier) {
