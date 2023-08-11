@@ -93,6 +93,7 @@ public class MigrateApiAction extends AbstractApiAction {
         AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(this::migrateApiRequestHandlers);
     }
 
     @Override
@@ -114,8 +115,7 @@ public class MigrateApiAction extends AbstractApiAction {
         return true;
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void migrateApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.allMethodsNotImplemented().override(Method.POST, (channel, request, client) -> migrate(channel, client));
     }
 

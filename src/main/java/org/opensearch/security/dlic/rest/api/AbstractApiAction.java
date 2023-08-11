@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -88,7 +89,9 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     protected final AuditLog auditLog;
     protected final Settings settings;
 
-    private final Map<Method, RequestHandler> requestHandlers;
+    private Map<Method, RequestHandler> requestHandlers;
+
+    protected final RequestHandler.RequestHandlersBuilder requestHandlersBuilder;
 
     protected AbstractApiAction(
         final Settings settings,
@@ -128,22 +131,18 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             settings.getAsBoolean(SECURITY_RESTAPI_ADMIN_ENABLED, false)
         );
         this.auditLog = auditLog;
-        this.requestHandlers = buildRequestHandlers();
+        this.requestHandlersBuilder = new RequestHandler.RequestHandlersBuilder();
+        this.requestHandlersBuilder.configureRequestHandlers(this::buildDefaultRequestHandlers);
     }
 
-    private Map<Method, RequestHandler> buildRequestHandlers() {
-        final var requestHandlersBuilder = new RequestHandler.RequestHandlersBuilder();
-        requestHandlersBuilder.withAccessHandler(request -> isSuperAdmin())
+    private void buildDefaultRequestHandlers(final RequestHandler.RequestHandlersBuilder builder) {
+        builder.withAccessHandler(request -> isSuperAdmin())
             .withSaveOrUpdateConfigurationHandler(this::saveOrUpdateConfiguration)
             .add(Method.POST, methodNotImplementedHandler)
             .onGetRequest(this::processGetRequest)
             .onChangeRequest(Method.DELETE, this::processDeleteRequest)
             .onChangeRequest(Method.PUT, this::processPutRequest);
-        configureRequestHandlers(requestHandlersBuilder);
-        return requestHandlersBuilder.build();
     }
-
-    protected void configureRequestHandlers(final RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {}
 
     protected final ValidationResult<SecurityConfiguration> processDeleteRequest(final RestRequest request) throws IOException {
         return withRequiredResourceName(request).map(name -> loadSecurityConfiguration(name, false))
@@ -312,20 +311,20 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     protected abstract CType getConfigName();
 
     protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
-
+        final var handlers = Optional.ofNullable(requestHandlers).orElseGet(requestHandlersBuilder::build);
         try {
             switch (request.method()) {
                 case DELETE:
-                    requestHandlers.get(Method.DELETE).handle(channel, request, client);
+                    handlers.get(Method.DELETE).handle(channel, request, client);
                     break;
                 case POST:
-                    requestHandlers.get(Method.POST).handle(channel, request, client);
+                    handlers.get(Method.POST).handle(channel, request, client);
                     break;
                 case PUT:
-                    requestHandlers.get(Method.PUT).handle(channel, request, client);
+                    handlers.get(Method.PUT).handle(channel, request, client);
                     break;
                 case GET:
-                    requestHandlers.get(Method.GET).handle(channel, request, client);
+                    handlers.get(Method.GET).handle(channel, request, client);
                     break;
                 default:
                     throw new IllegalArgumentException(request.method() + " not supported");

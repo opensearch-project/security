@@ -52,6 +52,7 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
         AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(this::authTokenProcessorRequestHandlers);
     }
 
     @Override
@@ -68,8 +69,7 @@ public class AuthTokenProcessorAction extends AbstractApiAction {
         return routes;
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    protected void authTokenProcessorRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.allMethodsNotImplemented().override(Method.POST, (channel, request, client) -> ok(channel, ""));
     }
 

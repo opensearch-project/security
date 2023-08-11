@@ -85,6 +85,7 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
         this.securityKeyStore = securityKeyStore;
         this.certificatesReloadEnabled = certificatesReloadEnabled;
         this.httpsEnabled = settings.getAsBoolean(SSLConfigConstants.SECURITY_SSL_HTTP_ENABLED, true);
+        this.requestHandlersBuilder.configureRequestHandlers(this::securitySSLCertsRequestHandlers);
     }
 
     @Override
@@ -101,8 +102,7 @@ public class SecuritySSLCertsAction extends AbstractApiAction {
         return ROUTES;
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void securitySSLCertsRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
         requestHandlersBuilder.withAccessHandler(this::accessHandler)
             .allMethodsNotImplemented()

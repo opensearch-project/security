@@ -104,6 +104,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
         AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(this::allowlistApiRequestHandlers);
     }
 
     @Override
@@ -124,8 +125,7 @@ public class AllowlistApiAction extends PatchableResourceApiAction {
         super.handleApiRequest(channel, request, client);
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void allowlistApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.verifyAccessForAllMethods()
             .onChangeRequest(RestRequest.Method.PUT, request -> loadSecurityConfigurationWithRequestContent(RESOURCE_NAME, request))
             .override(RestRequest.Method.DELETE, methodNotImplementedHandler);

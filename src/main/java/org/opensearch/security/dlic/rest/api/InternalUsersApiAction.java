@@ -100,6 +100,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         this.userService = userService;
+        this.requestHandlersBuilder.configureRequestHandlers(this::internalUsersApiRequestHandlers);
     }
 
     @Override
@@ -131,8 +132,7 @@ public class InternalUsersApiAction extends PatchableResourceApiAction {
         return CType.INTERNALUSERS;
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void internalUsersApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
         // Overrides the GET request functionality to allow for the special case of requesting an auth token.
         requestHandlersBuilder

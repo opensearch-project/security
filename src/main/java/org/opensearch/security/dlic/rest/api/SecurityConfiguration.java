@@ -12,10 +12,10 @@
 package org.opensearch.security.dlic.rest.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentHelper;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.dlic.rest.support.Utils;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;

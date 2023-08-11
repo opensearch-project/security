@@ -47,7 +47,7 @@ import static org.opensearch.security.dlic.rest.api.Responses.badRequestMessage;
 import static org.opensearch.security.dlic.rest.api.Responses.methodNotImplementedMessage;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
-public class SecurityConfigAction extends PatchableResourceApiAction {
+public class SecurityConfigApiAction extends PatchableResourceApiAction {
 
     private static final List<Route> getRoutes = addRoutesPrefix(Collections.singletonList(new Route(Method.GET, "/securityconfig/")));
 
@@ -60,7 +60,7 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
     private final boolean allowPutOrPatch;
 
     @Inject
-    public SecurityConfigAction(
+    public SecurityConfigApiAction(
         final Settings settings,
         final Path configPath,
         final RestController controller,
@@ -76,6 +76,7 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
 
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         allowPutOrPatch = settings.getAsBoolean(ConfigConstants.SECURITY_UNSUPPORTED_RESTAPI_ALLOW_SECURITYCONFIG_MODIFICATION, false);
+        this.requestHandlersBuilder.configureRequestHandlers(this::securityConfigApiActionRequestHandlers);
     }
 
     @Override
@@ -117,8 +118,7 @@ public class SecurityConfigAction extends PatchableResourceApiAction {
         }
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void securityConfigApiActionRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.onChangeRequest(Method.PUT, request -> {
             if (!allowPutOrPatch) {
                 return ValidationResult.error(RestStatus.NOT_IMPLEMENTED, methodNotImplementedMessage(request.method()));

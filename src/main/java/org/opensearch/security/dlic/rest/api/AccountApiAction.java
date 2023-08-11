@@ -88,6 +88,7 @@ public class AccountApiAction extends AbstractApiAction {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, privilegesEvaluator, threadPool, auditLog);
         this.privilegesEvaluator = privilegesEvaluator;
         this.threadContext = threadPool.getThreadContext();
+        this.requestHandlersBuilder.configureRequestHandlers(this::accountApiRequestHandlers);
     }
 
     @Override
@@ -119,8 +120,7 @@ public class AccountApiAction extends AbstractApiAction {
         return CType.INTERNALUSERS;
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void accountApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
         requestHandlersBuilder.allMethodsNotImplemented()
             .override(Method.GET, (channel, request, client) ->

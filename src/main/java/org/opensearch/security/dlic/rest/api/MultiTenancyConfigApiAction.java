@@ -96,6 +96,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
         final AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(this::multiTenancyConfigApiRequestHandlers);
     }
 
     @Override
@@ -148,8 +149,7 @@ public class MultiTenancyConfigApiAction extends AbstractApiAction {
             .endObject();
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void multiTenancyConfigApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.allMethodsNotImplemented()
             .override(GET, (channel, request, client) -> loadConfiguration(getConfigName(), false).valid(configuration -> {
                 final var config = (ConfigV7) configuration.getCEntry(CType.CONFIG.toLCString());

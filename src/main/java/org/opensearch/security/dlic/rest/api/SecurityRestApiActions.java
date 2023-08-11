@@ -127,7 +127,7 @@ public class SecurityRestApiActions {
             )
         );
         handlers.add(
-            new SecurityConfigAction(
+            new SecurityConfigApiAction(
                 settings,
                 configPath,
                 controller,

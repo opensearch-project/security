@@ -232,6 +232,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
         } catch (IOException e) {
             throw new StaticResourceException("Unable to load audit static resource file", e);
         }
+        this.requestHandlersBuilder.configureRequestHandlers(this::auditApiRequestHandlers);
     }
 
     @Override
@@ -274,8 +275,7 @@ public class AuditApiAction extends PatchableResourceApiAction {
         return CType.AUDIT;
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void auditApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
         requestHandlersBuilder
                 .onGetRequest(request ->

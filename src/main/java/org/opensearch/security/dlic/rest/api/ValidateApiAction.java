@@ -71,6 +71,7 @@ public class ValidateApiAction extends AbstractApiAction {
         AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(this::validateApiRequestHandlers);
     }
 
     @Override
@@ -92,8 +93,7 @@ public class ValidateApiAction extends AbstractApiAction {
         return Endpoint.VALIDATE;
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void validateApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.allMethodsNotImplemented().override(Method.GET, (channel, request, client) -> validate(channel, request));
     }
 

@@ -70,6 +70,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
         AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(this::flushCacheApiRequestHandlers);
     }
 
     @Override
@@ -91,8 +92,7 @@ public class FlushCacheApiAction extends AbstractApiAction {
         return Endpoint.CACHE;
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void flushCacheApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         requestHandlersBuilder.allMethodsNotImplemented().override(Method.DELETE, (channel, request, client) -> {
             client.execute(
                 ConfigUpdateAction.INSTANCE,

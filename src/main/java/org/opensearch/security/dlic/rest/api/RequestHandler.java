@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static org.opensearch.security.dlic.rest.api.Responses.created;
@@ -216,6 +217,10 @@ public interface RequestHandler {
             }
             // spotless:on
             return this;
+        }
+
+        public void configureRequestHandlers(final Consumer<RequestHandlersBuilder> requestHandlersBuilderHandler) {
+            requestHandlersBuilderHandler.accept(this);
         }
 
         public Map<RestRequest.Method, RequestHandler> build() {

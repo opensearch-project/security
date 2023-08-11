@@ -92,6 +92,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
         this.staticNodesDnFromEsYml = settings.getAsList(ConfigConstants.SECURITY_NODES_DN, Collections.emptyList());
+        this.requestHandlersBuilder.configureRequestHandlers(this::nodesDnApiRequestHandlers);
     }
 
     @Override
@@ -125,8 +126,7 @@ public class NodesDnApiAction extends PatchableResourceApiAction {
         request.param("show_all");
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void nodesDnApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
         requestHandlersBuilder.verifyAccessForAllMethods()
                 .onChangeRequest(Method.PUT, request ->

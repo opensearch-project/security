@@ -69,10 +69,10 @@ public class RolesMappingApiAction extends PatchableResourceApiAction {
         AuditLog auditLog
     ) {
         super(settings, configPath, controller, client, adminDNs, cl, cs, principalExtractor, evaluator, threadPool, auditLog);
+        this.requestHandlersBuilder.configureRequestHandlers(this::rolesMappingApiRequestHandlers);
     }
 
-    @Override
-    protected void configureRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
+    private void rolesMappingApiRequestHandlers(RequestHandler.RequestHandlersBuilder requestHandlersBuilder) {
         // spotless:off
         requestHandlersBuilder
                 .onChangeRequest(Method.PUT, request ->
