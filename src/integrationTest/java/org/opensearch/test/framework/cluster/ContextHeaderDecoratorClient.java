@@ -12,9 +12,9 @@ package org.opensearch.test.framework.cluster;
 import java.util.Collections;
 import java.util.Map;
 
-import org.opensearch.action.ActionListener;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.ActionRequest;
-import org.opensearch.action.ActionResponse;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.client.Client;
