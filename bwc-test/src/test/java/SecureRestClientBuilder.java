@@ -190,8 +190,7 @@ public class SecureRestClientBuilder {
         builder.setRequestConfigCallback(new RestClientBuilder.RequestConfigCallback() {
             @Override
             public RequestConfig.Builder customizeRequestConfig(RequestConfig.Builder requestConfigBuilder) {
-                return requestConfigBuilder
-                    .setConnectTimeout(Timeout.ofMilliseconds(defaultConnectTimeOutMSecs))
+                return requestConfigBuilder.setConnectTimeout(Timeout.ofMilliseconds(defaultConnectTimeOutMSecs))
                     .setResponseTimeout(Timeout.ofMilliseconds(defaultSoTimeoutMSecs))
                     .setConnectionRequestTimeout(Timeout.ofMilliseconds(defaultConnRequestTimeoutMSecs));
             }
@@ -208,8 +207,7 @@ public class SecureRestClientBuilder {
             @Override
             public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
                 if (sslContext != null) {
-                    TlsStrategy tlsStrategy = ClientTlsStrategyBuilder
-                        .create()
+                    TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
                         .setSslContext(sslContext)
                         // See please https://issues.apache.org/jira/browse/HTTPCLIENT-2219
                         .setTlsDetailsFactory(new Factory<SSLEngine, TlsDetails>() {
@@ -219,8 +217,7 @@ public class SecureRestClientBuilder {
                             }
                         })
                         .build();
-                    PoolingAsyncClientConnectionManager connectionManager = PoolingAsyncClientConnectionManagerBuilder
-                        .create()
+                    PoolingAsyncClientConnectionManager connectionManager = PoolingAsyncClientConnectionManagerBuilder.create()
                         .setTlsStrategy(tlsStrategy)
                         .setMaxConnPerRoute(defaultMaxConnPerRoute)
                         .setMaxConnTotal(defaultMaxConnTotal)
@@ -260,8 +257,7 @@ public class SecureRestClientBuilder {
     }
 
     private CredentialsProvider createCredsProvider() {
-        if (Strings.isNullOrEmpty(user) || Strings.isNullOrEmpty(passwd))
-            return null;
+        if (Strings.isNullOrEmpty(user) || Strings.isNullOrEmpty(passwd)) return null;
 
         final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(new AuthScope(null, -1), new UsernamePasswordCredentials(user, passwd.toCharArray()));

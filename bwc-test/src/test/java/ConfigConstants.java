@@ -40,16 +40,14 @@ public class ConfigConstants {
         return new Setting<>(key, (settings) -> "", (strValue) -> new SecureString(strValue.toCharArray()));
     }
 
-    public static final Setting<SecureString> OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD_SETTING = SecureSetting
-        .secureString(
-            OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD + SECURE_SUFFIX,
-            createFallbackInsecureSetting(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD)
-        );
-    public static final Setting<SecureString> OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD_SETTING = SecureSetting
-        .secureString(
-            OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD + SECURE_SUFFIX,
-            createFallbackInsecureSetting(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD)
-        );
+    public static final Setting<SecureString> OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD_SETTING = SecureSetting.secureString(
+        OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD + SECURE_SUFFIX,
+        createFallbackInsecureSetting(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_PASSWORD)
+    );
+    public static final Setting<SecureString> OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD_SETTING = SecureSetting.secureString(
+        OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD + SECURE_SUFFIX,
+        createFallbackInsecureSetting(OPENSEARCH_SECURITY_SSL_HTTP_KEYSTORE_KEYPASSWORD)
+    );
     public static final String OPENSEARCH_SECURITY_INJECTED_ROLES = "opendistro_security_injected_roles";
     public static final String INJECTED_USER = "injected_user";
     public static final String OPENSEARCH_SECURITY_USE_INJECTED_USER_FOR_PLUGINS = "plugins.security_use_injected_user_for_plugins";

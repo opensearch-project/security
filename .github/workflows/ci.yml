@@ -150,7 +150,7 @@ jobs:
           security_plugin_version_no_snapshot=$(echo $security_plugin_version | sed 's/-SNAPSHOT//g')
           security_plugin_version_only_number=$(echo $security_plugin_version_no_snapshot | cut -d- -f1)
           test_qualifier=alpha2
-          
+
           echo "SECURITY_PLUGIN_VERSION=$security_plugin_version" >> $GITHUB_ENV
           echo "SECURITY_PLUGIN_VERSION_NO_SNAPSHOT=$security_plugin_version_no_snapshot" >> $GITHUB_ENV
           echo "SECURITY_PLUGIN_VERSION_ONLY_NUMBER=$security_plugin_version_only_number" >> $GITHUB_ENV

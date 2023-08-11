@@ -29,10 +29,7 @@ import java.util.Map;
 
 import org.apache.hc.core5.http.HttpHost;
 
-import org.opensearch.client.Request;
-import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
-import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.io.PathUtils;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.commons.rest.SecureRestClientBuilder;
@@ -67,7 +64,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     }
 
     // Many changes from SecurityRestTestCase which replaces the rest client, not sure if this works
-    //   ../src/test/java/org/opensearch/security/sanity/tests/SecurityRestTestCase.java
+    // ../src/test/java/org/opensearch/security/sanity/tests/SecurityRestTestCase.java
     /** START SecurityRestTestCase */
     private static final String SECURITY_SSL_HTTP_ENABLED = "plugins.security.ssl.http.enabled";
     private static final String SECURITY_SSL_HTTP_CLIENTAUTH_MODE = "plugins.security.ssl.http.clientauth_mode";
@@ -103,9 +100,7 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
             // create adminDN (super-admin) client
             File file = new File(getClass().getClassLoader().getResource(".").getFile());
             Path configPath = PathUtils.get(file.toURI()).getParent().toAbsolutePath();
-            return new SecureRestClientBuilder(settings, configPath).setSocketTimeout(60000)
-                .setConnectionRequestTimeout(180000)
-                .build();
+            return new SecureRestClientBuilder(settings, configPath).setSocketTimeout(60000).setConnectionRequestTimeout(180000).build();
         }
 
         // TODO: These should be part of the test properties
@@ -119,7 +114,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
     }
 
     /** END FROM SecurityRestTestCase */
-
 
     public void testBasicBackwardsCompatibility() throws Exception {
         String round = System.getProperty("tests.rest.bwcsuite_round");
@@ -161,7 +155,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         // ./security/bwc-test/build/testclusters/securityBwcCluster1-2/logs/opensearch.stdout.log
         // TODO: Make an issue about capturing the output from these cases better, even when they pass.
         fail("Testing output from typical run");
-
 
         // As written this test isn't using a user to make the call to _nodes, maybe as part of setup this is
         // handled, but we need a way to switch between different user accounts during the test.
