@@ -34,6 +34,12 @@ import org.opensearch.common.io.PathUtils;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.commons.rest.SecureRestClientBuilder;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
+import java.nio.file.Path;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Arrays;
+import java.util.Collection;
+import org.opensearch.SpecialPermission;
 
 public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
@@ -63,6 +69,12 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         return true;
     }
 
+    // otherwise the generated urls are http://clustername...:port.../
+    @Override
+    protected String getProtocol() {
+        return "https";
+    }
+
     // Many changes from SecurityRestTestCase which replaces the rest client, not sure if this works
     // ../src/test/java/org/opensearch/security/sanity/tests/SecurityRestTestCase.java
     /** START SecurityRestTestCase */
@@ -83,14 +95,40 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         return Settings.builder()
             .put("http.port", 9200)
             .put(SECURITY_SSL_HTTP_ENABLED, "true")
-            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, "opensearch-node.pem")
-            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, "opensearch-node-key.pem")
+            .put(SECURITY_SSL_HTTP_PEMCERT_FILEPATH, "esnode.pem")
+            .put(SECURITY_SSL_HTTP_PEMKEY_FILEPATH, "esnode-key.pem")
             .put(SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH, "root-ca.pem")
-            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, "test-kirk.jks")
+            // Tried to  use this, but I think the one I grabbed from ${GIT_ROOT}/src/test/resources might need to be modified?
+//            .put(SECURITY_SSL_HTTP_KEYSTORE_FILEPATH, "kirk-keystore.jks")
             .put("plugins.security.ssl.http.keystore_password", "changeit")
             .put("plugins.security.ssl.http.keystore_keypassword", "changeit")
             .build();
     }
+
+
+    // Disabled security manager and didn't follow through if this was needed/not
+    // @Override
+    // protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
+    //     System.out.println("What are the hosts" + Arrays.stream(hosts).map(h -> h.toHostString()).collect(Collectors.joining(",")));
+
+    //     final SecurityManager sm = System.getSecurityManager();
+
+    //     if (sm != null) {
+    //         sm.checkPermission(new SpecialPermission());
+    //     }
+
+    //     final RestClient client = AccessController.doPrivileged(new PrivilegedAction<RestClient>() {
+    //         @Override
+    //         public RestClient run() {
+    //             try {
+    //                 return buildClient0(settings, hosts);
+    //             } catch (IOException ioe) {
+    //                 throw new RuntimeException(ioe);
+    //             }
+    //         }
+    //     });
+    //     return client;
+    // }
 
     @Override
     protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
@@ -98,15 +136,17 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
 
         if (keystore != null) {
             // create adminDN (super-admin) client
-            File file = new File(getClass().getClassLoader().getResource(".").getFile());
-            Path configPath = PathUtils.get(file.toURI()).getParent().toAbsolutePath();
+            // TODO: Don't know that this was needed - uses admin cert?, but the resolution of this path wasn't correct
+            File file = new File("/home/petern/git/security/bwc-test/src/test/resources/security/");
+            Path configPath = PathUtils.get(file.toURI()).toAbsolutePath();
             return new SecureRestClientBuilder(settings, configPath).setSocketTimeout(60000).setConnectionRequestTimeout(180000).build();
         }
 
         // TODO: These should be part of the test properties
         // create client with passed user
-        String userName = System.getProperty("user");
-        String password = System.getProperty("password");
+        // TODO: updated property reference
+        String userName = System.getProperty("tests.opensearch.username");
+        String password = System.getProperty("tests.opensearch.password");
 
         return new SecureRestClientBuilder(hosts, true, userName, password).setSocketTimeout(60000)
             .setConnectionRequestTimeout(180000)
@@ -154,7 +194,6 @@ public class SecurityBackwardsCompatibilityIT extends OpenSearchRestTestCase {
         // ./security/bwc-test/build/testclusters/securityBwcCluster1-1/logs/opensearch.stdout.log
         // ./security/bwc-test/build/testclusters/securityBwcCluster1-2/logs/opensearch.stdout.log
         // TODO: Make an issue about capturing the output from these cases better, even when they pass.
-        fail("Testing output from typical run");
 
         // As written this test isn't using a user to make the call to _nodes, maybe as part of setup this is
         // handled, but we need a way to switch between different user accounts during the test.

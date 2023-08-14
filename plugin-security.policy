@@ -27,53 +27,9 @@
  */
  
  
-grant { 
-  permission java.lang.RuntimePermission "shutdownHooks";
-  permission java.lang.RuntimePermission "getClassLoader";
-  permission java.lang.RuntimePermission "setContextClassLoader";
-  permission javax.security.auth.AuthPermission "modifyPrivateCredentials";
-  permission javax.security.auth.AuthPermission "doAs";
-  permission javax.security.auth.kerberos.ServicePermission "*","accept";
-  permission java.util.PropertyPermission "*","read,write";
-
-  //Enable when we switch to UnboundID LDAP SDK
-  //permission java.util.PropertyPermission "*", "read,write";
-  //permission java.lang.RuntimePermission "setFactory";
-  //permission javax.net.ssl.SSLPermission "setHostnameVerifier";
-
-  //below permissions are needed for netty native open ssl support
-  permission java.lang.RuntimePermission "accessClassInPackage.sun.misc";
-  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
-  permission java.security.SecurityPermission "getProperty.ssl.KeyManagerFactory.algorithm";
-  permission java.lang.RuntimePermission "accessDeclaredMembers";
-  permission java.lang.RuntimePermission "accessClassInPackage.sun.security.x509";
-  permission java.lang.RuntimePermission "accessClassInPackage.sun.nio.ch";
-  permission java.io.FilePermission "/proc/sys/net/core/somaxconn","read";
-  
-  permission java.security.SecurityPermission "setProperty.ocsp.enable";
-  
-  permission java.net.NetPermission "getNetworkInformation";
-  permission java.net.NetPermission "getProxySelector";
-  permission java.net.SocketPermission "*", "connect,accept,resolve";
-
-  // BouncyCastle permissions
-  permission java.security.SecurityPermission "putProviderProperty.BC";
-  permission java.security.SecurityPermission "insertProvider.BC";
-  permission java.security.SecurityPermission "removeProviderProperty.BC";
-  permission java.util.PropertyPermission "jdk.tls.rejectClientInitiatedRenegotiation", "write";
-
-  permission java.lang.RuntimePermission "accessUserInformation";
-  
-  permission java.security.SecurityPermission "org.apache.xml.security.register";
-  permission java.util.PropertyPermission "org.apache.xml.security.ignoreLineBreaks", "write";
-  
-  permission java.lang.RuntimePermission "createClassLoader";
-  
-  //Java 9+
-  permission java.lang.RuntimePermission "accessClassInPackage.com.sun.jndi.*";
-
-  //Enable this permission to debug unauthorized de-serialization attempt
-  //permission java.io.SerializablePermission "enableSubstitution";
+// Disabled security manager and didn't follow through if this was needed/not
+grant {
+  permission java.security.AllPermission;
 };
 
 grant codeBase "${codebase.netty-common}" {

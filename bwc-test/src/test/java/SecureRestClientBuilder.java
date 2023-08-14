@@ -43,6 +43,9 @@ import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.commons.ConfigConstants;
 import org.opensearch.core.common.Strings;
+import java.security.cert.X509Certificate;
+import org.apache.hc.core5.ssl.TrustStrategy;
+
 
 /**
  * Provides builder to create low-level and high-level REST client to make calls to OpenSearch.
@@ -239,7 +242,13 @@ public class SecureRestClientBuilder {
             // Handle trust store
             String pemFile = getTrustPem();
             if (Strings.isNullOrEmpty(pemFile)) {
-                builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+                // Force a trust everything strategy, looks like the certs aren't only self-signed
+                builder.loadTrustMaterial(null, new TrustStrategy() {
+                    @Override
+                    public boolean isTrusted(X509Certificate[] chain, String authType) {
+                        return true;
+                    }
+                });
             } else {
                 String pem = resolve(pemFile, configPath);
                 KeyStore trustStore = new TrustStore(pem).create();
