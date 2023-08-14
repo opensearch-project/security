@@ -515,7 +515,7 @@ dependencies {
 
     implementation "org.apache.kafka:kafka-clients:${kafka_version}"
 
-    runtimeOnly 'net.minidev:accessors-smart:2.4.7'
+    runtimeOnly 'net.minidev:accessors-smart:2.5.0'
 
     implementation("org.apache.cxf:cxf-rt-rs-security-jose:${apache_cxf_version}") {
         exclude(group: 'jakarta.activation', module: 'jakarta.activation-api')
