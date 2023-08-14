@@ -7,6 +7,7 @@ on:
 
 jobs:
   backport:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -15,7 +16,7 @@ jobs:
     steps:
       - name: GitHub App token
         id: github_app_token
-        uses: tibdex/github-app-token@v1.5.0
+        uses: tibdex/github-app-token@v1.8.0
         with:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -25,6 +26,5 @@ jobs:
         uses: VachaShah/backport@v2.2.0
         with:
           github_token: ${{ steps.github_app_token.outputs.token }}
-          branch_name: backport/backport-${{ github.event.number }}
           head_template: backport/backport-<%= number %>-to-<%= base %>
           failure_labels: backport-failed
