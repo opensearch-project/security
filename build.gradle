@@ -30,7 +30,7 @@ buildscript {
         open_saml_version = '4.3.0'
         one_login_java_saml = '2.9.0'
         jjwt_version = '0.11.5'
-        guava_version = '32.1.1-jre'
+        guava_version = '32.1.2-jre'
         jaxb_version = '2.3.8'
 
         if (buildVersionQualifier) {
@@ -63,7 +63,7 @@ plugins {
     id 'maven-publish'
     id 'com.diffplug.spotless' version '6.20.0'
     id 'checkstyle'
-    id 'com.netflix.nebula.ospackage' version "11.3.0"
+    id 'com.netflix.nebula.ospackage' version "11.4.0"
     id "org.gradle.test-retry" version "1.5.4"
     id 'eclipse'
     id "com.github.spotbugs" version "5.0.14"
@@ -531,7 +531,7 @@ dependencies {
     runtimeOnly 'com.google.errorprone:error_prone_annotations:2.20.0'
     runtimeOnly 'com.sun.istack:istack-commons-runtime:4.2.0'
     runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
-    runtimeOnly 'org.ow2.asm:asm:9.1'
+    runtimeOnly 'org.ow2.asm:asm:9.5'
 
     testImplementation 'org.apache.camel:camel-xmlsecurity:3.21.0'
 
@@ -568,7 +568,7 @@ dependencies {
     runtimeOnly 'org.xerial.snappy:snappy-java:1.1.10.3'
     runtimeOnly 'org.codehaus.woodstox:stax2-api:4.2.1'
     runtimeOnly "org.glassfish.jaxb:txw2:${jaxb_version}"
-    runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.4.0'
+    runtimeOnly 'com.fasterxml.woodstox:woodstox-core:6.5.1'
     runtimeOnly 'org.apache.ws.xmlschema:xmlschema-core:2.2.5'
     runtimeOnly 'org.apache.santuario:xmlsec:2.2.3'
     runtimeOnly "com.github.luben:zstd-jni:${versions.zstd}"
@@ -578,7 +578,7 @@ dependencies {
 
 
     testImplementation "org.opensaml:opensaml-messaging-impl:${open_saml_version}"
-    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.apache.commons:commons-lang3:3.13.0'
     testImplementation "org.opensearch:common-utils:${common_utils_version}"
     testImplementation "org.opensearch.plugin:reindex-client:${opensearch_version}"
     testImplementation "org.opensearch:opensearch-ssl-config:${opensearch_version}"
@@ -588,9 +588,9 @@ dependencies {
     testImplementation "org.opensearch.plugin:aggs-matrix-stats-client:${opensearch_version}"
     testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
     testImplementation 'javax.servlet:servlet-api:2.5'
-    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'com.github.stephenc.jcip:jcip-annotations:1.0-1'
-    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    testImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
     testImplementation 'javax.servlet:servlet-api:2.5'
     testImplementation 'org.apache.httpcomponents:fluent-hc:4.5.13'
     testImplementation "org.apache.httpcomponents.client5:httpclient5-fluent:${versions.httpclient5}"
@@ -600,8 +600,8 @@ dependencies {
     testImplementation "org.apache.kafka:kafka-clients:${kafka_version}:test"
     testImplementation 'org.springframework.kafka:spring-kafka-test:2.9.6'
     testImplementation 'org.springframework:spring-beans:5.3.20'
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     // Only osx-x86_64, osx-aarch_64, linux-x86_64, linux-aarch_64, windows-x86_64 are available
     if (osdetector.classifier in ["osx-x86_64", "osx-aarch_64", "linux-x86_64", "linux-aarch_64", "windows-x86_64"]) {
         testImplementation "io.netty:netty-tcnative-classes:2.0.54.Final"
@@ -610,7 +610,7 @@ dependencies {
     // JUnit build requirement
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
     // Kafka test execution
-    testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.3'
+    testRuntimeOnly 'org.springframework.retry:spring-retry:1.3.4'
     testRuntimeOnly ('org.springframework:spring-core:5.3.27') {
         exclude(group:'org.springframework', module: 'spring-jcl' )
     }
@@ -642,7 +642,7 @@ dependencies {
     integrationTestImplementation('org.awaitility:awaitility:4.2.0') {
         exclude(group: 'org.hamcrest', module: 'hamcrest')
     }
-    integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.9'
+    integrationTestImplementation 'com.unboundid:unboundid-ldapsdk:4.0.14'
 
     //Checkstyle
     checkstyle 'com.puppycrawl.tools:checkstyle:10.12.1'
