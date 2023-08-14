@@ -6,3 +6,13 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "dependabot:"
+    ignore:
+      # For all packages, ignore all major versions to minimize breaking issues
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "dependabot:"

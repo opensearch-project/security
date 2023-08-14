@@ -18,12 +18,13 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 
-import org.opensearch.action.ActionListener;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
@@ -34,8 +35,7 @@ import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.NoOpValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -45,6 +45,9 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 
 public class FlushCacheApiAction extends AbstractApiAction {
+
+    private final static Logger LOGGER = LogManager.getLogger(FlushCacheApiAction.class);
+
     private static final List<Route> routes = addRoutesPrefix(
         ImmutableList.of(
             new Route(Method.DELETE, "/cache"),
@@ -101,19 +104,19 @@ public class FlushCacheApiAction extends AbstractApiAction {
                 @Override
                 public void onResponse(ConfigUpdateResponse ur) {
                     if (ur.hasFailures()) {
-                        log.error("Cannot flush cache due to", ur.failures().get(0));
+                        LOGGER.error("Cannot flush cache due to", ur.failures().get(0));
                         internalErrorResponse(channel, "Cannot flush cache due to " + ur.failures().get(0).getMessage() + ".");
                         return;
                     }
                     successResponse(channel, "Cache flushed successfully.");
-                    if (log.isDebugEnabled()) {
-                        log.debug("cache flushed successfully");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("cache flushed successfully");
                     }
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-                    log.error("Cannot flush cache due to", e);
+                    LOGGER.error("Cannot flush cache due to", e);
                     internalErrorResponse(channel, "Cannot flush cache due to " + e.getMessage() + ".");
                 }
 
@@ -140,8 +143,8 @@ public class FlushCacheApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... param) {
-        return new NoOpValidator(request, ref, this.settings, param);
+    protected RequestContentValidator createValidator(final Object... params) {
+        return RequestContentValidator.NOOP_VALIDATOR;
     }
 
     @Override

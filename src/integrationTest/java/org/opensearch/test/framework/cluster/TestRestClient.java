@@ -69,8 +69,8 @@ import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.opensearch.common.Strings;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.security.DefaultObjectMapper;
 
@@ -133,6 +133,26 @@ public class TestRestClient implements AutoCloseable {
 
     public HttpResponse getAuthInfo(Header... headers) {
         return executeRequest(new HttpGet(getHttpServerUri() + "/_opendistro/_security/authinfo?pretty"), headers);
+    }
+
+    public HttpResponse getOBOTokenFromOboEndpoint(String jsonData, Header... headers) {
+        try {
+            HttpPost httpPost = new HttpPost(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/user/onbehalfof?pretty").build());
+            httpPost.setEntity(toStringEntity(jsonData));
+            return executeRequest(httpPost, mergeHeaders(CONTENT_TYPE_JSON, headers));
+        } catch (URISyntaxException ex) {
+            throw new RuntimeException("Incorrect URI syntax", ex);
+        }
+    }
+
+    public HttpResponse changeInternalUserPassword(String jsonData, Header... headers) {
+        try {
+            HttpPut httpPut = new HttpPut(new URIBuilder(getHttpServerUri() + "/_plugins/_security/api/account?pretty").build());
+            httpPut.setEntity(toStringEntity(jsonData));
+            return executeRequest(httpPut, mergeHeaders(CONTENT_TYPE_JSON, headers));
+        } catch (URISyntaxException ex) {
+            throw new RuntimeException("Incorrect URI syntax", ex);
+        }
     }
 
     public void assertCorrectCredentials(String expectedUserName) {

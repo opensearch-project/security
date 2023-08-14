@@ -20,7 +20,8 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 
-import org.opensearch.action.ActionListener;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
 import org.opensearch.action.bulk.BulkResponse;
@@ -30,6 +31,7 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.inject.Inject;
@@ -45,8 +47,7 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.auditlog.config.AuditConfig;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.NoOpValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.Migration;
 import org.opensearch.security.securityconf.impl.CType;
@@ -71,6 +72,8 @@ import static org.opensearch.security.dlic.rest.support.Utils.addRoutesPrefix;
 // CS-ENFORCE-SINGLE
 
 public class MigrateApiAction extends AbstractApiAction {
+    private final static Logger LOGGER = LogManager.getLogger(MigrateApiAction.class);
+
     private static final List<Route> routes = addRoutesPrefix(Collections.singletonList(new Route(Method.POST, "/migrate")));
 
     @Inject
@@ -187,7 +190,7 @@ public class MigrateApiAction extends AbstractApiAction {
             public void onResponse(AcknowledgedResponse response) {
 
                 if (response.isAcknowledged()) {
-                    log.debug("opendistro_security index deleted successfully");
+                    LOGGER.debug("opendistro_security index deleted successfully");
 
                     client.admin()
                         .indices()
@@ -215,7 +218,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                         cTypes.add(id);
                                     }
                                 } catch (final IOException e1) {
-                                    log.error("Unable to create bulk request " + e1, e1);
+                                    LOGGER.error("Unable to create bulk request " + e1, e1);
                                     internalErrorResponse(channel, "Unable to create bulk request.");
                                     return;
                                 }
@@ -229,7 +232,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                             @Override
                                             public void onResponse(BulkResponse response) {
                                                 if (response.hasFailures()) {
-                                                    log.error(
+                                                    LOGGER.error(
                                                         "Unable to upload migrated configuration because of "
                                                             + response.buildFailureMessage()
                                                     );
@@ -238,7 +241,7 @@ public class MigrateApiAction extends AbstractApiAction {
                                                         "Unable to upload migrated configuration (bulk index failed)."
                                                     );
                                                 } else {
-                                                    log.debug("Migration completed");
+                                                    LOGGER.debug("Migration completed");
                                                     successResponse(channel, "Migration completed.");
                                                 }
 
@@ -246,7 +249,7 @@ public class MigrateApiAction extends AbstractApiAction {
 
                                             @Override
                                             public void onFailure(Exception e) {
-                                                log.error("Unable to upload migrated configuration because of " + e, e);
+                                                LOGGER.error("Unable to upload migrated configuration because of " + e, e);
                                                 internalErrorResponse(channel, "Unable to upload migrated configuration.");
                                             }
                                         }
@@ -257,19 +260,19 @@ public class MigrateApiAction extends AbstractApiAction {
 
                             @Override
                             public void onFailure(Exception e) {
-                                log.error("Unable to create opendistro_security index because of " + e, e);
+                                LOGGER.error("Unable to create opendistro_security index because of " + e, e);
                                 internalErrorResponse(channel, "Unable to create opendistro_security index.");
                             }
                         });
 
                 } else {
-                    log.error("Unable to create opendistro_security index.");
+                    LOGGER.error("Unable to create opendistro_security index.");
                 }
             }
 
             @Override
             public void onFailure(Exception e) {
-                log.error("Unable to delete opendistro_security index because of " + e, e);
+                LOGGER.error("Unable to delete opendistro_security index because of " + e, e);
                 internalErrorResponse(channel, "Unable to delete opendistro_security index.");
             }
         });
@@ -295,8 +298,8 @@ public class MigrateApiAction extends AbstractApiAction {
     }
 
     @Override
-    protected AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... param) {
-        return new NoOpValidator(request, ref, this.settings, param);
+    protected RequestContentValidator createValidator(final Object... params) {
+        return RequestContentValidator.NOOP_VALIDATOR;
     }
 
     @Override

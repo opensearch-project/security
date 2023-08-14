@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -88,7 +87,7 @@ public class AuditConfigSerializeTest {
             .endObject()
             .endObject();
 
-        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
+        assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
     @Test
@@ -148,7 +147,7 @@ public class AuditConfigSerializeTest {
             .field("write_ignore_users", Collections.singletonList("test-user-3"))
             .endObject()
             .endObject();
-        final String json = Strings.toString(jsonBuilder);
+        final String json = jsonBuilder.toString();
 
         // act
         final AuditConfig auditConfig = objectMapper.readValue(json, AuditConfig.class);
@@ -246,7 +245,7 @@ public class AuditConfigSerializeTest {
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
+        assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
     @Test
@@ -288,7 +287,7 @@ public class AuditConfigSerializeTest {
         // act
         final String json = objectMapper.writeValueAsString(auditConfig);
         // assert
-        assertTrue(compareJson(Strings.toString(jsonBuilder), json));
+        assertTrue(compareJson(jsonBuilder.toString(), json));
     }
 
     @Test
@@ -348,7 +347,7 @@ public class AuditConfigSerializeTest {
             .field("write_log_diffs", false)
             .endObject()
             .endObject();
-        final String json = Strings.toString(jsonBuilder);
+        final String json = jsonBuilder.toString();
 
         // act
         final AuditConfig auditConfig = customObjectMapper.readValue(json, AuditConfig.class);

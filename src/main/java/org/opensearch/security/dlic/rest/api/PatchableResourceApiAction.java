@@ -12,12 +12,10 @@
 package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.JsonPatch;
@@ -28,8 +26,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.common.bytes.BytesArray;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
@@ -42,7 +38,8 @@ import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
 import org.opensearch.security.dlic.rest.support.Utils;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
+import org.opensearch.security.dlic.rest.validation.ValidationResult;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.impl.CType;
 import org.opensearch.security.securityconf.impl.SecurityDynamicConfiguration;
@@ -71,7 +68,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
     }
 
     private void handlePatch(RestChannel channel, final RestRequest request, final Client client) throws IOException {
-        if (request.getXContentType() != XContentType.JSON) {
+        if (request.getMediaType() != XContentType.JSON) {
             badRequestResponse(channel, "PATCH accepts only application/json");
             return;
         }
@@ -140,7 +137,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
-        AbstractConfigurationValidator originalValidator = postProcessApplyPatchResult(
+        ValidationResult originalValidationResult = postProcessApplyPatchResult(
             channel,
             request,
             existingResourceAsJsonNode,
@@ -148,10 +145,10 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             name
         );
 
-        if (originalValidator != null) {
-            if (!originalValidator.validate()) {
+        if (originalValidationResult != null) {
+            if (!originalValidationResult.isValid()) {
                 request.params().clear();
-                badRequestResponse(channel, originalValidator);
+                badRequestResponse(channel, originalValidationResult.errorMessage());
                 return;
             }
         }
@@ -162,9 +159,9 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             return;
         }
 
-        AbstractConfigurationValidator validator = getValidator(request, patchedResourceAsJsonNode);
-
-        if (!validator.validate()) {
+        RequestContentValidator validator = createValidator();
+        final ValidationResult validationResult = validator.validate(request, patchedResourceAsJsonNode);
+        if (!validationResult.isValid()) {
             request.params().clear();
             badRequestResponse(channel, validator);
             return;
@@ -230,7 +227,7 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             JsonNode oldResource = existingAsObjectNode.get(resourceName);
             JsonNode patchedResource = patchedAsJsonNode.get(resourceName);
 
-            AbstractConfigurationValidator originalValidator = postProcessApplyPatchResult(
+            ValidationResult originalValidationResult = postProcessApplyPatchResult(
                 channel,
                 request,
                 oldResource,
@@ -238,10 +235,10 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
                 resourceName
             );
 
-            if (originalValidator != null) {
-                if (!originalValidator.validate()) {
+            if (originalValidationResult != null) {
+                if (!originalValidationResult.isValid()) {
                     request.params().clear();
-                    badRequestResponse(channel, originalValidator);
+                    badRequestResponse(channel, originalValidationResult.errorMessage());
                     return;
                 }
             }
@@ -253,9 +250,9 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
             }
 
             if (oldResource == null || !oldResource.equals(patchedResource)) {
-                AbstractConfigurationValidator validator = getValidator(request, patchedResource);
-
-                if (!validator.validate()) {
+                RequestContentValidator validator = createValidator();
+                final ValidationResult validationResult = validator.validate(request, patchedResource);
+                if (!validationResult.isValid()) {
                     request.params().clear();
                     badRequestResponse(channel, validator);
                     return;
@@ -299,13 +296,13 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         return JsonPatch.apply(jsonPatch, existingResourceAsJsonNode);
     }
 
-    protected AbstractConfigurationValidator postProcessApplyPatchResult(
+    protected ValidationResult postProcessApplyPatchResult(
         RestChannel channel,
         RestRequest request,
         JsonNode existingResourceAsJsonNode,
         JsonNode updatedResourceAsJsonNode,
         String resourceName
-    ) {
+    ) throws IOException {
         // do nothing by default
         return null;
     }
@@ -318,13 +315,6 @@ public abstract class PatchableResourceApiAction extends AbstractApiAction {
         } else {
             super.handleApiRequest(channel, request, client);
         }
-    }
-
-    private AbstractConfigurationValidator getValidator(RestRequest request, JsonNode patchedResource) throws JsonProcessingException {
-        BytesReference patchedResourceAsByteReference = new BytesArray(
-            DefaultObjectMapper.objectMapper.writeValueAsString(patchedResource).getBytes(StandardCharsets.UTF_8)
-        );
-        return getValidator(request, patchedResourceAsByteReference);
     }
 
     // Prevent the case where action group references to itself in the allowed_actions.

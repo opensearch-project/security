@@ -13,7 +13,6 @@ package org.opensearch.security.dlic.rest.api;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 
@@ -23,14 +22,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.ExceptionsHelper;
-import org.opensearch.action.ActionListener;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
 import org.opensearch.common.xcontent.XContentHelper;
@@ -44,17 +41,16 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.security.DefaultObjectMapper;
 import org.opensearch.security.action.configupdate.ConfigUpdateAction;
-import org.opensearch.security.action.configupdate.ConfigUpdateNodeResponse;
 import org.opensearch.security.action.configupdate.ConfigUpdateRequest;
 import org.opensearch.security.action.configupdate.ConfigUpdateResponse;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.ConfigurationRepository;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator;
-import org.opensearch.security.dlic.rest.validation.AbstractConfigurationValidator.ErrorType;
+import org.opensearch.security.dlic.rest.validation.RequestContentValidator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.securityconf.DynamicConfigFactory;
 import org.opensearch.security.securityconf.impl.CType;
@@ -68,7 +64,7 @@ import static org.opensearch.security.support.ConfigConstants.SECURITY_RESTAPI_A
 
 public abstract class AbstractApiAction extends BaseRestHandler {
 
-    protected final Logger log = LogManager.getLogger(this.getClass());
+    private final static Logger LOGGER = LogManager.getLogger(AbstractApiAction.class);
 
     protected final ConfigurationRepository cl;
     protected final ClusterService cs;
@@ -119,7 +115,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         this.auditLog = auditLog;
     }
 
-    protected abstract AbstractConfigurationValidator getValidator(RestRequest request, BytesReference ref, Object... params);
+    protected abstract RequestContentValidator createValidator(final Object... params);
 
     protected abstract String getResourceName();
 
@@ -128,25 +124,22 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     protected void handleApiRequest(final RestChannel channel, final RestRequest request, final Client client) throws IOException {
 
         try {
-            // validate additional settings, if any
-            AbstractConfigurationValidator validator = getValidator(request, request.content());
-            if (!validator.validate()) {
-                request.params().clear();
-                badRequestResponse(channel, validator);
-                return;
-            }
             switch (request.method()) {
                 case DELETE:
-                    handleDelete(channel, request, client, validator.getContentAsNode());
+                    handleDelete(channel, request, client, null);
                     break;
                 case POST:
-                    handlePost(channel, request, client, validator.getContentAsNode());
+                    createValidator().validate(request)
+                        .valid(jsonContent -> handlePost(channel, request, client, jsonContent))
+                        .error(toXContent -> requestContentInvalid(request, channel, toXContent));
                     break;
                 case PUT:
-                    handlePut(channel, request, client, validator.getContentAsNode());
+                    createValidator().validate(request)
+                        .valid(jsonContent -> handlePut(channel, request, client, jsonContent))
+                        .error(toXContent -> requestContentInvalid(request, channel, toXContent));
                     break;
                 case GET:
-                    handleGet(channel, request, client, validator.getContentAsNode());
+                    handleGet(channel, request, client, null);
                     break;
                 default:
                     throw new IllegalArgumentException(request.method() + " not supported");
@@ -158,6 +151,11 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             // throw jme;
             // } else throw new JsonMappingException(null, jme.getMessage());
         }
+    }
+
+    protected void requestContentInvalid(final RestRequest request, final RestChannel channel, final ToXContent toXContent) {
+        request.params().clear();
+        badRequestResponse(channel, toXContent);
     }
 
     protected void handleDelete(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
@@ -200,16 +198,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     protected void handlePut(final RestChannel channel, final RestRequest request, final Client client, final JsonNode content)
         throws IOException {
-
         final String name = request.param("name");
-
         if (name == null || name.length() == 0) {
             badRequestResponse(channel, "No " + getResourceName() + " specified.");
             return;
         }
-
         final SecurityDynamicConfiguration<?> existingConfiguration = load(getConfigName(), false);
-
         if (existingConfiguration.getSeqNo() < 0) {
             forbidden(
                 channel,
@@ -227,8 +221,8 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             return;
         }
 
-        if (log.isTraceEnabled() && content != null) {
-            log.trace(content.toString());
+        if (LOGGER.isTraceEnabled() && content != null) {
+            LOGGER.trace(content.toString());
         }
 
         boolean existed = existingConfiguration.exists(name);
@@ -274,43 +268,27 @@ public abstract class AbstractApiAction extends BaseRestHandler {
     }
 
     protected void handleGet(final RestChannel channel, RestRequest request, Client client, final JsonNode content) throws IOException {
-
         final String resourcename = request.param("name");
-
         final SecurityDynamicConfiguration<?> configuration = load(getConfigName(), true);
         filter(configuration);
-
         // no specific resource requested, return complete config
         if (resourcename == null || resourcename.length() == 0) {
 
             successResponse(channel, configuration);
             return;
         }
-
         if (!configuration.exists(resourcename)) {
             notFound(channel, "Resource '" + resourcename + "' not found.");
             return;
         }
-
         configuration.removeOthers(resourcename);
         successResponse(channel, configuration);
-
-        return;
     }
 
     protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent) {
         SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(Collections.singleton(config), logComplianceEvent)
             .get(config)
             .deepClone();
-        return DynamicConfigFactory.addStatics(loaded);
-    }
-
-    protected final SecurityDynamicConfiguration<?> load(final CType config, boolean logComplianceEvent, boolean acceptInvalid) {
-        SecurityDynamicConfiguration<?> loaded = cl.getConfigurationsFromIndex(
-            Collections.singleton(config),
-            logComplianceEvent,
-            acceptInvalid
-        ).get(config).deepClone();
         return DynamicConfigFactory.addStatics(loaded);
     }
 
@@ -434,7 +412,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
         // check if .opendistro_security index has been initialized
         if (!ensureIndexExists()) {
-            return channel -> internalErrorResponse(channel, ErrorType.SECURITY_NOT_INITIALIZED.getMessage());
+            return channel -> internalErrorResponse(channel, RequestContentValidator.ValidationError.SECURITY_NOT_INITIALIZED.message());
         }
 
         // check if request is authorized
@@ -443,7 +421,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
         final User user = (User) threadPool.getThreadContext().getTransient(ConfigConstants.OPENDISTRO_SECURITY_USER);
         final String userName = user == null ? null : user.getName();
         if (authError != null) {
-            log.error("No permission to access REST API: " + authError);
+            LOGGER.error("No permission to access REST API: " + authError);
             auditLog.logMissingPrivileges(authError, userName, request);
             // for rest request
             request.params().clear();
@@ -465,7 +443,7 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
                 handleApiRequest(channel, request, client);
             } catch (Exception e) {
-                log.error("Error processing request {}", request, e);
+                LOGGER.error("Error processing request {}", request, e);
                 try {
                     channel.sendResponse(new BytesRestResponse(channel, e));
                 } catch (IOException ioe) {
@@ -473,37 +451,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
                 }
             }
         });
-    }
-
-    protected boolean checkConfigUpdateResponse(final ConfigUpdateResponse response) {
-
-        final int nodeCount = cs.state().getNodes().getNodes().size();
-        final int expectedConfigCount = 1;
-
-        boolean success = response.getNodes().size() == nodeCount;
-        if (!success) {
-            log.error("Expected " + nodeCount + " nodes to return response, but got only " + response.getNodes().size());
-        }
-
-        for (final String nodeId : response.getNodesMap().keySet()) {
-            final ConfigUpdateNodeResponse node = response.getNodesMap().get(nodeId);
-            final boolean successNode = node.getUpdatedConfigTypes() != null && node.getUpdatedConfigTypes().length == expectedConfigCount;
-
-            if (!successNode) {
-                log.error(
-                    "Expected "
-                        + expectedConfigCount
-                        + " config types for node "
-                        + nodeId
-                        + " but got only "
-                        + Arrays.toString(node.getUpdatedConfigTypes())
-                );
-            }
-
-            success = success && successNode;
-        }
-
-        return success;
     }
 
     protected static XContentBuilder convertToJson(RestChannel channel, ToXContent toxContent) {
@@ -541,12 +488,12 @@ public abstract class AbstractApiAction extends BaseRestHandler {
             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
         } catch (IOException e) {
             internalErrorResponse(channel, "Unable to fetch license: " + e.getMessage());
-            log.error("Cannot fetch convert license to XContent due to", e);
+            LOGGER.error("Cannot fetch convert license to XContent due to", e);
         }
     }
 
-    protected void badRequestResponse(RestChannel channel, AbstractConfigurationValidator validator) {
-        channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, validator.errorsAsXContent(channel)));
+    protected void badRequestResponse(RestChannel channel, ToXContent validationResult) {
+        channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, convertToJson(channel, validationResult)));
     }
 
     protected void successResponse(RestChannel channel, String message) {
@@ -571,10 +518,6 @@ public abstract class AbstractApiAction extends BaseRestHandler {
 
     protected void internalErrorResponse(RestChannel channel, String message) {
         response(channel, RestStatus.INTERNAL_SERVER_ERROR, message);
-    }
-
-    protected void unprocessable(RestChannel channel, String message) {
-        response(channel, RestStatus.UNPROCESSABLE_ENTITY, message);
     }
 
     protected void conflict(RestChannel channel, String message) {

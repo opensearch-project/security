@@ -192,7 +192,7 @@ class AuthTokenProcessorHandler {
         XPathExpressionException, ParserConfigurationException, SAXException, SettingsException {
         try {
 
-            if (restRequest.getXContentType() != XContentType.JSON) {
+            if (restRequest.getMediaType() != XContentType.JSON) {
                 throw new OpenSearchSecurityException(
                     "/_opendistro/_security/api/authtoken expects content with type application/json",
                     RestStatus.UNSUPPORTED_MEDIA_TYPE

@@ -64,6 +64,10 @@ public class ExceptionUtils {
         );
     }
 
+    public static OpenSearchException invalidUsageOfOBOTokenException() {
+        return new OpenSearchException("On-Behalf-Of Token is not allowed to be used for accessing this endopoint.");
+    }
+
     public static OpenSearchException createTransportClientNoLongerSupportedException() {
         return new OpenSearchException("Transport client authentication no longer supported.");
     }
