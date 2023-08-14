@@ -24,7 +24,7 @@ jobs:
         java-version: 17
 
     - name: Checkout security
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Generate list of tasks
       id: set-matrix
@@ -50,7 +50,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
@@ -93,7 +93,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout security
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
@@ -116,7 +116,7 @@ jobs:
         java-version: ${{ matrix.jdk }}
 
     - name: Checkout Security Repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - id: build-previous
       uses: ./.github/actions/run-bwc-suite
@@ -128,7 +128,7 @@ jobs:
   code-ql:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/setup-java@v1
       with:
         java-version: 11
@@ -141,7 +141,7 @@ jobs:
   build-artifact-names:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: actions/setup-java@v1
       with:
