@@ -34,7 +34,7 @@ import org.apache.lucene.util.BytesRef;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.action.ActionListener;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.RealtimeRequest;
@@ -48,10 +48,10 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.index.query.ParsedQuery;
 import org.opensearch.core.rest.RestStatus;
@@ -230,10 +230,10 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     StringBuilder sb = new StringBuilder();
 
                     if (searchRequest.source() != null) {
-                        sb.append(Strings.toString(XContentType.JSON, searchRequest.source()) + System.lineSeparator());
+                        sb.append(Strings.toString(MediaTypeRegistry.JSON, searchRequest.source()) + System.lineSeparator());
                     }
 
-                    sb.append(Strings.toString(XContentType.JSON, af) + System.lineSeparator());
+                    sb.append(Strings.toString(MediaTypeRegistry.JSON, af) + System.lineSeparator());
 
                     LogManager.getLogger("debuglogger").error(sb.toString());
 
@@ -245,7 +245,9 @@ public class DlsFlsValveImpl implements DlsFlsRequestValve {
                     LogManager.getLogger("debuglogger")
                         .error(
                             "Shard requestcache enabled for "
-                                + (searchRequest.source() == null ? "<NULL>" : Strings.toString(XContentType.JSON, searchRequest.source()))
+                                + (searchRequest.source() == null
+                                    ? "<NULL>"
+                                    : Strings.toString(MediaTypeRegistry.JSON, searchRequest.source()))
                         );
                 }
 

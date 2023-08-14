@@ -19,7 +19,7 @@ extensions_role:
     - '*'
   index_permissions:
     - index_patterns:
-        - '*'
+        - '.system*'
       allowed_actions:
         - '*'
         - 'system:admin/system_index'

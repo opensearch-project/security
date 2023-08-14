@@ -27,6 +27,7 @@
 package org.opensearch.security.privileges;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,7 +59,10 @@ public class SecurityIndexAccessEvaluator {
     private final boolean filterSecurityIndex;
     // for system-indices configuration
     private final WildcardMatcher systemIndexMatcher;
+    private final WildcardMatcher denylistIndexMatcher;
+
     private final boolean systemIndexEnabled;
+    private boolean systemIndicesAdditionalControlFlag;
 
     public SecurityIndexAccessEvaluator(final Settings settings, AuditLog auditLog, IndexResolverReplacer irr) {
         this.securityIndex = settings.get(
@@ -71,6 +75,7 @@ public class SecurityIndexAccessEvaluator {
         this.systemIndexMatcher = WildcardMatcher.from(
             settings.getAsList(ConfigConstants.SECURITY_SYSTEM_INDICES_KEY, ConfigConstants.SECURITY_SYSTEM_INDICES_DEFAULT)
         );
+        this.denylistIndexMatcher = WildcardMatcher.from(ConfigConstants.OPENDISTRO_SECURITY_DEFAULT_CONFIG_INDEX);
         this.systemIndexEnabled = settings.getAsBoolean(
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_KEY,
             ConfigConstants.SECURITY_SYSTEM_INDICES_ENABLED_DEFAULT
@@ -97,6 +102,10 @@ public class SecurityIndexAccessEvaluator {
         securityDeniedActionMatcher = WildcardMatcher.from(
             restoreSecurityIndexEnabled ? securityIndexDeniedActionPatternsList : securityIndexDeniedActionPatternsListNoSnapshot
         );
+        systemIndicesAdditionalControlFlag = settings.getAsBoolean(
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY,
+            ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_DEFAULT
+        );
     }
 
     public PrivilegesEvaluatorResponse evaluate(
@@ -107,43 +116,17 @@ public class SecurityIndexAccessEvaluator {
         final PrivilegesEvaluatorResponse presponse,
         final SecurityRoles securityRoles
     ) {
-
         final boolean isDebugEnabled = log.isDebugEnabled();
 
-        if (matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)) {
-            auditLog.logSecurityIndexAttempt(request, action, task);
-            if (log.isInfoEnabled()) {
-                log.info(
-                    "No {} permission for user roles {} to System Indices {}",
-                    action,
-                    securityRoles,
-                    getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "))
-                );
-            }
-            presponse.allowed = false;
-            return presponse.markComplete();
+        // As per issue #2845, the legacy access control to indices with additional protection should be kept in place in the meantime and
+        // be the default.
+        if (systemIndicesAdditionalControlFlag) {
+            evaluateNewSecuredIndicesAccess(action, requestedResolved, request, task, presponse, securityRoles, isDebugEnabled);
+        } else {
+            evaluateLegacySecuredIndicesAccess(action, requestedResolved, request, task, presponse, isDebugEnabled);
         }
-
-        if (securityDeniedActionMatcher.test(action)) {
-            if (requestedResolved.isLocalAll()) {
-                if (filterSecurityIndex) {
-                    irr.replace(request, false, "*", "-" + securityIndex);
-                    if (isDebugEnabled) {
-                        log.debug(
-                            "Filtered '{}'from {}, resulting list with *,-{} is {}",
-                            securityIndex,
-                            requestedResolved,
-                            securityIndex,
-                            irr.resolveRequest(request)
-                        );
-                    }
-                    return presponse;
-                }
-                auditLog.logSecurityIndexAttempt(request, action, task);
-                log.info("{} for '_all' indices is not allowed for a regular user", action);
-                presponse.allowed = false;
-                return presponse.markComplete();
-            }
+        if (presponse.isComplete()) {
+            return presponse;
         }
 
         if (requestedResolved.isLocalAll()
@@ -197,5 +180,134 @@ public class SecurityIndexAccessEvaluator {
             protectedIndexes.addAll(systemIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
         }
         return protectedIndexes;
+    }
+
+    private boolean matchAnyDenyIndices(final Resolved requestedResolved) {
+        return !getDenyListIndices(requestedResolved).isEmpty();
+    }
+
+    private List<String> getDenyListIndices(final Resolved requestedResolved) {
+        final List<String> denyList = new ArrayList<>();
+        denyList.addAll(denylistIndexMatcher.getMatchAny(requestedResolved.getAllIndices(), Collectors.toList()));
+
+        return denyList;
+    }
+
+    private PrivilegesEvaluatorResponse evaluateNewSecuredIndicesAccess(
+        String action,
+        Resolved requestedResolved,
+        ActionRequest request,
+        Task task,
+        PrivilegesEvaluatorResponse presponse,
+        SecurityRoles securityRoles,
+        Boolean isDebugEnabled
+
+    ) {
+        if (matchAnyDenyIndices(requestedResolved)){
+            auditLog.logSecurityIndexAttempt(request, action, task);
+            if (log.isInfoEnabled()) {
+                log.info(
+                    "{} not permited for regular user {} on denylist indices {}",
+                    action,
+                    securityRoles,
+                    getDenyListIndices(requestedResolved).stream().collect(Collectors.joining(", "))
+                );
+            }
+            presponse.allowed = false;
+            return presponse.markComplete();
+        }
+
+        if (matchAnySystemIndices(requestedResolved) && !checkSystemIndexPermissionsForUser(securityRoles)) {
+            auditLog.logSecurityIndexAttempt(request, action, task);
+            if (log.isInfoEnabled()) {
+                log.info(
+                    "No {} permission for user roles {} to System Indices {}",
+                    action,
+                    securityRoles,
+                    getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "))
+                );
+            }
+            presponse.allowed = false;
+            return presponse.markComplete();
+        }
+
+        if (securityDeniedActionMatcher.test(action)) {
+            if (requestedResolved.isLocalAll()) {
+                if (filterSecurityIndex) {
+                    irr.replace(request, false, "*", "-" + securityIndex);
+                    if (isDebugEnabled) {
+                        log.debug(
+                            "Filtered '{}'from {}, resulting list with *,-{} is {}",
+                            securityIndex,
+                            requestedResolved,
+                            securityIndex,
+                            irr.resolveRequest(request)
+                        );
+                    }
+                    return presponse;
+                }
+                auditLog.logSecurityIndexAttempt(request, action, task);
+                log.info("{} for '_all' indices is not allowed for a regular user", action);
+                presponse.allowed = false;
+                return presponse.markComplete();
+            }
+        }
+        return presponse;
+    }
+
+    private PrivilegesEvaluatorResponse evaluateLegacySecuredIndicesAccess(
+        String action,
+        Resolved requestedResolved,
+        ActionRequest request,
+        Task task,
+        PrivilegesEvaluatorResponse presponse,
+        Boolean isDebugEnabled
+    ) {
+        if (securityDeniedActionMatcher.test(action)) {
+            if (requestedResolved.isLocalAll()) {
+                if (filterSecurityIndex) {
+                    irr.replace(request, false, "*", "-" + securityIndex);
+                    if (isDebugEnabled) {
+                        log.debug(
+                            "Filtered '{}'from {}, resulting list with *,-{} is {}",
+                            securityIndex,
+                            requestedResolved,
+                            securityIndex,
+                            irr.resolveRequest(request)
+                        );
+                    }
+                    return presponse;
+                } else {
+                    auditLog.logSecurityIndexAttempt(request, action, task);
+                    log.info("{} for '_all' indices is not allowed for a regular user", action);
+                    presponse.allowed = false;
+                    return presponse.markComplete();
+                }
+            } else if (matchAnySystemIndices(requestedResolved)) {
+                if (filterSecurityIndex) {
+                    Set<String> allWithoutSecurity = new HashSet<>(requestedResolved.getAllIndices());
+                    allWithoutSecurity.remove(securityIndex);
+                    if (allWithoutSecurity.isEmpty()) {
+                        if (isDebugEnabled) {
+                            log.debug("Filtered '{}' but resulting list is empty", securityIndex);
+                        }
+                        presponse.allowed = false;
+                        return presponse.markComplete();
+                    }
+                    irr.replace(request, false, allWithoutSecurity.toArray(new String[0]));
+                    if (isDebugEnabled) {
+                        log.debug("Filtered '{}', resulting list is {}", securityIndex, allWithoutSecurity);
+                    }
+                    return presponse;
+                } else {
+                    auditLog.logSecurityIndexAttempt(request, action, task);
+                    final String foundSystemIndexes = getProtectedIndexes(requestedResolved).stream().collect(Collectors.joining(", "));
+                    log.warn("{} for '{}' index is not allowed for a regular user", action, foundSystemIndexes);
+                    presponse.allowed = false;
+                    return presponse.markComplete();
+                }
+            }
+        }
+        return presponse;
     }
 }

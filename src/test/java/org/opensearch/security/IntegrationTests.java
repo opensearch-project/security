@@ -505,22 +505,22 @@ public class IntegrationTests extends SingleClusterTest {
         }
 
         RestHelper rh = nonSslRestHelper();
-        HttpResponse res;
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            (res = rh.executePostRequest(
-                "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
-                "{\"query\" : {\"match_all\" : {}}}",
-                encodeBasicHeader("nagilum", "nagilum")
-            )).getStatusCode()
+        HttpResponse res = rh.executePostRequest(
+            "/vulcango*/_delete_by_query?refresh=true&wait_for_completion=true&pretty=true",
+            "{\"query\" : {\"match_all\" : {}}}",
+            encodeBasicHeader("nagilum", "nagilum")
         );
+        Assert.assertEquals(HttpStatus.SC_OK, res.getStatusCode());
         Assert.assertTrue(res.getBody().contains("\"deleted\" : 3"));
 
     }
 
     @Test
     public void testUpdate() throws Exception {
-        final Settings settings = Settings.builder().put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH").build();
+        final Settings settings = Settings.builder()
+            .put(ConfigConstants.SECURITY_ROLES_MAPPING_RESOLUTION, "BOTH")
+            .put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false)
+            .build();
         setup(settings);
         final RestHelper rh = nonSslRestHelper();
 
@@ -1040,7 +1040,7 @@ public class IntegrationTests extends SingleClusterTest {
 
     @Test
     public void testSecurityIndexSecurity() throws Exception {
-        setup();
+        setup(Settings.builder().put(ConfigConstants.SECURITY_SYSTEM_INDICES_ADDITIONAL_CONTROL_ENABLED_KEY, false).build());
         final RestHelper rh = nonSslRestHelper();
 
         HttpResponse res = rh.executePutRequest(
@@ -1049,6 +1049,7 @@ public class IntegrationTests extends SingleClusterTest {
             encodeBasicHeader("nagilum", "nagilum")
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
+
         res = rh.executePutRequest(
             "*dis*rit*/_mapping?pretty",
             "{\"properties\": {\"name\":{\"type\":\"text\"}}}",
@@ -1084,9 +1085,8 @@ public class IntegrationTests extends SingleClusterTest {
             encodeBasicHeader("nagilum", "nagilum")
         );
         Assert.assertEquals(HttpStatus.SC_FORBIDDEN, res.getStatusCode());
-        // res = rh.executePostRequest(".opendistro_security/_freeze", "",
-        // encodeBasicHeader("nagilum", "nagilum"));
-        // Assert.assertTrue(res.getStatusCode() >= 400);
+        res = rh.executePostRequest(".opendistro_security/_freeze", "", encodeBasicHeader("nagilum", "nagilum"));
+        Assert.assertTrue(res.getStatusCode() >= 400);
 
         String bulkBody = "{ \"index\" : { \"_index\" : \".opendistro_security\", \"_id\" : \"1\" } }\n"
             + "{ \"field1\" : \"value1\" }\n"

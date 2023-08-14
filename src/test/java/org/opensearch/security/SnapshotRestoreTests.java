@@ -731,14 +731,12 @@ public class SnapshotRestoreTests extends SingleClusterTest {
             + "\"include_global_state\": false"
             + "}";
 
-        Assert.assertEquals(
-            HttpStatus.SC_OK,
-            rh.executePutRequest(
-                "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
-                putSnapshot,
-                encodeBasicHeader("snapresuser", "nagilum")
-            ).getStatusCode()
+        RestHelper.HttpResponse response = rh.executePutRequest(
+            "_snapshot/bckrepo/" + putSnapshot.hashCode() + "?wait_for_completion=true&pretty",
+            putSnapshot,
+            encodeBasicHeader("snapresuser", "nagilum")
         );
+        Assert.assertEquals(HttpStatus.SC_OK, response.getStatusCode());
         Assert.assertEquals(
             HttpStatus.SC_FORBIDDEN,
             rh.executePostRequest(

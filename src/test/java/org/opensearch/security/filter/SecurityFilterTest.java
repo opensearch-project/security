@@ -21,8 +21,8 @@ import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.ActionListener;
-import org.opensearch.action.ActionResponse;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.security.auditlog.AuditLog;

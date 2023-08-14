@@ -41,7 +41,6 @@ import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.Strings;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Settings;
@@ -314,7 +313,7 @@ public final class RequestResolver {
                         builder.field("transient_settings", Utils.convertJsonToxToStructuredMap(persistentSettings));
                     }
                     builder.endObject();
-                    msg.addUnescapedJsonToRequestBody(builder == null ? null : Strings.toString(builder));
+                    msg.addUnescapedJsonToRequestBody(builder == null ? null : builder.toString());
                 } catch (IOException e) {
                     log.error(e.toString());
                 } finally {
