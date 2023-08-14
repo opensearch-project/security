@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
@@ -342,6 +343,22 @@ public class RestHelper {
                 return false;
             }
             return ct.contains("application/json");
+        }
+
+        public String getTextFromJsonBody(String jsonPointer) {
+            return getJsonNodeAt(jsonPointer).asText();
+        }
+
+        private JsonNode getJsonNodeAt(String jsonPointer) {
+            try {
+                return toJsonNode().at(jsonPointer);
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Cound not convert response body to JSON node ", e);
+            }
+        }
+
+        private JsonNode toJsonNode() throws JsonProcessingException, IOException {
+            return DefaultObjectMapper.objectMapper.readTree(getBody());
         }
 
         public CloseableHttpResponse getInner() {
