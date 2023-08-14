@@ -25,7 +25,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
 import org.opensearch.action.get.GetRequest;
@@ -44,6 +43,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.concurrent.ThreadContext.StoredContext;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.get.GetResult;
 import org.opensearch.index.mapper.MapperService;

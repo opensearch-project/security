@@ -34,7 +34,7 @@ import org.apache.lucene.util.BytesRef;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.SpecialPermission;
-import org.opensearch.action.ActionListener;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.RealtimeRequest;
