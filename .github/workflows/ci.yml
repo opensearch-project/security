@@ -55,6 +55,7 @@ jobs:
     - name: Build and Test
       uses: gradle/gradle-build-action@v2
       with:
+        cache-disabled: true
         arguments: |
           ${{ matrix.gradle_task }} -Dbuild.snapshot=false
           -x test
@@ -99,6 +100,7 @@ jobs:
       uses: gradle/gradle-build-action@v2
       continue-on-error: true # Until retries are enable do not fail the workflow https://github.com/opensearch-project/security/issues/2184
       with:
+        cache-disabled: true
         arguments: |
           integrationTest -Dbuild.snapshot=false
 
